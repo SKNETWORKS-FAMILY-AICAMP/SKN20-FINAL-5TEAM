@@ -1,7 +1,7 @@
 # 수정일: 2026-01-20
 # 수정내용: 팀원 A (User 담당) - 회원 관련 뷰 정의
 
-from rest_framework import viewsets, serializers, permissions
+from rest_framework import viewsets, serializers
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User
 from core.models import UserProfile, UserDetail
@@ -89,52 +89,67 @@ class UserProfileSerializer(serializers.ModelSerializer):
         - UserDetail(상세 정보) 데이터 분리 및 저장
         - 비밀번호 암호화(Hashing) 적용
         - Django 인증 시스템(auth.User) 계정 동시 생성 (로그인 연동용)
+        - 트랜잭션 처리 추가 (데이터 일관성 보장)
         """
+        from django.db import transaction
+
         # [2026-01-21] create_id, update_id 자동 설정 (회원가입 시 admin)
         validated_data['create_id'] = 'admin'
         validated_data['update_id'] = 'admin'
 
         # 1. user_detail 데이터 분리
         detail_data = validated_data.pop('user_detail', {})
-        
+
         raw_password = validated_data.get('password') # 평문 비밀번호 보관 (User 생성용)
+        email = validated_data.get('email')
+        user_id = validated_data.get('user_id')
 
         # 2. 비밀번호 암호화 (UserProfile용)
         if 'password' in validated_data:
             validated_data['password'] = make_password(validated_data['password'])
-        
-        # [2026-01-21] Django 기본 인증 유저(auth.User) 생성
-        # user_id(이메일)를 username으로 사용
-        # [2026-01-21] user_id값이 없으면 email에서 추출 (Model save 로직과 동일하게 맞춤)
-        # 이렇게 해야 auth.User 생성 시에도 user_id를 사용할 수 있음
-        user_id = validated_data.get('user_id')
-        email = validated_data.get('email')
-        
-        if not user_id and email:
-             user_id = email.split('@')[0][:50]
-             validated_data['user_id'] = user_id
 
-        if user_id and raw_password:
-            # 이미 존재하는지 확인 (에러 처리 필요하지만 여기선 생략 또는 try-except)
-            if not User.objects.filter(username=user_id).exists():
-                User.objects.create_user(username=user_id, email=email, password=raw_password)
+        # [수정일: 2026-01-21] 트랜잭션으로 모든 DB 작업 묶기 (원자성 보장)
+        try:
+            with transaction.atomic():
+                # 3. Django 기본 인증 유저(auth.User) 생성
+                # user_id(이메일)를 username으로 사용
+                if user_id and raw_password:
+                    try:
+                        # auth.User 중복 체크 및 생성
+                        if User.objects.filter(username=user_id).exists():
+                            raise serializers.ValidationError({"detail": "이미 가입된 계정입니다."})
+                        if User.objects.filter(email=email).exists():
+                            raise serializers.ValidationError({"detail": "이미 가입된 이메일입니다."})
 
-        # 3. UserProfile(기본 정보) 생성
-        user = UserProfile.objects.create(**validated_data)
-        
-        # 4. UserDetail(상세 정보) 생성 및 기본 프로필과 1:1 연결
-        # 1:1 관계인 user 필드에 방금 생성한 user 객체를 할당
-        
-        if 'job_role' in detail_data and isinstance(detail_data['job_role'], list):
-            detail_data['job_role'] = ','.join(detail_data['job_role'])
+                        User.objects.create_user(username=user_id, email=email, password=raw_password)
+                    except serializers.ValidationError:
+                        raise  # ValidationError는 그대로 전파
+                    except Exception as e:
+                        # 기타 에러 처리
+                        raise serializers.ValidationError({"detail": f"인증 계정 생성 실패: {str(e)}"})
 
-        # interests가 리스트라면 콤마 문자열로 변환
-        if 'interests' in detail_data and isinstance(detail_data['interests'], list):
-            detail_data['interests'] = ','.join(detail_data['interests'])
+                # 4. UserProfile(기본 정보) 생성
+                user = UserProfile.objects.create(**validated_data)
 
-        UserDetail.objects.create(user_id=user, **detail_data)
-        
-        return user
+                # 5. UserDetail(상세 정보) 생성 및 기본 프로필과 1:1 연결
+                # 1:1 관계인 user 필드에 방금 생성한 user 객체를 할당
+
+                if 'job_role' in detail_data and isinstance(detail_data['job_role'], list):
+                    detail_data['job_role'] = ','.join(detail_data['job_role'])
+
+                # interests가 리스트라면 콤마 문자열로 변환
+                if 'interests' in detail_data and isinstance(detail_data['interests'], list):
+                    detail_data['interests'] = ','.join(detail_data['interests'])
+
+                UserDetail.objects.create(user_id=user, **detail_data)
+
+                return user
+
+        except serializers.ValidationError:
+            raise  # ValidationError는 그대로 전파
+        except Exception as e:
+            # 예상치 못한 에러 처리
+            raise serializers.ValidationError({"detail": f"회원가입 처리 중 오류가 발생했습니다: {str(e)}"})
 
     def update(self, instance, validated_data):
         """
@@ -209,4 +224,3 @@ class UserProfileViewSet(viewsets.ModelViewSet):
             # 그러나 일단 로그인한 유저만 접근하도록 설정
             return [permissions.IsAuthenticated()]
         return super().get_permissions()
-
