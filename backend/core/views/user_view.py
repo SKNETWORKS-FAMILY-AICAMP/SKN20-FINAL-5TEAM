@@ -53,6 +53,34 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'password': {'write_only': True}  # 비밀번호는 응답에서 제외
         }
 
+    def validate(self, data):
+        """
+        [수정일: 2026-01-21] 회원가입 전체 데이터 검증 (필수값, 비밀번호, 닉네임 등)
+        """
+        # 1. 닉네임 검증
+        if 'user_nickname' in data:
+            if len(data['user_nickname']) < 2:
+                raise serializers.ValidationError({"user_nickname": "닉네임을 2글자 이상 입력해주세요."})
+            if len(data['user_nickname']) > 20:
+                raise serializers.ValidationError({"user_nickname": "닉네임은 20글자 이하이어야 합니다."})
+
+        # 2. 비밀번호 검증 (생성 시에만 체크)
+        if self.instance is None and 'password' in data:
+            password = data['password']
+            if len(password) < 8:
+                raise serializers.ValidationError({"password": "비밀번호는 8자 이상이어야 합니다."})
+            # (추가적인 복잡도 검사는 필요 시 여기에 추가)
+            
+        return data
+
+    def validate_email(self, value):
+        """
+        [수정일: 2026-01-21] 이메일 중복 체크 로직 추가
+        """
+        if UserProfile.objects.filter(email=value).exists():
+            raise serializers.ValidationError("이미 가입된 이메일입니다.")
+        return value
+
 
 
     def create(self, validated_data):
@@ -62,6 +90,10 @@ class UserProfileSerializer(serializers.ModelSerializer):
         - 비밀번호 암호화(Hashing) 적용
         - Django 인증 시스템(auth.User) 계정 동시 생성 (로그인 연동용)
         """
+        # [2026-01-21] create_id, update_id 자동 설정 (회원가입 시 admin)
+        validated_data['create_id'] = 'admin'
+        validated_data['update_id'] = 'admin'
+
         # 1. user_detail 데이터 분리
         detail_data = validated_data.pop('user_detail', {})
         
@@ -104,4 +136,12 @@ class UserProfileViewSet(viewsets.ModelViewSet):
     """
     queryset = UserProfile.objects.all()
     serializer_class = UserProfileSerializer
+
+    def get_authenticators(self):
+        """
+        [수정일: 2026-01-21] 회원가입(create) 시, 인증 클래스(SessionAuth)를 제외하여 CSRF 검증 우회
+        """
+        if getattr(self, 'action', None) == 'create':
+            return []
+        return super().get_authenticators()
 

@@ -3,13 +3,14 @@
 
 from rest_framework import viewsets, serializers
 from core.models import Product
+from .mixins import AuditLogMixin
 
 class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = '__all__'
 
-class ProductViewSet(viewsets.ModelViewSet):
+class ProductViewSet(AuditLogMixin, viewsets.ModelViewSet):
     """
     팀원 B 담당: 상품 목록 및 상세 조회 API
     """

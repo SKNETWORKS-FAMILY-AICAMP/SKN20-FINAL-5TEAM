@@ -242,9 +242,18 @@ export default {
         
         // 서버에서 반환한 구체적인 에러 메시지가 있는 경우 (예: 아이디 중복 등)
         if (error.response && error.response.data) {
-          alert('회원가입 실패: ' + JSON.stringify(error.response.data));
+          // [수정일: 2026-01-21] 에러 메시지를 alert 대신 UI에 표시하거나 더 예쁘게 처리
+          // 특히 "email" 필드에 대한 에러(중복 등)를 체크
+          const errorData = error.response.data;
+          
+          if (errorData.email || errorData.detail) {
+             const msg = (errorData.email && errorData.email[0]) || errorData.detail;
+             alert('⚠️ ' + msg); // 일단 alert로 하되 이모지 추가 (요청: 이미 존재한다는 메시지를 예쁘게)
+             // 추후 토스트 메시지나 인라인 에러 텍스트로 고도화 가능
+          } else {
+             alert('회원가입 실패: ' + JSON.stringify(errorData));
+          }
         } else {
-          // 네트워크 오류 등 일반적인 에러
           alert('서버 통신 중 오류가 발생했습니다.');
         }
       } finally {

@@ -31,7 +31,8 @@ class UserProfile(models.Model):
     def save(self, *args, **kwargs):
         # 1. user_id 자동 생성 (email @ 앞부분)
         if not self.user_id and self.email:
-            self.user_id = self.email.split('@')[0]
+            # [수정일: 2026-01-21] user_id 길이 초과 방지 (최대 50자)
+            self.user_id = self.email.split('@')[0][:50]
             
         # 2. user_seq 자동 채번
         if not self.user_seq:

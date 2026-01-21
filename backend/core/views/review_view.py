@@ -3,13 +3,14 @@
 
 from rest_framework import viewsets, serializers
 from core.models import Review
+from .mixins import AuditLogMixin
 
 class ReviewSerializer(serializers.ModelSerializer):
     class Meta:
         model = Review
         fields = '__all__'
 
-class ReviewViewSet(viewsets.ModelViewSet):
+class ReviewViewSet(AuditLogMixin, viewsets.ModelViewSet):
     """
     팀원 E 담당: 리뷰 작성 및 조회 API
     """
