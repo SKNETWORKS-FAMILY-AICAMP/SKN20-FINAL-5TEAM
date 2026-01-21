@@ -1,7 +1,7 @@
 # 수정일: 2026-01-20
 # 수정내용: 팀원 A (User 담당) - 회원 관련 뷰 정의
 
-from rest_framework import viewsets, serializers
+from rest_framework import viewsets, serializers, permissions
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User
 from core.models import UserProfile, UserDetail
@@ -105,9 +105,15 @@ class UserProfileSerializer(serializers.ModelSerializer):
         
         # [2026-01-21] Django 기본 인증 유저(auth.User) 생성
         # user_id(이메일)를 username으로 사용
+        # [2026-01-21] user_id값이 없으면 email에서 추출 (Model save 로직과 동일하게 맞춤)
+        # 이렇게 해야 auth.User 생성 시에도 user_id를 사용할 수 있음
         user_id = validated_data.get('user_id')
         email = validated_data.get('email')
         
+        if not user_id and email:
+             user_id = email.split('@')[0][:50]
+             validated_data['user_id'] = user_id
+
         if user_id and raw_password:
             # 이미 존재하는지 확인 (에러 처리 필요하지만 여기선 생략 또는 try-except)
             if not User.objects.filter(username=user_id).exists():

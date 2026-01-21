@@ -69,9 +69,9 @@ class UserDetail(models.Model):
     detail_seq = models.IntegerField(null=True, blank=True)
 
     is_developer = models.BooleanField(default=True)  # 개발자 여부
-    job_role = models.CharField(max_length=255, null=True, blank=True)  # 직군
-    # [수정일: 2026-01-21] IT INTERESTS (관심 분야) 추가
-    interests = models.CharField(max_length=255, null=True, blank=True) 
+    job_role = models.TextField(null=True, blank=True)  # 직군 (다중 선택 가능하므로 Text)
+    # [수정일: 2026-01-21] IT INTERESTS (관심 분야) 추가, 길이 제한 해제
+    interests = models.TextField(null=True, blank=True) 
     
     def save(self, *args, **kwargs):
         # detail_seq 자동 채번
