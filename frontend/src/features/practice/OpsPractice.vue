@@ -199,14 +199,15 @@ const problems = {
       activeConnections: { value: 495, unit: 'conn', threshold: { good: 300, warning: 450 } },
       maxConnections: { value: 500, unit: 'conn', threshold: { good: 500, warning: 500 } },
       queryTime: { value: 2500, unit: 'ms', threshold: { good: 500, warning: 1500 } },
-      errorRate: { value: 15, unit: '%', threshold: { good: 1, warning: 5 } }
+      errorRate: { value: 15, unit: '%', threshold: { good: 1, warning: 5 } },
+      dbMemory: { value: 82, unit: '%', threshold: { good: 60, warning: 75 } }
     },
     solutions: [
       { keywords: ['check', 'slow', 'query', '슬로우'], effect: { } },
-      { keywords: ['kill', 'idle', 'connection', '종료'], effect: { activeConnections: -50, errorRate: -5 } },
-      { keywords: ['optimize', 'query', 'index', '최적화'], effect: { queryTime: -1000, activeConnections: -80, errorRate: -8 } },
-      { keywords: ['increase', 'pool', 'size', '증가'], effect: { maxConnections: 100, errorRate: -3 } },
-      { keywords: ['restart', 'db', '재시작'], effect: { activeConnections: -200, queryTime: -500, errorRate: 5 } }
+      { keywords: ['kill', 'idle', 'connection', '종료'], effect: { activeConnections: -50, errorRate: -5, dbMemory: -5 } },
+      { keywords: ['optimize', 'query', 'index', '최적화'], effect: { queryTime: -1000, activeConnections: -80, errorRate: -8, dbMemory: -10 } },
+      { keywords: ['increase', 'pool', 'size', '증가'], effect: { maxConnections: 100, errorRate: -3, dbMemory: 5 } },
+      { keywords: ['restart', 'db', '재시작'], effect: { activeConnections: -200, queryTime: -500, errorRate: 5, dbMemory: -30 } }
     ],
     winCondition: (m) => m.errorRate.value < 2 && m.activeConnections.value < 400
   },
@@ -219,24 +220,32 @@ const problems = {
       heapUsage: { value: 92, unit: '%', threshold: { good: 70, warning: 85 } },
       gcTime: { value: 45, unit: '%', threshold: { good: 5, warning: 20 } },
       responseTime: { value: 8000, unit: 'ms', threshold: { good: 1000, warning: 3000 } },
-      throughput: { value: 120, unit: 'req/s', threshold: { good: 500, warning: 300 } }
+      throughput: { value: 120, unit: 'req/s', threshold: { good: 500, warning: 300 } },
+      threadCount: { value: 850, unit: 'threads', threshold: { good: 500, warning: 700 } },
+      diskIO: { value: 88, unit: '%', threshold: { good: 60, warning: 80 } }
     },
     solutions: [
       { keywords: ['heap', 'dump', 'analyze', '덤프'], effect: { } },
-      { keywords: ['gc', 'force', 'manual', '가비지'], effect: { heapUsage: -15, gcTime: 20, responseTime: 2000 } },
-      { keywords: ['increase', 'heap', 'memory', '증가'], effect: { heapUsage: -30, gcTime: -10 } },
-      { keywords: ['restart', 'server', 'rolling', '재시작'], effect: { heapUsage: -70, gcTime: -30, responseTime: -5000, throughput: 200 } },
-      { keywords: ['cache', 'clear', 'evict', '캐시'], effect: { heapUsage: -20, responseTime: -1000 } },
-      { keywords: ['patch', 'deploy', 'fix', '패치'], effect: { heapUsage: -50, gcTime: -25, responseTime: -3000, throughput: 300 } }
+      { keywords: ['gc', 'force', 'manual', '가비지'], effect: { heapUsage: -15, gcTime: 20, responseTime: 2000, threadCount: -50 } },
+      { keywords: ['increase', 'heap', 'memory', '증가'], effect: { heapUsage: -30, gcTime: -10, threadCount: 30 } },
+      { keywords: ['restart', 'server', 'rolling', '재시작'], effect: { heapUsage: -70, gcTime: -30, responseTime: -5000, throughput: 200, threadCount: -600, diskIO: -50 } },
+      { keywords: ['cache', 'clear', 'evict', '캐시'], effect: { heapUsage: -20, responseTime: -1000, diskIO: -15 } },
+      { keywords: ['patch', 'deploy', 'fix', '패치'], effect: { heapUsage: -50, gcTime: -25, responseTime: -3000, throughput: 300, threadCount: -400, diskIO: -30 } }
     ],
-    winCondition: (m) => m.heapUsage.value < 75 && m.responseTime.value < 2000 && m.gcTime.value < 15
+    winCondition: (m) => m.heapUsage.value < 75 && m.responseTime.value < 2000 && m.gcTime.value < 15 && m.threadCount.value < 600
   }
 };
 
 function startGame(diff) {
   difficulty.value = diff;
   currentProblem.value = problems[diff];
+  
+  // 기존 metrics 완전히 초기화
+  Object.keys(metrics).forEach(key => delete metrics[key]);
+  
+  // 새로운 metrics 할당
   Object.assign(metrics, JSON.parse(JSON.stringify(currentProblem.value.initialMetrics)));
+  
   attempts.value = 7;
   actions.value = [];
   solved.value = false;
