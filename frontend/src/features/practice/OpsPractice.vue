@@ -1,493 +1,364 @@
 <template>
-  <div class="game-container">
-    <!-- 헤더 -->
-    <div class="header">
-      <h1>OPS PRACTICE</h1>
-      <div class="subtitle">// INCIDENT RESPONSE TRAINING SYSTEM v2.0</div>
-    </div>
-
-    <!-- 난이도 선택 화면 -->
-    <div v-if="currentScreen === 'difficulty'" class="difficulty-screen">
-      <h2 class="difficulty-title">난이도 선택</h2>
-      <div class="difficulty-buttons">
-        <button @click="selectDifficulty('easy')" class="difficulty-btn easy">
-          <span>EASY<br><small>입문자</small></span>
-        </button>
-        <button @click="selectDifficulty('medium')" class="difficulty-btn medium">
-          <span>MEDIUM<br><small>중급자</small></span>
-        </button>
-        <button @click="selectDifficulty('hard')" class="difficulty-btn hard">
-          <span>HARD<br><small>전문가</small></span>
-        </button>
+  <div class="ops-practice-page">
+    <div class="game-container">
+      <!-- 헤더 -->
+      <div class="header">
+        <h1>OPS PRACTICE</h1>
+        <div class="subtitle">// INCIDENT RESPONSE TRAINING SYSTEM v2.0</div>
       </div>
-    </div>
 
-    <!-- 메인 게임 화면 -->
-    <div v-if="currentScreen === 'game'" class="game-screen">
-      <div class="game-grid">
-        <!-- 왼쪽: 메인 화면 -->
-        <div>
-          <!-- 문제 설명 모니터 -->
-          <div class="monitor">
-            <div class="screen-header">
-              <span class="screen-title">{{ currentProblem.title }}</span>
-              <span class="terminal-indicator">◉ LIVE</span>
-            </div>
-            <div class="problem-description">
-              <div class="alert-badge">🚨 ALERT</div>
-              <p>{{ currentProblem.scenario }}</p>
-            </div>
-          </div>
-
-          <!-- 메트릭 대시보드 -->
-          <div class="metrics-dashboard">
-            <div class="dashboard-header">
-              <span>SYSTEM METRICS</span>
-              <span class="live-indicator">● MONITORING</span>
-            </div>
-            <div class="metrics-grid">
-              <div
-                v-for="(metric, key) in metrics"
-                :key="key"
-                class="metric-card"
-                :class="getMetricStatus(metric)"
-              >
-                <div class="metric-label">{{ metric.label }}</div>
-                <div class="metric-value">{{ metric.value }}{{ metric.unit }}</div>
-                <div class="metric-bar">
-                  <div
-                    class="metric-fill"
-                    :style="{ width: getMetricPercentage(metric) + '%' }"
-                  ></div>
-                </div>
-                <div class="metric-threshold" v-if="metric.threshold">
-                  <span>임계값: {{ metric.threshold.critical }}{{ metric.unit }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 액션 입력 패널 -->
-          <div class="action-panel">
-            <div class="panel-header">
-              <span>COMMAND INPUT</span>
-              <span class="attempts-counter">남은 시도: {{ attempts }}</span>
-            </div>
-            <div class="input-group">
-              <input
-                v-model="actionInput"
-                @keypress.enter="submitAction"
-                type="text"
-                class="action-input"
-                placeholder="조치를 입력하세요... (예: restart service)"
-                :disabled="solved"
-              />
-              <button @click="submitAction" class="submit-btn" :disabled="solved">
-                실행 →
-              </button>
-            </div>
-            <div class="feedback-message" :class="feedbackType" v-show="showFeedback">
-              {{ feedbackMessage }}
-            </div>
-          </div>
-        </div>
-
-        <!-- 오른쪽: 사이드바 -->
-        <div>
-          <!-- 힌트 패널 -->
-          <div class="hint-panel">
-            <div class="panel-header">
-              <span>💡 HINTS</span>
-            </div>
-            <div class="hint-content">
-              <div v-for="(hint, index) in currentProblem.hints" :key="index" class="hint-item">
-                <span class="hint-number">{{ index + 1 }}</span>
-                <span>{{ hint }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- 액션 로그 -->
-          <div class="log-panel">
-            <div class="panel-header">
-              <span>ACTION LOG</span>
-            </div>
-            <div class="action-log" ref="actionLog">
-              <div
-                v-for="(log, index) in actionLogs"
-                :key="index"
-                :class="['log-entry', log.type]"
-              >
-                > {{ log.message }}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 결과 화면 -->
-    <div v-if="currentScreen === 'result'" class="result-screen">
-      <div class="result-container">
-        <h2 :class="['result-title', solved ? 'success' : 'failure']">
-          {{ solved ? '미션 성공!' : '미션 실패' }}
-        </h2>
-        <div class="result-message" v-html="resultMessage"></div>
-
-        <div class="result-stats">
-          <div class="stat-item">
-            <div class="stat-label">사용한 시도</div>
-            <div class="stat-value">{{ usedAttempts }} / 7</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">점수</div>
-            <div class="stat-value score">{{ finalScore }}</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">난이도</div>
-            <div class="stat-value">{{ difficulty.toUpperCase() }}</div>
-          </div>
-        </div>
-
-        <div class="result-actions">
-          <button @click="getAIFeedback" class="ai-feedback-btn" :disabled="aiFeedbackLoading">
-            {{ aiFeedbackLoading ? '분석 중...' : aiFeedbackReceived ? '✓ 분석 완료' : '🤖 AI 코치 해설 받기' }}
+      <!-- 난이도 선택 화면 -->
+      <div class="difficulty-screen" :class="{ hidden: currentScreen !== 'difficulty' }">
+        <div class="difficulty-title">난이도를 선택하세요</div>
+        <div class="difficulty-buttons">
+          <button class="difficulty-btn easy" @click="startGame('easy')">
+            <span>EASY</span>
           </button>
-          <button @click="resetGame" class="retry-btn">다시 도전하기</button>
+          <button class="difficulty-btn medium" @click="startGame('medium')">
+            <span>MEDIUM</span>
+          </button>
+          <button class="difficulty-btn hard" @click="startGame('hard')">
+            <span>HARD</span>
+          </button>
         </div>
+      </div>
 
-        <!-- AI 피드백 섹션 -->
-        <div v-if="showAIFeedback" class="ai-feedback-section">
-          <div class="feedback-header">
-            <span>🎯 AI 코치의 분석</span>
+      <!-- 게임 화면 -->
+      <div class="game-screen" :style="{ display: currentScreen === 'game' ? 'block' : 'none' }">
+        <div class="game-grid">
+          <!-- 왼쪽: 문제 화면 (컴퓨터 모니터) -->
+          <div class="monitor">
+            <div class="screen-content">
+              <div class="problem-header">{{ problemTitle }}</div>
+              <div class="problem-content" v-html="problemContent"></div>
+            </div>
           </div>
-          <div class="ai-feedback-content">
-            <div v-if="aiFeedbackLoading" style="text-align: center; padding: 20px;">
-              <div class="loading-spinner"></div>
-              <div style="margin-top: 15px; color: var(--neon-cyan);">
-                AI가 당신의 대응을 분석하고 있습니다...
+
+          <!-- 오른쪽: 사이드 패널 -->
+          <div class="side-panel">
+            <!-- 시도 횟수 -->
+            <div class="panel-box">
+              <div class="panel-title">남은 시도 횟수</div>
+              <div class="attempts-counter">{{ attempts }}</div>
+            </div>
+
+            <!-- 힌트 -->
+            <div class="panel-box">
+              <div class="panel-title">힌트</div>
+              <button class="hint-btn" @click="toggleHint">힌트 보기</button>
+              <div class="hint-content" :class="{ active: showHint }">
+                {{ hintContent }}
               </div>
             </div>
-            <div v-else-if="aiFeedbackError" style="color: var(--danger-red); text-align: center; padding: 20px;">
-              ⚠️ AI 피드백을 불러오는데 실패했습니다.<br>
-              <span style="font-size: 0.9em; opacity: 0.7;">네트워크 연결을 확인해주세요.</span>
-            </div>
-            <div v-else style="white-space: pre-line; line-height: 1.8;">
-              {{ aiFeedback }}
+
+            <!-- 액션 로그 -->
+            <div class="panel-box">
+              <div class="panel-title">액션 로그</div>
+              <div class="action-log">
+                <div v-for="(log, idx) in actionLogs" :key="idx" :class="'log-entry ' + log.type">
+                  {{ log.message }}
+                </div>
+              </div>
             </div>
           </div>
         </div>
+
+        <!-- 메트릭스 디스플레이 -->
+        <div class="metrics-display">
+          <div v-for="(metric, key) in metrics" :key="key" class="metric-card">
+            <div class="metric-label">{{ formatMetricLabel(key) }}</div>
+            <div class="metric-value" :class="getMetricClass(metric)">
+              {{ metric.value }}{{ metric.unit }}
+            </div>
+            <div class="metric-bar">
+              <div class="metric-fill" :class="getMetricClass(metric)" :style="{ width: getMetricWidth(metric) + '%' }"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 입력 영역 -->
+        <div class="input-area">
+          <input type="text" v-model="actionInput" @keypress.enter="submitAction" class="action-input" placeholder="대응 명령을 입력하세요... (예: restart service, scale up, check logs)">
+          <button class="submit-btn" @click="submitAction">명령 실행</button>
+        </div>
+      </div>
+
+      <!-- 결과 화면 -->
+      <div class="result-screen" :style="{ display: currentScreen === 'result' ? 'flex' : 'none' }">
+        <div class="result-title">{{ resultTitle }}</div>
+        <div class="result-stats">
+          <div class="stat-box">
+            <div class="stat-label">사용한 시도</div>
+            <div class="stat-value">{{ usedAttempts }}</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">최종 점수</div>
+            <div class="stat-value">{{ finalScore }}</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">난이도</div>
+            <div class="stat-value">{{ difficultyLevel }}</div>
+          </div>
+        </div>
+        <div style="margin: 30px 0; font-size: 1.2em; line-height: 1.8;" v-html="resultMessage"></div>
+        
+        <!-- AI 코치 피드백 섹션 -->
+        <div style="margin: 30px 0;">
+          <button class="hint-btn" @click="getAIFeedback" :disabled="aiFeedbackLoading" style="margin-bottom: 20px;">
+            🤖 AI 코치 해설 받기
+          </button>
+          <div v-if="showAIFeedback" style="background: rgba(0, 243, 255, 0.05); border: 2px solid var(--neon-cyan); border-radius: 10px; padding: 20px; margin-top: 20px; text-align: left;">
+            <div style="font-size: 1.3em; font-weight: 600; margin-bottom: 15px; color: var(--neon-cyan);">
+              📋 AI 코치 분석
+            </div>
+            <div style="font-size: 1.1em; line-height: 1.8; color: rgba(255, 255, 255, 0.9);">
+              <div v-if="aiFeedbackLoading" style="text-align: center; padding: 20px;">
+                <div class="loading-spinner"></div>
+                <div style="margin-top: 15px; color: var(--neon-cyan);">분석 중...</div>
+              </div>
+              <div v-else style="white-space: pre-line;">{{ aiFeedbackContent }}</div>
+            </div>
+          </div>
+        </div>
+        
+        <button class="hint-btn" @click="resetGame">다시 도전하기</button>
+      </div>
+
+      <!-- 피드백 메시지 -->
+      <div class="feedback-message" :class="{ show: showFeedback, [feedbackType]: true }">
+        {{ feedbackMessage }}
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, nextTick } from 'vue';
+import { ref, reactive, computed } from 'vue';
 
-// 화면 상태
+// 게임 상태
 const currentScreen = ref('difficulty');
 const difficulty = ref('');
 const attempts = ref(7);
+const currentProblem = ref(null);
+const metrics = reactive({});
+const actions = ref([]);
 const solved = ref(false);
+
+// UI 상태
 const actionInput = ref('');
+const showHint = ref(false);
 const actionLogs = ref([{ message: '시스템 준비 완료...', type: 'action' }]);
-const userActions = ref([]);
+const problemTitle = ref('시스템 장애 발생!');
+const problemContent = ref('');
+const hintContent = ref('');
 
 // 피드백
 const showFeedback = ref(false);
 const feedbackMessage = ref('');
 const feedbackType = ref('');
 
+// 결과
+const resultTitle = ref('');
+const resultMessage = ref('');
+const usedAttempts = ref(0);
+const finalScore = ref(0);
+const difficultyLevel = ref('');
+
 // AI 피드백
 const showAIFeedback = ref(false);
 const aiFeedbackLoading = ref(false);
-const aiFeedbackReceived = ref(false);
-const aiFeedbackError = ref(false);
-const aiFeedback = ref('');
+const aiFeedbackContent = ref('');
 
 // 문제 데이터베이스
 const problems = {
-  easy: [
-    {
-      title: 'CPU 과부하 경고',
-      scenario: '웹 서버의 CPU 사용률이 갑자기 90%를 넘어섰습니다. 사용자들이 느린 응답 속도를 보고하고 있습니다.',
-      hints: [
-        'CPU를 많이 사용하는 프로세스를 확인해보세요',
-        '불필요한 서비스를 중지하거나 재시작할 수 있습니다',
-        '서버 스케일링도 고려해볼 수 있습니다'
-      ],
-      solutions: [
-        {
-          keywords: ['restart', 'service', '재시작', '서비스'],
-          effect: { cpu: -30, latency: -20 }
-        },
-        {
-          keywords: ['scale', 'autoscale', '스케일', '확장'],
-          effect: { cpu: -40, latency: -30 }
-        },
-        {
-          keywords: ['kill', 'process', '프로세스', '종료'],
-          effect: { cpu: -25, latency: -15 }
-        }
-      ],
-      winCondition: (metrics) => metrics.cpu.value < 50 && metrics.latency.value < 300
+  easy: {
+    title: "웹 서버 응답 지연",
+    scenario: "사용자들이 웹 페이지 로딩이 느리다고 불만을 제기하고 있습니다.",
+    constraints: "- 서버 재시작은 5분의 다운타임이 발생합니다\n- 예산 제약으로 즉시 스케일 업은 불가능합니다",
+    hint: "먼저 로그를 확인하여 병목 지점을 파악하세요. CPU와 메모리 사용률을 체크해보세요.",
+    initialMetrics: {
+      responseTime: { value: 3500, unit: 'ms', threshold: { good: 1000, warning: 2000 } },
+      cpu: { value: 85, unit: '%', threshold: { good: 50, warning: 70 } },
+      memory: { value: 75, unit: '%', threshold: { good: 60, warning: 80 } },
+      errorRate: { value: 2, unit: '%', threshold: { good: 1, warning: 5 } }
     },
-    {
-      title: '메모리 누수 감지',
-      scenario: '애플리케이션 서버의 메모리 사용량이 계속 증가하고 있습니다. 현재 85%를 초과했습니다.',
-      hints: [
-        '메모리를 많이 사용하는 프로세스를 찾아보세요',
-        '애플리케이션을 재시작하면 메모리가 해제됩니다',
-        '메모리 프로파일링 도구를 사용할 수 있습니다'
-      ],
-      solutions: [
-        {
-          keywords: ['restart', 'application', '재시작', '앱'],
-          effect: { memory: -50, cpu: -10 }
-        },
-        {
-          keywords: ['clear', 'cache', '캐시', '삭제'],
-          effect: { memory: -30 }
-        },
-        {
-          keywords: ['gc', 'garbage', '가비지'],
-          effect: { memory: -25 }
-        }
-      ],
-      winCondition: (metrics) => metrics.memory.value < 70
-    }
-  ],
-  medium: [
-    {
-      title: '데이터베이스 연결 풀 고갈',
-      scenario: '데이터베이스 연결 풀이 가득 차서 새로운 요청을 처리할 수 없습니다. 에러율이 급증하고 있습니다.',
-      hints: [
-        '연결 풀 설정을 확인해보세요',
-        '좀비 커넥션을 정리해야 할 수 있습니다',
-        '데이터베이스 서버의 상태도 확인이 필요합니다'
-      ],
-      solutions: [
-        {
-          keywords: ['pool', 'increase', 'size', '풀', '증가', '크기'],
-          effect: { errorRate: -30, latency: -20 }
-        },
-        {
-          keywords: ['kill', 'idle', 'connection', '종료', '유휴', '연결'],
-          effect: { errorRate: -25, cpu: -10 }
-        },
-        {
-          keywords: ['restart', 'database', '재시작', 'db'],
-          effect: { errorRate: -40, latency: -25, cpu: 10 }
-        }
-      ],
-      winCondition: (metrics) => metrics.errorRate.value < 2 && metrics.latency.value < 400
-    }
-  ],
-  hard: [
-    {
-      title: '대규모 DDoS 공격',
-      scenario: '비정상적인 트래픽이 급증하여 초당 50,000개 이상의 요청이 들어오고 있습니다. 정상 사용자도 서비스를 이용할 수 없습니다.',
-      hints: [
-        'Rate limiting을 적용해야 합니다',
-        'CDN이나 WAF 서비스 활용을 고려하세요',
-        'IP 차단 규칙을 설정할 수 있습니다',
-        '트래픽 패턴을 분석하여 악성 요청을 식별하세요'
-      ],
-      solutions: [
-        {
-          keywords: ['rate', 'limit', 'throttle', '제한'],
-          effect: { traffic: -200, latency: -30, errorRate: -15 }
-        },
-        {
-          keywords: ['firewall', 'waf', 'block', '방화벽', '차단'],
-          effect: { traffic: -300, errorRate: -25 }
-        },
-        {
-          keywords: ['cdn', 'cache', 'cloudflare'],
-          effect: { traffic: -250, latency: -40 }
-        },
-        {
-          keywords: ['scale', 'autoscale', '스케일'],
-          effect: { latency: -20, cpu: -15, traffic: 50 }
-        }
-      ],
-      winCondition: (metrics) => 
-        metrics.traffic.value < 1000 && 
-        metrics.latency.value < 500 && 
-        metrics.errorRate.value < 5
-    }
-  ]
+    solutions: [
+      { keywords: ['cache', 'clear', '캐시'], effect: { responseTime: -500, cpu: -10 } },
+      { keywords: ['log', 'check', 'view', '로그'], effect: { } },
+      { keywords: ['restart', 'service', '재시작'], effect: { responseTime: -1000, cpu: -20, memory: -15 } },
+      { keywords: ['optimize', 'query', '최적화'], effect: { responseTime: -800, cpu: -15, memory: -10 } }
+    ],
+    winCondition: (m) => m.responseTime.value < 1000 && m.cpu.value < 70
+  },
+  medium: {
+    title: "데이터베이스 커넥션 풀 고갈",
+    scenario: "애플리케이션에서 \"Too many connections\" 오류가 발생하고 있습니다. 트래픽이 급증했지만 정상 범위 내입니다.",
+    constraints: "- DB 서버 재시작은 최후의 수단입니다 (10분 다운타임)\n- 연결 수 증가는 메모리 사용량을 증가시킵니다",
+    hint: "커넥션 풀 설정을 확인하고, 연결이 제대로 반환되고 있는지 체크하세요. 슬로우 쿼리가 있을 수 있습니다.",
+    initialMetrics: {
+      activeConnections: { value: 495, unit: 'conn', threshold: { good: 300, warning: 450 } },
+      maxConnections: { value: 500, unit: 'conn', threshold: { good: 500, warning: 500 } },
+      queryTime: { value: 2500, unit: 'ms', threshold: { good: 500, warning: 1500 } },
+      errorRate: { value: 15, unit: '%', threshold: { good: 1, warning: 5 } }
+    },
+    solutions: [
+      { keywords: ['check', 'slow', 'query', '슬로우'], effect: { } },
+      { keywords: ['kill', 'idle', 'connection', '종료'], effect: { activeConnections: -50, errorRate: -5 } },
+      { keywords: ['optimize', 'query', 'index', '최적화'], effect: { queryTime: -1000, activeConnections: -80, errorRate: -8 } },
+      { keywords: ['increase', 'pool', 'size', '증가'], effect: { maxConnections: 100, errorRate: -3 } },
+      { keywords: ['restart', 'db', '재시작'], effect: { activeConnections: -200, queryTime: -500, errorRate: 5 } }
+    ],
+    winCondition: (m) => m.errorRate.value < 2 && m.activeConnections.value < 400
+  },
+  hard: {
+    title: "메모리 누수로 인한 OOM",
+    scenario: "프로덕션 서버에서 주기적으로 OutOfMemory 에러가 발생하며 서비스가 중단됩니다. 메모리 사용량이 지속적으로 증가하고 있습니다.",
+    constraints: "- 서버는 고가용성이 필요하여 다운타임 최소화 필요\n- 힙 덤프 분석은 시간이 걸립니다\n- 메모리 누수 패치는 배포 검증 필요",
+    hint: "힙 덤프를 확인하고, GC 로그를 분석하세요. 임시방편과 근본 해결책을 모두 고려해야 합니다.",
+    initialMetrics: {
+      heapUsage: { value: 92, unit: '%', threshold: { good: 70, warning: 85 } },
+      gcTime: { value: 45, unit: '%', threshold: { good: 5, warning: 20 } },
+      responseTime: { value: 8000, unit: 'ms', threshold: { good: 1000, warning: 3000 } },
+      throughput: { value: 120, unit: 'req/s', threshold: { good: 500, warning: 300 } }
+    },
+    solutions: [
+      { keywords: ['heap', 'dump', 'analyze', '덤프'], effect: { } },
+      { keywords: ['gc', 'force', 'manual', '가비지'], effect: { heapUsage: -15, gcTime: 20, responseTime: 2000 } },
+      { keywords: ['increase', 'heap', 'memory', '증가'], effect: { heapUsage: -30, gcTime: -10 } },
+      { keywords: ['restart', 'server', 'rolling', '재시작'], effect: { heapUsage: -70, gcTime: -30, responseTime: -5000, throughput: 200 } },
+      { keywords: ['cache', 'clear', 'evict', '캐시'], effect: { heapUsage: -20, responseTime: -1000 } },
+      { keywords: ['patch', 'deploy', 'fix', '패치'], effect: { heapUsage: -50, gcTime: -25, responseTime: -3000, throughput: 300 } }
+    ],
+    winCondition: (m) => m.heapUsage.value < 75 && m.responseTime.value < 2000 && m.gcTime.value < 15
+  }
 };
 
-// 현재 문제
-const currentProblem = ref(null);
-
-// 메트릭
-const metrics = reactive({});
-
-// 난이도 선택
-function selectDifficulty(level) {
-  difficulty.value = level;
-  const problemList = problems[level];
-  currentProblem.value = problemList[Math.floor(Math.random() * problemList.length)];
-  initializeMetrics();
+function startGame(diff) {
+  difficulty.value = diff;
+  currentProblem.value = problems[diff];
+  Object.assign(metrics, JSON.parse(JSON.stringify(currentProblem.value.initialMetrics)));
+  attempts.value = 7;
+  actions.value = [];
+  solved.value = false;
   currentScreen.value = 'game';
-  addLog('미션 시작...', 'system');
+  
+  displayProblem();
 }
 
-// 메트릭 초기화
-function initializeMetrics() {
-  const baseMetrics = {
-    cpu: { label: 'CPU 사용률', value: 85, unit: '%', max: 100, threshold: { warning: 70, critical: 90 } },
-    memory: { label: '메모리 사용량', value: 78, unit: '%', max: 100, threshold: { warning: 75, critical: 90 } },
-    latency: { label: '응답 시간', value: 450, unit: 'ms', max: 1000, threshold: { warning: 300, critical: 500 } },
-    errorRate: { label: '에러율', value: 8.5, unit: '%', max: 20, threshold: { warning: 3, critical: 10 } }
-  };
-
-  if (difficulty.value === 'hard') {
-    baseMetrics.traffic = { 
-      label: '초당 요청수', 
-      value: 5200, 
-      unit: ' req/s', 
-      max: 6000, 
-      threshold: { warning: 1000, critical: 3000 } 
-    };
-  }
-
-  Object.assign(metrics, baseMetrics);
+function displayProblem() {
+  const problem = currentProblem.value;
+  problemTitle.value = problem.title;
+  problemContent.value = `
+    <div style="margin-bottom: 20px;">
+      <strong style="color: var(--danger-red);">🚨 상황:</strong><br>
+      ${problem.scenario}
+    </div>
+    <div style="margin-bottom: 20px;">
+      <strong style="color: var(--warning-orange);">⚠️ 제약사항:</strong><br>
+      ${problem.constraints.replace(/\n/g, '<br>')}
+    </div>
+  `;
+  hintContent.value = problem.hint;
 }
 
-// 메트릭 상태
-function getMetricStatus(metric) {
-  if (!metric.threshold) return '';
-  if (metric.value >= metric.threshold.critical) return 'critical';
-  if (metric.value >= metric.threshold.warning) return 'warning';
-  return 'normal';
+function toggleHint() {
+  showHint.value = !showHint.value;
 }
 
-// 메트릭 퍼센티지
-function getMetricPercentage(metric) {
-  return Math.min((metric.value / metric.max) * 100, 100);
-}
-
-// 액션 제출
 function submitAction() {
-  const action = actionInput.value.trim().toLowerCase();
-  if (!action || solved.value) return;
-
+  if (!actionInput.value.trim()) return;
+  
   attempts.value--;
-  userActions.value.push(actionInput.value);
+  actions.value.push(actionInput.value);
   addLog(actionInput.value, 'action');
-
-  const result = processAction(action);
-  showFeedbackMessage(result);
-
+  
+  const result = processAction(actionInput.value.toLowerCase());
+  showFeedbackMsg(result.message, result.type);
+  
   actionInput.value = '';
-
+  
   setTimeout(() => {
     if (currentProblem.value.winCondition(metrics)) {
       solved.value = true;
-      showResult();
+      showResult(true);
     } else if (attempts.value <= 0) {
-      showResult();
+      showResult(false);
     }
   }, 1500);
 }
 
-// 액션 처리
 function processAction(action) {
   const solutions = currentProblem.value.solutions;
   let matched = false;
-  let totalImprovement = 0;
-
+  
   for (let solution of solutions) {
     const hasKeyword = solution.keywords.some(keyword => action.includes(keyword));
     if (hasKeyword) {
       matched = true;
-      for (let [metric, change] of Object.entries(solution.effect)) {
-        if (metrics[metric]) {
-          metrics[metric].value = Math.max(0, Math.min(metrics[metric].max, metrics[metric].value + change));
-          totalImprovement += Math.abs(change);
+      for (let [metricKey, change] of Object.entries(solution.effect)) {
+        if (metrics[metricKey]) {
+          metrics[metricKey].value += change;
         }
       }
       break;
     }
   }
-
+  
   if (!matched) {
-    return { type: 'neutral', message: '명령이 효과가 없습니다...' };
-  } else if (totalImprovement > 0) {
-    return { type: 'improved', message: '상황이 개선되었습니다!' };
+    return { type: 'warning', message: '명령이 효과가 없습니다...' };
   } else {
-    return { type: 'neutral', message: '명령을 실행했습니다.' };
+    return { type: 'success', message: '명령을 실행했습니다.' };
   }
 }
 
-// 피드백 표시
-function showFeedbackMessage(result) {
-  feedbackMessage.value = result.message;
-  feedbackType.value = result.type;
+function showFeedbackMsg(message, type) {
+  feedbackMessage.value = message;
+  feedbackType.value = type;
   showFeedback.value = true;
-
+  
   setTimeout(() => {
     showFeedback.value = false;
   }, 2000);
 }
 
-// 로그 추가
-const actionLog = ref(null);
 function addLog(message, type) {
   actionLogs.value.push({ message, type });
-  nextTick(() => {
-    if (actionLog.value) {
-      actionLog.value.scrollTop = actionLog.value.scrollHeight;
-    }
-  });
 }
 
-// 결과 화면 표시
-const usedAttempts = computed(() => 7 - attempts.value);
-const finalScore = computed(() => solved.value ? Math.max(100 - (usedAttempts.value * 10), 50) : 0);
-
-const resultMessage = computed(() => {
-  if (solved.value) {
-    return `<span style="color: var(--success-green);">훌륭합니다! 시스템을 성공적으로 복구했습니다.</span><br>
-            효율적인 문제 해결 능력을 보여주셨습니다.`;
-  } else {
-    return `<span style="color: var(--danger-red);">시도 횟수를 모두 소진했습니다.</span><br>
-            다시 한번 도전해보세요. 힌트를 참고하면 도움이 될 것입니다.`;
-  }
-});
-
-function showResult() {
+function showResult(won) {
   currentScreen.value = 'result';
+  usedAttempts.value = 7 - attempts.value;
+  finalScore.value = won ? Math.max(100 - (usedAttempts.value * 10), 50) : 0;
+  difficultyLevel.value = difficulty.value.toUpperCase();
+  
+  if (won) {
+    resultTitle.value = '미션 성공!';
+    resultMessage.value = `
+      <span style="color: var(--success-green);">훌륭합니다! 시스템을 성공적으로 복구했습니다.</span><br>
+      효율적인 문제 해결 능력을 보여주셨습니다.
+    `;
+  } else {
+    resultTitle.value = '미션 실패';
+    resultMessage.value = `
+      <span style="color: var(--danger-red);">시도 횟수를 모두 소진했습니다.</span><br>
+      다시 한번 도전해보세요. 힌트를 참고하면 도움이 될 것입니다.
+    `;
+  }
 }
 
-// 게임 리셋
 function resetGame() {
   currentScreen.value = 'difficulty';
-  attempts.value = 7;
-  solved.value = false;
-  actionInput.value = '';
   actionLogs.value = [{ message: '시스템 준비 완료...', type: 'action' }];
-  userActions.value = [];
   showAIFeedback.value = false;
-  aiFeedbackLoading.value = false;
-  aiFeedbackReceived.value = false;
-  aiFeedbackError.value = false;
-  aiFeedback.value = '';
 }
 
-// AI 피드백
 async function getAIFeedback() {
   showAIFeedback.value = true;
   aiFeedbackLoading.value = true;
-  aiFeedbackError.value = false;
-
+  
   try {
-    const actionsList = userActions.value.map((a, i) => `${i + 1}. ${a}`).join('\n');
-
+    const actionsList = actions.value.map((a, i) => `${i + 1}. ${a}`).join('\n');
+    
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -523,23 +394,47 @@ ${actionsList || '(조치 없음)'}
     });
 
     const data = await response.json();
-
+    
     if (data.content && data.content[0]) {
-      aiFeedback.value = data.content[0].text;
-      aiFeedbackReceived.value = true;
-    } else {
-      throw new Error('응답 형식 오류');
+      aiFeedbackContent.value = data.content[0].text;
     }
   } catch (error) {
     console.error('AI 피드백 오류:', error);
-    aiFeedbackError.value = true;
+    aiFeedbackContent.value = '⚠️ AI 피드백을 불러오는데 실패했습니다. 네트워크 연결을 확인해주세요.';
   } finally {
     aiFeedbackLoading.value = false;
   }
 }
+
+function formatMetricLabel(key) {
+  const labels = {
+    responseTime: '응답 시간',
+    cpu: 'CPU 사용률',
+    memory: '메모리 사용률',
+    errorRate: '에러율',
+    activeConnections: '활성 연결',
+    maxConnections: '최대 연결',
+    queryTime: '쿼리 시간',
+    heapUsage: '힙 사용률',
+    gcTime: 'GC 시간',
+    throughput: '처리량'
+  };
+  return labels[key] || key;
+}
+
+function getMetricClass(metric) {
+  if (metric.value <= metric.threshold.good) return 'good';
+  if (metric.value <= metric.threshold.warning) return 'warning';
+  return 'critical';
+}
+
+function getMetricWidth(metric) {
+  const max = metric.threshold.warning * 1.5;
+  return Math.min((metric.value / max) * 100, 100);
+}
 </script>
 
-<style scoped>
+<style>
 * {
   margin: 0;
   padding: 0;
@@ -558,14 +453,35 @@ ${actionsList || '(조치 없음)'}
   --warning-orange: #ff9500;
 }
 
+.ops-practice-page {
+  font-family: 'Rajdhani', sans-serif;
+  background: linear-gradient(135deg, #0a0e17 0%, #1a1f2e 50%, #0a0e17 100%);
+  color: var(--neon-cyan);
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+.ops-practice-page::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    repeating-linear-gradient(0deg, rgba(0, 243, 255, 0.03) 0px, transparent 1px, transparent 2px, rgba(0, 243, 255, 0.03) 3px),
+    repeating-linear-gradient(90deg, rgba(0, 243, 255, 0.03) 0px, transparent 1px, transparent 2px, rgba(0, 243, 255, 0.03) 3px);
+  pointer-events: none;
+  z-index: 1;
+}
+
 .game-container {
   position: relative;
   z-index: 2;
   max-width: 1400px;
   margin: 0 auto;
   padding: 20px;
-  font-family: 'Rajdhani', sans-serif;
-  color: var(--neon-cyan);
 }
 
 .header {
@@ -611,6 +527,10 @@ ${actionsList || '(조치 없음)'}
   padding: 60px;
   box-shadow: 0 0 40px var(--screen-glow), inset 0 0 20px rgba(0, 243, 255, 0.1);
   text-align: center;
+}
+
+.difficulty-screen.hidden {
+  display: none;
 }
 
 .difficulty-title {
@@ -724,7 +644,7 @@ ${actionsList || '(조치 없음)'}
   margin-bottom: 30px;
 }
 
-/* 모니터 스타일 */
+/* 컴퓨터 모니터 스타일 */
 .monitor {
   background: #000;
   border: 15px solid #2a2a2a;
@@ -735,333 +655,170 @@ ${actionsList || '(조치 없음)'}
     0 0 50px rgba(0, 243, 255, 0.3),
     inset 0 0 30px rgba(0, 243, 255, 0.1);
   position: relative;
-  margin-bottom: 30px;
 }
 
-.screen-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 2px solid var(--neon-cyan);
+.monitor::before {
+  content: '';
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 10px;
+  background: #1a1a1a;
+  border-radius: 5px;
 }
 
-.screen-title {
-  font-family: 'Orbitron', sans-serif;
-  font-size: 1.5em;
-  font-weight: 700;
-  color: var(--neon-cyan);
+.monitor::after {
+  content: '';
+  position: absolute;
+  bottom: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 30px;
+  background: linear-gradient(to bottom, #2a2a2a, #1a1a1a);
+  border-radius: 0 0 20px 20px;
 }
 
-.terminal-indicator {
-  color: var(--danger-red);
-  font-family: 'JetBrains Mono', monospace;
-  animation: blink 1s infinite;
-}
-
-@keyframes blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0.3; }
-}
-
-.problem-description {
-  background: linear-gradient(135deg, rgba(255, 0, 85, 0.1), rgba(255, 149, 0, 0.1));
-  border-left: 4px solid var(--danger-red);
-  padding: 20px;
+.screen-content {
+  background: rgba(0, 20, 10, 0.9);
+  border: 2px solid var(--neon-cyan);
   border-radius: 10px;
+  padding: 30px;
+  min-height: 500px;
+  position: relative;
+  overflow: hidden;
 }
 
-.alert-badge {
-  display: inline-block;
-  background: var(--danger-red);
-  color: #000;
-  padding: 5px 15px;
-  border-radius: 20px;
-  font-weight: 700;
-  margin-bottom: 15px;
-  font-size: 0.9em;
+.screen-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 243, 255, 0.03) 0px,
+    transparent 1px,
+    transparent 2px,
+    rgba(0, 243, 255, 0.03) 3px
+  );
+  pointer-events: none;
+  animation: scanline 8s linear infinite;
 }
 
-.problem-description p {
-  color: #fff;
+@keyframes scanline {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(100%); }
+}
+
+.problem-header {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.8em;
+  color: var(--neon-yellow);
+  margin-bottom: 20px;
+  text-shadow: 0 0 10px var(--neon-yellow);
+}
+
+.problem-content {
+  font-family: 'JetBrains Mono', monospace;
   line-height: 1.8;
-  font-size: 1.1em;
+  color: var(--success-green);
+  position: relative;
+  z-index: 1;
 }
 
-/* 메트릭 대시보드 */
-.metrics-dashboard {
+/* 사이드 패널 */
+.side-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.panel-box {
   background: var(--panel-bg);
   border: 2px solid var(--neon-cyan);
   border-radius: 15px;
   padding: 20px;
   box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
-  margin-bottom: 30px;
 }
 
-.dashboard-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--neon-cyan);
+.panel-title {
   font-family: 'Orbitron', sans-serif;
-  font-weight: 700;
+  font-size: 1.2em;
+  margin-bottom: 15px;
+  color: var(--neon-cyan);
+  text-shadow: 0 0 10px var(--neon-cyan);
 }
 
-.live-indicator {
-  color: var(--success-green);
-  font-size: 0.9em;
+.attempts-counter {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 3em;
+  text-align: center;
+  color: var(--neon-yellow);
+  text-shadow: 0 0 20px var(--neon-yellow);
   animation: pulse 2s infinite;
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
 }
 
-.metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 15px;
-}
-
-.metric-card {
-  background: rgba(0, 0, 0, 0.5);
-  border: 2px solid;
-  border-radius: 10px;
-  padding: 15px;
-  transition: all 0.3s;
-}
-
-.metric-card.normal {
-  border-color: var(--success-green);
-}
-
-.metric-card.warning {
-  border-color: var(--warning-orange);
-  box-shadow: 0 0 15px rgba(255, 149, 0, 0.3);
-}
-
-.metric-card.critical {
-  border-color: var(--danger-red);
-  box-shadow: 0 0 20px rgba(255, 0, 85, 0.5);
-  animation: shake 0.5s infinite;
-}
-
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-2px); }
-  75% { transform: translateX(2px); }
-}
-
-.metric-label {
-  font-size: 0.9em;
-  opacity: 0.8;
-  margin-bottom: 5px;
-}
-
-.metric-value {
-  font-size: 2em;
-  font-weight: 700;
-  font-family: 'Orbitron', sans-serif;
-  margin-bottom: 10px;
-}
-
-.metric-bar {
+.hint-btn {
   width: 100%;
-  height: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-  overflow: hidden;
-  margin-bottom: 5px;
-}
-
-.metric-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--success-green), var(--warning-orange), var(--danger-red));
-  transition: width 0.5s ease;
-}
-
-.metric-threshold {
-  font-size: 0.8em;
-  opacity: 0.6;
-}
-
-/* 액션 패널 */
-.action-panel {
-  background: var(--panel-bg);
+  padding: 12px;
+  background: transparent;
   border: 2px solid var(--neon-magenta);
-  border-radius: 15px;
-  padding: 20px;
-  box-shadow: 0 0 20px rgba(255, 0, 255, 0.2);
-}
-
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--neon-cyan);
+  color: var(--neon-magenta);
   font-family: 'Orbitron', sans-serif;
-  font-weight: 700;
-}
-
-.attempts-counter {
-  color: var(--neon-yellow);
-  font-size: 1.1em;
-}
-
-.input-group {
-  display: flex;
-  gap: 10px;
-}
-
-.action-input {
-  flex: 1;
-  background: rgba(0, 0, 0, 0.5);
-  border: 2px solid var(--neon-cyan);
-  color: var(--neon-cyan);
-  padding: 15px;
-  border-radius: 8px;
-  font-family: 'JetBrains Mono', monospace;
   font-size: 1em;
-  outline: none;
-  transition: all 0.3s;
-}
-
-.action-input:focus {
-  box-shadow: 0 0 15px var(--screen-glow);
-  border-color: var(--neon-magenta);
-}
-
-.action-input::placeholder {
-  color: rgba(0, 243, 255, 0.4);
-}
-
-.submit-btn {
-  background: var(--neon-magenta);
-  color: #000;
-  border: none;
-  padding: 15px 30px;
   border-radius: 8px;
-  font-family: 'Orbitron', sans-serif;
-  font-weight: 700;
   cursor: pointer;
   transition: all 0.3s;
-  font-size: 1em;
 }
 
-.submit-btn:hover:not(:disabled) {
-  background: var(--neon-cyan);
-  box-shadow: 0 0 20px var(--screen-glow);
-  transform: scale(1.05);
+.hint-btn:hover:not(:disabled) {
+  background: var(--neon-magenta);
+  color: #000;
+  box-shadow: 0 0 20px var(--neon-magenta);
 }
 
-.submit-btn:disabled {
+.hint-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.feedback-message {
-  margin-top: 15px;
-  padding: 15px;
-  border-radius: 8px;
-  text-align: center;
-  font-weight: 600;
-  opacity: 0;
-  transform: translateY(-10px);
-  transition: all 0.3s;
-}
-
-.feedback-message.show {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.feedback-message.improved {
-  background: rgba(0, 255, 136, 0.2);
-  border: 2px solid var(--success-green);
-  color: var(--success-green);
-}
-
-.feedback-message.worsened {
-  background: rgba(255, 0, 85, 0.2);
-  border: 2px solid var(--danger-red);
-  color: var(--danger-red);
-}
-
-.feedback-message.neutral {
-  background: rgba(255, 149, 0, 0.2);
-  border: 2px solid var(--warning-orange);
-  color: var(--warning-orange);
-}
-
-/* 힌트 패널 */
-.hint-panel {
-  background: var(--panel-bg);
-  border: 2px solid var(--neon-yellow);
-  border-radius: 15px;
-  padding: 20px;
-  box-shadow: 0 0 20px rgba(255, 255, 0, 0.2);
-  margin-bottom: 20px;
-}
-
 .hint-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s;
+  margin-top: 15px;
+  line-height: 1.8;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.hint-content.active {
   max-height: 300px;
-  overflow-y: auto;
-}
-
-.hint-item {
-  display: flex;
-  gap: 15px;
-  padding: 12px;
-  margin-bottom: 10px;
-  background: rgba(255, 255, 0, 0.1);
-  border-radius: 8px;
-  align-items: flex-start;
-}
-
-.hint-number {
-  flex-shrink: 0;
-  width: 25px;
-  height: 25px;
-  background: var(--neon-yellow);
-  color: #000;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 0.9em;
-}
-
-/* 로그 패널 */
-.log-panel {
-  background: var(--panel-bg);
-  border: 2px solid var(--success-green);
-  border-radius: 15px;
-  padding: 20px;
-  box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
 }
 
 .action-log {
-  background: #000;
-  padding: 15px;
+  background: rgba(0, 0, 0, 0.5);
   border-radius: 8px;
-  max-height: 300px;
+  padding: 15px;
+  max-height: 200px;
   overflow-y: auto;
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.9em;
 }
 
 .log-entry {
-  padding: 8px;
+  padding: 5px;
   margin-bottom: 5px;
   border-left: 3px solid;
-  padding-left: 12px;
+  padding-left: 10px;
 }
 
 .log-entry.action {
@@ -1074,55 +831,160 @@ ${actionsList || '(조치 없음)'}
   color: var(--success-green);
 }
 
-/* 결과 화면 */
-.result-screen {
-  animation: fadeIn 0.5s;
+/* 메트릭 디스플레이 */
+.metrics-display {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
 }
 
-.result-container {
+.metric-card {
+  background: var(--panel-bg);
+  border: 2px solid var(--neon-cyan);
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
+}
+
+.metric-label {
+  font-size: 0.9em;
+  opacity: 0.8;
+  margin-bottom: 10px;
+}
+
+.metric-value {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 2em;
+  font-weight: 700;
+  margin-bottom: 15px;
+}
+
+.metric-value.good {
+  color: var(--success-green);
+}
+
+.metric-value.warning {
+  color: var(--warning-orange);
+}
+
+.metric-value.critical {
+  color: var(--danger-red);
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0.5; }
+}
+
+.metric-bar {
+  width: 100%;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.metric-fill {
+  height: 100%;
+  transition: width 0.5s;
+}
+
+.metric-fill.good {
+  background: var(--success-green);
+}
+
+.metric-fill.warning {
+  background: var(--warning-orange);
+}
+
+.metric-fill.critical {
+  background: var(--danger-red);
+}
+
+/* 입력 영역 */
+.input-area {
+  display: flex;
+  gap: 15px;
+  background: var(--panel-bg);
+  padding: 20px;
+  border-radius: 15px;
+  border: 2px solid var(--neon-cyan);
+}
+
+.action-input {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.5);
+  border: 2px solid var(--neon-cyan);
+  color: var(--neon-cyan);
+  padding: 15px;
+  border-radius: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1em;
+}
+
+.action-input:focus {
+  outline: none;
+  box-shadow: 0 0 15px var(--screen-glow);
+}
+
+.submit-btn {
+  padding: 15px 40px;
+  background: var(--neon-magenta);
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 1em;
+}
+
+.submit-btn:hover {
+  background: var(--neon-cyan);
+  box-shadow: 0 0 20px var(--screen-glow);
+  transform: scale(1.05);
+}
+
+/* 결과 화면 */
+.result-screen {
   background: var(--panel-bg);
   border: 3px solid var(--neon-cyan);
   border-radius: 20px;
   padding: 60px;
   box-shadow: 0 0 40px var(--screen-glow), inset 0 0 20px rgba(0, 243, 255, 0.1);
   text-align: center;
+  flex-direction: column;
+  align-items: center;
+  animation: fadeIn 0.5s;
 }
 
 .result-title {
   font-family: 'Orbitron', sans-serif;
   font-size: 3em;
-  margin-bottom: 30px;
-  text-shadow: 0 0 30px currentColor;
-}
-
-.result-title.success {
-  color: var(--success-green);
-}
-
-.result-title.failure {
-  color: var(--danger-red);
-}
-
-.result-message {
-  font-size: 1.3em;
-  line-height: 1.8;
   margin-bottom: 40px;
-  color: #fff;
+  background: linear-gradient(45deg, var(--neon-cyan), var(--neon-magenta), var(--neon-yellow));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 30px var(--screen-glow);
 }
 
 .result-stats {
   display: flex;
   justify-content: center;
-  gap: 40px;
-  margin-bottom: 40px;
+  gap: 30px;
+  margin-bottom: 30px;
   flex-wrap: wrap;
 }
 
-.stat-item {
+.stat-box {
   background: rgba(0, 0, 0, 0.5);
   border: 2px solid var(--neon-cyan);
   border-radius: 15px;
-  padding: 20px 30px;
+  padding: 20px 40px;
   min-width: 150px;
 }
 
@@ -1134,88 +996,49 @@ ${actionsList || '(조치 없음)'}
 
 .stat-value {
   font-family: 'Orbitron', sans-serif;
-  font-size: 2em;
+  font-size: 2.5em;
   font-weight: 700;
   color: var(--neon-yellow);
+  text-shadow: 0 0 20px var(--neon-yellow);
 }
 
-.stat-value.score {
-  color: var(--neon-magenta);
-  font-size: 2.5em;
-}
-
-.result-actions {
-  display: flex;
-  justify-content: center;
-  gap: 20px;
-  margin-bottom: 30px;
-  flex-wrap: wrap;
-}
-
-.ai-feedback-btn,
-.retry-btn {
+/* 피드백 메시지 */
+.feedback-message {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  padding: 30px 50px;
+  border-radius: 15px;
   font-family: 'Orbitron', sans-serif;
-  padding: 15px 40px;
-  font-size: 1.2em;
-  border: 3px solid;
-  cursor: pointer;
-  border-radius: 10px;
+  font-size: 1.5em;
   font-weight: 700;
+  z-index: 1000;
+  opacity: 0;
   transition: all 0.3s;
 }
 
-.ai-feedback-btn {
-  background: transparent;
-  border-color: var(--neon-magenta);
-  color: var(--neon-magenta);
+.feedback-message.show {
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
 }
 
-.ai-feedback-btn:hover:not(:disabled) {
-  background: var(--neon-magenta);
+.feedback-message.success {
+  background: var(--success-green);
   color: #000;
-  box-shadow: 0 0 20px var(--neon-magenta);
+  box-shadow: 0 0 50px var(--success-green);
 }
 
-.ai-feedback-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.retry-btn {
-  background: var(--neon-cyan);
-  border-color: var(--neon-cyan);
+.feedback-message.warning {
+  background: var(--warning-orange);
   color: #000;
+  box-shadow: 0 0 50px var(--warning-orange);
 }
 
-.retry-btn:hover {
-  box-shadow: 0 0 20px var(--screen-glow);
-  transform: scale(1.05);
-}
-
-/* AI 피드백 섹션 */
-.ai-feedback-section {
-  background: rgba(0, 0, 0, 0.5);
-  border: 2px solid var(--neon-magenta);
-  border-radius: 15px;
-  padding: 20px;
-  margin-top: 30px;
-  text-align: left;
-}
-
-.feedback-header {
-  font-family: 'Orbitron', sans-serif;
-  font-size: 1.3em;
-  font-weight: 700;
-  color: var(--neon-magenta);
-  margin-bottom: 15px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--neon-magenta);
-}
-
-.ai-feedback-content {
+.feedback-message.error {
+  background: var(--danger-red);
   color: #fff;
-  line-height: 1.8;
-  font-size: 1.1em;
+  box-shadow: 0 0 50px var(--danger-red);
 }
 
 .loading-spinner {
@@ -1236,16 +1059,12 @@ ${actionsList || '(조치 없음)'}
   .game-grid {
     grid-template-columns: 1fr;
   }
-
+  
   .header h1 {
     font-size: 2.5em;
   }
-
-  .difficulty-buttons {
-    flex-direction: column;
-  }
-
-  .metrics-grid {
+  
+  .metrics-display {
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   }
 }
