@@ -6,6 +6,9 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import CodePracticeLogicMirror from './features/practice/CodePracticeLogicMirror.vue'
+import SystemArchitecturePractice from './features/practice/SystemArchitecturePractice.vue'
+import DebugPractice from './features/practice/DebugPractice.vue'
+import OpsPractice from './features/practice/OpsPractice.vue'
 
 const routes = [
   {
@@ -17,7 +20,23 @@ const routes = [
     path: '/practice/logic-mirror',
     name: 'CodePracticeLogicMirror',
     component: CodePracticeLogicMirror
+  },
+  {
+    path: '/practice/system-architecture',
+    name: 'SystemArchitecturePractice',
+    component: SystemArchitecturePractice
+  },
+  {
+    path: '/practice/debug-practice',
+    name: 'DebugPractice',
+    component: DebugPractice
+  },
+  {
+    path: '/practice/ops-practice',
+    name: 'OpsPractice',
+    component: OpsPractice
   }
+
 ]
 
 const router = createRouter({

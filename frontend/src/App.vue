@@ -6,6 +6,9 @@
   <div id="app" v-cloak>
     <!-- [라우터 뷰 - Logic Mirror 페이지] -->
     <router-view v-if="$route.name === 'CodePracticeLogicMirror'"></router-view>
+    <router-view v-if="$route.name === 'SystemArchitecturePractice'"></router-view>
+    <router-view v-if="$route.name === 'DebugPractice'"></router-view>
+    <router-view v-if="$route.name === 'OpsPractice'"></router-view>
 
     <!-- [메인 페이지] -->
     <template v-else>
@@ -47,7 +50,7 @@
       </video>
       <div class="hero-overlay"></div>
       <div class="hero-content">
-        <h1 class="main-title bounce-in">Architecture Playground!</h1>
+        <h1 class="main-title bounce-in">Engineer Playground!</h1>
         <p class="subtitle">아키텍처 근성장(?) 보장! 엔지니어들을 위한 아키텍처 놀이터 <i data-lucide="party-popper"></i></p>
         <div class="hero-btns">
           <button @click="handleGoToPlayground" class="btn btn-primary">놀러 가기!</button>
@@ -415,7 +418,14 @@
                 </footer>
             </div>
         </div>
+
      </transition>
+
+     <!-- [공사중 안내 모달] -->
+     <ConstructionModal 
+        :isOpen="isConstructionModalOpen" 
+        @close="isConstructionModalOpen = false" 
+     />
 
      <!-- Scroll Attempt Warning Toast -->
     <div v-if="!isLoggedIn" class="scroll-warning-toast" :class="{ show: showScrollHint }">
@@ -433,12 +443,14 @@ import './style.css';
 import NoticeModal from './components/NoticeModal.vue';
 import LoginModal from './components/LoginModal.vue';
 import SignUpModal from './components/SignUpModal.vue';
+import ConstructionModal from './components/ConstructionModal.vue';
 
 export default {
     components: {
         NoticeModal,
         LoginModal,
-        SignUpModal
+        SignUpModal,
+        ConstructionModal
     },
     data() {
         return {
@@ -474,7 +486,12 @@ export default {
             activeUnit: null,
             activeChapter: null,
             showScrollHint: false,
+            isUnitModalOpen: false,
+            activeUnit: null,
+            activeChapter: null,
+            showScrollHint: false,
             isAuthRequiredModalOpen: false,
+            isConstructionModalOpen: false, // [수정일: 2026-01-21] 공사중 모달 상태 추가
             // Mermaid, Code, Debug, Pseudo state vars would go here...
             mermaidCode: '',
         }
@@ -536,6 +553,15 @@ export default {
             if (chapter?.name === 'Code Practice') {
                 // Logic Mirror 기능으로 라우팅
                 this.$router.push('/practice/logic-mirror');
+            } else if (chapter?.name === 'System Practice') {
+                // System Architecture 기능으로 라우팅
+                this.$router.push('/practice/system-architecture');
+            } else if (chapter?.name === 'Debug Practice') {
+                // Debug Practice 기능으로 라우팅
+                this.$router.push('/practice/debug-practice');
+            } else if (chapter?.name === 'Ops Practice') {
+                // Ops Practice 기능으로 라우팅
+                this.$router.push('/practice/ops-practice');
             } else if (chapter?.name === 'Agent Practice') {
                 this.isAgentModalOpen = true;
                 this.$nextTick(() => {
@@ -543,7 +569,7 @@ export default {
                     // Chart init would go here
                 });
             } else {
-                 alert('This workspace is under construction!');
+                 this.isConstructionModalOpen = true; 
             }
         },
         handleLogin() { this.isLoginModalOpen = true; },

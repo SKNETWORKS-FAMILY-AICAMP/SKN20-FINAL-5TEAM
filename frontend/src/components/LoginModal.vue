@@ -15,11 +15,13 @@
         <div class="auth-body">
           <div class="input-group">
             <label class="input-label">ENGINEERING ID</label>
-            <input type="email" v-model="email" class="auth-input" placeholder="이메일을 입력하세요">
+            <input type="email" v-model="email" class="auth-input" placeholder="이메일을 입력하세요" 
+              @keyup.enter="handleLogin">
           </div>
           <div class="input-group">
             <label class="input-label">ACCESS SECRET</label>
-            <input type="password" v-model="password" class="auth-input" placeholder="비밀번호">
+            <input type="password" v-model="password" class="auth-input" placeholder="비밀번호" 
+              @keyup.enter="handleLogin">
           </div>
         </div>
 

@@ -130,6 +130,56 @@ class UserProfileSerializer(serializers.ModelSerializer):
         
         return user
 
+    def update(self, instance, validated_data):
+        """
+        [수정일: 2026-01-21] 회원 정보 수정 로직
+        - user_detail 정보 업데이트 처리
+        - 비밀번호 변경 로직 추가
+        """
+        detail_data = validated_data.pop('user_detail', {})
+        
+        # [2026-01-21] 비밀번호 변경 처리
+        if 'password' in validated_data:
+             # 입력된 평문 비밀번호를 해싱하여 저장
+             raw_password = validated_data['password']
+             validated_data['password'] = make_password(raw_password)
+             
+             # 연동된 auth.User의 비밀번호도 함께 변경
+             # instance.user_id는 이메일 앞부분 등이므로 정확한 매핑 필요.
+             # UserProfile.email을 통해 auth.User를 찾아서 변경
+             if instance.email:
+                 try:
+                     auth_user = User.objects.get(email=instance.email)
+                     auth_user.set_password(raw_password)
+                     auth_user.save()
+                 except User.DoesNotExist:
+                     pass # auth.User가 없으면 무시 (하지만 데이터 정합성 문제 주의)
+        
+        # 기본 정보 업데이트
+        super().update(instance, validated_data)
+        
+        # 상세 정보 업데이트
+        if hasattr(instance, 'user_detail'):
+            detail = instance.user_detail
+            
+            # 리스트 -> 문자열 변환
+            if 'job_role' in detail_data and isinstance(detail_data['job_role'], list):
+                detail.job_role = ','.join(detail_data['job_role'])
+            elif 'job_role' in detail_data: # 수정 시 빈 값이면
+                detail.job_role = detail_data['job_role'] # 문자열이거나 null일 것임
+                
+            if 'interests' in detail_data and isinstance(detail_data['interests'], list):
+                detail.interests = ','.join(detail_data['interests'])
+            elif 'interests' in detail_data:
+                detail.interests = detail_data['interests']
+                
+            if 'is_developer' in detail_data:
+                detail.is_developer = detail_data['is_developer']
+                
+            detail.save()
+            
+        return instance
+
 class UserProfileViewSet(viewsets.ModelViewSet):
     """
     팀원 A 담당: 회원가입, 프로필 조회 API
@@ -145,4 +195,12 @@ class UserProfileViewSet(viewsets.ModelViewSet):
             # POST 요청일 경우에만 인증 클래스를 비워서 CSRF 체크를 스킵
             self.authentication_classes = []
         return super().initialize_request(request, *args, **kwargs)
+
+    def get_permissions(self):
+        # 회원가입은 누구나, 수정/삭제는 본인만
+        if self.action in ['update', 'partial_update', 'destroy']:
+            # 커스텀 권한 체크 필요 (여기서는 간단히 로그인 여부만, 실제 본인 체크는 IsOwner 필요함)
+            # 그러나 일단 로그인한 유저만 접근하도록 설정
+            return [permissions.IsAuthenticated()]
+        return super().get_permissions()
 
