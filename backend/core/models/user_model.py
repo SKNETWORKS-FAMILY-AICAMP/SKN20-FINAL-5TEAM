@@ -11,21 +11,40 @@ class UserProfile(models.Model):
     class Meta:
         db_table = 'gym_user'
 
+    # [수정일: 2026-01-21] user_id를 PK로 변경, user_seq 추가
+    user_id = models.CharField(max_length=50, primary_key=True)  # 로그인 아이디 (PK)
+    user_seq = models.IntegerField(unique=True, null=True, blank=True) # 순번 (자동 채번)
+    
     user_name = models.CharField(max_length=50)  # 사용자 이름
-    user_nickname = models.CharField(max_length=50, null=True, blank=True)  # 사용자 닉네임 (Callsign)
-    user_id = models.CharField(max_length=50, unique=True)  # 로그인 아이디
+    user_nickname = models.CharField(max_length=50, null=True, blank=True)  # 사용자 닉네임
     email = models.EmailField(unique=True)  # 이메일
     birth_date = models.DateField(null=True, blank=True)  # 생년월일
     password = models.CharField(max_length=128)  # 비밀번호   
+    
     # 추가 필드
-    create_id = models.CharField(max_length=50, null=True, blank=True)  # 생성자 ID
-    update_id = models.CharField(max_length=50, null=True, blank=True)  # 수정자 ID
-    create_date = models.DateTimeField(auto_now_add=True)  # 생성일시
-    update_date = models.DateTimeField(auto_now=True)  # 수정일시
-    use_yn = models.CharField(max_length=1, default='Y')  # 사용여부 (Y/N)
+    create_id = models.CharField(max_length=50, null=True, blank=True)
+    update_id = models.CharField(max_length=50, null=True, blank=True)
+    create_date = models.DateTimeField(auto_now_add=True)
+    update_date = models.DateTimeField(auto_now=True)
+    use_yn = models.CharField(max_length=1, default='Y')
+    
+    def save(self, *args, **kwargs):
+        # 1. user_id 자동 생성 (email @ 앞부분)
+        if not self.user_id and self.email:
+            self.user_id = self.email.split('@')[0]
+            
+        # 2. user_seq 자동 채번
+        if not self.user_seq:
+            last_user = UserProfile.objects.order_by('-user_seq').first()
+            if last_user and last_user.user_seq is not None:
+                self.user_seq = last_user.user_seq + 1
+            else:
+                self.user_seq = 1
+                
+        super().save(*args, **kwargs)
     
     def __str__(self):
-        return self.user_name
+        return f"{self.user_name} ({self.user_id})"
 
 class UserDetail(models.Model):
     """
@@ -35,11 +54,33 @@ class UserDetail(models.Model):
     class Meta:
         db_table = 'gym_userdetail'
 
-    user = models.OneToOneField(UserProfile, on_delete=models.CASCADE, related_name='user_detail')
+    # [수정일: 2026-01-21] user_id를 PK로 설정 (식별 관계)
+    # 필드명을 user_id로 변경하고 db_column도 user_id로 지정
+    user_id = models.OneToOneField(
+        UserProfile, 
+        on_delete=models.CASCADE, 
+        primary_key=True, 
+        db_column='user_id',
+        related_name='user_detail'
+    )
+    
+    # [수정일: 2026-01-21] detail_seq는 단순 순번 필드로 변경 (PK 아님)
+    detail_seq = models.IntegerField(null=True, blank=True)
+
     is_developer = models.BooleanField(default=True)  # 개발자 여부
     job_role = models.CharField(max_length=255, null=True, blank=True)  # 직군
     # [수정일: 2026-01-21] IT INTERESTS (관심 분야) 추가
     interests = models.CharField(max_length=255, null=True, blank=True) 
     
+    def save(self, *args, **kwargs):
+        # detail_seq 자동 채번
+        if not self.detail_seq:
+            last_detail = UserDetail.objects.order_by('-detail_seq').first()
+            if last_detail and last_detail.detail_seq is not None:
+                self.detail_seq = last_detail.detail_seq + 1
+            else:
+                self.detail_seq = 1
+        super().save(*args, **kwargs)
+    
     def __str__(self):
-        return f"{self.user.user_name}'s Detail"
+        return f"{self.user_id.user_name}'s Detail"

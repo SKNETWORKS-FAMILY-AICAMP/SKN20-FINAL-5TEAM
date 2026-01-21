@@ -94,7 +94,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         if 'interests' in detail_data and isinstance(detail_data['interests'], list):
             detail_data['interests'] = ','.join(detail_data['interests'])
 
-        UserDetail.objects.create(user=user, **detail_data)
+        UserDetail.objects.create(user_id=user, **detail_data)
         
         return user
 
