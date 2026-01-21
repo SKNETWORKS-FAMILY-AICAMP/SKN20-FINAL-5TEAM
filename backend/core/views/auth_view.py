@@ -14,6 +14,7 @@ from django.utils.decorators import method_decorator
 @method_decorator(ensure_csrf_cookie, name='dispatch')
 class LoginView(APIView):
     permission_classes = [permissions.AllowAny]
+    authentication_classes = [] # [2026-01-21] 로그인 시도 시에는 세션/CSRF 검사 제외
 
     def post(self, request):
         # [2026-01-21] 이메일과 비밀번호 기반 로그인 로직 구현
@@ -55,7 +56,7 @@ class LoginView(APIView):
 
 class LogoutView(APIView):
     def post(self, request):
-        # [2026-01-21] 로구아웃 및 세션 삭제
+        # [2026-01-21] 로그아웃 및 세션 삭제
         logout(request)
         return Response({'message': 'Logged out successfully'})
 

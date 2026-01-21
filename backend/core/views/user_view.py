@@ -137,11 +137,12 @@ class UserProfileViewSet(viewsets.ModelViewSet):
     queryset = UserProfile.objects.all()
     serializer_class = UserProfileSerializer
 
-    def get_authenticators(self):
+    def initialize_request(self, request, *args, **kwargs):
         """
-        [수정일: 2026-01-21] 회원가입(create) 시, 인증 클래스(SessionAuth)를 제외하여 CSRF 검증 우회
+        [수정일: 2026-01-21] 회원가입(POST) 시 CSRF 검사 방지를 위해 인증(SessionAuthentication) 제외
         """
-        if getattr(self, 'action', None) == 'create':
-            return []
-        return super().get_authenticators()
+        if request.method == 'POST':
+            # POST 요청일 경우에만 인증 클래스를 비워서 CSRF 체크를 스킵
+            self.authentication_classes = []
+        return super().initialize_request(request, *args, **kwargs)
 
