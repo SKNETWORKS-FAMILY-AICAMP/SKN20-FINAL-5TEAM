@@ -1841,7 +1841,7 @@ footer {
 .platform-circle-v3 {
     width: 100px;
     height: 100px;
-    background: #2d384d;
+    background: transparent;
     border-radius: 50%;
     display: flex;
     justify-content: center;
@@ -1853,7 +1853,7 @@ footer {
 
 /* 활성 노드 특수 효과 */
 .node-platform-v3.active .platform-circle-v3 {
-    background: #b6ff40;
+    background: transparent;
     box-shadow: 0 8px 0 #7fa32d, 0 0 30px rgba(182, 255, 64, 0.6);
 }
 
@@ -1893,7 +1893,7 @@ footer {
     z-index: 10;
     filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.5));
     animation: duckBounceV3 2s ease-in-out infinite;
-    mix-blend-mode: screen;
+    mix-blend-mode: normal;
     /* 검은색 배경을 투명하게 처리 */
 }
 
