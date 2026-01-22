@@ -55,8 +55,6 @@ class UserDetail(models.Model):
     # [수정일: 2026-01-21] IT INTERESTS (관심 분야) 추가, 길이 제한 해제
     interests = models.TextField(null=True, blank=True) 
     
+    # [수정일: 2026-01-22] 참조 필드명 변경 반영
     def __str__(self):
-        return f"{self.user_id.user_name}'s Detail"
-    
-    def __str__(self):
-        return f"{self.user_id.user_name}'s Detail"
+        return f"{self.user.user_name}'s Detail"
