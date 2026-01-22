@@ -6,6 +6,11 @@
         <div class="subtitle">// ADVANCED BUG HUNTING SYSTEM v2.4</div>
       </header>
 
+      <div class="debug-mode-switch">
+        <button class="mode-btn active">🐞 Bug Hunt</button>
+        <button class="mode-btn" @click="goToMode('vibe-cleanup')">✨ Vibe Code Clean Up</button>
+      </div>
+
       <div class="main-layout-grid">
         
         <aside class="side-panel">
@@ -111,6 +116,14 @@
 
 <script setup>
 import { ref, reactive, computed } from 'vue';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+const goToMode = (mode) => {
+  if (mode === 'vibe-cleanup') {
+    router.push('/practice/vibe-cleanup');
+  }
+};
 
 const files = reactive({
   'main.py': `import json\nfrom auth import login\n\ndef main():\n    with open("users.json", "r") as f:\n        users = json.load(f)\n\n    # 유저 ID 99번은 존재하지 않음\n    user = next((u for u in users if u["id"] == 99), None)\n\n    # ERROR: user가 None일 경우 여기서 크래시 발생\n    print(f"Logging in {user['username']}...")\n\n    if login(user):\n        print("SUCCESS")`,
@@ -167,6 +180,34 @@ const mockSubmit = () => {
   min-height: 100vh;
   padding: 30px;
   font-family: 'Rajdhani', sans-serif;
+}
+
+.debug-mode-switch {
+  display: flex;
+  gap: 12px;
+  margin: 0 0 20px 0;
+}
+
+.mode-btn {
+  padding: 10px 16px;
+  font-family: 'Orbitron';
+  font-weight: 700;
+  background: transparent;
+  border: 1px solid rgba(0, 243, 255, 0.4);
+  color: var(--neon-cyan);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: 0.2s ease;
+}
+
+.mode-btn.active {
+  background: rgba(0, 243, 255, 0.15);
+  box-shadow: 0 0 12px rgba(0, 243, 255, 0.3);
+}
+
+.mode-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 16px rgba(0, 243, 255, 0.35);
 }
 
 .main-layout-grid {

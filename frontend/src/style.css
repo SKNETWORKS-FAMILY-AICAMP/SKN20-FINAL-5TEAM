@@ -1890,7 +1890,7 @@ footer {
     width: 140px;
     height: auto;
     position: absolute;
-    top: -90px;
+    top: -50px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 10;

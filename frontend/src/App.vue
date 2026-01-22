@@ -12,7 +12,7 @@
     <!-- [상단 네비게이션 바] -->
     <nav class="navbar">
       <div class="logo">
-        <span class="logo-text">ARCH-GYM 🚀</span>
+        <span class="logo-text">AI ENGINEER-GYM 🚀</span>
       </div>
       <div class="nav-links">
         <a href="#chapters">Chapters</a>
@@ -141,8 +141,17 @@
         <div class="unit-detail-modal">
           <header class="unit-modal-header-v3">
             <div class="title-section-v3">
-              <div class="unit-label-v3">UNIT {{ chapters.indexOf(activeUnit) + 1 }}</div>
-              <h2 class="unit-name-v3">{{ activeUnit?.problems?.[0]?.title || activeUnit?.name }}</h2>
+              <div class="unit-label-v3">
+                {{ activeUnit?.name === 'Debug Practice' ? 'DEBUG GYM' : 'UNIT ' + (chapters.indexOf(activeUnit) + 1) }}
+              </div>
+              <h2 class="unit-name-v3">
+                <template v-if="activeUnit?.name === 'Debug Practice'">
+                  {{ currentDebugMode === 'bug-hunt' ? '🐞 Bug Hunt' : '✨ Vibe Code Clean Up' }}
+                </template>
+                <template v-else>
+                  {{ activeUnit?.problems?.[0]?.title || activeUnit?.name }}
+                </template>
+              </h2>
             </div>
             <div style="display: flex; align-items: center;">
               <button class="guidebook-btn-v3">
@@ -160,7 +169,7 @@
                   stroke="rgba(148, 163, 184, 0.2)" stroke-width="3" stroke-dasharray="10,5" />
               </svg>
 
-              <div v-for="(problem, pIdx) in activeUnit?.problems" :key="problem.id" class="node-platform-v3"
+              <div v-for="(problem, pIdx) in displayProblems" :key="problem.id" class="node-platform-v3"
                 :class="['node-' + pIdx, { active: pIdx === 0 }]"
                 @click="selectProblem(problem, activeUnit); isUnitModalOpen = false">
 
@@ -184,8 +193,8 @@
               </div>
 
               <!-- Decorative Locked Nodes -->
-              <div v-for="i in labelsCount(activeUnit)" :key="'extra-' + i" class="node-platform-v3 locked"
-                :class="'node-' + (activeUnit?.problems?.length + i - 1)">
+              <div v-for="i in displayLabelsCount" :key="'extra-' + i" class="node-platform-v3 locked"
+                :class="'node-' + (displayProblems.length + i - 1)">
                 <div class="platform-circle-v3">
                   <i data-lucide="lock" class="lock-icon-v3"></i>
                 </div>
@@ -194,14 +203,32 @@
           </div>
 
           <footer class="unit-stats-bar-v3">
-            <div class="stat-pill-v3 active">
-              <i data-lucide="check-circle" style="width: 16px;"></i>
-              1개 활성화
-            </div>
-            <div class="stat-pill-v3 locked">
-              <i data-lucide="lock" style="width: 16px;"></i>
-              {{ (activeUnit?.problems?.length || 1) + labelsCount(activeUnit) - 1 }}개 잠금
-            </div>
+            <!-- Debug Practice일 때는 게임 모드 선택 버튼 -->
+            <template v-if="activeUnit?.name === 'Debug Practice'">
+              <button
+                class="game-mode-btn bug-hunt"
+                :class="{ 'active': currentDebugMode === 'bug-hunt' }"
+                @click="selectGameMode('bug-hunt')">
+                🐞 Bug Hunt
+              </button>
+              <button
+                class="game-mode-btn vibe-cleanup"
+                :class="{ 'active': currentDebugMode === 'vibe-cleanup' }"
+                @click="selectGameMode('vibe-cleanup')">
+                ✨ Vibe Code Clean Up
+              </button>
+            </template>
+            <!-- 다른 Practice는 기존대로 -->
+            <template v-else>
+              <div class="stat-pill-v3 active">
+                <i data-lucide="check-circle" style="width: 16px;"></i>
+                1개 활성화
+              </div>
+              <div class="stat-pill-v3 locked">
+                <i data-lucide="lock" style="width: 16px;"></i>
+                {{ (displayProblems.length || 1) + displayLabelsCount - 1 }}개 잠금
+              </div>
+            </template>
           </footer>
         </div>
       </div>
@@ -495,6 +522,7 @@ export default {
             showScrollHint: false,
             isAuthRequiredModalOpen: false,
             isConstructionModalOpen: false, // [수정일: 2026-01-21] 공사중 모달 상태 추가
+            currentDebugMode: 'bug-hunt', // [수정일: 2026-01-22] Debug Practice 현재 모드 (bug-hunt | vibe-cleanup)
             // Mermaid, Code, Debug, Pseudo state vars would go here...
             mermaidCode: '',
         }
@@ -515,7 +543,7 @@ export default {
              // Simulating fetch
              this.chapters = [
                  { id: 1, name: 'Code Practice', description: 'Strength Training', problems: [{id: 1, title: 'Algorithm 101'}] },
-                 { id: 2, name: 'Debug Practice', description: 'Precision Training', problems: [{id: 2, title: 'Fix the Bug'}] },
+                 { id: 2, name: 'Debug Practice', description: 'Precision Training', problems: [{id: 2, title: 'Fix the Bug'}]},
                  { id: 3, name: 'System Practice', description: 'Strategy Training', problems: [{id: 3, title: 'Design System'}] },
                  { id: 4, name: 'Ops Practice', description: 'Endurance Training', problems: [{id: 4, title: 'Server Down!'}] },
                  { id: 5, name: 'Agent Practice', description: 'AI Training', problems: [{id: 5, title: 'Prompt Eng'}] },
@@ -542,6 +570,10 @@ export default {
                 return;
             }
             this.activeUnit = unit;
+            // Debug Practice일 경우 기본 모드를 Bug Hunt로 설정
+            if (unit?.name === 'Debug Practice') {
+                this.currentDebugMode = 'bug-hunt';
+            }
             this.isUnitModalOpen = true;
         },
         selectProblem(problem, chapter) {
@@ -558,7 +590,12 @@ export default {
             } else if (chapter?.name === 'System Practice') {
                 this.$router.push('/practice/system-architecture');
             } else if (chapter?.name === 'Debug Practice') {
-                this.$router.push('/practice/debug-practice');
+                // currentDebugMode에 따라 다른 라우트로 이동
+                if (this.currentDebugMode === 'bug-hunt') {
+                    this.$router.push('/practice/bug-hunt');
+                } else if (this.currentDebugMode === 'vibe-cleanup') {
+                    this.$router.push('/practice/vibe-cleanup');
+                }
             } else if (chapter?.name === 'Ops Practice') {
                 this.$router.push('/practice/ops-practice');
             } else if (chapter?.name === 'Agent Practice') {
@@ -570,6 +607,19 @@ export default {
             } else {
                  this.isConstructionModalOpen = true;
             }
+        },
+        selectGameMode(mode) {
+            this.currentDebugMode = mode;
+            if (this.activeUnit?.name === 'Debug Practice') {
+                const isDebugRoute = ['BugHunt', 'VibeCodeCleanUp'].includes(this.$route.name);
+                if (isDebugRoute) {
+                    const nextPath = mode === 'bug-hunt' ? '/practice/bug-hunt' : '/practice/vibe-cleanup';
+                    this.$router.push(nextPath);
+                }
+            }
+            this.$nextTick(() => {
+                if (window.lucide) window.lucide.createIcons();
+            });
         },
         handleLogin() { this.isLoginModalOpen = true; },
         onLoginSuccess(email) {
@@ -652,8 +702,19 @@ export default {
     },
     computed: {
         isPracticePage() {
-            const practiceRoutes = ['CodePracticeLogicMirror', 'SystemArchitecturePractice', 'DebugPractice', 'OpsPractice'];
+            const practiceRoutes = ['CodePracticeLogicMirror', 'SystemArchitecturePractice', 'BugHunt', 'VibeCodeCleanUp', 'OpsPractice'];
             return practiceRoutes.includes(this.$route.name);
+        },
+        displayProblems() {
+            if (this.activeUnit?.name === 'Debug Practice') {
+                const title = this.currentDebugMode === 'bug-hunt' ? 'Bug Hunt' : 'Vibe Code Clean Up';
+                return [{ id: this.currentDebugMode, title }];
+            }
+            return this.activeUnit?.problems || [];
+        },
+        displayLabelsCount() {
+            const currentCount = this.displayProblems?.length || 0;
+            return Math.max(0, 6 - currentCount);
         },
         unitBadge() { return this.activeChapter?.name || 'Practice'; },
         editorLabel() { return 'SYSTEM PROMPT EDITOR'; },
@@ -678,5 +739,42 @@ export default {
 </script>
 
 <style scoped>
-/* Scoped styles if needed, but we rely on global style.css */
+/* 게임 모드 선택 버튼 스타일 */
+.game-mode-btn {
+  flex: 1;
+  padding: 18px 30px;
+  font-family: 'Orbitron', sans-serif;
+  font-weight: bold;
+  font-size: 1.1em;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.game-mode-btn.bug-hunt {
+  background: linear-gradient(135deg, #ff00ff, #ff4db8);
+  color: white;
+  box-shadow: 0 4px 15px rgba(255, 0, 255, 0.3);
+}
+
+.game-mode-btn.bug-hunt:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(255, 0, 255, 0.5);
+}
+
+.game-mode-btn.vibe-cleanup {
+  background: linear-gradient(135deg, #ffff00, #ffd700);
+  color: #1a1f2e;
+  box-shadow: 0 4px 15px rgba(255, 255, 0, 0.3);
+}
+
+.game-mode-btn.vibe-cleanup:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(255, 255, 0, 0.5);
+}
 </style>

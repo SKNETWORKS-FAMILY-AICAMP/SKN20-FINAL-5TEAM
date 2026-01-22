@@ -11,7 +11,8 @@ import App from './App.vue'
 axios.defaults.withCredentials = true
 import CodePracticeLogicMirror from './features/practice/CodePracticeLogicMirror.vue'
 import SystemArchitecturePractice from './features/practice/SystemArchitecturePractice.vue'
-import DebugPractice from './features/practice/DebugPractice.vue'
+import BugHunt from './features/practice/BugHunt.vue'
+import VibeCodeCleanUp from './features/practice/VibeCodeCleanUp.vue'
 import OpsPractice from './features/practice/OpsPractice.vue'
 
 const routes = [
@@ -31,9 +32,14 @@ const routes = [
     component: SystemArchitecturePractice
   },
   {
-    path: '/practice/debug-practice',
-    name: 'DebugPractice',
-    component: DebugPractice
+    path: '/practice/bug-hunt',
+    name: 'BugHunt',
+    component: BugHunt
+  },
+  {
+    path: '/practice/vibe-cleanup',
+    name: 'VibeCodeCleanUp',
+    component: VibeCodeCleanUp
   },
   {
     path: '/practice/ops-practice',
