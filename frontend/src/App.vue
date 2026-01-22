@@ -78,8 +78,9 @@
           <div class="unit-parallel-grid">
             <div v-for="(chapter, idx) in chapters.slice(0, 6)" :key="chapter.id" class="unit-card-parallel"
               @click="openUnitPopup(chapter)">
-              <div class="unit-card-icon" :style="{ background: chapter.color || 'var(--primary)' }">
-                <i :data-lucide="chapter.icon || 'shield'"></i>
+              <div class="unit-card-icon" :style="{ background: 'transparent', padding: 0 }">
+                <img v-if="chapter.image" :src="chapter.image" :alt="chapter.name" style="width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));">
+                <i v-else :data-lucide="chapter.icon || 'shield'"></i>
               </div>
               <div class="unit-card-info">
                 <span class="unit-card-number">UNIT {{ idx + 1 }}</span>
@@ -456,13 +457,15 @@
         @close="isConstructionModalOpen = false" 
      />
 
-     <!-- Scroll Attempt Warning Toast -->
-    <div v-if="!isLoggedIn" class="scroll-warning-toast" :class="{ show: showScrollHint }">
-        <i data-lucide="lock" style="width: 18px; color: #1e293b;"></i>
-        <span>잠깐! 🚧 로그인이 필요해요</span>
-        <button @click="handleLogin" style="background: #1e293b; color: white; border: none; padding: 4px 12px; border-radius: 99px; font-size: 0.75rem; cursor: pointer; margin-left: 5px; font-weight: 700;">로그인하기</button>
-    </div>
     </template>
+
+    <!-- [Logic Mirror 실습 모달] - Global placement -->
+    <transition name="fade">
+       <CodePracticeLogicMirror 
+           v-if="isLogicMirrorOpen" 
+           @close="isLogicMirrorOpen = false" 
+       />
+    </transition>
   </div>
 </template>
 
@@ -474,13 +477,15 @@ import NoticeModal from './components/NoticeModal.vue';
 import LoginModal from './components/LoginModal.vue';
 import SignUpModal from './components/SignUpModal.vue';
 import ConstructionModal from './components/ConstructionModal.vue';
+import CodePracticeLogicMirror from './features/practice/CodePracticeLogicMirror.vue';
 
 export default {
     components: {
         NoticeModal,
         LoginModal,
         SignUpModal,
-        ConstructionModal
+        ConstructionModal,
+        CodePracticeLogicMirror
     },
     data() {
         return {
@@ -516,12 +521,9 @@ export default {
             activeUnit: null,
             activeChapter: null,
             showScrollHint: false,
-            isUnitModalOpen: false,
-            activeUnit: null,
-            activeChapter: null,
-            showScrollHint: false,
             isAuthRequiredModalOpen: false,
             isConstructionModalOpen: false, // [수정일: 2026-01-21] 공사중 모달 상태 추가
+            isLogicMirrorOpen: false, // [수정일: 2026-01-22] Code Practice 모달 상태 추가
             currentDebugMode: 'bug-hunt', // [수정일: 2026-01-22] Debug Practice 현재 모드 (bug-hunt | vibe-cleanup)
             // Mermaid, Code, Debug, Pseudo state vars would go here...
             mermaidCode: '',
@@ -542,11 +544,11 @@ export default {
              
              // Simulating fetch
              this.chapters = [
-                 { id: 1, name: 'Code Practice', description: 'Strength Training', problems: [{id: 1, title: 'Algorithm 101'}] },
-                 { id: 2, name: 'Debug Practice', description: 'Precision Training', problems: [{id: 2, title: 'Fix the Bug'}]},
-                 { id: 3, name: 'System Practice', description: 'Strategy Training', problems: [{id: 3, title: 'Design System'}] },
-                 { id: 4, name: 'Ops Practice', description: 'Endurance Training', problems: [{id: 4, title: 'Server Down!'}] },
-                 { id: 5, name: 'Agent Practice', description: 'AI Training', problems: [{id: 5, title: 'Prompt Eng'}] },
+                 { id: 1, name: 'Code Practice', description: 'Strength Training', problems: [{id: 1, title: 'Algorithm 101'}], image: '/image/unit_code.png' },
+                 { id: 2, name: 'Debug Practice', description: 'Precision Training', problems: [{id: 2, title: 'Fix the Bug'}], image: '/image/unit_debug.png' },
+                 { id: 3, name: 'System Practice', description: 'Strategy Training', problems: [{id: 3, title: 'Design System'}], image: '/image/unit_system.png' },
+                 { id: 4, name: 'Ops Practice', description: 'Endurance Training', problems: [{id: 4, title: 'Server Down!'}], image: '/image/unit_ops.png' },
+                 { id: 5, name: 'Agent Practice', description: 'AI Training', problems: [{id: 5, title: 'Prompt Eng'}], image: '/image/unit_agent.png' },
              ].map((ch, idx) => ({
                     ...ch,
                     color: colors[idx % colors.length],
@@ -585,8 +587,10 @@ export default {
             this.activeChapter = chapter;
 
             // [수정일: 2026-01-21] Practice 페이지들은 메인 레이아웃 없이 단독 표시
+            console.log('selectProblem:', chapter?.name);
             if (chapter?.name === 'Code Practice') {
-                this.$router.push('/practice/logic-mirror');
+                this.isLogicMirrorOpen = true;
+                console.log('Opening Logic Mirror Modal');
             } else if (chapter?.name === 'System Practice') {
                 this.$router.push('/practice/system-architecture');
             } else if (chapter?.name === 'Debug Practice') {

@@ -74,9 +74,28 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 # Database 설정 (PostgreSQL)
-DATABASES = {
-    'default': env.db('DATABASE_URL', default=f"postgres://{os.getenv('DB_USER', 'myuser')}:{os.getenv('DB_PASSWORD', 'mypassword')}@{os.getenv('DB_HOST', 'db')}:{os.getenv('DB_PORT', '5432')}/{os.getenv('DB_NAME', 'mygym')}")
-}
+# [수정일: 2026-01-22] Supabase 및 로컬 환경 동시 지원을 위한 DB 설정 (Antigravity)
+import dj_database_url
+
+if os.environ.get('DATABASE_URL'):
+    DATABASES = {
+        'default': dj_database_url.parse(os.environ.get('DATABASE_URL'))
+    }
+else:
+    # 2. 없으면 개별 변수 조합 (로컬 개발용)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': env('DB_NAME', default='mygym'),
+            'USER': env('DB_USER', default='myuser'),
+            'PASSWORD': env('DB_PASSWORD', default='mypassword'),
+            'HOST': env('DB_HOST', default='db'),
+            'PORT': env('DB_PORT', default='5432'),
+        }
+    }
+
+# [Debug] DB 설정 확인 (프로덕션에서는 보안 주의)
+print(f"Server is starting with DB Config: HOST={DATABASES['default'].get('HOST')}, USER={DATABASES['default'].get('USER')}, NAME={DATABASES['default'].get('NAME')}")
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},

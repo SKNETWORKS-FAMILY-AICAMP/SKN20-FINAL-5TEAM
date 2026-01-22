@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework import status, permissions
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
+from core.models import UserProfile # [수정일: 2026-01-22] 프로필 정보 조회를 위해 import 추가
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_protect
 from django.utils.decorators import method_decorator
 from rest_framework.authentication import SessionAuthentication # [수정일: 2026-01-22] 세션 인증 명시 (Antigravity)
@@ -43,8 +44,16 @@ class LoginView(APIView):
             
             # 닉네임 가져오기 (UserProfile or username)
             nickname = user.username
-            if hasattr(user, 'userprofile'):
-                nickname = user.userprofile.user_nickname or user.username
+            # 닉네임 가져오기 (UserProfile 조회)
+            nickname = user.username
+            try:
+                # [수정일: 2026-01-22] UserProfile 모델 직접 조회 (Antigravity)
+                # auth.User와 UserProfile이 DB Relation으로 연결되지 않았으므로 수동 조회
+                user_profile = UserProfile.objects.get(email=user.email)
+                if user_profile.user_nickname:
+                     nickname = user_profile.user_nickname
+            except UserProfile.DoesNotExist:
+                pass # 프로필 없으면 기본 username 사용
             
             return Response({
                 'message': 'Login successful',
@@ -81,18 +90,14 @@ class SessionCheckView(APIView):
             user = request.user
             nickname = user.username
             
-            # UserProfile 연결되어 있는 경우 닉네임 우선 사용
-            # (주의: UserProfile 모델과 1:1 연결이 어떻게 되어있는지 확인 필요. 
-            #  현재 UserProfile.user_id(문자열) 필드와 auth.User가 연결된 게 아니라, 
-            #  별도의 UserProfile 테이블만 있는데... auth.User와 UserProfile의 관계 정립 필요)
-            
-            # 현재 우리 시스템: auth.User (Admin/Login용) vs UserProfile (서비스용)
-            # SignUpModal에서 가입 시 UserProfile만 만들었음 -> auth.User는 안 만듦?
-            # 잠깐! SignUpModal의 API는 UserProfileViewSet.create인데, 여기서 auth.User를 만드는 로직이 있었나?
-            
-            # 확인 결과: UserProfileViewSet은 UserProfile 모델만 다룸. 
-            # Django 기본 auth.User 테이블에는 데이터가 없을 수 있음!
-            # 그렇다면 authenticate()가 작동하지 않습니다. 이 부분을 해결해야 합니다.
+            # [수정일: 2026-01-22] UserProfile 닉네임 조회 로직 구현 (Antigravity)
+            try:
+                # auth.User의 이메일과 매칭되는 UserProfile 조회
+                profile = UserProfile.objects.get(email=user.email)
+                if profile.user_nickname:
+                     nickname = profile.user_nickname
+            except UserProfile.DoesNotExist:
+                 pass
             
             return Response({
                 'isAuthenticated': True,

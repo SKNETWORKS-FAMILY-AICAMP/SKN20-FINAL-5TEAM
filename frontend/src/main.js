@@ -5,6 +5,7 @@ import { createApp } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import { createPinia } from 'pinia'
 import axios from 'axios' // [수정일: 2026-01-22] axios 임포트 추가 (Antigravity)
+import './index.css' // [2026-01-22] Tailwind CSS 임포트 추가
 import App from './App.vue'
 
 // [수정일: 2026-01-22] 새로고침 시 로그인 유지를 위해 세션 쿠키 전달 허용 (Antigravity)
@@ -45,6 +46,10 @@ const routes = [
     path: '/practice/ops-practice',
     name: 'OpsPractice',
     component: OpsPractice
+  },
+  {
+    path: '/main.html',
+    redirect: '/'
   }
 
 ]
