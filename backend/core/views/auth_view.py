@@ -7,15 +7,16 @@ from rest_framework.response import Response
 from rest_framework import status, permissions
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
-from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.csrf import ensure_csrf_cookie, csrf_protect
 from django.utils.decorators import method_decorator
+from rest_framework.authentication import SessionAuthentication # [수정일: 2026-01-22] 세션 인증 명시 (Antigravity)
 
 # [2026-01-21] CSRF 토큰을 쿠키에 설정하기 위해 ensure_csrf_cookie 데코레이터 사용
 @method_decorator(ensure_csrf_cookie, name='dispatch')
 class LoginView(APIView):
     permission_classes = [permissions.AllowAny]
-    # [수정일: 2026-01-21]
-    # 수정내용: 이미 세션이 있는 상태(재로그인 등)에서 CSRF 검증 실패를 방지하기 위해 인증 클래스 제외
+    # [수정일: 2026-01-22] 로그인 시에는 CSRF를 요구하지 않도록 복구 (Antigravity)
+    # 로그인 성공 후 생성되는 세션에 대해 나중에 CSRF 검증이 이루어집니다.
     authentication_classes = []
 
     def post(self, request):
@@ -63,14 +64,16 @@ class LogoutView(APIView):
         
         response = Response({'message': 'Logged out successfully'})
         
-        # [수정일: 2026-01-21] 클라이언트 쿠키 삭제 (수정 반영이 안될 때를 대비하여 확실하게 삭제)
+        # [수정일: 2026-01-22] 세션 쿠키만 삭제하고 CSRF 토큰은 유지하여 연속 로그인 가능하게 함 (Antigravity)
         response.delete_cookie('sessionid')
-        response.delete_cookie('csrftoken')
+        # response.delete_cookie('csrftoken') # 이 줄은 삭제하거나 주석 처리하여 다음 로그인이 가능하게 함
         
         return response
 
 class SessionCheckView(APIView):
     permission_classes = [permissions.AllowAny]
+    # [수정일: 2026-01-22] 세션 확인을 위해 SessionAuthentication 명시
+    authentication_classes = [SessionAuthentication]
 
     def get(self, request):
         # [2026-01-21] 현재 로그인된 사용자 정보 반환 (새로고침 시 상태 유지용)

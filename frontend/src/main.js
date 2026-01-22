@@ -4,7 +4,11 @@
 import { createApp } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import { createPinia } from 'pinia'
+import axios from 'axios' // [수정일: 2026-01-22] axios 임포트 추가 (Antigravity)
 import App from './App.vue'
+
+// [수정일: 2026-01-22] 새로고침 시 로그인 유지를 위해 세션 쿠키 전달 허용 (Antigravity)
+axios.defaults.withCredentials = true
 import CodePracticeLogicMirror from './features/practice/CodePracticeLogicMirror.vue'
 import SystemArchitecturePractice from './features/practice/SystemArchitecturePractice.vue'
 import DebugPractice from './features/practice/DebugPractice.vue'

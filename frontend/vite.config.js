@@ -20,6 +20,8 @@ export default defineConfig({
       '/api': {
         target: process.env.VITE_API_Target || 'http://backend:8000',
         changeOrigin: true,
+        // [수정일: 2026-01-22] 백엔드에서 보낸 쿠키 도메인(backend)을 localhost로 리라이트 (Antigravity)
+        cookieDomainRewrite: "localhost"
       }
     },
     // [수정일: 2026-01-21] SPA 라우팅을 위한 미들웨어 추가 (main.html 경로 지원)
@@ -36,22 +38,22 @@ export default defineConfig({
             '/',
             '/practice/logic-mirror',
           ];
-          
+
           // API 요청 제외
           if (req.url.startsWith('/api')) {
             return next();
           }
-          
+
           // 정적 파일 제외 (확장자가 있는 파일)
           if (req.url.includes('.') && !req.url.endsWith('.html')) {
             return next();
           }
-          
+
           // main.html 또는 라우트 요청이면 index.html로 리다이렉트
           if (req.url.includes('main.html') || !req.url.includes('.')) {
             req.url = '/index.html';
           }
-          
+
           next();
         }
       }

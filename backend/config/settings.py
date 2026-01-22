@@ -98,8 +98,26 @@ REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
-# CORS 설정 (프론트엔드 연동용)
-CORS_ALLOW_ALL_ORIGINS = True 
-# 수정일: 2026-01-21
-# 수정내용: 프론트엔드(localhost:5173)와의 통신을 위해 CSRF 신뢰 도메인 추가
-CSRF_TRUSTED_ORIGINS = ['http://localhost:8000', 'http://127.0.0.1:8000', 'http://localhost:5173'] 
+# [수정일: 2026-01-22] 로그인 유지 문제 해결을 위한 CORS 및 세션 설정 (Antigravity)
+# credentials 허용 시 ALL_ORIGINS = True 를 사용할 수 없으므로 화이트리스트 방식으로 변경
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+]
+CORS_ALLOW_CREDENTIALS = True
+
+# [수정일: 2026-01-22] CSRF 신뢰 도메인 설정 유지 및 보완 (Antigravity)
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+]
+
+# 세션 및 CSRF 쿠키 설정
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_HTTPONLY = True

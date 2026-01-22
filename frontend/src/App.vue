@@ -442,6 +442,7 @@
 <script>
 // Import external stylesheet (or rely on global style.css if imported in main.js)
 import './style.css';
+import axios from 'axios'; // [수정일: 2026-01-22] axios 임포트 누락 수정 (Antigravity)
 import NoticeModal from './components/NoticeModal.vue';
 import LoginModal from './components/LoginModal.vue';
 import SignUpModal from './components/SignUpModal.vue';
