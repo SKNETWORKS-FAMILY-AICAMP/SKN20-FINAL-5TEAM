@@ -1,10 +1,11 @@
 # 수정일: 2026-01-22
 # 수정내용: Antigravity - PK 명칭 id 통일에 따른 참조 필드 수정
 
-from rest_framework import viewsets, serializers
+from rest_framework import viewsets, serializers, permissions
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User
 from core.models import UserProfile, UserDetail
+import traceback # [수정일: 2026-01-22] 에러 디버깅을 위한 traceback 추가
 
 # 1. UserDetail Serializer
 class UserDetailSerializer(serializers.ModelSerializer):
@@ -153,6 +154,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
             raise  # ValidationError는 그대로 전파
         except Exception as e:
             # 예상치 못한 에러 처리
+            print(f"!!! Signup Error: {e}") # [수정일: 2026-01-22] 에러 로그 출력
+            traceback.print_exc()
             raise serializers.ValidationError({"detail": f"회원가입 처리 중 오류가 발생했습니다: {str(e)}"})
 
     def update(self, instance, validated_data):

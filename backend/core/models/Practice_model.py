@@ -6,7 +6,7 @@ from .base_model import BaseModel
 
 class Practice(BaseModel):
     """
-    팀원 C 담당: 연습용 모델 (현재는 임시)
+    팀원 C 담당: 연습용 모델 (현재는 임시) 
     """
     class Meta:
         db_table = 'gym_practice'
