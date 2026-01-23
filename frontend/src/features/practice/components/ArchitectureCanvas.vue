@@ -40,6 +40,15 @@
         @mousedown.stop="onComponentMouseDown($event, comp)"
         @dblclick.stop="startEditingComponent(comp.id)"
       >
+        <!-- Delete Button -->
+        <button
+          class="delete-btn"
+          @click.stop="deleteComponent(comp.id)"
+          @mousedown.stop
+          title="컴포넌트 삭제"
+        >
+          ✕
+        </button>
         <input
           v-if="editingComponentId === comp.id"
           v-model="editingComponentText"
@@ -80,6 +89,7 @@ export default {
     'component-dropped',
     'component-moved',
     'component-renamed',
+    'component-deleted',
     'connection-created',
     'component-selected'
   ],
@@ -236,6 +246,12 @@ export default {
     cancelEditingComponent() {
       this.editingComponentId = null;
       this.editingComponentText = '';
+    },
+    deleteComponent(compId) {
+      this.$emit('component-deleted', compId);
+      if (this.selectedComponentId === compId) {
+        this.selectedComponentId = null;
+      }
     }
   }
 };
@@ -329,6 +345,36 @@ export default {
 
 .dropped-component:hover {
   transform: scale(1.02);
+}
+
+.dropped-component:hover .delete-btn {
+  opacity: 1;
+}
+
+.delete-btn {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ff4785;
+  border: 2px solid #fff;
+  color: #fff;
+  font-size: 10px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.delete-btn:hover {
+  background: #ff1744;
+  transform: scale(1.2);
 }
 
 .dropped-component.selected {

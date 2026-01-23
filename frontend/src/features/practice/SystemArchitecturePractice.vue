@@ -1,64 +1,76 @@
 <template>
   <div class="arch-challenge-container">
-    <div class="bg-animation"></div>
+    <!-- 평가 결과 화면 -->
+    <EvaluationResultScreen
+      v-if="showResultScreen"
+      :result="evaluationResult"
+      :problem="currentProblem"
+      :is-loading="isEvaluating"
+      @retry="handleRetry"
+    />
 
-    <div class="game-container">
-      <!-- 컴포넌트 팔레트 -->
-      <ComponentPalette @drag-start="onPaletteDragStart" />
+    <!-- 메인 게임 화면 -->
+    <template v-else>
+      <div class="bg-animation"></div>
 
-      <!-- 아키텍처 캔버스 -->
-      <ArchitectureCanvas
+      <div class="game-container">
+        <!-- 컴포넌트 팔레트 -->
+        <ComponentPalette @drag-start="onPaletteDragStart" />
+
+        <!-- 아키텍처 캔버스 -->
+        <ArchitectureCanvas
+          :components="droppedComponents"
+          :connections="connections"
+          :is-connection-mode="isConnectionMode"
+          @toggle-mode="toggleMode"
+          @clear-canvas="clearCanvas"
+          @component-dropped="onComponentDropped"
+          @component-moved="onComponentMoved"
+          @component-renamed="onComponentRenamed"
+          @component-deleted="onComponentDeleted"
+          @connection-created="onConnectionCreated"
+        />
+
+        <!-- 결과 패널 -->
+        <div class="result-panel">
+          <!-- 문제 카드 -->
+          <ProblemCard
+            :problem="currentProblem"
+            :is-connection-mode="isConnectionMode"
+            :can-evaluate="droppedComponents.length > 0"
+            :is-evaluating="isEvaluating"
+            @start-evaluation="openEvaluationModal"
+          />
+
+          <!-- 채팅 패널 -->
+          <ChatPanel
+            :messages="chatMessages"
+            :is-loading="isChatLoading"
+            @send-message="handleChatMessage"
+          />
+        </div>
+      </div>
+
+      <!-- 평가 모달 -->
+      <EvaluationModal
+        :is-active="isModalActive"
+        :question="generatedQuestion"
+        :is-generating="isGeneratingQuestion"
         :components="droppedComponents"
         :connections="connections"
-        :is-connection-mode="isConnectionMode"
-        @toggle-mode="toggleMode"
-        @clear-canvas="clearCanvas"
-        @component-dropped="onComponentDropped"
-        @component-moved="onComponentMoved"
-        @component-renamed="onComponentRenamed"
-        @connection-created="onConnectionCreated"
+        @close="closeModal"
+        @submit="submitEvaluationAnswer"
       />
 
-      <!-- 결과 패널 -->
-      <div class="result-panel">
-        <!-- 문제 카드 -->
-        <ProblemCard
-          :problem="currentProblem"
-          :is-connection-mode="isConnectionMode"
-          :can-evaluate="droppedComponents.length > 0"
-          :is-evaluating="isEvaluating"
-          @start-evaluation="openEvaluationModal"
-        />
-
-        <!-- 평가 결과 -->
-        <EvaluationResult :result="evaluationResult" />
-
-        <!-- 채팅 패널 -->
-        <ChatPanel
-          :messages="chatMessages"
-          :is-loading="isChatLoading"
-          @send-message="handleChatMessage"
-        />
-      </div>
-    </div>
-
-    <!-- 평가 모달 -->
-    <EvaluationModal
-      :is-active="isModalActive"
-      :question="generatedQuestion"
-      :is-generating="isGeneratingQuestion"
-      @close="closeModal"
-      @submit="submitEvaluationAnswer"
-    />
-
-    <!-- Deep Dive 모달 -->
-    <DeepDiveModal
-      :is-active="isDeepDiveModalActive"
-      :question="deepDiveQuestion"
-      :is-generating="isGeneratingDeepDive"
-      @skip="skipDeepDive"
-      @submit="submitDeepDiveAnswer"
-    />
+      <!-- Deep Dive 모달 -->
+      <DeepDiveModal
+        :is-active="isDeepDiveModalActive"
+        :question="deepDiveQuestion"
+        :is-generating="isGeneratingDeepDive"
+        @skip="skipDeepDive"
+        @submit="submitDeepDiveAnswer"
+      />
+    </template>
   </div>
 </template>
 
@@ -70,9 +82,9 @@ import ComponentPalette from './components/ComponentPalette.vue';
 import ArchitectureCanvas from './components/ArchitectureCanvas.vue';
 import ProblemCard from './components/ProblemCard.vue';
 import ChatPanel from './components/ChatPanel.vue';
-import EvaluationResult from './components/EvaluationResult.vue';
 import EvaluationModal from './components/EvaluationModal.vue';
 import DeepDiveModal from './components/DeepDiveModal.vue';
+import EvaluationResultScreen from './components/EvaluationResultScreen.vue';
 
 // Services & Utils
 import {
@@ -100,9 +112,9 @@ export default {
     ArchitectureCanvas,
     ProblemCard,
     ChatPanel,
-    EvaluationResult,
     EvaluationModal,
-    DeepDiveModal
+    DeepDiveModal,
+    EvaluationResultScreen
   },
   data() {
     return {
@@ -124,6 +136,7 @@ export default {
       generatedQuestion: null,
       userAnswer: '',
       mermaidCode: 'graph LR\n    %% 컴포넌트를 배치하고 연결하세요!',
+      showResultScreen: false,
 
       // Deep Dive State
       isDeepDiveModalActive: false,
@@ -218,6 +231,16 @@ export default {
         comp.text = text;
         this.updateMermaid();
       }
+    },
+
+    onComponentDeleted(compId) {
+      // Remove the component
+      this.droppedComponents = this.droppedComponents.filter(c => c.id !== compId);
+      // Remove all connections involving this component
+      this.connections = this.connections.filter(
+        conn => conn.from !== compId && conn.to !== compId
+      );
+      this.updateMermaid();
     },
 
     async onConnectionCreated({ from, to, fromType, toType }) {
@@ -319,6 +342,8 @@ export default {
     async submitEvaluationAnswer(answer) {
       this.userAnswer = answer;
       this.isModalActive = false;
+      // 평가 결과 화면으로 전환
+      this.showResultScreen = true;
       await this.evaluate();
     },
 
@@ -356,6 +381,12 @@ export default {
       } finally {
         this.isEvaluating = false;
       }
+    },
+
+    // === Retry (from result screen) ===
+    handleRetry() {
+      this.showResultScreen = false;
+      this.clearCanvas();
     },
 
     // === Chat ===

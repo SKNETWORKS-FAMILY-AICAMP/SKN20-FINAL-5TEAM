@@ -2,7 +2,7 @@
   <div class="modal-overlay" :class="{ active: isActive }">
     <div class="modal-window">
       <div class="modal-header">
-        <h3>🧐 심층 분석 질문</h3>
+        <h3>🧐 최종 질문</h3>
         <div class="modal-subtitle">AI Architect Bot</div>
       </div>
       <div class="modal-body">
@@ -11,10 +11,45 @@
           <p>아키텍처를 분석하여 질문을 생성하는 중...</p>
         </div>
         <template v-else>
+          <!-- 현재 아키텍처 요약 -->
+          <div class="architecture-summary">
+            <span class="summary-title">📐 제출할 아키텍처</span>
+            <div class="architecture-content">
+              <div class="components-list">
+                <span class="list-label">컴포넌트 ({{ components.length }}개)</span>
+                <div class="component-tags">
+                  <span
+                    v-for="comp in components"
+                    :key="comp.id"
+                    class="component-tag"
+                    :class="comp.type"
+                  >
+                    {{ comp.text }}
+                  </span>
+                </div>
+              </div>
+              <div v-if="connections.length > 0" class="connections-list">
+                <span class="list-label">연결 ({{ connections.length }}개)</span>
+                <div class="connection-items">
+                  <span
+                    v-for="(conn, idx) in formattedConnections"
+                    :key="idx"
+                    class="connection-item"
+                  >
+                    {{ conn }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 질문 -->
           <div class="ai-question">
             <span class="ai-question-title">QUESTION</span>
             <span>{{ question }}</span>
           </div>
+
+          <!-- 답변 입력 -->
           <textarea
             class="user-answer"
             v-model="answer"
@@ -29,7 +64,7 @@
           @click="submitAnswer"
           :disabled="isGenerating"
         >
-          답변 제출 및 평가
+          제출 완료
         </button>
       </div>
     </div>
@@ -51,6 +86,14 @@ export default {
     isGenerating: {
       type: Boolean,
       default: false
+    },
+    components: {
+      type: Array,
+      default: () => []
+    },
+    connections: {
+      type: Array,
+      default: () => []
     }
   },
   emits: ['close', 'submit'],
@@ -58,6 +101,18 @@ export default {
     return {
       answer: ''
     };
+  },
+  computed: {
+    formattedConnections() {
+      return this.connections.map(conn => {
+        const from = this.components.find(c => c.id === conn.from);
+        const to = this.components.find(c => c.id === conn.to);
+        if (from && to) {
+          return `${from.text} → ${to.text}`;
+        }
+        return '';
+      }).filter(Boolean);
+    }
   },
   watch: {
     isActive(newVal) {
@@ -106,7 +161,9 @@ export default {
   border: 2px solid #64b5f6;
   border-radius: 20px;
   width: 90%;
-  max-width: 600px;
+  max-width: 700px;
+  max-height: 90vh;
+  overflow-y: auto;
   box-shadow: 0 20px 60px rgba(100, 181, 246, 0.3);
   transform: scale(0.9);
   transition: transform 0.3s ease;
@@ -137,7 +194,6 @@ export default {
 
 .modal-body {
   padding: 25px;
-  min-height: 200px;
 }
 
 .loading-question {
@@ -167,6 +223,87 @@ export default {
   font-size: 1em;
 }
 
+/* Architecture Summary */
+.architecture-summary {
+  background: rgba(0, 255, 157, 0.1);
+  border: 1px solid rgba(0, 255, 157, 0.3);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.summary-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.85em;
+  color: #00ff9d;
+  letter-spacing: 1px;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.architecture-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.components-list,
+.connections-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.list-label {
+  font-size: 0.8em;
+  color: #90a4ae;
+  font-weight: 600;
+}
+
+.component-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.component-tag {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75em;
+  font-weight: 600;
+}
+
+/* Component tag colors */
+.component-tag.user { background: #ff4785; color: #fff; }
+.component-tag.loadbalancer { background: #26c6da; color: #0a0e27; }
+.component-tag.gateway { background: #64b5f6; color: #fff; }
+.component-tag.server { background: #ab47bc; color: #fff; }
+.component-tag.rdbms { background: #00ff9d; color: #0a0e27; }
+.component-tag.nosql { background: #4db6ac; color: #0a0e27; }
+.component-tag.cache { background: #ffc107; color: #0a0e27; }
+.component-tag.search { background: #7c4dff; color: #fff; }
+.component-tag.storage { background: #ff7043; color: #fff; }
+.component-tag.broker { background: #ff8a65; color: #fff; }
+.component-tag.eventbus { background: #ba68c8; color: #fff; }
+.component-tag.monitoring { background: #66bb6a; color: #fff; }
+.component-tag.logging { background: #78909c; color: #fff; }
+.component-tag.cicd { background: #42a5f5; color: #fff; }
+
+.connection-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.connection-item {
+  font-size: 0.8em;
+  color: #b0bec5;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+}
+
+/* Question */
 .ai-question {
   background: rgba(100, 181, 246, 0.1);
   border: 1px solid rgba(100, 181, 246, 0.3);

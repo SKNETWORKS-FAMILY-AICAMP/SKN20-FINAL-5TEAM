@@ -4,8 +4,8 @@
 
     <div class="problem-card" v-if="problem">
       <h3>{{ problem.title }}</h3>
-      <p>{{ problem.description }}</p>
-      <div class="problem-requirements">
+      <!-- <p>{{ problem.description }}</p> -->
+      <!-- <div class="problem-requirements">
         <h4>📋 요구사항</h4>
         <ul>
           <li v-for="(req, i) in problem.requirements" :key="i">{{ req }}</li>
@@ -16,7 +16,7 @@
         :class="`difficulty-${problem.difficulty}`"
       >
         {{ problem.difficulty.toUpperCase() }}
-      </span>
+      </span> -->
     </div>
 
     <div
@@ -31,7 +31,7 @@
       :disabled="!canEvaluate || isEvaluating"
       @click="$emit('start-evaluation')"
     >
-      {{ isEvaluating ? '🤖 분석 중...' : '🤖 AI 평가 시작' }}
+      {{ isEvaluating ? '🤖 분석 중...' : '📤 아키텍처 제출' }}
       <span v-if="isEvaluating" class="loading-spinner"></span>
     </button>
   </div>
