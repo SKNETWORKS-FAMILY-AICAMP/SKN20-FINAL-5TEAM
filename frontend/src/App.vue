@@ -9,132 +9,28 @@
 
     <!-- [메인 페이지] -->
     <template v-if="!isPracticePage">
-    <!-- [상단 네비게이션 바] -->
-    <nav class="navbar">
-      <div class="logo">
-        <span class="logo-text">AI ENGINEER-GYM 🚀</span>
-      </div>
-      <div class="nav-links">
-        <a href="#chapters">Chapters</a>
-        <a href="#leaderboard">Leaderboard</a>
-        <div class="user-stats">
-          <i data-lucide="milk" class="icon-token"></i>
-          <span>{{ userProteinShakes }}</span>
-        </div>
-        <template v-if="!isLoggedIn">
-          <button class="btn btn-login" @click="handleLogin">Login</button>
-          <button class="btn btn-signup" @click="handleSignUp">Sign Up</button>
-        </template>
-        <div v-else class="user-profile">
-          <div class="user-info">
-            <span class="user-status-dot"></span>
-            <span class="user-name">{{ sessionNickname }}</span>
-            <span class="user-rank">ENGINEER</span>
-          </div>
-          <button class="btn btn-secondary btn-sm" @click="handleLogout"
-            style="padding: 0.4rem 0.8rem; font-size: 0.75rem; min-width: auto;">
-            Logout
-          </button>
-        </div>
-      </div>
-    </nav>
-
-    <!-- [히어로 섹션] -->
-    <header class="hero">
-      <!-- Video Path needs to be correct. Assuming handled by backend static serving or copied to public -->
-<video
-  id="hero-video"
-  src="/image/sports_gym.mp4"
-  autoplay
-  muted
-  loop
-  playsinline
-></video>
-      <div class="hero-overlay"></div>
-      <div class="hero-content">
-        <h1 class="main-title bounce-in">Engineer Playground!</h1>
-        <p class="subtitle">아키텍처 근성장(?) 보장! 엔지니어들을 위한 아키텍처 놀이터 <i data-lucide="party-popper"></i></p>
-        <div class="hero-btns">
-          <button @click="handleGoToPlayground" class="btn btn-primary">놀러 가기!</button>
-          <a href="#leaderboard" class="btn btn-secondary">랭킹 파티 확인</a>
-        </div>
-      </div>
-    </header>
-
-    <!-- [챕터/스테이지 섹션] -->
-    <section id="chapters" class="section" :class="{ 'locked-content': !isLoggedIn }"
-      @click="!isLoggedIn && (isAuthRequiredModalOpen = true)">
-      <div class="hub-wrapper">
-        <div class="learning-path-sidebar left">
-          <div class="mascot-container">
-            <div class="mascot-bubble">훈련 준비됐어? 가보자고!</div>
-            <img src="/image/mascot.png" alt="Mascot" class="path-mascot">
-          </div>
-        </div>
-
-        <div class="hub-main-content">
-          <h2 class="section-title" style="text-align: left; margin-bottom: 2.5rem; margin-top: 0;">재밌는 아키텍처 스테이지</h2>
-
-          <div class="unit-parallel-grid">
-            <div v-for="(chapter, idx) in chapters.slice(0, 6)" :key="chapter.id" class="unit-card-parallel"
-              @click="openUnitPopup(chapter)">
-              <div class="unit-card-icon" :style="{ background: 'transparent', padding: 0 }">
-                <img v-if="chapter.image" :src="chapter.image" :alt="chapter.name" style="width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));">
-                <i v-else :data-lucide="chapter.icon || 'shield'"></i>
-              </div>
-              <div class="unit-card-info">
-                <span class="unit-card-number">UNIT {{ idx + 1 }}</span>
-                <h4 class="unit-card-name">{{ chapter.name }}</h4>
-              </div>
-              <div class="unit-card-arrow">
-                <i data-lucide="chevron-right"></i>
-              </div>
+      <LandingView 
+        :isLoggedIn="isLoggedIn"
+        :userProteinShakes="userProteinShakes"
+        :chapters="chapters"
+        :leaderboard="leaderboard"
+        @go-to-playground="handleGoToPlayground"
+        @open-unit="openUnitPopup"
+      >
+        <template #auth-buttons>
+          <template v-if="!isLoggedIn">
+            <button class="btn-login-ref" @click="handleLogin">Login</button>
+            <button class="btn-signup-ref" @click="handleSignUp">Sign Up</button>
+          </template>
+          <div v-else class="user-profile-v2">
+            <div class="user-info-v2">
+              <span class="user-name-v2">{{ sessionNickname }}</span>
+              <span class="user-rank-v2">ENGINEER</span>
             </div>
+            <button class="btn-logout-v2" @click="handleLogout">Logout</button>
           </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- [리더보드 섹션] -->
-    <section id="leaderboard" class="section" :class="{ 'locked-content': !isLoggedIn }"
-      @click="!isLoggedIn && (isAuthRequiredModalOpen = true)">
-      <div class="hub-wrapper">
-        <div class="learning-path-sidebar left">
-          <!-- Space filler -->
-        </div>
-        <div class="hub-main-content">
-          <h2 class="section-title" style="text-align: left; margin-bottom: 2.5rem; margin-top: 0;">오늘의 득근 전당</h2>
-          <div class="leaderboard-container">
-            <table class="leaderboard-table">
-              <thead>
-                <tr>
-                  <th>Rank</th>
-                  <th>Engineer</th>
-                  <th>Problems Solved</th>
-                  <th>Protein Shakes</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(user, index) in leaderboard" :key="user.id">
-                  <td>#{{ index + 1 }}</td>
-                  <td style="font-weight: 700;">{{ user.username }}</td>
-                  <td>{{ user.solved }}</td>
-                  <td class="td-token">
-                    <i data-lucide="milk" class="small-icon"></i>
-                    {{ user.shakes }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Footer -->
-    <footer>
-      <p>&copy; 2026 Architecture Gym. Built with ⚡ by Antigravity AI.</p>
-    </footer>
+        </template>
+      </LandingView>
 
     <!-- [유닛 상세 팝업 모달] -->
     <transition name="fade">
@@ -478,6 +374,7 @@ import LoginModal from './components/LoginModal.vue';
 import SignUpModal from './components/SignUpModal.vue';
 import ConstructionModal from './components/ConstructionModal.vue';
 import CodePracticeLogicMirror from './features/practice/CodePracticeLogicMirror.vue';
+import LandingView from './features/home/LandingView.vue';
 
 export default {
     components: {
@@ -485,7 +382,8 @@ export default {
         LoginModal,
         SignUpModal,
         ConstructionModal,
-        CodePracticeLogicMirror
+        CodePracticeLogicMirror,
+        LandingView
     },
     data() {
         return {
@@ -780,5 +678,66 @@ export default {
 .game-mode-btn.vibe-cleanup:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 25px rgba(255, 255, 0, 0.5);
+}
+
+/* Auth Buttons for LandingView Slot */
+.btn-login-ref, .btn-signup-ref {
+  padding: 0.6rem 1.2rem;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+  border: none;
+}
+
+.btn-login-ref {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.btn-signup-ref {
+  background: #6366f1;
+  color: #fff;
+  margin-left: 0.5rem;
+}
+
+.btn-login-ref:hover, .btn-signup-ref:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.2);
+}
+
+.user-profile-v2 {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.user-info-v2 {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.user-name-v2 {
+  font-weight: 800;
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+.user-rank-v2 {
+  font-size: 0.7rem;
+  color: #b6ff40;
+  font-weight: 900;
+}
+
+.btn-logout-v2 {
+  background: rgba(255, 75, 75, 0.1);
+  color: #ff4b4b;
+  border: 1px solid rgba(255, 75, 75, 0.2);
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
 }
 </style>
