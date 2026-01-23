@@ -219,17 +219,6 @@
           {{ modeIndicatorText }}
         </div>
 
-        <div class="stats">
-          <h3>STATS</h3>
-          <div class="stat-item">
-            <span>Components:</span>
-            <span class="stat-value">{{ droppedComponents.length }}</span>
-          </div>
-          <div class="stat-item">
-            <span>Connections:</span>
-            <span class="stat-value">{{ connections.length }}</span>
-          </div>
-        </div>
 
         <button 
           class="evaluate-btn" 
@@ -244,39 +233,79 @@
           <div class="score-display" :style="{ color: getGradeColor(evaluationResult.grade) }">
             {{ getGradeEmoji(evaluationResult.grade) }} {{ evaluationResult.score }}점
           </div>
-          
+
           <div class="feedback-section">
             <h4>📊 종합 평가</h4>
             <p>{{ evaluationResult.summary }}</p>
           </div>
 
-          <div v-if="evaluationResult.strengths.length" class="feedback-section">
+          <!-- 시스템 아키텍처 세부 점수 -->
+          <div v-if="evaluationResult.systemArchitectureScores" class="feedback-section scores-section">
+            <h4>🏗️ 시스템 아키텍처 (60%)</h4>
+            <div class="score-items">
+              <div
+                v-for="(value, key) in evaluationResult.systemArchitectureScores"
+                :key="key"
+                class="score-item"
+              >
+                <div class="score-item-header">
+                  <span class="score-item-label">{{ key }}</span>
+                  <span class="score-item-value" :class="getScoreClass(value.score)">
+                    {{ value.score }}점
+                  </span>
+                </div>
+                <div class="score-item-bar">
+                  <div class="score-item-fill" :style="{ width: value.score + '%' }" :class="getScoreClass(value.score)"></div>
+                </div>
+                <p class="score-item-feedback">{{ value.feedback }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 면접 답변 세부 점수 -->
+          <div v-if="evaluationResult.interviewScores" class="feedback-section scores-section">
+            <h4>🎤 면접 답변 (40%)</h4>
+            <div class="score-items">
+              <div
+                v-for="(value, key) in evaluationResult.interviewScores"
+                :key="key"
+                class="score-item"
+              >
+                <div class="score-item-header">
+                  <span class="score-item-label">{{ key }}</span>
+                  <span class="score-item-value" :class="getScoreClass(value.score)">
+                    {{ value.score }}점
+                  </span>
+                </div>
+                <div class="score-item-bar">
+                  <div class="score-item-fill" :style="{ width: value.score + '%' }" :class="getScoreClass(value.score)"></div>
+                </div>
+                <p class="score-item-feedback">{{ value.feedback }}</p>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="evaluationResult.strengths && evaluationResult.strengths.length" class="feedback-section">
             <h4>✅ 강점</h4>
             <ul>
               <li v-for="s in evaluationResult.strengths" :key="s">{{ s }}</li>
             </ul>
           </div>
 
-          <div v-if="evaluationResult.weaknesses.length" class="feedback-section">
+          <div v-if="evaluationResult.weaknesses && evaluationResult.weaknesses.length" class="feedback-section">
             <h4>⚠️ 개선점</h4>
             <ul>
               <li v-for="w in evaluationResult.weaknesses" :key="w">{{ w }}</li>
             </ul>
           </div>
 
-          <div v-if="evaluationResult.suggestions.length" class="feedback-section">
+          <div v-if="evaluationResult.suggestions && evaluationResult.suggestions.length" class="feedback-section">
             <h4>💡 제안</h4>
             <ul>
               <li v-for="s in evaluationResult.suggestions" :key="s">{{ s }}</li>
             </ul>
           </div>
         </div>
-
-        <h3 class="section-title">📊 Mermaid Preview</h3>
-        <div class="mermaid-preview" ref="mermaidContainer"></div>
-
-        <h3 class="section-title">💻 Generated Code</h3>
-        <div class="code-output">{{ mermaidCode }}</div>
 
         <!-- LLM Chat Section -->
         <h3 class="section-title">💬 AI Assistant</h3>
@@ -286,9 +315,14 @@
               v-for="(msg, index) in chatMessages"
               :key="index"
               class="chat-message"
-              :class="msg.role"
+              :class="[msg.role, msg.type]"
             >
-              <span class="message-role">{{ msg.role === 'user' ? '👤 You' : '🤖 AI' }}</span>
+              <div class="message-header">
+                <span class="message-role">{{ msg.role === 'user' ? '👤 You' : '🤖 AI' }}</span>
+                <span v-if="msg.type" class="message-type-badge" :class="msg.type">
+                  {{ getMessageTypeLabel(msg.type) }}
+                </span>
+              </div>
               <p class="message-content">{{ msg.content }}</p>
             </div>
             <div v-if="isChatLoading" class="chat-message assistant">
@@ -1086,28 +1120,50 @@ ${architectureContext}
         .map(msg => msg.content)
         .join('\n\n');
 
+      // Build detailed rubric for evaluation
+      const systemArchRubric = rubric?.system_architecture || [];
+      const interviewRubric = rubric?.interview_score || [];
+
       const prompt = `당신은 시스템 아키텍처 면접관입니다.
-다음 평가 기준에 따라 학생의 아키텍처를 평가해주세요.
+다음 평가 기준에 따라 학생의 아키텍처를 **세부 항목별로** 평가해주세요.
 
-문제: ${this.currentProblem?.title || '시스템 아키텍처 설계'}
-요구사항: ${this.currentProblem?.requirements?.join(', ') || '없음'}
+## 문제 정보
+- 제목: ${this.currentProblem?.title || '시스템 아키텍처 설계'}
+- 요구사항: ${this.currentProblem?.requirements?.join(', ') || '없음'}
 
-평가 기준:
-${rubric ? JSON.stringify(rubric, null, 2) : '- 요구사항 충족도\n- 확장성\n- 장애 대응\n- 컴포넌트 적절성'}
+## 평가 기준 (각 항목 0-100점)
 
-학생의 아키텍처:
+### 1. 시스템 아키텍처 평가 (60%)
+${systemArchRubric.map(r => `- ${r.metric}: ${r.description}`).join('\n') || '- 구조적 완성도\n- 확장성\n- 가용성/복원력'}
+
+### 2. 면접 답변 평가 (40%)
+${interviewRubric.map(r => `- ${r.metric}: ${r.description}`).join('\n') || '- 논리적 일관성\n- 근거의 타당성\n- 전달력'}
+
+## 학생의 제출물
+
+### 아키텍처 설계:
 ${architectureContext}
 
-심층 질문: ${this.generatedQuestion || this.currentProblem?.followUpQuestion || ''}
-학생의 답변: ${this.userAnswer}
+### 심층 질문: ${this.generatedQuestion || this.currentProblem?.followUpQuestion || ''}
+### 학생의 답변: ${this.userAnswer}
 
-${deepDiveAnswers ? `추가 연결 질문 답변:\n${deepDiveAnswers}` : ''}
+${deepDiveAnswers ? `### 추가 연결 질문 답변:\n${deepDiveAnswers}` : ''}
 
-다음 JSON 형식으로만 응답하세요 (다른 텍스트 없이):
+## 출력 형식 (JSON만 출력, 다른 텍스트 없이):
 {
-  "score": 0에서 100 사이의 숫자,
-  "grade": "excellent" 또는 "good" 또는 "needs-improvement" 또는 "poor",
-  "summary": "종합 평가 (2-3문장)",
+  "score": 0-100 사이 종합점수,
+  "grade": "excellent"(90+) / "good"(70-89) / "needs-improvement"(50-69) / "poor"(50미만),
+  "systemArchitectureScores": {
+    "구조적 완성도": { "score": 0-100, "feedback": "피드백" },
+    "확장성": { "score": 0-100, "feedback": "피드백" },
+    "가용성/복원력": { "score": 0-100, "feedback": "피드백" }
+  },
+  "interviewScores": {
+    "논리적 일관성": { "score": 0-100, "feedback": "피드백" },
+    "근거의 타당성": { "score": 0-100, "feedback": "피드백" },
+    "전달력": { "score": 0-100, "feedback": "피드백" }
+  },
+  "summary": "종합 평가 2-3문장",
   "strengths": ["강점1", "강점2"],
   "weaknesses": ["개선점1"],
   "suggestions": ["제안1", "제안2"]
@@ -1196,15 +1252,26 @@ ${deepDiveAnswers ? `추가 연결 질문 답변:\n${deepDiveAnswers}` : ''}
       return emojis[grade] || '❓';
     },
 
+    getScoreClass(score) {
+      if (score >= 90) return 'excellent';
+      if (score >= 70) return 'good';
+      if (score >= 50) return 'needs-improvement';
+      return 'poor';
+    },
+
     // --- Chat with OpenAI ---
     async sendChatMessage() {
       const userMessage = this.chatInput.trim();
       if (!userMessage) return;
 
-      // Add user message
+      // Detect message type based on content
+      const messageType = this.detectMessageType(userMessage);
+
+      // Add user message with type
       this.chatMessages.push({
         role: 'user',
-        content: userMessage
+        content: userMessage,
+        type: messageType
       });
       this.chatInput = '';
       this.isChatLoading = true;
@@ -1234,13 +1301,19 @@ ${deepDiveAnswers ? `추가 연결 질문 답변:\n${deepDiveAnswers}` : ''}
                 content: `당신은 시스템 아키텍처 면접관입니다.
 학생이 주어진 문제의 기능적/비기능적 요구사항에 대해 질문하면 답변해주세요.
 
-중요 규칙:
-1. 직접적인 정답이나 완성된 아키텍처 설계를 알려주지 마세요.
-2. 힌트와 고려사항만 제공하세요.
-3. 학생이 스스로 생각할 수 있도록 유도 질문을 하세요.
-4. 요구사항의 의미나 우선순위에 대해서는 명확히 설명해주세요.
+**중요 규칙:**
+1. 학생이 요구사항에 대해 질문하면 아래 "현재 문제" 정보를 참고하여 구체적으로 설명해주세요.
+2. 직접적인 정답이나 완성된 아키텍처 설계는 알려주지 마세요.
+3. 힌트와 고려사항을 제공하되, 학생이 스스로 생각할 수 있도록 유도 질문을 하세요.
+4. 요구사항의 의미, 우선순위, 트레이드오프에 대해서는 명확히 설명해주세요.
+5. 학생의 질문이 요구사항 관련이면 아래 정보를 기반으로, 그 외의 일반적인 아키텍처 질문은 기본 지식으로 답변하세요.
 
-현재 문제:
+**답변 형식:**
+- 핵심 내용을 먼저 간결하게 답변
+- 필요시 추가 고려사항이나 꼬리 질문 제시
+- 답변은 3-5문장으로 간결하게
+
+**현재 문제:**
 ${chatContext}
 
 친절하지만 교육적인 태도로 답변해주세요. 한국어로 답변하세요.`
@@ -1262,16 +1335,21 @@ ${chatContext}
         const data = await response.json();
         const assistantMessage = data.choices[0].message.content;
 
+        // Detect if response contains follow-up question
+        const hasFollowUp = assistantMessage.includes('?') && assistantMessage.split('?').length > 1;
+
         this.chatMessages.push({
           role: 'assistant',
-          content: assistantMessage
+          content: assistantMessage,
+          type: hasFollowUp ? 'followup' : 'answer'
         });
 
       } catch (error) {
         console.error('Chat error:', error);
         this.chatMessages.push({
           role: 'assistant',
-          content: 'API 연결에 문제가 발생했습니다. API 키를 확인해주세요.'
+          content: 'API 연결에 문제가 발생했습니다. API 키를 확인해주세요.',
+          type: 'error'
         });
       } finally {
         this.isChatLoading = false;
@@ -1283,17 +1361,82 @@ ${chatContext}
       }
     },
 
-    // Build context for chat - only uses title and requirements
+    // Build context for chat - uses title, requirements, and question topics
     buildChatContext() {
       if (!this.currentProblem) return '';
 
-      return `문제: ${this.currentProblem.title}
-요구사항: ${this.currentProblem.requirements.join(', ')}`;
+      let context = `문제: ${this.currentProblem.title}\n`;
+      context += `요구사항: ${this.currentProblem.requirements.join(', ')}\n`;
+
+      // Add question topics for hints
+      if (this.currentProblem.questionTopics && this.currentProblem.questionTopics.length > 0) {
+        context += `\n주요 토픽:\n`;
+        this.currentProblem.questionTopics.forEach(topic => {
+          context += `- ${topic.topic}: ${topic.keywords.join(', ')}\n`;
+        });
+      }
+
+      // Add reference concept hints (without giving away the answer)
+      if (this.currentProblem.referenceConcept) {
+        context += `\n고려해야 할 개념들: ${Object.keys(this.currentProblem.referenceConcept).join(', ')}`;
+      }
+
+      return context;
     },
 
     buildArchitectureContext() {
       // For chat: only problem info, no architecture details
       return this.buildChatContext();
+    },
+
+    // Detect message type for UI styling
+    detectMessageType(message) {
+      const lowerMsg = message.toLowerCase();
+
+      // Requirement related questions
+      if (lowerMsg.includes('요구사항') || lowerMsg.includes('requirement') ||
+          lowerMsg.includes('p95') || lowerMsg.includes('지연') || lowerMsg.includes('latency') ||
+          lowerMsg.includes('트래픽') || lowerMsg.includes('성능')) {
+        return 'requirement';
+      }
+
+      // Architecture component questions
+      if (lowerMsg.includes('캐시') || lowerMsg.includes('cache') ||
+          lowerMsg.includes('데이터베이스') || lowerMsg.includes('db') ||
+          lowerMsg.includes('로드밸런서') || lowerMsg.includes('큐') ||
+          lowerMsg.includes('서버') || lowerMsg.includes('스토리지')) {
+        return 'component';
+      }
+
+      // Trade-off questions
+      if (lowerMsg.includes('트레이드오프') || lowerMsg.includes('trade-off') ||
+          lowerMsg.includes('장단점') || lowerMsg.includes('비교') ||
+          lowerMsg.includes('vs') || lowerMsg.includes('선택')) {
+        return 'tradeoff';
+      }
+
+      // Scaling questions
+      if (lowerMsg.includes('확장') || lowerMsg.includes('scale') ||
+          lowerMsg.includes('샤딩') || lowerMsg.includes('파티션')) {
+        return 'scaling';
+      }
+
+      return 'general';
+    },
+
+    // Get message type label for UI
+    getMessageTypeLabel(type) {
+      const labels = {
+        'requirement': '📋 요구사항',
+        'component': '🧩 컴포넌트',
+        'tradeoff': '⚖️ 트레이드오프',
+        'scaling': '📈 확장성',
+        'general': '💬 일반',
+        'followup': '🎯 꼬리질문',
+        'answer': '💡 답변',
+        'error': '⚠️ 오류'
+      };
+      return labels[type] || '';
     }
   }
 };
@@ -2203,5 +2346,138 @@ ${chatContext}
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Message Header & Type Badge Styles */
+.message-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.message-type-badge {
+  font-size: 0.7em;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.message-type-badge.requirement {
+  background: rgba(100, 181, 246, 0.2);
+  color: #64b5f6;
+  border: 1px solid rgba(100, 181, 246, 0.4);
+}
+
+.message-type-badge.component {
+  background: rgba(171, 71, 188, 0.2);
+  color: #ab47bc;
+  border: 1px solid rgba(171, 71, 188, 0.4);
+}
+
+.message-type-badge.tradeoff {
+  background: rgba(255, 193, 7, 0.2);
+  color: #ffc107;
+  border: 1px solid rgba(255, 193, 7, 0.4);
+}
+
+.message-type-badge.scaling {
+  background: rgba(0, 255, 157, 0.2);
+  color: #00ff9d;
+  border: 1px solid rgba(0, 255, 157, 0.4);
+}
+
+.message-type-badge.general {
+  background: rgba(120, 144, 156, 0.2);
+  color: #78909c;
+  border: 1px solid rgba(120, 144, 156, 0.4);
+}
+
+.message-type-badge.followup {
+  background: rgba(255, 71, 133, 0.2);
+  color: #ff4785;
+  border: 1px solid rgba(255, 71, 133, 0.4);
+}
+
+.message-type-badge.answer {
+  background: rgba(0, 255, 157, 0.2);
+  color: #00ff9d;
+  border: 1px solid rgba(0, 255, 157, 0.4);
+}
+
+.message-type-badge.error {
+  background: rgba(239, 83, 80, 0.2);
+  color: #ef5350;
+  border: 1px solid rgba(239, 83, 80, 0.4);
+}
+
+/* Scores Section Styles */
+.scores-section {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.score-items {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.score-item {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.score-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.score-item-label {
+  font-weight: 600;
+  font-size: 0.9em;
+  color: #e0e0e0;
+}
+
+.score-item-value {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700;
+  font-size: 1.1em;
+}
+
+.score-item-value.excellent { color: #00ff9d; }
+.score-item-value.good { color: #64b5f6; }
+.score-item-value.needs-improvement { color: #ffc107; }
+.score-item-value.poor { color: #ff4785; }
+
+.score-item-bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.score-item-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.score-item-fill.excellent { background: linear-gradient(90deg, #00ff9d, #00e676); }
+.score-item-fill.good { background: linear-gradient(90deg, #64b5f6, #2196f3); }
+.score-item-fill.needs-improvement { background: linear-gradient(90deg, #ffc107, #ffa000); }
+.score-item-fill.poor { background: linear-gradient(90deg, #ff4785, #ff1744); }
+
+.score-item-feedback {
+  font-size: 0.85em;
+  color: #b0b0b0;
+  line-height: 1.5;
+  margin: 0;
 }
 </style>
