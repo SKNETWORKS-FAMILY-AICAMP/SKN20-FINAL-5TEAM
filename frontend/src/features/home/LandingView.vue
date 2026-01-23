@@ -4,7 +4,7 @@
           sports_gym.mp4 배경, 운동하는 오리 GIF 및 플로팅 애니메이션 적용.
 -->
 <template>
-  <div class="landing-container">
+  <div class="landing-container" ref="landingContainer" @scroll="handleScroll">
     <!-- [Hero Section] -->
     <header class="hero-playground-premium">
       <video id="hero-video" src="/image/sports_gym.mp4" autoplay muted loop playsinline></video>
@@ -22,14 +22,14 @@
         </h1>
         <p class="playground-subtitle-v2">
           단순한 실습을 넘어선 **압도적 아키텍처 경험.**<br>
-          이제 오리들과 함께 당신의 한계를 돌파하세요. 🦆✨
+          이제 오리들과 함께 당신의 한계를 돌파하세요.
         </p>
         
         <div class="hero-action-group-v2">
           <button @click="$emit('go-to-playground')" class="btn-play-premium">
             <div class="btn-glow-layer"></div>
             <span class="btn-text">입장하기!</span>
-            <i data-lucide="arrow-right" class="btn-arrow"></i>
+            <ArrowRight class="btn-arrow" />
           </button>
           <button @click="scrollToLeaderboard" class="btn-social-v2">
             전당 확인
@@ -43,14 +43,23 @@
     </header>
 
     <!-- [Navigation Bar - Glassmorphism] -->
-    <nav class="navbar-v2">
-      <div class="logo-playground">AI-GYM</div>
+    <nav class="navbar-v2" :class="{ 'bookmark-mode': isScrolled }">
+      <div class="logo-playground">
+        <Dumbbell class="logo-icon" />
+        <span class="logo-text">AI-GYM</span>
+      </div>
       <div class="nav-links-v2">
-        <a href="#chapters">Stages</a>
-        <a href="#leaderboard">Hall of Fame</a>
+        <a href="#chapters" class="nav-item">
+          <LayoutGrid class="nav-icon" />
+          <span class="nav-label">Stages</span>
+        </a>
+        <a href="#leaderboard" class="nav-item">
+          <Trophy class="nav-icon" />
+          <span class="nav-label">Hall of Fame</span>
+        </a>
         <div class="protein-status">
-          <i data-lucide="milk" class="icon-protein"></i>
-          <span>{{ userProteinShakes }}</span>
+          <Milk class="icon-protein" />
+          <span class="protein-count">{{ userProteinShakes }}</span>
         </div>
         <slot name="auth-buttons"></slot>
       </div>
@@ -61,40 +70,66 @@
       <div class="background-grid-pattern"></div>
       <div class="section-header">
         <h2 class="title-with-mascot">
-          Engineer's Gym 🎮 
+          Engineer's Gym <Dumbbell class="title-icon-gym" />
         </h2>
         <p>원하는 훈련 기구를 선택하고 당신의 실력을 증명하세요!</p>
       </div>
 
-      <div class="playground-grid">
-        <div v-for="(chapter, idx) in chapters" :key="chapter.id" 
-             class="gym-card-premium" 
-             :class="'card-color-' + (idx % 5)"
-             @click="$emit('open-unit', chapter)">
-          <div class="card-inner-v2">
-            <div class="card-image-wrap-v2">
-              <div class="energy-rings">
-                <span class="ring-1"></span>
-                <span class="ring-2"></span>
-                <span class="ring-3"></span>
+      <div class="playground-slider-container">
+        <button class="slider-nav prev" @click="prevSlide">
+          <ChevronLeft />
+        </button>
+
+        <div class="slider-wrapper">
+          <div class="slider-track" :style="trackStyle">
+            <div v-for="(chapter, idx) in chapters" :key="chapter.id" 
+                 class="gym-card-premium" 
+                 :class="[
+                   'card-color-' + (idx % 5),
+                   { 'active': idx === currentIdx, 
+                     'prev': idx === getPrevIdx, 
+                     'next': idx === getNextIdx,
+                     'hidden': !isIndexVisible(idx)
+                   }
+                 ]"
+                 @click="handleCardClick(chapter, idx)">
+              <div class="card-inner-v2">
+                <div class="card-image-wrap-v2">
+                  <div class="energy-rings">
+                    <span class="ring-1"></span>
+                    <span class="ring-2"></span>
+                    <span class="ring-3"></span>
+                  </div>
+                  <img :src="chapter.image" :alt="chapter.name" class="premium-icon">
+                  <div class="card-aura-premium"></div>
+                </div>
+                <div class="card-text-v2">
+                  <div class="unit-badge-row">
+                    <span class="unit-tag-v2">UNIT 0{{ idx + 1 }}</span>
+                    <span class="level-indicator">LV.{{ (idx + 1) * 10 }}</span>
+                  </div>
+                  <h3>{{ chapter.name }}</h3>
+                  <p>{{ chapter.description }}</p>
+                  <div class="card-footer-v2">
+                    <span class="engineer-count"><Users style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 4px;" /> 80+ Training</span>
+                    <button class="btn-enter-mini">START</button>
+                  </div>
+                </div>
               </div>
-              <img :src="chapter.image" :alt="chapter.name" class="premium-icon">
-              <div class="card-aura-premium"></div>
-            </div>
-            <div class="card-text-v2">
-              <div class="unit-badge-row">
-                <span class="unit-tag-v2">UNIT 0{{ idx + 1 }}</span>
-                <span class="level-indicator">LV.{{ (idx + 1) * 10 }}</span>
-              </div>
-              <h3>{{ chapter.name }}</h3>
-              <p>{{ chapter.description }}</p>
-              <div class="card-footer-v2">
-                <span class="engineer-count"><i data-lucide="users"></i> 80+ Training</span>
-                <button class="btn-enter-mini">START</button>
-              </div>
+              <div class="card-border-glow"></div>
             </div>
           </div>
-          <div class="card-border-glow"></div>
+        </div>
+
+        <button class="slider-nav next" @click="nextSlide">
+          <ChevronRight />
+        </button>
+
+        <!-- Pagination Dots -->
+        <div class="slider-pagination">
+          <span v-for="(_, idx) in chapters" :key="'dot-'+idx"
+                class="dot" :class="{ 'active': idx === currentIdx }"
+                @click="goToSlide(idx)"></span>
         </div>
       </div>
     </section>
@@ -123,7 +158,7 @@
             <div class="col-rank">
               <div class="rank-box">
                 <span class="rank-num">#{{ index + 1 }}</span>
-                <i v-if="index === 0" data-lucide="crown" class="crown-icon"></i>
+                <Crown v-if="index === 0" class="crown-icon" />
               </div>
             </div>
             <div class="col-user">
@@ -138,7 +173,7 @@
             </div>
             <div class="col-shakes">
               <div class="shake-badge-v2">
-                <i data-lucide="milk" class="milk-icon-v2"></i>
+                <Milk class="milk-icon-v2" />
                 <span>{{ user.shakes.toLocaleString() }}</span>
               </div>
             </div>
@@ -154,25 +189,126 @@
 </template>
 
 <script>
+import { 
+  Dumbbell, 
+  LayoutGrid, 
+  Trophy, 
+  Milk, 
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  Users,
+  Crown
+} from 'lucide-vue-next';
+
 export default {
   name: 'LandingView',
+  components: {
+    Dumbbell,
+    LayoutGrid,
+    Trophy,
+    Milk,
+    ArrowRight,
+    ChevronLeft,
+    ChevronRight,
+    Users,
+    Crown
+  },
   props: {
     isLoggedIn: Boolean,
     userProteinShakes: Number,
     chapters: Array,
     leaderboard: Array
   },
+  data() {
+    return {
+      currentIdx: 0,
+      isScrolled: false,
+      scrollTicking: false
+    };
+  },
+  computed: {
+    getPrevIdx() {
+      return (this.currentIdx - 1 + this.chapters.length) % this.chapters.length;
+    },
+    getNextIdx() {
+      return (this.currentIdx + 1) % this.chapters.length;
+    },
+    trackStyle() {
+      // 슬라이더 트랙의 위치 조절 로직 (필요 시)
+      return {};
+    }
+  },
   methods: {
+    handleScroll() {
+      // 히어로 섹션 높이(100vh)를 기준으로 스크롤 여부 판단
+      this.isScrolled = window.scrollY > window.innerHeight * 0.5;
+    },
     scrollToLeaderboard() {
       document.getElementById('leaderboard')?.scrollIntoView({ behavior: 'smooth' });
+    },
+    nextSlide() {
+      this.currentIdx = (this.currentIdx + 1) % this.chapters.length;
+    },
+    prevSlide() {
+      this.currentIdx = (this.currentIdx - 1 + this.chapters.length) % this.chapters.length;
+    },
+    goToSlide(idx) {
+      this.currentIdx = idx;
+    },
+    isIndexVisible(idx) {
+      // 현재 인덱스 주변만 표시 (3D 효과를 위해)
+      const diff = Math.abs(idx - this.currentIdx);
+      return diff <= 1 || diff === this.chapters.length - 1;
+    },
+    handleScroll() {
+      if (this.scrollTicking) return;
+      this.scrollTicking = true;
+      requestAnimationFrame(() => {
+        const container = this.$refs.landingContainer;
+        if (container) {
+          this.isScrolled = container.scrollTop > 100;
+        }
+        this.scrollTicking = false;
+      });
+    },
+    scrollToLeaderboard() {
+      document.getElementById('leaderboard')?.scrollIntoView({ behavior: 'smooth' });
+    },
+    nextSlide() {
+      this.currentIdx = (this.currentIdx + 1) % this.chapters.length;
+    },
+    prevSlide() {
+      this.currentIdx = (this.currentIdx - 1 + this.chapters.length) % this.chapters.length;
+    },
+    goToSlide(idx) {
+      this.currentIdx = idx;
+    },
+    isIndexVisible(idx) {
+      // 현재 인덱스 주변만 표시 (3D 효과를 위해)
+      const diff = Math.abs(idx - this.currentIdx);
+      return diff <= 1 || diff === this.chapters.length - 1;
+    },
+    handleCardClick(chapter, idx) {
+      if (idx === this.currentIdx) {
+        this.$emit('open-unit', chapter);
+      } else {
+        this.currentIdx = idx;
+      }
     }
   },
   mounted() {
-    if (window.lucide) window.lucide.createIcons();
+    this.$nextTick(() => {
+      this.refreshIcons();
+    });
+    window.addEventListener('scroll', this.handleScroll);
+  },
+  unmounted() {
+    window.removeEventListener('scroll', this.handleScroll);
   },
   updated() {
     this.$nextTick(() => {
-      if (window.lucide) window.lucide.createIcons();
+      this.refreshIcons();
     });
   }
 }
@@ -184,6 +320,10 @@ export default {
   color: #fff;
   font-family: 'Outfit', sans-serif;
   overflow-x: hidden;
+  height: 100vh;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  -webkit-overflow-scrolling: touch; /* iOS 부드러운 스크롤 */
 }
 
 /* [Hero Playground Premium] */
@@ -196,6 +336,8 @@ export default {
   text-align: center;
   overflow: hidden;
   background-color: #0c0e14;
+  scroll-snap-align: start;
+  will-change: transform;
 }
 
 .hero-overlay-refined {
@@ -423,22 +565,223 @@ export default {
   transform: translateX(-50%);
   width: 90%;
   max-width: 1200px;
-  background: rgba(15, 23, 42, 0.6);
+  background: rgba(15, 23, 42, 0.4);
   backdrop-filter: blur(20px);
-  padding: 1rem 2rem;
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1.2rem 2.5rem;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   justify-content: space-between;
   align-items: center;
   z-index: 1000;
+  transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
 }
 
 .logo-playground {
-  font-weight: 900;
-  font-size: 1.5rem;
-  letter-spacing: 2px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   color: #b6ff40;
+  transition: all 0.5s;
+}
+
+.logo-icon {
+  width: 28px;
+  height: 28px;
+  filter: drop-shadow(0 0 10px rgba(182, 255, 64, 0.5));
+}
+
+.logo-text {
+  font-weight: 950;
+  font-size: 1.6rem;
+  letter-spacing: 2px;
+}
+
+.nav-links-v2 {
+  display: flex;
+  gap: 2.5rem;
+  align-items: center;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  color: #94a3b8;
+  font-weight: 700;
+  transition: all 0.3s ease;
+  padding: 0.5rem 1rem;
+  border-radius: 12px;
+}
+
+.nav-item:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.nav-icon {
+  width: 18px;
+  height: 18px;
+  display: flex; /* 상단 바에서도 아이콘 표시 */
+}
+
+/* [Bookmark Mode - 사이드바 형태] */
+.navbar-v2.bookmark-mode {
+  top: 50%;
+  right: 1.5rem;
+  left: auto;
+  transform: translateY(-50%);
+  width: 75px;
+  height: auto;
+  max-height: 85vh;
+  flex-direction: column;
+  padding: 2.5rem 0;
+  border-radius: 40px;
+  background: rgba(15, 23, 42, 0.92);
+  gap: 2.5rem;
+  border: 1px solid rgba(182, 255, 64, 0.15);
+  box-shadow: -15px 0 45px rgba(0, 0, 0, 0.6);
+  overflow: visible !important; /* 사이드 라벨 노출을 위해 visible로 변경 */
+  display: flex;
+  align-items: center;
+}
+
+.navbar-v2.bookmark-mode .logo-playground {
+  flex-direction: column;
+}
+
+.navbar-v2.bookmark-mode .logo-text {
+  display: none;
+}
+
+.navbar-v2.bookmark-mode .logo-icon {
+  width: 35px;
+  height: 35px;
+}
+
+.navbar-v2.bookmark-mode .nav-links-v2 {
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.navbar-v2.bookmark-mode .nav-item {
+  padding: 0;
+  width: 50px;
+  height: 50px;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.navbar-v2.bookmark-mode .nav-label {
+  position: absolute;
+  right: 110%;
+  opacity: 0;
+  pointer-events: none;
+  background: #b6ff40;
+  color: #000;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  transition: all 0.3s;
+  transform: translateX(10px);
+  font-weight: 800;
+  box-shadow: 0 4px 15px rgba(182, 255, 64, 0.3);
+}
+
+.navbar-v2.bookmark-mode .nav-label::after {
+  content: '';
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 6px solid transparent;
+  border-left-color: #b6ff40;
+}
+
+.navbar-v2.bookmark-mode .nav-item:hover .nav-label {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.navbar-v2.bookmark-mode .nav-icon {
+  display: block;
+  width: 24px;
+  height: 24px;
+}
+
+.navbar-v2.bookmark-mode .protein-status {
+  flex-direction: column;
+  padding: 0.8rem 0;
+  width: 50px;
+  height: auto;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.navbar-v2.bookmark-mode .protein-count {
+  font-size: 0.75rem;
+}
+
+/* [Bookmark Mode - Auth Buttons & Profile Slot Fix] */
+.navbar-v2.bookmark-mode :deep(.user-profile-v2) {
+  flex-direction: column !important;
+  gap: 1.5rem !important;
+  width: 100% !important;
+  align-items: center !important;
+}
+
+.navbar-v2.bookmark-mode :deep(.user-info-v2) {
+  align-items: center !important;
+  text-align: center !important;
+  width: 100% !important;
+  gap: 2px !important;
+}
+
+.navbar-v2.bookmark-mode :deep(.user-name-v2) {
+  font-size: 0.75rem !important;
+  max-width: 60px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.navbar-v2.bookmark-mode :deep(.user-rank-v2) {
+  font-size: 0.6rem !important;
+  letter-spacing: 0 !important;
+}
+
+.navbar-v2.bookmark-mode :deep(.btn-logout-v2),
+.navbar-v2.bookmark-mode :deep(.btn-login-ref),
+.navbar-v2.bookmark-mode :deep(.btn-signup-ref) {
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  font-size: 0.65rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #fff !important;
+}
+
+.navbar-v2.bookmark-mode :deep(.btn-logout-v2) {
+  color: #ff4b4b !important;
+  border-color: rgba(255, 75, 75, 0.3) !important;
+}
+
+/* 슬롯 내 모든 자식 요소 마진 초기화 및 중앙 정렬 */
+.navbar-v2.bookmark-mode :deep(*) {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  box-sizing: border-box !important;
 }
 
 .nav-links-v2 {
@@ -468,15 +811,33 @@ export default {
   align-items: center;
   gap: 8px;
   border: 1px solid rgba(56, 189, 248, 0.2);
+  transition: all 0.3s;
+}
+
+.icon-protein {
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px;
+  min-height: 20px;
+  filter: drop-shadow(0 0 5px rgba(56, 187, 248, 0.6));
+  flex-shrink: 0;
+  display: inline-block;
+  color: #38bdf8;
 }
 
 /* [Premium Playground Section] */
 .playground-section-premium {
   position: relative;
-  padding: 10rem 2rem;
+  height: 100vh;
+  padding: 0 2rem;
   max-width: 1400px;
   margin: 0 auto;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  scroll-snap-align: start;
+  will-change: transform;
 }
 
 .background-grid-pattern {
@@ -515,33 +876,142 @@ export default {
   gap: 20px;
 }
 
-.playground-grid {
+.playground-slider-container {
   position: relative;
   z-index: 10;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 3rem;
-  perspective: 1000px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  perspective: 2000px;
+  min-height: 600px;
+  padding: 2rem 0;
+}
+
+.slider-wrapper {
+  flex: 1;
+  max-width: 1200px;
+  overflow: visible;
+  position: relative;
+}
+
+.slider-track {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  width: 100%;
+  height: 500px;
+  transform-style: preserve-3d;
 }
 
 .gym-card-premium {
-  position: relative;
+  position: absolute;
+  width: 400px;
   background: rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(20px);
   border-radius: 32px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+  transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
   cursor: pointer;
   transform-style: preserve-3d;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
 }
 
-.gym-card-premium:hover {
-  transform: translateY(-20px) rotateX(10deg) rotateY(-5deg);
+.gym-card-premium.active {
+  transform: translateZ(200px);
+  opacity: 1;
+  z-index: 10;
+  pointer-events: auto;
+  visibility: visible;
+  border-color: rgba(182, 255, 64, 0.5);
   background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(182, 255, 64, 0.4);
   box-shadow: 
-    0 20px 40px rgba(0, 0, 0, 0.4),
-    0 0 50px rgba(182, 255, 64, 0.1);
+    0 30px 60px rgba(0, 0, 0, 0.6),
+    0 0 80px rgba(182, 255, 64, 0.15);
+}
+
+.gym-card-premium.prev {
+  transform: translateX(-350px) translateZ(0) rotateY(45deg) scale(0.85);
+  opacity: 0.4;
+  z-index: 5;
+  pointer-events: auto;
+  visibility: visible;
+}
+
+.gym-card-premium.next {
+  transform: translateX(350px) translateZ(0) rotateY(-45deg) scale(0.85);
+  opacity: 0.4;
+  z-index: 5;
+  pointer-events: auto;
+  visibility: visible;
+}
+
+.gym-card-premium.hidden {
+  display: none;
+}
+
+/* Nav Buttons */
+.slider-nav {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  z-index: 20;
+}
+
+.slider-nav:hover {
+  background: #b6ff40;
+  color: #000;
+  transform: scale(1.1);
+  box-shadow: 0 0 30px rgba(182, 255, 64, 0.4);
+}
+
+/* Pagination */
+.slider-pagination {
+  position: absolute;
+  bottom: -4rem;
+  display: flex;
+  gap: 1rem;
+}
+
+.slider-pagination .dot {
+  width: 10px;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.slider-pagination .dot.active {
+  background: #b6ff40;
+  transform: scale(1.5);
+  box-shadow: 0 0 10px #b6ff40;
+}
+
+@media (max-width: 768px) {
+  .gym-card-premium {
+    width: 300px;
+  }
+  .gym-card-premium.prev {
+    transform: translateX(-150px) translateZ(-100px) rotateY(30deg) scale(0.7);
+  }
+  .gym-card-premium.next {
+    transform: translateX(150px) translateZ(-100px) rotateY(-30deg) scale(0.7);
+  }
+  .slider-nav {
+    display: none;
+  }
 }
 
 .card-inner-v2 {
@@ -701,17 +1171,24 @@ export default {
   background: #fff;
   color: #000;
   border: none;
-  padding: 8px 20px;
-  border-radius: 8px;
-  font-weight: 900;
-  font-size: 0.8rem;
+  padding: 12px 32px;
+  border-radius: 12px;
+  font-weight: 950;
+  font-size: 1.1rem;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+  box-shadow: 0 4px 15px rgba(255, 255, 255, 0.1);
+  letter-spacing: 1px;
 }
 
 .gym-card-premium:hover .btn-enter-mini {
   background: #b6ff40;
-  transform: scale(1.1);
+  transform: scale(1.05) translateY(-2px);
+  box-shadow: 0 10px 25px rgba(182, 255, 64, 0.4);
+}
+
+.btn-enter-mini:active {
+  transform: scale(0.95);
 }
 
 .card-border-glow {
@@ -736,9 +1213,15 @@ export default {
 /* [Leaderboard Premium] */
 .lb-section-premium {
   position: relative;
-  padding: 12rem 2rem;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
   background: #06070a;
   overflow: hidden;
+  scroll-snap-align: start;
+  will-change: transform;
 }
 
 .lb-energy-pulse {
