@@ -1,0 +1,211 @@
+{
+  "progressiveProblems": [
+    {
+      "id": "P1",
+      "project_title": "E-Commerce 매출 분석 리포트",
+      "scenario": "당신은 이커머스 회사의 데이터 분석가입니다. 월별 매출 리포트를 생성하는 스크립트에 버그가 발생해 잘못된 결과가 나오고 있습니다. 선임 개발자가 휴가 중이라 당신이 직접 디버깅해야 합니다. 코드를 단계별로 수정하여 정확한 리포트를 생성하세요!",
+      "difficulty": 2,
+      "totalSteps": 3,
+      "estimatedTime": "15분",
+      "steps": [
+        {
+          "step": 1,
+          "title": "데이터 로딩 오류 수정",
+          "instruction": "CSV 파일에서 데이터를 불러올 때 마지막 행이 누락되는 문제가 있습니다. 데이터 슬라이싱 부분을 확인하세요.",
+          "bug_type": "A",
+          "bug_type_name": "Off-by-one",
+          "buggy_code": "import pandas as pd\n\ndef load_sales_data(filepath):\n    \"\"\"매출 데이터를 로드하고 전처리합니다.\"\"\"\n    df = pd.read_csv(filepath)\n    \n    # 헤더 행을 제외한 데이터만 사용 (버그: 마지막 행 누락)\n    data_rows = df.iloc[1:len(df)-1]\n    \n    # 날짜 컬럼 파싱\n    data_rows['date'] = pd.to_datetime(data_rows['date'])\n    data_rows['month'] = data_rows['date'].dt.month\n    \n    return data_rows",
+          "correct_code": "import pandas as pd\n\ndef load_sales_data(filepath):\n    \"\"\"매출 데이터를 로드하고 전처리합니다.\"\"\"\n    df = pd.read_csv(filepath)\n    \n    # 헤더 행을 제외한 데이터만 사용\n    data_rows = df.iloc[1:len(df)]\n    \n    # 날짜 컬럼 파싱\n    data_rows['date'] = pd.to_datetime(data_rows['date'])\n    data_rows['month'] = data_rows['date'].dt.month\n    \n    return data_rows",
+          "hint": "len(df)-1을 사용하면 마지막 인덱스가 제외됩니다. Python의 슬라이싱은 끝 인덱스를 포함하지 않는다는 것을 기억하세요!",
+          "solution_check": {
+            "type": "notContains",
+            "value": "len(df)-1"
+          },
+          "test_case": {
+            "input": "sales_2024.csv (100행)",
+            "expected": "99개 데이터 행 반환 (헤더 제외)"
+          },
+          "coaching": "Off-by-one 에러는 경계값 처리에서 자주 발생합니다. Python 슬라이싱에서 [start:end]는 end-1까지만 포함한다는 점을 항상 기억하세요. 실무에서는 len()-1 패턴을 볼 때 한 번 더 검토하는 습관을 들이면 좋습니다."
+        },
+        {
+          "step": 2,
+          "title": "Null 값 처리 누락",
+          "instruction": "일부 주문에 할인 정보가 없어 None 값이 들어있습니다. 이로 인해 매출 계산이 실패합니다. Null Guard를 추가하세요.",
+          "bug_type": "B",
+          "bug_type_name": "Null Guard 실패",
+          "buggy_code": "def calculate_revenue(df):\n    \"\"\"할인을 적용한 실제 매출을 계산합니다.\"\"\"\n    revenues = []\n    \n    for idx, row in df.iterrows():\n        price = row['price']\n        quantity = row['quantity']\n        discount = row['discount']  # 버그: None일 수 있음\n        \n        # 할인 적용 매출 계산\n        revenue = price * quantity * (1 - discount)\n        revenues.append(revenue)\n    \n    df['revenue'] = revenues\n    return df",
+          "correct_code": "def calculate_revenue(df):\n    \"\"\"할인을 적용한 실제 매출을 계산합니다.\"\"\"\n    revenues = []\n    \n    for idx, row in df.iterrows():\n        price = row['price']\n        quantity = row['quantity']\n        discount = row['discount'] if pd.notna(row['discount']) else 0\n        \n        # 할인 적용 매출 계산\n        revenue = price * quantity * (1 - discount)\n        revenues.append(revenue)\n    \n    df['revenue'] = revenues\n    return df",
+          "hint": "pd.notna() 또는 pd.isna()를 사용하여 None/NaN 값을 체크할 수 있습니다. 할인이 없으면 0으로 처리하는 것이 합리적입니다.",
+          "solution_check": {
+            "type": "contains",
+            "value": "notna"
+          },
+          "test_case": {
+            "input": "discount 컬럼에 None 포함된 데이터",
+            "expected": "None인 경우 할인 0% 적용하여 계산"
+          },
+          "coaching": "실무 데이터는 항상 완벽하지 않습니다. 특히 외부 시스템에서 가져온 데이터나 사용자 입력 데이터는 Null 값이 빈번합니다. 'Defensive Programming' 관점에서 모든 외부 데이터는 의심하고 검증하는 습관을 들이세요."
+        },
+        {
+          "step": 3,
+          "title": "월별 집계 시 상태 누수",
+          "instruction": "월별 집계 함수가 여러 번 호출될 때 이전 결과가 누적되는 문제가 있습니다. 가변 기본 인자를 확인하세요.",
+          "bug_type": "C",
+          "bug_type_name": "State Leak",
+          "buggy_code": "def aggregate_monthly(df, result_cache={}):\n    \"\"\"월별 매출을 집계합니다.\"\"\"\n    \n    for month in df['month'].unique():\n        monthly_df = df[df['month'] == month]\n        total = monthly_df['revenue'].sum()\n        \n        # 버그: 가변 기본 인자로 인해 이전 호출 결과가 남음\n        if month in result_cache:\n            result_cache[month] += total\n        else:\n            result_cache[month] = total\n    \n    return result_cache",
+          "correct_code": "def aggregate_monthly(df, result_cache=None):\n    \"\"\"월별 매출을 집계합니다.\"\"\"\n    if result_cache is None:\n        result_cache = {}\n    \n    for month in df['month'].unique():\n        monthly_df = df[df['month'] == month]\n        total = monthly_df['revenue'].sum()\n        \n        result_cache[month] = total\n    \n    return result_cache",
+          "hint": "Python에서 가변 객체(dict, list)를 기본 인자로 사용하면 함수 정의 시점에 한 번만 생성되어 모든 호출에서 공유됩니다. None을 기본값으로 사용하고 함수 내부에서 새 객체를 생성하세요.",
+          "solution_check": {
+            "type": "contains",
+            "value": "result_cache=None"
+          },
+          "test_case": {
+            "input": "함수를 2번 연속 호출",
+            "expected": "각 호출마다 독립적인 결과 반환"
+          },
+          "coaching": "Python의 가변 기본 인자(Mutable Default Argument)는 유명한 함정입니다. 함수가 정의될 때 기본값이 한 번만 평가되기 때문에 발생합니다. 이 패턴은 코드 리뷰에서 빨간불 신호로 간주됩니다. 항상 None을 사용하고 함수 내부에서 초기화하세요."
+        }
+      ],
+      "final_code": "import pandas as pd\n\ndef load_sales_data(filepath):\n    \"\"\"매출 데이터를 로드하고 전처리합니다.\"\"\"\n    df = pd.read_csv(filepath)\n    data_rows = df.iloc[1:len(df)]\n    data_rows['date'] = pd.to_datetime(data_rows['date'])\n    data_rows['month'] = data_rows['date'].dt.month\n    return data_rows\n\ndef calculate_revenue(df):\n    \"\"\"할인을 적용한 실제 매출을 계산합니다.\"\"\"\n    revenues = []\n    for idx, row in df.iterrows():\n        price = row['price']\n        quantity = row['quantity']\n        discount = row['discount'] if pd.notna(row['discount']) else 0\n        revenue = price * quantity * (1 - discount)\n        revenues.append(revenue)\n    df['revenue'] = revenues\n    return df\n\ndef aggregate_monthly(df, result_cache=None):\n    \"\"\"월별 매출을 집계합니다.\"\"\"\n    if result_cache is None:\n        result_cache = {}\n    for month in df['month'].unique():\n        monthly_df = df[df['month'] == month]\n        total = monthly_df['revenue'].sum()\n        result_cache[month] = total\n    return result_cache\n\n# 메인 실행\ndf = load_sales_data('sales_2024.csv')\ndf = calculate_revenue(df)\nmonthly_report = aggregate_monthly(df)\nprint(monthly_report)",
+      "completion_message": "축하합니다! E-Commerce 매출 분석 리포트 시스템의 모든 버그를 수정했습니다. 이제 정확한 월별 매출 리포트가 생성됩니다!"
+    },
+    {
+      "id": "P2",
+      "project_title": "고객 세그먼트 분석 파이프라인",
+      "scenario": "마케팅팀에서 고객 세그먼트 분석을 요청했습니다. 기존 분석 코드가 있지만 결과가 이상하다는 보고가 들어왔습니다. RFM(Recency, Frequency, Monetary) 분석 파이프라인의 버그를 찾아 수정하세요!",
+      "difficulty": 3,
+      "totalSteps": 3,
+      "estimatedTime": "20분",
+      "steps": [
+        {
+          "step": 1,
+          "title": "최근 구매일 계산 오류",
+          "instruction": "고객별 마지막 구매일을 계산할 때 인덱스 오류가 발생합니다. 정렬 후 첫 번째/마지막 요소 접근 방식을 확인하세요.",
+          "bug_type": "A",
+          "bug_type_name": "Off-by-one",
+          "buggy_code": "def calculate_recency(df, analysis_date):\n    \"\"\"각 고객의 최근 구매일로부터 경과일을 계산합니다.\"\"\"\n    customer_recency = {}\n    \n    for customer_id in df['customer_id'].unique():\n        customer_orders = df[df['customer_id'] == customer_id]\n        # 날짜순 정렬\n        sorted_orders = customer_orders.sort_values('order_date')\n        \n        # 버그: 마지막 주문을 가져오려면 -1이 아닌 .iloc[-1] 사용해야 함\n        last_order_idx = len(sorted_orders) - 1\n        last_order_date = sorted_orders.iloc[last_order_idx - 1]['order_date']\n        \n        recency = (analysis_date - last_order_date).days\n        customer_recency[customer_id] = recency\n    \n    return customer_recency",
+          "correct_code": "def calculate_recency(df, analysis_date):\n    \"\"\"각 고객의 최근 구매일로부터 경과일을 계산합니다.\"\"\"\n    customer_recency = {}\n    \n    for customer_id in df['customer_id'].unique():\n        customer_orders = df[df['customer_id'] == customer_id]\n        # 날짜순 정렬\n        sorted_orders = customer_orders.sort_values('order_date')\n        \n        # 마지막 주문 날짜 가져오기\n        last_order_date = sorted_orders.iloc[-1]['order_date']\n        \n        recency = (analysis_date - last_order_date).days\n        customer_recency[customer_id] = recency\n    \n    return customer_recency",
+          "hint": "Python에서 리스트/DataFrame의 마지막 요소에 접근할 때는 .iloc[-1]을 사용하면 됩니다. len()-1-1은 마지막에서 두 번째 요소를 가리킵니다.",
+          "solution_check": {
+            "type": "contains",
+            "value": "iloc[-1]"
+          },
+          "test_case": {
+            "input": "고객 A의 주문: 1/1, 2/15, 3/20",
+            "expected": "마지막 주문일 3/20 기준 recency 계산"
+          },
+          "coaching": "인덱스 계산이 복잡해질수록 버그 가능성이 높아집니다. Python의 음수 인덱싱(-1, -2 등)을 활용하면 코드가 간결해지고 실수도 줄일 수 있습니다. 'Pythonic'한 코드를 작성하세요!"
+        },
+        {
+          "step": 2,
+          "title": "구매 금액 Null 처리",
+          "instruction": "일부 주문에 환불 처리로 인해 금액이 None인 경우가 있습니다. 이로 인해 총 구매액 계산이 실패합니다.",
+          "bug_type": "B",
+          "bug_type_name": "Null Guard 실패",
+          "buggy_code": "def calculate_monetary(df):\n    \"\"\"각 고객의 총 구매 금액을 계산합니다.\"\"\"\n    customer_monetary = {}\n    \n    for customer_id in df['customer_id'].unique():\n        customer_orders = df[df['customer_id'] == customer_id]\n        \n        total_amount = 0\n        for _, order in customer_orders.iterrows():\n            # 버그: amount가 None이면 에러 발생\n            total_amount += order['amount']\n        \n        customer_monetary[customer_id] = total_amount\n    \n    return customer_monetary",
+          "correct_code": "def calculate_monetary(df):\n    \"\"\"각 고객의 총 구매 금액을 계산합니다.\"\"\"\n    customer_monetary = {}\n    \n    for customer_id in df['customer_id'].unique():\n        customer_orders = df[df['customer_id'] == customer_id]\n        \n        total_amount = 0\n        for _, order in customer_orders.iterrows():\n            amount = order['amount'] if pd.notna(order['amount']) else 0\n            total_amount += amount\n        \n        customer_monetary[customer_id] = total_amount\n    \n    return customer_monetary",
+          "hint": "환불된 주문은 amount가 None이거나 음수일 수 있습니다. pd.notna()로 체크하거나, fillna(0)을 미리 적용하는 방법도 있습니다.",
+          "solution_check": {
+            "type": "contains",
+            "value": "pd.notna"
+          },
+          "test_case": {
+            "input": "주문 금액: [100, None, 200, 150]",
+            "expected": "총 금액: 450 (None은 0으로 처리)"
+          },
+          "coaching": "데이터 파이프라인에서 Null 처리는 가장 기본적이면서도 중요한 작업입니다. 실무에서는 데이터 수집 단계에서 이미 Null이 발생할 수 있고, 이를 무시하면 분석 결과 전체가 틀어질 수 있습니다. 항상 데이터의 품질을 먼저 확인하세요."
+        },
+        {
+          "step": 3,
+          "title": "세그먼트 캐시 오염",
+          "instruction": "세그먼트 분류 함수가 재사용될 때 이전 실행의 결과가 남아있어 잘못된 분류가 됩니다.",
+          "bug_type": "C",
+          "bug_type_name": "State Leak",
+          "buggy_code": "# 전역 변수로 세그먼트 저장 (버그: 상태 누수)\nglobal_segments = {'VIP': [], 'Regular': [], 'AtRisk': []}\n\ndef classify_customers(rfm_scores):\n    \"\"\"RFM 점수 기반으로 고객을 세그먼트로 분류합니다.\"\"\"\n    \n    for customer_id, scores in rfm_scores.items():\n        r, f, m = scores['R'], scores['F'], scores['M']\n        total_score = r + f + m\n        \n        if total_score >= 12:\n            global_segments['VIP'].append(customer_id)\n        elif total_score >= 8:\n            global_segments['Regular'].append(customer_id)\n        else:\n            global_segments['AtRisk'].append(customer_id)\n    \n    return global_segments",
+          "correct_code": "def classify_customers(rfm_scores):\n    \"\"\"RFM 점수 기반으로 고객을 세그먼트로 분류합니다.\"\"\"\n    segments = {'VIP': [], 'Regular': [], 'AtRisk': []}\n    \n    for customer_id, scores in rfm_scores.items():\n        r, f, m = scores['R'], scores['F'], scores['M']\n        total_score = r + f + m\n        \n        if total_score >= 12:\n            segments['VIP'].append(customer_id)\n        elif total_score >= 8:\n            segments['Regular'].append(customer_id)\n        else:\n            segments['AtRisk'].append(customer_id)\n    \n    return segments",
+          "hint": "전역 변수를 함수 내부에서 수정하면 여러 호출 간에 상태가 공유됩니다. 함수 내부에서 새로운 지역 변수를 생성하여 독립적인 결과를 반환하세요.",
+          "solution_check": {
+            "type": "notContains",
+            "value": "global_segments"
+          },
+          "test_case": {
+            "input": "함수 2번 연속 호출 (각각 다른 데이터)",
+            "expected": "각 호출마다 독립적인 세그먼트 결과"
+          },
+          "coaching": "전역 상태(Global State)는 프로그래밍의 대표적인 안티 패턴입니다. 함수는 가능한 '순수 함수(Pure Function)'로 작성하세요. 입력만으로 출력이 결정되고, 외부 상태를 변경하지 않는 함수가 테스트하기 쉽고 버그도 적습니다."
+        }
+      ],
+      "final_code": "import pandas as pd\nfrom datetime import datetime\n\ndef calculate_recency(df, analysis_date):\n    \"\"\"각 고객의 최근 구매일로부터 경과일을 계산합니다.\"\"\"\n    customer_recency = {}\n    for customer_id in df['customer_id'].unique():\n        customer_orders = df[df['customer_id'] == customer_id]\n        sorted_orders = customer_orders.sort_values('order_date')\n        last_order_date = sorted_orders.iloc[-1]['order_date']\n        recency = (analysis_date - last_order_date).days\n        customer_recency[customer_id] = recency\n    return customer_recency\n\ndef calculate_monetary(df):\n    \"\"\"각 고객의 총 구매 금액을 계산합니다.\"\"\"\n    customer_monetary = {}\n    for customer_id in df['customer_id'].unique():\n        customer_orders = df[df['customer_id'] == customer_id]\n        total_amount = 0\n        for _, order in customer_orders.iterrows():\n            amount = order['amount'] if pd.notna(order['amount']) else 0\n            total_amount += amount\n        customer_monetary[customer_id] = total_amount\n    return customer_monetary\n\ndef classify_customers(rfm_scores):\n    \"\"\"RFM 점수 기반으로 고객을 세그먼트로 분류합니다.\"\"\"\n    segments = {'VIP': [], 'Regular': [], 'AtRisk': []}\n    for customer_id, scores in rfm_scores.items():\n        r, f, m = scores['R'], scores['F'], scores['M']\n        total_score = r + f + m\n        if total_score >= 12:\n            segments['VIP'].append(customer_id)\n        elif total_score >= 8:\n            segments['Regular'].append(customer_id)\n        else:\n            segments['AtRisk'].append(customer_id)\n    return segments",
+      "completion_message": "완벽합니다! RFM 분석 파이프라인이 정상 작동합니다. 이제 마케팅팀에 정확한 고객 세그먼트 데이터를 제공할 수 있습니다!"
+    },
+    {
+      "id": "P3",
+      "project_title": "실시간 재고 모니터링 시스템",
+      "scenario": "물류센터의 재고 모니터링 시스템에서 알람이 제대로 작동하지 않는다는 보고가 들어왔습니다. 재고 부족 경고가 누락되거나, 잘못된 상품에 알람이 가는 문제를 해결하세요!",
+      "difficulty": 2,
+      "totalSteps": 3,
+      "estimatedTime": "15분",
+      "steps": [
+        {
+          "step": 1,
+          "title": "재고 조회 범위 오류",
+          "instruction": "최근 N일간의 재고 변동을 조회할 때 하루가 누락됩니다. 날짜 범위 계산을 확인하세요.",
+          "bug_type": "A",
+          "bug_type_name": "Off-by-one",
+          "buggy_code": "from datetime import datetime, timedelta\n\ndef get_recent_inventory(df, days=7):\n    \"\"\"최근 N일간의 재고 데이터를 조회합니다.\"\"\"\n    today = datetime.now().date()\n    \n    # 버그: days=7이면 6일치만 조회됨\n    start_date = today - timedelta(days=days-1)\n    \n    mask = (df['date'] >= start_date) & (df['date'] <= today)\n    return df[mask]",
+          "correct_code": "from datetime import datetime, timedelta\n\ndef get_recent_inventory(df, days=7):\n    \"\"\"최근 N일간의 재고 데이터를 조회합니다.\"\"\"\n    today = datetime.now().date()\n    \n    # 오늘 포함 N일간 조회\n    start_date = today - timedelta(days=days-1)\n    \n    mask = (df['date'] >= start_date) & (df['date'] <= today)\n    return df[mask]",
+          "hint": "오늘이 1월 7일이고 7일치를 원한다면, 1월 1일부터 1월 7일까지입니다. timedelta(days=7-1)로 6일 전으로 가야 오늘 포함 7일이 됩니다. 하지만 현재 코드는 days-1을 사용하고 있어서... 다시 확인해보세요!",
+          "solution_check": {
+            "type": "contains",
+            "value": "timedelta(days=days-1)"
+          },
+          "test_case": {
+            "input": "days=7, 오늘 1월 7일",
+            "expected": "1월 1일 ~ 1월 7일 (7일간)"
+          },
+          "coaching": "날짜 범위 계산에서 '포함/미포함' 경계는 매우 흔한 버그 원인입니다. 'inclusive' vs 'exclusive' 경계를 명확히 정의하고, 경계값 테스트(오늘, 시작일, 종료일)를 반드시 수행하세요."
+        },
+        {
+          "step": 2,
+          "title": "안전 재고 임계값 누락 처리",
+          "instruction": "일부 상품은 안전 재고 임계값이 설정되지 않았습니다. 이 경우 알람 로직이 실패합니다.",
+          "bug_type": "B",
+          "bug_type_name": "Null Guard 실패",
+          "buggy_code": "def check_low_stock(inventory_df, threshold_df):\n    \"\"\"재고 부족 상품을 체크합니다.\"\"\"\n    alerts = []\n    \n    for _, item in inventory_df.iterrows():\n        product_id = item['product_id']\n        current_stock = item['quantity']\n        \n        # 임계값 조회 (버그: 임계값이 없으면 에러)\n        threshold_row = threshold_df[threshold_df['product_id'] == product_id]\n        threshold = threshold_row.iloc[0]['min_stock']\n        \n        if current_stock < threshold:\n            alerts.append({\n                'product_id': product_id,\n                'current': current_stock,\n                'threshold': threshold\n            })\n    \n    return alerts",
+          "correct_code": "def check_low_stock(inventory_df, threshold_df):\n    \"\"\"재고 부족 상품을 체크합니다.\"\"\"\n    alerts = []\n    DEFAULT_THRESHOLD = 10  # 기본 임계값\n    \n    for _, item in inventory_df.iterrows():\n        product_id = item['product_id']\n        current_stock = item['quantity']\n        \n        # 임계값 조회 (없으면 기본값 사용)\n        threshold_row = threshold_df[threshold_df['product_id'] == product_id]\n        if len(threshold_row) == 0 or pd.isna(threshold_row.iloc[0]['min_stock']):\n            threshold = DEFAULT_THRESHOLD\n        else:\n            threshold = threshold_row.iloc[0]['min_stock']\n        \n        if current_stock < threshold:\n            alerts.append({\n                'product_id': product_id,\n                'current': current_stock,\n                'threshold': threshold\n            })\n    \n    return alerts",
+          "hint": "threshold_df에 해당 product_id가 없거나, min_stock이 NaN일 수 있습니다. len()으로 결과가 있는지 확인하고, 기본 임계값(DEFAULT_THRESHOLD)을 설정하세요.",
+          "solution_check": {
+            "type": "contains",
+            "value": "DEFAULT_THRESHOLD"
+          },
+          "test_case": {
+            "input": "상품 A: 임계값 없음, 재고 5개",
+            "expected": "기본 임계값(10) 적용하여 알람 발생"
+          },
+          "coaching": "실무에서는 '설정이 없으면 기본값 사용'이 일반적인 패턴입니다. 이를 'Fallback' 또는 'Default' 전략이라고 합니다. 단, 기본값의 의미와 영향을 문서화하고, 로그로 남기는 것이 좋습니다."
+        },
+        {
+          "step": 3,
+          "title": "알람 이력 중복 누적",
+          "instruction": "알람 이력을 저장할 때 이전 알람이 계속 누적되어 중복 알람이 발생합니다.",
+          "bug_type": "C",
+          "bug_type_name": "State Leak",
+          "buggy_code": "class InventoryMonitor:\n    # 클래스 변수로 이력 저장 (버그: 모든 인스턴스가 공유)\n    alert_history = []\n    \n    def __init__(self, name):\n        self.name = name\n    \n    def add_alert(self, alert):\n        \"\"\"알람을 이력에 추가합니다.\"\"\"\n        alert['monitor'] = self.name\n        alert['timestamp'] = datetime.now()\n        self.alert_history.append(alert)\n    \n    def get_today_alerts(self):\n        \"\"\"오늘 발생한 알람을 반환합니다.\"\"\"\n        today = datetime.now().date()\n        return [a for a in self.alert_history \n                if a['timestamp'].date() == today]",
+          "correct_code": "class InventoryMonitor:\n    def __init__(self, name):\n        self.name = name\n        # 인스턴스 변수로 이력 저장 (각 인스턴스마다 독립)\n        self.alert_history = []\n    \n    def add_alert(self, alert):\n        \"\"\"알람을 이력에 추가합니다.\"\"\"\n        alert['monitor'] = self.name\n        alert['timestamp'] = datetime.now()\n        self.alert_history.append(alert)\n    \n    def get_today_alerts(self):\n        \"\"\"오늘 발생한 알람을 반환합니다.\"\"\"\n        today = datetime.now().date()\n        return [a for a in self.alert_history \n                if a['timestamp'].date() == today]",
+          "hint": "Python에서 클래스 변수(class variable)는 모든 인스턴스가 공유합니다. __init__에서 인스턴스 변수(self.xxx)로 초기화해야 각 인스턴스가 독립적인 상태를 가집니다.",
+          "solution_check": {
+            "type": "contains",
+            "value": "self.alert_history = []"
+          },
+          "test_case": {
+            "input": "센터A, 센터B 모니터 각각 생성 후 알람 추가",
+            "expected": "각 모니터의 알람 이력이 독립적으로 관리"
+          },
+          "coaching": "클래스 변수 vs 인스턴스 변수의 차이는 Python OOP의 핵심입니다. 가변 객체(list, dict)를 클래스 변수로 선언하면 예상치 못한 공유가 발생합니다. 상태(state)는 항상 __init__에서 초기화하세요."
+        }
+      ],
+      "final_code": "from datetime import datetime, timedelta\nimport pandas as pd\n\ndef get_recent_inventory(df, days=7):\n    \"\"\"최근 N일간의 재고 데이터를 조회합니다.\"\"\"\n    today = datetime.now().date()\n    start_date = today - timedelta(days=days-1)\n    mask = (df['date'] >= start_date) & (df['date'] <= today)\n    return df[mask]\n\ndef check_low_stock(inventory_df, threshold_df):\n    \"\"\"재고 부족 상품을 체크합니다.\"\"\"\n    alerts = []\n    DEFAULT_THRESHOLD = 10\n    for _, item in inventory_df.iterrows():\n        product_id = item['product_id']\n        current_stock = item['quantity']\n        threshold_row = threshold_df[threshold_df['product_id'] == product_id]\n        if len(threshold_row) == 0 or pd.isna(threshold_row.iloc[0]['min_stock']):\n            threshold = DEFAULT_THRESHOLD\n        else:\n            threshold = threshold_row.iloc[0]['min_stock']\n        if current_stock < threshold:\n            alerts.append({'product_id': product_id, 'current': current_stock, 'threshold': threshold})\n    return alerts\n\nclass InventoryMonitor:\n    def __init__(self, name):\n        self.name = name\n        self.alert_history = []\n    \n    def add_alert(self, alert):\n        alert['monitor'] = self.name\n        alert['timestamp'] = datetime.now()\n        self.alert_history.append(alert)\n    \n    def get_today_alerts(self):\n        today = datetime.now().date()\n        return [a for a in self.alert_history if a['timestamp'].date() == today]",
+      "completion_message": "훌륭합니다! 재고 모니터링 시스템이 완벽하게 작동합니다. 이제 물류센터에서 정확한 재고 알람을 받을 수 있습니다!"
+    }
+  ]
+}
