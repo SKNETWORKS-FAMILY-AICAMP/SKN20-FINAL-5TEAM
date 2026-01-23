@@ -1986,6 +1986,26 @@ footer {
     left: 50%;
 }
 
+.node-6 {
+    top: 1000px;
+    left: 60%;
+}
+
+.node-7 {
+    top: 1150px;
+    left: 40%;
+}
+
+.node-8 {
+    top: 1300px;
+    left: 70%;
+}
+
+.node-9 {
+    top: 1450px;
+    left: 50%;
+}
+
 /* 하단 상태 바 */
 .unit-stats-bar-v3 {
     padding: 1.5rem 3rem;

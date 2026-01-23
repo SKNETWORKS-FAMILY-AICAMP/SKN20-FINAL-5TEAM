@@ -1,4 +1,5 @@
 // 튜토리얼 + 11개 퀘스트 데이터
+// [2026-01-24] 정밀 평가 및 파이썬 실행 검증을 위한 validation 데이터 스키마(puzzle_solution, execution) 추가
 export const gameData = {
   tutorial: {
     id: 'tutorial',
@@ -36,7 +37,7 @@ export const gameData = {
       }
     ]
   },
-  
+
   quests: [
     // LV1 - 순차
     {
@@ -74,6 +75,19 @@ export const gameData = {
         }
       ],
       correctSequence: ['b1', 'b2', 'b3'],
+      validation: {
+        puzzle_solution: [
+          { id: 'b1', indent: 0 },
+          { id: 'b2', indent: 0 },
+          { id: 'b3', indent: 0 }
+        ],
+        execution: {
+          function_name: "cook_ramen",
+          test_cases: [
+            { input: "", expected: "'None'", type: "public", description: "라면을 정상적으로 끓이는지 확인" }
+          ]
+        }
+      },
       feedback: {
         success: '완벽합니다! 꼬들꼬들한 라면이 완성되었어요.',
         failure: '순서가 이상해요. 물이 끓기도 전에 먹으면 안 되겠죠?',
@@ -122,6 +136,19 @@ export const gameData = {
         }
       ],
       correctSequence: ['b1', 'b2', 'b3'],
+      validation: {
+        puzzle_solution: [
+          { id: 'b1', indent: 0 },
+          { id: 'b2', indent: 0 },
+          { id: 'b3', indent: 0 }
+        ],
+        execution: {
+          function_name: "plant_flower",
+          test_cases: [
+            { input: "", expected: "'None'", type: "public", description: "꽃을 정상적으로 심는지 확인" }
+          ]
+        }
+      },
       feedback: {
         success: '생명의 신비를 체험하셨군요! 올바른 순서입니다.',
         failure: '씨앗을 심기 전에 흙이 있어야 합니다.',
@@ -135,7 +162,7 @@ export const gameData = {
         }
       ]
     },
-    
+
     // LV2 - 선택
     {
       id: 'quest_lv2_01',
@@ -174,6 +201,20 @@ export const gameData = {
         }
       ],
       correctSequence: ['b1', 'b2', 'b3'],
+      validation: {
+        puzzle_solution: [
+          { id: 'b1', indent: 0 },
+          { id: 'b2', indent: 0 },
+          { id: 'b3', indent: 1 }
+        ],
+        execution: {
+          function_name: "check_umbrella",
+          test_cases: [
+            { input: "'rain'", expected: "'take_umbrella'", type: "public" },
+            { input: "'sunny'", expected: "'None'", type: "hidden" }
+          ]
+        }
+      },
       feedback: {
         success: '준비성이 철저하군요! 비를 맞지 않게 되었습니다.',
         failure: '비가 올 때만 우산을 챙겨야 합니다. 들여쓰기를 확인하세요.',
@@ -242,6 +283,22 @@ export const gameData = {
         }
       ],
       correctSequence: ['b1', 'b2', 'b3', 'b4', 'b5'],
+      validation: {
+        puzzle_solution: [
+          { id: 'b1', indent: 0 },
+          { id: 'b2', indent: 0 },
+          { id: 'b3', indent: 1 },
+          { id: 'b4', indent: 0 },
+          { id: 'b5', indent: 1 }
+        ],
+        execution: {
+          function_name: "ride_safety",
+          test_cases: [
+            { input: "130", expected: "'ride'", type: "public" },
+            { input: "110", expected: "'sorry'", type: "hidden" }
+          ]
+        }
+      },
       feedback: {
         success: '안전 수칙을 잘 지켰습니다! 완벽한 안전 요원이네요.',
         failure: '키가 작은 어린이는 보호자가 필요해요. 탑승시키면 안 됩니다!',
@@ -255,7 +312,7 @@ export const gameData = {
         }
       ]
     },
-    
+
     // LV3 - 반복
     {
       id: 'quest_lv3_01',
@@ -311,6 +368,21 @@ export const gameData = {
         }
       ],
       correctSequence: ['b1', 'b2', 'b3', 'b4', 'b5'],
+      validation: {
+        puzzle_solution: [
+          { id: 'b1', indent: 0 },
+          { id: 'b2', indent: 0 },
+          { id: 'b3', indent: 1 },
+          { id: 'b4', indent: 1 },
+          { id: 'b5', indent: 0 }
+        ],
+        execution: {
+          function_name: "rocket_countdown",
+          test_cases: [
+            { input: "", expected: "'None'", type: "public" }
+          ]
+        }
+      },
       feedback: {
         success: '발사 성공! 우주로 날아갑니다! 🌌',
         failure: '카운트가 줄지 않으면 영원히 반복됩니다(무한루프)!',
@@ -370,6 +442,20 @@ export const gameData = {
         }
       ],
       correctSequence: ['b1', 'b2', 'b3', 'b4'],
+      validation: {
+        puzzle_solution: [
+          { id: 'b1', indent: 0 },
+          { id: 'b2', indent: 0 },
+          { id: 'b3', indent: 1 },
+          { id: 'b4', indent: 1 }
+        ],
+        execution: {
+          function_name: "blow_balloon",
+          test_cases: [
+            { input: "", expected: "'None'", type: "public" }
+          ]
+        }
+      },
       feedback: {
         success: '적당한 크기로 풍선을 잘 불었습니다!',
         failure: '조건을 잘못 설정하면 풍선이 펑! 터져버릴지도 몰라요.',
@@ -383,7 +469,7 @@ export const gameData = {
         }
       ]
     },
-    
+
     // LV4 - 리스트
     {
       id: 'quest_lv4_01',
@@ -422,6 +508,19 @@ export const gameData = {
         }
       ],
       correctSequence: ['b1', 'b2', 'b3'],
+      validation: {
+        puzzle_solution: [
+          { id: 'b1', indent: 0 },
+          { id: 'b2', indent: 0 },
+          { id: 'b3', indent: 1 }
+        ],
+        execution: {
+          function_name: "calculate_total",
+          test_cases: [
+            { input: "", expected: "'None'", type: "public" }
+          ]
+        }
+      },
       feedback: {
         success: '계산 정확해요! 누적 합계(Accumulator) 패턴은 정말 자주 쓰인답니다.',
         failure: '더하는 동작은 반복문 안에서 계속 일어나야 합니다.',
@@ -482,6 +581,20 @@ export const gameData = {
         }
       ],
       correctSequence: ['b1', 'b2', 'b3', 'b4'],
+      validation: {
+        puzzle_solution: [
+          { id: 'b1', indent: 0 },
+          { id: 'b2', indent: 0 },
+          { id: 'b3', indent: 1 },
+          { id: 'b4', indent: 2 }
+        ],
+        execution: {
+          function_name: "find_evens",
+          test_cases: [
+            { input: "", expected: "'None'", type: "public" }
+          ]
+        }
+      },
       feedback: {
         success: '짝수만 쏙쏙 잘 골라냈군요! 나머지 연산(%)을 잘 이해하셨습니다.',
         failure: '모든 숫자를 다 출력하면 안 돼요. 조건문 위치를 확인하세요.',
@@ -495,7 +608,7 @@ export const gameData = {
         }
       ]
     },
-    
+
     // LV5 - 고급
     {
       id: 'quest_lv5_01',
@@ -544,6 +657,20 @@ export const gameData = {
         }
       ],
       correctSequence: ['b1', 'b2', 'b3', 'b4'],
+      validation: {
+        puzzle_solution: [
+          { id: 'b1', indent: 0 },
+          { id: 'b2', indent: 0 },
+          { id: 'b3', indent: 1 },
+          { id: 'b4', indent: 2 }
+        ],
+        execution: {
+          function_name: "find_max",
+          test_cases: [
+            { input: "", expected: "'None'", type: "public" }
+          ]
+        }
+      },
       feedback: {
         success: '진정한 챔피언을 찾아냈습니다! 최댓값 알고리즘을 마스터했네요.',
         failure: '비교 조건이 반대로 되면 가장 작은 수를 찾게 됩니다.',
@@ -615,6 +742,21 @@ export const gameData = {
         }
       ],
       correctSequence: ['b1', 'b2', 'b3', 'b4', 'b5'],
+      validation: {
+        puzzle_solution: [
+          { id: 'b1', indent: 0 },
+          { id: 'b2', indent: 1 },
+          { id: 'b3', indent: 2 },
+          { id: 'b4', indent: 1 },
+          { id: 'b5', indent: 2 }
+        ],
+        execution: {
+          function_name: "login_system",
+          test_cases: [
+            { input: "", expected: "'None'", type: "public" }
+          ]
+        }
+      },
       feedback: {
         success: '보안 시스템 가동 완료! 해커도 뚫지 못하겠네요.',
         failure: '아이디만 맞다고 통과시켜주면 보안 사고가 발생합니다!',

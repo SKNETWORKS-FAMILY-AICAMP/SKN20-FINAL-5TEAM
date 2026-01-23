@@ -64,9 +64,20 @@ export const useQuestStore = defineStore('quest', {
         },
 
         /**
-         * 퍼즐 정답 여부 검증
+         * 퍼즐 정답 여부 검증 (순서 + 들여쓰기 정밀 비교)
          */
         validatePuzzle(userBlocks) {
+            if (this.currentQuest?.judgement_criteria?.block_solution) {
+                const solution = this.currentQuest.judgement_criteria.block_solution;
+                if (userBlocks.length !== solution.length) return false;
+
+                return userBlocks.every((block, index) => {
+                    return block.id === solution[index].id &&
+                        parseInt(block.indent) === parseInt(solution[index].indent);
+                });
+            }
+
+            // 폴백: 이전 방식 (단순 원본 인덱스 비교)
             return userBlocks.every((block, index) => block.originalIndex === index);
         }
     },

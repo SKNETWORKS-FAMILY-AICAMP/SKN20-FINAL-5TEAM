@@ -11,7 +11,8 @@ from core.views import (
     PracticeViewSet,
     LoginView, 
     LogoutView, 
-    SessionCheckView
+    SessionCheckView,
+    AIChatView
 )
 
 router = DefaultRouter()
@@ -38,4 +39,5 @@ urlpatterns = [
     path('auth/login/', LoginView.as_view(), name='login'),
     path('auth/logout/', LogoutView.as_view(), name='logout'),
     path('auth/me/', SessionCheckView.as_view(), name='session_check'),
+    path('ai-chat/', AIChatView.as_view(), name='ai_chat'),
 ]

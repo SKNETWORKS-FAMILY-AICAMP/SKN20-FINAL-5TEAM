@@ -46,7 +46,7 @@
                   {{ currentDebugMode === 'bug-hunt' ? '🐞 Bug Hunt' : '✨ Vibe Code Clean Up' }}
                 </template>
                 <template v-else>
-                  {{ activeUnit?.problems?.[0]?.title || activeUnit?.name }}
+                  {{ activeUnit?.unitTitle || activeUnit?.problems?.[0]?.title || activeUnit?.name }}
                 </template>
               </h2>
             </div>
@@ -61,20 +61,23 @@
 
           <div class="unit-modal-body-v3">
             <div class="path-container-v3">
-              <svg class="path-svg-v3" viewBox="0 0 800 1000">
-                <path class="path-line-v3" d="M400,100 L560,250 L280,400 L520,550 L360,700 L400,850" fill="none"
+              <svg class="path-svg-v3" viewBox="0 0 800 1500">
+                <path class="path-line-v3" d="M400,100 L560,250 L280,400 L520,550 L360,700 L400,850 L480,1000 L320,1150 L560,1300 L400,1450" fill="none"
                   stroke="rgba(148, 163, 184, 0.2)" stroke-width="3" stroke-dasharray="10,5" />
               </svg>
 
-              <div v-for="(problem, pIdx) in displayProblems" :key="problem.id" class="node-platform-v3"
-                :class="['node-' + pIdx, { active: pIdx === 0 }]"
-                @click="selectProblem(problem, activeUnit); isUnitModalOpen = false">
+                <div v-for="(problem, pIdx) in displayProblems" :key="problem.id" class="node-platform-v3"
+                :class="['node-' + pIdx, { 
+                  active: pIdx === currentMaxIdx, 
+                  unlocked: currentUnitProgress.includes(pIdx) 
+                }]"
+                @click="isUnlocked(pIdx) && (selectProblem(problem, activeUnit), isUnitModalOpen = false)">
 
-                <div class="platform-glow-v3" v-if="pIdx === 0"></div>
+                <div class="platform-glow-v3" v-if="pIdx === currentMaxIdx"></div>
 
                 <div class="platform-circle-v3">
-                  <template v-if="pIdx === 0">
-                    <img src="/image/unit_duck.png" class="duck-on-node-v3">
+                  <template v-if="currentUnitProgress.includes(pIdx)">
+                    <img v-if="pIdx === currentMaxIdx" src="/image/unit_duck.png" class="duck-on-node-v3">
                     <div
                       style="width: 20px; height: 20px; background: #b6ff40; border-radius: 50%; box-shadow: 0 0 10px #b6ff40;">
                     </div>
@@ -85,7 +88,7 @@
                 </div>
 
                 <div class="node-label-premium">
-                  {{ problem.title }}
+                  {{ problem.displayNum || problem.title }} - {{ problem.title }}
                 </div>
               </div>
 
@@ -359,7 +362,9 @@
     <transition name="fade">
        <LogicMirror 
            v-if="isLogicMirrorOpen" 
-           @close="isLogicMirrorOpen = false" 
+           :initialQuestIndex="selectedQuestIndex"
+           @close="handleCloseLogicMirror"
+           @quest-complete="handleQuestComplete"
        />
     </transition>
   </div>
@@ -375,6 +380,7 @@ import SignUpModal from './components/SignUpModal.vue';
 import ConstructionModal from './components/ConstructionModal.vue';
 import LogicMirror from './features/practice/support/unit1/logic-mirror/LogicMirror.vue';
 import LandingView from './features/home/LandingView.vue';
+import { gameData } from './features/practice/support/unit1/logic-mirror/data/stages.js';
 
 export default {
     components: {
@@ -421,8 +427,16 @@ export default {
             showScrollHint: false,
             isAuthRequiredModalOpen: false,
             isConstructionModalOpen: false, // [수정일: 2026-01-21] 공사중 모달 상태 추가
-            isLogicMirrorOpen: false, // [수정일: 2026-01-22] Code Practice 모달 상태 추가
+                        isLogicMirrorOpen: false, // [수정일: 2026-01-22] Pseudo Practice 모달 상태 추가
+            selectedQuestIndex: 0, // [2026-01-24] 선택된 퀘스트 인덱스 추적
             currentDebugMode: 'bug-hunt', // [수정일: 2026-01-22] Debug Practice 현재 모드 (bug-hunt | vibe-cleanup)
+            unitProgress: {
+                'Pseudo Practice': [0],
+                'Debug Practice': [0],
+                'System Practice': [0],
+                'Ops Practice': [0],
+                'Agent Practice': [0]
+            },
             // Mermaid, Code, Debug, Pseudo state vars would go here...
             mermaidCode: '',
         }
@@ -432,7 +446,7 @@ export default {
              // Mock data since backend might not be ready with CORS
              const colors = ['#58cc02', '#1cb0f6', '#ff9600', '#ce82ff', '#ff4b4b'];
              const iconMap = {
-                'Code Practice': 'code',
+                                'Pseudo Practice': 'code',
                 'Debug Practice': 'bug',
                 'System Practice': 'layers',
                 'Ops Practice': 'zap',
@@ -442,7 +456,7 @@ export default {
              
              // Simulating fetch
              this.chapters = [
-                 { id: 1, name: 'Code Practice', description: 'Strength Training', problems: [{id: 1, title: 'Algorithm 101'}], image: '/image/unit_code.png' },
+                                  { id: 1, name: 'Pseudo Practice', unitTitle: 'Algorithm 101', description: 'Strength Training', problems: [], image: '/image/unit_code.png' },
                  { id: 2, name: 'Debug Practice', description: 'Precision Training', problems: [{id: 2, title: 'Fix the Bug'}], image: '/image/unit_debug.png' },
                  { id: 3, name: 'System Practice', description: 'Strategy Training', problems: [{id: 3, title: 'Design System'}], image: '/image/unit_system.png' },
                  { id: 4, name: 'Ops Practice', description: 'Endurance Training', problems: [{id: 4, title: 'Server Down!'}], image: '/image/unit_ops.png' },
@@ -452,6 +466,17 @@ export default {
                     color: colors[idx % colors.length],
                     icon: iconMap[ch.name] || 'book'
              }));
+
+             // [2026-01-24] Code Practice 챕터에 stages.js의 10개 퀘스트를 개별 문제로 매핑
+                          const pseudoPracticeIdx = this.chapters.findIndex(c => c.name === 'Pseudo Practice');
+                          if (pseudoPracticeIdx !== -1 && gameData.quests) {
+                 this.chapters[pseudoPracticeIdx].problems = gameData.quests.map((q, idx) => ({
+                     id: q.id,
+                     title: q.title,
+                     questIndex: idx,
+                     displayNum: `1-${idx + 1}`
+                 }));
+             }
 
              this.$nextTick(() => {
                  if (window.lucide) window.lucide.createIcons();
@@ -486,8 +511,9 @@ export default {
 
             // [수정일: 2026-01-23] Practice 페이지들은 라우터로 이동
             console.log('selectProblem:', chapter?.name);
-            if (chapter?.name === 'Code Practice') {
-                this.$router.push('/practice/logic-mirror');
+                        if (chapter?.name === 'Pseudo Practice') {
+                this.selectedQuestIndex = problem.questIndex || 0;
+                this.isLogicMirrorOpen = true;
             } else if (chapter?.name === 'System Practice') {
                 this.$router.push('/practice/system-architecture');
             } else if (chapter?.name === 'Debug Practice') {
@@ -574,6 +600,27 @@ export default {
             }
         },
 
+        handleCloseLogicMirror() {
+            /* [2026-01-24] 실습 종료 후 다시 월드 맵(Unit Modal)을 보여주도록 개선 */
+            this.isLogicMirrorOpen = false;
+            this.isUnitModalOpen = true;
+        },
+        handleQuestComplete(index) {
+            /* [2026-01-24] 문제 완료 시 다음 스테이지 활성화 로직 (Pseudo Practice 전용) */
+            const progress = this.unitProgress['Pseudo Practice'];
+            if (!progress.includes(index)) {
+                progress.push(index);
+            }
+            // 다음 인덱스도 잠금 해제
+            const nextIdx = index + 1;
+            if (nextIdx < 10 && !progress.includes(nextIdx)) {
+                progress.push(nextIdx);
+            }
+        },
+        isUnlocked(pIdx) {
+            return this.currentUnitProgress.includes(pIdx);
+        },
+
         handleGoToPlayground() {
             if (this.isLoggedIn) {
                 document.getElementById('chapters')?.scrollIntoView({ behavior: 'smooth' });
@@ -604,10 +651,14 @@ export default {
     computed: {
         isPracticePage() {
             const practiceRoutes = ['LogicMirror', 'LogicMirrorTest', 'SystemArchitecturePractice', 'BugHunt', 'VibeCodeCleanUp', 'OpsPractice'];
-            console.log('[DEBUG] Current route:', this.$route);
-            console.log('[DEBUG] Route name:', this.$route?.name);
-            console.log('[DEBUG] Is practice page?', practiceRoutes.includes(this.$route?.name));
             return practiceRoutes.includes(this.$route?.name);
+        },
+        currentUnitProgress() {
+            if (!this.activeUnit) return [0];
+            return this.unitProgress[this.activeUnit.name] || [0];
+        },
+        currentMaxIdx() {
+            return Math.max(...this.currentUnitProgress);
         },
         displayProblems() {
             if (this.activeUnit?.name === 'Debug Practice') {
