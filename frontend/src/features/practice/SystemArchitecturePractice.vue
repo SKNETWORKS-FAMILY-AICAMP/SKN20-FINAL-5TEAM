@@ -108,16 +108,28 @@
             <div class="connection-arrow" :style="conn.arrowStyle"></div>
           </template>
 
-          <div 
-            v-for="comp in droppedComponents" 
+          <div
+            v-for="comp in droppedComponents"
             :key="comp.id"
             :id="comp.id"
             class="dropped-component"
             :class="[comp.type, { selected: selectedComponentId === comp.id }]"
             :style="{ left: comp.x + 'px', top: comp.y + 'px' }"
             @mousedown.stop="onComponentMouseDown($event, comp)"
+            @dblclick.stop="startEditingComponent(comp.id)"
           >
-            {{ comp.text }}
+            <input
+              v-if="editingComponentId === comp.id"
+              v-model="editingComponentText"
+              class="component-name-input"
+              @blur="finishEditingComponent"
+              @keyup.enter="finishEditingComponent"
+              @keyup.escape="cancelEditingComponent"
+              @click.stop
+              @mousedown.stop
+              ref="componentNameInput"
+            />
+            <span v-else>{{ comp.text }}</span>
           </div>
         </div>
       </div>
@@ -125,7 +137,7 @@
       <div class="result-panel">
         <h2>🎯 CHALLENGE</h2>
         
-        <div class="problem-selector">
+        <!-- <div class="problem-selector">
           <button 
             v-for="(problem, index) in problems" 
             :key="index"
@@ -135,7 +147,7 @@
           >
             {{ problem.level }}
           </button>
-        </div>
+        </div> -->
 
         <div class="problem-card" v-if="currentProblem">
           <h3>{{ currentProblem.title }}</h3>
@@ -219,9 +231,47 @@
 
         <h3 class="section-title">💻 Generated Code</h3>
         <div class="code-output">{{ mermaidCode }}</div>
+
+        <!-- LLM Chat Section -->
+        <h3 class="section-title">💬 AI Assistant</h3>
+        <div class="chat-container">
+          <div class="chat-messages" ref="chatMessages">
+            <div
+              v-for="(msg, index) in chatMessages"
+              :key="index"
+              class="chat-message"
+              :class="msg.role"
+            >
+              <span class="message-role">{{ msg.role === 'user' ? '👤 You' : '🤖 AI' }}</span>
+              <p class="message-content">{{ msg.content }}</p>
+            </div>
+            <div v-if="isChatLoading" class="chat-message assistant">
+              <span class="message-role">🤖 AI</span>
+              <p class="message-content typing-indicator">생각 중...</p>
+            </div>
+          </div>
+          <div class="chat-input-area">
+            <input
+              type="text"
+              v-model="chatInput"
+              @keyup.enter="sendChatMessage"
+              placeholder="아키텍처에 대해 질문하세요..."
+              :disabled="isChatLoading"
+              class="chat-input"
+            />
+            <button
+              @click="sendChatMessage"
+              :disabled="isChatLoading || !chatInput.trim()"
+              class="chat-send-btn"
+            >
+              전송
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
+    <!-- Evaluation Modal -->
     <div class="modal-overlay" :class="{ active: isModalActive }">
       <div class="modal-window">
         <div class="modal-header">
@@ -229,19 +279,56 @@
           <div style="color: #64b5f6; font-size: 0.9em;">AI Architect Bot</div>
         </div>
         <div class="modal-body">
-          <div class="ai-question">
-            <span class="ai-question-title">QUESTION</span>
-            <span>{{ currentProblem ? currentProblem.followUpQuestion : '' }}</span>
+          <div v-if="isGeneratingQuestion" class="loading-question">
+            <div class="loading-spinner-large"></div>
+            <p>아키텍처를 분석하여 질문을 생성하는 중...</p>
           </div>
-          <textarea 
-            class="user-answer" 
-            v-model="userAnswer" 
-            placeholder="여기에 답변을 작성해주세요... (예: CDN을 사용하여 정적 리소스를 캐싱하여 부하를 줄입니다.)"
-          ></textarea>
+          <template v-else>
+            <div class="ai-question">
+              <span class="ai-question-title">QUESTION</span>
+              <span>{{ generatedQuestion || (currentProblem ? currentProblem.followUpQuestion : '') }}</span>
+            </div>
+            <textarea
+              class="user-answer"
+              v-model="userAnswer"
+              placeholder="여기에 답변을 작성해주세요... (예: CDN을 사용하여 정적 리소스를 캐싱하여 부하를 줄입니다.)"
+            ></textarea>
+          </template>
         </div>
         <div class="modal-footer">
           <button class="btn-cancel" @click="closeModal">취소</button>
-          <button class="btn-submit" @click="submitAnswer">답변 제출 및 평가</button>
+          <button class="btn-submit" @click="submitAnswer" :disabled="isGeneratingQuestion">답변 제출 및 평가</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Deep Dive Question Modal (for connection questions) -->
+    <div class="modal-overlay" :class="{ active: isDeepDiveModalActive }">
+      <div class="modal-window deep-dive-modal">
+        <div class="modal-header">
+          <h3>🔗 연결 심화 질문</h3>
+          <div style="color: #ff4785; font-size: 0.9em;">Connection Deep Dive</div>
+        </div>
+        <div class="modal-body">
+          <div v-if="isGeneratingDeepDive" class="loading-question">
+            <div class="loading-spinner-large"></div>
+            <p>연결에 대한 질문을 생성하는 중...</p>
+          </div>
+          <template v-else>
+            <div class="ai-question deep-dive">
+              <span class="ai-question-title">DEEP DIVE QUESTION</span>
+              <span>{{ deepDiveQuestion }}</span>
+            </div>
+            <textarea
+              class="user-answer"
+              v-model="deepDiveAnswer"
+              placeholder="이 연결에 대해 설명해주세요..."
+            ></textarea>
+          </template>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" @click="skipDeepDive">건너뛰기</button>
+          <button class="btn-submit" @click="submitDeepDiveAnswer" :disabled="isGeneratingDeepDive">답변 저장</button>
         </div>
       </div>
     </div>
@@ -261,7 +348,11 @@ export default {
       connections: [], // { from: id, to: id, fromType, toType }
       selectedComponentId: null,
       componentCounter: 0,
-      
+
+      // Component Editing State
+      editingComponentId: null,
+      editingComponentText: '',
+
       // Dragging State
       draggingComponentId: null,
       dragOffset: { x: 0, y: 0 },
@@ -274,36 +365,26 @@ export default {
       evaluationResult: null,
       mermaidCode: 'graph LR\n    %% 컴포넌트를 배치하고 연결하세요!',
 
-      // Static Data (Problems)
-      problems: [
-        {
-          level: "초급",
-          title: "📱 소셜 미디어 앱 - 기본 아키텍처",
-          description: "새로운 소셜 미디어 앱을 개발 중입니다. 사용자가 게시물을 작성하고 조회할 수 있는 기본적인 시스템을 설계해야 합니다.",
-          difficulty: "easy",
-          requirements: ["사용자 인증 및 API 통신", "게시물 데이터 저장소", "정적 파일(이미지) 제공"],
-          followUpQuestion: "사용자가 업로드한 고화질 이미지의 로딩 속도가 느리다는 피드백이 있습니다. 현재 설계에서 이를 어떻게 개선하시겠습니까?",
-          expectedComponents: ["user", "api", "db", "cdn"]
-        },
-        {
-          level: "중급",
-          title: "🛒 이커머스 플랫폼 - 트래픽 대응",
-          description: "블랙프라이데이 세일을 앞두고 갑작스런 트래픽 증가에 대비해야 합니다. 기존 시스템에서 성능 병목을 해결하고 안정적인 서비스를 제공해야 합니다.",
-          difficulty: "medium",
-          requirements: ["트래픽 분산 처리", "데이터베이스 부하 감소", "빠른 상품 조회 성능", "안정적인 결제 처리"],
-          followUpQuestion: "재고가 1개 남은 인기 상품을 100명이 동시에 구매 버튼을 눌렀습니다. 동시성 문제(Race Condition)를 해결하기 위한 구체적인 전략은 무엇인가요?",
-          expectedComponents: ["user", "loadbalancer", "server", "api", "cache", "db", "queue"]
-        },
-        {
-          level: "고급",
-          title: "🎮 실시간 게임 서비스 - 글로벌 확장",
-          description: "전 세계 사용자를 대상으로 하는 실시간 멀티플레이어 게임 서비스입니다. 낮은 지연시간과 높은 동시 접속자 처리가 핵심입니다.",
-          difficulty: "hard",
-          requirements: ["전 세계 낮은 지연시간 보장", "높은 동시 접속자 수 처리", "실시간 매칭 및 게임 데이터 동기화", "게임 로그 및 분석 데이터 처리", "정적 자산 빠른 전송"],
-          followUpQuestion: "국가 간 네트워크 지연(Latency) 문제로 인해 캐릭터 움직임이 끊기는 현상이 발생합니다. 애플리케이션 레벨이 아닌 인프라/프로토콜 관점에서 어떻게 해결하시겠습니까?",
-          expectedComponents: ["user", "cdn", "loadbalancer", "server", "api", "cache", "db", "queue"]
-        }
-      ],
+      // Deep Dive Question State (for connection questions)
+      deepDiveQuestion: null,
+      isDeepDiveModalActive: false,
+      deepDiveAnswer: '',
+      connectionQuestionCount: 0,
+      lastQuestionedConnectionTypes: new Set(),
+      isGeneratingDeepDive: false,
+
+      // Evaluation Modal State
+      isGeneratingQuestion: false,
+      generatedQuestion: null,
+
+      // Problems will be loaded from test.json
+      problems: [],
+      // Chat State
+      chatMessages: [],
+      chatInput: '',
+      isChatLoading: false,
+      openaiApiKey: '', // 환경변수에서 가져오거나 직접 설정
+
       mockEvaluations: {
         0: {
           score: 85,
@@ -378,8 +459,8 @@ export default {
       }).filter(Boolean);
     }
   },
-  mounted() {
-    mermaid.initialize({ 
+  async mounted() {
+    mermaid.initialize({
       startOnLoad: false,
       theme: 'dark',
       themeVariables: {
@@ -392,9 +473,78 @@ export default {
       },
       securityLevel: 'loose'
     });
+    await this.fetchProblems();
     this.updateMermaid();
   },
   methods: {
+    // --- Fetch Problems from test.json ---
+    async fetchProblems() {
+      try {
+        const response = await fetch('/test.json');
+        const data = await response.json();
+        this.problems = this.transformProblems(data);
+      } catch (error) {
+        console.error('Failed to load problems:', error);
+        // Fallback to empty array
+        this.problems = [];
+      }
+    },
+    transformProblems(data) {
+      return data.map((item, index) => {
+        // Determine difficulty based on index or id
+        let difficulty = 'easy';
+        let level = '초급';
+        if (index >= 7) {
+          difficulty = 'hard';
+          level = '고급';
+        } else if (index >= 4) {
+          difficulty = 'medium';
+          level = '중급';
+        }
+
+        // Convert requirements string to array
+        const requirementsArray = item.requirements
+          .split(/[,،]/)
+          .map(req => req.trim())
+          .filter(req => req.length > 0);
+
+        // Generate follow-up question from question_topics
+        let followUpQuestion = '';
+        if (item.question_topics && item.question_topics.length > 0) {
+          const topic = item.question_topics[0];
+          followUpQuestion = `${topic.topic}에 대해 설명해주세요. (키워드: ${topic.keywords.join(', ')})`;
+        }
+
+        // Map key_components types to expected component types
+        const componentTypeMap = {
+          'entry': 'loadbalancer',
+          'storage': 'db',
+          'db': 'db',
+          'cache': 'cache',
+          'message_queue': 'queue',
+          'network': 'cdn',
+          'compute': 'server',
+          'external': 'api'
+        };
+        const expectedComponents = item.key_components.map(comp =>
+          componentTypeMap[comp.type] || comp.type
+        );
+
+        return {
+          level,
+          title: item.title,
+          description: item.requirements,
+          difficulty,
+          requirements: requirementsArray,
+          followUpQuestion,
+          expectedComponents,
+          referenceMermaid: item.reference_mermaid,
+          referenceConcept: item.reference_concept,
+          evaluationRubric: item.evaluation_rubric
+        };
+      });
+    },
+
     // --- Drag & Drop ---
     onDragStart(event, type, text) {
       event.dataTransfer.setData('componentType', type);
@@ -522,8 +672,42 @@ export default {
       }
     },
 
+    // --- Component Name Editing ---
+    startEditingComponent(compId) {
+      if (this.isConnectionMode) return;
+      const comp = this.droppedComponents.find(c => c.id === compId);
+      if (!comp) return;
+
+      this.editingComponentId = compId;
+      this.editingComponentText = comp.text;
+
+      this.$nextTick(() => {
+        const input = this.$refs.componentNameInput;
+        if (input && input[0]) {
+          input[0].focus();
+          input[0].select();
+        }
+      });
+    },
+    finishEditingComponent() {
+      if (!this.editingComponentId) return;
+
+      const comp = this.droppedComponents.find(c => c.id === this.editingComponentId);
+      if (comp && this.editingComponentText.trim()) {
+        comp.text = this.editingComponentText.trim();
+        this.updateMermaid();
+      }
+
+      this.editingComponentId = null;
+      this.editingComponentText = '';
+    },
+    cancelEditingComponent() {
+      this.editingComponentId = null;
+      this.editingComponentText = '';
+    },
+
     // --- Connections ---
-    handleConnectionClick(comp) {
+    async handleConnectionClick(comp) {
       if (this.selectedComponentId === comp.id) {
         this.selectedComponentId = null; // Deselect
         return;
@@ -534,7 +718,7 @@ export default {
         this.selectedComponentId = comp.id;
       } else {
         // Connect
-        const exists = this.connections.some(c => 
+        const exists = this.connections.some(c =>
           (c.from === this.selectedComponentId && c.to === comp.id) ||
           (c.from === comp.id && c.to === this.selectedComponentId)
         );
@@ -548,10 +732,119 @@ export default {
             toType: comp.type
           });
           this.updateMermaid();
+
+          // Check if we should ask a deep dive question
+          if (this.shouldAskDeepDive(fromComp.type, comp.type)) {
+            this.lastQuestionedConnectionTypes.add(`${fromComp.type}-${comp.type}`);
+            this.connectionQuestionCount++;
+            await this.generateDeepDiveQuestion(fromComp, comp);
+          }
         }
-        
+
         this.selectedComponentId = null; // Reset
       }
+    },
+
+    // --- Deep Dive Question Logic ---
+    shouldAskDeepDive(fromType, toType) {
+      // Important connection combinations
+      const importantConnections = [
+        ['api', 'db'],
+        ['api', 'cache'],
+        ['loadbalancer', 'api'],
+        ['loadbalancer', 'server'],
+        ['server', 'queue'],
+        ['server', 'db'],
+        ['user', 'loadbalancer'],
+        ['user', 'cdn'],
+        ['cache', 'db'],
+        ['queue', 'server'],
+      ];
+
+      // Check if already questioned (bidirectional check)
+      const key1 = `${fromType}-${toType}`;
+      const key2 = `${toType}-${fromType}`;
+      if (this.lastQuestionedConnectionTypes.has(key1) ||
+          this.lastQuestionedConnectionTypes.has(key2)) return false;
+
+      // Maximum 3 questions per session
+      if (this.connectionQuestionCount >= 3) return false;
+
+      // Check if it's an important connection
+      return importantConnections.some(([a, b]) =>
+        (fromType === a && toType === b) || (fromType === b && toType === a)
+      );
+    },
+
+    async generateDeepDiveQuestion(fromComp, toComp) {
+      this.isDeepDiveModalActive = true;
+      this.isGeneratingDeepDive = true;
+      this.deepDiveAnswer = '';
+
+      const prompt = `당신은 시스템 아키텍처 면접관입니다.
+
+문제: ${this.currentProblem?.title || '시스템 아키텍처 설계'}
+요구사항: ${this.currentProblem?.requirements?.join(', ') || '없음'}
+
+학생이 "${fromComp.text}"와 "${toComp.text}"를 연결했습니다.
+이 연결에 대해 깊이 있는 면접 질문 1개를 생성해주세요.
+
+예시 질문 유형:
+- 이 연결에서 발생할 수 있는 문제점은?
+- 왜 이 두 컴포넌트를 연결했나요?
+- 이 연결의 데이터 흐름을 설명해주세요.
+- 장애 상황에서 이 연결은 어떻게 처리되나요?
+
+질문만 출력하세요. 다른 설명은 포함하지 마세요.`;
+
+      try {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.openaiApiKey || import.meta.env.VITE_OPENAI_API_KEY}`
+          },
+          body: JSON.stringify({
+            model: 'gpt-3.5-turbo',
+            messages: [{ role: 'user', content: prompt }],
+            max_tokens: 200,
+            temperature: 0.7
+          })
+        });
+
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+
+        const data = await response.json();
+        this.deepDiveQuestion = data.choices[0].message.content.trim();
+      } catch (error) {
+        console.error('Deep dive question error:', error);
+        this.deepDiveQuestion = `${fromComp.text}와 ${toComp.text}의 연결에서 예상되는 데이터 흐름과 잠재적인 병목 현상에 대해 설명해주세요.`;
+      } finally {
+        this.isGeneratingDeepDive = false;
+      }
+    },
+
+    skipDeepDive() {
+      this.isDeepDiveModalActive = false;
+      this.deepDiveQuestion = null;
+      this.deepDiveAnswer = '';
+    },
+
+    submitDeepDiveAnswer() {
+      // Store the answer for later evaluation
+      if (this.deepDiveAnswer.trim()) {
+        this.chatMessages.push({
+          role: 'user',
+          content: `[연결 질문] ${this.deepDiveQuestion}\n\n[답변] ${this.deepDiveAnswer}`
+        });
+        this.chatMessages.push({
+          role: 'assistant',
+          content: '답변이 저장되었습니다. 최종 평가 시 반영됩니다.'
+        });
+      }
+      this.isDeepDiveModalActive = false;
+      this.deepDiveQuestion = null;
+      this.deepDiveAnswer = '';
     },
     toggleMode() {
       this.isConnectionMode = !this.isConnectionMode;
@@ -563,6 +856,13 @@ export default {
         this.connections = [];
         this.componentCounter = 0;
         this.evaluationResult = null;
+        // Reset deep dive state
+        this.connectionQuestionCount = 0;
+        this.lastQuestionedConnectionTypes = new Set();
+        this.deepDiveQuestion = null;
+        this.deepDiveAnswer = '';
+        // Reset chat messages
+        this.chatMessages = [];
         this.updateMermaid();
       }
     },
@@ -624,12 +924,57 @@ export default {
     },
 
     // --- Evaluation & Modal ---
-    openEvaluationModal() {
+    async openEvaluationModal() {
       this.userAnswer = '';
       this.isModalActive = true;
+      this.isGeneratingQuestion = true;
+      this.generatedQuestion = null;
+
+      // Generate LLM question based on architecture
+      const architectureContext = this.buildFullArchitectureContext();
+
+      const prompt = `당신은 시스템 아키텍처 면접관입니다.
+
+문제: ${this.currentProblem?.title || '시스템 아키텍처 설계'}
+요구사항: ${this.currentProblem?.requirements?.join(', ') || '없음'}
+주제 힌트: ${this.currentProblem?.evaluationRubric ? Object.keys(this.currentProblem.evaluationRubric).join(', ') : ''}
+
+학생의 아키텍처:
+${architectureContext}
+
+이 아키텍처에 대해 심층적인 면접 질문 1개를 생성하세요.
+학생이 설계한 내용을 바탕으로 트레이드오프, 확장성, 장애 대응 등에 대해 질문하세요.
+질문만 출력하세요.`;
+
+      try {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.openaiApiKey || import.meta.env.VITE_OPENAI_API_KEY}`
+          },
+          body: JSON.stringify({
+            model: 'gpt-3.5-turbo',
+            messages: [{ role: 'user', content: prompt }],
+            max_tokens: 300,
+            temperature: 0.7
+          })
+        });
+
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+
+        const data = await response.json();
+        this.generatedQuestion = data.choices[0].message.content.trim();
+      } catch (error) {
+        console.error('Question generation error:', error);
+        this.generatedQuestion = this.currentProblem?.followUpQuestion || '설계하신 아키텍처에서 가장 중요한 트레이드오프는 무엇인가요?';
+      } finally {
+        this.isGeneratingQuestion = false;
+      }
     },
     closeModal() {
       this.isModalActive = false;
+      this.generatedQuestion = null;
     },
     submitAnswer() {
       if (!this.userAnswer.trim()) {
@@ -639,21 +984,109 @@ export default {
       this.isModalActive = false;
       this.evaluate();
     },
-    evaluate() {
+    async evaluate() {
       this.isEvaluating = true;
       this.evaluationResult = null;
 
-      // Simulate AI Latency
-      setTimeout(() => {
-        const mock = this.mockEvaluations[this.currentProblemIndex];
-        // Deep copy to avoid mutation if we modify it
+      const architectureContext = this.buildFullArchitectureContext();
+      const rubric = this.currentProblem?.evaluationRubric;
+
+      // Collect all deep dive answers from chat history
+      const deepDiveAnswers = this.chatMessages
+        .filter(msg => msg.role === 'user' && msg.content.startsWith('[연결 질문]'))
+        .map(msg => msg.content)
+        .join('\n\n');
+
+      const prompt = `당신은 시스템 아키텍처 면접관입니다.
+다음 평가 기준에 따라 학생의 아키텍처를 평가해주세요.
+
+문제: ${this.currentProblem?.title || '시스템 아키텍처 설계'}
+요구사항: ${this.currentProblem?.requirements?.join(', ') || '없음'}
+
+평가 기준:
+${rubric ? JSON.stringify(rubric, null, 2) : '- 요구사항 충족도\n- 확장성\n- 장애 대응\n- 컴포넌트 적절성'}
+
+학생의 아키텍처:
+${architectureContext}
+
+심층 질문: ${this.generatedQuestion || this.currentProblem?.followUpQuestion || ''}
+학생의 답변: ${this.userAnswer}
+
+${deepDiveAnswers ? `추가 연결 질문 답변:\n${deepDiveAnswers}` : ''}
+
+다음 JSON 형식으로만 응답하세요 (다른 텍스트 없이):
+{
+  "score": 0에서 100 사이의 숫자,
+  "grade": "excellent" 또는 "good" 또는 "needs-improvement" 또는 "poor",
+  "summary": "종합 평가 (2-3문장)",
+  "strengths": ["강점1", "강점2"],
+  "weaknesses": ["개선점1"],
+  "suggestions": ["제안1", "제안2"]
+}`;
+
+      try {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.openaiApiKey || import.meta.env.VITE_OPENAI_API_KEY}`
+          },
+          body: JSON.stringify({
+            model: 'gpt-3.5-turbo',
+            messages: [{ role: 'user', content: prompt }],
+            max_tokens: 800,
+            temperature: 0.5
+          })
+        });
+
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+
+        const data = await response.json();
+        const content = data.choices[0].message.content.trim();
+
+        // Parse JSON from response
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          this.evaluationResult = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error('Invalid JSON response');
+        }
+      } catch (error) {
+        console.error('Evaluation error:', error);
+        // Fallback to mock evaluation
+        const mock = this.mockEvaluations[this.currentProblemIndex] || this.mockEvaluations[0];
         const result = JSON.parse(JSON.stringify(mock));
-        
-        result.summary = `"${this.userAnswer.substring(0, 15)}..."에 대한 답변을 포함하여 분석한 결과입니다. ` + result.summary;
-        
+        result.summary = `API 연결 문제로 기본 평가를 제공합니다. ` + result.summary;
         this.evaluationResult = result;
+      } finally {
         this.isEvaluating = false;
-      }, 2000);
+      }
+    },
+
+    buildFullArchitectureContext() {
+      if (this.droppedComponents.length === 0) {
+        return '배치된 컴포넌트가 없습니다.';
+      }
+
+      let context = `배치된 컴포넌트 (${this.droppedComponents.length}개):\n`;
+      this.droppedComponents.forEach(comp => {
+        context += `- ${comp.text} (${comp.type})\n`;
+      });
+
+      if (this.connections.length > 0) {
+        context += `\n연결 (${this.connections.length}개):\n`;
+        this.connections.forEach(conn => {
+          const from = this.droppedComponents.find(c => c.id === conn.from);
+          const to = this.droppedComponents.find(c => c.id === conn.to);
+          if (from && to) {
+            context += `- ${from.text} → ${to.text}\n`;
+          }
+        });
+      }
+
+      context += `\nMermaid 코드:\n${this.mermaidCode}`;
+
+      return context;
     },
     getGradeColor(grade) {
       const colors = {
@@ -672,6 +1105,106 @@ export default {
         'poor': '📝'
       };
       return emojis[grade] || '❓';
+    },
+
+    // --- Chat with OpenAI ---
+    async sendChatMessage() {
+      const userMessage = this.chatInput.trim();
+      if (!userMessage) return;
+
+      // Add user message
+      this.chatMessages.push({
+        role: 'user',
+        content: userMessage
+      });
+      this.chatInput = '';
+      this.isChatLoading = true;
+
+      // Scroll to bottom
+      this.$nextTick(() => {
+        if (this.$refs.chatMessages) {
+          this.$refs.chatMessages.scrollTop = this.$refs.chatMessages.scrollHeight;
+        }
+      });
+
+      try {
+        // Build context about current problem (title + requirements only)
+        const chatContext = this.buildChatContext();
+
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.openaiApiKey || import.meta.env.VITE_OPENAI_API_KEY}`
+          },
+          body: JSON.stringify({
+            model: 'gpt-3.5-turbo',
+            messages: [
+              {
+                role: 'system',
+                content: `당신은 시스템 아키텍처 면접관입니다.
+학생이 주어진 문제의 기능적/비기능적 요구사항에 대해 질문하면 답변해주세요.
+
+중요 규칙:
+1. 직접적인 정답이나 완성된 아키텍처 설계를 알려주지 마세요.
+2. 힌트와 고려사항만 제공하세요.
+3. 학생이 스스로 생각할 수 있도록 유도 질문을 하세요.
+4. 요구사항의 의미나 우선순위에 대해서는 명확히 설명해주세요.
+
+현재 문제:
+${chatContext}
+
+친절하지만 교육적인 태도로 답변해주세요. 한국어로 답변하세요.`
+              },
+              ...this.chatMessages.map(msg => ({
+                role: msg.role,
+                content: msg.content
+              }))
+            ],
+            max_tokens: 500,
+            temperature: 0.7
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`API Error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const assistantMessage = data.choices[0].message.content;
+
+        this.chatMessages.push({
+          role: 'assistant',
+          content: assistantMessage
+        });
+
+      } catch (error) {
+        console.error('Chat error:', error);
+        this.chatMessages.push({
+          role: 'assistant',
+          content: 'API 연결에 문제가 발생했습니다. API 키를 확인해주세요.'
+        });
+      } finally {
+        this.isChatLoading = false;
+        this.$nextTick(() => {
+          if (this.$refs.chatMessages) {
+            this.$refs.chatMessages.scrollTop = this.$refs.chatMessages.scrollHeight;
+          }
+        });
+      }
+    },
+
+    // Build context for chat - only uses title and requirements
+    buildChatContext() {
+      if (!this.currentProblem) return '';
+
+      return `문제: ${this.currentProblem.title}
+요구사항: ${this.currentProblem.requirements.join(', ')}`;
+    },
+
+    buildArchitectureContext() {
+      // For chat: only problem info, no architecture details
+      return this.buildChatContext();
     }
   }
 };
@@ -1364,5 +1897,202 @@ export default {
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 255, 157, 0.4);
+}
+
+/* Chat Styles */
+.chat-container {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(0, 255, 157, 0.3);
+  border-radius: 10px;
+  margin-top: 10px;
+  overflow: hidden;
+}
+
+.chat-messages {
+  height: 200px;
+  overflow-y: auto;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chat-message {
+  max-width: 85%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 0.9em;
+  line-height: 1.5;
+}
+
+.chat-message.user {
+  background: linear-gradient(135deg, rgba(100, 181, 246, 0.2), rgba(100, 181, 246, 0.1));
+  border: 1px solid rgba(100, 181, 246, 0.4);
+  align-self: flex-end;
+}
+
+.chat-message.assistant {
+  background: linear-gradient(135deg, rgba(0, 255, 157, 0.15), rgba(0, 255, 157, 0.05));
+  border: 1px solid rgba(0, 255, 157, 0.3);
+  align-self: flex-start;
+}
+
+.message-role {
+  display: block;
+  font-size: 0.75em;
+  font-weight: 700;
+  margin-bottom: 4px;
+  opacity: 0.8;
+}
+
+.chat-message.user .message-role {
+  color: #64b5f6;
+}
+
+.chat-message.assistant .message-role {
+  color: #00ff9d;
+}
+
+.message-content {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.typing-indicator {
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0.5; }
+}
+
+.chat-input-area {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid rgba(0, 255, 157, 0.2);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.chat-input {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(100, 181, 246, 0.3);
+  color: #e0e0e0;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.9em;
+  transition: border-color 0.3s;
+}
+
+.chat-input:focus {
+  outline: none;
+  border-color: #64b5f6;
+  box-shadow: 0 0 10px rgba(100, 181, 246, 0.2);
+}
+
+.chat-input:disabled {
+  opacity: 0.6;
+}
+
+.chat-send-btn {
+  background: linear-gradient(135deg, #00ff9d, #64b5f6);
+  border: none;
+  color: #0a0e27;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-family: 'Space Mono', monospace;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.chat-send-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 255, 157, 0.4);
+}
+
+.chat-send-btn:disabled {
+  background: rgba(100, 100, 100, 0.4);
+  cursor: not-allowed;
+}
+
+/* Component Name Editing Input */
+.component-name-input {
+  background: rgba(0, 0, 0, 0.5);
+  border: 2px solid #00ff9d;
+  color: inherit;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9em;
+  font-weight: 700;
+  text-align: center;
+  width: 100%;
+  min-width: 80px;
+  outline: none;
+}
+
+.component-name-input:focus {
+  box-shadow: 0 0 10px rgba(0, 255, 157, 0.5);
+}
+
+/* Loading Question State */
+.loading-question {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  gap: 16px;
+}
+
+.loading-question p {
+  color: #64b5f6;
+  font-size: 0.95em;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.loading-spinner-large {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(0, 255, 157, 0.3);
+  border-top-color: #00ff9d;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* Deep Dive Modal Styles */
+.deep-dive-modal .modal-header {
+  background: linear-gradient(90deg, rgba(255, 71, 133, 0.2), transparent);
+}
+
+.deep-dive-modal .modal-header h3 {
+  color: #ff4785;
+}
+
+.ai-question.deep-dive {
+  background: rgba(255, 71, 133, 0.1);
+  border-left: 4px solid #ff4785;
+}
+
+.ai-question.deep-dive .ai-question-title {
+  color: #ff4785;
+}
+
+/* Dropped component text truncation for editing */
+.dropped-component span {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>

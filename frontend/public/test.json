@@ -1,0 +1,352 @@
+[
+{
+"id": 1,
+"title": "Instagram Home Feed (혼합 타임라인)",
+"requirements": "팔로잉+추천 피드, 초고읽기(R>>W), p95 200ms(캐시), 유명인 fan-out 폭탄, 차단/삭제 즉시 반영, CDN 필수.",
+"key_components": [
+{ "name": "API Gateway + Auth", "type": "entry" },
+{ "name": "Feed Service + Redis", "type": "cache" },
+{ "name": "Event Bus + Fanout Workers", "type": "message_queue" },
+{ "name": "Feed/Graph Store (NoSQL)", "type": "db" },
+{ "name": "Object Storage + CDN", "type": "storage" }
+],
+"reference_mermaid": "graph LR\nU[User]-->G[API/Auth]\nG-->F[Feed Read]\nF-->R[Redis]\nG-->P[Post Write]\nP-->Q[(Event Bus)]\nQ-->W[Fanout]\nW-->DB[(Feed Store)]\nF-->CDN[CDN]\nCDN-->S3[(Media)]",
+"reference_concept": {
+"fanout": "Hybrid(push for normal / pull for celebrity)",
+"privacy": "Block/Delete fail-closed + cache invalidation",
+"ranking": "Recall->Rank split, fallback to recency"
+},
+"question_topics": [
+{ "topic": "Fan-out 전략", "keywords": ["Push", "Pull", "Hybrid", "Hot key"] },
+{ "topic": "캐시/프리컴퓨트", "keywords": ["TTL", "Invalidation", "Stampede"] },
+{ "topic": "개인정보 반영", "keywords": ["ACL", "Signed URL", "Fail-closed"] }
+],
+"evaluation_rubric": {
+"system_architecture": [
+{ "metric": "구조적 완성도", "description": "Write(Post->Event->Fanout)와 Read(Feed->Rank->CDN) 경로 분리 + Privacy 경로 포함" },
+{ "metric": "확장성", "description": "유명인/핫키 대응(하이브리드 fanout, 샤딩키, 백프레셔)" },
+{ "metric": "가용성/복원력", "description": "큐/캐시 장애 시 fallback(최근순), 재처리 멱등성, Privacy 안전우선" }
+],
+"interview_score": [
+{ "metric": "논리적 일관성", "description": "다이어그램에 없는 fanout/캐시/ACL을 말로만 주장하면 감점" },
+{ "metric": "근거의 타당성", "description": "Push vs Pull, TTL vs 즉시성, 랭킹 동기/비동기 트레이드오프 방어" },
+{ "metric": "전달력", "description": "필수 키워드: Fan-out, Hot key, Cache invalidation, Signed URL, Backpressure" }
+]
+}
+},
+{
+"id": 2,
+"title": "YouTube VOD 업로드/스트리밍",
+"requirements": "대용량 업로드(GB), ABR(HLS/DASH), TTFB p95 300ms(에지), 트랜스코딩 파이프라인, 권리/지역 제한.",
+"key_components": [
+{ "name": "Upload API (Resumable)", "type": "entry" },
+{ "name": "Object Storage (Origin)", "type": "storage" },
+{ "name": "Transcode Queue + Workers", "type": "message_queue" },
+{ "name": "Playback API + Token", "type": "compute" },
+{ "name": "CDN/Edge", "type": "cache" }
+],
+"reference_mermaid": "graph LR\nC[Creator]-->U[Upload API]\nU-->S3[(Origin)]\nU-->Q[(Transcode Q)]\nQ-->W[Workers]\nW-->S3\nV[Viewer]-->P[Playback API]\nP-->CDN[CDN]\nCDN-->S3",
+"reference_concept": {
+"upload": "Resumable chunk + idempotency(sessionId, offset, hash)",
+"transcode": "Low-res first -> progressively add renditions",
+"origin_protect": "Signed URL + origin shielding + rate limit"
+},
+"question_topics": [
+{ "topic": "Resumable 업로드", "keywords": ["Chunk", "Offset", "Idempotency"] },
+{ "topic": "ABR", "keywords": ["HLS", "DASH", "Manifest", "Segments"] },
+{ "topic": "CDN/Origin 보호", "keywords": ["Shielding", "TTL", "Rate limit"] }
+],
+"evaluation_rubric": {
+"system_architecture": [
+{ "metric": "구조적 완성도", "description": "Upload->Origin->Transcode->Manifest/Segments->CDN 재생 흐름 명확" },
+{ "metric": "확장성", "description": "트랜스코드 워커 수평확장, 세그먼트/매니페스트 폭증 대응" },
+{ "metric": "가용성/복원력", "description": "업로드 재개/중복방지, 큐 재처리, CDN 장애 시 degrade" }
+],
+"interview_score": [
+{ "metric": "논리적 일관성", "description": "ABR 언급 시 HLS/DASH 산출 단계가 설계에 없으면 감점" },
+{ "metric": "근거의 타당성", "description": "저화질 우선 트랜스코드 vs 전체 동시 트랜스코드 방어" },
+{ "metric": "전달력", "description": "필수 키워드: Resumable upload, ABR, Manifest, Origin shielding" }
+]
+}
+},
+{
+"id": 3,
+"title": "실시간 메시징 (1:1 + 그룹)",
+"requirements": "p95 150ms(온라인), 오프라인 store-and-forward, 멀티디바이스, 대화 단위 순서, 중복/재전송, 대형 그룹 fan-out.",
+"key_components": [
+{ "name": "Connection Gateway (WebSocket)", "type": "entry" },
+{ "name": "Message Router", "type": "compute" },
+{ "name": "Message Log Store", "type": "db" },
+{ "name": "Fanout + Push(APNS/FCM)", "type": "message_queue" }
+],
+"reference_mermaid": "graph LR\nD[Device]-->GW[WS Gateway]\nGW-->R[Router]\nR-->L[(Log Store)]\nR-->F[Fanout]\nF-->GW\nF-->PN[Push]",
+"reference_concept": {
+"delivery": "At-least-once + dedup(messageId)",
+"ordering": "Conversation-scoped sequence",
+"groups": "Shard fanout / topic-based distribution"
+},
+"question_topics": [
+{ "topic": "전달 보장", "keywords": ["At-least-once", "Dedup", "Retry"] },
+{ "topic": "순서/동기화", "keywords": ["Sequence", "Cursor", "Multi-device"] },
+{ "topic": "대형 그룹", "keywords": ["Fan-out", "Sharding", "Backpressure"] }
+],
+"evaluation_rubric": {
+"system_architecture": [
+{ "metric": "구조적 완성도", "description": "WS 연결, 로그 저장, 오프라인 재동기화(커서), 푸시 경로 포함" },
+{ "metric": "확장성", "description": "chatId 샤딩, 대형 그룹 fanout 분할/토픽 설계" },
+{ "metric": "가용성/복원력", "description": "재접속 폭주(thundering herd) 대비, 재처리 멱등성" }
+],
+"interview_score": [
+{ "metric": "논리적 일관성", "description": "중복/순서 보장을 말하면서 messageId/seq가 없으면 감점" },
+{ "metric": "근거의 타당성", "description": "Exactly-once 대신 dedup 선택 이유(복잡도/지연) 방어" },
+{ "metric": "전달력", "description": "필수 키워드: Presence, Store-and-forward, Dedup, Cursor, Backoff" }
+]
+}
+},
+{
+"id": 4,
+"title": "라이드헤일링 실시간 배차",
+"requirements": "초당 대량 위치 업데이트, 매칭 p95 2초, ETA 실시간, Geo 인덱싱(GeoHash/H3), 이중매칭 방지, 결제 정합성.",
+"key_components": [
+{ "name": "Location Ingest", "type": "entry" },
+{ "name": "Geo Index (RedisGeo/H3)", "type": "cache" },
+{ "name": "Matching Service", "type": "compute" },
+{ "name": "Trip Service(State Machine)", "type": "compute" },
+{ "name": "Payment Ledger(RDB)", "type": "db" }
+],
+"reference_mermaid": "graph LR\nA[App]-->L[Loc Ingest]\nL-->G[(Geo Index)]\nA-->M[Matching]\nM-->G\nM-->T[Trip FSM]\nT-->P[(Ledger)]",
+"reference_concept": {
+"geo": "Adaptive grid(H3) + throttling",
+"double_match": "Driver lease(lock+TTL)",
+"consistency": "Match eventual / Payment strong"
+},
+"question_topics": [
+{ "topic": "Geo 인덱싱", "keywords": ["H3", "Cell size", "Hot cell"] },
+{ "topic": "이중 매칭 방지", "keywords": ["Lease", "TTL", "Idempotency"] },
+{ "topic": "정합성 경계", "keywords": ["Eventual", "Strong", "SAGA"] }
+],
+"evaluation_rubric": {
+"system_architecture": [
+{ "metric": "구조적 완성도", "description": "위치->GeoIndex->매칭->오퍼/수락->Trip FSM 흐름 명확" },
+{ "metric": "확장성", "description": "셀 기반 샤딩, 업데이트 샘플링/디바운스, 백프레셔" },
+{ "metric": "가용성/복원력", "description": "Geo/매칭 장애 시 degrade, lease 기반 중복 방지" }
+],
+"interview_score": [
+{ "metric": "논리적 일관성", "description": "매칭 ‘정확’ 주장 시 lease/상태머신 없으면 감점" },
+{ "metric": "근거의 타당성", "description": "셀 크기/업데이트 주기/lease TTL을 수치로 방어" },
+{ "metric": "전달력", "description": "필수 키워드: GeoHash/H3, Lease, State machine, Backpressure" }
+]
+}
+},
+{
+"id": 5,
+"title": "짧은 영상 추천 피드(Reels/TikTok)",
+"requirements": "스크롤 p95 150ms(프리페치), Recall+Rank, 실시간 피드백(완시율) 반영, 콜드스타트, 안전/정책 필터, AB 테스트.",
+"key_components": [
+{ "name": "Feed API", "type": "entry" },
+{ "name": "Candidate Generator(ANN)", "type": "compute" },
+{ "name": "Ranking + Feature Store", "type": "db" },
+{ "name": "Event Collector + Stream", "type": "message_queue" },
+{ "name": "CDN", "type": "cache" }
+],
+"reference_mermaid": "graph LR\nU[User]-->API[Feed API]\nAPI-->C[Recall/ANN]\nAPI-->R[Ranking]\nR-->FS[(Feature Store)]\nU-->E[Events]\nE-->Q[(Stream)]\nQ-->FS\nAPI-->CDN[CDN]",
+"reference_concept": {
+"ranking": "Recall->Rank 분리 + fallback(트렌딩/최근순)",
+"realtime": "짧은 윈도우 피처 + 노이즈 필터",
+"safety": "Policy filter fail-closed"
+},
+"question_topics": [
+{ "topic": "Recall/Rank", "keywords": ["ANN", "Top-K", "Diversity"] },
+{ "topic": "실시간 피처", "keywords": ["Window", "Debias", "Guardrail"] },
+{ "topic": "실험", "keywords": ["A/B", "Consistent hashing", "Holdout"] }
+],
+"evaluation_rubric": {
+"system_architecture": [
+{ "metric": "구조적 완성도", "description": "이벤트 수집→피처→Recall/Rank→정책필터→CDN 흐름 포함" },
+{ "metric": "확장성", "description": "ANN/피처스토어 핫키/캐시, 프리페치로 지연 예산 관리" },
+{ "metric": "가용성/복원력", "description": "모델/피처 장애 시 룰 기반 fallback, 안전 필터는 항상 적용" }
+],
+"interview_score": [
+{ "metric": "논리적 일관성", "description": "실시간 반영 주장 시 이벤트/스트림 경로 없으면 감점" },
+{ "metric": "근거의 타당성", "description": "Recall 크기 vs 지연/다양성 트레이드오프 방어" },
+{ "metric": "전달력", "description": "필수 키워드: Recall, Ranking, Feature store, ANN, Exploration" }
+]
+}
+},
+{
+"id": 6,
+"title": "Drive/Dropbox 파일 저장·공유·동기화",
+"requirements": "대용량 업/다운, 버전관리, 링크 공유/권한, 델타 동기화, 충돌 처리, 검색 인덱스, 감사 로그.",
+"key_components": [
+{ "name": "API Gateway + OAuth", "type": "entry" },
+{ "name": "Metadata DB(RDB)", "type": "db" },
+{ "name": "Object Storage(Chunks)", "type": "storage" },
+{ "name": "ACL/Sharing Service", "type": "compute" },
+{ "name": "Delta Sync(Change Log)", "type": "message_queue" }
+],
+"reference_mermaid": "graph LR\nC[Client]-->G[API/OAuth]\nG-->M[(Metadata RDB)]\nG-->S3[(Object Store)]\nM-->ACL[ACL]\nM-->DL[Change Log]\nDL-->C",
+"reference_concept": {
+"storage": "Metadata vs content 분리",
+"sync": "Cursor-based delta sync",
+"sharing": "Signed URL + TTL for permission changes"
+},
+"question_topics": [
+{ "topic": "충돌 처리", "keywords": ["ETag", "Version vector", "Conflict copy"] },
+{ "topic": "권한/공유", "keywords": ["ACL", "Signed URL", "TTL"] },
+{ "topic": "델타 동기화", "keywords": ["Cursor", "Change log", "Backfill"] }
+],
+"evaluation_rubric": {
+"system_architecture": [
+{ "metric": "구조적 완성도", "description": "메타데이터/콘텐츠 분리 + ACL + 델타 sync 경로 포함" },
+{ "metric": "확장성", "description": "청크 업로드, 테넌트/유저 샤딩, 검색/GC 비동기" },
+{ "metric": "가용성/복원력", "description": "업로드 재개, 권한 변경 즉시성(TTL/회수), 충돌 복구" }
+],
+"interview_score": [
+{ "metric": "논리적 일관성", "description": "대용량을 단일 DB에 넣고도 문제없다 주장하면 감점" },
+{ "metric": "근거의 타당성", "description": "청크 크기/TTL/폴링vs푸시 선택 근거 방어" },
+{ "metric": "전달력", "description": "필수 키워드: Chunking, Delta sync, ETag, ACL, Signed URL" }
+]
+}
+},
+{
+"id": 7,
+"title": "Checkout(장바구니+주문+결제+재고)",
+"requirements": "세일 피크 트래픽, 장바구니 p95 100ms, 주문/결제 멱등성, 재고 예약/차감, SAGA 보상, 중복 결제 방지.",
+"key_components": [
+{ "name": "Cart Service(KV)", "type": "cache" },
+{ "name": "Order Service(FSM)", "type": "compute" },
+{ "name": "Inventory Reservation", "type": "compute" },
+{ "name": "Payment Service + Ledger(RDB)", "type": "db" },
+{ "name": "Event Bus", "type": "message_queue" }
+],
+"reference_mermaid": "graph LR\nU[User]-->G[API]\nG-->C[(Cart KV)]\nG-->O[Order FSM]\nO-->I[Inv Reserve]\nO-->P[(Payment/Ledger)]\nO-->Q[(Event Bus)]",
+"reference_concept": {
+"idempotency": "idempotency key on order/payment",
+"inventory": "Reserve->commit/compensate",
+"workflow": "SAGA orchestrator"
+},
+"question_topics": [
+{ "topic": "멱등성", "keywords": ["Idempotency key", "Retry", "Dedup"] },
+{ "topic": "재고", "keywords": ["Reservation", "TTL", "Oversell"] },
+{ "topic": "사가", "keywords": ["SAGA", "Compensation", "DLQ"] }
+],
+"evaluation_rubric": {
+"system_architecture": [
+{ "metric": "구조적 완성도", "description": "Cart(빠름) vs Order/Payment(정합성) 분리 + 예약/보상 포함" },
+{ "metric": "확장성", "description": "Cart KV 수평확장, 주문/결제 파티셔닝, 비동기 이벤트 분리" },
+{ "metric": "가용성/복원력", "description": "타임아웃/재시도/중복 결제 방지, PENDING 상태 복구" }
+],
+"interview_score": [
+{ "metric": "논리적 일관성", "description": "멱등성/예약 TTL 없이 ‘중복 없음’ 주장하면 감점" },
+{ "metric": "근거의 타당성", "description": "2PC 대신 SAGA 선택 이유(지연/가용성) 방어" },
+{ "metric": "전달력", "description": "필수 키워드: Idempotency, Reservation, SAGA, Ledger, FSM" }
+]
+}
+},
+{
+"id": 8,
+"title": "실시간 검색 + 트렌딩(Twitter/X)",
+"requirements": "초당 대량 인입, near real-time 색인(1~5초), 트렌딩 분 단위, index lag 모니터링, 봇/스팸 필터, 지역/언어 파티션.",
+"key_components": [
+{ "name": "Ingest API", "type": "entry" },
+{ "name": "Kafka", "type": "message_queue" },
+{ "name": "Indexing Workers", "type": "compute" },
+{ "name": "Search Index(ES/Solr)", "type": "db" },
+{ "name": "Trends Aggregator + Cache", "type": "cache" }
+],
+"reference_mermaid": "graph LR\nI[Ingest]-->K[(Kafka)]\nK-->W[Index Workers]\nW-->S[(Search Index)]\nK-->T[Trends]\nT-->C[(Trends Cache)]\nQ[Query]-->S\nQ-->C",
+"reference_concept": {
+"nrt": "Index lag 구간별 측정 + 튜닝",
+"trends": "Window aggregation + anti-spam signals",
+"degrade": "stale reads 허용 + cache fallback"
+},
+"question_topics": [
+{ "topic": "Index lag", "keywords": ["Commit", "Batching", "Backlog"] },
+{ "topic": "트렌딩", "keywords": ["Window", "Sketch", "Bot filter"] },
+{ "topic": "부분 장애", "keywords": ["Replica", "Routing", "Stale reads"] }
+],
+"evaluation_rubric": {
+"system_architecture": [
+{ "metric": "구조적 완성도", "description": "인입→버스→색인→검색 + 트렌딩 집계/캐시 흐름 포함" },
+{ "metric": "확장성", "description": "샤딩/리플리카, 핫토픽 완화, 캐시로 QPS 절감" },
+{ "metric": "가용성/복원력", "description": "부분 장애 라우팅, 재색인/재처리, stale 결과 정책" }
+],
+"interview_score": [
+{ "metric": "논리적 일관성", "description": "NRT 주장 시 lag 측정/파이프라인 없으면 감점" },
+{ "metric": "근거의 타당성", "description": "flush/batch/샤드 전략을 지연-비용 트레이드오프로 방어" },
+{ "metric": "전달력", "description": "필수 키워드: Index lag, Shard, Replica, Window aggregation, Reindex" }
+]
+}
+},
+{
+"id": 9,
+"title": "화상회의(WebRTC SFU)",
+"requirements": "저지연(≈200ms), NAT 대응(STUN/TURN), 참가자 증가 확장(Simulcast/SVC), QoE(손실/지터) 기반 ABR, 장애 시 재연결.",
+"key_components": [
+{ "name": "Signaling Service", "type": "entry" },
+{ "name": "SFU Media Server", "type": "compute" },
+{ "name": "STUN/TURN", "type": "network" },
+{ "name": "QoS/ABR Controller", "type": "compute" },
+{ "name": "Recording Pipeline(옵션)", "type": "message_queue" }
+],
+"reference_mermaid": "graph LR\nC[Client]-->SIG[Signaling]\nC-->STUN[STUN]\nC-->TURN[TURN]\nC-->SFU[SFU]\nSFU-->Q[QoS/ABR]\nSFU-->REC[Recording]",
+"reference_concept": {
+"media": "SFU + subscription(보이는 타일만)",
+"quality": "Simulcast/SVC + ABR",
+"recovery": "ICE restart + PoP failover"
+},
+"question_topics": [
+{ "topic": "확장", "keywords": ["SFU", "Simulcast", "SVC", "Tile subscription"] },
+{ "topic": "NAT", "keywords": ["ICE", "STUN", "TURN", "Cost"] },
+{ "topic": "복구", "keywords": ["ICE restart", "Failover", "QoE"] }
+],
+"evaluation_rubric": {
+"system_architecture": [
+{ "metric": "구조적 완성도", "description": "시그널링/미디어(SFU)/NAT(STUN/TURN)/ABR 흐름 포함" },
+{ "metric": "확장성", "description": "구독 기반, Simulcast/SVC, 대형 회의 계층형 SFU" },
+{ "metric": "가용성/복원력", "description": "SFU 장애 재연결(초 단위), 시그널링 HA, PoP 전환" }
+],
+"interview_score": [
+{ "metric": "논리적 일관성", "description": "NAT/ABR을 말하면서 ICE/QoE 측정 경로 없으면 감점" },
+{ "metric": "근거의 타당성", "description": "SFU vs MCU, TURN 비용/성공률 트레이드오프 방어" },
+{ "metric": "전달력", "description": "필수 키워드: WebRTC, ICE, SFU, Simulcast, ABR, QoE" }
+]
+}
+},
+{
+"id": 10,
+"title": "RTB(Real-time Bidding) 광고 입찰",
+"requirements": "QPS 매우 큼, 응답 데드라인 50~100ms, 예산/빈도 제한, 모델 기반 입찰, 비동기 로깅/정산(레저), 개인정보 준수.",
+"key_components": [
+{ "name": "Bid Ingest/API", "type": "entry" },
+{ "name": "Bidding Engine (deadline-aware)", "type": "compute" },
+{ "name": "Feature/Segment Cache", "type": "cache" },
+{ "name": "Model Serving(CTR/CVR)", "type": "compute" },
+{ "name": "Billing Ledger(RDB)", "type": "db" },
+{ "name": "Async Log Bus", "type": "message_queue" }
+],
+"reference_mermaid": "graph LR\nR[Bid Req]-->E[Bidding Engine]\nE-->C[(Feature Cache)]\nE-->M[Model]\nE-->B[Budget/Freq]\nE-->X[Resp]\nE-->K[(Log Bus)]\nK-->L[(Ledger)]",
+"reference_concept": {
+"deadline": "Timeboxing + fallback(미입찰/기본입찰)",
+"budget": "근사 제한(token bucket) + pacing",
+"billing": "idempotent events + ledger as source of truth"
+},
+"question_topics": [
+{ "topic": "데드라인", "keywords": ["Timeboxing", "Tail latency", "Fallback"] },
+{ "topic": "예산/빈도", "keywords": ["Token bucket", "Pacing", "Consistency"] },
+{ "topic": "정산", "keywords": ["Ledger", "Idempotency", "Attribution"] }
+],
+"evaluation_rubric": {
+"system_architecture": [
+{ "metric": "구조적 완성도", "description": "입찰엔진+캐시+모델+예산제어+비동기 로그/레저 흐름 포함" },
+{ "metric": "확장성", "description": "stateless 엔진 수평확장, 핫 캠페인 캐시, 로그 분리" },
+{ "metric": "가용성/복원력", "description": "deadline 초과 대비, 모델/피처 장애 degrade, 멱등 정산" }
+],
+"interview_score": [
+{ "metric": "논리적 일관성", "description": "100ms 데드라인인데 원격 호출만 하고 캐시 없으면 감점" },
+{ "metric": "근거의 타당성", "description": "강한 예산제어 vs 지연(근사 제어) 트레이드오프 방어" },
+{ "metric": "전달력", "description": "필수 키워드: RTB, Deadline-aware, Timeboxing, Pacing, Ledger" }
+]
+}
+}
+]
