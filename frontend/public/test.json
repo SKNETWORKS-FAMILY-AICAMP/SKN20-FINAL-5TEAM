@@ -4,13 +4,13 @@
 "title": "Instagram Home Feed (혼합 타임라인)",
 "requirements": "팔로잉+추천 피드, 초고읽기(R>>W), p95 200ms(캐시), 유명인 fan-out 폭탄, 차단/삭제 즉시 반영, CDN 필수.",
 "key_components": [
-{ "name": "API Gateway + Auth", "type": "entry" },
-{ "name": "Feed Service + Redis", "type": "cache" },
-{ "name": "Event Bus + Fanout Workers", "type": "message_queue" },
-{ "name": "Feed/Graph Store (NoSQL)", "type": "db" },
-{ "name": "Object Storage + CDN", "type": "storage" }
+{ "name": "API Gateway + Auth", "type": "gateway" },
+{ "name": "Feed Service + Cache", "type": "cache" },
+{ "name": "Event Bus + Fanout Workers", "type": "broker" },
+{ "name": "Feed/Graph Store (NoSQL)", "type": "nosql" },
+{ "name": "Object Storage", "type": "storage" }
 ],
-"reference_mermaid": "graph LR\nU[User]-->G[API/Auth]\nG-->F[Feed Read]\nF-->R[Redis]\nG-->P[Post Write]\nP-->Q[(Event Bus)]\nQ-->W[Fanout]\nW-->DB[(Feed Store)]\nF-->CDN[CDN]\nCDN-->S3[(Media)]",
+"reference_mermaid": "graph LR\nU[User]-->G[API/Auth]\nG-->F[Feed Read]\nF-->R[Cache]\nG-->P[Post Write]\nP-->Q[(Event Bus)]\nQ-->W[Fanout]\nW-->DB[(Feed Store)]\nF-->S3[(Media)]",
 "reference_concept": {
 "fanout": "Hybrid(push for normal / pull for celebrity)",
 "privacy": "Block/Delete fail-closed + cache invalidation",
@@ -23,7 +23,7 @@
 ],
 "evaluation_rubric": {
 "system_architecture": [
-{ "metric": "구조적 완성도", "description": "Write(Post->Event->Fanout)와 Read(Feed->Rank->CDN) 경로 분리 + Privacy 경로 포함" },
+{ "metric": "구조적 완성도", "description": "Write(Post->Event->Fanout)와 Read(Feed->Rank->Storage) 경로 분리 + Privacy 경로 포함" },
 { "metric": "확장성", "description": "유명인/핫키 대응(하이브리드 fanout, 샤딩키, 백프레셔)" },
 { "metric": "가용성/복원력", "description": "큐/캐시 장애 시 fallback(최근순), 재처리 멱등성, Privacy 안전우선" }
 ],
@@ -39,13 +39,13 @@
 "title": "YouTube VOD 업로드/스트리밍",
 "requirements": "대용량 업로드(GB), ABR(HLS/DASH), TTFB p95 300ms(에지), 트랜스코딩 파이프라인, 권리/지역 제한.",
 "key_components": [
-{ "name": "Upload API (Resumable)", "type": "entry" },
+{ "name": "Upload API (Resumable)", "type": "gateway" },
 { "name": "Object Storage (Origin)", "type": "storage" },
-{ "name": "Transcode Queue + Workers", "type": "message_queue" },
-{ "name": "Playback API + Token", "type": "compute" },
-{ "name": "CDN/Edge", "type": "cache" }
+{ "name": "Transcode Queue + Workers", "type": "broker" },
+{ "name": "Playback API + Token", "type": "server" },
+{ "name": "Edge Cache", "type": "cache" }
 ],
-"reference_mermaid": "graph LR\nC[Creator]-->U[Upload API]\nU-->S3[(Origin)]\nU-->Q[(Transcode Q)]\nQ-->W[Workers]\nW-->S3\nV[Viewer]-->P[Playback API]\nP-->CDN[CDN]\nCDN-->S3",
+"reference_mermaid": "graph LR\nC[Creator]-->U[Upload API]\nU-->S3[(Origin)]\nU-->Q[(Transcode Q)]\nQ-->W[Workers]\nW-->S3\nV[Viewer]-->P[Playback API]\nP-->Cache[Edge Cache]\nCache-->S3",
 "reference_concept": {
 "upload": "Resumable chunk + idempotency(sessionId, offset, hash)",
 "transcode": "Low-res first -> progressively add renditions",
@@ -54,13 +54,13 @@
 "question_topics": [
 { "topic": "Resumable 업로드", "keywords": ["Chunk", "Offset", "Idempotency"] },
 { "topic": "ABR", "keywords": ["HLS", "DASH", "Manifest", "Segments"] },
-{ "topic": "CDN/Origin 보호", "keywords": ["Shielding", "TTL", "Rate limit"] }
+{ "topic": "Origin 보호", "keywords": ["Shielding", "TTL", "Rate limit"] }
 ],
 "evaluation_rubric": {
 "system_architecture": [
-{ "metric": "구조적 완성도", "description": "Upload->Origin->Transcode->Manifest/Segments->CDN 재생 흐름 명확" },
+{ "metric": "구조적 완성도", "description": "Upload->Origin->Transcode->Manifest/Segments->Edge 재생 흐름 명확" },
 { "metric": "확장성", "description": "트랜스코드 워커 수평확장, 세그먼트/매니페스트 폭증 대응" },
-{ "metric": "가용성/복원력", "description": "업로드 재개/중복방지, 큐 재처리, CDN 장애 시 degrade" }
+{ "metric": "가용성/복원력", "description": "업로드 재개/중복방지, 큐 재처리, Edge 장애 시 degrade" }
 ],
 "interview_score": [
 { "metric": "논리적 일관성", "description": "ABR 언급 시 HLS/DASH 산출 단계가 설계에 없으면 감점" },
@@ -74,10 +74,10 @@
 "title": "실시간 메시징 (1:1 + 그룹)",
 "requirements": "p95 150ms(온라인), 오프라인 store-and-forward, 멀티디바이스, 대화 단위 순서, 중복/재전송, 대형 그룹 fan-out.",
 "key_components": [
-{ "name": "Connection Gateway (WebSocket)", "type": "entry" },
-{ "name": "Message Router", "type": "compute" },
-{ "name": "Message Log Store", "type": "db" },
-{ "name": "Fanout + Push(APNS/FCM)", "type": "message_queue" }
+{ "name": "Connection Gateway (WebSocket)", "type": "gateway" },
+{ "name": "Message Router", "type": "server" },
+{ "name": "Message Log Store", "type": "nosql" },
+{ "name": "Fanout + Push(APNS/FCM)", "type": "broker" }
 ],
 "reference_mermaid": "graph LR\nD[Device]-->GW[WS Gateway]\nGW-->R[Router]\nR-->L[(Log Store)]\nR-->F[Fanout]\nF-->GW\nF-->PN[Push]",
 "reference_concept": {
@@ -108,11 +108,11 @@
 "title": "라이드헤일링 실시간 배차",
 "requirements": "초당 대량 위치 업데이트, 매칭 p95 2초, ETA 실시간, Geo 인덱싱(GeoHash/H3), 이중매칭 방지, 결제 정합성.",
 "key_components": [
-{ "name": "Location Ingest", "type": "entry" },
-{ "name": "Geo Index (RedisGeo/H3)", "type": "cache" },
-{ "name": "Matching Service", "type": "compute" },
-{ "name": "Trip Service(State Machine)", "type": "compute" },
-{ "name": "Payment Ledger(RDB)", "type": "db" }
+{ "name": "Location Ingest", "type": "gateway" },
+{ "name": "Geo Index (Cache)", "type": "cache" },
+{ "name": "Matching Service", "type": "server" },
+{ "name": "Trip Service(State Machine)", "type": "server" },
+{ "name": "Payment Ledger(RDB)", "type": "rdbms" }
 ],
 "reference_mermaid": "graph LR\nA[App]-->L[Loc Ingest]\nL-->G[(Geo Index)]\nA-->M[Matching]\nM-->G\nM-->T[Trip FSM]\nT-->P[(Ledger)]",
 "reference_concept": {
@@ -132,7 +132,7 @@
 { "metric": "가용성/복원력", "description": "Geo/매칭 장애 시 degrade, lease 기반 중복 방지" }
 ],
 "interview_score": [
-{ "metric": "논리적 일관성", "description": "매칭 ‘정확’ 주장 시 lease/상태머신 없으면 감점" },
+{ "metric": "논리적 일관성", "description": "매칭 '정확' 주장 시 lease/상태머신 없으면 감점" },
 { "metric": "근거의 타당성", "description": "셀 크기/업데이트 주기/lease TTL을 수치로 방어" },
 { "metric": "전달력", "description": "필수 키워드: GeoHash/H3, Lease, State machine, Backpressure" }
 ]
@@ -143,13 +143,13 @@
 "title": "짧은 영상 추천 피드(Reels/TikTok)",
 "requirements": "스크롤 p95 150ms(프리페치), Recall+Rank, 실시간 피드백(완시율) 반영, 콜드스타트, 안전/정책 필터, AB 테스트.",
 "key_components": [
-{ "name": "Feed API", "type": "entry" },
-{ "name": "Candidate Generator(ANN)", "type": "compute" },
-{ "name": "Ranking + Feature Store", "type": "db" },
-{ "name": "Event Collector + Stream", "type": "message_queue" },
-{ "name": "CDN", "type": "cache" }
+{ "name": "Feed API", "type": "gateway" },
+{ "name": "Candidate Generator(ANN)", "type": "server" },
+{ "name": "Ranking + Feature Store", "type": "nosql" },
+{ "name": "Event Collector + Stream", "type": "broker" },
+{ "name": "Edge Cache", "type": "cache" }
 ],
-"reference_mermaid": "graph LR\nU[User]-->API[Feed API]\nAPI-->C[Recall/ANN]\nAPI-->R[Ranking]\nR-->FS[(Feature Store)]\nU-->E[Events]\nE-->Q[(Stream)]\nQ-->FS\nAPI-->CDN[CDN]",
+"reference_mermaid": "graph LR\nU[User]-->API[Feed API]\nAPI-->C[Recall/ANN]\nAPI-->R[Ranking]\nR-->FS[(Feature Store)]\nU-->E[Events]\nE-->Q[(Stream)]\nQ-->FS\nAPI-->Cache[Edge]",
 "reference_concept": {
 "ranking": "Recall->Rank 분리 + fallback(트렌딩/최근순)",
 "realtime": "짧은 윈도우 피처 + 노이즈 필터",
@@ -162,7 +162,7 @@
 ],
 "evaluation_rubric": {
 "system_architecture": [
-{ "metric": "구조적 완성도", "description": "이벤트 수집→피처→Recall/Rank→정책필터→CDN 흐름 포함" },
+{ "metric": "구조적 완성도", "description": "이벤트 수집→피처→Recall/Rank→정책필터→Edge 흐름 포함" },
 { "metric": "확장성", "description": "ANN/피처스토어 핫키/캐시, 프리페치로 지연 예산 관리" },
 { "metric": "가용성/복원력", "description": "모델/피처 장애 시 룰 기반 fallback, 안전 필터는 항상 적용" }
 ],
@@ -178,11 +178,11 @@
 "title": "Drive/Dropbox 파일 저장·공유·동기화",
 "requirements": "대용량 업/다운, 버전관리, 링크 공유/권한, 델타 동기화, 충돌 처리, 검색 인덱스, 감사 로그.",
 "key_components": [
-{ "name": "API Gateway + OAuth", "type": "entry" },
-{ "name": "Metadata DB(RDB)", "type": "db" },
+{ "name": "API Gateway + OAuth", "type": "gateway" },
+{ "name": "Metadata DB(RDB)", "type": "rdbms" },
 { "name": "Object Storage(Chunks)", "type": "storage" },
-{ "name": "ACL/Sharing Service", "type": "compute" },
-{ "name": "Delta Sync(Change Log)", "type": "message_queue" }
+{ "name": "ACL/Sharing Service", "type": "server" },
+{ "name": "Delta Sync(Change Log)", "type": "broker" }
 ],
 "reference_mermaid": "graph LR\nC[Client]-->G[API/OAuth]\nG-->M[(Metadata RDB)]\nG-->S3[(Object Store)]\nM-->ACL[ACL]\nM-->DL[Change Log]\nDL-->C",
 "reference_concept": {
@@ -214,10 +214,10 @@
 "requirements": "세일 피크 트래픽, 장바구니 p95 100ms, 주문/결제 멱등성, 재고 예약/차감, SAGA 보상, 중복 결제 방지.",
 "key_components": [
 { "name": "Cart Service(KV)", "type": "cache" },
-{ "name": "Order Service(FSM)", "type": "compute" },
-{ "name": "Inventory Reservation", "type": "compute" },
-{ "name": "Payment Service + Ledger(RDB)", "type": "db" },
-{ "name": "Event Bus", "type": "message_queue" }
+{ "name": "Order Service(FSM)", "type": "server" },
+{ "name": "Inventory Reservation", "type": "server" },
+{ "name": "Payment Service + Ledger(RDB)", "type": "rdbms" },
+{ "name": "Event Bus", "type": "eventbus" }
 ],
 "reference_mermaid": "graph LR\nU[User]-->G[API]\nG-->C[(Cart KV)]\nG-->O[Order FSM]\nO-->I[Inv Reserve]\nO-->P[(Payment/Ledger)]\nO-->Q[(Event Bus)]",
 "reference_concept": {
@@ -237,7 +237,7 @@
 { "metric": "가용성/복원력", "description": "타임아웃/재시도/중복 결제 방지, PENDING 상태 복구" }
 ],
 "interview_score": [
-{ "metric": "논리적 일관성", "description": "멱등성/예약 TTL 없이 ‘중복 없음’ 주장하면 감점" },
+{ "metric": "논리적 일관성", "description": "멱등성/예약 TTL 없이 '중복 없음' 주장하면 감점" },
 { "metric": "근거의 타당성", "description": "2PC 대신 SAGA 선택 이유(지연/가용성) 방어" },
 { "metric": "전달력", "description": "필수 키워드: Idempotency, Reservation, SAGA, Ledger, FSM" }
 ]
@@ -248,13 +248,13 @@
 "title": "실시간 검색 + 트렌딩(Twitter/X)",
 "requirements": "초당 대량 인입, near real-time 색인(1~5초), 트렌딩 분 단위, index lag 모니터링, 봇/스팸 필터, 지역/언어 파티션.",
 "key_components": [
-{ "name": "Ingest API", "type": "entry" },
-{ "name": "Kafka", "type": "message_queue" },
-{ "name": "Indexing Workers", "type": "compute" },
-{ "name": "Search Index(ES/Solr)", "type": "db" },
+{ "name": "Ingest API", "type": "gateway" },
+{ "name": "Message Broker", "type": "broker" },
+{ "name": "Indexing Workers", "type": "server" },
+{ "name": "Search Engine", "type": "search" },
 { "name": "Trends Aggregator + Cache", "type": "cache" }
 ],
-"reference_mermaid": "graph LR\nI[Ingest]-->K[(Kafka)]\nK-->W[Index Workers]\nW-->S[(Search Index)]\nK-->T[Trends]\nT-->C[(Trends Cache)]\nQ[Query]-->S\nQ-->C",
+"reference_mermaid": "graph LR\nI[Ingest]-->K[(Broker)]\nK-->W[Index Workers]\nW-->S[(Search Engine)]\nK-->T[Trends]\nT-->C[(Trends Cache)]\nQ[Query]-->S\nQ-->C",
 "reference_concept": {
 "nrt": "Index lag 구간별 측정 + 튜닝",
 "trends": "Window aggregation + anti-spam signals",
@@ -283,11 +283,11 @@
 "title": "화상회의(WebRTC SFU)",
 "requirements": "저지연(≈200ms), NAT 대응(STUN/TURN), 참가자 증가 확장(Simulcast/SVC), QoE(손실/지터) 기반 ABR, 장애 시 재연결.",
 "key_components": [
-{ "name": "Signaling Service", "type": "entry" },
-{ "name": "SFU Media Server", "type": "compute" },
-{ "name": "STUN/TURN", "type": "network" },
-{ "name": "QoS/ABR Controller", "type": "compute" },
-{ "name": "Recording Pipeline(옵션)", "type": "message_queue" }
+{ "name": "Signaling Service", "type": "gateway" },
+{ "name": "SFU Media Server", "type": "server" },
+{ "name": "STUN/TURN Service", "type": "server" },
+{ "name": "QoS/ABR Controller", "type": "server" },
+{ "name": "Recording Pipeline", "type": "broker" }
 ],
 "reference_mermaid": "graph LR\nC[Client]-->SIG[Signaling]\nC-->STUN[STUN]\nC-->TURN[TURN]\nC-->SFU[SFU]\nSFU-->Q[QoS/ABR]\nSFU-->REC[Recording]",
 "reference_concept": {
@@ -318,12 +318,12 @@
 "title": "RTB(Real-time Bidding) 광고 입찰",
 "requirements": "QPS 매우 큼, 응답 데드라인 50~100ms, 예산/빈도 제한, 모델 기반 입찰, 비동기 로깅/정산(레저), 개인정보 준수.",
 "key_components": [
-{ "name": "Bid Ingest/API", "type": "entry" },
-{ "name": "Bidding Engine (deadline-aware)", "type": "compute" },
+{ "name": "Bid Ingest/API", "type": "gateway" },
+{ "name": "Bidding Engine (deadline-aware)", "type": "server" },
 { "name": "Feature/Segment Cache", "type": "cache" },
-{ "name": "Model Serving(CTR/CVR)", "type": "compute" },
-{ "name": "Billing Ledger(RDB)", "type": "db" },
-{ "name": "Async Log Bus", "type": "message_queue" }
+{ "name": "Model Serving(CTR/CVR)", "type": "server" },
+{ "name": "Billing Ledger(RDB)", "type": "rdbms" },
+{ "name": "Async Log Bus", "type": "broker" }
 ],
 "reference_mermaid": "graph LR\nR[Bid Req]-->E[Bidding Engine]\nE-->C[(Feature Cache)]\nE-->M[Model]\nE-->B[Budget/Freq]\nE-->X[Resp]\nE-->K[(Log Bus)]\nK-->L[(Ledger)]",
 "reference_concept": {

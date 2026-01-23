@@ -5,76 +5,122 @@
     <div class="game-container">
       <div class="palette">
         <h2>⚡ Components</h2>
-        
-        <div class="component-group">
-          <h3>Client</h3>
-          <div 
-            class="component user" 
-            draggable="true" 
-            @dragstart="onDragStart($event, 'user', '👤 User')"
-          >
-            👤 User
-          </div>
-        </div>
 
+        <!-- 그룹 A. 진입 및 연산 (Compute & Entry) -->
         <div class="component-group">
-          <h3>Server</h3>
-          <div 
-            class="component api" 
-            draggable="true" 
-            @dragstart="onDragStart($event, 'api', '🔌 API Server')"
+          <h3>Compute & Entry</h3>
+          <div
+            class="component user"
+            draggable="true"
+            @dragstart="onDragStart($event, 'user', '👤 User/Client')"
           >
-            🔌 API Server
+            👤 User/Client
           </div>
-          <div 
-            class="component server" 
-            draggable="true" 
-            @dragstart="onDragStart($event, 'server', '🖥️ Web Server')"
-          >
-            🖥️ Web Server
-          </div>
-          <div 
-            class="component loadbalancer" 
-            draggable="true" 
+          <div
+            class="component loadbalancer"
+            draggable="true"
             @dragstart="onDragStart($event, 'loadbalancer', '⚖️ Load Balancer')"
           >
             ⚖️ Load Balancer
           </div>
-        </div>
-
-        <div class="component-group">
-          <h3>Data</h3>
-          <div 
-            class="component db" 
-            draggable="true" 
-            @dragstart="onDragStart($event, 'db', '💾 Database')"
+          <div
+            class="component gateway"
+            draggable="true"
+            @dragstart="onDragStart($event, 'gateway', '🚪 API Gateway')"
           >
-            💾 Database
+            🚪 API Gateway
           </div>
-          <div 
-            class="component cache" 
-            draggable="true" 
-            @dragstart="onDragStart($event, 'cache', '⚡ Cache')"
+          <div
+            class="component server"
+            draggable="true"
+            @dragstart="onDragStart($event, 'server', '🖥️ Compute Service')"
           >
-            ⚡ Cache
+            🖥️ Compute Service
           </div>
         </div>
 
+        <!-- 그룹 B. 저장소 및 검색 (Storage & Search) -->
         <div class="component-group">
-          <h3>Infrastructure</h3>
-          <div 
-            class="component queue" 
-            draggable="true" 
-            @dragstart="onDragStart($event, 'queue', '📬 Message Queue')"
+          <h3>Storage & Search</h3>
+          <div
+            class="component rdbms"
+            draggable="true"
+            @dragstart="onDragStart($event, 'rdbms', '🗃️ Relational DB')"
           >
-            📬 Message Queue
+            🗃️ Relational DB
           </div>
-          <div 
-            class="component cdn" 
-            draggable="true" 
-            @dragstart="onDragStart($event, 'cdn', '🌐 CDN')"
+          <div
+            class="component nosql"
+            draggable="true"
+            @dragstart="onDragStart($event, 'nosql', '📊 NoSQL DB')"
           >
-            🌐 CDN
+            📊 NoSQL DB
+          </div>
+          <div
+            class="component cache"
+            draggable="true"
+            @dragstart="onDragStart($event, 'cache', '⚡ In-Memory Cache')"
+          >
+            ⚡ In-Memory Cache
+          </div>
+          <div
+            class="component search"
+            draggable="true"
+            @dragstart="onDragStart($event, 'search', '🔍 Search Engine')"
+          >
+            🔍 Search Engine
+          </div>
+          <div
+            class="component storage"
+            draggable="true"
+            @dragstart="onDragStart($event, 'storage', '📦 Object Storage')"
+          >
+            📦 Object Storage
+          </div>
+        </div>
+
+        <!-- 그룹 C. 메시징 및 비동기 (Messaging) -->
+        <div class="component-group">
+          <h3>Messaging</h3>
+          <div
+            class="component broker"
+            draggable="true"
+            @dragstart="onDragStart($event, 'broker', '📬 Message Broker')"
+          >
+            📬 Message Broker
+          </div>
+          <div
+            class="component eventbus"
+            draggable="true"
+            @dragstart="onDragStart($event, 'eventbus', '📡 Event Bus')"
+          >
+            📡 Event Bus
+          </div>
+        </div>
+
+        <!-- 그룹 D. 운영 및 관제 (Observability) -->
+        <div class="component-group">
+          <h3>Observability</h3>
+          <div
+            class="component monitoring"
+            draggable="true"
+            @dragstart="onDragStart($event, 'monitoring', '📈 Monitoring')"
+          >
+            📈 Monitoring
+          </div>
+          <div
+            class="component logging"
+            draggable="true"
+            @dragstart="onDragStart($event, 'logging', '📋 Logging')"
+          >
+            📋 Logging
+          </div>
+          <div
+            class="component cicd"
+            draggable="true"
+            @dragstart="onDragStart($event, 'cicd', '🔄 CI/CD')"
+          >
+            🔄 CI/CD
           </div>
         </div>
       </div>
@@ -517,14 +563,35 @@ export default {
 
         // Map key_components types to expected component types
         const componentTypeMap = {
-          'entry': 'loadbalancer',
-          'storage': 'db',
-          'db': 'db',
-          'cache': 'cache',
-          'message_queue': 'queue',
-          'network': 'cdn',
+          // Compute & Entry
+          'entry': 'gateway',
           'compute': 'server',
-          'external': 'api'
+          'server': 'server',
+          'gateway': 'gateway',
+          'loadbalancer': 'loadbalancer',
+          // Storage & Search
+          'storage': 'storage',
+          'db': 'rdbms',
+          'rdbms': 'rdbms',
+          'nosql': 'nosql',
+          'cache': 'cache',
+          'redis': 'cache',
+          'search': 'search',
+          's3': 'storage',
+          // Messaging
+          'message_queue': 'broker',
+          'kafka': 'broker',
+          'broker': 'broker',
+          'eventbus': 'eventbus',
+          'pubsub': 'eventbus',
+          // Observability
+          'monitoring': 'monitoring',
+          'logging': 'logging',
+          'cicd': 'cicd',
+          // Legacy mappings
+          'network': 'monitoring',
+          'cdn': 'storage',
+          'external': 'gateway'
         };
         const expectedComponents = item.key_components.map(comp =>
           componentTypeMap[comp.type] || comp.type
@@ -749,16 +816,28 @@ export default {
     shouldAskDeepDive(fromType, toType) {
       // Important connection combinations
       const importantConnections = [
-        ['api', 'db'],
-        ['api', 'cache'],
-        ['loadbalancer', 'api'],
-        ['loadbalancer', 'server'],
-        ['server', 'queue'],
-        ['server', 'db'],
+        // Compute & Entry flows
         ['user', 'loadbalancer'],
-        ['user', 'cdn'],
-        ['cache', 'db'],
-        ['queue', 'server'],
+        ['user', 'gateway'],
+        ['loadbalancer', 'gateway'],
+        ['loadbalancer', 'server'],
+        ['gateway', 'server'],
+        // Server to Storage connections
+        ['server', 'rdbms'],
+        ['server', 'nosql'],
+        ['server', 'cache'],
+        ['server', 'storage'],
+        ['server', 'search'],
+        ['cache', 'rdbms'],
+        ['cache', 'nosql'],
+        // Messaging connections
+        ['server', 'broker'],
+        ['broker', 'server'],
+        ['server', 'eventbus'],
+        ['eventbus', 'server'],
+        // Observability connections
+        ['server', 'monitoring'],
+        ['server', 'logging'],
       ];
 
       // Check if already questioned (bidirectional check)
@@ -893,14 +972,24 @@ export default {
 
       code += '\n';
       const styleMap = {
+        // Compute & Entry
         'user': 'fill:#ff4785,stroke:#ff1744,stroke-width:3px,color:#fff',
-        'api': 'fill:#64b5f6,stroke:#2196f3,stroke-width:3px,color:#fff',
-        'db': 'fill:#00ff9d,stroke:#00e676,stroke-width:3px,color:#0a0e27',
-        'cache': 'fill:#ffc107,stroke:#ffa000,stroke-width:3px,color:#0a0e27',
-        'server': 'fill:#ab47bc,stroke:#8e24aa,stroke-width:3px,color:#fff',
-        'queue': 'fill:#ff8a65,stroke:#ff5722,stroke-width:3px,color:#fff',
         'loadbalancer': 'fill:#26c6da,stroke:#00acc1,stroke-width:3px,color:#0a0e27',
-        'cdn': 'fill:#66bb6a,stroke:#43a047,stroke-width:3px,color:#fff'
+        'gateway': 'fill:#64b5f6,stroke:#2196f3,stroke-width:3px,color:#fff',
+        'server': 'fill:#ab47bc,stroke:#8e24aa,stroke-width:3px,color:#fff',
+        // Storage & Search
+        'rdbms': 'fill:#00ff9d,stroke:#00e676,stroke-width:3px,color:#0a0e27',
+        'nosql': 'fill:#4db6ac,stroke:#26a69a,stroke-width:3px,color:#0a0e27',
+        'cache': 'fill:#ffc107,stroke:#ffa000,stroke-width:3px,color:#0a0e27',
+        'search': 'fill:#7c4dff,stroke:#651fff,stroke-width:3px,color:#fff',
+        'storage': 'fill:#ff7043,stroke:#f4511e,stroke-width:3px,color:#fff',
+        // Messaging
+        'broker': 'fill:#ff8a65,stroke:#ff5722,stroke-width:3px,color:#fff',
+        'eventbus': 'fill:#ba68c8,stroke:#ab47bc,stroke-width:3px,color:#fff',
+        // Observability
+        'monitoring': 'fill:#66bb6a,stroke:#43a047,stroke-width:3px,color:#fff',
+        'logging': 'fill:#78909c,stroke:#607d8b,stroke-width:3px,color:#fff',
+        'cicd': 'fill:#42a5f5,stroke:#1e88e5,stroke-width:3px,color:#fff'
       };
 
       this.droppedComponents.forEach(comp => {
@@ -1318,14 +1407,24 @@ ${chatContext}
   border-color: #00ff9d;
 }
 
+/* Compute & Entry */
 .component.user { border-color: rgba(255, 71, 133, 0.5); color: #ff4785; }
-.component.api { border-color: rgba(100, 181, 246, 0.5); color: #64b5f6; }
-.component.db { border-color: rgba(0, 255, 157, 0.5); color: #00ff9d; }
-.component.cache { border-color: rgba(255, 193, 7, 0.5); color: #ffc107; }
-.component.server { border-color: rgba(171, 71, 188, 0.5); color: #ab47bc; }
-.component.queue { border-color: rgba(255, 138, 101, 0.5); color: #ff8a65; }
 .component.loadbalancer { border-color: rgba(38, 198, 218, 0.5); color: #26c6da; }
-.component.cdn { border-color: rgba(102, 187, 106, 0.5); color: #66bb6a; }
+.component.gateway { border-color: rgba(100, 181, 246, 0.5); color: #64b5f6; }
+.component.server { border-color: rgba(171, 71, 188, 0.5); color: #ab47bc; }
+/* Storage & Search */
+.component.rdbms { border-color: rgba(0, 255, 157, 0.5); color: #00ff9d; }
+.component.nosql { border-color: rgba(77, 182, 172, 0.5); color: #4db6ac; }
+.component.cache { border-color: rgba(255, 193, 7, 0.5); color: #ffc107; }
+.component.search { border-color: rgba(124, 77, 255, 0.5); color: #7c4dff; }
+.component.storage { border-color: rgba(255, 112, 67, 0.5); color: #ff7043; }
+/* Messaging */
+.component.broker { border-color: rgba(255, 138, 101, 0.5); color: #ff8a65; }
+.component.eventbus { border-color: rgba(186, 104, 200, 0.5); color: #ba68c8; }
+/* Observability */
+.component.monitoring { border-color: rgba(102, 187, 106, 0.5); color: #66bb6a; }
+.component.logging { border-color: rgba(120, 144, 156, 0.5); color: #78909c; }
+.component.cicd { border-color: rgba(66, 165, 245, 0.5); color: #42a5f5; }
 
 /* Canvas */
 .canvas {
@@ -1442,14 +1541,24 @@ ${chatContext}
   50% { border-width: 5px; }
 }
 
+/* Compute & Entry */
 .dropped-component.user { background: rgba(255, 71, 133, 0.15); border-color: #ff4785; color: #ff4785; }
-.dropped-component.api { background: rgba(100, 181, 246, 0.15); border-color: #64b5f6; color: #64b5f6; }
-.dropped-component.db { background: rgba(0, 255, 157, 0.15); border-color: #00ff9d; color: #00ff9d; }
-.dropped-component.cache { background: rgba(255, 193, 7, 0.15); border-color: #ffc107; color: #ffc107; }
-.dropped-component.server { background: rgba(171, 71, 188, 0.15); border-color: #ab47bc; color: #ab47bc; }
-.dropped-component.queue { background: rgba(255, 138, 101, 0.15); border-color: #ff8a65; color: #ff8a65; }
 .dropped-component.loadbalancer { background: rgba(38, 198, 218, 0.15); border-color: #26c6da; color: #26c6da; }
-.dropped-component.cdn { background: rgba(102, 187, 106, 0.15); border-color: #66bb6a; color: #66bb6a; }
+.dropped-component.gateway { background: rgba(100, 181, 246, 0.15); border-color: #64b5f6; color: #64b5f6; }
+.dropped-component.server { background: rgba(171, 71, 188, 0.15); border-color: #ab47bc; color: #ab47bc; }
+/* Storage & Search */
+.dropped-component.rdbms { background: rgba(0, 255, 157, 0.15); border-color: #00ff9d; color: #00ff9d; }
+.dropped-component.nosql { background: rgba(77, 182, 172, 0.15); border-color: #4db6ac; color: #4db6ac; }
+.dropped-component.cache { background: rgba(255, 193, 7, 0.15); border-color: #ffc107; color: #ffc107; }
+.dropped-component.search { background: rgba(124, 77, 255, 0.15); border-color: #7c4dff; color: #7c4dff; }
+.dropped-component.storage { background: rgba(255, 112, 67, 0.15); border-color: #ff7043; color: #ff7043; }
+/* Messaging */
+.dropped-component.broker { background: rgba(255, 138, 101, 0.15); border-color: #ff8a65; color: #ff8a65; }
+.dropped-component.eventbus { background: rgba(186, 104, 200, 0.15); border-color: #ba68c8; color: #ba68c8; }
+/* Observability */
+.dropped-component.monitoring { background: rgba(102, 187, 106, 0.15); border-color: #66bb6a; color: #66bb6a; }
+.dropped-component.logging { background: rgba(120, 144, 156, 0.15); border-color: #78909c; color: #78909c; }
+.dropped-component.cicd { background: rgba(66, 165, 245, 0.15); border-color: #42a5f5; color: #42a5f5; }
 
 /* Connections */
 .connection-line {
