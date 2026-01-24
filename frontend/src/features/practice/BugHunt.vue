@@ -374,12 +374,13 @@
             </div>
           </div>
 
-          <div class="editor-body">
+          <div class="editor-body" ref="editorBodyRef">
             <!-- 전체 코드를 3개 섹션으로 표시 -->
             <div class="code-sections">
               <div
                 v-for="step in 3"
                 :key="'section-' + step"
+                ref="sectionRefs"
                 class="code-section"
                 :class="{
                   locked: Number(step) > Number(currentProgressiveStep) && !progressiveCompletedSteps.includes(Number(step)),
@@ -429,19 +430,6 @@
                   </div>
                   <pre class="section-code readonly game-code">{{ progressiveStepCodes[Number(step)] || 'Code not found' }}</pre>
                 </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="terminal-section">
-            <div class="terminal-header">
-              <span>DIAGNOSTIC TERMINAL</span>
-              <span class="terminal-status" :class="terminalStatus">{{ terminalStatus.toUpperCase() }}</span>
-            </div>
-            <div class="terminal-body">
-              <div v-for="(line, idx) in terminalOutput" :key="idx" class="terminal-line" :class="line.type">
-                <span class="prompt">{{ line.prompt }}</span>
-                <span class="text">{{ line.text }}</span>
               </div>
             </div>
           </div>
@@ -511,6 +499,46 @@
             </div>
           </div>
 
+          <!-- AI 총평 섹션 -->
+          <div class="ai-report-section neon-border">
+            <div class="report-section-title">
+              <span class="ai-icon">🤖</span>
+              AI 전문 기술 평가
+            </div>
+            
+            <div v-if="isEvaluatingAI" class="ai-loading">
+              <div class="pulse-loader"></div>
+              <p>시니어 개발자 AI가 당신의 해결 전략을 분석 중입니다...</p>
+            </div>
+            
+            <div v-else-if="aiEvaluationResult" class="ai-result">
+              <div class="ai-score-row">
+                <div class="ai-overall-score">
+                  <span class="score-label">기술 이해도 점수</span>
+                  <span class="score-value">{{ aiEvaluationResult.overallScore }}</span>
+                </div>
+                <div class="ai-summary">
+                  <p>{{ aiEvaluationResult.summary }}</p>
+                </div>
+              </div>
+              
+              <div class="pros-cons-grid">
+                <div class="pros-box">
+                  <div class="box-label">✨ STRENGTHS</div>
+                  <ul>
+                    <li v-for="(pro, idx) in aiEvaluationResult.strengths" :key="idx">{{ pro }}</li>
+                  </ul>
+                </div>
+                <div class="cons-box">
+                  <div class="box-label">🚩 AREAS TO IMPROVE</div>
+                  <ul>
+                    <li v-for="(con, idx) in aiEvaluationResult.weaknesses" :key="idx">{{ con }}</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="explanations-list">
             <div class="list-title">📋 DEBBUGING LOG & STRATEGY</div>
             <div 
@@ -556,6 +584,7 @@
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import progressiveData from './progressive-problems.json';
+import { evaluateBugHunt } from './services/bugHuntApi';
 
 const route = useRoute();
 const router = useRouter();
@@ -723,6 +752,10 @@ const evaluationStats = reactive({
   perfectClears: 0,
 });
 
+// AI 평가 상태
+const isEvaluatingAI = ref(false);
+const aiEvaluationResult = ref(null);
+
 // Progressive UI 이펙트
 const showStepComplete = ref(false);
 const showMissionComplete = ref(false);
@@ -881,9 +914,25 @@ function moveToNextStep() {
 }
 
 // 평가 화면 보기
-function showEvaluation() {
+async function showEvaluation() {
   showMissionComplete.value = false;
   currentView.value = 'evaluation';
+  
+  // AI 평가 시작
+  if (currentProgressiveMission.value) {
+    isEvaluatingAI.value = true;
+    try {
+      aiEvaluationResult.value = await evaluateBugHunt(
+        currentProgressiveMission.value.project_title,
+        currentProgressiveMission.value.steps,
+        stepExplanations
+      );
+    } catch (error) {
+      console.error('AI Evaluation failed:', error);
+    } finally {
+      isEvaluatingAI.value = false;
+    }
+  }
 }
 
 // 시간 포맷팅
@@ -1058,6 +1107,18 @@ function finishProgressiveMission() {
 
 // 에디터 프레임 참조
 const editorFrameRef = ref(null);
+const editorBodyRef = ref(null);
+const sectionRefs = ref([]);
+
+// 스텝 변경 시 자동 스크롤
+watch(currentProgressiveStep, (newStep) => {
+  setTimeout(() => {
+    const el = sectionRefs.value[newStep - 1];
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, 100);
+});
 
 // 버그 위치 상태
 const bugPositions = reactive({
@@ -2023,7 +2084,8 @@ onUnmounted(() => {
 .code-sections {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 60px;
+  padding: 40px 0;
 }
 
 .code-section {
@@ -2123,11 +2185,11 @@ onUnmounted(() => {
 }
 
 .blurred-code {
-  filter: blur(4px);
-  opacity: 0.5;
+  filter: blur(6px);
+  opacity: 0.4;
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: 16px;
+  line-height: 1.8;
   color: #718096;
   margin: 0;
   white-space: pre-wrap;
@@ -2136,7 +2198,7 @@ onUnmounted(() => {
 /* 코드 에디터 래퍼 */
 .code-editor-wrapper {
   display: flex;
-  min-height: 200px;
+  min-height: 350px;
 }
 
 .completed-wrapper {
@@ -2153,8 +2215,8 @@ onUnmounted(() => {
 
 .line-num {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: 16px;
+  line-height: 1.8;
   color: #4b5563;
   padding-right: 10px;
 }
@@ -2162,9 +2224,9 @@ onUnmounted(() => {
 /* 게임 스타일 코드 */
 .game-code {
   font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
-  font-size: 14px;
-  line-height: 1.6;
-  letter-spacing: 0.5px;
+  font-size: 18px;
+  line-height: 1.8;
+  letter-spacing: 0.8px;
 }
 
 .section-code.editable {
@@ -2367,57 +2429,7 @@ onUnmounted(() => {
   to { transform: scale(0.5) translateY(-20px); opacity: 0; }
 }
 
-/* 터미널 */
-.terminal-section {
-  height: 150px;
-  background: #000;
-  border-top: 2px solid var(--border-color);
-}
-
-.terminal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 20px;
-  background: #1a202c;
-  font-size: 0.8rem;
-  color: #718096;
-  letter-spacing: 1px;
-}
-
-.terminal-status {
-  padding: 2px 8px;
-  border-radius: 3px;
-  font-size: 0.75rem;
-}
-
-.terminal-status.ready { background: #2d3748; color: #a0aec0; }
-.terminal-status.running { background: var(--neon-cyan); color: #000; }
-.terminal-status.success { background: var(--neon-green); color: #000; }
-.terminal-status.error { background: var(--neon-red); color: #fff; }
-
-.terminal-body {
-  padding: 15px 20px;
-  height: calc(100% - 35px);
-  overflow-y: auto;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
-}
-
-.terminal-line {
-  margin-bottom: 5px;
-}
-
-.terminal-line .prompt {
-  color: var(--neon-cyan);
-  margin-right: 10px;
-}
-
-.terminal-line.info .text { color: #a0aec0; }
-.terminal-line.success .text { color: var(--neon-green); }
-.terminal-line.error .text { color: var(--neon-red); }
-.terminal-line.warning .text { color: var(--neon-yellow); }
-.terminal-line.command .text { color: #fff; }
+/* Terminal styles removed */
 
 /* 힌트 패널 */
 .hint-overlay {
@@ -2430,31 +2442,60 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: 500;
 }
 
 .hint-panel {
   background: var(--panel-bg);
-  border: 2px solid var(--neon-yellow);
-  border-radius: 12px;
-  max-width: 500px;
-  width: 90%;
+  border: 4px solid var(--neon-yellow);
+  border-radius: 20px;
+  max-width: 600px;
+  width: 95%;
+  height: 40vh;
+  min-height: 300px;
+  max-height: 50vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0 50px rgba(255, 255, 0, 0.3), inset 0 0 20px rgba(255, 255, 0, 0.1);
+  animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modalPop {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }
 
 .hint-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 15px 20px;
-  border-bottom: 1px solid var(--border-color);
+  justify-content: space-between;
+  padding: 20px 30px;
+  border-bottom: 2px solid var(--border-color);
   font-family: 'Orbitron', monospace;
   color: var(--neon-yellow);
 }
 
+.hint-header span:not(.close-btn) {
+  font-size: 1.2rem;
+  letter-spacing: 2px;
+  text-shadow: 0 0 10px var(--neon-yellow);
+}
+
 .hint-content {
-  padding: 25px;
-  line-height: 1.7;
-  color: #e0e0e0;
+  padding: 35px 40px;
+  line-height: 1.8;
+  color: #f0f0f0;
+  overflow-y: auto;
+  font-size: 1.15rem;
+}
+
+.hint-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.hint-content::-webkit-scrollbar-thumb {
+  background: var(--neon-yellow);
+  border-radius: 3px;
 }
 
 /* 스텝 완료 이펙트 */
@@ -3274,6 +3315,123 @@ onUnmounted(() => {
   filter: drop-shadow(0 0 25px var(--neon-red));
   transform: scale(1.3);
 }
+
+/* AI 리포트 섹션 */
+.ai-report-section {
+  background: rgba(0, 243, 255, 0.03);
+  padding: 30px;
+  border-radius: 16px;
+  margin-bottom: 40px;
+  position: relative;
+  overflow: hidden;
+}
+
+.report-section-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 1.1rem;
+  color: var(--neon-cyan);
+  margin-bottom: 25px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ai-loading {
+  text-align: center;
+  padding: 40px 0;
+}
+
+.pulse-loader {
+  width: 40px;
+  height: 40px;
+  background: var(--neon-cyan);
+  border-radius: 50%;
+  margin: 0 auto 20px;
+  animation: pulse 1.5s ease-in-out infinite;
+  box-shadow: 0 0 20px var(--neon-cyan);
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.8); opacity: 0.5; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(0.8); opacity: 0.5; }
+}
+
+.ai-score-row {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 30px;
+  margin-bottom: 30px;
+  align-items: center;
+}
+
+.ai-overall-score {
+  text-align: center;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  padding-right: 30px;
+}
+
+.ai-overall-score .score-label {
+  display: block;
+  font-size: 0.75rem;
+  color: #718096;
+  margin-bottom: 10px;
+}
+
+.ai-overall-score .score-value {
+  font-family: 'Orbitron', monospace;
+  font-size: 3rem;
+  color: var(--neon-cyan);
+  text-shadow: 0 0 15px var(--neon-cyan);
+}
+
+.ai-summary p {
+  line-height: 1.7;
+  color: #e0e0e0;
+  font-size: 1.05rem;
+}
+
+.pros-cons-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.pros-box, .cons-box {
+  padding: 20px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.pros-box { border-left: 4px solid var(--neon-green); }
+.cons-box { border-left: 4px solid var(--neon-red); }
+
+.box-label {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.8rem;
+  margin-bottom: 15px;
+}
+
+.pros-box .box-label { color: var(--neon-green); }
+.cons-box .box-label { color: var(--neon-red); }
+
+.pros-cons-grid ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.pros-cons-grid li {
+  font-size: 0.95rem;
+  color: #a0aec0;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pros-box li::before { content: '✓'; color: var(--neon-green); }
+.cons-box li::before { content: '•'; color: var(--neon-red); }
 
 @keyframes slideUp {
   from { transform: translateY(20px); opacity: 0; }
