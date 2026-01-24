@@ -95,7 +95,9 @@
               <!-- Decorative Locked Nodes -->
               <div v-for="i in displayLabelsCount" :key="'extra-' + i" class="node-platform-v3 locked"
                 :class="'node-' + (displayProblems.length + i - 1)">
+                <div class="platform-glow-v3" v-if="(displayProblems.length + i - 1) === currentMaxIdx"></div>
                 <div class="platform-circle-v3">
+                  <img v-if="(displayProblems.length + i - 1) === currentMaxIdx" src="/image/unit_duck.png" class="duck-on-node-v3">
                   <i data-lucide="lock" class="lock-icon-v3"></i>
                 </div>
               </div>
@@ -382,6 +384,10 @@ import LogicMirror from './features/practice/support/unit1/logic-mirror/LogicMir
 import LandingView from './features/home/LandingView.vue';
 import { gameData } from './features/practice/support/unit1/logic-mirror/data/stages.js';
 
+import progressiveData from './features/practice/progressive-problems.json';
+
+const progressiveProblems = progressiveData.progressiveProblems;
+
 export default {
     components: {
         NoticeModal,
@@ -403,7 +409,7 @@ export default {
                 { id: 5, username: 'OpsWizard', solved: 30, shakes: 1400 }
             ],
             isAgentModalOpen: false,
-            isReportModalOpen: false, 
+            isReportModalOpen: false,
             activeProblem: null,
             editedPrompt: '',
             submissionResult: null,
@@ -453,11 +459,11 @@ export default {
                 'Agent Practice': 'bot',
                 'Pseudo Practice': 'gamepad-2'
              };
-             
+
              // Simulating fetch
              this.chapters = [
                                   { id: 1, name: 'Pseudo Practice', unitTitle: 'Algorithm 101', description: 'Strength Training', problems: [], image: '/image/unit_code.png' },
-                 { id: 2, name: 'Debug Practice', description: 'Precision Training', problems: [{id: 2, title: 'Fix the Bug'}], image: '/image/unit_debug.png' },
+                 { id: 2, name: 'Debug Practice', description: 'Precision Training', problems: [], image: '/image/unit_debug.png' },
                  { id: 3, name: 'System Practice', description: 'Strategy Training', problems: [{id: 3, title: 'Design System'}], image: '/image/unit_system.png' },
                  { id: 4, name: 'Ops Practice', description: 'Endurance Training', problems: [{id: 4, title: 'Server Down!'}], image: '/image/unit_ops.png' },
                  { id: 5, name: 'Agent Practice', description: 'AI Training', problems: [{id: 5, title: 'Prompt Eng'}], image: '/image/unit_agent.png' },
@@ -470,24 +476,48 @@ export default {
              // [2026-01-24] Code Practice 챕터에 stages.js의 10개 퀘스트를 개별 문제로 매핑
                           const pseudoPracticeIdx = this.chapters.findIndex(c => c.name === 'Pseudo Practice');
                           if (pseudoPracticeIdx !== -1 && gameData.quests) {
-                 this.chapters[pseudoPracticeIdx].problems = gameData.quests.map((q, idx) => ({
-                     id: q.id,
-                     title: q.title,
-                     questIndex: idx,
-                     displayNum: `1-${idx + 1}`
-                 }));
-             }
+                  this.chapters[pseudoPracticeIdx].problems = gameData.quests.map((q, idx) => ({
+                      id: q.id,
+                      title: q.title,
+                      questIndex: idx,
+                      displayNum: `1-${idx + 1}`
+                  }));
+              }
 
              this.$nextTick(() => {
                  if (window.lucide) window.lucide.createIcons();
              });
+        },
+        // [2026-01-24] Bug Hunt 전용 진행도 동기화 로직 추가 (미션 단위)
+        syncDebugProgress() {
+            try {
+                const data = localStorage.getItem('bugHuntGameData');
+                if (data) {
+                    const parsed = JSON.parse(data);
+                    const completed = parsed.completedProblems || [];
+                    const progress = [0]; // Mission 1은 기본 해금
+                    
+                    progressiveProblems.forEach((m, idx) => {
+                        // 미션 m의 마지막 단계(step 3)가 완료되었는지 확인
+                        const missionCompleted = completed.includes(`progressive_${m.id}_step3`);
+                        if (missionCompleted) {
+                            // 다음 미션(idx + 1)을 해금 목록에 추가
+                            progress.push(idx + 1);
+                        }
+                    });
+                    
+                    this.unitProgress['Debug Practice'] = Array.from(new Set(progress)).sort((a, b) => a - b);
+                }
+            } catch (e) {
+                console.warn('Failed to sync debug progress:', e);
+            }
         },
         closeNotice() {
             this.isNoticeOpen = false;
         },
         labelsCount(unit) {
             const currentCount = unit?.problems?.length || 0;
-            return Math.max(0, 6 - currentCount);
+            return Math.max(0, 10 - currentCount);
         },
         openUnitPopup(unit) {
             if (!this.isLoggedIn) {
@@ -495,8 +525,9 @@ export default {
                 return;
             }
             this.activeUnit = unit;
-            // Debug Practice일 경우 기본 모드를 Bug Hunt로 설정
+            // Debug Practice일 경우 진행도 동기화
             if (unit?.name === 'Debug Practice') {
+                this.syncDebugProgress();
                 this.currentDebugMode = 'bug-hunt';
             }
             this.isUnitModalOpen = true;
@@ -509,17 +540,19 @@ export default {
             this.activeProblem = problem;
             this.activeChapter = chapter;
 
-            // [수정일: 2026-01-23] Practice 페이지들은 라우터로 이동
             console.log('selectProblem:', chapter?.name);
-                        if (chapter?.name === 'Pseudo Practice') {
+            if (chapter?.name === 'Pseudo Practice') {
                 this.selectedQuestIndex = problem.questIndex || 0;
                 this.isLogicMirrorOpen = true;
             } else if (chapter?.name === 'System Practice') {
                 this.$router.push('/practice/system-architecture');
             } else if (chapter?.name === 'Debug Practice') {
-                // currentDebugMode에 따라 다른 라우트로 이동
                 if (this.currentDebugMode === 'bug-hunt') {
-                    this.$router.push('/practice/bug-hunt');
+                    // 미션 클릭 시 해당 미션 시작 (BugHunt.vue에서 현재 스텝 자동 판단)
+                    this.$router.push({
+                        path: '/practice/bug-hunt',
+                        query: { missionId: problem.missionId, mapMode: 'true' }
+                    });
                 } else if (this.currentDebugMode === 'vibe-cleanup') {
                     this.$router.push('/practice/vibe-cleanup');
                 }
@@ -529,7 +562,6 @@ export default {
                 this.isAgentModalOpen = true;
                 this.$nextTick(() => {
                     if (window.lucide) window.lucide.createIcons();
-                    // Chart init would go here
                 });
             } else {
                  this.isConstructionModalOpen = true;
@@ -613,7 +645,7 @@ export default {
             }
             // 다음 인덱스도 잠금 해제
             const nextIdx = index + 1;
-            if (nextIdx < 10 && !progress.includes(nextIdx)) {
+            if (nextIdx < gameData.quests.length && !progress.includes(nextIdx)) {
                 progress.push(nextIdx);
             }
         },
@@ -658,18 +690,31 @@ export default {
             return this.unitProgress[this.activeUnit.name] || [0];
         },
         currentMaxIdx() {
+            // 현재 진행 중인(가장 높은 해금된) 인덱스
             return Math.max(...this.currentUnitProgress);
+        },
+        // [2026-01-24] Bug Hunt의 미션들을 리스트로 생성 (노드당 1미션)
+        bugHuntProblems() {
+            return progressiveProblems.map((mission, idx) => ({
+                id: mission.id,
+                missionId: mission.id,
+                title: mission.project_title,
+                displayNum: `Mission ${idx + 1}`
+            }));
         },
         displayProblems() {
             if (this.activeUnit?.name === 'Debug Practice') {
-                const title = this.currentDebugMode === 'bug-hunt' ? 'Bug Hunt' : 'Vibe Code Clean Up';
-                return [{ id: this.currentDebugMode, title }];
+                if (this.currentDebugMode === 'bug-hunt') {
+                    return this.bugHuntProblems;
+                }
+                const title = 'Vibe Code Clean Up';
+                return [{ id: 'vibe-cleanup', title }];
             }
             return this.activeUnit?.problems || [];
         },
         displayLabelsCount() {
             const currentCount = this.displayProblems?.length || 0;
-            return Math.max(0, 6 - currentCount);
+            return Math.max(0, 10 - currentCount); // 전체 10개 노드 유지
         },
         unitBadge() { return this.activeChapter?.name || 'Practice'; },
         editorLabel() { return 'SYSTEM PROMPT EDITOR'; },
