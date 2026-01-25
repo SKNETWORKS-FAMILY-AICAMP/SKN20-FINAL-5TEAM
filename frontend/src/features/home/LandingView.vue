@@ -84,6 +84,7 @@
           <div class="slider-track" :style="trackStyle">
             <div v-for="(chapter, idx) in chapters" :key="chapter.id" 
                  class="gym-card-premium" 
+                 :style="{ '--unit-color': chapter.color }"
                  :class="[
                    'card-color-' + (idx % 5),
                    { 'active': idx === currentIdx, 
@@ -104,14 +105,26 @@
                   <div class="card-aura-premium"></div>
                 </div>
                 <div class="card-text-v2">
+                  <!-- [2026-01-25] 유닛 정보 영역: DB(PracticeUnit) 필드 연동 -->
                   <div class="unit-badge-row">
-                    <span class="unit-tag-v2">UNIT 0{{ idx + 1 }}</span>
-                    <span class="level-indicator">LV.{{ (idx + 1) * 10 }}</span>
+                    <!-- 1. 유닛 번호 표시 (최소 2자리 숫자로 포맷팅, 예: UNIT 01) -->
+                    <span class="unit-tag-v2">
+                      <component :is="chapter.icon" style="width: 14px; height: 14px; margin-right: 4px;" />
+                      UNIT {{ String(chapter.unit_number).padStart(2, '0') }}
+                    </span>
+                    <!-- 2. 권장 레벨 표시 (예: LV.10) -->
+                    <span class="level-indicator">LV.{{ chapter.level }}</span>
                   </div>
+                  <!-- 3. 유닛 제목 및 부제목(설명) 표시 -->
                   <h3>{{ chapter.name }}</h3>
                   <p>{{ chapter.description }}</p>
+                  
                   <div class="card-footer-v2">
-                    <span class="engineer-count"><Users style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 4px;" /> 80+ Training</span>
+                    <!-- 4. 참여 인원 데이터 표시 (예: 85+ Training) -->
+                    <span class="engineer-count">
+                      <Users style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 4px;" /> 
+                      {{ chapter.participant_count }}+ Training
+                    </span>
                     <button class="btn-enter-mini">START</button>
                   </div>
                 </div>
@@ -238,49 +251,37 @@ export default {
     };
   },
   computed: {
+    // 1. 이전 카드 인덱스 계산 (방어 로직 포함)
     getPrevIdx() {
+      if (!this.chapters || this.chapters.length === 0) return 0;
       return (this.currentIdx - 1 + this.chapters.length) % this.chapters.length;
     },
+    // 2. 다음 카드 인덱스 계산 (방어 로직 포함)
     getNextIdx() {
+      if (!this.chapters || this.chapters.length === 0) return 0;
       return (this.currentIdx + 1) % this.chapters.length;
     },
     trackStyle() {
-      // 슬라이더 트랙의 위치 조절 로직 (필요 시)
+      // 슬라이더 트랙 커스텀 스타일 (필요 시 확장)
       return {};
     }
   },
   methods: {
-    handleScroll() {
-      // 히어로 섹션 높이(100vh)를 기준으로 스크롤 여부 판단
-      this.isScrolled = window.scrollY > window.innerHeight * 0.5;
+    /**
+     * [아이콘 새로고침]
+     * - Lucide 라이브러리를 사용하여 DOM 내의 data-lucide 아이콘들을 렌더링합니다.
+     */
+    refreshIcons() {
+      this.$nextTick(() => {
+        if (window.lucide) {
+          window.lucide.createIcons();
+        }
+      });
     },
-    scrollToLeaderboard() {
-      document.getElementById('leaderboard')?.scrollIntoView({ behavior: 'smooth' });
-    },
-    /* [2026-01-24] 최상단(히어로 영역)으로 부드럽게 복귀하는 로직 구현 */
-    scrollToTop() {
-      const container = this.$refs.landingContainer;
-      if (container) {
-        container.scrollTo({
-          top: 0,
-          behavior: 'smooth'
-        });
-      }
-    },
-    nextSlide() {
-      this.currentIdx = (this.currentIdx + 1) % this.chapters.length;
-    },
-    prevSlide() {
-      this.currentIdx = (this.currentIdx - 1 + this.chapters.length) % this.chapters.length;
-    },
-    goToSlide(idx) {
-      this.currentIdx = idx;
-    },
-    isIndexVisible(idx) {
-      // 현재 인덱스 주변만 표시 (3D 효과를 위해)
-      const diff = Math.abs(idx - this.currentIdx);
-      return diff <= 1 || diff === this.chapters.length - 1;
-    },
+    /**
+     * [스크롤 이벤트 핸들러]
+     * - 일정 높이 이상 스크롤 시 상단 바의 디자인을 변경(isScrolled)합니다.
+     */
     handleScroll() {
       if (this.scrollTicking) return;
       this.scrollTicking = true;
@@ -295,20 +296,42 @@ export default {
     scrollToLeaderboard() {
       document.getElementById('leaderboard')?.scrollIntoView({ behavior: 'smooth' });
     },
+    /**
+     * [최상단 복귀]
+     * - 버튼 클릭 시 히어로 영역으로 부드럽게 스크롤합니다.
+     */
+    scrollToTop() {
+      const container = this.$refs.landingContainer;
+      if (container) {
+        container.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    },
     nextSlide() {
-      this.currentIdx = (this.currentIdx + 1) % this.chapters.length;
+      if (this.chapters.length > 0) {
+        this.currentIdx = (this.currentIdx + 1) % this.chapters.length;
+      }
     },
     prevSlide() {
-      this.currentIdx = (this.currentIdx - 1 + this.chapters.length) % this.chapters.length;
+      if (this.chapters.length > 0) {
+        this.currentIdx = (this.currentIdx - 1 + this.chapters.length) % this.chapters.length;
+      }
     },
     goToSlide(idx) {
       this.currentIdx = idx;
     },
+    /**
+     * [카드가 화면에 보이는지 여부]
+     * - 현재 인덱스와 인접한 카드만 보여주어 3D 넘김 효과를 구현합니다.
+     */
     isIndexVisible(idx) {
-      // 현재 인덱스 주변만 표시 (3D 효과를 위해)
+      if (!this.chapters || this.chapters.length === 0) return false;
       const diff = Math.abs(idx - this.currentIdx);
       return diff <= 1 || diff === this.chapters.length - 1;
     },
+    /**
+     * [카드 클릭 핸들러]
+     * - 이미 선택된 카드 클릭 시 상세 팝업을 열고, 아니면 해당 카드를 중앙으로 이동시킵니다.
+     */
     handleCardClick(chapter, idx) {
       if (idx === this.currentIdx) {
         this.$emit('open-unit', chapter);
@@ -946,11 +969,11 @@ export default {
   z-index: 10;
   pointer-events: auto;
   visibility: visible;
-  border-color: rgba(182, 255, 64, 0.5);
+  border-color: var(--unit-color, rgba(182, 255, 64, 0.5));
   background: rgba(255, 255, 255, 0.08);
   box-shadow: 
     0 30px 60px rgba(0, 0, 0, 0.6),
-    0 0 80px rgba(182, 255, 64, 0.15);
+    0 0 80px var(--unit-color, rgba(182, 255, 64, 0.15));
 }
 
 .gym-card-premium.prev {
@@ -1014,9 +1037,9 @@ export default {
 }
 
 .slider-pagination .dot.active {
-  background: #b6ff40;
+  background: var(--unit-color, #b6ff40);
   transform: scale(1.5);
-  box-shadow: 0 0 10px #b6ff40;
+  box-shadow: 0 0 10px var(--unit-color, #b6ff40);
 }
 
 @media (max-width: 768px) {

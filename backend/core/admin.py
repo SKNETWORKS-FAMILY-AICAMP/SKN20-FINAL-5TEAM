@@ -1,8 +1,8 @@
-# 수정일: 2026-01-22
-# 수정내용: Antigravity - 불필요한 모델 제거 및 현재 모델 구조에 맞춰 Admin 정리
+# 수정일: 2026-01-25
+# 수정내용: Antigravity - 모델 구조에 맞춰 관리자 화면 구성 최종 정리
 
 from django.contrib import admin
-from core.models import Common, UserProfile, UserDetail, Notice, DashboardLog, Practice
+from core.models import Common, UserProfile, UserDetail, DashboardLog, Practice, PracticeDetail
 
 # 1. Common (공통 코드) Admin
 @admin.register(Common)
@@ -16,7 +16,6 @@ class CommonAdmin(admin.ModelAdmin):
 class UserDetailInline(admin.StackedInline):
     model = UserDetail
     can_delete = False
-    verbose_name_plural = 'User Detail'
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
@@ -24,21 +23,26 @@ class UserProfileAdmin(admin.ModelAdmin):
     search_fields = ('id', 'user_name', 'email')
     inlines = (UserDetailInline,)
 
-# 3. Notice (공지사항) Admin
-@admin.register(Notice)
-class NoticeAdmin(admin.ModelAdmin):
-    list_display = ('id', 'title', 'open_date', 'create_date', 'use_yn')
-    search_fields = ('title', 'contents')
-    list_filter = ('use_yn',)
-
-# 4. Dashboard (통계) Admin
+# 3. Dashboard (통계) Admin
 @admin.register(DashboardLog)
 class DashboardLogAdmin(admin.ModelAdmin):
     list_display = ('id', 'event_name', 'event_count', 'create_date')
     search_fields = ('event_name',)
 
-# 5. Practice (연습) Admin
+# 5. Practice (연습 과정) Admin
 @admin.register(Practice)
 class PracticeAdmin(admin.ModelAdmin):
-    list_display = ('id', 'practice_name', 'practice_status', 'create_date', 'use_yn')
-    search_fields = ('practice_name', 'practice_number')
+    list_display = ('id', 'unit_number', 'title', 'level', 'participant_count', 'display_order', 'is_active')
+    list_filter = ('is_active', 'level')
+    search_fields = ('title', 'subtitle')
+    list_editable = ('display_order', 'is_active', 'participant_count')
+    ordering = ('display_order', 'unit_number')
+
+# 6. PracticeDetail (연습 상세 콘텐츠) Admin
+@admin.register(PracticeDetail)
+class PracticeDetailAdmin(admin.ModelAdmin):
+    list_display = ('id', 'practice', 'detail_title', 'detail_type', 'display_order', 'is_active')
+    list_filter = ('detail_type', 'is_active', 'practice')
+    search_fields = ('detail_title', 'content_data')
+    list_editable = ('display_order', 'is_active')
+    ordering = ('practice', 'display_order')

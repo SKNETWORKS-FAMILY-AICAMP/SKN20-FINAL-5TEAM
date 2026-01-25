@@ -1,8 +1,7 @@
-# 수정일: 2026-01-22
-# 수정내용: Antigravity - 모델 리팩토링 반영 (Notice, Practice 추가 및 삭제된 모델 제거)
+# 수정일: 2026-01-25
+# 수정내용: Antigravity - 뷰 패키지 최적화 (실제 존재하는 뷰셋만 포함)
 
 from .user_view import UserProfileViewSet
-from .notice_view import NoticeViewSet
 from .dashboard_view import DashboardLogViewSet
 from .common_view import CommonViewSet
 from .practice_view import PracticeViewSet

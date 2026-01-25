@@ -8,7 +8,10 @@ import axios from 'axios'
 import './index.css'
 import App from './App.vue'
 
+// [2026-01-25] Axios 전역 인증/보안 설정: 세션 쿠키 공유 및 Django CSRF 연동
 axios.defaults.withCredentials = true
+axios.defaults.xsrfCookieName = 'csrftoken'
+axios.defaults.xsrfHeaderName = 'X-CSRFToken'
 
 // 새로운 퀘스트 기반 Logic Mirror 임포트
 import LogicMirror from './features/practice/support/unit1/logic-mirror/LogicMirror.vue'
@@ -56,7 +59,34 @@ const router = createRouter({
   routes
 })
 
+import {
+  Gamepad2,
+  Bug,
+  Layers,
+  Zap,
+  Bot,
+  BookOpen,
+  Users,
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  Home
+} from 'lucide-vue-next'
+
 const app = createApp(App)
+
+// [2026-01-25] Lucide 아이콘을 전역 컴포넌트로 등록하여 DB 기반 동적 아이콘 렌더링 지원
+app.component('gamepad-2', Gamepad2)
+app.component('bug', Bug)
+app.component('layers', Layers)
+app.component('zap', Zap)
+app.component('bot', Bot)
+app.component('book-open', BookOpen)
+app.component('Users', Users)
+app.component('ArrowRight', ArrowRight)
+app.component('ChevronLeft', ChevronLeft)
+app.component('ChevronRight', ChevronRight)
+app.component('Home', Home)
 const pinia = createPinia()
 
 app.use(pinia)

@@ -134,8 +134,10 @@
 
 <script setup>
 import { ref, reactive, computed } from 'vue';
+import { useGameStore } from '@/stores/game';
 
-// 게임 상태
+// 게임 및 UI 상태
+const gameStore = useGameStore();
 const currentScreen = ref('difficulty');
 const difficulty = ref('');
 const attempts = ref(7);
@@ -169,76 +171,25 @@ const showAIFeedback = ref(false);
 const aiFeedbackLoading = ref(false);
 const aiFeedbackContent = ref('');
 
-// 문제 데이터베이스
-const problems = {
-  easy: {
-    title: "웹 서버 응답 지연",
-    scenario: "사용자들이 웹 페이지 로딩이 느리다고 불만을 제기하고 있습니다.",
-    constraints: "- 서버 재시작은 5분의 다운타임이 발생합니다\n- 예산 제약으로 즉시 스케일 업은 불가능합니다",
-    hint: "먼저 로그를 확인하여 병목 지점을 파악하세요. CPU와 메모리 사용률을 체크해보세요.",
-    initialMetrics: {
-      responseTime: { value: 3500, unit: 'ms', threshold: { good: 1000, warning: 2000 } },
-      cpu: { value: 85, unit: '%', threshold: { good: 50, warning: 70 } },
-      memory: { value: 75, unit: '%', threshold: { good: 60, warning: 80 } },
-      errorRate: { value: 2, unit: '%', threshold: { good: 1, warning: 5 } }
-    },
-    solutions: [
-      { keywords: ['cache', 'clear', '캐시'], effect: { responseTime: -500, cpu: -10 } },
-      { keywords: ['log', 'check', 'view', '로그'], effect: { } },
-      { keywords: ['restart', 'service', '재시작'], effect: { responseTime: -1000, cpu: -20, memory: -15 } },
-      { keywords: ['optimize', 'query', '최적화'], effect: { responseTime: -800, cpu: -15, memory: -10 } }
-    ],
-    winCondition: (m) => m.responseTime.value < 1000 && m.cpu.value < 70
-  },
-  medium: {
-    title: "데이터베이스 커넥션 풀 고갈",
-    scenario: "애플리케이션에서 \"Too many connections\" 오류가 발생하고 있습니다. 트래픽이 급증했지만 정상 범위 내입니다.",
-    constraints: "- DB 서버 재시작은 최후의 수단입니다 (10분 다운타임)\n- 연결 수 증가는 메모리 사용량을 증가시킵니다",
-    hint: "커넥션 풀 설정을 확인하고, 연결이 제대로 반환되고 있는지 체크하세요. 슬로우 쿼리가 있을 수 있습니다.",
-    initialMetrics: {
-      activeConnections: { value: 495, unit: 'conn', threshold: { good: 300, warning: 450 } },
-      maxConnections: { value: 500, unit: 'conn', threshold: { good: 500, warning: 500 } },
-      queryTime: { value: 2500, unit: 'ms', threshold: { good: 500, warning: 1500 } },
-      errorRate: { value: 15, unit: '%', threshold: { good: 1, warning: 5 } },
-      dbMemory: { value: 82, unit: '%', threshold: { good: 60, warning: 75 } }
-    },
-    solutions: [
-      { keywords: ['check', 'slow', 'query', '슬로우'], effect: { } },
-      { keywords: ['kill', 'idle', 'connection', '종료'], effect: { activeConnections: -50, errorRate: -5, dbMemory: -5 } },
-      { keywords: ['optimize', 'query', 'index', '최적화'], effect: { queryTime: -1000, activeConnections: -80, errorRate: -8, dbMemory: -10 } },
-      { keywords: ['increase', 'pool', 'size', '증가'], effect: { maxConnections: 100, errorRate: -3, dbMemory: 5 } },
-      { keywords: ['restart', 'db', '재시작'], effect: { activeConnections: -200, queryTime: -500, errorRate: 5, dbMemory: -30 } }
-    ],
-    winCondition: (m) => m.errorRate.value < 2 && m.activeConnections.value < 400
-  },
-  hard: {
-    title: "메모리 누수로 인한 OOM",
-    scenario: "프로덕션 서버에서 주기적으로 OutOfMemory 에러가 발생하며 서비스가 중단됩니다. 메모리 사용량이 지속적으로 증가하고 있습니다.",
-    constraints: "- 서버는 고가용성이 필요하여 다운타임 최소화 필요\n- 힙 덤프 분석은 시간이 걸립니다\n- 메모리 누수 패치는 배포 검증 필요",
-    hint: "힙 덤프를 확인하고, GC 로그를 분석하세요. 임시방편과 근본 해결책을 모두 고려해야 합니다.",
-    initialMetrics: {
-      heapUsage: { value: 92, unit: '%', threshold: { good: 70, warning: 85 } },
-      gcTime: { value: 45, unit: '%', threshold: { good: 5, warning: 20 } },
-      responseTime: { value: 8000, unit: 'ms', threshold: { good: 1000, warning: 3000 } },
-      throughput: { value: 120, unit: 'req/s', threshold: { good: 500, warning: 300 } },
-      threadCount: { value: 850, unit: 'threads', threshold: { good: 500, warning: 700 } },
-      diskIO: { value: 88, unit: '%', threshold: { good: 60, warning: 80 } }
-    },
-    solutions: [
-      { keywords: ['heap', 'dump', 'analyze', '덤프'], effect: { } },
-      { keywords: ['gc', 'force', 'manual', '가비지'], effect: { heapUsage: -15, gcTime: 20, responseTime: 2000, threadCount: -50 } },
-      { keywords: ['increase', 'heap', 'memory', '증가'], effect: { heapUsage: -30, gcTime: -10, threadCount: 30 } },
-      { keywords: ['restart', 'server', 'rolling', '재시작'], effect: { heapUsage: -70, gcTime: -30, responseTime: -5000, throughput: 200, threadCount: -600, diskIO: -50 } },
-      { keywords: ['cache', 'clear', 'evict', '캐시'], effect: { heapUsage: -20, responseTime: -1000, diskIO: -15 } },
-      { keywords: ['patch', 'deploy', 'fix', '패치'], effect: { heapUsage: -50, gcTime: -25, responseTime: -3000, throughput: 300, threadCount: -400, diskIO: -30 } }
-    ],
-    winCondition: (m) => m.heapUsage.value < 75 && m.responseTime.value < 2000 && m.gcTime.value < 15 && m.threadCount.value < 600
-  }
-};
+/**
+ * [2026-01-25] 하드코딩된 problems 객체 제거. 
+ * 대신 startGame 시 gameStore.activeUnit.problems에서 난이도(difficulty)가 일치하는 문제를 찾습니다.
+ */
 
 function startGame(diff) {
   difficulty.value = diff;
-  currentProblem.value = problems[diff];
+  
+  // [2026-01-25] DB 연동: 현재 유닛의 문제 목록에서 선택한 난이도와 일치하는 시나리오 로드
+  const unitProblems = gameStore.activeUnit?.problems || [];
+  const found = unitProblems.find(p => p.difficulty === diff || p.config?.difficulty === diff);
+  
+  if (!found) {
+    addLog(`[Error] ${diff} 난이도에 해당하는 시나리오가 DB에 없습니다.`, 'warning');
+    // 임시 폴백 (데이터 로딩 전일 경우 대비)
+    return;
+  }
+  
+  currentProblem.value = found.config || found;
   
   // 기존 metrics 완전히 초기화
   Object.keys(metrics).forEach(key => delete metrics[key]);
@@ -264,7 +215,7 @@ function displayProblem() {
     </div>
     <div style="margin-bottom: 20px;">
       <strong style="color: var(--warning-orange);">⚠️ 제약사항:</strong><br>
-      ${problem.constraints.replace(/\n/g, '<br>')}
+      ${problem.constraints?.replace(/\n/g, '<br>') || ''}
     </div>
   `;
   hintContent.value = problem.hint;
@@ -272,6 +223,29 @@ function displayProblem() {
 
 function toggleHint() {
   showHint.value = !showHint.value;
+}
+
+/**
+ * [2026-01-25] 승리 조건 검증 유틸리티
+ * - DB의 winConditionType 필드에 따라 각기 다른 평가 로직 적용
+ */
+function checkWinCondition(m) {
+  const type = currentProblem.value.winConditionType;
+  if (!type) {
+    // 폴백: 기본 조건 (응답 시간 1초 미만)
+    return m.responseTime?.value < 1000;
+  }
+  
+  switch(type) {
+    case 'ops_basic':
+      return m.responseTime?.value < 1000 && (m.cpu ? m.cpu.value < 70 : true);
+    case 'ops_db':
+      return m.errorRate?.value < 2 && (m.activeConnections ? m.activeConnections.value < 400 : true);
+    case 'ops_oom':
+      return m.heapUsage?.value < 75 && m.responseTime?.value < 2000;
+    default:
+      return false;
+  }
 }
 
 function submitAction() {
@@ -287,7 +261,8 @@ function submitAction() {
   actionInput.value = '';
   
   setTimeout(() => {
-    if (currentProblem.value.winCondition(metrics)) {
+    // [2026-01-25] 동적 검증 함수 호출
+    if (checkWinCondition(metrics)) {
       solved.value = true;
       showResult(true);
     } else if (attempts.value <= 0) {
@@ -368,13 +343,14 @@ async function getAIFeedback() {
   try {
     const actionsList = actions.value.map((a, i) => `${i + 1}. ${a}`).join('\n');
     
+    // [2026-01-25] Anthropic API 호출 (실제 환경에서는 백엔드 프록시 권장)
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: "claude-3-5-sonnet-20241022",
         max_tokens: 1000,
         messages: [{
           role: "user",

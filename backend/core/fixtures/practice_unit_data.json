@@ -1,0 +1,92 @@
+[
+    {
+        "model": "core.practice",
+        "pk": "unit01",
+        "fields": {
+            "unit_number": 1,
+            "level": 10,
+            "title": "Pseudo Practice",
+            "subtitle": "Strength Training",
+            "participant_count": 85,
+            "color_code": "#58cc02",
+            "icon_name": "gamepad-2",
+            "display_order": 1,
+            "is_active": true,
+            "create_date": "2026-01-25T11:00:00Z",
+            "update_date": "2026-01-25T11:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practice",
+        "pk": "unit02",
+        "fields": {
+            "unit_number": 2,
+            "level": 20,
+            "title": "Debug Practice",
+            "subtitle": "Precision Training",
+            "participant_count": 62,
+            "color_code": "#1cb0f6",
+            "icon_name": "bug",
+            "display_order": 2,
+            "is_active": true,
+            "create_date": "2026-01-25T11:00:00Z",
+            "update_date": "2026-01-25T11:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practice",
+        "pk": "unit03",
+        "fields": {
+            "unit_number": 3,
+            "level": 30,
+            "title": "System Practice",
+            "subtitle": "Strategy Training",
+            "participant_count": 45,
+            "color_code": "#ff9600",
+            "icon_name": "layers",
+            "display_order": 3,
+            "is_active": true,
+            "create_date": "2026-01-25T11:00:00Z",
+            "update_date": "2026-01-25T11:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practice",
+        "pk": "unit04",
+        "fields": {
+            "unit_number": 4,
+            "level": 40,
+            "title": "Ops Practice",
+            "subtitle": "Endurance Training",
+            "participant_count": 38,
+            "color_code": "#ce82ff",
+            "icon_name": "zap",
+            "display_order": 4,
+            "is_active": true,
+            "create_date": "2026-01-25T11:00:00Z",
+            "update_date": "2026-01-25T11:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practice",
+        "pk": "unit05",
+        "fields": {
+            "unit_number": 5,
+            "level": 50,
+            "title": "Agent Practice",
+            "subtitle": "AI Training",
+            "participant_count": 24,
+            "color_code": "#ff4b4b",
+            "icon_name": "bot",
+            "display_order": 5,
+            "is_active": true,
+            "create_date": "2026-01-25T11:00:00Z",
+            "update_date": "2026-01-25T11:00:00Z",
+            "use_yn": "Y"
+        }
+    }
+]

@@ -1,0 +1,302 @@
+[
+    {
+        "model": "core.practicedetail",
+        "pk": "unit01_01",
+        "fields": {
+            "practice": "unit01",
+            "detail_title": "맛있는 라면 끓이기",
+            "detail_type": "PROBLEM",
+            "content_data": {
+                "id": "quest_lv1_01",
+                "level": 1,
+                "title": "맛있는 라면 끓이기",
+                "description": "라면을 끓이는 올바른 순서를 맞춰보세요.",
+                "logic_type": "순차",
+                "emoji": "🍜",
+                "cards": [
+                    {
+                        "id": "b1",
+                        "text_ko": "냄비에 물을 넣고 끓인다",
+                        "text_py": "boil_water()",
+                        "icon": "💧",
+                        "color": "blue",
+                        "action": "boil_water"
+                    },
+                    {
+                        "id": "b2",
+                        "text_ko": "물이 끓으면 면과 스프를 넣는다",
+                        "text_py": "put_ingredients()",
+                        "icon": "🍜",
+                        "color": "purple",
+                        "action": "add_ramen"
+                    },
+                    {
+                        "id": "b3",
+                        "text_ko": "3분 뒤 맛있게 먹는다",
+                        "text_py": "eat_ramen()",
+                        "icon": "😋",
+                        "color": "orange",
+                        "action": "eat"
+                    }
+                ],
+                "correctSequence": [
+                    "b1",
+                    "b2",
+                    "b3"
+                ],
+                "validation": {
+                    "puzzle_solution": [
+                        {
+                            "id": "b1",
+                            "indent": 0
+                        },
+                        {
+                            "id": "b2",
+                            "indent": 0
+                        },
+                        {
+                            "id": "b3",
+                            "indent": 0
+                        }
+                    ],
+                    "execution": {
+                        "function_name": "cook_ramen",
+                        "test_cases": [
+                            {
+                                "input": "",
+                                "expected": "'None'",
+                                "type": "public"
+                            }
+                        ]
+                    }
+                }
+            },
+            "display_order": 1,
+            "is_active": true,
+            "create_date": "2026-01-25T11:00:00Z",
+            "update_date": "2026-01-25T11:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practicedetail",
+        "pk": "unit01_02",
+        "fields": {
+            "practice": "unit01",
+            "detail_title": "화분에 꽃 심기",
+            "detail_type": "PROBLEM",
+            "content_data": {
+                "id": "quest_lv1_02",
+                "level": 1,
+                "title": "화분에 꽃 심기",
+                "description": "씨앗이 꽃이 되는 과정을 순서대로 나열해 보세요.",
+                "logic_type": "순차",
+                "emoji": "🌱",
+                "cards": [
+                    {
+                        "id": "b1",
+                        "text_ko": "화분에 흙을 채운다",
+                        "text_py": "fill_soil()",
+                        "icon": "🪴",
+                        "color": "green",
+                        "action": "fill_soil"
+                    },
+                    {
+                        "id": "b2",
+                        "text_ko": "흙 속에 씨앗을 심는다",
+                        "text_py": "plant_seed()",
+                        "icon": "🌱",
+                        "color": "blue",
+                        "action": "plant_seed"
+                    },
+                    {
+                        "id": "b3",
+                        "text_ko": "물을 충분히 준다",
+                        "text_py": "water_flower()",
+                        "icon": "💧",
+                        "color": "blue",
+                        "action": "water"
+                    }
+                ],
+                "correctSequence": [
+                    "b1",
+                    "b2",
+                    "b3"
+                ],
+                "validation": {
+                    "puzzle_solution": [
+                        {
+                            "id": "b1",
+                            "indent": 0
+                        },
+                        {
+                            "id": "b2",
+                            "indent": 0
+                        },
+                        {
+                            "id": "b3",
+                            "indent": 0
+                        }
+                    ],
+                    "execution": {
+                        "function_name": "plant_flower",
+                        "test_cases": [
+                            {
+                                "input": "",
+                                "expected": "'None'",
+                                "type": "public"
+                            }
+                        ]
+                    }
+                }
+            },
+            "display_order": 2,
+            "is_active": true,
+            "create_date": "2026-01-25T11:00:00Z",
+            "update_date": "2026-01-25T11:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practicedetail",
+        "pk": "unit01_03",
+        "fields": {
+            "practice": "unit01",
+            "detail_title": "비 오는 날 우산 챙기기",
+            "detail_type": "PROBLEM",
+            "content_data": {
+                "id": "quest_lv2_01",
+                "level": 2,
+                "title": "비 오는 날 우산 챙기기",
+                "description": "날씨가 '비'라면 우산을 챙기는 논리를 완성하세요.",
+                "logic_type": "선택",
+                "emoji": "☔",
+                "cards": [
+                    {
+                        "id": "b1",
+                        "text_ko": "오늘 날씨를 확인한다",
+                        "text_py": "weather = check_weather()",
+                        "icon": "🌤️",
+                        "color": "blue",
+                        "action": "check_weather"
+                    },
+                    {
+                        "id": "b2",
+                        "text_ko": "만약 날씨가 '비'와 같다면",
+                        "text_py": "if weather == 'rain':",
+                        "icon": "❓",
+                        "color": "purple",
+                        "isCondition": true,
+                        "action": "check_rain"
+                    },
+                    {
+                        "id": "b3",
+                        "text_ko": "    우산을 챙긴다",
+                        "text_py": "    take_umbrella()",
+                        "icon": "☔",
+                        "color": "green",
+                        "indent": 1,
+                        "action": "take_umbrella"
+                    }
+                ],
+                "correctSequence": [
+                    "b1",
+                    "b2",
+                    "b3"
+                ],
+                "validation": {
+                    "puzzle_solution": [
+                        {
+                            "id": "b1",
+                            "indent": 0
+                        },
+                        {
+                            "id": "b2",
+                            "indent": 0
+                        },
+                        {
+                            "id": "b3",
+                            "indent": 1
+                        }
+                    ],
+                    "execution": {
+                        "function_name": "check_umbrella",
+                        "test_cases": [
+                            {
+                                "input": "'rain'",
+                                "expected": "'take_umbrella'",
+                                "type": "public"
+                            },
+                            {
+                                "input": "'sunny'",
+                                "expected": "'None'",
+                                "type": "hidden"
+                            }
+                        ]
+                    }
+                }
+            },
+            "display_order": 3,
+            "is_active": true,
+            "create_date": "2026-01-25T11:00:00Z",
+            "update_date": "2026-01-25T11:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practicedetail",
+        "pk": "unit04_01",
+        "fields": {
+            "practice": "unit04",
+            "detail_title": "웹 서버 응답 지연",
+            "detail_type": "PROBLEM",
+            "content_data": {
+                "difficulty": "easy",
+                "title": "웹 서버 응답 지연",
+                "scenario": "사용자들이 웹 페이지 로딩이 느리다고 불만을 제기하고 있습니다.",
+                "initialMetrics": {
+                    "responseTime": {
+                        "value": 3500,
+                        "unit": "ms"
+                    },
+                    "cpu": {
+                        "value": 85,
+                        "unit": "%"
+                    }
+                },
+                "winConditionType": "ops_basic"
+            },
+            "display_order": 1,
+            "is_active": true,
+            "create_date": "2026-01-25T11:00:00Z",
+            "update_date": "2026-01-25T11:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practicedetail",
+        "pk": "unit04_02",
+        "fields": {
+            "practice": "unit04",
+            "detail_title": "데이터베이스 커넥션 풀 고갈",
+            "detail_type": "PROBLEM",
+            "content_data": {
+                "difficulty": "medium",
+                "title": "데이터베이스 커넥션 풀 고갈",
+                "scenario": "애플리케이션에서 'Too many connections' 오류가 발생하고 있습니다.",
+                "initialMetrics": {
+                    "activeConnections": {
+                        "value": 495,
+                        "unit": "conn"
+                    }
+                },
+                "winConditionType": "ops_db"
+            },
+            "display_order": 2,
+            "is_active": true,
+            "create_date": "2026-01-25T11:00:00Z",
+            "update_date": "2026-01-25T11:00:00Z",
+            "use_yn": "Y"
+        }
+    }
+]

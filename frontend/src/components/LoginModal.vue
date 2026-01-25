@@ -69,8 +69,13 @@ export default {
     }
   },
   methods: {
+    /**
+     * [로그인 처리 핸들러]
+     * - [수정일: 2026-01-25] 직접적인 Axios 호출 대신 auth store의 login 액션을 사용하도록 개선.
+     * - 중앙 집중화된 에러 처리 및 상태 관리를 통해 코드 안정성을 높였습니다.
+     */
     async handleLogin() {
-      // Basic validation
+      // 1. 유효성 검사
       if (!this.email || !this.password) {
         alert('이메일과 비밀번호를 입력해주세요.');
         return;
@@ -79,29 +84,32 @@ export default {
       this.isSubmitting = true;
       
       try {
-        // [수정일: 2026-01-21] 백엔드 로그인 API 호출
-        const response = await axios.post('/api/core/auth/login/', {
-          email: this.email,
-          password: this.password
-        });
+        // 2. Pinia Store의 login 액션 호출
+        const auth = useAuthStore();
+        const result = await auth.login(this.email, this.password);
         
-        if (response.status === 200) {
-          // 로그인 성공 시 사용자 정보와 함께 이벤트 발생
-          this.$emit('login-success', response.data.user);
+        if (result.success) {
+          // 3. 성공 시 모달 닫기 요청 및 성공 이벤트 발생 (부모 컴포넌트 연동)
+          this.$emit('login-success'); // 2026-01-25: 스토어 상태는 이미 반영됨
+          this.$emit('close');
+        } else {
+          // 4. 실패 시 서버 에러 메시지 표시
+          alert(result.error);
         }
       } catch (error) {
-        console.error('Login Error:', error);
-        if (error.response && error.response.data && error.response.data.error) {
-           alert(error.response.data.error);
-        } else {
-           alert('로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.');
-        }
+        console.error('Login Handler Error:', error);
+        alert('예기치 못한 오류가 발생했습니다.');
       } finally {
         this.isSubmitting = false;
       }
     }
   }
 }
+</script>
+
+<script setup>
+// [2026-01-25] 스토어 접근을 위한 setup script block (또는 메서드 내 setup 패턴)
+import { useAuthStore } from '@/stores/auth';
 </script>
 
 <style scoped>
