@@ -410,17 +410,15 @@
                 </div>
 
                 <!-- 편집 가능한 섹션 (현재 스텝) -->
-                <div v-else-if="Number(step) === Number(currentProgressiveStep)" class="code-editor-wrapper active-wrapper">
-                  <div class="line-numbers">
-                    <div v-for="n in getLineCount(progressiveStepCodes[Number(step)])" :key="n" class="line-num">{{ n }}</div>
-                  </div>
-                  <textarea
-                    class="section-code editable game-code"
-                    v-model="progressiveStepCodes[Number(step)]"
-                    @input="onProgressiveCodeChange"
-                    spellcheck="false"
-                    wrap="off"
-                  ></textarea>
+                <div v-else-if="Number(step) === Number(currentProgressiveStep)" class="code-editor-wrapper active-wrapper monaco-active-wrapper">
+                  <vue-monaco-editor
+                    v-model:value="progressiveStepCodes[Number(step)]"
+                    theme="vs-dark"
+                    language="python"
+                    :options="editorOptions"
+                    @mount="handleEditorMount"
+                    class="bughunt-monaco-editor"
+                  />
                 </div>
 
                 <!-- 완료된 섹션 -->
@@ -581,8 +579,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue';
+import { ref, reactive, computed, onMounted, onUnmounted, watch, shallowRef } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
 import progressiveData from './progressive-problems.json';
 import { evaluateBugHunt } from './services/bugHuntApi';
 
@@ -630,6 +629,28 @@ const defaultGameData = {
 // 게임 데이터 로드 또는 초기화
 const savedData = loadGameData();
 const gameData = reactive(savedData || { ...defaultGameData });
+
+// Monaco Editor 설정
+const monacoEditorRef = shallowRef(null);
+const editorOptions = {
+  theme: 'vs-dark',
+  language: 'python',
+  tabSize: 4,
+  automaticLayout: true,
+  fontSize: 14,
+  lineNumbers: 'on',
+  minimap: { enabled: false },
+  scrollBeyondLastLine: false,
+  wordWrap: 'off',
+  folding: false,
+  renderLineHighlight: 'all',
+  contextmenu: false,
+  padding: { top: 10, bottom: 10 }
+};
+
+const handleEditorMount = (editorInstance) => {
+  monacoEditorRef.value = editorInstance;
+};
 
 // 게임 데이터 변경 시 자동 저장
 watch(gameData, (newData) => {
@@ -2199,6 +2220,20 @@ onUnmounted(() => {
 .code-editor-wrapper {
   display: flex;
   min-height: 350px;
+}
+
+/* Monaco Editor 스타일 */
+.monaco-active-wrapper {
+  display: block;
+  height: 350px;
+  border: 1px solid rgba(0, 255, 136, 0.3);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.bughunt-monaco-editor {
+  width: 100%;
+  height: 100%;
 }
 
 .completed-wrapper {
