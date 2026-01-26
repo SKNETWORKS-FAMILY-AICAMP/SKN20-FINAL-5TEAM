@@ -275,30 +275,11 @@
             <p class="scenario-text">{{ currentProgressiveMission?.scenario }}</p>
           </div>
 
-          <div class="panel-box current-target-box" v-if="currentProgressiveStep <= 3">
-            <div class="panel-title">🎯 TARGET: STEP {{ currentProgressiveStep }}</div>
-            <div class="target-content">
-              <div class="target-bug">
-                <span class="target-bug-emoji">{{ getBugEmoji(getCurrentStepData()?.bug_type) }}</span>
-                <span class="target-bug-name">{{ getCurrentStepData()?.bug_type_name }}</span>
-              </div>
-              <p class="target-instruction">{{ getCurrentStepData()?.instruction }}</p>
-            </div>
-          </div>
-
           <div class="side-controls">
             <template v-if="currentProgressivePhase === 'debug'">
-              <button class="action-btn hint-btn" @click="showProgressiveHint" :disabled="progressiveHintUsed[currentProgressiveStep]">
+              <button class="action-btn hint-btn" @click="showProgressiveHint">
                 <span class="btn-icon">💡</span>
-                {{ progressiveHintUsed[currentProgressiveStep] ? 'HINT USED' : 'HINT' }}
-              </button>
-              <button class="action-btn submit-btn" @click="submitProgressiveStep" :disabled="currentProgressiveStep > 3 || isRunning">
-                <span class="btn-icon">🚀</span>
-                {{ currentProgressiveStep > 3 ? 'DONE!' : 'SUBMIT FIX' }}
-              </button>
-              <button class="action-btn reset-btn" @click="resetCurrentStep">
-                <span class="btn-icon">↺</span>
-                RESET
+                HINT
               </button>
             </template>
             
@@ -371,6 +352,15 @@
               <div class="progress-bar">
                 <div class="progress-fill" :style="{ width: (progressiveCompletedSteps.length / 3 * 100) + '%' }"></div>
               </div>
+            </div>
+            <!-- 에디터 상단 버튼들 -->
+            <div class="editor-top-buttons" v-if="currentProgressivePhase === 'debug'">
+              <button class="editor-btn reset-btn" @click="resetCurrentStep">
+                ↺ RESET
+              </button>
+              <button class="editor-btn submit-btn" @click="submitProgressiveStep" :disabled="currentProgressiveStep > 3 || isRunning">
+                🚀 SUBMIT
+              </button>
             </div>
           </div>
 
@@ -992,17 +982,19 @@ function resetCurrentStep() {
   }
 }
 
-// Progressive 힌트 보기
+// Progressive 힌트 보기 (토글 방식으로 변경 - 여러 번 볼 수 있음)
 function showProgressiveHint() {
+  // 첫 사용 시에만 기록 (점수 계산용)
   if (!progressiveHintUsed.value[currentProgressiveStep.value]) {
     progressiveHintUsed.value[currentProgressiveStep.value] = true;
-    showProgressiveHintPanel.value = true;
     terminalOutput.value.push({
       prompt: '!',
       text: 'Hint accessed.',
       type: 'warning'
     });
   }
+  // 힌트 패널 토글 (열려있으면 닫고, 닫혀있으면 열기)
+  showProgressiveHintPanel.value = !showProgressiveHintPanel.value;
 }
 
 // Progressive 솔루션 체크
@@ -1909,9 +1901,10 @@ onUnmounted(() => {
 .progressive-main-layout {
   flex: 1;
   display: grid;
-  grid-template-columns: 350px 1fr;
+  grid-template-columns: 1fr 2fr; /* 문제창 1/3, 에디터 2/3 */
   gap: 20px;
   padding: 20px;
+  width: 100%;
   overflow: hidden;
 }
 
@@ -2059,11 +2052,54 @@ onUnmounted(() => {
 
 .editor-header {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
   padding: 12px 20px;
   background: #1a202c;
   border-bottom: 1px solid var(--border-color);
+}
+
+.editor-top-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.editor-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-family: 'Orbitron', monospace;
+  font-size: 0.85rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 2px solid;
+}
+
+.editor-btn.reset-btn {
+  background: transparent;
+  border-color: #718096;
+  color: #718096;
+}
+
+.editor-btn.reset-btn:hover {
+  background: #718096;
+  color: #000;
+}
+
+.editor-btn.submit-btn {
+  background: var(--neon-green);
+  border-color: var(--neon-green);
+  color: #000;
+}
+
+.editor-btn.submit-btn:hover:not(:disabled) {
+  background: #00e67a;
+  box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
+}
+
+.editor-btn.submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .code-progress {

@@ -10,7 +10,6 @@
         {
           "step": 1,
           "title": "시계열 데이터 오염 (Data Leakage)",
-          "instruction": "미래 데이터가 학습에 포함되지 않도록 데이터 분할 로직을 수정하세요.",
           "bug_type": "A",
           "bug_type_name": "Off-by-one",
           "questions": {
@@ -25,7 +24,7 @@
           },
           "buggy_code": "from sklearn.model_selection import train_test_split\n\ndef split_data(df):\n    # AS-IS\n    train, test = train_test_split(df, test_size=0.2, shuffle=True)\n    return train, test",
           "correct_code": "from sklearn.model_selection import train_test_split\n\ndef split_data(df):\n    # TO-BE (수정된 부분)\n    train, test = train_test_split(df, test_size=0.2, shuffle=False)\n    return train, test",
-          "hint": "시계열 데이터는 순서가 중요합니다. shuffle 인자를 확인하세요.",
+          "hint": "미래 데이터가 학습에 포함되지 않도록 데이터 분할 로직을 수정하세요.",
           "solution_check": {
             "type": "contains",
             "value": "shuffle=False"
@@ -35,7 +34,6 @@
         {
           "step": 2,
           "title": "연산 중 Zero Division 방어",
-          "instruction": "총 거래액이 0인 경우 발생하는 에러를 처리하세요.",
           "bug_type": "B",
           "bug_type_name": "Null Guard",
           "questions": {
@@ -50,7 +48,7 @@
           },
           "buggy_code": "def calc_avg_order(total_sum, count):\n    # AS-IS\n    return total_sum / count",
           "correct_code": "def calc_avg_order(total_sum, count):\n    # TO-BE (수정된 부분)\n    if count == 0: return 0\n    return total_sum / count",
-          "hint": "분모가 0이 될 수 있는지 확인하고 if문을 사용하세요.",
+          "hint": "총 거래액이 0인 경우 발생하는 에러를 처리하세요.",
           "solution_check": {
             "type": "contains",
             "value": "if count == 0"
@@ -60,7 +58,6 @@
         {
           "step": 3,
           "title": "데이터프레임 원본 보존",
-          "instruction": "함수 내부에서 원본 데이터를 직접 수정하지 않도록 복사본을 사용하세요.",
           "bug_type": "C",
           "bug_type_name": "State Leak",
           "questions": {
@@ -75,7 +72,7 @@
           },
           "buggy_code": "def preprocess(df):\n    # AS-IS\n    df['processed'] = True\n    return df",
           "correct_code": "def preprocess(df):\n    # TO-BE (수정된 부분)\n    new_df = df.copy()\n    new_df['processed'] = True\n    return new_df",
-          "hint": "df.copy() 메서드를 사용해 보세요.",
+          "hint": "함수 내부에서 원본 데이터를 직접 수정하지 않도록 복사본을 사용하세요.",
           "solution_check": {
             "type": "contains",
             "value": "copy()"
@@ -94,7 +91,6 @@
         {
           "step": 1,
           "title": "범위 데이터 누락",
-          "instruction": "날짜 필터링 시 마지막 날이 포함되도록 수정하세요.",
           "bug_type": "A",
           "bug_type_name": "Off-by-one",
           "questions": {
@@ -109,7 +105,7 @@
           },
           "buggy_code": "def filter_date(df, end_date):\n    # AS-IS\n    return df[df['date'] < end_date]",
           "correct_code": "def filter_date(df, end_date):\n    # TO-BE (수정된 부분)\n    return df[df['date'] <= end_date]",
-          "hint": "부등호 연산자를 살펴보세요.",
+          "hint": "날짜 필터링 시 마지막 날이 포함되도록 수정하세요.",
           "solution_check": {
             "type": "contains",
             "value": "<="
@@ -119,7 +115,6 @@
         {
           "step": 2,
           "title": "누락된 광고 매체명 처리",
-          "instruction": "매체명이 비어있는 경우 'Unknown'으로 표시하세요.",
           "bug_type": "B",
           "bug_type_name": "Null Guard",
           "questions": {
@@ -134,7 +129,7 @@
           },
           "buggy_code": "def group_by_source(df):\n    # AS-IS\n    return df.groupby('source')['cost'].sum()",
           "correct_code": "def group_by_source(df):\n    # TO-BE (수정된 부분)\n    df['source'] = df['source'].fillna('Unknown')\n    return df.groupby('source')['cost'].sum()",
-          "hint": "fillna() 함수를 사용하여 빈 값을 채워주세요.",
+          "hint": "매체명이 비어있는 경우 'Unknown'으로 표시하세요.",
           "solution_check": {
             "type": "contains",
             "value": "fillna"
@@ -144,7 +139,6 @@
         {
           "step": 3,
           "title": "리스트 누적 오류",
-          "instruction": "새로운 분석을 시작할 때마다 결과 리스트를 초기화하세요.",
           "bug_type": "C",
           "bug_type_name": "State Leak",
           "questions": {
@@ -159,7 +153,7 @@
           },
           "buggy_code": "results = []\ndef run_analysis(data):\n    # AS-IS\n    results.append(data.mean())\n    return results",
           "correct_code": "def run_analysis(data):\n    # TO-BE (수정된 부분)\n    results = []\n    results.append(data.mean())\n    return results",
-          "hint": "results 선언 위치를 함수 안으로 옮기세요.",
+          "hint": "새로운 분석을 시작할 때마다 결과 리스트를 초기화하세요.",
           "solution_check": {
             "type": "notContains",
             "value": "global"
@@ -178,7 +172,6 @@
         {
           "step": 1,
           "title": "토큰 제한 슬라이싱",
-          "instruction": "최대 토큰 길이를 초과하지 않도록 정확한 범위를 지정하세요.",
           "bug_type": "A",
           "bug_type_name": "Off-by-one",
           "questions": {
@@ -193,7 +186,7 @@
           },
           "buggy_code": "def truncate_text(text, max_len):\n    # AS-IS\n    return text[:max_len + 1]",
           "correct_code": "def truncate_text(text, max_len):\n    # TO-BE (수정된 부분)\n    return text[:max_len]",
-          "hint": "Python 슬라이싱에서 [:n]의 동작 방식을 떠올려보세요.",
+          "hint": "최대 토큰 길이를 초과하지 않도록 정확한 범위를 지정하세요.",
           "solution_check": {
             "type": "notContains",
             "value": "+ 1"
@@ -203,7 +196,6 @@
         {
           "step": 2,
           "title": "API 응답 부재 대응",
-          "instruction": "LLM API 응답이 빈 값(None)일 때를 대비한 방어 코드를 작성하세요.",
           "bug_type": "B",
           "bug_type_name": "Null Guard",
           "questions": {
@@ -218,7 +210,7 @@
           },
           "buggy_code": "def process_reply(reply):\n    # AS-IS\n    return reply.strip()",
           "correct_code": "def process_reply(reply):\n    # TO-BE (수정된 부분)\n    if reply:\n        return reply.strip()\n    return \"\"",
-          "hint": "reply가 존재하는지 먼저 확인하는 조건문을 추가하세요.",
+          "hint": "LLM API 응답이 빈 값(None)일 때를 대비한 방어 코드를 작성하세요.",
           "solution_check": {
             "type": "contains",
             "value": "if reply"
@@ -228,7 +220,6 @@
         {
           "step": 3,
           "title": "유저 대화 이력 섞임 방지",
-          "instruction": "기본 인자로 가변 객체를 사용하지 마세요.",
           "bug_type": "C",
           "bug_type_name": "State Leak",
           "questions": {
@@ -243,7 +234,7 @@
           },
           "buggy_code": "def get_chat_response(msg, history=[]):\n    # AS-IS\n    history.append(msg)\n    return f\"Count: {len(history)}\"",
           "correct_code": "def get_chat_response(msg, history=None):\n    # TO-BE (수정된 부분)\n    if history is None:\n        history = []\n    history.append(msg)\n    return f\"Count: {len(history)}\"",
-          "hint": "기본값으로 None을 사용하고 함수 내부에서 초기화하세요.",
+          "hint": "기본 인자로 가변 객체를 사용하지 마세요.",
           "solution_check": {
             "type": "contains",
             "value": "history=None"
