@@ -6,7 +6,8 @@
       <!-- Loading State -->
       <div v-if="!currentQuest" class="loading-screen">
         <div class="loading-content">
-          <div class="loading-spinner">🎮</div>
+          <!-- [2026-01-24] 템플릿 내 이모지가 유니코드 코드로 노출되는 문제 해결을 위해 HTML 엔티티로 교체 -->
+          <div class="loading-spinner">&#x1F3AE;</div>
           <p class="loading-text">게임을 준비하고 있습니다...</p>
         </div>
       </div>
@@ -50,7 +51,7 @@
         </div>
 
         <div class="examples-box">
-          <h3>📝 예제 입출력</h3>
+          <h3>&#x1F4DD; 예제 입출력</h3>
           <pre>{{ currentQuest.examples }}</pre>
         </div>
 
@@ -73,13 +74,13 @@
     <!-- Step 2: Pseudo Code Interface -->
     <div v-if="currentStepIndex === 1" class="pipeline-step pseudocode-step">
       <div class="step-container">
-        <h2 class="step-title">📝 수도코드로 풀이 과정 표현하기</h2>
+        <h2 class="step-title">&#x1F4DD; 수도코드로 풀이 과정 표현하기</h2>
         <p class="step-subtitle">카드를 드래그해서 올바른 순서로 배치하세요</p>
 
         <div class="pseudocode-layout">
           <!-- Card Deck -->
           <div class="card-deck-section">
-            <h3 class="section-title">🎴 사용 가능한 블록</h3>
+            <h3 class="section-title">&#x1F3B4; 사용 가능한 블록</h3>
             <div class="cards-list">
               <div 
                 v-for="card in currentQuest.cards" 
@@ -100,11 +101,11 @@
           </div>
 
           <!-- Drop Zone -->
-          <div class="drop-zone-section">
+          <div class="drop-zone-section flex-column">
             <div class="section-header">
-              <h3 class="section-title">🧠 내가 구성한 순서</h3>
+              <h3 class="section-title">&#x1F9E0; 내가 구성한 순서</h3>
               <button v-if="userSequence.length > 0" @click="clearSequence" class="clear-btn">
-                🗑️ 초기화
+                &#x1F5D1;&#xFE0F; 초기화
               </button>
             </div>
             
@@ -117,7 +118,7 @@
               :class="{ 'drag-over': isDragOver }"
             >
               <div v-if="userSequence.length === 0" class="empty-state">
-                <div class="empty-icon">✨</div>
+                <div class="empty-icon">&#x2728;</div>
                 <p>왼쪽에서 카드를 드래그해서 순서를 만드세요</p>
               </div>
 
@@ -148,6 +149,18 @@
               제출하기 →
             </button>
           </div>
+
+          <!-- Mermaid Visualization Area [2026-01-24] New -->
+          <div class="visualization-section">
+            <div class="section-header">
+              <h3 class="section-title">&#x1F52E; 실시간 흐름도</h3>
+            </div>
+            <div class="mermaid-container" ref="mermaidTarget">
+              <div v-if="userSequence.length === 0" class="vis-empty-state">
+                카드가 구성되면 흐름도가 나타납니다
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -155,7 +168,7 @@
     <!-- Step 3: Pre-submission Query -->
     <div v-if="currentStepIndex === 2" class="pipeline-step query-step">
       <div class="step-container">
-        <h2 class="step-title">🤔 제출 전 확인</h2>
+        <h2 class="step-title">&#x1F914; 제출 전 확인</h2>
         
         <div class="submitted-code-box">
           <h3>제출한 수도코드</h3>
@@ -211,16 +224,16 @@
     <div v-if="currentStepIndex === 3" class="pipeline-step implementation-step">
       <div class="step-container">
         <div class="result-header" :class="isCorrect ? 'success' : 'failure'">
-          <div class="result-icon">{{ isCorrect ? '�' : '🤔' }}</div>
+          <div class="result-icon">{{ isCorrect ? '&#x2705;' : '&#x1F914;' }}</div>
           <div class="result-content">
             <div class="judge-mini-badge" v-if="isCorrect">PUZZLE ACCEPTED</div>
             <h2>{{ feedbackMessage }}</h2>
-            <p class="hint-text" v-if="hintMessage">💡 {{ hintMessage }}</p>
+            <p class="hint-text" v-if="hintMessage">&#x1F4A1; {{ hintMessage }}</p>
           </div>
         </div>
 
         <div v-if="isCorrect" class="implementation-section">
-          <h3>💻 Pseudo Implementer</h3>
+          <h3>&#x1F4BB; Pseudo Implementer</h3>
           <p class="section-desc">수도코드를 바탕으로 실제 파이썬 코드를 완성하고 검증받으세요</p>
           
           <div class="code-editor monaco-wrapper">
@@ -287,7 +300,7 @@
             <div class="left-actions">
               <button @click="skipImplementation" class="skip-btn">건너뛰기</button>
               <button @click="toggleHint" class="hint-btn">
-                <span class="btn-icon">📦</span> 힌트 보기
+                <span class="btn-icon">&#x1F4E6;</span> 힌트 보기
               </button>
             </div>
             <button @click="handleRunPython" class="run-btn" :disabled="isPyodideLoading">
@@ -301,9 +314,9 @@
                덕 코치의 보따리 힌트
              </div>
              <div class="hint-content">
-               <p class="hint-main-desc">이 문제의 파이썬 정답은 <code>def {{ currentQuest.validation?.execution?.function_name }}():</code> 로 시작해야 하꽥!</p>
+               <p class="hint-main-desc">{{ implementationHint.main }}</p>
                <div class="hint-divider"></div>
-               <p class="hint-sub-desc">카드에 있던 명령어들을 순서대로 넣어주면 된다꽥:</p>
+               <p class="hint-sub-desc">{{ implementationHint.sub }}</p>
                <ul class="hint-code-list">
                   <li v-for="card in currentQuest.cards" :key="card.id">
                     <span class="card-icon">{{ card.icon }}</span>
@@ -325,7 +338,7 @@
     <div v-if="currentStepIndex === 4" class="pipeline-step followup-step">
       <div class="step-container">
         <div class="completion-header">
-          <div class="completion-icon">🎉</div>
+          <div class="completion-icon">&#x1F389;</div>
           <h1 class="completion-title">문제 완료!</h1>
         </div>
 
@@ -335,7 +348,28 @@
           </div>
           <div class="followup-bubble">
             <div class="interviewer-label">덕 코치</div>
-            <p class="followup-question">{{ followupQuestion }}</p>
+            <p class="followup-question">{{ currentFollowupQuestion.question }}</p>
+            
+            <!-- [2026-01-24] 심화 평가용 선택지 UI 추가 -->
+            <div class="followup-options" v-if="!followupAnswered">
+              <button 
+                v-for="(option, idx) in currentFollowupQuestion.options" 
+                :key="idx"
+                @click="checkFollowupAnswer(idx)"
+                class="followup-option-btn"
+              >
+                {{ option }}
+              </button>
+            </div>
+
+            <!-- [2026-01-24] 답변 후 피드백 박스 -->
+            <div class="followup-feedback-box" v-else :class="followupIsCorrect ? 'pass' : 'fail'">
+              <div class="feedback-status">
+                {{ followupIsCorrect ? '✅ 정답입니다!' : '🤔 조금 더 생각해볼까요?' }}
+              </div>
+              <p class="explanation-text">{{ currentFollowupQuestion.explanation }}</p>
+              <button v-if="!followupIsCorrect" @click="followupAnswered = false" class="re-answer-btn">다시 선택하기</button>
+            </div>
           </div>
         </div>
 
@@ -363,6 +397,7 @@
 <script setup>
 import { ref, onMounted, computed, watch, nextTick, shallowRef } from 'vue';
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
+import mermaid from 'mermaid';
 import { gameData } from './data/stages.js';
 import { usePyodide } from '@/composables/usePyodide';
 
@@ -410,8 +445,14 @@ const executionOutput = ref('');
 const executionError = ref('');
 const judgeStatus = ref('READY');
 const judgeMessage = ref('');
-const accuracy = ref(0);
 const isRunPassed = ref(false);
+
+/* [2026-01-24] 심화 평가(Follow-up) 인터랙티브 상태 관리를 위한 변수 추가 */
+const followupAnswered = ref(false);
+const followupIsCorrect = ref(false);
+
+/* [2026-01-24] Mermaid 실시간 시각화 컴포넌트 변수 */
+const mermaidTarget = ref(null);
 
 const { runCode: runPython, initPyodide, isLoading: isPyodideLoading } = usePyodide();
 
@@ -447,12 +488,14 @@ const questDisplayNumber = computed(() => {
 });
 
 
+/* [2026-01-24] 하드코딩된 질문 대신 현재 퀘스트 데이터(stages.js)에 정의된 맞춤형 질문을 반환하도록 수정 */
 const preSubmissionQuestion = computed(() => {
-  return "이 순서를 선택한 이유를 설명해주세요.";
+  return currentQuest.value?.reasoning?.question || "이 순서를 선택한 이유를 설명해주세요.";
 });
 
+/* [2026-01-24] 하드코딩된 선택지 대신 현재 퀘스트 데이터에 정의된 맞춤형 선택지 배열을 반환하도록 수정 */
 const answerOptions = computed(() => {
-  return [
+  return currentQuest.value?.reasoning?.options || [
     "순서대로 실행되어야 하기 때문입니다",
     "조건에 맞을 때만 실행되어야 합니다",
     "반복해서 실행되어야 합니다",
@@ -460,9 +503,15 @@ const answerOptions = computed(() => {
   ];
 });
 
-const followupQuestion = computed(() => {
-  const question = currentQuest.value?.interviewQuestions?.[0];
-  return question?.question || "잘하셨습니다! 다음 문제로 넘어가볼까요?";
+/* [2026-01-24] 심화 평가 질문 정보를 안전하게 가져오는 계산된 속성 추가 (데이터 부재 시 Fallback 처리) */
+const currentFollowupQuestion = computed(() => {
+  const q = currentQuest.value?.interviewQuestions?.[0];
+  return {
+    question: q?.question || "수고하셨습니다! 마무리 단계로 넘어가볼까요?",
+    options: q?.options || ["네, 좋습니다!"],
+    correctIndex: q?.correctIndex ?? 0,
+    explanation: q?.explanation || "오늘 배운 내용을 잘 기억해보시길 바란다꽥!"
+  };
 });
 
 const learningPoints = computed(() => {
@@ -470,11 +519,91 @@ const learningPoints = computed(() => {
     currentQuest.value?.feedback?.hint || "문제 해결 과정을 단계별로 나눠서 생각하기",
     "수도코드로 로직을 먼저 설계하기",
     "각 단계의 순서와 의미 이해하기"
-  ];
+    ];
+});
+
+/* [2026-01-24] 덕 코치의 보따리 힌트 문구를 동적으로 생성하는 계산된 속성 추가 (하드코딩 제거) */
+const implementationHint = computed(() => {
+  const hint = currentQuest.value?.validation?.execution?.implementation_hint;
+  const funcName = currentQuest.value?.validation?.execution?.function_name || 'my_function';
+  
+  return {
+    main: hint?.main || `이 문제의 파이썬 정답은 def ${funcName}(): 로 시작해야 하꽥!`,
+    sub: hint?.sub || "카드에 있던 명령어들을 순서대로 넣어주면 된다꽥:"
+  };
+});
+
+/* [2026-01-24] userSequence 변화에 따라 실시간으로 그려질 Mermaid 코드 생성 로직 */
+const mermaidCode = computed(() => {
+    if (userSequence.value.length === 0) return '';
+    
+    let code = 'flowchart TD\n';
+    // Style Definitions
+    code += '  classDef default fill:#1e1e2e,stroke:#45475a,color:#cdd6f4,stroke-width:2px,rx:10,ry:10;\n';
+    code += '  classDef loop fill:#1e1e2e,stroke:#f9e2af,color:#f9e2af,stroke-width:2px;\n';
+    code += '  classDef cond fill:#1e1e2e,stroke:#cba6f7,color:#cba6f7,stroke-width:2px;\n';
+    code += '  classDef startEnd fill:#1e1e2e,stroke:#a6e3a1,color:#a6e3a1,stroke-width:3px;\n';
+
+    // Start Node
+    code += '  START([시작])\n';
+    code += '  class START startEnd\n';
+    
+    let prevId = 'START';
+    
+    userSequence.value.forEach((card, idx) => {
+        const nodeId = `node_${idx}`;
+        const cleanText = card.text_ko.replace(/[\[\]"']/g, '').trim();
+        
+        if (card.isCondition || card.isLoop) {
+            // Condition/Loop nodes (Diamond or Hexagon shape)
+            code += `  ${nodeId}{{"${cleanText}"}}\n`;
+            code += card.isLoop ? `  class ${nodeId} loop\n` : `  class ${nodeId} cond\n`;
+        } else {
+            // Normal nodes
+            code += `  ${nodeId}["${cleanText}"]\n`;
+        }
+        
+        code += `  ${prevId} --> ${nodeId}\n`;
+        prevId = nodeId;
+    });
+    
+    // End Node
+    code += `  END([끝])\n`;
+    code += `  ${prevId} --> END\n`;
+    code += '  class END startEnd\n';
+    
+    return code;
+});
+
+// Watcher for Mermaid rendering
+watch(mermaidCode, async (newCode) => {
+    if (!newCode || !mermaidTarget.value) return;
+    
+    await nextTick();
+    try {
+        const { svg } = await mermaid.render(`mermaid-svg-${Date.now()}`, newCode);
+        if (mermaidTarget.value) {
+            mermaidTarget.value.innerHTML = svg;
+        }
+    } catch (e) {
+        console.error('Mermaid render error:', e);
+    }
 });
 
 // Initialize
 const initGame = () => {
+  /* [2026-01-24] Mermaid 초기화 */
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'dark',
+    securityLevel: 'loose',
+    flowchart: {
+        useMaxWidth: true,
+        htmlLabels: true,
+        curve: 'basis'
+    }
+  });
+
   console.log('[DEBUG] initGame called');
   console.log('[DEBUG] gameData:', gameData);
   console.log('[DEBUG] gameData.quests:', gameData.quests);
@@ -584,6 +713,12 @@ const selectAnswer = (index) => {
   selectedAnswer.value = index;
 };
 
+/* [2026-01-24] 심화 평가 답변 검증 로직 추가 */
+const checkFollowupAnswer = (index) => {
+  followupAnswered.value = true;
+  followupIsCorrect.value = index === currentFollowupQuestion.value.correctIndex;
+};
+
 // Submission
 const submitAndCheck = () => {
   /* [2026-01-24] 단순 JSON.stringify 비교에서 ID 및 Indent 개별 정밀 비교 로직으로 고도화 */
@@ -620,9 +755,20 @@ const submitAndCheck = () => {
     isCorrect.value = correctCount === solution.length && userBlocks.length === solution.length;
   }
   
+  /* [2026-01-24] 블록 순서뿐만 아니라 추론 질문(selectedAnswer)의 정답 여부도 함께 검증하도록 로직 고도화 */
+  const isReasoningCorrect = selectedAnswer.value === (currentQuest.value?.reasoning?.correctIndex ?? 0);
+  
   if (isCorrect.value) {
-    feedbackMessage.value = currentQuest.value.feedback?.success || '정답입니다!';
-    hintMessage.value = '';
+    if (isReasoningCorrect) {
+      feedbackMessage.value = currentQuest.value.feedback?.success || '정답입니다!';
+      hintMessage.value = '';
+    } else {
+      /* [2026-01-24] 블록 순서는 맞았지만 추론이 틀린 경우 별도의 피드백과 함께 재배치 허용 혹은 힌트 제공 */
+      isCorrect.value = false; // 둘 다 맞아야 통과로 처리
+      feedbackMessage.value = '블록 순서는 완벽하지만, 이유는 조금 더 생각해보자꽥!';
+      hintMessage.value = '선택한 이유가 논리에 맞는지 다시 한번 확인해보세요.';
+      duckCoachHint.value = "논리적인 이유를 정확히 이해하는 것이 중요하꽥!";
+    }
   } else {
     feedbackMessage.value = currentQuest.value.feedback?.failure || '다시 생각해보세요';
     hintMessage.value = currentQuest.value.feedback?.hint || '';
@@ -1097,8 +1243,14 @@ onMounted(() => {
 
 .pseudocode-layout {
   display: grid;
-  grid-template-columns: 400px 1fr;
-  gap: 2rem;
+  grid-template-columns: 350px 450px 1fr; /* [2026-01-24] 3단 레이아웃으로 확대 */
+  gap: 1.5rem;
+  align-items: stretch;
+}
+
+.flex-column {
+  display: flex;
+  flex-direction: column;
 }
 
 .card-deck-section,
@@ -1284,11 +1436,42 @@ onMounted(() => {
 }
 
 .remove-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  padding: 0;
   flex-shrink: 0;
+}
+
+/* Visualization Section [2026-01-24] */
+.visualization-section {
+  background: rgba(15, 15, 20, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.2rem;
+  padding: 1.8rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 500px;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.3);
+}
+
+.mermaid-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  padding: 1rem;
+}
+
+.vis-empty-state {
+  color: rgba(255, 255, 255, 0.2);
+  font-style: italic;
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+/* Mermaid SVG Style Overrides */
+:deep(.mermaid-container svg) {
+  max-width: 100%;
+  height: auto;
+  filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.4));
 }
 
 /* Pre-submission Query */
@@ -1877,6 +2060,84 @@ onMounted(() => {
   font-size: 1.2rem;
   line-height: 1.6;
   margin: 0;
+}
+
+/* [2026-01-24] 심화 평가 인터랙티브 요소 스타일 추가 */
+.followup-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.followup-option-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  padding: 1.25rem 1.5rem;
+  border-radius: 1rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: left;
+  line-height: 1.4;
+}
+
+.followup-option-btn:hover {
+  background: rgba(102, 126, 234, 0.15);
+  border-color: #667eea;
+  transform: translateZ(10px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.followup-feedback-box {
+  margin-top: 2rem;
+  padding: 2rem;
+  border-radius: 1.2rem;
+  animation: fadeIn 0.4s ease;
+  backdrop-filter: blur(10px);
+}
+
+.followup-feedback-box.pass {
+  background: rgba(74, 222, 128, 0.1);
+  border: 1px solid rgba(74, 222, 128, 0.2);
+}
+
+.followup-feedback-box.fail {
+  background: rgba(255, 75, 75, 0.1);
+  border: 1px solid rgba(255, 75, 75, 0.2);
+}
+
+.feedback-status {
+  font-weight: 900;
+  font-size: 1.2rem;
+  margin-bottom: 0.75rem;
+}
+
+.pass .feedback-status { color: #4ade80; }
+.fail .feedback-status { color: #ff6b6b; }
+
+.explanation-text {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1.1rem;
+  line-height: 1.7;
+}
+
+.re-answer-btn {
+  margin-top: 1.25rem;
+  background: #ff4b4b;
+  border: none;
+  color: white;
+  padding: 0.6rem 1.2rem;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+}
+
+.re-answer-btn:hover {
+  background: #ff6b6b;
 }
 
 .learning-summary {

@@ -1,5 +1,6 @@
 // 튜토리얼 + 11개 퀘스트 데이터
 // [2026-01-24] 정밀 평가 및 파이썬 실행 검증을 위한 validation 데이터 스키마(puzzle_solution, execution) 추가
+// [2026-01-24] 각 퀘스트별 맞춤형 추론 질문(reasoning) 데이터 추가 (질문, 선택지, 정답 인덱스)
 export const gameData = {
   tutorial: {
     id: 'tutorial',
@@ -85,19 +86,42 @@ export const gameData = {
           function_name: "cook_ramen",
           test_cases: [
             { input: "", expected: "'None'", type: "public", description: "라면을 정상적으로 끓이는지 확인" }
-          ]
+          ],
+          /* [2026-01-24] 퀘스트 맞춤형 힌트 추가: 하드코딩 탈피 */
+          implementation_hint: {
+            main: "라면 요리의 시작은 냄비와 함수 정의(cook_ramen)라꽥!",
+            sub: "배치한 카드 순서대로 함수 안을 채워주면 맛있는 라면이 완성될 거꽥."
+          }
         }
+      },
+      reasoning: {
+        question: '라면 끓이기 과정에서 왜 물을 먼저 끓여야 할까요?',
+        options: [
+          '프로그램은 항상 위에서 아래로 순서대로 실행되기 때문입니다',
+          '물이 끓어야 면과 스프가 익을 수 있는 조건이 갖춰지기 때문입니다',
+          '반복해서 물을 끓여야 더 맛있는 라면이 되기 때문입니다',
+          '사실 순서는 상관없지만 관습적으로 그렇게 합니다'
+        ],
+        correctIndex: 1
       },
       feedback: {
         success: '완벽합니다! 꼬들꼬들한 라면이 완성되었어요.',
         failure: '순서가 이상해요. 물이 끓기도 전에 먹으면 안 되겠죠?',
         hint: '프로그램은 위에서 아래로 한 줄씩 실행됩니다.'
       },
+      /* [2026-01-24] 심화 평가를 위한 인터랙티브 질문 구조로 변경 */
       interviewQuestions: [
         {
           trigger: 'success',
-          question: '완벽해요! 그런데 만약 물이 끓지 않았는데 면을 넣으면 어떻게 될까요?',
-          hint: '순서가 중요한 이유를 생각해보세요'
+          question: '완벽해요! 그런데 만약 물이 끓지 않았는데 면을 먼저 넣으면 어떻게 될까요?',
+          options: [
+            '라면 맛이 더 좋아집니다',
+            '면이 설익거나 국물 맛이 변할 수 있습니다',
+            '프로그램 실행 속도가 빨라집니다',
+            '아무런 차이가 없습니다'
+          ],
+          correctIndex: 1,
+          explanation: '프로그래밍에서도 실행 순서가 바뀌면 예상치 못한 결과(버그)가 발생할 수 있다는 점을 기억하꽥!'
         }
       ]
     },
@@ -146,19 +170,42 @@ export const gameData = {
           function_name: "plant_flower",
           test_cases: [
             { input: "", expected: "'None'", type: "public", description: "꽃을 정상적으로 심는지 확인" }
-          ]
+          ],
+          /* [2026-01-24] 퀘스트 맞춤형 힌트 추가 */
+          implementation_hint: {
+            main: "식물을 심는 순차적인 로직은 def plant_flower(): 로 시작한다꽥!",
+            sub: "흙, 씨앗, 물의 인과관계를 코드로 옮겨보꽥."
+          }
         }
+      },
+      reasoning: {
+        question: '꽃을 심는 과정에서 각 단계의 순서가 중요한 이유는 무엇일까요?',
+        options: [
+          '컴퓨터가 한 번에 하나의 일만 처리할 수 있기 때문입니다',
+          '이전 단계의 결과(흙이 찬 화분)가 다음 단계의 입력이 되기 때문입니다',
+          '반복적인 작업을 피하기 위해서 순서를 정합니다',
+          '코드의 길이가 짧아지기 때문입니다'
+        ],
+        correctIndex: 1
       },
       feedback: {
         success: '생명의 신비를 체험하셨군요! 올바른 순서입니다.',
         failure: '씨앗을 심기 전에 흙이 있어야 합니다.',
         hint: '일의 인과 관계(원인과 결과)를 생각해 보세요.'
       },
+      /* [2026-01-24] 심화 평가를 위한 인터랙티브 질문 구조로 변경 */
       interviewQuestions: [
         {
           trigger: 'success',
-          question: '잘했어요! 이제 조건문을 배워볼 준비가 되었나요?',
-          hint: '다음 레벨에서는 "만약 ~라면" 을 배워요'
+          question: '잘했어요! 만약 물을 먼저 주고 나중에 흙을 채우면 어떤 일이 생길까요?',
+          options: [
+            '꽃이 더 빨리 자랍니다',
+            '화분 밖으로 물이 다 새어나가고 씨앗이 씻겨나갈 수 있습니다',
+            '컴퓨터 메모리가 절약됩니다',
+            '순서는 전혀 중요하지 않습니다'
+          ],
+          correctIndex: 1,
+          explanation: '올바른 실행 순서(순차 구조)는 효율성뿐만 아니라 로직의 성패를 결정하기도 하꽥!'
         }
       ]
     },
@@ -212,19 +259,42 @@ export const gameData = {
           test_cases: [
             { input: "'rain'", expected: "'take_umbrella'", type: "public" },
             { input: "'sunny'", expected: "'None'", type: "hidden" }
-          ]
+          ],
+          /* [2026-01-24] 퀘스트 맞춤형 힌트 추가 (조건문) */
+          implementation_hint: {
+            main: "날씨를 확인하고 우산을 챙기는 조건문(if)은 def check_umbrella(): 안에 작성하꽥!",
+            sub: "if 문 아래에는 꼭 들여쓰기(Tab)를 해서 우산을 챙기는 동작을 넣어주꽥."
+          }
         }
+      },
+      reasoning: {
+        question: '여기서 `if` 문을 사용한 핵심적인 이유는 무엇일까요?',
+        options: [
+          '날씨와 상관없이 항상 우산을 챙기기 위해서입니다',
+          '특정한 조건(비)이 만족될 때만 명령을 실행하기 위해서입니다',
+          '여러 번 반복해서 날씨를 확인하기 위해서입니다',
+          '코드를 더 예쁘게 만들기 위해서입니다'
+        ],
+        correctIndex: 1
       },
       feedback: {
         success: '준비성이 철저하군요! 비를 맞지 않게 되었습니다.',
         failure: '비가 올 때만 우산을 챙겨야 합니다. 들여쓰기를 확인하세요.',
         hint: '조건이 \'참\'일 때 실행할 명령은 들여쓰기(Indent)가 필요합니다.'
       },
+      /* [2026-01-24] 심화 평가를 위한 인터랙티브 질문 구조로 변경 */
       interviewQuestions: [
         {
           trigger: 'success',
-          question: '잘했어요! 만약 화창한 날엔 선글라스를 챙기고 싶다면 어떻게 해야 할까요?',
-          hint: 'else를 사용하면 조건이 거짓일 때도 처리할 수 있어요'
+          question: '잘했어요! 만약 "비가 오지 않을 때" 선글라스를 챙기는 논리를 추가하려면 무엇이 필요할까요?',
+          options: [
+            '더 많은 if 문',
+            'else 문',
+            '반복문(while)',
+            '함수 정의'
+          ],
+          correctIndex: 1,
+          explanation: 'else를 사용하면 조건이 "거짓(False)"일 때 실행할 동작을 따로 정의할 수 있어서 더 똑똑한 프로그램이 된다꽥!'
         }
       ]
     },
@@ -296,19 +366,42 @@ export const gameData = {
           test_cases: [
             { input: "130", expected: "'ride'", type: "public" },
             { input: "110", expected: "'sorry'", type: "hidden" }
-          ]
+          ],
+          /* [2026-01-24] 퀘스트 맞춤형 힌트 추가 (Else) */
+          implementation_hint: {
+            main: "키가 크면 탑승, 아니면(else) 거절하는 안전 로직을 구현해보꽥!",
+            sub: "if와 else는 줄을 맞추고, 그 안의 동작들은 한 칸씩 들여써야 정확하꽥."
+          }
         }
+      },
+      reasoning: {
+        question: '`else` 블록은 언제 실행되나요?',
+        options: [
+          '항상 `if` 블록보다 먼저 실행됩니다',
+          '`if`문의 조건(키 >= 120)이 거짓(False)일 때 실행됩니다',
+          '키가 120일 때만 실행됩니다',
+          '조건과 상관없이 무조건 한 번은 실행됩니다'
+        ],
+        correctIndex: 1
       },
       feedback: {
         success: '안전 수칙을 잘 지켰습니다! 완벽한 안전 요원이네요.',
         failure: '키가 작은 어린이는 보호자가 필요해요. 탑승시키면 안 됩니다!',
         hint: 'if와 else는 짝꿍입니다. 조건이 맞을 때와 아닐 때를 모두 처리하세요.'
       },
+      /* [2026-01-24] 심화 평가를 위한 인터랙티브 질문 구조로 변경 */
       interviewQuestions: [
         {
           trigger: 'success',
-          question: '완벽합니다! 이제 반복문을 배워볼까요?',
-          hint: '같은 일을 여러 번 할 때 사용해요'
+          question: '잘했어요! 만약 `else` 블록을 빼먹으면 어떤 일이 생길까요?',
+          options: [
+            '키가 작은 사람이 탑승하게 됩니다',
+            '키가 작을 때 아무런 안내도 나가지 않게 됩니다',
+            '코드가 더 빨리 실행됩니다',
+            '에러가 발생해서 멈춥니다'
+          ],
+          correctIndex: 1,
+          explanation: 'else 문은 예외 상황을 처리하는 "안전망" 역할을 하므로 매우 중요하다꽥!'
         }
       ]
     },
@@ -327,7 +420,8 @@ export const gameData = {
           id: 'b1',
           text_ko: '카운트를 5로 정한다',
           text_py: 'count = 5',
-          icon: '5️⃣',
+          /* [2026-01-24] 일부 환경에서 깨질 수 있는 복합 이모지(5️⃣)를 안정적인 이모지(⏲️)로 교체 */
+          icon: '⏲️',
           color: 'blue',
           action: 'init_count'
         },
@@ -380,19 +474,42 @@ export const gameData = {
           function_name: "rocket_countdown",
           test_cases: [
             { input: "", expected: "'None'", type: "public" }
-          ]
+          ],
+          /* [2026-01-24] 퀘스트 맞춤형 힌트 추가 (반복문) */
+          implementation_hint: {
+            main: "로켓 발사를 위한 5, 4, 3, 2, 1 반복(while)은 def rocket_countdown(): 에서 시작하꽥!",
+            sub: "반복문 안에서 카운트를 1씩 줄이는 것(count = count - 1)을 잊지 마꽥!"
+          }
         }
+      },
+      reasoning: {
+        question: '반복문 안에서 `count = count - 1`이 꼭 필요한 이유는 무엇일까요?',
+        options: [
+          '코드가 너무 짧으면 오류가 나기 때문입니다',
+          '조건을 변화시켜서 언젠가는 반복문이 멈추게(탈출하게) 하기 위해서입니다',
+          '단순히 화면에 숫자를 예쁘게 표시하기 위해서입니다',
+          '파이썬에서는 변수 값을 항상 바꿔줘야 하기 때문입니다'
+        ],
+        correctIndex: 1
       },
       feedback: {
         success: '발사 성공! 우주로 날아갑니다! 🌌',
         failure: '카운트가 줄지 않으면 영원히 반복됩니다(무한루프)!',
         hint: '반복문 안에서 조건을 변화시켜야 멈출 수 있어요.'
       },
+      /* [2026-01-24] 심화 평가를 위한 인터랙티브 질문 구조로 변경 */
       interviewQuestions: [
         {
           trigger: 'success',
-          question: '완벽해요! 만약 카운트를 줄이는 부분을 빼먹으면 어떻게 될까요?',
-          hint: '무한 반복(Infinite Loop)이 발생해요'
+          question: '완벽해요! 만약 `count = count - 1` 부분을 빼먹으면 어떻게 될까요?',
+          options: [
+            '로켓이 즉시 발사됩니다',
+            '카운트가 줄어들지 않아 무한히 반복됩니다',
+            '컴퓨터가 로켓 사진을 출력합니다',
+            '코드가 더 간결해집니다'
+          ],
+          correctIndex: 1,
+          explanation: '반복문이 끝나기 위해서는 반드시 탈출 조건(카운트 감소 등)이 변화해야 한다는 걸 잊지 마꽥!'
         }
       ]
     },
@@ -453,19 +570,42 @@ export const gameData = {
           function_name: "blow_balloon",
           test_cases: [
             { input: "", expected: "'None'", type: "public" }
-          ]
+          ],
+          /* [2026-01-24] 퀘스트 맞춤형 힌트 추가 (반복 조건) */
+          implementation_hint: {
+            main: "풍선이 펑 터지기 전(크기 < 10)까지 계속 바람을 불어넣어주꽥!",
+            sub: "while size < 10: 아래에 바람 불기와 크기 키우기 코드를 나란히 넣어주면 된다꽥."
+          }
         }
+      },
+      reasoning: {
+        question: '`while size < 10:` 조건이 의미하는 바는 무엇일까요?',
+        options: [
+          '크기가 10이 될 때까지 딱 한 번만 실행한다는 뜻입니다',
+          '크기가 10보다 작은 동안에는 계속해서 바람을 불겠다는 뜻입니다',
+          '크기를 항상 10으로 고정하겠다는 뜻입니다',
+          '10번을 무조건 반복하겠다는 뜻입니다'
+        ],
+        correctIndex: 1
       },
       feedback: {
         success: '적당한 크기로 풍선을 잘 불었습니다!',
         failure: '조건을 잘못 설정하면 풍선이 펑! 터져버릴지도 몰라요.',
         hint: '반복문은 \'조건이 참인 동안\'에만 계속 실행된다는 점을 기억하세요.'
       },
+      /* [2026-01-24] 심화 평가를 위한 인터랙티브 질문 구조로 변경 */
       interviewQuestions: [
         {
           trigger: 'success',
-          question: '잘했어요! 이제 리스트를 다루는 방법을 배워볼까요?',
-          hint: '여러 개의 데이터를 한 번에 처리할 수 있어요'
+          question: '잘했어요! 만약 풍선 크기를 한 번에 2씩 키우고 싶다면 어떻게 수정해야 할까요?',
+          options: [
+            'size = size + 2',
+            'while size < 20:',
+            'blow_air() 를 두 번 씁니다',
+            '수정할 수 없습니다'
+          ],
+          correctIndex: 0,
+          explanation: '변수에 더해지는 값을 바꾸면 반복의 결과도 달라지게 된다꽥!'
         }
       ]
     },
@@ -518,19 +658,42 @@ export const gameData = {
           function_name: "calculate_total",
           test_cases: [
             { input: "", expected: "'None'", type: "public" }
-          ]
+          ],
+          /* [2026-01-24] 퀘스트 맞춤형 힌트 추가 (리스트 순회) */
+          implementation_hint: {
+            main: "가격을 하나씩 꺼내서(for p in prices) 합계에 더해주면 된다꽥!",
+            sub: "total = total + p 로 총액을 누적시키는 것이 이 문제의 핵심이꽥."
+          }
         }
+      },
+      reasoning: {
+        question: '이 코드에서 `p` 변수의 역할은 무엇일까요?',
+        options: [
+          '리스트 전체의 합계를 저장하는 변수입니다',
+          '반복할 때마다 리스트에서 하나씩 꺼내온 현재 물건의 가격입니다',
+          '리스트의 길이(데이터의 개수)를 나타냅니다',
+          '더 이상 반복할 데이터가 있는지 확인하는 스위치입니다'
+        ],
+        correctIndex: 1
       },
       feedback: {
         success: '계산 정확해요! 누적 합계(Accumulator) 패턴은 정말 자주 쓰인답니다.',
         failure: '더하는 동작은 반복문 안에서 계속 일어나야 합니다.',
         hint: '반복문 밖에서 더하면 마지막 물건 가격만 더해질 수 있습니다.'
       },
+      /* [2026-01-24] 심화 평가를 위한 인터랙티브 질문 구조로 변경 */
       interviewQuestions: [
         {
           trigger: 'success',
-          question: '완벽해요! 이제 조건과 반복을 섞어볼 준비가 되었나요?',
-          hint: '반복문 안에 조건문을 넣을 수 있어요'
+          question: '완벽해요! 리스트의 모든 숫자를 더한 `total` 값을 마지막에 한 번만 확인하려면 어디서 출력해야 할까요?',
+          options: [
+            'for 문 안쪽에서',
+            'for 문이 모두 끝난 뒤 바깥쪽에서',
+            '코드 맨 처음에서',
+            '수도코드 카드 위에서'
+          ],
+          correctIndex: 1,
+          explanation: '중간 과정이 아닌 최종 결과만 필요하다면 반복문이 완전히 끝난 뒤에 처리해야 효율적이라꽥!'
         }
       ]
     },
@@ -592,19 +755,42 @@ export const gameData = {
           function_name: "find_evens",
           test_cases: [
             { input: "", expected: "'None'", type: "public" }
-          ]
+          ],
+          /* [2026-01-24] 퀘스트 맞춤형 힌트 추가 (필터링) */
+          implementation_hint: {
+            main: "리스트를 돌면서 짝수인지 확인(if num % 2 == 0)하는 로직을 완성하꽥!",
+            sub: "조건에 맞는 경우에만 동작하도록 들여쓰기 깊이를 주의해서 작성하꽥."
+          }
         }
+      },
+      reasoning: {
+        question: '반복문(`for`) 안에 조건문(`if`)을 넣었을 때 얻을 수 있는 효과는?',
+        options: [
+          '코드를 더 복잡하게 만들어서 보안을 강화합니다',
+          '리스트의 모든 데이터를 그대로 출력합니다',
+          '리스트를 돌면서 특정한 조건을 만족하는 데이터만 골라서 처리할 수 있습니다',
+          '반복 횟수를 더 늘릴 수 있습니다'
+        ],
+        correctIndex: 2
       },
       feedback: {
         success: '짝수만 쏙쏙 잘 골라냈군요! 나머지 연산(%)을 잘 이해하셨습니다.',
         failure: '모든 숫자를 다 출력하면 안 돼요. 조건문 위치를 확인하세요.',
         hint: '반복문 안에 조건문을 넣으면 원하는 데이터만 필터링할 수 있습니다.'
       },
+      /* [2026-01-24] 심화 평가를 위한 인터랙티브 질문 구조로 변경 */
       interviewQuestions: [
         {
           trigger: 'success',
-          question: '대단해요! 이제 고급 알고리즘에 도전할 준비가 되었나요?',
-          hint: '최댓값 찾기 같은 알고리즘을 배워봐요'
+          question: '대단해요! 만약 짝수가 아닌 "홀수"만 골라내고 싶다면 조건을 어떻게 바꿔야 할까요?',
+          options: [
+            'num % 2 == 1',
+            'num % 2 != 0',
+            '위의 두 가지 모두 맞습니다',
+            'num / 2 == 0'
+          ],
+          correctIndex: 2,
+          explanation: '나머지가 1이거나, 0이 아니라는 조건 둘 다 홀수를 찾는 논리적인 방법이라꽥!'
         }
       ]
     },
@@ -623,7 +809,8 @@ export const gameData = {
           id: 'b1',
           text_ko: '첫 번째 숫자를 현재 대장(max_val)으로 정한다',
           text_py: 'max_val = nums[0]',
-          icon: '1️⃣',
+          /* [2026-01-24] 일부 환경에서 깨질 수 있는 복합 이모지(1️⃣)를 안정적인 이모지(🔢)로 교체 */
+          icon: '🔢',
           color: 'blue',
           action: 'init_max'
         },
@@ -668,19 +855,42 @@ export const gameData = {
           function_name: "find_max",
           test_cases: [
             { input: "", expected: "'None'", type: "public" }
-          ]
+          ],
+          /* [2026-01-24] 퀘스트 맞춤형 힌트 추가 (최댓값) */
+          implementation_hint: {
+            main: "지금까지 본 숫자 중 가장 큰 값을 max_val에 계속 업데이트하꽥!",
+            sub: "더 큰 숫자(n > max_val)가 나타났을 때만 대장을 교체해주면 된다꽥."
+          }
         }
+      },
+      reasoning: {
+        question: '최댓값을 찾는 알고리즘의 원리는 무엇일까요?',
+        options: [
+          '모든 숫자를 다 더한 뒤 개수로 나누는 것입니다',
+          '리스트를 정렬한 뒤 맨 앞의 숫자를 가져오는 것입니다',
+          '하나씩 비교하면서 지금까지 본 것 중 가장 큰 값을 계속 변수에 업데이트하는 것입니다',
+          '가장 큰 숫자가 나올 때까지 무한히 기다리는 것입니다'
+        ],
+        correctIndex: 2
       },
       feedback: {
         success: '진정한 챔피언을 찾아냈습니다! 최댓값 알고리즘을 마스터했네요.',
         failure: '비교 조건이 반대로 되면 가장 작은 수를 찾게 됩니다.',
         hint: '변수에 더 큰 값이 나타날 때마다 덮어쓰는 방식(Update)입니다.'
       },
+      /* [2026-01-24] 심화 평가를 위한 인터랙티브 질문 구조로 변경 */
       interviewQuestions: [
         {
           trigger: 'success',
-          question: '완벽합니다! 마지막 최종 보스 문제에 도전할 준비가 되었나요?',
-          hint: '조건문을 중첩해서 사용하는 고급 기술이에요'
+          question: '완벽합니다! 만약 리스트에 모든 숫자가 음수(-10, -50, -30)라면 `max_val`의 초기값은 무엇으로 정하는 게 가장 안전할까요?',
+          options: [
+            '0',
+            '리스트의 첫 번째 값(nums[0])',
+            '100',
+            '아무 숫자나 상관없습니다'
+          ],
+          correctIndex: 1,
+          explanation: '데이터 중 하나를 초기값으로 정해야만, 모든 값이 초기값보다 작아서 최댓값을 못 찾는 실수를 방지할 수 있다꽥!'
         }
       ]
     },
@@ -754,19 +964,42 @@ export const gameData = {
           function_name: "login_system",
           test_cases: [
             { input: "", expected: "'None'", type: "public" }
-          ]
+          ],
+          /* [2026-01-24] 퀘스트 맞춤형 힌트 추가 (중첩 조건) */
+          implementation_hint: {
+            main: "아이디가 맞으면(if) 그 안에서 다시 비밀번호를 확인하는 중첩 로직이꽥!",
+            sub: "else는 비밀번호가 틀린 경우에 대응하도록 첫 번째 if 안쪽에 넣어주꽥."
+          }
         }
+      },
+      reasoning: {
+        question: '중첩 조건문(Nested If)의 특징은 무엇일까요?',
+        options: [
+          '바깥쪽 조건(`if id == \'admin\'`)이 참일 때만 안쪽 조건(`if pw == \'1234\'`)을 검사합니다',
+          '두 조건 중 하나만 맞으면 무조건 성공합니다',
+          '여러 조건을 한 줄에 적는 것보다 속도가 느립니다',
+          '사용자의 아이디와 비밀번호를 항상 공개합니다'
+        ],
+        correctIndex: 0
       },
       feedback: {
         success: '보안 시스템 가동 완료! 해커도 뚫지 못하겠네요.',
         failure: '아이디만 맞다고 통과시켜주면 보안 사고가 발생합니다!',
         hint: 'if문 안에 또 if문을 넣으면 더 까다롭고 정교한 조건을 만들 수 있습니다.'
       },
+      /* [2026-01-24] 심화 평가를 위한 인터랙티브 질문 구조로 변경 */
       interviewQuestions: [
         {
           trigger: 'success',
-          question: '🎉 축하합니다! 모든 문제를 클리어했어요! 이제 진짜 코딩을 시작할 준비가 되었습니다!',
-          hint: '수도코드를 이해했다면 실제 코드도 금방 배울 수 있어요'
+          question: '🎉 축하합니다! 모든 문제를 클리어했어요! 보안 시스템에서 `if` 문을 중첩해서 사용하는 가장 큰 이유는 무엇일까요?',
+          options: [
+            '코드를 더 길게 만들기 위해서',
+            '아이디가 맞을 때만 비밀번호를 확인하는 "단계적 보안"을 위해서',
+            '비밀번호를 화면에 출력하기 위해서',
+            '컴퓨터를 더 뜨겁게 만들기 위해서'
+          ],
+          correctIndex: 1,
+          explanation: '단계별로 조건을 검사하면 불필요한 확인 과정을 줄이고 보안 논리를 명확하게 짤 수 있다꽥! 정말 고생 많으셨어꽥!'
         }
       ]
     }

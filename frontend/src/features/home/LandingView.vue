@@ -185,6 +185,14 @@
     <footer class="playground-footer">
       <p>&copy; 2026 ARCH-GYM. Crafted with ❤️ by Final 5 Team</p>
     </footer>
+
+    <!-- [2026-01-24] 최상단 복귀용 프리미엄 Home 버튼 추가 -->
+    <transition name="home-pop">
+      <button v-if="isScrolled" @click="scrollToTop" class="btn-floating-home" aria-label="Scroll to top">
+        <Home class="home-icon" />
+        <div class="home-glow"></div>
+      </button>
+    </transition>
   </div>
 </template>
 
@@ -198,7 +206,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Users,
-  Crown
+  Crown,
+  Home
 } from 'lucide-vue-next';
 
 export default {
@@ -212,7 +221,8 @@ export default {
     ChevronLeft,
     ChevronRight,
     Users,
-    Crown
+    Crown,
+    Home
   },
   props: {
     isLoggedIn: Boolean,
@@ -246,6 +256,16 @@ export default {
     },
     scrollToLeaderboard() {
       document.getElementById('leaderboard')?.scrollIntoView({ behavior: 'smooth' });
+    },
+    /* [2026-01-24] 최상단(히어로 영역)으로 부드럽게 복귀하는 로직 구현 */
+    scrollToTop() {
+      const container = this.$refs.landingContainer;
+      if (container) {
+        container.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        });
+      }
     },
     nextSlide() {
       this.currentIdx = (this.currentIdx + 1) % this.chapters.length;
@@ -1416,5 +1436,64 @@ export default {
   padding: 4rem;
   color: #475569;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* [2026-01-24] 플로팅 Home 버튼용 프리미엄 테마 스타일 정의 */
+.btn-floating-home {
+  position: fixed;
+  bottom: 2.5rem;
+  right: 2.5rem;
+  width: 64px;
+  height: 64px;
+  background: rgba(182, 255, 64, 0.12);
+  backdrop-filter: blur(12px);
+  border: 2px solid rgba(182, 255, 64, 0.6);
+  border-radius: 50%;
+  color: #b6ff40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2000;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(182, 255, 64, 0.2);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.btn-floating-home:hover {
+  transform: translateY(-8px) scale(1.1);
+  background: #b6ff40;
+  color: #0c0e14;
+  box-shadow: 0 15px 40px rgba(182, 255, 64, 0.5);
+  border-color: #b6ff40;
+}
+
+.home-icon {
+  width: 30px;
+  height: 30px;
+  position: relative;
+  z-index: 2;
+}
+
+.home-glow {
+  position: absolute;
+  inset: -5px;
+  background: radial-gradient(circle, rgba(182, 255, 64, 0.4) 0%, transparent 75%);
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.btn-floating-home:hover .home-glow {
+  opacity: 1;
+}
+
+/* Home Button Animations */
+.home-pop-enter-active, .home-pop-leave-active {
+  transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.home-pop-enter-from, .home-pop-leave-to {
+  opacity: 0;
+  transform: translateY(30px) scale(0.5);
 }
 </style>
