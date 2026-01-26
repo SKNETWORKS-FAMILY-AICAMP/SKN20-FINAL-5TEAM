@@ -248,7 +248,8 @@ function selectProblem(problem) {
     game.selectedQuestIndex = problem.questIndex || 0;
     ui.isLogicMirrorOpen = true;
   } else if (chapterName === 'System Practice') {
-    router.push('/practice/system-architecture');
+    game.selectedSystemProblemIndex = problem.problemIndex || 0;
+    router.push({ path: '/practice/system-architecture', query: { problem: problem.problemIndex || 0 } });
   } else if (chapterName === 'Debug Practice') {
     if (game.currentDebugMode === 'bug-hunt') {
       // p1, p2, p3 미션으로 바로 이동
