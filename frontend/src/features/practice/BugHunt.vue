@@ -1,5 +1,12 @@
 <template>
-  <div class="debug-practice-page">
+  <div class="debug-practice-page" :class="{ 'shake-effect': isShaking }">
+    <!-- 콤보 플로팅 텍스트 -->
+    <transition name="combo-fade">
+      <div v-if="showComboPopup" class="combo-popup">
+        {{ comboText }}
+      </div>
+    </transition>
+
     <!-- 레벨업 이펙트 -->
     <transition name="levelup">
       <div v-if="showLevelUp" class="levelup-overlay">
@@ -177,6 +184,35 @@
         </div>
       </transition>
 
+      <!-- PHASE 3: EXPLAIN 팝업 -->
+      <transition name="explainPopup">
+        <div v-if="showExplainPopup" class="explain-popup-overlay">
+          <div class="explain-popup-content">
+            <div class="explain-popup-header">
+              <span class="explain-icon">📝</span>
+              <span class="explain-title-text">PHASE 3: EXPLAIN</span>
+            </div>
+            <div class="explain-popup-body">
+              <p class="explain-prompt">버그를 어떻게 찾고 해결했는지 설명해주세요!</p>
+              <textarea
+                v-model="stepExplanations[currentProgressiveStep]"
+                placeholder="왜 이렇게 해결했나요? 해결 전략을 설명해주세요."
+                class="explain-popup-textarea"
+              ></textarea>
+            </div>
+            <div class="explain-popup-footer">
+              <button
+                class="explain-submit-btn"
+                @click="submitExplanation"
+                :disabled="!stepExplanations[currentProgressiveStep]?.trim()"
+              >
+                {{ currentProgressiveStep === 3 ? '🏆 FINAL SUBMIT' : '➡️ NEXT MISSION' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </transition>
+
       <!-- 미션 완료 이펙트 -->
       <transition name="missionComplete">
         <div v-if="showMissionComplete" class="mission-complete-overlay">
@@ -283,20 +319,10 @@
               </button>
             </template>
             
-            <div v-if="currentProgressivePhase === 'explain'" class="explain-action-box">
-              <div class="explain-title">PHASE 3: EXPLAIN</div>
-              <textarea 
-                v-model="stepExplanations[currentProgressiveStep]" 
-                placeholder="왜 이렇게 해결했나요? 해결 전략을 설명해주세요."
-                class="explain-textarea"
-              ></textarea>
-              <button 
-                class="action-btn next-step-btn" 
-                @click="moveToNextStep"
-                :disabled="!stepExplanations[currentProgressiveStep]?.trim()"
-              >
-                {{ currentProgressiveStep === 3 ? 'FINAL SUBMIT' : 'NEXT MISSION' }}
-              </button>
+            <!-- PHASE 3: EXPLAIN은 팝업으로 표시됨 -->
+            <div v-if="currentProgressivePhase === 'explain'" class="explain-waiting-box">
+              <span class="waiting-icon">📝</span>
+              <span class="waiting-text">설명을 작성해주세요!</span>
             </div>
           </div>
         </aside>
@@ -773,6 +799,14 @@ const showMissionComplete = ref(false);
 const progressiveMissionXP = ref(0);
 const progressiveMissionScore = ref(0);
 
+// 화면 흔들림 및 콤보 효과
+const isShaking = ref(false);
+const showComboPopup = ref(false);
+const comboText = ref('');
+
+// PHASE 3 설명 팝업
+const showExplainPopup = ref(false);
+
 // 미션 해금 여부 (순차적)
 function isMissionUnlocked(index) {
   if (index === 0) return true;
@@ -924,6 +958,12 @@ function moveToNextStep() {
   }
 }
 
+// PHASE 3 설명 제출 (팝업에서 호출)
+function submitExplanation() {
+  showExplainPopup.value = false;
+  moveToNextStep();
+}
+
 // 평가 화면 보기
 async function showEvaluation() {
   showMissionComplete.value = false;
@@ -1060,12 +1100,16 @@ function submitProgressiveStep() {
           type: 'success'
         });
 
-        // 3단계: 설명 페이즈로 전환
-        currentProgressivePhase.value = 'explain';
-        
-        // 스텝 완료 이펙트 (폭발 효과)
-        showStepComplete.value = true;
-        setTimeout(() => { showStepComplete.value = false; }, 2000);
+        // 스텝 완료 이펙트 (폭발 효과) - 1초 딜레이 후 표시
+        setTimeout(() => {
+          showStepComplete.value = true;
+          setTimeout(() => {
+            showStepComplete.value = false;
+            // 3단계: 설명 페이즈로 전환 (팝업으로 표시)
+            currentProgressivePhase.value = 'explain';
+            showExplainPopup.value = true;
+          }, 2000);
+        }, 1000);
 
       } else {
         // 실패
@@ -1250,10 +1294,21 @@ function shootBug(targetStep, isHit) {
     } else {
       showBullet.value = false;
 
+      // 화면 흔들림 효과 (타격/실패 시)
+      isShaking.value = true;
+      setTimeout(() => { isShaking.value = false; }, 500);
+
       if (isHit) {
         hitEffectPosition.value = { x: targetX, y: targetY };
         hitEffectText.value = ['SQUASH!', 'GOTCHA!', 'ELIMINATED!'][Math.floor(Math.random() * 3)];
         showHitEffect.value = true;
+
+        // 콤보 팝업 표시 (2콤보 이상일 때)
+        if (gameData.combo >= 2) {
+          comboText.value = gameData.combo >= 5 ? 'PERFECT!' : `${gameData.combo} COMBO!`;
+          showComboPopup.value = true;
+          setTimeout(() => { showComboPopup.value = false; }, 1000);
+        }
 
         // 해당 버그 애니메이션 중지
         if (bugAnimationIds[targetStep]) {
@@ -2540,24 +2595,26 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 30px;
+  padding: 8px 20px;
   border-bottom: 2px solid var(--border-color);
   font-family: 'Orbitron', monospace;
   color: var(--neon-yellow);
+  flex-shrink: 0;
 }
 
 .hint-header span:not(.close-btn) {
-  font-size: 1.2rem;
+  font-size: 1rem;
   letter-spacing: 2px;
   text-shadow: 0 0 10px var(--neon-yellow);
 }
 
 .hint-content {
-  padding: 35px 40px;
-  line-height: 1.8;
+  padding: 15px 20px;
+  line-height: 1.7;
   color: #f0f0f0;
   overflow-y: auto;
-  font-size: 1.15rem;
+  font-size: 1.1rem;
+  flex: 1;
 }
 
 .hint-content::-webkit-scrollbar {
@@ -3512,5 +3569,212 @@ onUnmounted(() => {
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+/* --- 화면 흔들림 효과 --- */
+@keyframes shake {
+  0% { transform: translate(1px, 1px) rotate(0deg); }
+  20% { transform: translate(-3px, 0px) rotate(1deg); }
+  40% { transform: translate(1px, -1px) rotate(1deg); }
+  60% { transform: translate(-1px, 1px) rotate(-1deg); }
+  80% { transform: translate(-1px, -1px) rotate(1deg); }
+  100% { transform: translate(1px, 2px) rotate(0deg); }
+}
+
+.shake-effect {
+  animation: shake 0.5s;
+}
+
+/* --- 콤보 텍스트 애니메이션 --- */
+.combo-popup {
+  position: fixed;
+  top: 20%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Orbitron', sans-serif;
+  font-size: 3rem;
+  font-weight: bold;
+  color: var(--neon-magenta);
+  text-shadow: 0 0 20px var(--neon-magenta), 0 0 40px var(--neon-magenta);
+  pointer-events: none;
+  z-index: 1000;
+  animation: floatUp 1s ease-out forwards;
+}
+
+@keyframes floatUp {
+  0% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+  50% { transform: translateX(-50%) translateY(-30px) scale(1.2); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-60px) scale(0.8); }
+}
+
+/* 콤보 트랜지션 */
+.combo-fade-enter-active,
+.combo-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.combo-fade-enter-from,
+.combo-fade-leave-to {
+  opacity: 0;
+}
+
+/* --- PHASE 3: EXPLAIN 팝업 --- */
+.explain-popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  backdrop-filter: blur(5px);
+}
+
+.explain-popup-content {
+  background: var(--panel-bg);
+  border: 3px solid var(--neon-cyan);
+  border-radius: 20px;
+  width: 90%;
+  max-width: 600px;
+  box-shadow: 0 0 50px rgba(0, 243, 255, 0.4), inset 0 0 30px rgba(0, 243, 255, 0.1);
+  animation: explainPopIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes explainPopIn {
+  from { transform: scale(0.8) translateY(30px); opacity: 0; }
+  to { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.explain-popup-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 20px 30px;
+  border-bottom: 2px solid var(--border-color);
+  background: linear-gradient(180deg, rgba(0, 243, 255, 0.15) 0%, transparent 100%);
+  border-radius: 17px 17px 0 0;
+}
+
+.explain-icon {
+  font-size: 2rem;
+}
+
+.explain-title-text {
+  font-family: 'Orbitron', monospace;
+  font-size: 1.5rem;
+  color: var(--neon-cyan);
+  text-shadow: 0 0 15px var(--neon-cyan);
+  letter-spacing: 2px;
+}
+
+.explain-popup-body {
+  padding: 30px;
+}
+
+.explain-prompt {
+  color: #e0e0e0;
+  font-size: 1.1rem;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.explain-popup-textarea {
+  width: 100%;
+  height: 150px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  padding: 15px;
+  color: #fff;
+  font-size: 1rem;
+  font-family: inherit;
+  resize: none;
+  transition: all 0.3s ease;
+}
+
+.explain-popup-textarea:focus {
+  outline: none;
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+}
+
+.explain-popup-textarea::placeholder {
+  color: #666;
+}
+
+.explain-popup-footer {
+  padding: 20px 30px;
+  border-top: 2px solid var(--border-color);
+  display: flex;
+  justify-content: center;
+}
+
+.explain-submit-btn {
+  background: linear-gradient(135deg, var(--neon-cyan), #0088ff);
+  color: #fff;
+  border: none;
+  padding: 15px 40px;
+  border-radius: 12px;
+  font-family: 'Orbitron', monospace;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 243, 255, 0.4);
+}
+
+.explain-submit-btn:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 30px rgba(0, 243, 255, 0.6);
+}
+
+.explain-submit-btn:disabled {
+  background: #444;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Explain 팝업 트랜지션 */
+.explainPopup-enter-active,
+.explainPopup-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.explainPopup-enter-from,
+.explainPopup-leave-to {
+  opacity: 0;
+}
+
+/* 대기 박스 (사이드바 내) */
+.explain-waiting-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 20px;
+  background: rgba(0, 243, 255, 0.1);
+  border: 2px solid var(--neon-cyan);
+  border-radius: 12px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.waiting-icon {
+  font-size: 2rem;
+}
+
+.waiting-text {
+  color: var(--neon-cyan);
+  font-family: 'Orbitron', monospace;
+  font-size: 0.9rem;
+  text-shadow: 0 0 10px var(--neon-cyan);
 }
 </style>
