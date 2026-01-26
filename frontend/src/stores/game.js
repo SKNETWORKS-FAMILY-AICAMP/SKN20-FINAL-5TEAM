@@ -12,7 +12,7 @@ export const useGameStore = defineStore('game', {
         unitProgress: {
             'Pseudo Practice': [0],
             'Debug Practice': [0],
-            'System Practice': [0],
+            'System Practice': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
             'Ops Practice': [0],
             'Agent Practice': [0]
         },
@@ -20,7 +20,8 @@ export const useGameStore = defineStore('game', {
         activeProblem: null,
         activeChapter: null,
         currentDebugMode: 'bug-hunt',
-        selectedQuestIndex: 0
+        selectedQuestIndex: 0,
+        selectedSystemProblemIndex: 0
     }),
 
     actions: {
@@ -36,8 +37,19 @@ export const useGameStore = defineStore('game', {
 
             this.chapters = [
                 { id: 1, name: 'Pseudo Practice', unitTitle: 'Algorithm 101', description: 'Strength Training', problems: [], image: '/image/unit_code.png' },
-                { id: 2, name: 'Debug Practice', description: 'Precision Training', problems: [], image: '/image/unit_debug.png' },
-                { id: 3, name: 'System Practice', description: 'Strategy Training', problems: [{ id: 3, title: 'Design System' }], image: '/image/unit_system.png' },
+                { id: 2, name: 'Debug Practice', description: 'Precision Training', problems: [{ id: 2, title: 'Fix the Bug' }], image: '/image/unit_debug.png' },
+                { id: 3, name: 'System Practice', description: 'Strategy Training', problems: [
+                    { id: 1, title: 'Instagram Home Feed', displayNum: '3-1', problemIndex: 0 },
+                    { id: 2, title: 'YouTube VOD 업로드/스트리밍', displayNum: '3-2', problemIndex: 1 },
+                    { id: 3, title: '실시간 메시징', displayNum: '3-3', problemIndex: 2 },
+                    { id: 4, title: '라이드헤일링 실시간 배차', displayNum: '3-4', problemIndex: 3 },
+                    { id: 5, title: '짧은 영상 추천 피드', displayNum: '3-5', problemIndex: 4 },
+                    { id: 6, title: 'Drive/Dropbox 파일 저장', displayNum: '3-6', problemIndex: 5 },
+                    { id: 7, title: 'Checkout 주문/결제', displayNum: '3-7', problemIndex: 6 },
+                    { id: 8, title: '실시간 검색 + 트렌딩', displayNum: '3-8', problemIndex: 7 },
+                    { id: 9, title: '화상회의(WebRTC)', displayNum: '3-9', problemIndex: 8 },
+                    { id: 10, title: 'RTB 광고 입찰', displayNum: '3-10', problemIndex: 9 }
+                ], image: '/image/unit_system.png' },
                 { id: 4, name: 'Ops Practice', description: 'Endurance Training', problems: [{ id: 4, title: 'Server Down!' }], image: '/image/unit_ops.png' },
                 { id: 5, name: 'Agent Practice', description: 'AI Training', problems: [{ id: 5, title: 'Prompt Eng' }], image: '/image/unit_agent.png' },
             ].map((ch, idx) => ({

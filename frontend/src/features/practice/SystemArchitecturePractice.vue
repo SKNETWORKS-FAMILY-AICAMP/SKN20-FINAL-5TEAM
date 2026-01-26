@@ -170,6 +170,12 @@ export default {
       securityLevel: 'loose'
     });
 
+    // 라우터 쿼리에서 문제 인덱스 설정
+    const problemIndex = parseInt(this.$route?.query?.problem);
+    if (!isNaN(problemIndex) && problemIndex >= 0) {
+      this.currentProblemIndex = problemIndex;
+    }
+
     await this.loadProblems();
   },
   methods: {
@@ -178,6 +184,10 @@ export default {
       try {
         const data = await fetchProblems();
         this.problems = transformProblems(data);
+        // 인덱스 범위 체크
+        if (this.currentProblemIndex >= this.problems.length) {
+          this.currentProblemIndex = 0;
+        }
       } catch (error) {
         console.error('Failed to load problems:', error);
         this.problems = [];
