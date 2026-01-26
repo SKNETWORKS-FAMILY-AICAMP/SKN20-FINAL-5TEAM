@@ -3,6 +3,8 @@
  * OpenAI API와의 통신을 담당하는 서비스
  */
 
+import architectureProblems from '@/data/architecture.json';
+
 const getApiKey = () => import.meta.env.VITE_OPENAI_API_KEY;
 
 /**
@@ -45,7 +47,7 @@ async function callOpenAI(prompt, options = {}) {
 }
 
 /**
- * 심층 질문 생성
+ * 심층 질문 생성 (레거시 - 단일 연결용)
  */
 export async function generateDeepDiveQuestion(problem, fromComp, toComp) {
   const prompt = `당신은 시스템 아키텍처 면접관입니다.
@@ -69,6 +71,96 @@ export async function generateDeepDiveQuestion(problem, fromComp, toComp) {
   } catch (error) {
     console.error('Deep dive question error:', error);
     return `${fromComp.text}와 ${toComp.text}의 연결에서 예상되는 데이터 흐름과 잠재적인 병목 현상에 대해 설명해주세요.`;
+  }
+}
+
+/**
+ * 아키텍처 분석 기반 심층 질문 3개 생성 (최종 제출용)
+ * Mermaid 다이어그램과 컴포넌트/연결 정보를 분석하여 면접 질문 생성
+ */
+export async function generateArchitectureAnalysisQuestions(problem, components, connections, mermaidCode) {
+  // 컴포넌트 정보 정리
+  const componentList = components.map(c => `- ${c.text} (타입: ${c.type})`).join('\n');
+
+  // 연결 정보 정리
+  const connectionList = connections.map(conn => {
+    const from = components.find(c => c.id === conn.from);
+    const to = components.find(c => c.id === conn.to);
+    return from && to ? `- ${from.text} → ${to.text}` : null;
+  }).filter(Boolean).join('\n');
+
+  const prompt = `당신은 시스템 아키텍처 면접관입니다.
+학생이 설계한 아키텍처를 분석하고, 심층적인 면접 질문 3개를 생성해주세요.
+
+## 문제 정보
+- 제목: ${problem?.title || '시스템 아키텍처 설계'}
+- 요구사항: ${problem?.requirements?.join(', ') || '없음'}
+- 주요 토픽: ${problem?.questionTopics?.map(t => t.topic).join(', ') || '없음'}
+
+## 학생의 아키텍처 설계
+
+### 배치된 컴포넌트 (${components.length}개):
+${componentList || '없음'}
+
+### 연결 관계 (${connections.length}개):
+${connectionList || '없음'}
+
+### Mermaid 다이어그램:
+\`\`\`
+${mermaidCode}
+\`\`\`
+
+## 질문 생성 기준
+1. **설계 의도 질문**: 왜 이런 구조를 선택했는지, 트레이드오프는 무엇인지
+2. **확장성/성능 질문**: 트래픽 증가, 병목 현상, 캐싱 전략 등
+3. **장애 대응 질문**: 특정 컴포넌트 장애 시 시스템 동작, 복구 전략 등
+
+각 질문은 학생의 실제 설계를 기반으로 구체적이어야 합니다.
+질문은 서로 다른 관점(설계 의도, 확장성, 장애 대응)에서 출제하세요.
+
+## 출력 형식 (JSON만 출력, 다른 텍스트 없이):
+{
+  "questions": [
+    {
+      "category": "설계 의도",
+      "question": "질문 내용"
+    },
+    {
+      "category": "확장성/성능",
+      "question": "질문 내용"
+    },
+    {
+      "category": "장애 대응",
+      "question": "질문 내용"
+    }
+  ]
+}`;
+
+  try {
+    const response = await callOpenAI(prompt, { maxTokens: 600, temperature: 0.7 });
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return parsed.questions || [];
+    }
+    throw new Error('Invalid JSON response');
+  } catch (error) {
+    console.error('Architecture analysis questions error:', error);
+    // Fallback 질문 생성
+    return [
+      {
+        category: '설계 의도',
+        question: `${problem?.title || '이 시스템'}에서 현재 설계한 아키텍처의 핵심 컴포넌트와 그 선택 이유를 설명해주세요.`
+      },
+      {
+        category: '확장성/성능',
+        question: '트래픽이 10배로 증가할 경우, 현재 아키텍처에서 가장 먼저 병목이 발생할 곳은 어디이며 어떻게 대응하시겠습니까?'
+      },
+      {
+        category: '장애 대응',
+        question: '주요 컴포넌트 중 하나가 장애가 발생했을 때, 시스템은 어떻게 동작하며 복구 전략은 무엇인가요?'
+      }
+    ];
   }
 }
 
@@ -213,11 +305,9 @@ ${chatContext}
 
 /**
  * 문제 데이터 로드
+ * @returns {Promise<Array>} 아키텍처 문제 데이터
  */
 export async function fetchProblems() {
-  const response = await fetch('/test.json');
-  if (!response.ok) {
-    throw new Error('Failed to load problems');
-  }
-  return await response.json();
+  // src/data/architecture.json에서 import된 데이터 반환
+  return architectureProblems;
 }

@@ -2,15 +2,24 @@
   <div class="modal-overlay" :class="{ active: isActive }">
     <div class="modal-window deep-dive-modal">
       <div class="modal-header">
-        <h3>🔗 연결 심화 질문</h3>
-        <div class="modal-subtitle">Connection Deep Dive</div>
+        <h3>🎯 아키텍처 심층 분석</h3>
+        <div class="modal-subtitle">Architecture Deep Dive</div>
+        <div v-if="totalQuestions > 0" class="question-progress">
+          <span class="progress-text">질문 {{ currentQuestion }} / {{ totalQuestions }}</span>
+          <div class="progress-bar">
+            <div class="progress-fill" :style="{ width: progressPercent + '%' }"></div>
+          </div>
+        </div>
       </div>
       <div class="modal-body">
         <div v-if="isGenerating" class="loading-question">
           <div class="loading-spinner-large"></div>
-          <p>연결에 대한 질문을 생성하는 중...</p>
+          <p>아키텍처를 분석하여 질문을 생성하는 중...</p>
         </div>
         <template v-else>
+          <div class="question-category-badge" v-if="category">
+            {{ categoryIcon }} {{ category }}
+          </div>
           <div class="ai-question deep-dive">
             <span class="ai-question-title">DEEP DIVE QUESTION</span>
             <span>{{ question }}</span>
@@ -18,18 +27,20 @@
           <textarea
             class="user-answer"
             v-model="answer"
-            placeholder="이 연결에 대해 설명해주세요..."
+            placeholder="설계 의도와 함께 구체적으로 설명해주세요..."
           ></textarea>
         </template>
       </div>
       <div class="modal-footer">
-        <button class="btn-cancel" @click="$emit('skip')">건너뛰기</button>
+        <button class="btn-cancel" @click="$emit('skip')">
+          {{ isLastQuestion ? '스킵하고 평가하기' : '건너뛰기' }}
+        </button>
         <button
           class="btn-submit"
           @click="submitAnswer"
           :disabled="isGenerating"
         >
-          답변 저장
+          {{ isLastQuestion ? '답변 후 평가하기' : '다음 질문' }}
         </button>
       </div>
     </div>
@@ -51,6 +62,18 @@ export default {
     isGenerating: {
       type: Boolean,
       default: false
+    },
+    currentQuestion: {
+      type: Number,
+      default: 1
+    },
+    totalQuestions: {
+      type: Number,
+      default: 3
+    },
+    category: {
+      type: String,
+      default: ''
     }
   },
   emits: ['skip', 'submit'],
@@ -59,7 +82,30 @@ export default {
       answer: ''
     };
   },
+  computed: {
+    progressPercent() {
+      if (this.totalQuestions === 0) return 0;
+      return (this.currentQuestion / this.totalQuestions) * 100;
+    },
+    isLastQuestion() {
+      return this.currentQuestion >= this.totalQuestions;
+    },
+    categoryIcon() {
+      const icons = {
+        '설계 의도': '🎨',
+        '확장성/성능': '📈',
+        '장애 대응': '🛡️'
+      };
+      return icons[this.category] || '💡';
+    }
+  },
   watch: {
+    question(newVal) {
+      // 질문이 변경되면 답변 초기화
+      if (newVal) {
+        this.answer = '';
+      }
+    },
     isActive(newVal) {
       if (newVal) {
         this.answer = '';
@@ -129,6 +175,44 @@ export default {
 .modal-subtitle {
   color: #ff4785;
   font-size: 0.9em;
+}
+
+.question-progress {
+  margin-top: 15px;
+}
+
+.progress-text {
+  display: block;
+  font-size: 0.85em;
+  color: #b0bec5;
+  margin-bottom: 8px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 71, 133, 0.2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff4785, #ff1744);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.question-category-badge {
+  display: inline-block;
+  padding: 6px 14px;
+  background: rgba(255, 71, 133, 0.2);
+  border: 1px solid rgba(255, 71, 133, 0.4);
+  border-radius: 20px;
+  font-size: 0.85em;
+  color: #ff4785;
+  margin-bottom: 15px;
+  font-weight: 600;
 }
 
 .modal-body {

@@ -14,8 +14,25 @@
       <div class="bg-animation"></div>
 
       <div class="game-container">
-        <!-- 컴포넌트 팔레트 -->
-        <ComponentPalette @drag-start="onPaletteDragStart" />
+        
+        <!-- 결과 패널 -->
+        <div class="result-panel">
+          <!-- 문제 카드 -->
+          <ProblemCard
+          :problem="currentProblem"
+          :is-connection-mode="isConnectionMode"
+          :can-evaluate="droppedComponents.length > 0"
+          :is-evaluating="isEvaluating"
+          @start-evaluation="openEvaluationModal"
+          />
+          
+          <!-- 채팅 패널 -->
+          <!-- <ChatPanel
+          :messages="chatMessages"
+          :is-loading="isChatLoading"
+          @send-message="handleChatMessage"
+          /> -->
+        </div>
 
         <!-- 아키텍처 캔버스 -->
         <ArchitectureCanvas
@@ -29,28 +46,12 @@
           @component-renamed="onComponentRenamed"
           @component-deleted="onComponentDeleted"
           @connection-created="onConnectionCreated"
-        />
-
-        <!-- 결과 패널 -->
-        <div class="result-panel">
-          <!-- 문제 카드 -->
-          <ProblemCard
-            :problem="currentProblem"
-            :is-connection-mode="isConnectionMode"
-            :can-evaluate="droppedComponents.length > 0"
-            :is-evaluating="isEvaluating"
-            @start-evaluation="openEvaluationModal"
           />
-
-          <!-- 채팅 패널 -->
-          <ChatPanel
-            :messages="chatMessages"
-            :is-loading="isChatLoading"
-            @send-message="handleChatMessage"
-          />
+          
+          <!-- 컴포넌트 팔레트 -->
+          <ComponentPalette @drag-start="onPaletteDragStart" />
         </div>
-      </div>
-
+  
       <!-- 평가 모달 -->
       <EvaluationModal
         :is-active="isModalActive"
@@ -62,11 +63,14 @@
         @submit="submitEvaluationAnswer"
       />
 
-      <!-- Deep Dive 모달 -->
+      <!-- Deep Dive 모달 (3개 질문 순차 처리) -->
       <DeepDiveModal
         :is-active="isDeepDiveModalActive"
         :question="deepDiveQuestion"
         :is-generating="isGeneratingDeepDive"
+        :current-question="currentQuestionIndex + 1"
+        :total-questions="deepDiveQuestions.length"
+        :category="deepDiveQuestions[currentQuestionIndex]?.category || ''"
         @skip="skipDeepDive"
         @submit="submitDeepDiveAnswer"
       />
@@ -92,7 +96,8 @@ import {
   generateDeepDiveQuestion,
   generateEvaluationQuestion,
   evaluateArchitecture,
-  sendChatMessage
+  sendChatMessage,
+  generateArchitectureAnalysisQuestions
 } from './services/architectureApi';
 
 import {
@@ -137,12 +142,13 @@ export default {
       mermaidCode: 'graph LR\n    %% 컴포넌트를 배치하고 연결하세요!',
       showResultScreen: false,
 
-      // Deep Dive State
+      // Deep Dive State (3개 질문 순차 처리)
       isDeepDiveModalActive: false,
       isGeneratingDeepDive: false,
       deepDiveQuestion: null,
-      connectionQuestionCount: 0,
-      lastQuestionedConnectionTypes: new Set(),
+      deepDiveQuestions: [], // 3개 질문 배열
+      currentQuestionIndex: 0, // 현재 질문 인덱스
+      collectedDeepDiveAnswers: [], // 수집된 답변들
       pendingEvaluationAfterDeepDive: false, // 심화질문 후 평가 진행 플래그
 
       // Chat State
@@ -204,8 +210,9 @@ export default {
       this.connections = [];
       this.componentCounter = 0;
       this.evaluationResult = null;
-      this.connectionQuestionCount = 0;
-      this.lastQuestionedConnectionTypes = new Set();
+      this.deepDiveQuestions = [];
+      this.currentQuestionIndex = 0;
+      this.collectedDeepDiveAnswers = [];
       this.chatMessages = [];
       this.updateMermaid();
     },
@@ -272,51 +279,68 @@ export default {
       this.mermaidCode = generateMermaidCode(this.droppedComponents, this.connections);
     },
 
-    // === Deep Dive Modal ===
+    // === Deep Dive Modal (3개 질문 순차 처리) ===
     async skipDeepDive() {
-      this.isDeepDiveModalActive = false;
-      this.deepDiveQuestion = null;
+      // 답변 없이 스킵 - 빈 답변 기록
+      this.collectedDeepDiveAnswers.push({
+        category: this.deepDiveQuestions[this.currentQuestionIndex]?.category || '',
+        question: this.deepDiveQuestion,
+        answer: '(스킵됨)'
+      });
 
-      // 평가 대기 중이었다면 평가 모달로 진행
-      if (this.pendingEvaluationAfterDeepDive) {
-        this.pendingEvaluationAfterDeepDive = false;
-        await this.showEvaluationModal();
-      }
+      // 다음 질문으로 이동
+      await this.moveToNextQuestion();
     },
 
     async submitDeepDiveAnswer(answer) {
+      // 답변 저장
       if (answer) {
+        this.collectedDeepDiveAnswers.push({
+          category: this.deepDiveQuestions[this.currentQuestionIndex]?.category || '',
+          question: this.deepDiveQuestion,
+          answer: answer
+        });
+
+        // 채팅 메시지에도 기록 (평가에 사용)
         this.chatMessages.push({
           role: 'user',
-          content: `[심화 질문] ${this.deepDiveQuestion}\n\n[답변] ${answer}`,
-          type: 'answer'
-        });
-        this.chatMessages.push({
-          role: 'assistant',
-          content: '답변이 저장되었습니다. 최종 평가에 반영됩니다.',
+          content: `[심화 질문 - ${this.deepDiveQuestions[this.currentQuestionIndex]?.category}] ${this.deepDiveQuestion}\n\n[답변] ${answer}`,
           type: 'answer'
         });
       }
-      this.isDeepDiveModalActive = false;
-      this.deepDiveQuestion = null;
 
-      // 평가 대기 중이었다면 평가 모달로 진행
-      if (this.pendingEvaluationAfterDeepDive) {
-        this.pendingEvaluationAfterDeepDive = false;
-        await this.showEvaluationModal();
+      // 다음 질문으로 이동
+      await this.moveToNextQuestion();
+    },
+
+    async moveToNextQuestion() {
+      this.currentQuestionIndex++;
+
+      // 아직 질문이 남아있으면 다음 질문 표시
+      if (this.currentQuestionIndex < this.deepDiveQuestions.length) {
+        this.deepDiveQuestion = this.deepDiveQuestions[this.currentQuestionIndex].question;
+      } else {
+        // 모든 질문 완료 - 평가 모달로 진행
+        this.isDeepDiveModalActive = false;
+        this.deepDiveQuestion = null;
+
+        if (this.pendingEvaluationAfterDeepDive) {
+          this.pendingEvaluationAfterDeepDive = false;
+          await this.showEvaluationModal();
+        }
       }
     },
 
     // === Evaluation Modal ===
     async openEvaluationModal() {
-      // 연결이 있으면 먼저 심화질문 진행
-      if (this.connections.length > 0) {
+      // 컴포넌트가 있으면 먼저 아키텍처 분석 기반 심화질문 진행
+      if (this.droppedComponents.length > 0) {
         this.pendingEvaluationAfterDeepDive = true;
-        await this.triggerFinalDeepDiveQuestion();
+        await this.triggerFinalDeepDiveQuestions();
         return;
       }
 
-      // 연결이 없으면 바로 평가 모달 열기
+      // 컴포넌트가 없으면 바로 평가 모달 열기
       await this.showEvaluationModal();
     },
 
@@ -340,56 +364,29 @@ export default {
       }
     },
 
-    // 최종 제출 시 심화질문 생성
-    async triggerFinalDeepDiveQuestion() {
+    // 최종 제출 시 아키텍처 분석 기반 3개 심화질문 생성
+    async triggerFinalDeepDiveQuestions() {
       this.isDeepDiveModalActive = true;
       this.isGeneratingDeepDive = true;
+      this.currentQuestionIndex = 0;
+      this.collectedDeepDiveAnswers = [];
 
       try {
-        // 가장 중요한 연결을 선택하여 심화질문 생성
-        const importantConnection = this.findMostImportantConnection();
-        if (importantConnection) {
-          const fromComp = this.droppedComponents.find(c => c.id === importantConnection.from);
-          const toComp = this.droppedComponents.find(c => c.id === importantConnection.to);
-          this.deepDiveQuestion = await generateDeepDiveQuestion(
-            this.currentProblem,
-            fromComp,
-            toComp
-          );
-        } else {
-          // 중요 연결이 없으면 전체 아키텍처에 대한 심화질문
-          this.deepDiveQuestion = await generateDeepDiveQuestion(
-            this.currentProblem,
-            { type: 'architecture', text: '전체 아키텍처' },
-            { type: 'design', text: '설계 결정' }
-          );
+        // Mermaid 다이어그램과 아키텍처 정보를 분석하여 3개 질문 생성
+        this.deepDiveQuestions = await generateArchitectureAnalysisQuestions(
+          this.currentProblem,
+          this.droppedComponents,
+          this.connections,
+          this.mermaidCode
+        );
+
+        // 첫 번째 질문 표시
+        if (this.deepDiveQuestions.length > 0) {
+          this.deepDiveQuestion = this.deepDiveQuestions[0].question;
         }
       } finally {
         this.isGeneratingDeepDive = false;
       }
-    },
-
-    // 가장 중요한 연결 찾기
-    findMostImportantConnection() {
-      const importantPatterns = [
-        ['client', 'server'],
-        ['server', 'database'],
-        ['api', 'database'],
-        ['frontend', 'backend'],
-        ['cache', 'database'],
-        ['loadbalancer', 'server']
-      ];
-
-      for (const [type1, type2] of importantPatterns) {
-        const found = this.connections.find(conn =>
-          (conn.fromType === type1 && conn.toType === type2) ||
-          (conn.fromType === type2 && conn.toType === type1)
-        );
-        if (found) return found;
-      }
-
-      // 패턴에 없으면 첫 번째 연결 반환
-      return this.connections[0];
     },
 
     closeModal() {
@@ -415,10 +412,10 @@ export default {
         this.mermaidCode
       );
 
-      // Collect deep dive answers
-      const deepDiveAnswers = this.chatMessages
-        .filter(msg => msg.role === 'user' && msg.content.startsWith('[연결 질문]'))
-        .map(msg => msg.content)
+      // 수집된 심화질문 답변들 정리
+      const deepDiveAnswers = this.collectedDeepDiveAnswers
+        .filter(item => item.answer !== '(스킵됨)')
+        .map(item => `[${item.category}] Q: ${item.question}\nA: ${item.answer}`)
         .join('\n\n');
 
       try {
@@ -525,7 +522,8 @@ export default {
 
 .game-container {
   display: grid;
-  grid-template-columns: 280px 1fr 450px;
+  grid-template-columns: 350px 1fr 350px;
+  width: 100%;
   height: 100vh;
   gap: 0;
   position: relative;
