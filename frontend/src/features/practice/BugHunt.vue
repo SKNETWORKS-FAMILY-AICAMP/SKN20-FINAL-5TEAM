@@ -275,22 +275,11 @@
             <p class="scenario-text">{{ currentProgressiveMission?.scenario }}</p>
           </div>
 
-          <div class="panel-box current-target-box" v-if="currentProgressiveStep <= 3">
-            <div class="panel-title">🎯 TARGET: STEP {{ currentProgressiveStep }}</div>
-            <div class="target-content">
-              <div class="target-bug">
-                <span class="target-bug-emoji">{{ getBugEmoji(getCurrentStepData()?.bug_type) }}</span>
-                <span class="target-bug-name">{{ getCurrentStepData()?.bug_type_name }}</span>
-              </div>
-              <p class="target-instruction">{{ getCurrentStepData()?.instruction }}</p>
-            </div>
-          </div>
-
           <div class="side-controls">
             <template v-if="currentProgressivePhase === 'debug'">
-              <button class="action-btn hint-btn" @click="showProgressiveHint" :disabled="progressiveHintUsed[currentProgressiveStep]">
+              <button class="action-btn hint-btn" @click="showProgressiveHint">
                 <span class="btn-icon">💡</span>
-                {{ progressiveHintUsed[currentProgressiveStep] ? 'HINT USED' : 'HINT' }}
+                HINT
               </button>
             </template>
             
@@ -993,17 +982,19 @@ function resetCurrentStep() {
   }
 }
 
-// Progressive 힌트 보기
+// Progressive 힌트 보기 (토글 방식으로 변경 - 여러 번 볼 수 있음)
 function showProgressiveHint() {
+  // 첫 사용 시에만 기록 (점수 계산용)
   if (!progressiveHintUsed.value[currentProgressiveStep.value]) {
     progressiveHintUsed.value[currentProgressiveStep.value] = true;
-    showProgressiveHintPanel.value = true;
     terminalOutput.value.push({
       prompt: '!',
       text: 'Hint accessed.',
       type: 'warning'
     });
   }
+  // 힌트 패널 토글 (열려있으면 닫고, 닫혀있으면 열기)
+  showProgressiveHintPanel.value = !showProgressiveHintPanel.value;
 }
 
 // Progressive 솔루션 체크
