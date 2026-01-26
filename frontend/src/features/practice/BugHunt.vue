@@ -216,10 +216,6 @@
 
           <div class="side-controls">
             <template v-if="currentProgressivePhase === 'debug'">
-              <button class="action-btn hint-btn" @click="showProgressiveHint">
-                <span class="btn-icon">💡</span>
-                HINT
-              </button>
             </template>
             
             <!-- PHASE 3: EXPLAIN은 팝업으로 표시됨 -->
@@ -1000,6 +996,9 @@ function submitProgressiveStep() {
           text: `Bug ${currentProgressiveStep.value} eliminated! (${duration}s)`,
           type: 'success'
         });
+
+        // 성공 시 힌트 창 닫기
+        showProgressiveHintPanel.value = false;
 
         // 스텝 완료 이펙트 (폭발 효과) - 1초 딜레이 후 표시
         setTimeout(() => {
