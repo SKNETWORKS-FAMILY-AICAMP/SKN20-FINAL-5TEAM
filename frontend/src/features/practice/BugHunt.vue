@@ -284,11 +284,14 @@
             </div>
             <!-- 에디터 상단 버튼들 -->
             <div class="editor-top-buttons" v-if="currentProgressivePhase === 'debug'">
+              <button class="editor-btn hint-btn" @click="showProgressiveHint">
+                💡 HINT
+              </button>
               <button class="editor-btn reset-btn" @click="resetCurrentStep">
                 ↺ RESET
               </button>
               <button class="editor-btn submit-btn" @click="submitProgressiveStep" :disabled="currentProgressiveStep > 3 || isRunning">
-                🚀 CHECK SOLUTION
+                🚀 SUBMIT
               </button>
             </div>
           </div>
@@ -350,24 +353,19 @@
               </div>
             </div>
           </div>
+          
+          <!-- 힌트 오리 (말풍선 포함) -->
+          <transition name="duck-pop">
+            <div v-if="showProgressiveHintPanel" class="hint-duck-container">
+              <div class="hint-speech-bubble">
+                <div class="bubble-header">DUC-TIP! 💡</div>
+                <div class="bubble-content">{{ getCurrentStepData()?.hint }}</div>
+              </div>
+              <img src="/image/unit_duck.png" class="hint-duck-img" alt="Hint Duck">
+            </div>
+          </transition>
         </main>
       </div>
-
-      <!-- Progressive 힌트 패널 -->
-      <transition name="slide-down">
-        <div v-if="showProgressiveHintPanel" class="hint-overlay">
-          <div class="hint-panel">
-            <div class="hint-header">
-              <span class="hint-icon">💡</span>
-              <span>STEP {{ currentProgressiveStep }} HINT</span>
-              <button class="close-btn" @click="showProgressiveHintPanel = false">×</button>
-            </div>
-            <div class="hint-content">
-              {{ getCurrentStepData()?.hint }}
-            </div>
-          </div>
-        </div>
-      </transition>
     </div>
 
     <!-- 최종 평가 화면 -->
@@ -3678,5 +3676,81 @@ onUnmounted(() => {
   font-family: 'Orbitron', monospace;
   font-size: 0.9rem;
   text-shadow: 0 0 10px var(--neon-cyan);
+}
+
+/* --- HINT DUCK UI --- */
+.hint-duck-container {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  z-index: 200;
+  pointer-events: none;
+}
+
+.hint-duck-img {
+  width: 100px;
+  height: auto;
+  filter: drop-shadow(0 0 15px rgba(0, 243, 255, 0.4));
+  animation: duckFloat 3s ease-in-out infinite;
+}
+
+@keyframes duckFloat {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(5deg); }
+}
+
+.hint-speech-bubble {
+  background: rgba(15, 23, 42, 0.95);
+  border: 2px solid var(--neon-cyan);
+  border-radius: 16px;
+  padding: 15px 20px;
+  max-width: 280px;
+  margin-bottom: 10px;
+  position: relative;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(0, 243, 255, 0.2);
+  pointer-events: auto;
+}
+
+.hint-speech-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  right: 30px;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 10px solid var(--neon-cyan);
+}
+
+.bubble-header {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.8rem;
+  color: var(--neon-cyan);
+  font-weight: bold;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(0, 243, 255, 0.2);
+  padding-bottom: 4px;
+}
+
+.bubble-content {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #fff;
+  font-family: 'Noto Sans KR', sans-serif;
+}
+
+/* Duck Pop Transition */
+.duck-pop-enter-active {
+  animation: duckPopIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.duck-pop-leave-active {
+  animation: duckPopIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) reverse;
+}
+
+@keyframes duckPopIn {
+  from { transform: scale(0.5) translateY(50px); opacity: 0; }
+  to { transform: scale(1) translateY(0); opacity: 1; }
 }
 </style>
