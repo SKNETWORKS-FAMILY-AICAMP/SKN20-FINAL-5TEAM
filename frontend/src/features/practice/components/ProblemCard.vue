@@ -5,7 +5,7 @@
     <div class="problem-card" v-if="problem">
       <h3>{{ problem.title }}</h3>
       <!-- <p>{{ problem.description }}</p> -->
-      <!-- <div class="problem-requirements">
+      <div class="problem-requirements">
         <h4>📋 요구사항</h4>
         <ul>
           <li v-for="(req, i) in problem.requirements" :key="i">{{ req }}</li>
@@ -16,7 +16,7 @@
         :class="`difficulty-${problem.difficulty}`"
       >
         {{ problem.difficulty.toUpperCase() }}
-      </span> -->
+      </span>
     </div>
 
     <div

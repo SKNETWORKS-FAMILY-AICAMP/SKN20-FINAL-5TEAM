@@ -98,7 +98,6 @@ import {
 import {
   transformProblems,
   detectMessageType,
-  isImportantConnection,
   buildChatContext,
   buildArchitectureContext,
   generateMermaidCode,
@@ -144,6 +143,7 @@ export default {
       deepDiveQuestion: null,
       connectionQuestionCount: 0,
       lastQuestionedConnectionTypes: new Set(),
+      pendingEvaluationAfterDeepDive: false, // 심화질문 후 평가 진행 플래그
 
       // Chat State
       chatMessages: [],
@@ -243,7 +243,7 @@ export default {
       this.updateMermaid();
     },
 
-    async onConnectionCreated({ from, to, fromType, toType }) {
+    onConnectionCreated({ from, to, fromType, toType }) {
       // Check for existing connection
       const exists = this.connections.some(c =>
         (c.from === from && c.to === to) ||
@@ -253,20 +253,7 @@ export default {
       if (!exists) {
         this.connections.push({ from, to, fromType, toType });
         this.updateMermaid();
-
-        // Check for deep dive question
-        if (isImportantConnection(
-          fromType, toType,
-          this.lastQuestionedConnectionTypes,
-          this.connectionQuestionCount
-        )) {
-          this.lastQuestionedConnectionTypes.add(`${fromType}-${toType}`);
-          this.connectionQuestionCount++;
-
-          const fromComp = this.droppedComponents.find(c => c.id === from);
-          const toComp = this.droppedComponents.find(c => c.id === to);
-          await this.triggerDeepDiveQuestion(fromComp, toComp);
-        }
+        // 심화질문은 최종 제출 시에만 진행 (단계별 질문 제거)
       }
     },
 
@@ -276,45 +263,54 @@ export default {
     },
 
     // === Deep Dive Modal ===
-    async triggerDeepDiveQuestion(fromComp, toComp) {
-      this.isDeepDiveModalActive = true;
-      this.isGeneratingDeepDive = true;
+    async skipDeepDive() {
+      this.isDeepDiveModalActive = false;
+      this.deepDiveQuestion = null;
 
-      try {
-        this.deepDiveQuestion = await generateDeepDiveQuestion(
-          this.currentProblem,
-          fromComp,
-          toComp
-        );
-      } finally {
-        this.isGeneratingDeepDive = false;
+      // 평가 대기 중이었다면 평가 모달로 진행
+      if (this.pendingEvaluationAfterDeepDive) {
+        this.pendingEvaluationAfterDeepDive = false;
+        await this.showEvaluationModal();
       }
     },
 
-    skipDeepDive() {
-      this.isDeepDiveModalActive = false;
-      this.deepDiveQuestion = null;
-    },
-
-    submitDeepDiveAnswer(answer) {
+    async submitDeepDiveAnswer(answer) {
       if (answer) {
         this.chatMessages.push({
           role: 'user',
-          content: `[연결 질문] ${this.deepDiveQuestion}\n\n[답변] ${answer}`,
+          content: `[심화 질문] ${this.deepDiveQuestion}\n\n[답변] ${answer}`,
           type: 'answer'
         });
         this.chatMessages.push({
           role: 'assistant',
-          content: '답변이 저장되었습니다. 최종 평가 시 반영됩니다.',
+          content: '답변이 저장되었습니다. 최종 평가에 반영됩니다.',
           type: 'answer'
         });
       }
       this.isDeepDiveModalActive = false;
       this.deepDiveQuestion = null;
+
+      // 평가 대기 중이었다면 평가 모달로 진행
+      if (this.pendingEvaluationAfterDeepDive) {
+        this.pendingEvaluationAfterDeepDive = false;
+        await this.showEvaluationModal();
+      }
     },
 
     // === Evaluation Modal ===
     async openEvaluationModal() {
+      // 연결이 있으면 먼저 심화질문 진행
+      if (this.connections.length > 0) {
+        this.pendingEvaluationAfterDeepDive = true;
+        await this.triggerFinalDeepDiveQuestion();
+        return;
+      }
+
+      // 연결이 없으면 바로 평가 모달 열기
+      await this.showEvaluationModal();
+    },
+
+    async showEvaluationModal() {
       this.isModalActive = true;
       this.isGeneratingQuestion = true;
       this.generatedQuestion = null;
@@ -332,6 +328,58 @@ export default {
       } finally {
         this.isGeneratingQuestion = false;
       }
+    },
+
+    // 최종 제출 시 심화질문 생성
+    async triggerFinalDeepDiveQuestion() {
+      this.isDeepDiveModalActive = true;
+      this.isGeneratingDeepDive = true;
+
+      try {
+        // 가장 중요한 연결을 선택하여 심화질문 생성
+        const importantConnection = this.findMostImportantConnection();
+        if (importantConnection) {
+          const fromComp = this.droppedComponents.find(c => c.id === importantConnection.from);
+          const toComp = this.droppedComponents.find(c => c.id === importantConnection.to);
+          this.deepDiveQuestion = await generateDeepDiveQuestion(
+            this.currentProblem,
+            fromComp,
+            toComp
+          );
+        } else {
+          // 중요 연결이 없으면 전체 아키텍처에 대한 심화질문
+          this.deepDiveQuestion = await generateDeepDiveQuestion(
+            this.currentProblem,
+            { type: 'architecture', text: '전체 아키텍처' },
+            { type: 'design', text: '설계 결정' }
+          );
+        }
+      } finally {
+        this.isGeneratingDeepDive = false;
+      }
+    },
+
+    // 가장 중요한 연결 찾기
+    findMostImportantConnection() {
+      const importantPatterns = [
+        ['client', 'server'],
+        ['server', 'database'],
+        ['api', 'database'],
+        ['frontend', 'backend'],
+        ['cache', 'database'],
+        ['loadbalancer', 'server']
+      ];
+
+      for (const [type1, type2] of importantPatterns) {
+        const found = this.connections.find(conn =>
+          (conn.fromType === type1 && conn.toType === type2) ||
+          (conn.fromType === type2 && conn.toType === type1)
+        );
+        if (found) return found;
+      }
+
+      // 패턴에 없으면 첫 번째 연결 반환
+      return this.connections[0];
     },
 
     closeModal() {
