@@ -292,14 +292,6 @@
                 <span class="btn-icon">💡</span>
                 {{ progressiveHintUsed[currentProgressiveStep] ? 'HINT USED' : 'HINT' }}
               </button>
-              <button class="action-btn submit-btn" @click="submitProgressiveStep" :disabled="currentProgressiveStep > 3 || isRunning">
-                <span class="btn-icon">🚀</span>
-                {{ currentProgressiveStep > 3 ? 'DONE!' : 'SUBMIT FIX' }}
-              </button>
-              <button class="action-btn reset-btn" @click="resetCurrentStep">
-                <span class="btn-icon">↺</span>
-                RESET
-              </button>
             </template>
             
             <div v-if="currentProgressivePhase === 'explain'" class="explain-action-box">
@@ -371,6 +363,15 @@
               <div class="progress-bar">
                 <div class="progress-fill" :style="{ width: (progressiveCompletedSteps.length / 3 * 100) + '%' }"></div>
               </div>
+            </div>
+            <!-- 에디터 상단 버튼들 -->
+            <div class="editor-top-buttons" v-if="currentProgressivePhase === 'debug'">
+              <button class="editor-btn reset-btn" @click="resetCurrentStep">
+                ↺ RESET
+              </button>
+              <button class="editor-btn submit-btn" @click="submitProgressiveStep" :disabled="currentProgressiveStep > 3 || isRunning">
+                🚀 SUBMIT
+              </button>
             </div>
           </div>
 
@@ -2060,11 +2061,54 @@ onUnmounted(() => {
 
 .editor-header {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
   padding: 12px 20px;
   background: #1a202c;
   border-bottom: 1px solid var(--border-color);
+}
+
+.editor-top-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.editor-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-family: 'Orbitron', monospace;
+  font-size: 0.85rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 2px solid;
+}
+
+.editor-btn.reset-btn {
+  background: transparent;
+  border-color: #718096;
+  color: #718096;
+}
+
+.editor-btn.reset-btn:hover {
+  background: #718096;
+  color: #000;
+}
+
+.editor-btn.submit-btn {
+  background: var(--neon-green);
+  border-color: var(--neon-green);
+  color: #000;
+}
+
+.editor-btn.submit-btn:hover:not(:disabled) {
+  background: #00e67a;
+  box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
+}
+
+.editor-btn.submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .code-progress {
