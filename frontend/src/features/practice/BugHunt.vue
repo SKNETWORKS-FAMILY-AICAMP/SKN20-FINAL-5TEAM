@@ -2579,7 +2579,7 @@ onUnmounted(() => {
   width: 95%;
   height: 40vh;
   min-height: 300px;
-  max-height: 50vh;
+  max-height: 70vh;
   display: flex;
   flex-direction: column;
   box-shadow: 0 0 50px rgba(255, 255, 0, 0.3), inset 0 0 20px rgba(255, 255, 0, 0.1);
@@ -2610,15 +2610,15 @@ onUnmounted(() => {
 
 .hint-content {
   padding: 15px 20px;
-  line-height: 1.7;
+  line-height: 1.6;
   color: #f0f0f0;
   overflow-y: auto;
-  font-size: 1.1rem;
+  font-size: 1rem;
   flex: 1;
 }
 
 .hint-content::-webkit-scrollbar {
-  width: 6px;
+  width: 12px;
 }
 
 .hint-content::-webkit-scrollbar-thumb {
