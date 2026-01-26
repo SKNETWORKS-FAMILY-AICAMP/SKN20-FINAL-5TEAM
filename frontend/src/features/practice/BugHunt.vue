@@ -1909,9 +1909,10 @@ onUnmounted(() => {
 .progressive-main-layout {
   flex: 1;
   display: grid;
-  grid-template-columns: 350px 1fr;
+  grid-template-columns: 1fr 2fr; /* 문제창 1/3, 에디터 2/3 */
   gap: 20px;
   padding: 20px;
+  width: 100%;
   overflow: hidden;
 }
 
