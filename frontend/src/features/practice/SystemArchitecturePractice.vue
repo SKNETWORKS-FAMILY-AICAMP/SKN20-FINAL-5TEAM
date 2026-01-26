@@ -106,7 +106,7 @@ import {
   buildChatContext,
   buildArchitectureContext,
   generateMermaidCode,
-  mockEvaluations
+  generateMockEvaluation
 } from './utils/architectureUtils';
 
 export default {
@@ -428,11 +428,11 @@ export default {
         );
       } catch (error) {
         console.error('Evaluation error:', error);
-        const mock = mockEvaluations[this.currentProblemIndex] || mockEvaluations[0];
-        this.evaluationResult = {
-          ...JSON.parse(JSON.stringify(mock)),
-          summary: `API 연결 문제로 기본 평가를 제공합니다. ${mock.summary}`
-        };
+        // 문제 데이터 기반으로 동적 Mock 평가 생성
+        this.evaluationResult = generateMockEvaluation(
+          this.currentProblem,
+          this.droppedComponents
+        );
       } finally {
         this.isEvaluating = false;
       }

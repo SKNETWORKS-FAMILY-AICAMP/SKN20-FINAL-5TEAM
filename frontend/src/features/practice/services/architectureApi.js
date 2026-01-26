@@ -191,26 +191,65 @@ ${architectureContext}
 
 /**
  * 아키텍처 평가 실행
+ * JSON의 모든 평가 정보를 활용하여 LLM 기반 평가 수행
  */
 export async function evaluateArchitecture(problem, architectureContext, generatedQuestion, userAnswer, deepDiveAnswers) {
   const rubric = problem?.evaluationRubric;
   const systemArchRubric = rubric?.system_architecture || [];
   const interviewRubric = rubric?.interview_score || [];
 
+  // 핵심 컴포넌트 목록 (학생이 포함해야 하는 것들 - 이름과 타입 포함)
+  const keyComponents = problem?.keyComponents || [];
+  const keyComponentsText = keyComponents.length > 0
+    ? keyComponents.map(c => `- ${c.name} (타입: ${c.type})`).join('\n')
+    : '- 명시된 핵심 컴포넌트 없음';
+
+  // 참조 개념 (학생이 이해해야 하는 핵심 설계 개념)
+  const referenceConcept = problem?.referenceConcept || {};
+  const conceptsText = Object.keys(referenceConcept).length > 0
+    ? Object.entries(referenceConcept).map(([key, val]) => `- ${key}: ${val}`).join('\n')
+    : '- 명시된 참조 개념 없음';
+
+  // 평가 토픽 및 키워드
+  const questionTopics = problem?.questionTopics || [];
+  const topicsText = questionTopics.length > 0
+    ? questionTopics.map(t => `- ${t.topic}: [${t.keywords.join(', ')}]`).join('\n')
+    : '- 명시된 토픽 없음';
+
+  // 참조 Mermaid 다이어그램 (정답 예시)
+  const referenceMermaid = problem?.referenceMermaid || '';
+
   const prompt = `당신은 시스템 아키텍처 면접관입니다.
-다음 평가 기준에 따라 학생의 아키텍처를 **세부 항목별로** 평가해주세요.
+다음 평가 기준과 참조 정보를 바탕으로 학생의 아키텍처를 **세부 항목별로** 평가해주세요.
 
 ## 문제 정보
 - 제목: ${problem?.title || '시스템 아키텍처 설계'}
+- 난이도: ${problem?.difficulty || 'medium'}
 - 요구사항: ${problem?.requirements?.join(', ') || '없음'}
+
+## 참조 정보 (평가 기준으로 활용)
+
+### 필수 포함 컴포넌트:
+${keyComponentsText}
+
+### 핵심 설계 개념 (학생이 반드시 고려해야 할 것들):
+${conceptsText}
+
+### 평가 토픽 및 필수 키워드:
+${topicsText}
+
+${referenceMermaid ? `### 참조 아키텍처 (정답 예시):
+\`\`\`
+${referenceMermaid}
+\`\`\`` : ''}
 
 ## 평가 기준 (각 항목 0-100점)
 
 ### 1. 시스템 아키텍처 평가 (60%)
-${systemArchRubric.map(r => `- ${r.metric}: ${r.description}`).join('\n') || '- 구조적 완성도\n- 확장성\n- 가용성/복원력'}
+${systemArchRubric.map(r => `- **${r.metric}**: ${r.description}`).join('\n') || '- 구조적 완성도\n- 확장성\n- 가용성/복원력'}
 
 ### 2. 면접 답변 평가 (40%)
-${interviewRubric.map(r => `- ${r.metric}: ${r.description}`).join('\n') || '- 논리적 일관성\n- 근거의 타당성\n- 전달력'}
+${interviewRubric.map(r => `- **${r.metric}**: ${r.description}`).join('\n') || '- 논리적 일관성\n- 근거의 타당성\n- 전달력'}
 
 ## 학생의 제출물
 
@@ -220,29 +259,45 @@ ${architectureContext}
 ### 심층 질문: ${generatedQuestion || problem?.followUpQuestion || ''}
 ### 학생의 답변: ${userAnswer}
 
-${deepDiveAnswers ? `### 추가 연결 질문 답변:\n${deepDiveAnswers}` : ''}
+${deepDiveAnswers ? `### 심화 질문 답변들:\n${deepDiveAnswers}` : ''}
+
+## 평가 지침
+1. **컴포넌트 검증**: 학생이 필수 컴포넌트를 포함했는지 확인하세요.
+2. **개념 이해도**: 핵심 설계 개념(${Object.keys(referenceConcept).join(', ') || '확장성, 가용성'})을 올바르게 적용했는지 평가하세요.
+3. **키워드 사용**: 평가 토픽의 필수 키워드를 답변에서 적절히 사용했는지 확인하세요.
+4. **참조 비교**: 참조 아키텍처와 비교하여 누락된 흐름이나 컴포넌트를 식별하세요.
+5. **실용성**: 실제 구현 가능성과 트레이드오프 이해도를 평가하세요.
 
 ## 출력 형식 (JSON만 출력, 다른 텍스트 없이):
 {
-  "score": 0-100 사이 종합점수,
-  "grade": "excellent"(90+) / "good"(70-89) / "needs-improvement"(50-69) / "poor"(50미만),
+  "score": 0-100,
+  "grade": "excellent" | "good" | "needs-improvement" | "poor",
+  "componentCoverage": {
+    "included": ["포함된 필수 컴포넌트"],
+    "missing": ["누락된 필수 컴포넌트"],
+    "extra": ["추가로 포함한 좋은 컴포넌트"]
+  },
   "systemArchitectureScores": {
-    "구조적 완성도": { "score": 0-100, "feedback": "피드백" },
-    "확장성": { "score": 0-100, "feedback": "피드백" },
-    "가용성/복원력": { "score": 0-100, "feedback": "피드백" }
+    "${systemArchRubric[0]?.metric || '구조적 완성도'}": { "score": 0-100, "feedback": "구체적 피드백" },
+    "${systemArchRubric[1]?.metric || '확장성'}": { "score": 0-100, "feedback": "구체적 피드백" },
+    "${systemArchRubric[2]?.metric || '가용성/복원력'}": { "score": 0-100, "feedback": "구체적 피드백" }
   },
   "interviewScores": {
-    "논리적 일관성": { "score": 0-100, "feedback": "피드백" },
-    "근거의 타당성": { "score": 0-100, "feedback": "피드백" },
-    "전달력": { "score": 0-100, "feedback": "피드백" }
+    "${interviewRubric[0]?.metric || '논리적 일관성'}": { "score": 0-100, "feedback": "구체적 피드백" },
+    "${interviewRubric[1]?.metric || '근거의 타당성'}": { "score": 0-100, "feedback": "구체적 피드백" },
+    "${interviewRubric[2]?.metric || '전달력'}": { "score": 0-100, "feedback": "구체적 피드백" }
   },
-  "summary": "종합 평가 2-3문장",
-  "strengths": ["강점1", "강점2"],
-  "weaknesses": ["개선점1"],
-  "suggestions": ["제안1", "제안2"]
+  "conceptUnderstanding": {
+    "demonstrated": ["이해를 보여준 핵심 개념"],
+    "needsImprovement": ["더 학습이 필요한 개념"]
+  },
+  "summary": "종합 평가 2-3문장 (구체적인 강점과 개선점 포함)",
+  "strengths": ["구체적인 강점1", "구체적인 강점2"],
+  "weaknesses": ["구체적인 약점1"],
+  "suggestions": ["구체적인 개선 제안1", "구체적인 개선 제안2"]
 }`;
 
-  const response = await callOpenAI(prompt, { maxTokens: 800, temperature: 0.5 });
+  const response = await callOpenAI(prompt, { maxTokens: 1200, temperature: 0.5 });
 
   const jsonMatch = response.match(/\{[\s\S]*\}/);
   if (jsonMatch) {

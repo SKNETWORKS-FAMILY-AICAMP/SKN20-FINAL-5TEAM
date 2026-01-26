@@ -60,9 +60,16 @@ export function transformProblems(data) {
       followUpQuestion = `${topic.topic}에 대해 설명해주세요. (키워드: ${topic.keywords.join(', ')})`;
     }
 
+    // 컴포넌트 타입 배열 (기존 호환성)
     const expectedComponents = item.key_components.map(comp =>
       componentTypeMap[comp.type] || comp.type
     );
+
+    // 컴포넌트 이름과 타입 모두 포함 (평가용)
+    const keyComponents = item.key_components.map(comp => ({
+      name: comp.name,
+      type: componentTypeMap[comp.type] || comp.type
+    }));
 
     return {
       level,
@@ -72,6 +79,7 @@ export function transformProblems(data) {
       requirements: requirementsArray,
       followUpQuestion,
       expectedComponents,
+      keyComponents, // 이름과 타입 모두 포함
       questionTopics: item.question_topics,
       referenceMermaid: item.reference_mermaid,
       referenceConcept: item.reference_concept,
@@ -260,31 +268,113 @@ export function generateMermaidCode(components, connections) {
 }
 
 /**
- * Mock 평가 데이터 (API 실패 시 fallback)
+ * 문제 데이터 기반 동적 Mock 평가 생성 (API 실패 시 fallback)
+ * @param {Object} problem - 문제 데이터
+ * @param {Array} components - 학생이 배치한 컴포넌트
+ * @returns {Object} 평가 결과 객체
+ */
+export function generateMockEvaluation(problem, components = []) {
+  const difficulty = problem?.difficulty || 'medium';
+  const keyComponents = problem?.keyComponents || [];
+  const referenceConcept = problem?.referenceConcept || {};
+  const rubric = problem?.evaluationRubric || {};
+
+  // 난이도별 기본 점수 범위
+  const scoreRanges = {
+    easy: { min: 70, max: 85 },
+    medium: { min: 65, max: 80 },
+    hard: { min: 60, max: 75 }
+  };
+  const range = scoreRanges[difficulty] || scoreRanges.medium;
+  const score = Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
+
+  // 등급 결정
+  let grade = 'needs-improvement';
+  if (score >= 90) grade = 'excellent';
+  else if (score >= 70) grade = 'good';
+  else if (score < 50) grade = 'poor';
+
+  // 핵심 컴포넌트 기반 강점/약점 생성
+  const componentTypes = components.map(c => c.type);
+  const includedComponents = keyComponents.filter(kc => componentTypes.includes(kc.type));
+  const missingComponents = keyComponents.filter(kc => !componentTypes.includes(kc.type));
+
+  // 핵심 개념 기반 제안 생성
+  const concepts = Object.keys(referenceConcept);
+  const suggestions = concepts.slice(0, 2).map(concept =>
+    `${concept} 관련 설계를 더 구체화해보세요: ${referenceConcept[concept]}`
+  );
+
+  // 평가 기준 기반 피드백 생성
+  const systemArchMetrics = rubric.system_architecture || [];
+  const interviewMetrics = rubric.interview_score || [];
+
+  const systemArchitectureScores = {};
+  systemArchMetrics.forEach(metric => {
+    systemArchitectureScores[metric.metric] = {
+      score: Math.floor(Math.random() * 20) + 60,
+      feedback: `${metric.description} - API 연결 문제로 상세 분석이 제한됩니다.`
+    };
+  });
+
+  const interviewScores = {};
+  interviewMetrics.forEach(metric => {
+    interviewScores[metric.metric] = {
+      score: Math.floor(Math.random() * 20) + 60,
+      feedback: `${metric.description} - API 연결 문제로 상세 분석이 제한됩니다.`
+    };
+  });
+
+  return {
+    score,
+    grade,
+    componentCoverage: {
+      included: includedComponents.map(c => c.name),
+      missing: missingComponents.map(c => c.name),
+      extra: []
+    },
+    systemArchitectureScores: Object.keys(systemArchitectureScores).length > 0
+      ? systemArchitectureScores
+      : {
+          "구조적 완성도": { score: 70, feedback: "기본적인 구조는 갖추었습니다." },
+          "확장성": { score: 65, feedback: "확장성 측면에서 추가 고려가 필요합니다." },
+          "가용성/복원력": { score: 68, feedback: "장애 대응 전략이 필요합니다." }
+        },
+    interviewScores: Object.keys(interviewScores).length > 0
+      ? interviewScores
+      : {
+          "논리적 일관성": { score: 70, feedback: "일관된 설명이 필요합니다." },
+          "근거의 타당성": { score: 68, feedback: "더 구체적인 근거가 필요합니다." },
+          "전달력": { score: 72, feedback: "핵심 키워드 사용을 권장합니다." }
+        },
+    conceptUnderstanding: {
+      demonstrated: concepts.slice(0, 1),
+      needsImprovement: concepts.slice(1)
+    },
+    summary: `${problem?.title || '시스템 아키텍처'}에 대한 기본적인 이해를 보여주셨습니다. API 연결 문제로 상세 평가가 제한되어 기본 피드백을 제공합니다. ${missingComponents.length > 0 ? `누락된 핵심 컴포넌트: ${missingComponents.map(c => c.name).join(', ')}` : ''}`,
+    strengths: includedComponents.length > 0
+      ? includedComponents.slice(0, 2).map(c => `${c.name} 컴포넌트 포함`)
+      : ["기본 아키텍처 구조 이해", "컴포넌트 배치 시도"],
+    weaknesses: missingComponents.length > 0
+      ? missingComponents.slice(0, 2).map(c => `${c.name} 컴포넌트 누락`)
+      : ["세부 연결 관계 보완 필요"],
+    suggestions: suggestions.length > 0
+      ? suggestions
+      : ["아키텍처 문서를 참고하여 핵심 컴포넌트를 추가해보세요."]
+  };
+}
+
+/**
+ * 레거시 호환용 Mock 평가 데이터
+ * @deprecated generateMockEvaluation 사용 권장
  */
 export const mockEvaluations = {
   0: {
-    score: 85,
+    score: 75,
     grade: "good",
-    summary: "기본적인 3-Tier 아키텍처 구조를 잘 이해하고 계시네요. 특히 CDN을 적절히 배치한 점이 훌륭합니다.",
-    strengths: ["Client와 API의 분리", "DB 연결의 명확성", "정적 리소스 처리를 위한 CDN 배치"],
-    weaknesses: ["API 서버의 이중화 부족"],
-    suggestions: ["서버 장애 대비를 위해 Load Balancer 도입을 고려해보세요."]
-  },
-  1: {
-    score: 92,
-    grade: "excellent",
-    summary: "트래픽 분산과 캐싱 전략이 매우 훌륭합니다. 블랙프라이데이와 같은 상황에서도 안정적으로 동작할 것 같네요.",
-    strengths: ["Redis 캐시를 통한 DB 부하 감소 전략", "Load Balancer를 이용한 Scale-out 구조"],
-    weaknesses: ["비동기 처리에 대한 구체적 흐름 미흡"],
-    suggestions: ["주문 처리와 결제 알림 등을 분리하기 위해 Message Queue를 더 적극적으로 활용해보세요."]
-  },
-  2: {
-    score: 78,
-    grade: "needs-improvement",
-    summary: "글로벌 서비스를 위한 기본적인 컴포넌트는 갖추었으나, 실시간성 보장을 위한 구조가 다소 아쉽습니다.",
-    strengths: ["글로벌 CDN 활용 의도", "데이터베이스 분리"],
-    weaknesses: ["UDP/TCP 서버 분리 미고려", "지역별 엣지 서버 배치 전략 부재"],
-    suggestions: ["실시간 게임 서버는 상태(Stateful) 관리가 중요하므로 Redis Session Store 활용을 구체화해보세요."]
+    summary: "API 연결 문제로 기본 평가를 제공합니다. 아키텍처 설계의 기본 구조는 갖추었습니다.",
+    strengths: ["기본 컴포넌트 배치", "구조적 이해"],
+    weaknesses: ["상세 연결 관계 확인 필요"],
+    suggestions: ["API 연결 후 재평가를 권장합니다."]
   }
 };
