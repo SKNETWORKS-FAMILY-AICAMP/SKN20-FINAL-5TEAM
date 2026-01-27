@@ -43,11 +43,184 @@
           <p>{{ result.summary }}</p>
         </div>
 
-        <!-- Detailed Scores -->
-        <div class="scores-grid">
-          <!-- System Architecture -->
+        <!-- NFR Scores (5가지 비기능적 요소) -->
+        <div v-if="result.nfrScores" class="nfr-scores-section">
+          <h2>🎯 비기능적 요소(NFR) 평가</h2>
+          <div class="nfr-grid">
+            <!-- Scalability -->
+            <div class="nfr-card" :class="getScoreClass(result.nfrScores.scalability?.score)">
+              <div class="nfr-header">
+                <span class="nfr-icon">📈</span>
+                <span class="nfr-title">Scalability (확장성)</span>
+                <span class="nfr-score" :class="getScoreClass(result.nfrScores.scalability?.score)">
+                  {{ result.nfrScores.scalability?.score || 0 }}점
+                </span>
+              </div>
+              <div class="nfr-bar">
+                <div
+                  class="nfr-bar-fill"
+                  :style="{ width: (result.nfrScores.scalability?.score || 0) + '%' }"
+                  :class="getScoreClass(result.nfrScores.scalability?.score)"
+                ></div>
+              </div>
+              <p class="nfr-feedback">{{ result.nfrScores.scalability?.feedback }}</p>
+              <div v-if="result.nfrScores.scalability?.checklist" class="nfr-checklist">
+                <span :class="{ checked: result.nfrScores.scalability.checklist.scaleOut }">
+                  {{ result.nfrScores.scalability.checklist.scaleOut ? '✅' : '❌' }} Scale-out
+                </span>
+                <span :class="{ checked: result.nfrScores.scalability.checklist.loadBalancing }">
+                  {{ result.nfrScores.scalability.checklist.loadBalancing ? '✅' : '❌' }} Load Balancing
+                </span>
+                <span :class="{ checked: result.nfrScores.scalability.checklist.sharding }">
+                  {{ result.nfrScores.scalability.checklist.sharding ? '✅' : '❌' }} Sharding
+                </span>
+              </div>
+            </div>
+
+            <!-- Availability -->
+            <div class="nfr-card" :class="getScoreClass(result.nfrScores.availability?.score)">
+              <div class="nfr-header">
+                <span class="nfr-icon">🛡️</span>
+                <span class="nfr-title">Availability (가용성)</span>
+                <span class="nfr-score" :class="getScoreClass(result.nfrScores.availability?.score)">
+                  {{ result.nfrScores.availability?.score || 0 }}점
+                </span>
+              </div>
+              <div class="nfr-bar">
+                <div
+                  class="nfr-bar-fill"
+                  :style="{ width: (result.nfrScores.availability?.score || 0) + '%' }"
+                  :class="getScoreClass(result.nfrScores.availability?.score)"
+                ></div>
+              </div>
+              <p class="nfr-feedback">{{ result.nfrScores.availability?.feedback }}</p>
+              <div v-if="result.nfrScores.availability?.checklist" class="nfr-checklist">
+                <span :class="{ checked: result.nfrScores.availability.checklist.noSPOF }">
+                  {{ result.nfrScores.availability.checklist.noSPOF ? '✅' : '❌' }} SPOF 제거
+                </span>
+                <span :class="{ checked: result.nfrScores.availability.checklist.replication }">
+                  {{ result.nfrScores.availability.checklist.replication ? '✅' : '❌' }} Replication
+                </span>
+                <span :class="{ checked: result.nfrScores.availability.checklist.failover }">
+                  {{ result.nfrScores.availability.checklist.failover ? '✅' : '❌' }} Failover
+                </span>
+              </div>
+            </div>
+
+            <!-- Performance -->
+            <div class="nfr-card" :class="getScoreClass(result.nfrScores.performance?.score)">
+              <div class="nfr-header">
+                <span class="nfr-icon">⚡</span>
+                <span class="nfr-title">Performance (성능)</span>
+                <span class="nfr-score" :class="getScoreClass(result.nfrScores.performance?.score)">
+                  {{ result.nfrScores.performance?.score || 0 }}점
+                </span>
+              </div>
+              <div class="nfr-bar">
+                <div
+                  class="nfr-bar-fill"
+                  :style="{ width: (result.nfrScores.performance?.score || 0) + '%' }"
+                  :class="getScoreClass(result.nfrScores.performance?.score)"
+                ></div>
+              </div>
+              <p class="nfr-feedback">{{ result.nfrScores.performance?.feedback }}</p>
+              <div v-if="result.nfrScores.performance?.checklist" class="nfr-checklist">
+                <span :class="{ checked: result.nfrScores.performance.checklist.caching }">
+                  {{ result.nfrScores.performance.checklist.caching ? '✅' : '❌' }} Caching
+                </span>
+                <span :class="{ checked: result.nfrScores.performance.checklist.asyncProcessing }">
+                  {{ result.nfrScores.performance.checklist.asyncProcessing ? '✅' : '❌' }} Async Processing
+                </span>
+                <span :class="{ checked: result.nfrScores.performance.checklist.indexing }">
+                  {{ result.nfrScores.performance.checklist.indexing ? '✅' : '❌' }} Indexing
+                </span>
+              </div>
+            </div>
+
+            <!-- Consistency -->
+            <div class="nfr-card" :class="getScoreClass(result.nfrScores.consistency?.score)">
+              <div class="nfr-header">
+                <span class="nfr-icon">🔄</span>
+                <span class="nfr-title">Consistency (일관성)</span>
+                <span class="nfr-score" :class="getScoreClass(result.nfrScores.consistency?.score)">
+                  {{ result.nfrScores.consistency?.score || 0 }}점
+                </span>
+              </div>
+              <div class="nfr-bar">
+                <div
+                  class="nfr-bar-fill"
+                  :style="{ width: (result.nfrScores.consistency?.score || 0) + '%' }"
+                  :class="getScoreClass(result.nfrScores.consistency?.score)"
+                ></div>
+              </div>
+              <p class="nfr-feedback">{{ result.nfrScores.consistency?.feedback }}</p>
+              <div v-if="result.nfrScores.consistency?.checklist" class="nfr-checklist">
+                <span :class="{ checked: result.nfrScores.consistency.checklist.acidTransaction }">
+                  {{ result.nfrScores.consistency.checklist.acidTransaction ? '✅' : '❌' }} ACID 트랜잭션
+                </span>
+                <span :class="{ checked: result.nfrScores.consistency.checklist.lockingStrategy }">
+                  {{ result.nfrScores.consistency.checklist.lockingStrategy ? '✅' : '❌' }} Locking
+                </span>
+                <span :class="{ checked: result.nfrScores.consistency.checklist.eventualConsistency }">
+                  {{ result.nfrScores.consistency.checklist.eventualConsistency ? '✅' : '❌' }} Eventual Consistency
+                </span>
+              </div>
+            </div>
+
+            <!-- Reliability -->
+            <div class="nfr-card" :class="getScoreClass(result.nfrScores.reliability?.score)">
+              <div class="nfr-header">
+                <span class="nfr-icon">💾</span>
+                <span class="nfr-title">Reliability (신뢰성)</span>
+                <span class="nfr-score" :class="getScoreClass(result.nfrScores.reliability?.score)">
+                  {{ result.nfrScores.reliability?.score || 0 }}점
+                </span>
+              </div>
+              <div class="nfr-bar">
+                <div
+                  class="nfr-bar-fill"
+                  :style="{ width: (result.nfrScores.reliability?.score || 0) + '%' }"
+                  :class="getScoreClass(result.nfrScores.reliability?.score)"
+                ></div>
+              </div>
+              <p class="nfr-feedback">{{ result.nfrScores.reliability?.feedback }}</p>
+              <div v-if="result.nfrScores.reliability?.checklist" class="nfr-checklist">
+                <span :class="{ checked: result.nfrScores.reliability.checklist.dataPersistence }">
+                  {{ result.nfrScores.reliability.checklist.dataPersistence ? '✅' : '❌' }} Data Persistence
+                </span>
+                <span :class="{ checked: result.nfrScores.reliability.checklist.idempotency }">
+                  {{ result.nfrScores.reliability.checklist.idempotency ? '✅' : '❌' }} Idempotency
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interview Score -->
+        <div v-if="result.interviewScore" class="interview-score-section">
+          <h3>🎤 면접 답변 평가</h3>
+          <div class="interview-score-card">
+            <div class="interview-score-header">
+              <span class="interview-score-value" :class="getScoreClass(result.interviewScore.score)">
+                {{ result.interviewScore.score }}점
+              </span>
+            </div>
+            <div class="interview-score-bar">
+              <div
+                class="interview-score-fill"
+                :style="{ width: result.interviewScore.score + '%' }"
+                :class="getScoreClass(result.interviewScore.score)"
+              ></div>
+            </div>
+            <p class="interview-score-feedback">{{ result.interviewScore.feedback }}</p>
+          </div>
+        </div>
+
+        <!-- Legacy Support: Old format scores -->
+        <div v-else-if="result.systemArchitectureScores || result.interviewScores" class="scores-grid">
+          <!-- System Architecture (Legacy) -->
           <div v-if="result.systemArchitectureScores" class="score-section">
-            <h3>🏗️ 시스템 아키텍처 (60%)</h3>
+            <h3>🏗️ 시스템 아키텍처</h3>
             <div class="score-items">
               <div
                 v-for="(value, key) in result.systemArchitectureScores"
@@ -72,9 +245,9 @@
             </div>
           </div>
 
-          <!-- Interview Score -->
+          <!-- Interview Score (Legacy) -->
           <div v-if="result.interviewScores" class="score-section">
-            <h3>🎤 면접 답변 (40%)</h3>
+            <h3>🎤 면접 답변</h3>
             <div class="score-items">
               <div
                 v-for="(value, key) in result.interviewScores"
@@ -538,5 +711,182 @@ export default {
 .btn-retry:hover {
   transform: translateY(-3px);
   box-shadow: 0 10px 30px rgba(0, 255, 157, 0.4);
+}
+
+/* NFR Scores Section */
+.nfr-scores-section {
+  margin-bottom: 30px;
+}
+
+.nfr-scores-section h2 {
+  color: #64b5f6;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.3em;
+  margin: 0 0 20px 0;
+  text-align: center;
+}
+
+.nfr-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 15px;
+}
+
+.nfr-card {
+  background: rgba(17, 24, 39, 0.95);
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid rgba(100, 181, 246, 0.3);
+  transition: all 0.3s ease;
+}
+
+.nfr-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+}
+
+.nfr-card.excellent { border-color: rgba(0, 255, 157, 0.5); }
+.nfr-card.good { border-color: rgba(100, 181, 246, 0.5); }
+.nfr-card.needs-improvement { border-color: rgba(255, 193, 7, 0.5); }
+.nfr-card.poor { border-color: rgba(255, 71, 133, 0.5); }
+
+.nfr-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.nfr-icon {
+  font-size: 1.3em;
+}
+
+.nfr-title {
+  flex: 1;
+  font-weight: 600;
+  color: #e0e0e0;
+  font-size: 0.95em;
+}
+
+.nfr-score {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700;
+  font-size: 1.1em;
+}
+
+.nfr-score.excellent { color: #00ff9d; }
+.nfr-score.good { color: #64b5f6; }
+.nfr-score.needs-improvement { color: #ffc107; }
+.nfr-score.poor { color: #ff4785; }
+
+.nfr-bar {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.nfr-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.8s ease;
+}
+
+.nfr-bar-fill.excellent { background: linear-gradient(90deg, #00ff9d, #00e676); }
+.nfr-bar-fill.good { background: linear-gradient(90deg, #64b5f6, #2196f3); }
+.nfr-bar-fill.needs-improvement { background: linear-gradient(90deg, #ffc107, #ffa000); }
+.nfr-bar-fill.poor { background: linear-gradient(90deg, #ff4785, #ff1744); }
+
+.nfr-feedback {
+  font-size: 0.85em;
+  color: #90a4ae;
+  margin: 0 0 12px 0;
+  line-height: 1.5;
+}
+
+.nfr-checklist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.nfr-checklist span {
+  font-size: 0.8em;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  color: #90a4ae;
+}
+
+.nfr-checklist span.checked {
+  color: #00ff9d;
+  background: rgba(0, 255, 157, 0.1);
+}
+
+/* Interview Score Section */
+.interview-score-section {
+  background: rgba(17, 24, 39, 0.95);
+  border-radius: 16px;
+  padding: 25px;
+  margin-bottom: 30px;
+  border: 1px solid rgba(100, 181, 246, 0.3);
+}
+
+.interview-score-section h3 {
+  color: #64b5f6;
+  margin: 0 0 20px 0;
+  font-size: 1.1em;
+}
+
+.interview-score-card {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 20px;
+  border-radius: 10px;
+}
+
+.interview-score-header {
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+.interview-score-value {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 2em;
+  font-weight: 700;
+}
+
+.interview-score-value.excellent { color: #00ff9d; }
+.interview-score-value.good { color: #64b5f6; }
+.interview-score-value.needs-improvement { color: #ffc107; }
+.interview-score-value.poor { color: #ff4785; }
+
+.interview-score-bar {
+  height: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 15px;
+}
+
+.interview-score-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.8s ease;
+}
+
+.interview-score-fill.excellent { background: linear-gradient(90deg, #00ff9d, #00e676); }
+.interview-score-fill.good { background: linear-gradient(90deg, #64b5f6, #2196f3); }
+.interview-score-fill.needs-improvement { background: linear-gradient(90deg, #ffc107, #ffa000); }
+.interview-score-fill.poor { background: linear-gradient(90deg, #ff4785, #ff1744); }
+
+.interview-score-feedback {
+  font-size: 0.95em;
+  color: #e0e0e0;
+  margin: 0;
+  line-height: 1.6;
+  text-align: center;
 }
 </style>
