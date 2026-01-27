@@ -43,161 +43,147 @@
           <p>{{ result.summary }}</p>
         </div>
 
-        <!-- NFR Scores (5가지 비기능적 요소) -->
-        <div v-if="result.nfrScores" class="nfr-scores-section">
-          <h2>🎯 비기능적 요소(NFR) 평가</h2>
-          <div class="nfr-grid">
-            <!-- Scalability -->
-            <div class="nfr-card" :class="getScoreClass(result.nfrScores.scalability?.score)">
-              <div class="nfr-header">
-                <span class="nfr-icon">📈</span>
-                <span class="nfr-title">Scalability (확장성)</span>
-                <span class="nfr-score" :class="getScoreClass(result.nfrScores.scalability?.score)">
-                  {{ result.nfrScores.scalability?.score || 0 }}점
-                </span>
+        <!-- Architecture Evaluation (50점 만점) -->
+        <div v-if="result.architectureEvaluation" class="architecture-eval-section">
+          <h2>🏗️ 아키텍처 설계 평가 (50점)</h2>
+          <div class="eval-score-header">
+            <span class="eval-score-value" :class="getScoreClass50(result.architectureEvaluation.score)">
+              {{ result.architectureEvaluation.score || 0 }}점
+            </span>
+            <span class="eval-score-max">/ 50점</span>
+          </div>
+          <div class="eval-bar">
+            <div
+              class="eval-bar-fill"
+              :style="{ width: ((result.architectureEvaluation.score || 0) / 50 * 100) + '%' }"
+              :class="getScoreClass50(result.architectureEvaluation.score)"
+            ></div>
+          </div>
+
+          <!-- Details -->
+          <div v-if="result.architectureEvaluation.details && result.architectureEvaluation.details.length" class="eval-details">
+            <div v-for="(detail, idx) in result.architectureEvaluation.details" :key="idx" class="eval-detail-item">
+              <div class="detail-header">
+                <span class="detail-item">{{ detail.item }}</span>
+                <span class="detail-score" :class="getScoreClass(detail.score * 4)">{{ detail.score }}점</span>
               </div>
-              <div class="nfr-bar">
-                <div
-                  class="nfr-bar-fill"
-                  :style="{ width: (result.nfrScores.scalability?.score || 0) + '%' }"
-                  :class="getScoreClass(result.nfrScores.scalability?.score)"
-                ></div>
+              <p class="detail-basis">{{ detail.basis }}</p>
+            </div>
+          </div>
+
+          <!-- Missing Components -->
+          <div v-if="result.architectureEvaluation.missingComponents && result.architectureEvaluation.missingComponents.length" class="missing-section">
+            <h4>❌ 누락된 컴포넌트</h4>
+            <div class="tag-list">
+              <span v-for="comp in result.architectureEvaluation.missingComponents" :key="comp" class="tag missing">
+                {{ comp }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Incorrect Flows -->
+          <div v-if="result.architectureEvaluation.incorrectFlows && result.architectureEvaluation.incorrectFlows.length" class="incorrect-section">
+            <h4>⚠️ 잘못된 연결</h4>
+            <div class="tag-list">
+              <span v-for="flow in result.architectureEvaluation.incorrectFlows" :key="flow" class="tag incorrect">
+                {{ flow }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interview Evaluation (50점 만점) -->
+        <div v-if="result.interviewEvaluation" class="interview-eval-section">
+          <h2>🎤 면접 답변 평가 (50점)</h2>
+          <div class="eval-score-header">
+            <span class="eval-score-value" :class="getScoreClass50(result.interviewEvaluation.score)">
+              {{ result.interviewEvaluation.score || 0 }}점
+            </span>
+            <span class="eval-score-max">/ 50점</span>
+          </div>
+          <div class="eval-bar">
+            <div
+              class="eval-bar-fill"
+              :style="{ width: ((result.interviewEvaluation.score || 0) / 50 * 100) + '%' }"
+              :class="getScoreClass50(result.interviewEvaluation.score)"
+            ></div>
+          </div>
+
+          <!-- Answer Analysis -->
+          <div v-if="result.interviewEvaluation.answerAnalysis" class="answer-analysis">
+            <h4>📝 답변 분석</h4>
+            <div class="analysis-grid">
+              <div class="analysis-item">
+                <span class="analysis-label">답변 길이</span>
+                <span class="analysis-value">{{ result.interviewEvaluation.answerAnalysis.length || 0 }}자</span>
               </div>
-              <p class="nfr-feedback">{{ result.nfrScores.scalability?.feedback }}</p>
-              <div v-if="result.nfrScores.scalability?.checklist" class="nfr-checklist">
-                <span :class="{ checked: result.nfrScores.scalability.checklist.scaleOut }">
-                  {{ result.nfrScores.scalability.checklist.scaleOut ? '✅' : '❌' }} Scale-out
-                </span>
-                <span :class="{ checked: result.nfrScores.scalability.checklist.loadBalancing }">
-                  {{ result.nfrScores.scalability.checklist.loadBalancing ? '✅' : '❌' }} Load Balancing
-                </span>
-                <span :class="{ checked: result.nfrScores.scalability.checklist.sharding }">
-                  {{ result.nfrScores.scalability.checklist.sharding ? '✅' : '❌' }} Sharding
+              <div class="analysis-item">
+                <span class="analysis-label">기술 용어 사용</span>
+                <span class="analysis-value" :class="result.interviewEvaluation.answerAnalysis.hasKeyTerms ? 'positive' : 'negative'">
+                  {{ result.interviewEvaluation.answerAnalysis.hasKeyTerms ? '✅ 사용함' : '❌ 부족' }}
                 </span>
               </div>
             </div>
 
-            <!-- Availability -->
-            <div class="nfr-card" :class="getScoreClass(result.nfrScores.availability?.score)">
-              <div class="nfr-header">
-                <span class="nfr-icon">🛡️</span>
-                <span class="nfr-title">Availability (가용성)</span>
-                <span class="nfr-score" :class="getScoreClass(result.nfrScores.availability?.score)">
-                  {{ result.nfrScores.availability?.score || 0 }}점
-                </span>
-              </div>
-              <div class="nfr-bar">
-                <div
-                  class="nfr-bar-fill"
-                  :style="{ width: (result.nfrScores.availability?.score || 0) + '%' }"
-                  :class="getScoreClass(result.nfrScores.availability?.score)"
-                ></div>
-              </div>
-              <p class="nfr-feedback">{{ result.nfrScores.availability?.feedback }}</p>
-              <div v-if="result.nfrScores.availability?.checklist" class="nfr-checklist">
-                <span :class="{ checked: result.nfrScores.availability.checklist.noSPOF }">
-                  {{ result.nfrScores.availability.checklist.noSPOF ? '✅' : '❌' }} SPOF 제거
-                </span>
-                <span :class="{ checked: result.nfrScores.availability.checklist.replication }">
-                  {{ result.nfrScores.availability.checklist.replication ? '✅' : '❌' }} Replication
-                </span>
-                <span :class="{ checked: result.nfrScores.availability.checklist.failover }">
-                  {{ result.nfrScores.availability.checklist.failover ? '✅' : '❌' }} Failover
+            <!-- Key Terms Found -->
+            <div v-if="result.interviewEvaluation.answerAnalysis.keyTermsFound && result.interviewEvaluation.answerAnalysis.keyTermsFound.length" class="keyterms-section">
+              <h5>✅ 발견된 기술 용어</h5>
+              <div class="tag-list">
+                <span v-for="term in result.interviewEvaluation.answerAnalysis.keyTermsFound" :key="term" class="tag found">
+                  {{ term }}
                 </span>
               </div>
             </div>
 
-            <!-- Performance -->
-            <div class="nfr-card" :class="getScoreClass(result.nfrScores.performance?.score)">
-              <div class="nfr-header">
-                <span class="nfr-icon">⚡</span>
-                <span class="nfr-title">Performance (성능)</span>
-                <span class="nfr-score" :class="getScoreClass(result.nfrScores.performance?.score)">
-                  {{ result.nfrScores.performance?.score || 0 }}점
-                </span>
-              </div>
-              <div class="nfr-bar">
-                <div
-                  class="nfr-bar-fill"
-                  :style="{ width: (result.nfrScores.performance?.score || 0) + '%' }"
-                  :class="getScoreClass(result.nfrScores.performance?.score)"
-                ></div>
-              </div>
-              <p class="nfr-feedback">{{ result.nfrScores.performance?.feedback }}</p>
-              <div v-if="result.nfrScores.performance?.checklist" class="nfr-checklist">
-                <span :class="{ checked: result.nfrScores.performance.checklist.caching }">
-                  {{ result.nfrScores.performance.checklist.caching ? '✅' : '❌' }} Caching
-                </span>
-                <span :class="{ checked: result.nfrScores.performance.checklist.asyncProcessing }">
-                  {{ result.nfrScores.performance.checklist.asyncProcessing ? '✅' : '❌' }} Async Processing
-                </span>
-                <span :class="{ checked: result.nfrScores.performance.checklist.indexing }">
-                  {{ result.nfrScores.performance.checklist.indexing ? '✅' : '❌' }} Indexing
+            <!-- Key Terms Missing -->
+            <div v-if="result.interviewEvaluation.answerAnalysis.keyTermsMissing && result.interviewEvaluation.answerAnalysis.keyTermsMissing.length" class="keyterms-section">
+              <h5>❌ 누락된 핵심 키워드</h5>
+              <div class="tag-list">
+                <span v-for="term in result.interviewEvaluation.answerAnalysis.keyTermsMissing" :key="term" class="tag missing">
+                  {{ term }}
                 </span>
               </div>
             </div>
+          </div>
 
-            <!-- Consistency -->
-            <div class="nfr-card" :class="getScoreClass(result.nfrScores.consistency?.score)">
-              <div class="nfr-header">
-                <span class="nfr-icon">🔄</span>
-                <span class="nfr-title">Consistency (일관성)</span>
-                <span class="nfr-score" :class="getScoreClass(result.nfrScores.consistency?.score)">
-                  {{ result.nfrScores.consistency?.score || 0 }}점
-                </span>
-              </div>
-              <div class="nfr-bar">
-                <div
-                  class="nfr-bar-fill"
-                  :style="{ width: (result.nfrScores.consistency?.score || 0) + '%' }"
-                  :class="getScoreClass(result.nfrScores.consistency?.score)"
-                ></div>
-              </div>
-              <p class="nfr-feedback">{{ result.nfrScores.consistency?.feedback }}</p>
-              <div v-if="result.nfrScores.consistency?.checklist" class="nfr-checklist">
-                <span :class="{ checked: result.nfrScores.consistency.checklist.acidTransaction }">
-                  {{ result.nfrScores.consistency.checklist.acidTransaction ? '✅' : '❌' }} ACID 트랜잭션
-                </span>
-                <span :class="{ checked: result.nfrScores.consistency.checklist.lockingStrategy }">
-                  {{ result.nfrScores.consistency.checklist.lockingStrategy ? '✅' : '❌' }} Locking
-                </span>
-                <span :class="{ checked: result.nfrScores.consistency.checklist.eventualConsistency }">
-                  {{ result.nfrScores.consistency.checklist.eventualConsistency ? '✅' : '❌' }} Eventual Consistency
-                </span>
-              </div>
-            </div>
-
-            <!-- Reliability -->
-            <div class="nfr-card" :class="getScoreClass(result.nfrScores.reliability?.score)">
-              <div class="nfr-header">
-                <span class="nfr-icon">💾</span>
-                <span class="nfr-title">Reliability (신뢰성)</span>
-                <span class="nfr-score" :class="getScoreClass(result.nfrScores.reliability?.score)">
-                  {{ result.nfrScores.reliability?.score || 0 }}점
-                </span>
-              </div>
-              <div class="nfr-bar">
-                <div
-                  class="nfr-bar-fill"
-                  :style="{ width: (result.nfrScores.reliability?.score || 0) + '%' }"
-                  :class="getScoreClass(result.nfrScores.reliability?.score)"
-                ></div>
-              </div>
-              <p class="nfr-feedback">{{ result.nfrScores.reliability?.feedback }}</p>
-              <div v-if="result.nfrScores.reliability?.checklist" class="nfr-checklist">
-                <span :class="{ checked: result.nfrScores.reliability.checklist.dataPersistence }">
-                  {{ result.nfrScores.reliability.checklist.dataPersistence ? '✅' : '❌' }} Data Persistence
-                </span>
-                <span :class="{ checked: result.nfrScores.reliability.checklist.idempotency }">
-                  {{ result.nfrScores.reliability.checklist.idempotency ? '✅' : '❌' }} Idempotency
-                </span>
+          <!-- Question Analysis -->
+          <div v-if="result.interviewEvaluation.questionAnalysis && result.interviewEvaluation.questionAnalysis.length" class="question-analysis">
+            <h4>💬 질문별 분석</h4>
+            <div class="question-list">
+              <div v-for="(qa, idx) in result.interviewEvaluation.questionAnalysis" :key="idx" class="question-item" :class="qa.matchStatus">
+                <div class="question-header">
+                  <span class="question-number">Q{{ idx + 1 }}</span>
+                  <span class="match-badge" :class="qa.matchStatus">
+                    {{ matchStatusText(qa.matchStatus) }}
+                  </span>
+                  <span class="question-score">{{ qa.score }}점</span>
+                </div>
+                <div class="question-content">
+                  <p class="question-text">{{ qa.question }}</p>
+                </div>
+                <div class="answer-comparison">
+                  <div class="user-answer-box">
+                    <span class="box-label">내 답변</span>
+                    <p>{{ qa.userAnswer || '(답변 없음)' }}</p>
+                  </div>
+                  <div class="model-answer-box">
+                    <span class="box-label">모범 답안</span>
+                    <p>{{ qa.modelAnswer }}</p>
+                  </div>
+                </div>
+                <div v-if="qa.deductionReason" class="deduction-reason">
+                  <span class="deduction-label">감점 사유:</span> {{ qa.deductionReason }}
+                </div>
+                <div v-if="qa.feedback" class="question-feedback">
+                  <span class="feedback-label">피드백:</span> {{ qa.feedback }}
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Interview Score -->
-        <div v-if="result.interviewScore" class="interview-score-section">
+        <!-- Legacy: Interview Score (기존 형식 지원) -->
+        <div v-else-if="result.interviewScore" class="interview-score-section">
           <h3>🎤 면접 답변 평가</h3>
           <div class="interview-score-card">
             <div class="interview-score-header">
@@ -349,6 +335,21 @@ export default {
       if (score >= 70) return 'good';
       if (score >= 50) return 'needs-improvement';
       return 'poor';
+    },
+    getScoreClass50(score) {
+      // 50점 만점 기준
+      if (score >= 45) return 'excellent';
+      if (score >= 35) return 'good';
+      if (score >= 25) return 'needs-improvement';
+      return 'poor';
+    },
+    matchStatusText(status) {
+      const texts = {
+        'match': '✅ 일치',
+        'partial': '🔶 부분 일치',
+        'mismatch': '❌ 불일치'
+      };
+      return texts[status] || status;
     }
   }
 };
@@ -888,5 +889,373 @@ export default {
   margin: 0;
   line-height: 1.6;
   text-align: center;
+}
+
+/* Architecture & Interview Evaluation Sections */
+.architecture-eval-section,
+.interview-eval-section {
+  background: rgba(17, 24, 39, 0.95);
+  border-radius: 16px;
+  padding: 25px;
+  margin-bottom: 30px;
+  border: 1px solid rgba(100, 181, 246, 0.3);
+}
+
+.architecture-eval-section h2,
+.interview-eval-section h2 {
+  color: #64b5f6;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.2em;
+  margin: 0 0 20px 0;
+}
+
+.eval-score-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.eval-score-value {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 2.5em;
+  font-weight: 700;
+}
+
+.eval-score-value.excellent { color: #00ff9d; }
+.eval-score-value.good { color: #64b5f6; }
+.eval-score-value.needs-improvement { color: #ffc107; }
+.eval-score-value.poor { color: #ff4785; }
+
+.eval-score-max {
+  color: #90a4ae;
+  font-size: 1.2em;
+}
+
+.eval-bar {
+  height: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 25px;
+}
+
+.eval-bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.8s ease;
+}
+
+.eval-bar-fill.excellent { background: linear-gradient(90deg, #00ff9d, #00e676); }
+.eval-bar-fill.good { background: linear-gradient(90deg, #64b5f6, #2196f3); }
+.eval-bar-fill.needs-improvement { background: linear-gradient(90deg, #ffc107, #ffa000); }
+.eval-bar-fill.poor { background: linear-gradient(90deg, #ff4785, #ff1744); }
+
+/* Eval Details */
+.eval-details {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.eval-detail-item {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 15px;
+  border-radius: 10px;
+  border-left: 3px solid #64b5f6;
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.detail-item {
+  font-weight: 600;
+  color: #e0e0e0;
+}
+
+.detail-score {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700;
+}
+
+.detail-score.excellent { color: #00ff9d; }
+.detail-score.good { color: #64b5f6; }
+.detail-score.needs-improvement { color: #ffc107; }
+.detail-score.poor { color: #ff4785; }
+
+.detail-basis {
+  font-size: 0.9em;
+  color: #90a4ae;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Missing & Incorrect Sections */
+.missing-section,
+.incorrect-section {
+  margin-top: 20px;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+}
+
+.missing-section h4,
+.incorrect-section h4 {
+  color: #ff4785;
+  margin: 0 0 12px 0;
+  font-size: 0.95em;
+}
+
+.incorrect-section h4 {
+  color: #ffc107;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.85em;
+  font-weight: 500;
+}
+
+.tag.missing {
+  background: rgba(255, 71, 133, 0.2);
+  color: #ff4785;
+  border: 1px solid rgba(255, 71, 133, 0.4);
+}
+
+.tag.incorrect {
+  background: rgba(255, 193, 7, 0.2);
+  color: #ffc107;
+  border: 1px solid rgba(255, 193, 7, 0.4);
+}
+
+.tag.found {
+  background: rgba(0, 255, 157, 0.2);
+  color: #00ff9d;
+  border: 1px solid rgba(0, 255, 157, 0.4);
+}
+
+/* Answer Analysis */
+.answer-analysis {
+  margin-top: 20px;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+}
+
+.answer-analysis h4 {
+  color: #64b5f6;
+  margin: 0 0 15px 0;
+  font-size: 1em;
+}
+
+.analysis-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.analysis-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 15px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+}
+
+.analysis-label {
+  color: #90a4ae;
+  font-size: 0.9em;
+}
+
+.analysis-value {
+  font-weight: 600;
+  color: #e0e0e0;
+}
+
+.analysis-value.positive { color: #00ff9d; }
+.analysis-value.negative { color: #ff4785; }
+
+.keyterms-section {
+  margin-top: 15px;
+}
+
+.keyterms-section h5 {
+  color: #b0bec5;
+  margin: 0 0 10px 0;
+  font-size: 0.9em;
+}
+
+/* Question Analysis */
+.question-analysis {
+  margin-top: 25px;
+}
+
+.question-analysis h4 {
+  color: #64b5f6;
+  margin: 0 0 20px 0;
+  font-size: 1em;
+}
+
+.question-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.question-item {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  padding: 20px;
+  border-left: 4px solid #64b5f6;
+}
+
+.question-item.match { border-left-color: #00ff9d; }
+.question-item.partial { border-left-color: #ffc107; }
+.question-item.mismatch { border-left-color: #ff4785; }
+
+.question-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 15px;
+}
+
+.question-number {
+  background: rgba(100, 181, 246, 0.2);
+  color: #64b5f6;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.85em;
+  font-weight: 700;
+}
+
+.match-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8em;
+  font-weight: 600;
+}
+
+.match-badge.match {
+  background: rgba(0, 255, 157, 0.2);
+  color: #00ff9d;
+}
+
+.match-badge.partial {
+  background: rgba(255, 193, 7, 0.2);
+  color: #ffc107;
+}
+
+.match-badge.mismatch {
+  background: rgba(255, 71, 133, 0.2);
+  color: #ff4785;
+}
+
+.question-score {
+  margin-left: auto;
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700;
+  color: #e0e0e0;
+}
+
+.question-content {
+  margin-bottom: 15px;
+}
+
+.question-text {
+  color: #e0e0e0;
+  margin: 0;
+  line-height: 1.6;
+  font-size: 0.95em;
+}
+
+.answer-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.user-answer-box,
+.model-answer-box {
+  padding: 15px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.user-answer-box {
+  border: 1px solid rgba(100, 181, 246, 0.3);
+}
+
+.model-answer-box {
+  border: 1px solid rgba(0, 255, 157, 0.3);
+}
+
+.box-label {
+  display: block;
+  font-size: 0.8em;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.user-answer-box .box-label { color: #64b5f6; }
+.model-answer-box .box-label { color: #00ff9d; }
+
+.user-answer-box p,
+.model-answer-box p {
+  color: #b0bec5;
+  margin: 0;
+  font-size: 0.9em;
+  line-height: 1.5;
+}
+
+.deduction-reason {
+  background: rgba(255, 71, 133, 0.1);
+  padding: 10px 15px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  font-size: 0.9em;
+  color: #ff4785;
+}
+
+.deduction-label {
+  font-weight: 600;
+}
+
+.question-feedback {
+  background: rgba(100, 181, 246, 0.1);
+  padding: 10px 15px;
+  border-radius: 8px;
+  font-size: 0.9em;
+  color: #64b5f6;
+}
+
+.feedback-label {
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .analysis-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .answer-comparison {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

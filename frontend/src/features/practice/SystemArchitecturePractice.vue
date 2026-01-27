@@ -101,7 +101,7 @@ import {
   evaluateArchitecture,
   sendChatMessage,
   generateArchitectureAnalysisQuestions
-} from './services/architectureApi';
+} from './services/architectureApiFast'
 
 import {
   transformProblems,
