@@ -23,6 +23,7 @@
           :is-connection-mode="isConnectionMode"
           :can-evaluate="droppedComponents.length > 0"
           :is-evaluating="isEvaluating"
+          :mermaid-code="mermaidCode"
           @start-evaluation="openEvaluationModal"
           />
           
@@ -59,6 +60,7 @@
         :is-generating="isGeneratingQuestion"
         :components="droppedComponents"
         :connections="connections"
+        :mermaid-code="mermaidCode"
         @close="closeModal"
         @submit="submitEvaluationAnswer"
       />
