@@ -118,19 +118,27 @@ export default {
         const x2 = toComp.x + width / 2;
         const y2 = toComp.y + height / 2;
 
-        const length = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
-        const angle = Math.atan2(y2 - y1, x2 - x1) * (180 / Math.PI);
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const length = Math.sqrt(dx * dx + dy * dy);
+        const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+
+        // 화살표를 컴포넌트 경계 바깥에 위치시키기 위해 오프셋 계산
+        const arrowOffset = 55; // 컴포넌트 반폭
+        const ratio = (length - arrowOffset) / length;
+        const arrowX = x1 + dx * ratio;
+        const arrowY = y1 + dy * ratio;
 
         return {
           lineStyle: {
-            width: `${length}px`,
+            width: `${length - arrowOffset}px`,
             left: `${x1}px`,
             top: `${y1}px`,
             transform: `rotate(${angle}deg)`
           },
           arrowStyle: {
-            left: `${x2}px`,
-            top: `${y2 - 6}px`,
+            left: `${arrowX}px`,
+            top: `${arrowY - 10}px`,
             transform: `rotate(${angle}deg)`
           }
         };
@@ -419,22 +427,24 @@ export default {
 /* Connection lines */
 .connection-line {
   position: absolute;
-  height: 3px;
+  height: 4px;
   background: linear-gradient(90deg, #64b5f6, #00ff9d);
   transform-origin: left center;
   pointer-events: none;
-  box-shadow: 0 0 8px rgba(100, 181, 246, 0.5);
+  box-shadow: 0 0 10px rgba(100, 181, 246, 0.6);
+  z-index: 5;
 }
 
 .connection-arrow {
   position: absolute;
   width: 0;
   height: 0;
-  border-left: 10px solid #00ff9d;
-  border-top: 6px solid transparent;
-  border-bottom: 6px solid transparent;
+  border-left: 16px solid #00ff9d;
+  border-top: 10px solid transparent;
+  border-bottom: 10px solid transparent;
   transform-origin: left center;
   pointer-events: none;
-  filter: drop-shadow(0 0 4px rgba(0, 255, 157, 0.8));
+  filter: drop-shadow(0 0 6px rgba(0, 255, 157, 1));
+  z-index: 6;
 }
 </style>
