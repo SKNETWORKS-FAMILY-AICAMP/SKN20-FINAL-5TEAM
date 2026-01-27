@@ -191,13 +191,14 @@ ${architectureContext}
 
 /**
  * 아키텍처 평가 실행
- * JSON의 모든 평가 정보를 활용하여 LLM 기반 평가 수행
+ * 5가지 비기능적 요소(NFR) 기반 LLM 평가 수행
+ * - Scalability (확장성)
+ * - Availability (가용성)
+ * - Performance (성능/지연시간)
+ * - Consistency (데이터 일관성)
+ * - Reliability & Data Integrity (신뢰성 및 무결성)
  */
 export async function evaluateArchitecture(problem, architectureContext, generatedQuestion, userAnswer, deepDiveAnswers) {
-  const rubric = problem?.evaluationRubric;
-  const systemArchRubric = rubric?.system_architecture || [];
-  const interviewRubric = rubric?.interview_score || [];
-
   // 핵심 컴포넌트 목록 (학생이 포함해야 하는 것들 - 이름과 타입 포함)
   const keyComponents = problem?.keyComponents || [];
   const keyComponentsText = keyComponents.length > 0
@@ -220,7 +221,7 @@ export async function evaluateArchitecture(problem, architectureContext, generat
   const referenceMermaid = problem?.referenceMermaid || '';
 
   const prompt = `당신은 시스템 아키텍처 면접관입니다.
-다음 평가 기준과 참조 정보를 바탕으로 학생의 아키텍처를 **세부 항목별로** 평가해주세요.
+다음 **5가지 비기능적 요소(NFR)** 평가 기준을 바탕으로 학생의 아키텍처를 평가해주세요.
 
 ## 문제 정보
 - 제목: ${problem?.title || '시스템 아키텍처 설계'}
@@ -232,7 +233,7 @@ export async function evaluateArchitecture(problem, architectureContext, generat
 ### 필수 포함 컴포넌트:
 ${keyComponentsText}
 
-### 핵심 설계 개념 (학생이 반드시 고려해야 할 것들):
+### 핵심 설계 개념:
 ${conceptsText}
 
 ### 평가 토픽 및 필수 키워드:
@@ -243,13 +244,41 @@ ${referenceMermaid ? `### 참조 아키텍처 (정답 예시):
 ${referenceMermaid}
 \`\`\`` : ''}
 
-## 평가 기준 (각 항목 0-100점)
+## 5가지 비기능적 요소(NFR) 평가 기준
 
-### 1. 시스템 아키텍처 평가 (60%)
-${systemArchRubric.map(r => `- **${r.metric}**: ${r.description}`).join('\n') || '- 구조적 완성도\n- 확장성\n- 가용성/복원력'}
+### 1. Scalability (확장성) - 20%
+- 정의: 사용자 수나 데이터 양이 급격히 늘어날 때 시스템이 버틸 수 있는가?
+- 평가 포인트:
+  1. Scale-up vs Scale-out: 단일 장비 업그레이드보다 수평적 확장을 선호하는가?
+  2. Load Balancing: 트래픽을 여러 서버로 분산시키는가?
+  3. Database Sharding: 데이터가 많을 때 파티셔닝 전략을 사용하는가?
 
-### 2. 면접 답변 평가 (40%)
-${interviewRubric.map(r => `- **${r.metric}**: ${r.description}`).join('\n') || '- 논리적 일관성\n- 근거의 타당성\n- 전달력'}
+### 2. Availability (가용성) - 20%
+- 정의: 특정 서버나 컴포넌트에 장애가 발생해도 서비스가 계속되는가?
+- 평가 포인트:
+  1. SPOF (Single Point of Failure) 제거: 하나가 죽으면 다 죽는 구간이 없는가?
+  2. Replication (복제): DB나 서버를 다중화(Master-Slave)해두었는가?
+  3. Failover: 장애 발생 시 자동으로 예비 장비로 전환되는가?
+
+### 3. Performance (성능/지연시간) - 20%
+- 정의: 사용자의 요청에 대해 얼마나 빠르게 응답하는가?
+- 평가 포인트:
+  1. Caching: 자주 쓰는 데이터를 메모리(Redis)나 CDN에 저장했는가?
+  2. Asynchronous Processing: 오래 걸리는 작업은 큐(Message Queue)로 비동기 처리하는가?
+  3. Indexing: DB 조회 속도를 높이기 위해 인덱스를 적절히 사용했는가?
+
+### 4. Consistency (데이터 일관성) - 20%
+- 정의: 모든 사용자가 동시에 같은 데이터를 보는가?
+- 평가 포인트:
+  1. ACID 트랜잭션: 결제, 재고 등 중요한 데이터에 트랜잭션을 적용했는가?
+  2. Locking Strategy: 동시 접속 시 충돌 방지(Lock) 대책이 있는가?
+  3. Eventual Consistency: 실시간성이 덜 중요한 데이터는 최종 일관성을 택했는가?
+
+### 5. Reliability & Data Integrity (신뢰성 및 무결성) - 20%
+- 정의: 데이터가 유실되거나 훼손되지 않는가?
+- 평가 포인트:
+  1. Data Persistence: 데이터를 메모리에만 두지 않고 디스크(DB/Storage)에 영구 저장하는가?
+  2. Idempotency (멱등성): 같은 요청을 두 번 보내도 결과가 한 번만 처리되는가?
 
 ## 학생의 제출물
 
@@ -263,8 +292,8 @@ ${deepDiveAnswers ? `### 심화 질문 답변들:\n${deepDiveAnswers}` : ''}
 
 ## 평가 지침
 1. **컴포넌트 검증**: 학생이 필수 컴포넌트를 포함했는지 확인하세요.
-2. **개념 이해도**: 핵심 설계 개념(${Object.keys(referenceConcept).join(', ') || '확장성, 가용성'})을 올바르게 적용했는지 평가하세요.
-3. **키워드 사용**: 평가 토픽의 필수 키워드를 답변에서 적절히 사용했는지 확인하세요.
+2. **NFR 평가**: 각 비기능적 요소에 대해 학생의 설계가 얼마나 잘 고려되었는지 평가하세요.
+3. **키워드 확인**: 답변에서 관련 기술 용어(Load Balancer, Replication, Cache, Queue 등)를 적절히 사용했는지 확인하세요.
 4. **참조 비교**: 참조 아키텍처와 비교하여 누락된 흐름이나 컴포넌트를 식별하세요.
 5. **실용성**: 실제 구현 가능성과 트레이드오프 이해도를 평가하세요.
 
@@ -277,15 +306,55 @@ ${deepDiveAnswers ? `### 심화 질문 답변들:\n${deepDiveAnswers}` : ''}
     "missing": ["누락된 필수 컴포넌트"],
     "extra": ["추가로 포함한 좋은 컴포넌트"]
   },
-  "systemArchitectureScores": {
-    "${systemArchRubric[0]?.metric || '구조적 완성도'}": { "score": 0-100, "feedback": "구체적 피드백" },
-    "${systemArchRubric[1]?.metric || '확장성'}": { "score": 0-100, "feedback": "구체적 피드백" },
-    "${systemArchRubric[2]?.metric || '가용성/복원력'}": { "score": 0-100, "feedback": "구체적 피드백" }
+  "nfrScores": {
+    "scalability": {
+      "score": 0-100,
+      "feedback": "확장성 관련 구체적 피드백 (Scale-out, Load Balancing, Sharding 고려 여부)",
+      "checklist": {
+        "scaleOut": true/false,
+        "loadBalancing": true/false,
+        "sharding": true/false
+      }
+    },
+    "availability": {
+      "score": 0-100,
+      "feedback": "가용성 관련 구체적 피드백 (SPOF 제거, Replication, Failover 고려 여부)",
+      "checklist": {
+        "noSPOF": true/false,
+        "replication": true/false,
+        "failover": true/false
+      }
+    },
+    "performance": {
+      "score": 0-100,
+      "feedback": "성능 관련 구체적 피드백 (Caching, Async Processing, Indexing 고려 여부)",
+      "checklist": {
+        "caching": true/false,
+        "asyncProcessing": true/false,
+        "indexing": true/false
+      }
+    },
+    "consistency": {
+      "score": 0-100,
+      "feedback": "일관성 관련 구체적 피드백 (ACID, Locking, Eventual Consistency 고려 여부)",
+      "checklist": {
+        "acidTransaction": true/false,
+        "lockingStrategy": true/false,
+        "eventualConsistency": true/false
+      }
+    },
+    "reliability": {
+      "score": 0-100,
+      "feedback": "신뢰성 관련 구체적 피드백 (Data Persistence, Idempotency 고려 여부)",
+      "checklist": {
+        "dataPersistence": true/false,
+        "idempotency": true/false
+      }
+    }
   },
-  "interviewScores": {
-    "${interviewRubric[0]?.metric || '논리적 일관성'}": { "score": 0-100, "feedback": "구체적 피드백" },
-    "${interviewRubric[1]?.metric || '근거의 타당성'}": { "score": 0-100, "feedback": "구체적 피드백" },
-    "${interviewRubric[2]?.metric || '전달력'}": { "score": 0-100, "feedback": "구체적 피드백" }
+  "interviewScore": {
+    "score": 0-100,
+    "feedback": "면접 답변에 대한 종합 피드백"
   },
   "conceptUnderstanding": {
     "demonstrated": ["이해를 보여준 핵심 개념"],

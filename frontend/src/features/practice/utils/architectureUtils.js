@@ -269,24 +269,19 @@ export function generateMermaidCode(components, connections) {
 
 /**
  * 문제 데이터 기반 동적 Mock 평가 생성 (API 실패 시 fallback)
+ * 5가지 NFR 기반 평가 형식으로 반환
  * @param {Object} problem - 문제 데이터
  * @param {Array} components - 학생이 배치한 컴포넌트
  * @returns {Object} 평가 결과 객체
  */
 export function generateMockEvaluation(problem, components = []) {
-  const difficulty = problem?.difficulty || 'medium';
   const keyComponents = problem?.keyComponents || [];
   const referenceConcept = problem?.referenceConcept || {};
-  const rubric = problem?.evaluationRubric || {};
 
-  // 난이도별 기본 점수 범위
-  const scoreRanges = {
-    easy: { min: 70, max: 85 },
-    medium: { min: 65, max: 80 },
-    hard: { min: 60, max: 75 }
-  };
-  const range = scoreRanges[difficulty] || scoreRanges.medium;
-  const score = Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
+  // 컴포넌트 배치에 따른 점수 계산 (0-100 전체 범위)
+  const baseScore = 50;
+  const componentBonus = Math.min(components.length * 5, 30); // 최대 30점
+  const score = baseScore + componentBonus + Math.floor(Math.random() * 20);
 
   // 등급 결정
   let grade = 'needs-improvement';
@@ -305,25 +300,20 @@ export function generateMockEvaluation(problem, components = []) {
     `${concept} 관련 설계를 더 구체화해보세요: ${referenceConcept[concept]}`
   );
 
-  // 평가 기준 기반 피드백 생성
-  const systemArchMetrics = rubric.system_architecture || [];
-  const interviewMetrics = rubric.interview_score || [];
+  // 컴포넌트 타입 기반으로 NFR 체크리스트 자동 판정
+  const hasLoadBalancer = componentTypes.includes('loadbalancer');
+  const hasCache = componentTypes.includes('cache');
+  const hasBroker = componentTypes.includes('broker') || componentTypes.includes('eventbus');
+  const hasRdbms = componentTypes.includes('rdbms');
+  const hasNosql = componentTypes.includes('nosql');
+  const hasStorage = componentTypes.includes('storage');
+  const hasMultipleServers = components.filter(c => c.type === 'server').length > 1;
 
-  const systemArchitectureScores = {};
-  systemArchMetrics.forEach(metric => {
-    systemArchitectureScores[metric.metric] = {
-      score: Math.floor(Math.random() * 20) + 60,
-      feedback: `${metric.description} - API 연결 문제로 상세 분석이 제한됩니다.`
-    };
-  });
-
-  const interviewScores = {};
-  interviewMetrics.forEach(metric => {
-    interviewScores[metric.metric] = {
-      score: Math.floor(Math.random() * 20) + 60,
-      feedback: `${metric.description} - API 연결 문제로 상세 분석이 제한됩니다.`
-    };
-  });
+  // NFR 점수 생성 (컴포넌트 기반)
+  const generateNfrScore = (base, hasFeatures = []) => {
+    const bonus = hasFeatures.filter(Boolean).length * 10;
+    return Math.min(100, base + bonus + Math.floor(Math.random() * 10));
+  };
 
   return {
     score,
@@ -333,20 +323,66 @@ export function generateMockEvaluation(problem, components = []) {
       missing: missingComponents.map(c => c.name),
       extra: []
     },
-    systemArchitectureScores: Object.keys(systemArchitectureScores).length > 0
-      ? systemArchitectureScores
-      : {
-          "구조적 완성도": { score: 70, feedback: "기본적인 구조는 갖추었습니다." },
-          "확장성": { score: 65, feedback: "확장성 측면에서 추가 고려가 필요합니다." },
-          "가용성/복원력": { score: 68, feedback: "장애 대응 전략이 필요합니다." }
-        },
-    interviewScores: Object.keys(interviewScores).length > 0
-      ? interviewScores
-      : {
-          "논리적 일관성": { score: 70, feedback: "일관된 설명이 필요합니다." },
-          "근거의 타당성": { score: 68, feedback: "더 구체적인 근거가 필요합니다." },
-          "전달력": { score: 72, feedback: "핵심 키워드 사용을 권장합니다." }
-        },
+    nfrScores: {
+      scalability: {
+        score: generateNfrScore(50, [hasLoadBalancer, hasMultipleServers, hasNosql]),
+        feedback: hasLoadBalancer
+          ? "Load Balancer가 포함되어 수평 확장 기반이 마련되었습니다. API 연결 후 상세 분석이 가능합니다."
+          : "수평 확장을 위한 Load Balancer 추가를 고려해보세요.",
+        checklist: {
+          scaleOut: hasMultipleServers || hasLoadBalancer,
+          loadBalancing: hasLoadBalancer,
+          sharding: hasNosql
+        }
+      },
+      availability: {
+        score: generateNfrScore(50, [hasLoadBalancer, hasMultipleServers]),
+        feedback: hasMultipleServers
+          ? "다중 서버 구성으로 가용성 기반이 마련되었습니다."
+          : "단일 장애점(SPOF) 제거를 위해 서버 다중화를 고려해보세요.",
+        checklist: {
+          noSPOF: hasMultipleServers,
+          replication: hasRdbms || hasNosql,
+          failover: hasLoadBalancer
+        }
+      },
+      performance: {
+        score: generateNfrScore(50, [hasCache, hasBroker]),
+        feedback: hasCache
+          ? "캐시가 포함되어 성능 최적화 기반이 마련되었습니다."
+          : "자주 조회되는 데이터를 위한 캐시 레이어 추가를 권장합니다.",
+        checklist: {
+          caching: hasCache,
+          asyncProcessing: hasBroker,
+          indexing: hasRdbms
+        }
+      },
+      consistency: {
+        score: generateNfrScore(55, [hasRdbms]),
+        feedback: hasRdbms
+          ? "RDBMS를 통해 ACID 트랜잭션 지원이 가능합니다."
+          : "데이터 일관성이 중요한 경우 RDBMS 사용을 고려해보세요.",
+        checklist: {
+          acidTransaction: hasRdbms,
+          lockingStrategy: hasRdbms,
+          eventualConsistency: hasNosql || hasCache
+        }
+      },
+      reliability: {
+        score: generateNfrScore(55, [hasStorage, hasRdbms, hasNosql]),
+        feedback: (hasStorage || hasRdbms || hasNosql)
+          ? "영구 저장소가 포함되어 데이터 지속성이 확보되었습니다."
+          : "데이터 영구 저장을 위한 스토리지 또는 데이터베이스가 필요합니다.",
+        checklist: {
+          dataPersistence: hasStorage || hasRdbms || hasNosql,
+          idempotency: hasBroker
+        }
+      }
+    },
+    interviewScore: {
+      score: Math.floor(Math.random() * 20) + 60,
+      feedback: "API 연결 문제로 면접 답변에 대한 상세 분석이 제한됩니다. 재시도해주세요."
+    },
     conceptUnderstanding: {
       demonstrated: concepts.slice(0, 1),
       needsImprovement: concepts.slice(1)
@@ -372,6 +408,14 @@ export const mockEvaluations = {
   0: {
     score: 75,
     grade: "good",
+    nfrScores: {
+      scalability: { score: 70, feedback: "기본 확장성 고려됨", checklist: { scaleOut: false, loadBalancing: false, sharding: false } },
+      availability: { score: 65, feedback: "가용성 개선 필요", checklist: { noSPOF: false, replication: false, failover: false } },
+      performance: { score: 70, feedback: "성능 최적화 고려 필요", checklist: { caching: false, asyncProcessing: false, indexing: false } },
+      consistency: { score: 75, feedback: "일관성 기본 구조 포함", checklist: { acidTransaction: false, lockingStrategy: false, eventualConsistency: false } },
+      reliability: { score: 70, feedback: "신뢰성 개선 필요", checklist: { dataPersistence: false, idempotency: false } }
+    },
+    interviewScore: { score: 70, feedback: "API 연결 후 상세 평가 가능" },
     summary: "API 연결 문제로 기본 평가를 제공합니다. 아키텍처 설계의 기본 구조는 갖추었습니다.",
     strengths: ["기본 컴포넌트 배치", "구조적 이해"],
     weaknesses: ["상세 연결 관계 확인 필요"],
