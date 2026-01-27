@@ -182,8 +182,13 @@ ${architectureContext}
  * - 질문별 모범 답안 비교
  * - 파트별 점수 근거 명시
  * - 50(설계)/50(면접) 평가 로직
+ * @param {Object} problem - 문제 데이터
+ * @param {string} architectureContext - 아키텍처 컨텍스트
+ * @param {string} generatedQuestion - 생성된 최종 질문
+ * @param {string} userAnswer - 사용자의 최종 답변
+ * @param {Array} deepDiveQnA - 심화 질문/답변 배열 [{category, question, answer}]
  */
-export async function evaluateArchitecture(problem, architectureContext, generatedQuestion, userAnswer, deepDiveAnswers) {
+export async function evaluateArchitecture(problem, architectureContext, generatedQuestion, userAnswer, deepDiveQnA) {
   // 기준 데이터 추출
   const keyComponents = problem?.keyComponents || [];
   const keyComponentsText = keyComponents.length > 0
@@ -204,9 +209,26 @@ export async function evaluateArchitecture(problem, architectureContext, generat
     ? rubricNfr.map(r => `- [${r.category}] 의도: ${r.question_intent}\n  모범답안: ${r.model_answer}`).join('\n')
     : '- 없음';
 
+  // 심화 질문/답변 배열 처리
+  const deepDiveArray = Array.isArray(deepDiveQnA) ? deepDiveQnA : [];
+  const deepDiveQnAText = deepDiveArray.length > 0
+    ? deepDiveArray.map((item, idx) =>
+        `[질문 ${idx + 1} - ${item.category || '일반'}]\nQ: ${item.question}\nA: ${item.answer || '(답변 없음)'}`
+      ).join('\n\n')
+    : '(심화 질문에 답변하지 않음)';
+
+  // 각 질문을 JSON 형태로 정리 (LLM이 분석하기 쉽게)
+  const deepDiveQuestionsJson = deepDiveArray.map((item, idx) => ({
+    index: idx + 1,
+    category: item.category || '일반',
+    question: item.question,
+    userAnswer: item.answer || ''
+  }));
+
   // 답변 길이 체크
   const answerLength = (userAnswer || '').length;
-  const deepDiveLength = (deepDiveAnswers || '').length;
+  const totalDeepDiveLength = deepDiveArray.reduce((sum, item) => sum + (item.answer || '').length, 0);
+  const answeredCount = deepDiveArray.filter(item => item.answer && item.answer.length > 0).length;
 
   const prompt = `당신은 시스템 아키텍처 전문 평가관입니다.
 학생이 제출한 [아키텍처 다이어그램]과 [면접 답변]을 바탕으로 **엄격하게** 채점하세요.
@@ -232,13 +254,17 @@ ${nfrText}
 ### 아키텍처 설계:
 ${architectureContext}
 
-### 심층 질문: ${generatedQuestion || '없음'}
+### 최종 질문: ${generatedQuestion || '없음'}
 ### 학생의 최종 답변: ${userAnswer || '(답변 없음)'}
 ### 최종 답변 길이: ${answerLength}자
 
-### 심화 질문 답변들:
-${deepDiveAnswers || '(심화 질문에 답변하지 않음)'}
-### 심화 답변 총 길이: ${deepDiveLength}자
+### 심화 질문 및 답변 (${deepDiveArray.length}개 중 ${answeredCount}개 답변):
+${deepDiveQnAText}
+
+### 심화 질문 데이터 (JSON):
+${JSON.stringify(deepDiveQuestionsJson, null, 2)}
+
+### 심화 답변 총 길이: ${totalDeepDiveLength}자
 
 ## 3. 채점 규칙 (매우 엄격하게!)
 
@@ -264,6 +290,8 @@ ${deepDiveAnswers || '(심화 질문에 답변하지 않음)'}
 totalScore = architectureScore + interviewScore (100점 만점)
 
 ## 4. 출력 형식 (JSON만 출력!)
+**중요: questionAnalysis에는 위에서 제공된 모든 심화 질문(${deepDiveArray.length}개)에 대해 각각 분석을 포함해야 합니다.**
+
 {
   "totalScore": 0,
   "grade": "excellent(80+)" | "good(60-79)" | "needs-improvement(40-59)" | "poor(0-39)",
@@ -282,16 +310,17 @@ totalScore = architectureScore + interviewScore (100점 만점)
   "interviewEvaluation": {
     "score": 0,
     "answerAnalysis": {
-      "length": ${answerLength},
+      "length": ${answerLength + totalDeepDiveLength},
       "hasKeyTerms": true/false,
       "keyTermsFound": ["발견된 기술 용어"],
       "keyTermsMissing": ["누락된 핵심 키워드"]
     },
     "questionAnalysis": [
       {
-        "question": "질문 내용",
-        "userAnswer": "학생 답변 요약",
-        "modelAnswer": "모범 답안 (JSON에서)",
+        "question": "실제 질문 내용을 여기에 복사",
+        "category": "질문 카테고리",
+        "userAnswer": "학생이 작성한 답변 (없으면 빈 문자열)",
+        "modelAnswer": "이 질문에 대한 모범 답안",
         "matchStatus": "match/partial/mismatch",
         "deductionReason": "감점 사유 (있으면)",
         "score": 0,
@@ -306,7 +335,7 @@ totalScore = architectureScore + interviewScore (100점 만점)
 }`;
 
   try {
-    const response = await callOpenAI(prompt, { maxTokens: 1500, temperature: 0.3 });
+    const response = await callOpenAI(prompt, { maxTokens: 2000, temperature: 0.3 });
     const jsonMatch = response.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const result = JSON.parse(jsonMatch[0]);
@@ -317,14 +346,29 @@ totalScore = architectureScore + interviewScore (100점 만점)
     throw new Error('Invalid JSON response');
   } catch (error) {
     console.error('Evaluation error:', error);
-    // Fallback 응답
+    // Fallback 응답 - 질문 정보 포함
+    const fallbackQuestionAnalysis = deepDiveArray.map(item => ({
+      question: item.question,
+      category: item.category || '일반',
+      userAnswer: item.answer || '',
+      modelAnswer: '평가 오류로 모범 답안을 불러올 수 없습니다.',
+      matchStatus: 'mismatch',
+      deductionReason: '평가 오류',
+      score: 0,
+      feedback: '다시 시도해주세요.'
+    }));
+
     return {
       totalScore: 30,
       score: 30,
       grade: 'poor',
       summary: '평가 중 오류가 발생했습니다. 다시 시도해주세요.',
       architectureEvaluation: { score: 15, details: [], missingComponents: [], incorrectFlows: [] },
-      interviewEvaluation: { score: 15, answerAnalysis: { length: answerLength, hasKeyTerms: false }, questionAnalysis: [] },
+      interviewEvaluation: {
+        score: 15,
+        answerAnalysis: { length: answerLength + totalDeepDiveLength, hasKeyTerms: false, keyTermsFound: [], keyTermsMissing: [] },
+        questionAnalysis: fallbackQuestionAnalysis
+      },
       strengths: [],
       weaknesses: ['평가 오류'],
       suggestions: ['다시 시도해주세요']

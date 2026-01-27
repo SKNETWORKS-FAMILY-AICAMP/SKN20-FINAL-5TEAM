@@ -153,6 +153,7 @@
               <div v-for="(qa, idx) in result.interviewEvaluation.questionAnalysis" :key="idx" class="question-item" :class="qa.matchStatus">
                 <div class="question-header">
                   <span class="question-number">Q{{ idx + 1 }}</span>
+                  <span v-if="qa.category" class="question-category">{{ getCategoryIcon(qa.category) }} {{ qa.category }}</span>
                   <span class="match-badge" :class="qa.matchStatus">
                     {{ matchStatusText(qa.matchStatus) }}
                   </span>
@@ -350,6 +351,15 @@ export default {
         'mismatch': '❌ 불일치'
       };
       return texts[status] || status;
+    },
+    getCategoryIcon(category) {
+      const icons = {
+        '설계 의도': '🎨',
+        '확장성/성능': '📈',
+        '장애 대응': '🛡️',
+        '일반': '💡'
+      };
+      return icons[category] || '💬';
     }
   }
 };
@@ -1142,6 +1152,15 @@ export default {
   border-radius: 20px;
   font-size: 0.85em;
   font-weight: 700;
+}
+
+.question-category {
+  background: rgba(255, 193, 7, 0.15);
+  color: #ffc107;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8em;
+  font-weight: 600;
 }
 
 .match-badge {

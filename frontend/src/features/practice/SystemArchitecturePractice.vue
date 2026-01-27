@@ -415,11 +415,12 @@ export default {
         this.mermaidCode
       );
 
-      // 수집된 심화질문 답변들 정리
-      const deepDiveAnswers = this.collectedDeepDiveAnswers
-        .filter(item => item.answer !== '(스킵됨)')
-        .map(item => `[${item.category}] Q: ${item.question}\nA: ${item.answer}`)
-        .join('\n\n');
+      // 수집된 심화질문 답변들 (배열 형태로 전달)
+      const deepDiveQnA = this.collectedDeepDiveAnswers.map(item => ({
+        category: item.category,
+        question: item.question,
+        answer: item.answer === '(스킵됨)' ? '' : item.answer
+      }));
 
       try {
         this.evaluationResult = await evaluateArchitecture(
@@ -427,7 +428,7 @@ export default {
           architectureContext,
           this.generatedQuestion,
           this.userAnswer,
-          deepDiveAnswers
+          deepDiveQnA
         );
       } catch (error) {
         console.error('Evaluation error:', error);
