@@ -31,6 +31,21 @@
       </div>
     </transition>
 
+    <!-- 버그 수정 알림 팝업 (중앙 → 대화창 애니메이션) -->
+    <div
+      v-if="showAlertPopup"
+      class="alert-popup-overlay"
+      @click="dismissAlertPopup"
+    >
+      <div
+        class="alert-popup-content"
+        :class="[alertPopupPhase]"
+      >
+        <div class="alert-popup-icon">⚠️</div>
+        <div class="alert-popup-message">{{ alertPopupMessage }}</div>
+        <div class="alert-popup-hint">화면을 터치하면 닫힙니다</div>
+      </div>
+    </div>
 
     <!-- 스탯 패널 -->
     <transition name="fade">
@@ -87,34 +102,7 @@
         </div>
       </transition>
 
-      <!-- PHASE 3: EXPLAIN 팝업 -->
-      <transition name="explainPopup">
-        <div v-if="showExplainPopup" class="explain-popup-overlay">
-          <div class="explain-popup-content">
-            <div class="explain-popup-header">
-              <span class="explain-icon">📝</span>
-              <span class="explain-title-text">PHASE 3: EXPLAIN</span>
-            </div>
-            <div class="explain-popup-body">
-              <p class="explain-prompt">버그를 어떻게 찾고 해결했는지 설명해주세요!</p>
-              <textarea
-                v-model="stepExplanations[currentProgressiveStep]"
-                placeholder="왜 이렇게 해결했나요? 해결 전략을 설명해주세요."
-                class="explain-popup-textarea"
-              ></textarea>
-            </div>
-            <div class="explain-popup-footer">
-              <button
-                class="explain-submit-btn"
-                @click="submitExplanation"
-                :disabled="!stepExplanations[currentProgressiveStep]?.trim()"
-              >
-                {{ currentProgressiveStep === 3 ? '🏆 FINAL SUBMIT' : '➡️ NEXT MISSION' }}
-              </button>
-            </div>
-          </div>
-        </div>
-      </transition>
+
 
       <!-- 미션 완료 이펙트 -->
       <transition name="missionComplete">
@@ -219,9 +207,43 @@
             </template>
             
             <!-- PHASE 3: EXPLAIN은 팝업으로 표시됨 -->
-            <div v-if="currentProgressivePhase === 'explain'" class="explain-waiting-box">
-              <span class="waiting-icon">📝</span>
-              <span class="waiting-text">설명을 작성해주세요!</span>
+            <!-- CHAT INTERFACE -->
+            <!-- CHAT INTERFACE -->
+            <div class="chat-interface neon-border" ref="chatInterfaceRef">
+              <div class="chat-header">
+                <span class="chat-icon">💬</span>
+                <span class="chat-title">MISSION LOG</span>
+              </div>
+              <div class="chat-messages" ref="chatMessagesRef">
+                <div 
+                  v-for="(msg, idx) in chatMessages" 
+                  :key="idx" 
+                  class="chat-message"
+                  :class="[msg.role, { 'new-message': msg.isNew }]"
+                >
+                  <div class="message-avatar" v-if="msg.role === 'system'">🤖</div>
+                  <div class="message-content">
+                    <div class="message-bubble" :class="{ 'flash-bubble': msg.isNew && msg.role === 'system' }">{{ msg.text }}</div>
+                  </div>
+                  <div class="message-avatar" v-if="msg.role === 'user'">👤</div>
+                </div>
+              </div>
+              <div class="chat-input-area">
+                <input 
+                  v-model="chatInput" 
+                  @keyup.enter="handleChatSubmit"
+                  placeholder="Type your message..."
+                  :disabled="currentProgressivePhase !== 'explain'"
+                  class="chat-input-box"
+                />
+                <button 
+                  class="chat-send-btn" 
+                  @click="handleChatSubmit"
+                  :disabled="!chatInput.trim() || currentProgressivePhase !== 'explain'"
+                >
+                  SEND
+                </button>
+              </div>
             </div>
           </div>
         </aside>
@@ -410,42 +432,71 @@
             </div>
           </div>
 
-          <!-- AI 총평 섹션 -->
+          <!-- AI 디버깅 사고 평가 섹션 -->
           <div class="ai-report-section neon-border">
             <div class="report-section-title">
-              <span class="ai-icon">🤖</span>
-              AI 전문 기술 평가
+              <span class="ai-icon">🧠</span>
+              디버깅 사고 평가
             </div>
-            
+
             <div v-if="isEvaluatingAI" class="ai-loading">
               <div class="pulse-loader"></div>
-              <p>시니어 개발자 AI가 당신의 해결 전략을 분석 중입니다...</p>
+              <p>AI가 당신의 디버깅 사고를 분석 중입니다...</p>
             </div>
-            
+
             <div v-else-if="aiEvaluationResult" class="ai-result">
-              <div class="ai-score-row">
-                <div class="ai-overall-score">
-                  <span class="score-label">기술 이해도 점수</span>
-                  <span class="score-value">{{ aiEvaluationResult.overallScore }}</span>
+              <!-- 사고 방향 통과/탈락 -->
+              <div class="thinking-eval-grid">
+                <div class="eval-card thinking-pass-card">
+                  <div class="eval-card-header">
+                    <span class="eval-icon">🎯</span>
+                    <span class="eval-title">사고 방향</span>
+                  </div>
+                  <div class="eval-card-body">
+                    <span
+                      class="pass-badge"
+                      :class="aiEvaluationResult.thinking_pass ? 'pass' : 'fail'"
+                    >
+                      {{ aiEvaluationResult.thinking_pass ? '✅ 통과' : '❌ 탈락' }}
+                    </span>
+                  </div>
                 </div>
-                <div class="ai-summary">
-                  <p>{{ aiEvaluationResult.summary }}</p>
+
+                <!-- 코드 위험도 -->
+                <div class="eval-card risk-card">
+                  <div class="eval-card-header">
+                    <span class="eval-icon">⚠️</span>
+                    <span class="eval-title">코드 위험도</span>
+                  </div>
+                  <div class="eval-card-body">
+                    <div class="risk-gauge">
+                      <div
+                        class="risk-fill"
+                        :style="{ width: aiEvaluationResult.code_risk + '%' }"
+                        :class="getRiskLevel(aiEvaluationResult.code_risk)"
+                      ></div>
+                    </div>
+                    <span class="risk-value">{{ aiEvaluationResult.code_risk }}/100</span>
+                  </div>
+                </div>
+
+                <!-- 사고력 점수 -->
+                <div class="eval-card thinking-score-card">
+                  <div class="eval-card-header">
+                    <span class="eval-icon">💡</span>
+                    <span class="eval-title">사고력 점수</span>
+                  </div>
+                  <div class="eval-card-body">
+                    <span class="thinking-score-value">{{ aiEvaluationResult.thinking_score }}</span>
+                    <span class="thinking-score-max">/100</span>
+                  </div>
                 </div>
               </div>
-              
-              <div class="pros-cons-grid">
-                <div class="pros-box">
-                  <div class="box-label">✨ STRENGTHS</div>
-                  <ul>
-                    <li v-for="(pro, idx) in aiEvaluationResult.strengths" :key="idx">{{ pro }}</li>
-                  </ul>
-                </div>
-                <div class="cons-box">
-                  <div class="box-label">🚩 AREAS TO IMPROVE</div>
-                  <ul>
-                    <li v-for="(con, idx) in aiEvaluationResult.weaknesses" :key="idx">{{ con }}</li>
-                  </ul>
-                </div>
+
+              <!-- 총평 -->
+              <div class="summary-box">
+                <div class="summary-label">📝 총평</div>
+                <p class="summary-text">{{ aiEvaluationResult.총평 }}</p>
               </div>
             </div>
           </div>
@@ -491,8 +542,298 @@
   </div>
 </template>
 
+<style scoped>
+/* 기존 스타일 유지 */
+
+/* 채팅 인터페이스 스타일 */
+.chat-interface {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: rgba(10, 10, 15, 0.8);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  border-radius: 8px;
+  margin-top: 1rem;
+  overflow: hidden;
+  min-height: 300px;
+  max-height: 450px;
+}
+
+.chat-header {
+  padding: 0.8rem;
+  background: rgba(0, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: bold;
+  color: #0ff;
+}
+
+.chat-messages {
+  flex: 1;
+  padding: 1rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.chat-message {
+  display: flex;
+  gap: 0.5rem;
+  max-width: 90%;
+}
+
+.chat-message.system {
+  align-self: flex-start;
+}
+
+.chat-message.user {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+.message-avatar {
+  font-size: 1.2rem;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+}
+
+.message-bubble {
+  padding: 0.8rem;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+.chat-message.system .message-bubble {
+  background: rgba(0, 255, 255, 0.15);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  color: #e0f0ff;
+  border-top-left-radius: 2px;
+}
+
+.chat-message.user .message-bubble {
+  background: rgba(255, 0, 255, 0.15);
+  border: 1px solid rgba(255, 0, 255, 0.3);
+  color: #ffe0ff;
+  border-top-right-radius: 2px;
+}
+
+.chat-input-area {
+  padding: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  gap: 0.5rem;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.chat-input-box {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 0.8rem;
+  color: white;
+  font-family: inherit;
+}
+
+.chat-input-box:focus {
+  outline: none;
+  border-color: #0ff;
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+}
+
+.chat-input-box:disabled {
+  background: rgba(255, 255, 255, 0.05);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.chat-send-btn {
+  background: linear-gradient(135deg, #0ff, #0088ff);
+  border: none;
+  color: black;
+  font-weight: bold;
+  padding: 0 1.2rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.chat-send-btn:hover:not(:disabled) {
+  filter: brightness(1.2);
+  transform: translateY(-1px);
+}
+
+.chat-send-btn:disabled {
+  background: #333;
+  color: #666;
+  cursor: not-allowed;
+}
+
+/* Scrollbar styling for chat */
+.chat-messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+  background: rgba(0, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+/* New Message Effects */
+.flash-bubble {
+  animation: bubbleFlash 1.5s ease-out infinite alternate;
+}
+
+@keyframes bubbleFlash {
+  0% { box-shadow: 0 0 5px var(--neon-cyan); border-color: var(--neon-cyan); }
+  100% { box-shadow: 0 0 15px var(--neon-cyan), 0 0 5px #fff; border-color: #fff; }
+}
+
+.chat-message.new-message {
+  animation: slideInMessage 0.3s ease-out, highlightMessage 1s ease-out;
+}
+
+@keyframes slideInMessage {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes highlightMessage {
+  0% { filter: brightness(1.5); }
+  100% { filter: brightness(1); }
+}
+
+/* 버그 수정 알림 팝업 스타일 */
+.alert-popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  pointer-events: auto;
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.alert-popup-content {
+  background: linear-gradient(135deg, rgba(0, 255, 255, 0.15), rgba(255, 0, 128, 0.15));
+  border: 2px solid var(--neon-cyan);
+  border-radius: 16px;
+  padding: 30px 50px;
+  text-align: center;
+  box-shadow:
+    0 0 30px rgba(0, 255, 255, 0.5),
+    0 0 60px rgba(0, 255, 255, 0.3),
+    inset 0 0 30px rgba(0, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  max-width: 500px;
+}
+
+.alert-popup-icon {
+  font-size: 3rem;
+  margin-bottom: 15px;
+  animation: iconPulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes iconPulse {
+  from { transform: scale(1); filter: brightness(1); }
+  to { transform: scale(1.1); filter: brightness(1.3); }
+}
+
+.alert-popup-message {
+  font-size: 1.1rem;
+  color: #fff;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+}
+
+.alert-popup-hint {
+  margin-top: 20px;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  animation: hintBlink 1.5s ease-in-out infinite;
+}
+
+@keyframes hintBlink {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* 흔들림 애니메이션 (shake) */
+.alert-popup-content.shake {
+  animation: popupShake 0.6s ease-out, popupAppear 0.3s ease-out;
+}
+
+@keyframes popupAppear {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes popupShake {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  10% { transform: translateX(-8px) rotate(-2deg); }
+  20% { transform: translateX(8px) rotate(2deg); }
+  30% { transform: translateX(-8px) rotate(-2deg); }
+  40% { transform: translateX(8px) rotate(2deg); }
+  50% { transform: translateX(-5px) rotate(-1deg); }
+  60% { transform: translateX(5px) rotate(1deg); }
+  70% { transform: translateX(-3px) rotate(0deg); }
+  80% { transform: translateX(3px) rotate(0deg); }
+  90% { transform: translateX(-1px) rotate(0deg); }
+}
+
+/* 대화창으로 날아가는 애니메이션 (fly) */
+.alert-popup-content.fly {
+  animation: flyToChat 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes flyToChat {
+  0% {
+    opacity: 1;
+    transform: scale(1) translate(0, 0);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(0.8) translate(0, -20px);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.3) translate(-60vw, 30vh);
+  }
+}
+</style>
+
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted, watch, shallowRef } from 'vue';
+import { ref, reactive, computed, onMounted, onUnmounted, watch, shallowRef, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
 import progressiveData from './progressive-problems.json';
@@ -680,6 +1021,11 @@ const quizCorrectCount = ref(0);
 
 // 설명 및 평가 데이터
 const stepExplanations = reactive({ 1: '', 2: '', 3: '' });
+const chatMessages = ref([]);
+const chatInput = ref('');
+const chatMessagesRef = ref(null);
+const hasNewMessage = ref(false);
+
 const stepStartTime = ref(null);
 const totalDebugTime = ref(0);
 const evaluationStats = reactive({
@@ -701,8 +1047,16 @@ const isShaking = ref(false);
 const showComboPopup = ref(false);
 const comboText = ref('');
 
-// PHASE 3 설명 팝업
-const showExplainPopup = ref(false);
+// 버그 수정 알림 팝업 (중앙에서 대화창으로 날아가는 효과)
+const showAlertPopup = ref(false);
+const alertPopupMessage = ref('');
+const alertPopupPhase = ref(''); // 'shake' | 'fly' | ''
+const chatInterfaceRef = ref(null);
+
+
+
+// PHASE 3 설명 팝업 제거됨
+// const showExplainPopup = ref(false);
 
 // 미션 해금 여부 (순차적)
 function isMissionUnlocked(index) {
@@ -793,6 +1147,11 @@ function startProgressiveMission(mission, index, startAtStep = 1) {
   
   // 시작할 스텝의 퀴즈부터 표시
   showQuizPhase();
+  
+  // 채팅 초기화
+  chatMessages.value = [
+    { role: 'system', text: `MISSION STARTED: ${mission.project_title}\n\n${mission.scenario}`, isNew: false }
+  ];
 
   // 버그 애니메이션 시작
   setTimeout(() => {
@@ -845,6 +1204,51 @@ function startDebugPhase() {
   });
 }
 
+// 채팅 메시지 추가 헬퍼
+function addChatMessage(role, text) {
+  const isSystem = role === 'system';
+  
+  chatMessages.value.push({ 
+    role, 
+    text, 
+    isNew: true 
+  });
+  
+  if (isSystem) {
+    hasNewMessage.value = true;
+    setTimeout(() => { hasNewMessage.value = false; }, 500);
+  }
+
+  // DOM 업데이트 후 스크롤
+  nextTick(() => {
+    scrollToBottom();
+  });
+}
+
+// 중앙 팝업 표시 후 대화창으로 날아가는 애니메이션
+function showAlertWithAnimation(message) {
+  alertPopupMessage.value = message;
+  alertPopupPhase.value = 'shake';
+  showAlertPopup.value = true;
+}
+
+// 팝업 닫기 (터치)
+function dismissAlertPopup() {
+  if (!showAlertPopup.value || alertPopupPhase.value === 'fly') return;
+
+  // 날아가는 애니메이션 시작
+  alertPopupPhase.value = 'fly';
+
+  // 0.8초 후 팝업 숨기고 대화창에 메시지 추가
+  setTimeout(() => {
+    showAlertPopup.value = false;
+    const message = alertPopupMessage.value;
+    alertPopupPhase.value = '';
+    alertPopupMessage.value = '';
+    addChatMessage('system', `⚠️ ${message}`);
+  }, 800);
+}
+
 // 다음 문제로 이동 (설명 완료 후)
 function moveToNextStep() {
   if (currentProgressiveStep.value < 3) {
@@ -855,17 +1259,53 @@ function moveToNextStep() {
   }
 }
 
-// PHASE 3 설명 제출 (팝업에서 호출)
-function submitExplanation() {
-  showExplainPopup.value = false;
-  moveToNextStep();
+// 채팅 메시지 스크롤
+function scrollToBottom() {
+  if (chatMessagesRef.value) {
+    // 부드러운 스크롤을 위해 약간의 딜레이 보장 및 smooth behavior
+    setTimeout(() => {
+      chatMessagesRef.value.scrollTo({
+        top: chatMessagesRef.value.scrollHeight,
+        behavior: 'smooth'
+      });
+    }, 50);
+  }
+}
+
+// 채팅 제출 (설명 처리)
+function handleChatSubmit() {
+  if (!chatInput.value.trim() || currentProgressivePhase.value !== 'explain') return;
+
+  const userText = chatInput.value.trim();
+  
+  // 사용자 메시지 추가
+  addChatMessage('user', userText);
+  chatInput.value = '';
+
+  // 설명 저장
+  stepExplanations[currentProgressiveStep.value] = userText;
+
+  // 시스템 응답 및 다음 단계 진행
+  setTimeout(() => {
+    addChatMessage('system', '설명이 기록되었습니다. 훌륭합니다! 데이터가 처리되는 동안 잠시만 기다려주세요...');
+    
+    setTimeout(() => {
+      if (currentProgressiveStep.value < 3) {
+        addChatMessage('system', `STEP ${currentProgressiveStep.value} 완료. 다음 보안 레벨로 접근합니다.`);
+        moveToNextStep();
+      } else {
+        addChatMessage('system', '모든 미션이 완료되었습니다! 최종 리포트를 생성합니다.');
+        completeMission();
+      }
+    }, 1500);
+  }, 500);
 }
 
 // 평가 화면 보기
 async function showEvaluation() {
   showMissionComplete.value = false;
   currentView.value = 'evaluation';
-  
+
   // AI 평가 시작
   if (currentProgressiveMission.value) {
     isEvaluatingAI.value = true;
@@ -873,7 +1313,8 @@ async function showEvaluation() {
       aiEvaluationResult.value = await evaluateBugHunt(
         currentProgressiveMission.value.project_title,
         currentProgressiveMission.value.steps,
-        stepExplanations
+        stepExplanations,
+        progressiveStepCodes.value
       );
     } catch (error) {
       console.error('AI Evaluation failed:', error);
@@ -888,6 +1329,13 @@ function formatTime(seconds) {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
   return `${mins}m ${secs}s`;
+}
+
+// 위험도 레벨 계산
+function getRiskLevel(risk) {
+  if (risk <= 30) return 'low';
+  if (risk <= 60) return 'medium';
+  return 'high';
 }
 
 // 다시 풀기
@@ -1005,9 +1453,12 @@ function submitProgressiveStep() {
           showStepComplete.value = true;
           setTimeout(() => {
             showStepComplete.value = false;
-            // 3단계: 설명 페이즈로 전환 (팝업으로 표시)
+            // 3단계: 설명 페이즈로 전환 (채팅으로)
             currentProgressivePhase.value = 'explain';
-            showExplainPopup.value = true;
+
+            // 중앙 팝업 표시 후 대화창으로 날아가는 애니메이션
+            const message = `ALERT: Bug ${currentProgressiveStep.value} Neutralized!\n\n${getCurrentStepData()?.title}\n\n버그를 해결하셨군요. 어떤 전략을 사용했는지 기록(Log)을 남겨주세요.`;
+            showAlertWithAnimation(message);
           }, 2000);
         }, 1000);
 
@@ -1024,6 +1475,8 @@ function submitProgressiveStep() {
     }, 500);
   }, 800);
 }
+
+
 
 // 버그 클릭 이벤트
 function onBugClick(step) {
@@ -1193,8 +1646,27 @@ function shootBug(targetStep, isHit) {
       requestAnimationFrame(animateBullet);
     } else {
       showBullet.value = false;
+      
+      // 명중 여부는 이 함수 외부에서 결정된 passed 값을 따름 (shootBug 호출 시 두 번째 인자)
+      // 이 로직은 shootBug 내부에 있으므로 passed를 직접 참조할 수 없음. 
+      // 하지만 shootBug는 passed가 true일 때만 호출되는 것이 아니라 결과에 따라 호출됨.
+      // 원본 코드 로직 유지: shootBug는 결과 상관없이 호출되지만, 여기서는 이펙트만 담당.
 
-      // 화면 흔들림 효과 (타격/실패 시)
+      if (isHit) {
+         showHitEffect.value = true;
+         hitEffectPosition.value = { x: targetX, y: targetY };
+         // 텍스트 랜덤 (CRITICAL, HIT, SQUASH)
+         const texts = ['CRITICAL!', 'SQUASH!', 'DELETED!'];
+         hitEffectText.value = texts[Math.floor(Math.random() * texts.length)];
+         
+         setTimeout(() => { showHitEffect.value = false; }, 800);
+      } else {
+         showMissEffect.value = true;
+         missEffectPosition.value = { x: targetX, y: targetY };
+         setTimeout(() => { showMissEffect.value = false; }, 800);
+      }
+
+      // 화면 흔들림 효과
       isShaking.value = true;
       setTimeout(() => { isShaking.value = false; }, 500);
 
@@ -1867,7 +2339,9 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 15px;
-  overflow-y: auto;
+  overflow: hidden;
+  min-height: 0;
+  max-height: 100%;
 }
 
 .panel-box {
@@ -1940,6 +2414,9 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 12px;
   margin-top: auto;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .action-btn {
@@ -3459,6 +3936,157 @@ onUnmounted(() => {
 
 .pros-box li::before { content: '✓'; color: var(--neon-green); }
 .cons-box li::before { content: '•'; color: var(--neon-red); }
+
+/* 디버깅 사고 평가 스타일 */
+.thinking-eval-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-bottom: 25px;
+}
+
+.eval-card {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.eval-card:hover {
+  border-color: rgba(0, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.eval-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.eval-icon {
+  font-size: 1.3rem;
+}
+
+.eval-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.85rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.eval-card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 통과/탈락 배지 */
+.pass-badge {
+  font-family: 'Orbitron', monospace;
+  font-size: 1.5rem;
+  font-weight: bold;
+  padding: 10px 25px;
+  border-radius: 8px;
+}
+
+.pass-badge.pass {
+  color: var(--neon-green);
+  background: rgba(0, 255, 100, 0.1);
+  border: 2px solid var(--neon-green);
+  text-shadow: 0 0 10px var(--neon-green);
+}
+
+.pass-badge.fail {
+  color: var(--neon-red);
+  background: rgba(255, 0, 100, 0.1);
+  border: 2px solid var(--neon-red);
+  text-shadow: 0 0 10px var(--neon-red);
+}
+
+/* 위험도 게이지 */
+.risk-gauge {
+  width: 100%;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.risk-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 1s ease-out;
+}
+
+.risk-fill.low {
+  background: linear-gradient(90deg, #00ff64, #00d454);
+  box-shadow: 0 0 10px rgba(0, 255, 100, 0.5);
+}
+
+.risk-fill.medium {
+  background: linear-gradient(90deg, #ffc107, #ff9800);
+  box-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
+}
+
+.risk-fill.high {
+  background: linear-gradient(90deg, #ff4757, #ff0044);
+  box-shadow: 0 0 10px rgba(255, 71, 87, 0.5);
+}
+
+.risk-value {
+  font-family: 'Orbitron', monospace;
+  font-size: 1.1rem;
+  color: #e0e0e0;
+}
+
+/* 사고력 점수 */
+.thinking-score-value {
+  font-family: 'Orbitron', monospace;
+  font-size: 3rem;
+  color: var(--neon-cyan);
+  text-shadow: 0 0 15px var(--neon-cyan);
+}
+
+.thinking-score-max {
+  font-family: 'Orbitron', monospace;
+  font-size: 1.2rem;
+  color: #718096;
+}
+
+/* 총평 박스 */
+.summary-box {
+  background: rgba(0, 255, 255, 0.05);
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.summary-label {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.85rem;
+  color: var(--neon-cyan);
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.summary-text {
+  font-size: 1.1rem;
+  line-height: 1.7;
+  color: #e0e0e0;
+  margin: 0;
+}
+
+/* 반응형 처리 */
+@media (max-width: 900px) {
+  .thinking-eval-grid {
+    grid-template-columns: 1fr;
+  }
+}
 
 @keyframes slideUp {
   from { transform: translateY(20px); opacity: 0; }
