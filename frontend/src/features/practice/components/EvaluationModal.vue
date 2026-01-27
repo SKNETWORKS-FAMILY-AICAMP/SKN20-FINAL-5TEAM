@@ -11,24 +11,27 @@
           <p>아키텍처를 분석하여 질문을 생성하는 중...</p>
         </div>
         <template v-else>
-          <!-- Mermaid Preview -->
-          <div class="mermaid-preview-section" v-if="mermaidCode">
-            <span class="preview-title">📊 아키텍처 다이어그램</span>
-            <div class="mermaid-preview" ref="mermaidPreview"></div>
-          </div>
+          <div class="content-layout">
+            <!-- 왼쪽: Mermaid Preview -->
+            <div class="mermaid-preview-section" v-if="mermaidCode">
+              <span class="preview-title">📊 아키텍처 다이어그램</span>
+              <div class="mermaid-preview" ref="mermaidPreview"></div>
+            </div>
 
-          <!-- 질문 -->
-          <div class="ai-question">
-            <span class="ai-question-title">QUESTION</span>
-            <span>{{ question }}</span>
-          </div>
+            <!-- 오른쪽: 질문 및 답변 -->
+            <div class="question-section">
+              <div class="ai-question">
+                <span class="ai-question-title">QUESTION</span>
+                <span>{{ question }}</span>
+              </div>
 
-          <!-- 답변 입력 -->
-          <textarea
-            class="user-answer"
-            v-model="answer"
-            placeholder="여기에 답변을 작성해주세요... (예: CDN을 사용하여 정적 리소스를 캐싱하여 부하를 줄입니다.)"
-          ></textarea>
+              <textarea
+                class="user-answer"
+                v-model="answer"
+                placeholder="여기에 답변을 작성해주세요... (예: CDN을 사용하여 정적 리소스를 캐싱하여 부하를 줄입니다.)"
+              ></textarea>
+            </div>
+          </div>
         </template>
       </div>
       <div class="modal-footer">
@@ -161,8 +164,8 @@ export default {
   background: linear-gradient(145deg, #0a0e27, #111827);
   border: 2px solid #64b5f6;
   border-radius: 20px;
-  width: 90%;
-  max-width: 700px;
+  width: 95%;
+  max-width: 1100px;
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 20px 60px rgba(100, 181, 246, 0.3);
@@ -194,7 +197,20 @@ export default {
 }
 
 .modal-body {
-  padding: 25px;
+  padding: 20px;
+}
+
+.content-layout {
+  display: flex;
+  gap: 20px;
+  align-items: stretch;
+}
+
+.question-section {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .loading-question {
@@ -402,11 +418,14 @@ export default {
 
 /* Mermaid Preview */
 .mermaid-preview-section {
+  flex: 1;
+  min-width: 0;
   background: rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(0, 255, 157, 0.2);
   border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 20px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
 }
 
 .preview-title {
@@ -414,24 +433,23 @@ export default {
   font-size: 0.85em;
   color: #64b5f6;
   letter-spacing: 1px;
-  display: block;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .mermaid-preview {
+  flex: 1;
   background: rgba(0, 0, 0, 0.2);
-  padding: 15px;
   border-radius: 8px;
-  min-height: 120px;
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: auto;
+  padding: 10px;
 }
 
 .mermaid-preview :deep(svg) {
-  max-width: 100%;
+  width: 100%;
   height: auto;
+  max-height: 280px;
 }
 
 .mermaid-error {

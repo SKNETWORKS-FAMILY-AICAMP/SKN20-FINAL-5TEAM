@@ -333,21 +333,52 @@ ${topicsText}
 ${architectureContext}
 
 ### 심층 질문: ${generatedQuestion || problem?.followUpQuestion || ''}
-### 학생의 답변: ${userAnswer}
+### 학생의 최종 답변: ${userAnswer || '(답변 없음)'}
+### 최종 답변 길이: ${userAnswer ? userAnswer.length : 0}자
 
-${deepDiveAnswers ? `### 심화 질문 답변들:\n${deepDiveAnswers}` : ''}
+### 심화 질문 답변들:
+${deepDiveAnswers || '(심화 질문에 답변하지 않음 - interviewScore 최대 20점 제한)'}
 
-## 평가 지침
-1. **컴포넌트 검증**: 학생이 필수 컴포넌트를 포함했는지 확인하세요.
-2. **NFR 평가**: 각 비기능적 요소에 대해 학생의 설계가 얼마나 잘 고려되었는지 평가하세요.
-3. **키워드 확인**: 답변에서 관련 기술 용어(Load Balancer, Replication, Cache, Queue 등)를 적절히 사용했는지 확인하세요.
-4. **참조 비교**: 참조 아키텍처와 비교하여 누락된 흐름이나 컴포넌트를 식별하세요.
-5. **실용성**: 실제 구현 가능성과 트레이드오프 이해도를 평가하세요.
+### 답변 분석 요청:
+- 학생 답변이 비어있거나 매우 짧으면(30자 미만) interviewScore는 0~20점으로 제한
+- 심화 질문에 모두 스킵하거나 답변이 없으면 interviewScore에서 -30점
+- 구체적인 기술 용어 없이 막연한 답변이면 interviewScore 최대 40점
+
+## 평가 지침 (엄격하게 평가할 것!)
+
+### 점수 배분 (총 100점)
+- **아키텍처 설계 (40점)**: NFR 5개 영역 평균 * 0.4
+- **답변 품질 (60점)**: 심층 질문 + 심화 질문 답변 품질 * 0.6
+
+### 답변 품질 평가 기준 (매우 중요!)
+1. **답변이 없거나 10자 미만**: interviewScore = 0~10점
+2. **답변이 짧거나 피상적 (10~50자)**: interviewScore = 10~30점
+3. **답변이 있지만 기술 용어 없음**: interviewScore = 30~50점
+4. **답변이 구체적이고 기술 용어 포함**: interviewScore = 50~80점
+5. **완벽한 답변 (구체적 + 트레이드오프 언급)**: interviewScore = 80~100점
+
+### 컴포넌트 검증
+1. 필수 컴포넌트 누락 시: NFR 점수에서 컴포넌트당 -10점
+2. 연결 관계가 논리적이지 않으면: NFR 점수에서 -15점
+
+### 엄격한 채점 원칙
+- **기본 점수는 0점에서 시작** (관대한 채점 금지)
+- 답변을 거의 안 쓰면 총점 40점을 넘을 수 없음
+- 심화 질문에 모두 스킵하면 interviewScore 최대 20점
+- 기술 용어(Load Balancer, Replication, Cache, Queue, Sharding, Failover 등) 사용 여부 반드시 체크
+
+### 최종 점수 계산
+score = (NFR 5개 평균점수 * 0.4) + (interviewScore * 0.6)
+
+예시:
+- NFR 평균 80점 + 답변 0점 = 80*0.4 + 0*0.6 = 32점
+- NFR 평균 60점 + 답변 50점 = 60*0.4 + 50*0.6 = 54점
+- NFR 평균 80점 + 답변 80점 = 80*0.4 + 80*0.6 = 80점
 
 ## 출력 형식 (JSON만 출력, 다른 텍스트 없이):
 {
-  "score": 0-100,
-  "grade": "excellent" | "good" | "needs-improvement" | "poor",
+  "score": 0-100 (위의 점수 계산 공식 반드시 적용),
+  "grade": "excellent"(80+) | "good"(60-79) | "needs-improvement"(40-59) | "poor"(0-39),
   "componentCoverage": {
     "included": ["포함된 필수 컴포넌트"],
     "missing": ["누락된 필수 컴포넌트"],
@@ -401,7 +432,10 @@ ${deepDiveAnswers ? `### 심화 질문 답변들:\n${deepDiveAnswers}` : ''}
   },
   "interviewScore": {
     "score": 0-100,
-    "feedback": "면접 답변에 대한 종합 피드백"
+    "answerLength": "답변 총 글자수",
+    "hasKeyTerms": true/false,
+    "keyTermsUsed": ["사용된 기술 용어들"],
+    "feedback": "면접 답변에 대한 종합 피드백 (답변이 없으면 '답변이 제출되지 않았습니다' 명시)"
   },
   "conceptUnderstanding": {
     "demonstrated": ["이해를 보여준 핵심 개념"],
