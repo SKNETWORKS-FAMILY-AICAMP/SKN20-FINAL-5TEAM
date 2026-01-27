@@ -28,9 +28,9 @@ const routes = [
   },
   // [2026-01-24] 라우트 기반 모달을 위한 Logic Mirror 경로 등록 (App.vue에서 감시하여 모달 처리)
   {
-    path: '/practice/logic-mirror',
-    name: 'LogicMirror',
-    component: { render: () => null } // 실제 컴포넌트는 GlobalModals에서 렌더링
+    path: '/practice/pseudo-code',
+    name: 'PseudoCode',
+    component: PseudoPractice
   },
   {
     path: '/practice/system-architecture',

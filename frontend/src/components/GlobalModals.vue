@@ -73,15 +73,7 @@
         @close="ui.isConstructionModalOpen = false" 
      />
 
-    <!-- [Logic Mirror 실습 모달] - Unit 1 전용 (수정일: 2026-01-24) -->
-    <transition name="fade">
-       <PseudoPractice 
-           v-if="ui.isLogicMirrorOpen" 
-           :initialQuestIndex="game.selectedQuestIndex"
-           @close="handleCloseLogicMirror"
-           @quest-complete="(idx) => game.unlockNextStage('Pseudo Practice', idx)"
-       />
-    </transition>
+    <!-- [Pseudo Code 실습 라우트 대응] - Unit 1 전용 (수정일: 2026-01-27) -->
 
     <!-- [Logic Mirror 가이드북 모달] - Unit 1 전용 (수정일: 2026-01-24) -->
     <LogicMirrorGuidebook 
@@ -148,11 +140,11 @@ const onSignUpSuccess = (nickname) => {
     ui.isSignUpModalOpen = false;
 };
 
-const handleCloseLogicMirror = () => {
-    // [2026-01-24] 라우트 기반 모달이므로 닫을 때 메인으로 주소 이동
-    ui.isLogicMirrorOpen = false;
+const handleClosePseudoCode = () => {
+    // [2026-01-27] Pseudo Code 페이지 종료 시 메인으로 이동
+    ui.isPseudoCodeOpen = false;
     router.push('/');
-    ui.isUnitModalOpen = true; // 실습 종료 후 다시 유닛 선택창 노출
+    ui.isUnitModalOpen = true; 
 };
 
 </script>

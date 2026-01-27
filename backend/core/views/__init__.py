@@ -6,4 +6,4 @@ from .dashboard_view import DashboardLogViewSet
 from .common_view import CommonViewSet
 from .practice_view import PracticeViewSet
 from .auth_view import LoginView, LogoutView, SessionCheckView
-from .ai_view import AIChatView
+from .ai_view import AIChatView, AIEvaluationView

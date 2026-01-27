@@ -5,7 +5,7 @@
 <template>
   <div id="app" v-cloak>
     <!-- [라우터 뷰 - Practice 페이지 (메인 레이아웃 없이 단독 표시)] -->
-    <router-view v-if="isPracticePage"></router-view>
+    <router-view v-if="isPracticePage" @close="handlePracticeClose"></router-view>
 
     <!-- [메인 페이지] -->
     <template v-else>
@@ -151,8 +151,9 @@ const leaderboard = ref([
 
 // Computed
 const isPracticePage = computed(() => {
-  // LogicMirror는 모달로 띄우기 위해 practiceRoutes에서 제외합니다. (배경 유지 목적)
+  // PseudoCode는 페이지/모달 하이브리드로 동작 (isPracticePage에 포함하여 배경 제어)
   const practiceRoutes = [
+    'PseudoCode',
     'SystemArchitecturePractice', 
     'BugHunt', 
     'VibeCodeCleanUp', 
@@ -250,7 +251,7 @@ function selectProblem(problem) {
 
   if (chapterName === 'Pseudo Practice') {
     game.selectedQuestIndex = problem.questIndex || 0;
-    ui.isLogicMirrorOpen = true;
+    router.push('/practice/pseudo-code');
   } else if (chapterName === 'System Practice') {
     game.selectedSystemProblemIndex = problem.problemIndex || 0;
     router.push({ path: '/practice/system-architecture', query: { problem: problem.problemIndex || 0 } });
@@ -275,6 +276,14 @@ function selectProblem(problem) {
   } else {
     ui.isConstructionModalOpen = true;
   }
+}
+
+function handlePracticeClose() {
+    // [2026-01-27] 실습 페이지에서 'X' 또는 닫기 이벤트 발생 시 처리
+    ui.isPseudoCodeOpen = false;
+    router.push('/');
+    // 닫은 후 유닛 선택 팝업을 다시 보여주어 연속성 유지
+    ui.isUnitModalOpen = true;
 }
 
 function selectGameMode(mode) {
@@ -323,7 +332,7 @@ import { watch } from 'vue';
 
 // [2026-01-27] 데이터 로드 완료 시 라우트에 따른 activeUnit 자동 복구
 watch(() => game.chapters, (newChapters) => {
-    if (newChapters.length > 0 && route.name === 'LogicMirror' && !game.activeUnit) {
+    if (newChapters.length > 0 && route.name === 'PseudoCode' && !game.activeUnit) {
         const pseudoUnit = newChapters.find(c => c.name === 'Pseudo Practice');
         if (pseudoUnit) game.activeUnit = pseudoUnit;
     }
@@ -331,8 +340,8 @@ watch(() => game.chapters, (newChapters) => {
 
 watch(() => route.name, (newName) => {
     // 1. URL이 변경될 때마다 모달 상태를 동기화합니다.
-    if (newName === 'LogicMirror') {
-        ui.isLogicMirrorOpen = true; // /practice/logic-mirror 접속 시 모달 활성화
+    if (newName === 'PseudoCode') {
+        ui.isPseudoCodeOpen = true; // /practice/pseudo-code 접속 시 상태 활성화
         
         // [2026-01-27] 직접 URL 접근이나 새로고침 시 activeUnit이 상실되는 문제 해결
         if (game.chapters.length > 0 && !game.activeUnit) {
@@ -340,8 +349,8 @@ watch(() => route.name, (newName) => {
             if (pseudoUnit) game.activeUnit = pseudoUnit;
         }
     } else if (!isPracticePage.value) {
-        // 2. 다른 일반 페이지(Landing 등)로 이동 시 모든 실습 모달을 명시적으로 닫습니다.
-        ui.isLogicMirrorOpen = false;
+        // 2. 다른 일반 페이지(Landing 드)로 이동 시 모든 실습 모달을 명시적으로 닫습니다.
+        ui.isPseudoCodeOpen = false;
     }
 }, { immediate: true });
 
