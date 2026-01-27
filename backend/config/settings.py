@@ -15,8 +15,8 @@ env = environ.Env(
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# .env 파일이 있으면 읽어옴
-environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+# .env 파일이 있으면 읽어옴 (프로젝트 루트의 .env 사용)
+environ.Env.read_env(os.path.join(BASE_DIR.parent, '.env'))
 
 SECRET_KEY = env('SECRET_KEY', default='django-insecure-default-key-for-dev')
 

@@ -2361,9 +2361,9 @@ onUnmounted(() => {
 }
 
 .scenario-text {
-  color: #a0aec0;
+  color: #ffffff;
   line-height: 1.6;
-  font-size: 0.95rem;
+  font-size: 1.1rem;
 }
 
 .current-target-box {
