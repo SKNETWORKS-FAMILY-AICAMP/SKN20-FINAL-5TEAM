@@ -46,14 +46,14 @@
             ],
             "answer": 1
           },
-          "buggy_code": "from sklearn.metrics import accuracy_score\n\ndef evaluate(model, X_test, y_train):\n    y_pred = model.predict(X_test)\n    accuracy = accuracy_score(y_train, y_pred)\n    return accuracy",
-          "correct_code": "from sklearn.metrics import accuracy_score\n\ndef evaluate(model, X_test, y_test):\n    y_pred = model.predict(X_test)\n    accuracy = accuracy_score(y_test, y_pred)\n    return accuracy",
-          "hint": "테스트 데이터 예측값은 테스트 정답과 비교해야 합니다. 평가 대상을 올바르게 수정하세요.",
+          "buggy_code": "from sklearn.metrics import accuracy_score\n\ndef evaluate(model, X_test, y_test, y_pred):\n    # AS-IS\n    accuracy = accuracy_score(y_pred, y_pred)\n    return accuracy",
+          "correct_code": "from sklearn.metrics import accuracy_score\n\ndef evaluate(model, X_test, y_test, y_pred):\n    # TO-BE (수정된 부분)\n    accuracy = accuracy_score(y_test, y_pred)\n    return accuracy",
+          "hint": "정확도는 '정답(y_test)'과 '예측(y_pred)'을 비교해야 합니다. 비교 대상을 올바르게 수정하세요.",
           "solution_check": {
             "type": "contains",
-            "value": "accuracy_score(y_test"
+            "value": "accuracy_score(y_test, y_pred)"
           },
-          "coaching": "훈련 데이터로 평가하면 모델이 ‘암기’한 정도만 보게 됩니다. 일반화 성능은 테스트로 봐야 합니다."
+          "coaching": "평가 지표는 항상 '정답 vs 예측' 비교입니다. 잘못 비교하면 높은 점수가 나와도 전혀 의미가 없습니다."
         },
         {
           "step": 3,
@@ -72,12 +72,12 @@
           },
           "buggy_code": "from sklearn.preprocessing import LabelEncoder\n\ndef encode_labels(y_train, y_test):\n    le = LabelEncoder()\n    y_train = le.fit_transform(y_train)\n    y_test = le.fit_transform(y_test)\n    return y_train, y_test",
           "correct_code": "from sklearn.preprocessing import LabelEncoder\n\ndef encode_labels(y_train, y_test):\n    le = LabelEncoder()\n    y_train = le.fit_transform(y_train)\n    y_test = le.transform(y_test)\n    return y_train, y_test",
-          "hint": "인코딩 기준은 학습 데이터로 한 번만 만들고, 테스트에는 transform만 적용하세요.",
+          "hint": "학습 데이터로만 인코딩 기준을 만들고, 테스트에는 transform만 적용하도록 수정하세요.",
           "solution_check": {
             "type": "contains",
-            "value": "transform(y_test)"
+            "value": "y_test = le.transform(y_test)"
           },
-          "coaching": "에러 없이도 성능이 망가질 수 있는 대표적인 버그입니다. 기준을 한 번만 만들고 재사용해야 합니다."
+          "coaching": "인코딩 기준이 달라지면 모델은 서로 다른 의미의 숫자를 학습/평가하게 됩니다. 반드시 같은 인코더를 재사용하세요."
         }
       ]
     },
