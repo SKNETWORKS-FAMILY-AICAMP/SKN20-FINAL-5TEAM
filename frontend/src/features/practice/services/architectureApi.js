@@ -50,10 +50,15 @@ async function callOpenAI(prompt, options = {}) {
  * 심층 질문 생성 (레거시 - 단일 연결용)
  */
 export async function generateDeepDiveQuestion(problem, fromComp, toComp) {
+  // 시나리오와 미션 정보 활용
+  const scenario = problem?.scenario || '';
+  const missions = problem?.missions?.join('\n') || '';
+
   const prompt = `당신은 시스템 아키텍처 면접관입니다.
 
 문제: ${problem?.title || '시스템 아키텍처 설계'}
-요구사항: ${problem?.requirements?.join(', ') || '없음'}
+시나리오: ${scenario}
+미션: ${missions}
 
 학생이 "${fromComp.text}"와 "${toComp.text}"를 연결했습니다.
 이 연결에 대해 깊이 있는 면접 질문 1개를 생성해주세요.
@@ -89,13 +94,27 @@ export async function generateArchitectureAnalysisQuestions(problem, components,
     return from && to ? `- ${from.text} → ${to.text}` : null;
   }).filter(Boolean).join('\n');
 
+  // 새 데이터 구조에서 정보 추출
+  const scenario = problem?.scenario || '';
+  const missions = problem?.missions?.join('\n- ') || '';
+  const engineeringSpec = problem?.engineeringSpec || {};
+  const specText = Object.entries(engineeringSpec).map(([k, v]) => `- ${k}: ${v}`).join('\n');
+  const rubricNfr = problem?.rubricNonFunctional || [];
+  const nfrTopics = rubricNfr.map(r => r.category).join(', ') || '없음';
+
   const prompt = `당신은 시스템 아키텍처 면접관입니다.
 학생이 설계한 아키텍처를 분석하고, 심층적인 면접 질문 3개를 생성해주세요.
 
 ## 문제 정보
 - 제목: ${problem?.title || '시스템 아키텍처 설계'}
-- 요구사항: ${problem?.requirements?.join(', ') || '없음'}
-- 주요 토픽: ${problem?.questionTopics?.map(t => t.topic).join(', ') || '없음'}
+- 시나리오: ${scenario}
+- 미션:
+- ${missions || '없음'}
+
+### 기술 요구사항:
+${specText || '없음'}
+
+### 평가 주요 토픽: ${nfrTopics}
 
 ## 학생의 아키텍처 설계
 
@@ -168,11 +187,20 @@ ${mermaidCode}
  * 평가 모달용 질문 생성
  */
 export async function generateEvaluationQuestion(problem, architectureContext) {
+  // 새 데이터 구조에서 정보 추출
+  const scenario = problem?.scenario || '';
+  const missions = problem?.missions?.join(', ') || '';
+  const rubricNfr = problem?.rubricNonFunctional || [];
+  const nfrHints = rubricNfr.map(r => `${r.category}: ${r.question_intent}`).join('\n') || '';
+
   const prompt = `당신은 시스템 아키텍처 면접관입니다.
 
 문제: ${problem?.title || '시스템 아키텍처 설계'}
-요구사항: ${problem?.requirements?.join(', ') || '없음'}
-주제 힌트: ${problem?.evaluationRubric ? Object.keys(problem.evaluationRubric).join(', ') : ''}
+시나리오: ${scenario}
+미션: ${missions}
+
+평가 힌트:
+${nfrHints}
 
 학생의 아키텍처:
 ${architectureContext}
@@ -205,44 +233,63 @@ export async function evaluateArchitecture(problem, architectureContext, generat
     ? keyComponents.map(c => `- ${c.name} (타입: ${c.type})`).join('\n')
     : '- 명시된 핵심 컴포넌트 없음';
 
-  // 참조 개념 (학생이 이해해야 하는 핵심 설계 개념)
-  const referenceConcept = problem?.referenceConcept || {};
-  const conceptsText = Object.keys(referenceConcept).length > 0
-    ? Object.entries(referenceConcept).map(([key, val]) => `- ${key}: ${val}`).join('\n')
-    : '- 명시된 참조 개념 없음';
+  // 새 데이터 구조에서 정보 추출
+  const scenario = problem?.scenario || '';
+  const missions = problem?.missions || [];
+  const missionsText = missions.length > 0
+    ? missions.map(m => `- ${m}`).join('\n')
+    : '- 없음';
 
-  // 평가 토픽 및 키워드
+  // 기술 요구사항 (engineering_spec)
+  const engineeringSpec = problem?.engineeringSpec || {};
+  const specText = Object.keys(engineeringSpec).length > 0
+    ? Object.entries(engineeringSpec).map(([key, val]) => `- ${key}: ${val}`).join('\n')
+    : '- 없음';
+
+  // 필수 연결 관계 (rubric_functional.required_flows)
+  const requiredFlows = problem?.requiredFlows || [];
+  const flowsText = requiredFlows.length > 0
+    ? requiredFlows.map(f => `- ${f.from} → ${f.to}: ${f.reason}`).join('\n')
+    : '- 없음';
+
+  // 비기능적 평가 기준 (rubric_non_functional)
+  const rubricNfr = problem?.rubricNonFunctional || [];
+  const nfrText = rubricNfr.length > 0
+    ? rubricNfr.map(r => `- [${r.category}] ${r.question_intent}\n  모범답안: ${r.model_answer}`).join('\n')
+    : '- 없음';
+
+  // 평가 토픽 (기존 호환성)
   const questionTopics = problem?.questionTopics || [];
   const topicsText = questionTopics.length > 0
-    ? questionTopics.map(t => `- ${t.topic}: [${t.keywords.join(', ')}]`).join('\n')
-    : '- 명시된 토픽 없음';
-
-  // 참조 Mermaid 다이어그램 (정답 예시)
-  const referenceMermaid = problem?.referenceMermaid || '';
+    ? questionTopics.map(t => `- ${t.topic}: ${t.keywords?.join(', ') || t.modelAnswer || ''}`).join('\n')
+    : '- 없음';
 
   const prompt = `당신은 시스템 아키텍처 면접관입니다.
 다음 **5가지 비기능적 요소(NFR)** 평가 기준을 바탕으로 학생의 아키텍처를 평가해주세요.
 
 ## 문제 정보
 - 제목: ${problem?.title || '시스템 아키텍처 설계'}
-- 난이도: ${problem?.difficulty || 'medium'}
-- 요구사항: ${problem?.requirements?.join(', ') || '없음'}
+- 시나리오: ${scenario}
+
+### 미션:
+${missionsText}
+
+### 기술 요구사항:
+${specText}
 
 ## 참조 정보 (평가 기준으로 활용)
 
 ### 필수 포함 컴포넌트:
 ${keyComponentsText}
 
-### 핵심 설계 개념:
-${conceptsText}
+### 필수 연결 관계:
+${flowsText}
 
-### 평가 토픽 및 필수 키워드:
+### 비기능적 평가 기준:
+${nfrText}
+
+### 평가 토픽:
 ${topicsText}
-
-${referenceMermaid ? `### 참조 아키텍처 (정답 예시):
-\`\`\`
-${referenceMermaid}
-\`\`\`` : ''}
 
 ## 5가지 비기능적 요소(NFR) 평가 기준
 
