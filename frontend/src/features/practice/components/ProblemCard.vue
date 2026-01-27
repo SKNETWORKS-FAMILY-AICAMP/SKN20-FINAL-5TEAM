@@ -41,12 +41,6 @@
       <span v-if="isEvaluating" class="loading-spinner"></span>
     </button>
 
-    <!-- Mermaid Preview -->
-    <div class="preview-section" v-if="mermaidCode">
-      <h3 class="section-title">📊 Mermaid Preview</h3>
-      <div class="mermaid-preview" ref="mermaidPreview"></div>
-    </div>
-
     <!-- Generated Code -->
     <div class="code-section" v-if="mermaidCode">
       <h3 class="section-title">💻 Generated Code</h3>
@@ -56,8 +50,6 @@
 </template>
 
 <script>
-import mermaid from 'mermaid';
-
 export default {
   name: 'ProblemCard',
   props: {
@@ -88,31 +80,6 @@ export default {
       return this.isConnectionMode
         ? '🔗 연결 모드 - 컴포넌트를 클릭하여 연결하세요'
         : '🎯 배치 모드 - 컴포넌트를 드래그하여 배치하세요';
-    }
-  },
-  watch: {
-    mermaidCode: {
-      handler(newCode) {
-        if (newCode) {
-          this.$nextTick(() => {
-            this.renderMermaid();
-          });
-        }
-      },
-      immediate: true
-    }
-  },
-  methods: {
-    async renderMermaid() {
-      const container = this.$refs.mermaidPreview;
-      if (!container || !this.mermaidCode) return;
-
-      try {
-        const { svg } = await mermaid.render('mermaid-preview-' + Date.now(), this.mermaidCode);
-        container.innerHTML = svg;
-      } catch (error) {
-        container.innerHTML = '<p class="mermaid-error">다이어그램 렌더링 중 오류가 발생했습니다.</p>';
-      }
     }
   }
 };
@@ -266,8 +233,7 @@ export default {
   to { transform: rotate(360deg); }
 }
 
-/* Preview & Code Sections */
-.preview-section,
+/* Code Section */
 .code-section {
   margin-top: 15px;
 }
@@ -277,28 +243,6 @@ export default {
   margin: 0 0 10px 0;
   font-size: 0.95em;
   font-family: 'Orbitron', sans-serif;
-}
-
-.mermaid-preview {
-  background: rgba(0, 0, 0, 0.3);
-  padding: 15px;
-  border-radius: 8px;
-  border: 1px solid rgba(0, 255, 157, 0.2);
-  min-height: 100px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: auto;
-}
-
-.mermaid-preview :deep(svg) {
-  max-width: 100%;
-  height: auto;
-}
-
-.mermaid-error {
-  color: #ff4785;
-  font-size: 0.85em;
 }
 
 .code-output {

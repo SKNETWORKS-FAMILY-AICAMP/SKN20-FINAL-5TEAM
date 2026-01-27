@@ -73,6 +73,7 @@
         :current-question="currentQuestionIndex + 1"
         :total-questions="deepDiveQuestions.length"
         :category="deepDiveQuestions[currentQuestionIndex]?.category || ''"
+        :mermaid-code="mermaidCode"
         @skip="skipDeepDive"
         @submit="submitDeepDiveAnswer"
       />
