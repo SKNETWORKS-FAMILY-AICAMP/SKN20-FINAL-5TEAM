@@ -4,86 +4,133 @@
 
 /**
  * 문제 데이터를 앱에서 사용할 형식으로 변환
+ * 새로운 architecture.json 구조에 맞춤
  */
 export function transformProblems(data) {
-  const componentTypeMap = {
-    // Compute & Entry
-    'entry': 'gateway',
-    'compute': 'server',
+  // 컴포넌트 이름을 팔레트 타입으로 매핑
+  const componentNameToType = {
+    // Server & Gateway
+    'web server': 'server',
     'server': 'server',
+    'api server': 'server',
+    'feed service': 'server',
+    'search api': 'server',
+    'location api': 'server',
     'gateway': 'gateway',
+    'websocket gateway': 'gateway',
+    'load balancer': 'loadbalancer',
     'loadbalancer': 'loadbalancer',
-    // Storage & Search
-    'storage': 'storage',
-    'db': 'rdbms',
+    // Storage
     'rdbms': 'rdbms',
-    'nosql': 'nosql',
-    'cache': 'cache',
-    'redis': 'cache',
-    'search': 'search',
+    'database': 'rdbms',
+    'db': 'rdbms',
+    'history db': 'rdbms',
+    'history db (rdbms)': 'rdbms',
+    'object storage': 'storage',
+    'object storage (s3)': 'storage',
     's3': 'storage',
+    'storage': 'storage',
+    // Cache & Search
+    'cache': 'cache',
+    'cache (redis)': 'cache',
+    'redis': 'cache',
+    'redis (distributed lock/atomic)': 'cache',
+    'newsfeed cache': 'cache',
+    'newsfeed cache (redis)': 'cache',
+    'in-memory store': 'cache',
+    'in-memory store (redis geo)': 'cache',
+    'search engine': 'search',
+    'in-memory search engine': 'search',
+    'in-memory search engine (trie/redis/es)': 'search',
+    'elasticsearch': 'search',
     // Messaging
-    'message_queue': 'broker',
+    'message queue': 'broker',
+    'message queue (kafka/rabbitmq)': 'broker',
     'kafka': 'broker',
-    'broker': 'broker',
-    'eventbus': 'eventbus',
+    'rabbitmq': 'broker',
+    'task queue': 'broker',
+    'pub/sub': 'eventbus',
+    'pub/sub (redis)': 'eventbus',
     'pubsub': 'eventbus',
-    // Observability
-    'monitoring': 'monitoring',
-    'logging': 'logging',
-    'cicd': 'cicd',
-    // Legacy mappings
-    'network': 'monitoring',
+    // Workers
+    'worker': 'server',
+    'notification worker': 'server',
+    'cleanup worker': 'server',
+    'crawler worker': 'server',
+    // Others
     'cdn': 'storage',
-    'external': 'gateway'
+    'client': 'user',
+    'user': 'user',
+    'bus': 'user',
+    'bloom filter': 'cache',
+    'bloom filter (deduplicator)': 'cache',
+    'deduplicator': 'cache'
   };
 
-  return data.map((item, index) => {
-    let difficulty = 'easy';
-    let level = '초급';
-    if (index >= 7) {
-      difficulty = 'hard';
-      level = '고급';
-    } else if (index >= 4) {
-      difficulty = 'medium';
-      level = '중급';
+  /**
+   * 컴포넌트 이름을 팔레트 타입으로 변환
+   */
+  const getComponentType = (name) => {
+    const lowerName = name.toLowerCase().trim();
+    return componentNameToType[lowerName] || 'server';
+  };
+
+  return data.map((item) => {
+    // engineering_spec을 요구사항 배열로 변환
+    const requirementsArray = [];
+    if (item.engineering_spec) {
+      Object.entries(item.engineering_spec).forEach(([key, value]) => {
+        requirementsArray.push(`${key}: ${value}`);
+      });
     }
 
-    const requirementsArray = item.requirements
-      .split(/[,،]/)
-      .map(req => req.trim())
-      .filter(req => req.length > 0);
+    // mission 배열 추가
+    const missions = item.mission || [];
 
-    let followUpQuestion = '';
-    if (item.question_topics && item.question_topics.length > 0) {
-      const topic = item.question_topics[0];
-      followUpQuestion = `${topic.topic}에 대해 설명해주세요. (키워드: ${topic.keywords.join(', ')})`;
-    }
+    // rubric_functional에서 필수 컴포넌트 추출
+    const rubricFunctional = item.rubric_functional || {};
+    const requiredComponentNames = rubricFunctional.required_components || [];
+    const requiredFlows = rubricFunctional.required_flows || [];
 
-    // 컴포넌트 타입 배열 (기존 호환성)
-    const expectedComponents = item.key_components.map(comp =>
-      componentTypeMap[comp.type] || comp.type
-    );
-
-    // 컴포넌트 이름과 타입 모두 포함 (평가용)
-    const keyComponents = item.key_components.map(comp => ({
-      name: comp.name,
-      type: componentTypeMap[comp.type] || comp.type
+    // 컴포넌트 이름과 타입 매핑
+    const keyComponents = requiredComponentNames.map(name => ({
+      name: name,
+      type: getComponentType(name)
     }));
 
+    // 타입만 추출 (기존 호환성)
+    const expectedComponents = keyComponents.map(c => c.type);
+
+    // rubric_non_functional에서 평가 토픽 추출
+    const rubricNonFunctional = item.rubric_non_functional || [];
+    const questionTopics = rubricNonFunctional.map(nfr => ({
+      topic: nfr.category,
+      keywords: [nfr.question_intent],
+      modelAnswer: nfr.model_answer
+    }));
+
+    // 후속 질문 생성
+    let followUpQuestion = '';
+    if (rubricNonFunctional.length > 0) {
+      const firstNfr = rubricNonFunctional[0];
+      followUpQuestion = `${firstNfr.category}에 대해 설명해주세요. (${firstNfr.question_intent})`;
+    }
+
     return {
-      level,
+      problemId: item.problem_id,
       title: item.title,
-      description: item.requirements,
-      difficulty,
+      scenario: item.scenario,
+      description: item.scenario, // 기존 호환성
       requirements: requirementsArray,
+      missions: missions,
+      engineeringSpec: item.engineering_spec,
       followUpQuestion,
       expectedComponents,
-      keyComponents, // 이름과 타입 모두 포함
-      questionTopics: item.question_topics,
-      referenceMermaid: item.reference_mermaid,
-      referenceConcept: item.reference_concept,
-      evaluationRubric: item.evaluation_rubric
+      keyComponents,
+      requiredFlows, // 필수 연결 관계
+      questionTopics,
+      rubricFunctional,
+      rubricNonFunctional
     };
   });
 }
@@ -171,17 +218,28 @@ export function buildChatContext(problem) {
   if (!problem) return '';
 
   let context = `문제: ${problem.title}\n`;
-  context += `요구사항: ${problem.requirements.join(', ')}\n`;
+  context += `시나리오: ${problem.scenario || ''}\n`;
+
+  if (problem.missions && problem.missions.length > 0) {
+    context += `\n미션:\n`;
+    problem.missions.forEach(mission => {
+      context += `- ${mission}\n`;
+    });
+  }
+
+  if (problem.engineeringSpec) {
+    context += `\n기술 요구사항:\n`;
+    Object.entries(problem.engineeringSpec).forEach(([key, value]) => {
+      context += `- ${key}: ${value}\n`;
+    });
+  }
 
   if (problem.questionTopics && problem.questionTopics.length > 0) {
     context += `\n주요 토픽:\n`;
     problem.questionTopics.forEach(topic => {
-      context += `- ${topic.topic}: ${topic.keywords.join(', ')}\n`;
+      const keywords = topic.keywords?.join(', ') || topic.modelAnswer || '';
+      context += `- ${topic.topic}: ${keywords}\n`;
     });
-  }
-
-  if (problem.referenceConcept) {
-    context += `\n고려해야 할 개념들: ${Object.keys(problem.referenceConcept).join(', ')}`;
   }
 
   return context;
@@ -276,7 +334,8 @@ export function generateMermaidCode(components, connections) {
  */
 export function generateMockEvaluation(problem, components = []) {
   const keyComponents = problem?.keyComponents || [];
-  const referenceConcept = problem?.referenceConcept || {};
+  const rubricNonFunctional = problem?.rubricNonFunctional || [];
+  const missions = problem?.missions || [];
 
   // 컴포넌트 배치에 따른 점수 계산 (0-100 전체 범위)
   const baseScore = 50;
@@ -294,11 +353,12 @@ export function generateMockEvaluation(problem, components = []) {
   const includedComponents = keyComponents.filter(kc => componentTypes.includes(kc.type));
   const missingComponents = keyComponents.filter(kc => !componentTypes.includes(kc.type));
 
-  // 핵심 개념 기반 제안 생성
-  const concepts = Object.keys(referenceConcept);
-  const suggestions = concepts.slice(0, 2).map(concept =>
-    `${concept} 관련 설계를 더 구체화해보세요: ${referenceConcept[concept]}`
-  );
+  // NFR 기반 제안 생성 (새 데이터 구조)
+  const suggestions = rubricNonFunctional.length > 0
+    ? rubricNonFunctional.slice(0, 2).map(nfr =>
+        `[${nfr.category}] ${nfr.question_intent}: ${nfr.model_answer?.substring(0, 100) || ''}...`
+      )
+    : missions.slice(0, 2).map(m => m);
 
   // 컴포넌트 타입 기반으로 NFR 체크리스트 자동 판정
   const hasLoadBalancer = componentTypes.includes('loadbalancer');
@@ -384,8 +444,8 @@ export function generateMockEvaluation(problem, components = []) {
       feedback: "API 연결 문제로 면접 답변에 대한 상세 분석이 제한됩니다. 재시도해주세요."
     },
     conceptUnderstanding: {
-      demonstrated: concepts.slice(0, 1),
-      needsImprovement: concepts.slice(1)
+      demonstrated: rubricNonFunctional.slice(0, 1).map(r => r.category),
+      needsImprovement: rubricNonFunctional.slice(1).map(r => r.category)
     },
     summary: `${problem?.title || '시스템 아키텍처'}에 대한 기본적인 이해를 보여주셨습니다. API 연결 문제로 상세 평가가 제한되어 기본 피드백을 제공합니다. ${missingComponents.length > 0 ? `누락된 핵심 컴포넌트: ${missingComponents.map(c => c.name).join(', ')}` : ''}`,
     strengths: includedComponents.length > 0
