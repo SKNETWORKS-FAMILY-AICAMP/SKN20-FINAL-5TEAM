@@ -89,25 +89,25 @@ export default {
   data() {
     return {
       computeComponents: [
-        { type: 'user', label: '👤 USER' },
-        { type: 'loadbalancer', label: '⚖️ L7 LB' },
-        { type: 'gateway', label: '🚪 GATEWAY' },
-        { type: 'server', label: '🖥️ SERVER' }
+        { type: 'user', label: '👤 Client' },
+        { type: 'loadbalancer', label: '⚖️ Load Balancer' },
+        { type: 'gateway', label: '🚪 API Gateway' },
+        { type: 'server', label: '🖥️ Server' }
       ],
       storageComponents: [
         { type: 'rdbms', label: '🗃️ RDBMS' },
         { type: 'nosql', label: '📊 NoSQL' },
-        { type: 'cache', label: '⚡ CACHE' },
-        { type: 'search', label: '🔍 SEARCH' },
-        { type: 'storage', label: '📦 STORAGE' }
+        { type: 'cache', label: '⚡ Cache (Redis)' },
+        { type: 'search', label: '🔍 Search Engine' },
+        { type: 'storage', label: '📦 Object Storage' }
       ],
       messagingComponents: [
-        { type: 'broker', label: '📬 MQ' },
-        { type: 'eventbus', label: '📡 EVENT' }
+        { type: 'broker', label: '📬 Message Queue' },
+        { type: 'eventbus', label: '📡 Pub/Sub' }
       ],
       observabilityComponents: [
-        { type: 'monitoring', label: '📈 MONITOR' },
-        { type: 'logging', label: '📋 LOG' },
+        { type: 'monitoring', label: '📈 Monitoring' },
+        { type: 'logging', label: '📋 Logging' },
         { type: 'cicd', label: '🔄 CI/CD' }
       ]
     };

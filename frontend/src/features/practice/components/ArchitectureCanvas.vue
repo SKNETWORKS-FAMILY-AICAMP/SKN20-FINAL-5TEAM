@@ -430,14 +430,14 @@ export default {
   text-align: center;
 }
 
-/* Connection lines */
+/* Connection lines - 사건반장일지 빨간 실 느낌 */
 .connection-line {
   position: absolute;
   height: 4px;
-  background: linear-gradient(90deg, #64b5f6, #00ff9d);
+  background: #e53935;
   transform-origin: left center;
   pointer-events: none;
-  box-shadow: 0 0 10px rgba(100, 181, 246, 0.6);
+  box-shadow: 0 0 10px rgba(229, 57, 53, 0.6);
   z-index: 5;
 }
 
@@ -445,12 +445,12 @@ export default {
   position: absolute;
   width: 0;
   height: 0;
-  border-left: 16px solid #00ff9d;
+  border-left: 16px solid #e53935;
   border-top: 10px solid transparent;
   border-bottom: 10px solid transparent;
   transform-origin: left center;
   pointer-events: none;
-  filter: drop-shadow(0 0 6px rgba(0, 255, 157, 1));
+  filter: drop-shadow(0 0 6px rgba(229, 57, 53, 0.8));
   z-index: 6;
 }
 </style>
