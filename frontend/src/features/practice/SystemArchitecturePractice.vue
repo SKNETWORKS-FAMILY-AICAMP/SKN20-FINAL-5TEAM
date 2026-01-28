@@ -87,19 +87,23 @@
         />
       </div>
 
-      <!-- 오리 형사 심문 패널 (하단) -->
-      <div
-        class="interrogation-panel"
-        :class="{ 'panel-minimized': isPanelMinimized }"
-        @click="handlePanelClick"
-      >
-        <div class="detective-face">
-          <img src="/image/duck_det.png" alt="Detective Duck" />
+      <!-- 오리 형사 토스트 메시지 -->
+      <transition name="toast-slide">
+        <div
+          v-if="showToast"
+          class="detective-toast"
+          :class="toastType"
+          @click="dismissToast"
+        >
+          <div class="toast-duck">
+            <img src="/image/duck_det.png" alt="Detective Duck" />
+          </div>
+          <div class="toast-content">
+            <p class="toast-message">{{ toastMessage }}</p>
+            <span class="toast-dismiss">클릭하여 닫기</span>
+          </div>
         </div>
-        <div class="dialog-container">
-          <div class="dialog-box">{{ detectiveMessage }}</div>
-        </div>
-      </div>
+      </transition>
 
       <!-- 평가 모달 -->
       <EvaluationModal
@@ -190,9 +194,11 @@ export default {
       introIsTyping: false,
       currentIntroFullText: '',
 
-      // Detective Panel State
-      detectiveMessage: '자, 여기에 앉아. 왼쪽 사건 파일을 보고 설계도를 완성해. 꽥!',
-      isPanelMinimized: false,
+      // Toast Message State
+      showToast: false,
+      toastMessage: '',
+      toastType: 'guide', // 'guide', 'connect', 'place', 'hint'
+      toastTimeoutId: null,
 
       // Canvas State
       isConnectionMode: false,
@@ -307,30 +313,39 @@ export default {
 
     enterGame() {
       this.showIntro = false;
-      this.typeDetectiveMessage('자, 여기에 앉아. 왼쪽 사건 파일을 보고 설계도를 완성해. (패널을 클릭하면 내려갑니다) 꽥!');
+      // 게임 시작 가이드 메시지
+      this.showToastMessage(
+        '자, 여기에 앉아. 오른쪽 팔레트에서 컴포넌트를 드래그해서 캔버스에 배치해. 꽥!',
+        'guide'
+      );
     },
 
-    // === Detective Panel Methods ===
-    typeDetectiveMessage(text) {
-      this.detectiveMessage = '';
-      let i = 0;
-      const interval = setInterval(() => {
-        if (i < text.length) {
-          this.detectiveMessage += text.charAt(i);
-          i++;
-        } else {
-          clearInterval(interval);
-        }
-      }, 30);
+    // === Toast Message Methods ===
+    showToastMessage(message, type = 'guide', duration = 0) {
+      // 이전 타이머 클리어
+      if (this.toastTimeoutId) {
+        clearTimeout(this.toastTimeoutId);
+        this.toastTimeoutId = null;
+      }
+
+      this.toastMessage = message;
+      this.toastType = type;
+      this.showToast = true;
+
+      // duration이 지정되면 자동 해제
+      if (duration > 0) {
+        this.toastTimeoutId = setTimeout(() => {
+          this.dismissToast();
+        }, duration);
+      }
     },
 
-    handlePanelClick(e) {
-      if (e.target.closest('.dialog-box')) return;
-      this.isPanelMinimized = !this.isPanelMinimized;
-    },
-
-    showPanel() {
-      this.isPanelMinimized = false;
+    dismissToast() {
+      this.showToast = false;
+      if (this.toastTimeoutId) {
+        clearTimeout(this.toastTimeoutId);
+        this.toastTimeoutId = null;
+      }
     },
 
     // === Problem Loading ===
@@ -351,6 +366,19 @@ export default {
     // === Mode & Canvas Control ===
     toggleMode() {
       this.isConnectionMode = !this.isConnectionMode;
+
+      // 모드 변경 시 토스트 메시지
+      if (this.isConnectionMode) {
+        this.showToastMessage(
+          '🔗 연결 모드! 컴포넌트를 클릭해서 연결해. 두 개를 순서대로 클릭하면 화살표가 생겨. 꽥!',
+          'connect'
+        );
+      } else {
+        this.showToastMessage(
+          '📦 배치 모드! 오른쪽 팔레트에서 컴포넌트를 드래그해서 캔버스에 놓아. 꽥!',
+          'place'
+        );
+      }
     },
 
     clearCanvas() {
@@ -603,8 +631,14 @@ export default {
         this.hintTimeoutId = null;
       }
 
-      // 힌트 활성화 시 5초 후 자동 해제
+      // 힌트 활성화 시 토스트 메시지 + 5초 후 자동 해제
       if (this.isHintActive) {
+        const requiredCount = this.currentProblem?.expectedComponents?.length || 0;
+        this.showToastMessage(
+          `💡 힌트 활성화! 오른쪽 팔레트에서 노란색으로 빛나는 ${requiredCount}개의 필수 컴포넌트를 확인해. 5초 후 자동 해제. 꽥!`,
+          'hint'
+        );
+
         this.hintTimeoutId = setTimeout(() => {
           this.isHintActive = false;
           this.hintTimeoutId = null;
@@ -882,80 +916,130 @@ export default {
   50% { box-shadow: 0 0 20px rgba(241, 196, 15, 0.8), 0 0 30px rgba(241, 196, 15, 0.4); }
 }
 
-/* === INTERROGATION PANEL === */
-.interrogation-panel {
+/* === DETECTIVE TOAST MESSAGE === */
+.detective-toast {
   position: fixed;
-  bottom: 0;
-  left: 320px;
-  right: 0;
-  height: 180px;
-  background: rgba(0, 0, 0, 0.95);
-  border-top: 4px solid #f1c40f;
-  display: flex;
-  padding: 15px 20px;
-  gap: 15px;
-  z-index: 100;
-  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  cursor: pointer;
-}
-
-.interrogation-panel.panel-minimized {
-  transform: translateY(174px);
-}
-
-.interrogation-panel::before {
-  content: "▲ CLICK TO SHOW DETECTIVE ▲";
-  position: absolute;
-  top: -30px;
+  bottom: 30px;
   left: 50%;
   transform: translateX(-50%);
-  background: #f1c40f;
-  color: black;
-  padding: 5px 15px;
-  font-size: 0.6rem;
-  font-weight: bold;
-  border: 4px solid black;
-  border-bottom: none;
-  display: none;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  background: rgba(0, 0, 0, 0.95);
+  border: 3px solid #f1c40f;
+  border-radius: 12px;
+  padding: 15px 20px;
+  max-width: 600px;
+  z-index: 100;
+  cursor: pointer;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(241, 196, 15, 0.2);
 }
 
-.interrogation-panel.panel-minimized::before {
-  display: block;
-  animation: bounce 1s infinite;
+/* Toast Type Variations */
+.detective-toast.guide {
+  border-color: #f1c40f;
 }
 
-.detective-face {
-  width: 80px;
-  height: 80px;
-  border: 3px solid white;
+.detective-toast.connect {
+  border-color: #3498db;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(52, 152, 219, 0.3);
+}
+
+.detective-toast.place {
+  border-color: #2ecc71;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(46, 204, 113, 0.3);
+}
+
+.detective-toast.hint {
+  border-color: #e67e22;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(230, 126, 34, 0.3);
+  animation: hint-toast-pulse 1s infinite;
+}
+
+@keyframes hint-toast-pulse {
+  0%, 100% { box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(230, 126, 34, 0.3); }
+  50% { box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 35px rgba(230, 126, 34, 0.5); }
+}
+
+.toast-duck {
+  width: 60px;
+  height: 60px;
+  border: 2px solid white;
   background: #81ecec;
-  flex-shrink: 0;
-  border-radius: 8px;
+  border-radius: 50%;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
-.detective-face img {
+.toast-duck img {
   width: 100%;
   height: 100%;
   object-fit: contain;
 }
 
-.dialog-container {
+.toast-content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
-.dialog-box {
-  flex: 1;
-  border: 2px dashed #555;
-  padding: 12px;
+.toast-message {
+  margin: 0;
   color: #f1c40f;
   font-family: 'Courier Prime', monospace;
   font-size: 0.85rem;
   line-height: 1.5;
-  overflow-y: auto;
+}
+
+.detective-toast.connect .toast-message {
+  color: #3498db;
+}
+
+.detective-toast.place .toast-message {
+  color: #2ecc71;
+}
+
+.detective-toast.hint .toast-message {
+  color: #e67e22;
+}
+
+.toast-dismiss {
+  color: #666;
+  font-size: 0.65rem;
+  font-family: 'Press Start 2P', cursive;
+  text-align: right;
+}
+
+/* Toast Slide Animation */
+.toast-slide-enter-active {
+  animation: toast-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.toast-slide-leave-active {
+  animation: toast-out 0.3s ease-in;
+}
+
+@keyframes toast-in {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(50px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@keyframes toast-out {
+  0% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(30px);
+  }
 }
 
 /* === ANIMATIONS === */
