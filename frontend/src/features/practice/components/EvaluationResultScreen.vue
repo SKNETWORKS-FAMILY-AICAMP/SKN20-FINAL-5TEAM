@@ -1,79 +1,63 @@
 <template>
-  <div class="evaluation-screen">
-    <div class="bg-animation"></div>
+  <div class="case-closed-screen">
+    <div class="bg-overlay"></div>
 
     <div class="result-container">
-      <div class="result-header">
-        <h1>📊 평가 결과</h1>
-        <p class="problem-title" v-if="problem">{{ problem.title }}</p>
-      </div>
-
       <!-- Loading State -->
       <div v-if="isLoading" class="loading-state">
         <div class="loading-spinner-xl"></div>
-        <p>아키텍처를 평가하고 있습니다...</p>
+        <p>판결을 내리는 중... 꽥!</p>
       </div>
 
       <!-- Result Content -->
-      <div v-else-if="result" class="result-content">
-        <!-- Score Card -->
-        <div class="score-card" :class="result.grade">
-          <div class="score-circle">
-            <svg viewBox="0 0 100 100">
-              <circle class="score-bg" cx="50" cy="50" r="45"/>
-              <circle
-                class="score-progress"
-                cx="50" cy="50" r="45"
-                :style="{ strokeDashoffset: scoreOffset }"
-              />
-            </svg>
-            <div class="score-value">
-              <span class="score-number">{{ result.score }}</span>
-              <span class="score-unit">점</span>
-            </div>
+      <div v-else-if="result" class="result-report">
+        <!-- 스탬프 마크 -->
+        <div class="stamp-mark" :class="[verdictClass, { stamped: showStamp }]">
+          {{ verdictStamp }}
+        </div>
+
+        <!-- 헤더 -->
+        <h1 class="report-title">CASE CLOSED</h1>
+        <div class="report-meta">
+          <p><strong>DATE:</strong> {{ currentDate }}</p>
+          <p><strong>OFFICER:</strong> DET. DUCK</p>
+          <p v-if="problem"><strong>CASE:</strong> {{ problem.title }}</p>
+        </div>
+
+        <hr class="divider" />
+
+        <!-- 판결 결과 -->
+        <div class="verdict-section">
+          <h2>[ VERDICT ]</h2>
+          <div class="verdict-box" :class="verdictClass">
+            <div class="verdict-icon">{{ verdictIcon }}</div>
+            <div class="verdict-text">{{ verdictMessage }}</div>
           </div>
-          <div class="grade-badge" :class="result.grade">
-            {{ gradeText }}
+          <div class="score-display">
+            <span class="score-value" :class="verdictClass">{{ result.score }}</span>
+            <span class="score-unit">/ 100점</span>
           </div>
         </div>
 
-        <!-- Summary -->
-        <div class="summary-card">
-          <h3>📝 종합 평가</h3>
-          <p>{{ result.summary }}</p>
-        </div>
+        <hr class="divider" />
 
-        <!-- Architecture Evaluation (50점 만점) -->
-        <div v-if="result.architectureEvaluation" class="architecture-eval-section">
-          <h2>🏗️ 아키텍처 설계 평가 (50점)</h2>
-          <div class="eval-score-header">
-            <span class="eval-score-value" :class="getScoreClass50(result.architectureEvaluation.score)">
-              {{ result.architectureEvaluation.score || 0 }}점
-            </span>
-            <span class="eval-score-max">/ 50점</span>
-          </div>
-          <div class="eval-bar">
-            <div
-              class="eval-bar-fill"
-              :style="{ width: ((result.architectureEvaluation.score || 0) / 50 * 100) + '%' }"
-              :class="getScoreClass50(result.architectureEvaluation.score)"
-            ></div>
-          </div>
+        <!-- 아키텍처 평가 -->
+        <div v-if="result.architectureEvaluation" class="eval-section">
+          <h3>[ 설계도 분석 결과 ] ({{ result.architectureEvaluation.score || 0 }}/50점)</h3>
 
-          <!-- Details -->
           <div v-if="result.architectureEvaluation.details && result.architectureEvaluation.details.length" class="eval-details">
-            <div v-for="(detail, idx) in result.architectureEvaluation.details" :key="idx" class="eval-detail-item">
-              <div class="detail-header">
-                <span class="detail-item">{{ detail.item }}</span>
-                <span class="detail-score" :class="getScoreClass(detail.score * 4)">{{ detail.score }}점</span>
+            <div v-for="(detail, idx) in result.architectureEvaluation.details" :key="idx" class="eval-item">
+              <div class="eval-item-header">
+                <span class="eval-item-name">{{ detail.item }}</span>
+                <span class="eval-item-score" :class="getScoreClass(detail.score * 4)">{{ detail.score }}점</span>
               </div>
-              <p class="detail-basis">{{ detail.basis }}</p>
+              <p class="eval-item-basis">{{ detail.basis }}</p>
             </div>
           </div>
 
-          <!-- Missing Components -->
+          <!-- 누락된 컴포넌트 -->
           <div v-if="result.architectureEvaluation.missingComponents && result.architectureEvaluation.missingComponents.length" class="missing-section">
-            <h4>❌ 누락된 컴포넌트</h4>
+            <strong>❌ 누락된 증거:</strong>
             <div class="tag-list">
               <span v-for="comp in result.architectureEvaluation.missingComponents" :key="comp" class="tag missing">
                 {{ comp }}
@@ -81,9 +65,9 @@
             </div>
           </div>
 
-          <!-- Incorrect Flows -->
+          <!-- 잘못된 연결 -->
           <div v-if="result.architectureEvaluation.incorrectFlows && result.architectureEvaluation.incorrectFlows.length" class="incorrect-section">
-            <h4>⚠️ 잘못된 연결</h4>
+            <strong>⚠️ 의심스러운 연결:</strong>
             <div class="tag-list">
               <span v-for="flow in result.architectureEvaluation.incorrectFlows" :key="flow" class="tag incorrect">
                 {{ flow }}
@@ -92,203 +76,82 @@
           </div>
         </div>
 
-        <!-- Interview Evaluation (50점 만점) -->
-        <div v-if="result.interviewEvaluation" class="interview-eval-section">
-          <h2>🎤 면접 답변 평가 (50점)</h2>
-          <div class="eval-score-header">
-            <span class="eval-score-value" :class="getScoreClass50(result.interviewEvaluation.score)">
-              {{ result.interviewEvaluation.score || 0 }}점
-            </span>
-            <span class="eval-score-max">/ 50점</span>
-          </div>
-          <div class="eval-bar">
-            <div
-              class="eval-bar-fill"
-              :style="{ width: ((result.interviewEvaluation.score || 0) / 50 * 100) + '%' }"
-              :class="getScoreClass50(result.interviewEvaluation.score)"
-            ></div>
-          </div>
+        <hr class="divider" />
 
-          <!-- Answer Analysis -->
-          <div v-if="result.interviewEvaluation.answerAnalysis" class="answer-analysis">
-            <h4>📝 답변 분석</h4>
-            <div class="analysis-grid">
-              <div class="analysis-item">
-                <span class="analysis-label">답변 길이</span>
-                <span class="analysis-value">{{ result.interviewEvaluation.answerAnalysis.length || 0 }}자</span>
-              </div>
-              <div class="analysis-item">
-                <span class="analysis-label">기술 용어 사용</span>
-                <span class="analysis-value" :class="result.interviewEvaluation.answerAnalysis.hasKeyTerms ? 'positive' : 'negative'">
-                  {{ result.interviewEvaluation.answerAnalysis.hasKeyTerms ? '✅ 사용함' : '❌ 부족' }}
+        <!-- 심문 평가 -->
+        <div v-if="result.interviewEvaluation" class="eval-section">
+          <h3>[ 심문 기록 분석 ] ({{ result.interviewEvaluation.score || 0 }}/50점)</h3>
+
+          <div v-if="result.interviewEvaluation.questionAnalysis && result.interviewEvaluation.questionAnalysis.length" class="question-list">
+            <div v-for="(qa, idx) in result.interviewEvaluation.questionAnalysis" :key="idx" class="question-item" :class="qa.matchStatus">
+              <div class="question-header">
+                <span class="question-number">Q{{ idx + 1 }}</span>
+                <span v-if="qa.category" class="question-category">{{ qa.category }}</span>
+                <span class="match-badge" :class="qa.matchStatus">
+                  {{ matchStatusText(qa.matchStatus) }}
                 </span>
+                <span class="question-score">{{ qa.score }}점</span>
               </div>
-            </div>
-
-            <!-- Key Terms Found -->
-            <div v-if="result.interviewEvaluation.answerAnalysis.keyTermsFound && result.interviewEvaluation.answerAnalysis.keyTermsFound.length" class="keyterms-section">
-              <h5>✅ 발견된 기술 용어</h5>
-              <div class="tag-list">
-                <span v-for="term in result.interviewEvaluation.answerAnalysis.keyTermsFound" :key="term" class="tag found">
-                  {{ term }}
-                </span>
+              <p class="question-text">{{ qa.question }}</p>
+              <div class="answer-comparison">
+                <div class="user-answer-box">
+                  <span class="box-label">[용의자 진술]</span>
+                  <p>{{ qa.userAnswer || '(묵비권 행사)' }}</p>
+                </div>
+                <div class="model-answer-box">
+                  <span class="box-label">[모범 답안]</span>
+                  <p>{{ qa.modelAnswer }}</p>
+                </div>
               </div>
-            </div>
-
-            <!-- Key Terms Missing -->
-            <div v-if="result.interviewEvaluation.answerAnalysis.keyTermsMissing && result.interviewEvaluation.answerAnalysis.keyTermsMissing.length" class="keyterms-section">
-              <h5>❌ 누락된 핵심 키워드</h5>
-              <div class="tag-list">
-                <span v-for="term in result.interviewEvaluation.answerAnalysis.keyTermsMissing" :key="term" class="tag missing">
-                  {{ term }}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Question Analysis -->
-          <div v-if="result.interviewEvaluation.questionAnalysis && result.interviewEvaluation.questionAnalysis.length" class="question-analysis">
-            <h4>💬 질문별 분석</h4>
-            <div class="question-list">
-              <div v-for="(qa, idx) in result.interviewEvaluation.questionAnalysis" :key="idx" class="question-item" :class="qa.matchStatus">
-                <div class="question-header">
-                  <span class="question-number">Q{{ idx + 1 }}</span>
-                  <span v-if="qa.category" class="question-category">{{ getCategoryIcon(qa.category) }} {{ qa.category }}</span>
-                  <span class="match-badge" :class="qa.matchStatus">
-                    {{ matchStatusText(qa.matchStatus) }}
-                  </span>
-                  <span class="question-score">{{ qa.score }}점</span>
-                </div>
-                <div class="question-content">
-                  <p class="question-text">{{ qa.question }}</p>
-                </div>
-                <div class="answer-comparison">
-                  <div class="user-answer-box">
-                    <span class="box-label">내 답변</span>
-                    <p>{{ qa.userAnswer || '(답변 없음)' }}</p>
-                  </div>
-                  <div class="model-answer-box">
-                    <span class="box-label">모범 답안</span>
-                    <p>{{ qa.modelAnswer }}</p>
-                  </div>
-                </div>
-                <div v-if="qa.deductionReason" class="deduction-reason">
-                  <span class="deduction-label">감점 사유:</span> {{ qa.deductionReason }}
-                </div>
-                <div v-if="qa.feedback" class="question-feedback">
-                  <span class="feedback-label">피드백:</span> {{ qa.feedback }}
-                </div>
+              <div v-if="qa.deductionReason" class="deduction-reason">
+                <strong>감점 사유:</strong> {{ qa.deductionReason }}
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Legacy: Interview Score (기존 형식 지원) -->
-        <div v-else-if="result.interviewScore" class="interview-score-section">
-          <h3>🎤 면접 답변 평가</h3>
-          <div class="interview-score-card">
-            <div class="interview-score-header">
-              <span class="interview-score-value" :class="getScoreClass(result.interviewScore.score)">
-                {{ result.interviewScore.score }}점
-              </span>
-            </div>
-            <div class="interview-score-bar">
-              <div
-                class="interview-score-fill"
-                :style="{ width: result.interviewScore.score + '%' }"
-                :class="getScoreClass(result.interviewScore.score)"
-              ></div>
-            </div>
-            <p class="interview-score-feedback">{{ result.interviewScore.feedback }}</p>
-          </div>
-        </div>
+        <hr class="divider" />
 
-        <!-- Legacy Support: Old format scores -->
-        <div v-else-if="result.systemArchitectureScores || result.interviewScores" class="scores-grid">
-          <!-- System Architecture (Legacy) -->
-          <div v-if="result.systemArchitectureScores" class="score-section">
-            <h3>🏗️ 시스템 아키텍처</h3>
-            <div class="score-items">
-              <div
-                v-for="(value, key) in result.systemArchitectureScores"
-                :key="key"
-                class="score-item"
-              >
-                <div class="score-item-header">
-                  <span class="score-item-label">{{ key }}</span>
-                  <span class="score-item-value" :class="getScoreClass(value.score)">
-                    {{ value.score }}점
-                  </span>
-                </div>
-                <div class="score-item-bar">
-                  <div
-                    class="score-item-fill"
-                    :style="{ width: value.score + '%' }"
-                    :class="getScoreClass(value.score)"
-                  ></div>
-                </div>
-                <p class="score-item-feedback">{{ value.feedback }}</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Interview Score (Legacy) -->
-          <div v-if="result.interviewScores" class="score-section">
-            <h3>🎤 면접 답변</h3>
-            <div class="score-items">
-              <div
-                v-for="(value, key) in result.interviewScores"
-                :key="key"
-                class="score-item"
-              >
-                <div class="score-item-header">
-                  <span class="score-item-label">{{ key }}</span>
-                  <span class="score-item-value" :class="getScoreClass(value.score)">
-                    {{ value.score }}점
-                  </span>
-                </div>
-                <div class="score-item-bar">
-                  <div
-                    class="score-item-fill"
-                    :style="{ width: value.score + '%' }"
-                    :class="getScoreClass(value.score)"
-                  ></div>
-                </div>
-                <p class="score-item-feedback">{{ value.feedback }}</p>
-              </div>
+        <!-- 종합 평가 -->
+        <div class="summary-section">
+          <h3>[ 수사관 소견 ]</h3>
+          <div class="summary-box">
+            <div class="detective-comment">
+              <img src="/image/duck_det.png" alt="Detective Duck" class="comment-avatar" />
+              <p>"{{ detectiveComment }}"</p>
             </div>
           </div>
         </div>
 
-        <!-- Strengths & Weaknesses -->
+        <!-- 강점 & 개선점 -->
         <div class="feedback-grid">
           <div v-if="result.strengths && result.strengths.length" class="feedback-card strengths">
-            <h3>✅ 강점</h3>
+            <h4>✅ 유리한 증거</h4>
             <ul>
               <li v-for="s in result.strengths" :key="s">{{ s }}</li>
             </ul>
           </div>
 
           <div v-if="result.weaknesses && result.weaknesses.length" class="feedback-card weaknesses">
-            <h3>⚠️ 개선점</h3>
+            <h4>⚠️ 불리한 증거</h4>
             <ul>
               <li v-for="w in result.weaknesses" :key="w">{{ w }}</li>
             </ul>
           </div>
         </div>
 
-        <!-- Suggestions -->
-        <div v-if="result.suggestions && result.suggestions.length" class="suggestions-card">
-          <h3>💡 제안</h3>
+        <!-- 제안 사항 -->
+        <div v-if="result.suggestions && result.suggestions.length" class="suggestions-section">
+          <h4>💡 수사관 조언</h4>
           <ul>
             <li v-for="s in result.suggestions" :key="s">{{ s }}</li>
           </ul>
         </div>
 
-        <!-- Action Button -->
+        <!-- 버튼 -->
         <div class="action-buttons">
           <button class="btn-retry" @click="$emit('retry')">
-            🔄 다시 도전하기
+            재수사 요청 (RETRY)
           </button>
         </div>
       </div>
@@ -314,20 +177,55 @@ export default {
     }
   },
   emits: ['retry'],
+  data() {
+    return {
+      showStamp: false
+    };
+  },
   computed: {
-    scoreOffset() {
-      const circumference = 2 * Math.PI * 45;
-      const score = this.result?.score || 0;
-      return circumference - (score / 100) * circumference;
+    currentDate() {
+      const now = new Date();
+      return now.toISOString().split('T')[0];
     },
-    gradeText() {
-      const grades = {
-        'excellent': '🏆 Excellent',
-        'good': '👍 Good',
-        'needs-improvement': '💪 Keep Going',
-        'poor': '📝 Try Again'
-      };
-      return grades[this.result?.grade] || '';
+    verdictClass() {
+      const score = this.result?.score || 0;
+      if (score >= 80) return 'innocent';
+      if (score >= 50) return 'suspicious';
+      return 'guilty';
+    },
+    verdictStamp() {
+      const score = this.result?.score || 0;
+      if (score >= 80) return 'INNOCENT';
+      if (score >= 50) return 'SUSPICIOUS';
+      return 'GUILTY';
+    },
+    verdictIcon() {
+      const score = this.result?.score || 0;
+      if (score >= 80) return '🎉';
+      if (score >= 50) return '🤔';
+      return '🚨';
+    },
+    verdictMessage() {
+      const score = this.result?.score || 0;
+      if (score >= 80) return 'ㅇㅋ 결백하군. 집으로 보내줄게. 꽥!';
+      if (score >= 50) return '흐음... 좀 의심스러운데 일단 보류다. 꽥!';
+      return '뭐야 이자식! 범인이다! 당장 체포해! 꽥!';
+    },
+    detectiveComment() {
+      return this.result?.summary || '수사 기록을 분석한 결과입니다. 꽥!';
+    }
+  },
+  watch: {
+    result: {
+      immediate: true,
+      handler(newVal) {
+        if (newVal) {
+          this.showStamp = false;
+          setTimeout(() => {
+            this.showStamp = true;
+          }, 500);
+        }
+      }
     }
   },
   methods: {
@@ -337,13 +235,6 @@ export default {
       if (score >= 50) return 'needs-improvement';
       return 'poor';
     },
-    getScoreClass50(score) {
-      // 50점 만점 기준
-      if (score >= 45) return 'excellent';
-      if (score >= 35) return 'good';
-      if (score >= 25) return 'needs-improvement';
-      return 'poor';
-    },
     matchStatusText(status) {
       const texts = {
         'match': '✅ 일치',
@@ -351,71 +242,41 @@ export default {
         'mismatch': '❌ 불일치'
       };
       return texts[status] || status;
-    },
-    getCategoryIcon(category) {
-      const icons = {
-        '설계 의도': '🎨',
-        '확장성/성능': '📈',
-        '장애 대응': '🛡️',
-        '일반': '💡'
-      };
-      return icons[category] || '💬';
     }
   }
 };
 </script>
 
 <style scoped>
-.evaluation-screen {
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Courier+Prime:wght@400;700&display=swap');
+
+.case-closed-screen {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: #0a0e27;
+  background: #1a1a1a;
   z-index: 2000;
   overflow-y: auto;
-  font-family: 'Space Mono', monospace;
+  font-family: 'Courier Prime', monospace;
 }
 
-.bg-animation {
+.bg-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
+  background: radial-gradient(ellipse at center, rgba(241, 196, 15, 0.1) 0%, transparent 70%);
   pointer-events: none;
-  opacity: 0.3;
-  background:
-    radial-gradient(ellipse at 20% 30%, rgba(0, 255, 157, 0.15) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 70%, rgba(255, 71, 133, 0.15) 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 50%, rgba(100, 181, 246, 0.1) 0%, transparent 50%);
 }
 
 .result-container {
   position: relative;
-  max-width: 900px;
+  max-width: 700px;
   margin: 0 auto;
   padding: 40px 20px;
-}
-
-.result-header {
-  text-align: center;
-  margin-bottom: 40px;
-}
-
-.result-header h1 {
-  font-family: 'Orbitron', sans-serif;
-  font-size: 2.5em;
-  color: #00ff9d;
-  margin: 0 0 10px 0;
-  text-shadow: 0 0 30px rgba(0, 255, 157, 0.5);
-}
-
-.problem-title {
-  color: #64b5f6;
-  font-size: 1.2em;
-  margin: 0;
 }
 
 /* Loading State */
@@ -430,8 +291,8 @@ export default {
 .loading-spinner-xl {
   width: 80px;
   height: 80px;
-  border: 4px solid rgba(0, 255, 157, 0.2);
-  border-top-color: #00ff9d;
+  border: 4px solid rgba(241, 196, 15, 0.2);
+  border-top-color: #f1c40f;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 30px;
@@ -442,839 +303,479 @@ export default {
 }
 
 .loading-state p {
-  color: #b0bec5;
-  font-size: 1.2em;
+  color: #f1c40f;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.8rem;
 }
 
-/* Score Card */
-.score-card {
-  background: rgba(17, 24, 39, 0.95);
-  border-radius: 20px;
+/* Result Report (종이 스타일) */
+.result-report {
+  background: #f4f3ee;
+  color: #1a1a1a;
   padding: 40px;
-  text-align: center;
-  margin-bottom: 30px;
-  border: 2px solid;
-}
-
-.score-card.excellent { border-color: #00ff9d; }
-.score-card.good { border-color: #64b5f6; }
-.score-card.needs-improvement { border-color: #ffc107; }
-.score-card.poor { border-color: #ff4785; }
-
-.score-circle {
+  border: 4px solid black;
+  box-shadow: 20px 20px 0 black;
   position: relative;
-  width: 200px;
-  height: 200px;
-  margin: 0 auto 20px;
 }
 
-.score-circle svg {
-  transform: rotate(-90deg);
-  width: 100%;
-  height: 100%;
-}
-
-.score-bg {
-  fill: none;
-  stroke: rgba(255, 255, 255, 0.1);
-  stroke-width: 8;
-}
-
-.score-progress {
-  fill: none;
-  stroke: #00ff9d;
-  stroke-width: 8;
-  stroke-linecap: round;
-  stroke-dasharray: 283;
-  transition: stroke-dashoffset 1s ease;
-}
-
-.score-card.excellent .score-progress { stroke: #00ff9d; }
-.score-card.good .score-progress { stroke: #64b5f6; }
-.score-card.needs-improvement .score-progress { stroke: #ffc107; }
-.score-card.poor .score-progress { stroke: #ff4785; }
-
-.score-value {
+/* 스탬프 */
+.stamp-mark {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  top: 60px;
+  right: 30px;
+  border: 8px solid;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 1.5rem;
+  padding: 10px 15px;
+  transform: rotate(-15deg) scale(0);
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   text-align: center;
 }
 
-.score-number {
-  font-family: 'Orbitron', sans-serif;
-  font-size: 3.5em;
-  font-weight: 900;
-  color: #fff;
-  display: block;
+.stamp-mark.stamped {
+  transform: rotate(-15deg) scale(1);
+  opacity: 1;
 }
 
-.score-unit {
-  font-size: 1.2em;
-  color: #90a4ae;
+.stamp-mark.innocent {
+  border-color: #27ae60;
+  color: #27ae60;
 }
 
-.grade-badge {
-  display: inline-block;
-  padding: 10px 30px;
-  border-radius: 30px;
-  font-family: 'Orbitron', sans-serif;
-  font-size: 1.2em;
-  font-weight: 700;
+.stamp-mark.suspicious {
+  border-color: #f39c12;
+  color: #f39c12;
 }
 
-.grade-badge.excellent { background: linear-gradient(135deg, #00ff9d, #00e676); color: #0a0e27; }
-.grade-badge.good { background: linear-gradient(135deg, #64b5f6, #2196f3); color: #fff; }
-.grade-badge.needs-improvement { background: linear-gradient(135deg, #ffc107, #ffa000); color: #0a0e27; }
-.grade-badge.poor { background: linear-gradient(135deg, #ff4785, #ff1744); color: #fff; }
-
-/* Summary Card */
-.summary-card {
-  background: rgba(17, 24, 39, 0.95);
-  border-radius: 16px;
-  padding: 25px;
-  margin-bottom: 30px;
-  border: 1px solid rgba(100, 181, 246, 0.3);
+.stamp-mark.guilty {
+  border-color: #e74c3c;
+  color: #e74c3c;
 }
 
-.summary-card h3 {
-  color: #64b5f6;
-  margin: 0 0 15px 0;
-  font-size: 1.1em;
-}
-
-.summary-card p {
-  color: #e0e0e0;
-  margin: 0;
-  line-height: 1.7;
-  font-size: 1em;
-}
-
-/* Scores Grid */
-.scores-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 20px;
-  margin-bottom: 30px;
-}
-
-.score-section {
-  background: rgba(17, 24, 39, 0.95);
-  border-radius: 16px;
-  padding: 25px;
-  border: 1px solid rgba(100, 181, 246, 0.3);
-}
-
-.score-section h3 {
-  color: #64b5f6;
+.report-title {
+  text-align: center;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 1.5rem;
   margin: 0 0 20px 0;
-  font-size: 1.1em;
+  border-bottom: 4px double #000;
+  padding-bottom: 15px;
 }
 
-.score-items {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.score-item {
-  background: rgba(0, 0, 0, 0.3);
-  padding: 15px;
-  border-radius: 10px;
-}
-
-.score-item-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.score-item-label {
-  font-weight: 600;
-  color: #e0e0e0;
-}
-
-.score-item-value {
-  font-family: 'Orbitron', sans-serif;
-  font-weight: 700;
-}
-
-.score-item-value.excellent { color: #00ff9d; }
-.score-item-value.good { color: #64b5f6; }
-.score-item-value.needs-improvement { color: #ffc107; }
-.score-item-value.poor { color: #ff4785; }
-
-.score-item-bar {
-  height: 10px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 5px;
-  overflow: hidden;
-  margin-bottom: 10px;
-}
-
-.score-item-fill {
-  height: 100%;
-  border-radius: 5px;
-  transition: width 0.8s ease;
-}
-
-.score-item-fill.excellent { background: linear-gradient(90deg, #00ff9d, #00e676); }
-.score-item-fill.good { background: linear-gradient(90deg, #64b5f6, #2196f3); }
-.score-item-fill.needs-improvement { background: linear-gradient(90deg, #ffc107, #ffa000); }
-.score-item-fill.poor { background: linear-gradient(90deg, #ff4785, #ff1744); }
-
-.score-item-feedback {
-  font-size: 0.85em;
-  color: #90a4ae;
-  margin: 0;
-  line-height: 1.5;
-}
-
-/* Feedback Grid */
-.feedback-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 20px;
-  margin-bottom: 30px;
-}
-
-.feedback-card {
-  background: rgba(17, 24, 39, 0.95);
-  border-radius: 16px;
-  padding: 25px;
-  border: 1px solid;
-}
-
-.feedback-card.strengths {
-  border-color: rgba(0, 255, 157, 0.3);
-}
-
-.feedback-card.weaknesses {
-  border-color: rgba(255, 193, 7, 0.3);
-}
-
-.feedback-card h3 {
-  margin: 0 0 15px 0;
-  font-size: 1.1em;
-}
-
-.feedback-card.strengths h3 { color: #00ff9d; }
-.feedback-card.weaknesses h3 { color: #ffc107; }
-
-.feedback-card ul {
-  margin: 0;
-  padding-left: 20px;
-}
-
-.feedback-card li {
-  color: #e0e0e0;
-  margin-bottom: 8px;
-  line-height: 1.5;
-}
-
-/* Suggestions */
-.suggestions-card {
-  background: rgba(17, 24, 39, 0.95);
-  border-radius: 16px;
-  padding: 25px;
-  margin-bottom: 30px;
-  border: 1px solid rgba(100, 181, 246, 0.3);
-}
-
-.suggestions-card h3 {
-  color: #64b5f6;
-  margin: 0 0 15px 0;
-  font-size: 1.1em;
-}
-
-.suggestions-card ul {
-  margin: 0;
-  padding-left: 20px;
-}
-
-.suggestions-card li {
-  color: #e0e0e0;
-  margin-bottom: 8px;
-  line-height: 1.5;
-}
-
-/* Action Buttons */
-.action-buttons {
-  text-align: center;
-  padding: 20px 0;
-}
-
-.btn-retry {
-  padding: 18px 50px;
-  background: linear-gradient(135deg, #00ff9d, #00e676);
-  border: none;
-  border-radius: 12px;
-  color: #0a0e27;
-  font-family: 'Space Mono', monospace;
-  font-size: 1.1em;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.btn-retry:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 30px rgba(0, 255, 157, 0.4);
-}
-
-/* NFR Scores Section */
-.nfr-scores-section {
-  margin-bottom: 30px;
-}
-
-.nfr-scores-section h2 {
-  color: #64b5f6;
-  font-family: 'Orbitron', sans-serif;
-  font-size: 1.3em;
-  margin: 0 0 20px 0;
-  text-align: center;
-}
-
-.nfr-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 15px;
-}
-
-.nfr-card {
-  background: rgba(17, 24, 39, 0.95);
-  border-radius: 12px;
-  padding: 20px;
-  border: 1px solid rgba(100, 181, 246, 0.3);
-  transition: all 0.3s ease;
-}
-
-.nfr-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
-}
-
-.nfr-card.excellent { border-color: rgba(0, 255, 157, 0.5); }
-.nfr-card.good { border-color: rgba(100, 181, 246, 0.5); }
-.nfr-card.needs-improvement { border-color: rgba(255, 193, 7, 0.5); }
-.nfr-card.poor { border-color: rgba(255, 71, 133, 0.5); }
-
-.nfr-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-
-.nfr-icon {
-  font-size: 1.3em;
-}
-
-.nfr-title {
-  flex: 1;
-  font-weight: 600;
-  color: #e0e0e0;
-  font-size: 0.95em;
-}
-
-.nfr-score {
-  font-family: 'Orbitron', sans-serif;
-  font-weight: 700;
-  font-size: 1.1em;
-}
-
-.nfr-score.excellent { color: #00ff9d; }
-.nfr-score.good { color: #64b5f6; }
-.nfr-score.needs-improvement { color: #ffc107; }
-.nfr-score.poor { color: #ff4785; }
-
-.nfr-bar {
-  height: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-  overflow: hidden;
-  margin-bottom: 12px;
-}
-
-.nfr-bar-fill {
-  height: 100%;
-  border-radius: 4px;
-  transition: width 0.8s ease;
-}
-
-.nfr-bar-fill.excellent { background: linear-gradient(90deg, #00ff9d, #00e676); }
-.nfr-bar-fill.good { background: linear-gradient(90deg, #64b5f6, #2196f3); }
-.nfr-bar-fill.needs-improvement { background: linear-gradient(90deg, #ffc107, #ffa000); }
-.nfr-bar-fill.poor { background: linear-gradient(90deg, #ff4785, #ff1744); }
-
-.nfr-feedback {
-  font-size: 0.85em;
-  color: #90a4ae;
-  margin: 0 0 12px 0;
-  line-height: 1.5;
-}
-
-.nfr-checklist {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding-top: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.nfr-checklist span {
-  font-size: 0.8em;
-  padding: 4px 8px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 4px;
-  color: #90a4ae;
-}
-
-.nfr-checklist span.checked {
-  color: #00ff9d;
-  background: rgba(0, 255, 157, 0.1);
-}
-
-/* Interview Score Section */
-.interview-score-section {
-  background: rgba(17, 24, 39, 0.95);
-  border-radius: 16px;
-  padding: 25px;
-  margin-bottom: 30px;
-  border: 1px solid rgba(100, 181, 246, 0.3);
-}
-
-.interview-score-section h3 {
-  color: #64b5f6;
-  margin: 0 0 20px 0;
-  font-size: 1.1em;
-}
-
-.interview-score-card {
-  background: rgba(0, 0, 0, 0.3);
-  padding: 20px;
-  border-radius: 10px;
-}
-
-.interview-score-header {
-  text-align: center;
-  margin-bottom: 15px;
-}
-
-.interview-score-value {
-  font-family: 'Orbitron', sans-serif;
-  font-size: 2em;
-  font-weight: 700;
-}
-
-.interview-score-value.excellent { color: #00ff9d; }
-.interview-score-value.good { color: #64b5f6; }
-.interview-score-value.needs-improvement { color: #ffc107; }
-.interview-score-value.poor { color: #ff4785; }
-
-.interview-score-bar {
-  height: 12px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  overflow: hidden;
-  margin-bottom: 15px;
-}
-
-.interview-score-fill {
-  height: 100%;
-  border-radius: 6px;
-  transition: width 0.8s ease;
-}
-
-.interview-score-fill.excellent { background: linear-gradient(90deg, #00ff9d, #00e676); }
-.interview-score-fill.good { background: linear-gradient(90deg, #64b5f6, #2196f3); }
-.interview-score-fill.needs-improvement { background: linear-gradient(90deg, #ffc107, #ffa000); }
-.interview-score-fill.poor { background: linear-gradient(90deg, #ff4785, #ff1744); }
-
-.interview-score-feedback {
-  font-size: 0.95em;
-  color: #e0e0e0;
-  margin: 0;
-  line-height: 1.6;
-  text-align: center;
-}
-
-/* Architecture & Interview Evaluation Sections */
-.architecture-eval-section,
-.interview-eval-section {
-  background: rgba(17, 24, 39, 0.95);
-  border-radius: 16px;
-  padding: 25px;
-  margin-bottom: 30px;
-  border: 1px solid rgba(100, 181, 246, 0.3);
-}
-
-.architecture-eval-section h2,
-.interview-eval-section h2 {
-  color: #64b5f6;
-  font-family: 'Orbitron', sans-serif;
-  font-size: 1.2em;
-  margin: 0 0 20px 0;
-}
-
-.eval-score-header {
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 15px;
-}
-
-.eval-score-value {
-  font-family: 'Orbitron', sans-serif;
-  font-size: 2.5em;
-  font-weight: 700;
-}
-
-.eval-score-value.excellent { color: #00ff9d; }
-.eval-score-value.good { color: #64b5f6; }
-.eval-score-value.needs-improvement { color: #ffc107; }
-.eval-score-value.poor { color: #ff4785; }
-
-.eval-score-max {
-  color: #90a4ae;
-  font-size: 1.2em;
-}
-
-.eval-bar {
-  height: 12px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  overflow: hidden;
-  margin-bottom: 25px;
-}
-
-.eval-bar-fill {
-  height: 100%;
-  border-radius: 6px;
-  transition: width 0.8s ease;
-}
-
-.eval-bar-fill.excellent { background: linear-gradient(90deg, #00ff9d, #00e676); }
-.eval-bar-fill.good { background: linear-gradient(90deg, #64b5f6, #2196f3); }
-.eval-bar-fill.needs-improvement { background: linear-gradient(90deg, #ffc107, #ffa000); }
-.eval-bar-fill.poor { background: linear-gradient(90deg, #ff4785, #ff1744); }
-
-/* Eval Details */
-.eval-details {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
+.report-meta {
   margin-bottom: 20px;
 }
 
-.eval-detail-item {
-  background: rgba(0, 0, 0, 0.3);
-  padding: 15px;
-  border-radius: 10px;
-  border-left: 3px solid #64b5f6;
+.report-meta p {
+  margin: 5px 0;
+  font-size: 0.9rem;
 }
 
-.detail-header {
+.divider {
+  border: none;
+  border-top: 2px dashed #bdc3c7;
+  margin: 25px 0;
+}
+
+/* 판결 섹션 */
+.verdict-section {
+  text-align: center;
+}
+
+.verdict-section h2 {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.9rem;
+  margin-bottom: 20px;
+}
+
+.verdict-box {
+  padding: 20px;
+  border: 4px solid;
+  margin-bottom: 15px;
+}
+
+.verdict-box.innocent {
+  background: rgba(39, 174, 96, 0.1);
+  border-color: #27ae60;
+}
+
+.verdict-box.suspicious {
+  background: rgba(243, 156, 18, 0.1);
+  border-color: #f39c12;
+}
+
+.verdict-box.guilty {
+  background: rgba(231, 76, 60, 0.1);
+  border-color: #e74c3c;
+}
+
+.verdict-icon {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+}
+
+.verdict-text {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.7rem;
+  line-height: 1.8;
+}
+
+.score-display {
+  margin-top: 15px;
+}
+
+.score-value {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 2rem;
+}
+
+.score-value.innocent { color: #27ae60; }
+.score-value.suspicious { color: #f39c12; }
+.score-value.guilty { color: #e74c3c; }
+
+.score-unit {
+  font-size: 1rem;
+  color: #7f8c8d;
+}
+
+/* 평가 섹션 */
+.eval-section {
+  margin: 20px 0;
+}
+
+.eval-section h3 {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.7rem;
+  margin-bottom: 15px;
+  color: #2c3e50;
+}
+
+.eval-details {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.eval-item {
+  background: rgba(0, 0, 0, 0.05);
+  padding: 12px;
+  border-left: 4px solid #3498db;
+}
+
+.eval-item-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 5px;
 }
 
-.detail-item {
-  font-weight: 600;
-  color: #e0e0e0;
+.eval-item-name {
+  font-weight: bold;
 }
 
-.detail-score {
-  font-family: 'Orbitron', sans-serif;
-  font-weight: 700;
+.eval-item-score {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.7rem;
 }
 
-.detail-score.excellent { color: #00ff9d; }
-.detail-score.good { color: #64b5f6; }
-.detail-score.needs-improvement { color: #ffc107; }
-.detail-score.poor { color: #ff4785; }
+.eval-item-score.excellent { color: #27ae60; }
+.eval-item-score.good { color: #3498db; }
+.eval-item-score.needs-improvement { color: #f39c12; }
+.eval-item-score.poor { color: #e74c3c; }
 
-.detail-basis {
-  font-size: 0.9em;
-  color: #90a4ae;
+.eval-item-basis {
+  font-size: 0.85rem;
+  color: #555;
   margin: 0;
-  line-height: 1.5;
 }
 
-/* Missing & Incorrect Sections */
+/* 태그 리스트 */
 .missing-section,
 .incorrect-section {
-  margin-top: 20px;
-  padding: 15px;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 10px;
-}
-
-.missing-section h4,
-.incorrect-section h4 {
-  color: #ff4785;
-  margin: 0 0 12px 0;
-  font-size: 0.95em;
-}
-
-.incorrect-section h4 {
-  color: #ffc107;
+  margin-top: 15px;
+  font-size: 0.9rem;
 }
 
 .tag-list {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  margin-top: 8px;
 }
 
 .tag {
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 0.85em;
-  font-weight: 500;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  border: 2px solid;
 }
 
 .tag.missing {
-  background: rgba(255, 71, 133, 0.2);
-  color: #ff4785;
-  border: 1px solid rgba(255, 71, 133, 0.4);
+  background: rgba(231, 76, 60, 0.1);
+  border-color: #e74c3c;
+  color: #e74c3c;
 }
 
 .tag.incorrect {
-  background: rgba(255, 193, 7, 0.2);
-  color: #ffc107;
-  border: 1px solid rgba(255, 193, 7, 0.4);
+  background: rgba(243, 156, 18, 0.1);
+  border-color: #f39c12;
+  color: #f39c12;
 }
 
-.tag.found {
-  background: rgba(0, 255, 157, 0.2);
-  color: #00ff9d;
-  border: 1px solid rgba(0, 255, 157, 0.4);
-}
-
-/* Answer Analysis */
-.answer-analysis {
-  margin-top: 20px;
-  padding: 20px;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 12px;
-}
-
-.answer-analysis h4 {
-  color: #64b5f6;
-  margin: 0 0 15px 0;
-  font-size: 1em;
-}
-
-.analysis-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 15px;
-  margin-bottom: 20px;
-}
-
-.analysis-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 15px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 8px;
-}
-
-.analysis-label {
-  color: #90a4ae;
-  font-size: 0.9em;
-}
-
-.analysis-value {
-  font-weight: 600;
-  color: #e0e0e0;
-}
-
-.analysis-value.positive { color: #00ff9d; }
-.analysis-value.negative { color: #ff4785; }
-
-.keyterms-section {
-  margin-top: 15px;
-}
-
-.keyterms-section h5 {
-  color: #b0bec5;
-  margin: 0 0 10px 0;
-  font-size: 0.9em;
-}
-
-/* Question Analysis */
-.question-analysis {
-  margin-top: 25px;
-}
-
-.question-analysis h4 {
-  color: #64b5f6;
-  margin: 0 0 20px 0;
-  font-size: 1em;
-}
-
+/* 질문 리스트 */
 .question-list {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 15px;
 }
 
 .question-item {
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 12px;
-  padding: 20px;
-  border-left: 4px solid #64b5f6;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 15px;
+  border-left: 4px solid #3498db;
 }
 
-.question-item.match { border-left-color: #00ff9d; }
-.question-item.partial { border-left-color: #ffc107; }
-.question-item.mismatch { border-left-color: #ff4785; }
+.question-item.match { border-left-color: #27ae60; }
+.question-item.partial { border-left-color: #f39c12; }
+.question-item.mismatch { border-left-color: #e74c3c; }
 
 .question-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 15px;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
 }
 
 .question-number {
-  background: rgba(100, 181, 246, 0.2);
-  color: #64b5f6;
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 0.85em;
-  font-weight: 700;
+  background: #2c3e50;
+  color: white;
+  padding: 2px 8px;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.5rem;
 }
 
 .question-category {
-  background: rgba(255, 193, 7, 0.15);
-  color: #ffc107;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 0.8em;
-  font-weight: 600;
+  background: rgba(241, 196, 15, 0.2);
+  color: #f39c12;
+  padding: 2px 8px;
+  font-size: 0.75rem;
 }
 
 .match-badge {
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 0.8em;
-  font-weight: 600;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  border: 1px solid;
 }
 
 .match-badge.match {
-  background: rgba(0, 255, 157, 0.2);
-  color: #00ff9d;
+  background: rgba(39, 174, 96, 0.1);
+  border-color: #27ae60;
+  color: #27ae60;
 }
 
 .match-badge.partial {
-  background: rgba(255, 193, 7, 0.2);
-  color: #ffc107;
+  background: rgba(243, 156, 18, 0.1);
+  border-color: #f39c12;
+  color: #f39c12;
 }
 
 .match-badge.mismatch {
-  background: rgba(255, 71, 133, 0.2);
-  color: #ff4785;
+  background: rgba(231, 76, 60, 0.1);
+  border-color: #e74c3c;
+  color: #e74c3c;
 }
 
 .question-score {
   margin-left: auto;
-  font-family: 'Orbitron', sans-serif;
-  font-weight: 700;
-  color: #e0e0e0;
-}
-
-.question-content {
-  margin-bottom: 15px;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.6rem;
 }
 
 .question-text {
-  color: #e0e0e0;
-  margin: 0;
-  line-height: 1.6;
-  font-size: 0.95em;
+  margin: 0 0 10px 0;
+  font-size: 0.9rem;
 }
 
 .answer-comparison {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 15px;
-  margin-bottom: 15px;
+  gap: 10px;
 }
 
 .user-answer-box,
 .model-answer-box {
-  padding: 15px;
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.3);
-}
-
-.user-answer-box {
-  border: 1px solid rgba(100, 181, 246, 0.3);
-}
-
-.model-answer-box {
-  border: 1px solid rgba(0, 255, 157, 0.3);
+  padding: 10px;
+  background: white;
+  border: 2px solid #bdc3c7;
 }
 
 .box-label {
   display: block;
-  font-size: 0.8em;
-  font-weight: 600;
-  margin-bottom: 8px;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.5rem;
+  margin-bottom: 5px;
 }
 
-.user-answer-box .box-label { color: #64b5f6; }
-.model-answer-box .box-label { color: #00ff9d; }
+.user-answer-box .box-label { color: #3498db; }
+.model-answer-box .box-label { color: #27ae60; }
 
 .user-answer-box p,
 .model-answer-box p {
-  color: #b0bec5;
   margin: 0;
-  font-size: 0.9em;
-  line-height: 1.5;
+  font-size: 0.85rem;
+  color: #555;
 }
 
 .deduction-reason {
-  background: rgba(255, 71, 133, 0.1);
-  padding: 10px 15px;
-  border-radius: 8px;
-  margin-bottom: 10px;
-  font-size: 0.9em;
-  color: #ff4785;
+  margin-top: 10px;
+  padding: 8px;
+  background: rgba(231, 76, 60, 0.1);
+  font-size: 0.85rem;
+  color: #e74c3c;
 }
 
-.deduction-label {
-  font-weight: 600;
+/* 종합 평가 */
+.summary-section h3 {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.7rem;
+  margin-bottom: 15px;
 }
 
-.question-feedback {
-  background: rgba(100, 181, 246, 0.1);
-  padding: 10px 15px;
-  border-radius: 8px;
-  font-size: 0.9em;
-  color: #64b5f6;
+.summary-box {
+  background: #000;
+  padding: 15px;
 }
 
-.feedback-label {
-  font-weight: 600;
+.detective-comment {
+  display: flex;
+  gap: 15px;
+  align-items: flex-start;
 }
 
-@media (max-width: 768px) {
-  .analysis-grid {
+.comment-avatar {
+  width: 60px;
+  height: 60px;
+  border: 3px solid #f1c40f;
+  background: #81ecec;
+  flex-shrink: 0;
+}
+
+.detective-comment p {
+  color: #f1c40f;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* 피드백 그리드 */
+.feedback-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin: 20px 0;
+}
+
+.feedback-card {
+  padding: 15px;
+  border: 2px solid;
+}
+
+.feedback-card.strengths {
+  background: rgba(39, 174, 96, 0.05);
+  border-color: #27ae60;
+}
+
+.feedback-card.weaknesses {
+  background: rgba(231, 76, 60, 0.05);
+  border-color: #e74c3c;
+}
+
+.feedback-card h4 {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.6rem;
+  margin: 0 0 10px 0;
+}
+
+.feedback-card.strengths h4 { color: #27ae60; }
+.feedback-card.weaknesses h4 { color: #e74c3c; }
+
+.feedback-card ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.feedback-card li {
+  font-size: 0.85rem;
+  margin-bottom: 5px;
+  color: #555;
+}
+
+/* 제안 섹션 */
+.suggestions-section {
+  margin: 20px 0;
+  padding: 15px;
+  background: rgba(52, 152, 219, 0.05);
+  border: 2px solid #3498db;
+}
+
+.suggestions-section h4 {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.6rem;
+  color: #3498db;
+  margin: 0 0 10px 0;
+}
+
+.suggestions-section ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.suggestions-section li {
+  font-size: 0.85rem;
+  margin-bottom: 5px;
+  color: #555;
+}
+
+/* 버튼 */
+.action-buttons {
+  text-align: center;
+  margin-top: 30px;
+}
+
+.btn-retry {
+  padding: 15px 30px;
+  background: #f1c40f;
+  border: 4px solid #000;
+  color: #000;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.7rem;
+  cursor: pointer;
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.8);
+  transition: all 0.2s;
+}
+
+.btn-retry:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.8);
+}
+
+.btn-retry:active {
+  transform: translate(2px, 2px);
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.8);
+}
+
+@media (max-width: 600px) {
+  .answer-comparison {
     grid-template-columns: 1fr;
   }
 
-  .answer-comparison {
+  .feedback-grid {
     grid-template-columns: 1fr;
+  }
+
+  .stamp-mark {
+    font-size: 1rem;
+    top: 30px;
+    right: 15px;
   }
 }
 </style>

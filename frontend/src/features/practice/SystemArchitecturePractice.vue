@@ -1,8 +1,27 @@
 <template>
-  <div class="arch-challenge-container">
+  <div class="arch-challenge-container panic-room-theme">
+    <!-- 인트로 씬 (비주얼 노벨 스타일) -->
+    <div v-if="showIntro" class="scene-intro" @click="nextIntroLine">
+      <div class="spotlight"></div>
+
+      <div class="intro-duck" :class="{ appear: duckAppeared }">
+        <img src="/image/duck_det.png" alt="Detective Duck" />
+      </div>
+
+      <div class="intro-dialog-box" v-if="!showStartBtn">
+        <div class="speaker-name">DET. DUCK</div>
+        <div class="intro-text">{{ displayedIntroText }}</div>
+        <div class="next-indicator">▼ Click to continue</div>
+      </div>
+
+      <button v-if="showStartBtn" class="start-btn" @click="enterGame">
+        취조실 입장 (ENTER)
+      </button>
+    </div>
+
     <!-- 평가 결과 화면 -->
     <EvaluationResultScreen
-      v-if="showResultScreen"
+      v-else-if="showResultScreen"
       :result="evaluationResult"
       :problem="currentProblem"
       :is-loading="isEvaluating"
@@ -14,25 +33,26 @@
       <div class="bg-animation"></div>
 
       <div class="game-container">
-        
-        <!-- 결과 패널 -->
-        <div class="result-panel">
+
+        <!-- 케이스 파일 패널 (좌측) -->
+        <div class="case-file-panel">
+          <!-- 오리 형사 프로필 -->
+          <div class="detective-profile">
+            <div class="img-box">
+              <img src="/image/duck_det.png" alt="Detective Duck" class="detective-avatar" />
+            </div>
+            <p class="detective-name">DET. DUCK</p>
+          </div>
+
           <!-- 문제 카드 -->
           <ProblemCard
-          :problem="currentProblem"
-          :is-connection-mode="isConnectionMode"
-          :can-evaluate="droppedComponents.length > 0"
-          :is-evaluating="isEvaluating"
-          :mermaid-code="mermaidCode"
-          @start-evaluation="openEvaluationModal"
+            :problem="currentProblem"
+            :is-connection-mode="isConnectionMode"
+            :can-evaluate="droppedComponents.length > 0"
+            :is-evaluating="isEvaluating"
+            :mermaid-code="mermaidCode"
+            @start-evaluation="openEvaluationModal"
           />
-          
-          <!-- 채팅 패널 -->
-          <!-- <ChatPanel
-          :messages="chatMessages"
-          :is-loading="isChatLoading"
-          @send-message="handleChatMessage"
-          /> -->
         </div>
 
         <!-- 아키텍처 캔버스 -->
@@ -47,12 +67,26 @@
           @component-renamed="onComponentRenamed"
           @component-deleted="onComponentDeleted"
           @connection-created="onConnectionCreated"
-          />
-          
-          <!-- 컴포넌트 팔레트 -->
-          <ComponentPalette @drag-start="onPaletteDragStart" />
+        />
+
+        <!-- 컴포넌트 팔레트 -->
+        <ComponentPalette @drag-start="onPaletteDragStart" />
+      </div>
+
+      <!-- 오리 형사 심문 패널 (하단) -->
+      <div
+        class="interrogation-panel"
+        :class="{ 'panel-minimized': isPanelMinimized }"
+        @click="handlePanelClick"
+      >
+        <div class="detective-face">
+          <img src="/image/duck_det.png" alt="Detective Duck" />
         </div>
-  
+        <div class="dialog-container">
+          <div class="dialog-box">{{ detectiveMessage }}</div>
+        </div>
+      </div>
+
       <!-- 평가 모달 -->
       <EvaluationModal
         :is-active="isModalActive"
@@ -125,6 +159,27 @@ export default {
   },
   data() {
     return {
+      // Intro State (비주얼 노벨 스타일)
+      showIntro: true,
+      introLines: [
+        "거기 서! 도망갈 생각 마라. 꽥!",
+        "네가 오늘 발생한 대규모 서버 폭파 사건의 가장 유력한 용의자로 지목되었다.",
+        "억울하다고? 그렇다면 취조실로 들어와서 직접 증명해 봐.",
+        "올바른 시스템 아키텍처를 설계해서 네 결백을 입증하는 거다!",
+        "(철창 문이 열린다...)"
+      ],
+      introIndex: 0,
+      displayedIntroText: '',
+      duckAppeared: false,
+      showStartBtn: false,
+      introTypingInterval: null,
+      introIsTyping: false,
+      currentIntroFullText: '',
+
+      // Detective Panel State
+      detectiveMessage: '자, 여기에 앉아. 왼쪽 사건 파일을 보고 설계도를 완성해. 꽥!',
+      isPanelMinimized: false,
+
       // Canvas State
       isConnectionMode: false,
       droppedComponents: [],
@@ -169,12 +224,12 @@ export default {
       startOnLoad: false,
       theme: 'dark',
       themeVariables: {
-        primaryColor: '#00ff9d',
-        primaryTextColor: '#0a0e27',
-        primaryBorderColor: '#00e676',
-        lineColor: '#64b5f6',
-        secondaryColor: '#ff4785',
-        tertiaryColor: '#ffc107'
+        primaryColor: '#f1c40f',
+        primaryTextColor: '#1a1a1a',
+        primaryBorderColor: '#f1c40f',
+        lineColor: '#f1c40f',
+        secondaryColor: '#e74c3c',
+        tertiaryColor: '#3498db'
       },
       securityLevel: 'loose'
     });
@@ -186,8 +241,80 @@ export default {
     }
 
     await this.loadProblems();
+
+    // 인트로 애니메이션 시작
+    setTimeout(() => {
+      this.duckAppeared = true;
+      this.typeIntroText(this.introLines[0]);
+    }, 500);
   },
   methods: {
+    // === Intro Methods ===
+    typeIntroText(text) {
+      this.displayedIntroText = '';
+      this.currentIntroFullText = text;
+      this.introIsTyping = true;
+      let i = 0;
+
+      clearInterval(this.introTypingInterval);
+      this.introTypingInterval = setInterval(() => {
+        if (i < text.length) {
+          this.displayedIntroText += text.charAt(i);
+          i++;
+        } else {
+          this.finishIntroTyping();
+        }
+      }, 30);
+    },
+
+    finishIntroTyping() {
+      clearInterval(this.introTypingInterval);
+      this.displayedIntroText = this.currentIntroFullText;
+      this.introIsTyping = false;
+    },
+
+    nextIntroLine() {
+      if (this.introIsTyping) {
+        this.finishIntroTyping();
+        return;
+      }
+
+      this.introIndex++;
+      if (this.introIndex < this.introLines.length) {
+        this.typeIntroText(this.introLines[this.introIndex]);
+      } else {
+        this.showStartBtn = true;
+      }
+    },
+
+    enterGame() {
+      this.showIntro = false;
+      this.typeDetectiveMessage('자, 여기에 앉아. 왼쪽 사건 파일을 보고 설계도를 완성해. (패널을 클릭하면 내려갑니다) 꽥!');
+    },
+
+    // === Detective Panel Methods ===
+    typeDetectiveMessage(text) {
+      this.detectiveMessage = '';
+      let i = 0;
+      const interval = setInterval(() => {
+        if (i < text.length) {
+          this.detectiveMessage += text.charAt(i);
+          i++;
+        } else {
+          clearInterval(interval);
+        }
+      }, 30);
+    },
+
+    handlePanelClick(e) {
+      if (e.target.closest('.dialog-box')) return;
+      this.isPanelMinimized = !this.isPanelMinimized;
+    },
+
+    showPanel() {
+      this.isPanelMinimized = false;
+    },
+
     // === Problem Loading ===
     async loadProblems() {
       try {
@@ -491,12 +618,20 @@ export default {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&family=Space+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Courier+Prime:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap');
 
-.arch-challenge-container {
-  font-family: 'Space Mono', monospace;
-  background: #0a0e27;
-  color: #e0e0e0;
+:root {
+  --bg-color: #1a1a1a;
+  --accent-yellow: #f1c40f;
+  --danger-red: #e74c3c;
+  --text-white: #ecf0f1;
+  --border-black: #000;
+}
+
+.arch-challenge-container.panic-room-theme {
+  font-family: 'Press Start 2P', cursive;
+  background: #1a1a1a;
+  color: #ecf0f1;
   height: 100vh;
   overflow: hidden;
   position: relative;
@@ -510,34 +645,247 @@ export default {
   height: 100%;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.3;
+  opacity: 0.15;
   background:
-    radial-gradient(ellipse at 20% 30%, rgba(0, 255, 157, 0.15) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 70%, rgba(255, 71, 133, 0.15) 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 50%, rgba(100, 181, 246, 0.1) 0%, transparent 50%);
-  animation: float 20s ease-in-out infinite;
+    radial-gradient(ellipse at 20% 30%, rgba(241, 196, 15, 0.2) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 70%, rgba(231, 76, 60, 0.2) 0%, transparent 50%);
 }
 
-@keyframes float {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(30px, -30px) scale(1.1); }
-  66% { transform: translate(-30px, 30px) scale(0.9); }
+/* === INTRO SCENE === */
+.scene-intro {
+  width: 100%;
+  height: 100%;
+  background: #111;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
 }
 
+.spotlight {
+  position: absolute;
+  top: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 100%;
+  background: radial-gradient(ellipse at top, rgba(255, 255, 255, 0.15) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.intro-duck {
+  width: 400px;
+  height: 400px;
+  z-index: 2;
+  filter: drop-shadow(0 0 20px rgba(0, 0, 0, 0.5));
+  transform: translateY(50px);
+  transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.intro-duck.appear {
+  transform: translateY(0);
+}
+
+.intro-duck img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.intro-dialog-box {
+  width: 90%;
+  /* max-width: 800px; */
+  min-height: 180px;
+  background: rgba(0, 0, 0, 0.9);
+  border: 4px solid white;
+  border-radius: 10px;
+  margin-bottom: 40px;
+  padding: 25px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 1);
+}
+
+.speaker-name {
+  color: #f1c40f;
+  font-size: 1.5rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.intro-text {
+  font-family: 'Courier Prime', monospace;
+  font-size: 1.6rem;
+  line-height: 1.8;
+  color: white;
+  flex: 1;
+}
+
+.next-indicator {
+  align-self: flex-end;
+  color: #f1c40f;
+  animation: bounce 1s infinite;
+  font-size: 1.2rem;
+}
+
+.start-btn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #e74c3c;
+  color: white;
+  border: 4px solid white;
+  padding: 20px 40px;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 1rem;
+  cursor: pointer;
+  z-index: 20;
+  box-shadow: 10px 10px 0 black;
+  animation: pulse-btn 1s infinite;
+  transition: transform 0.2s;
+}
+
+.start-btn:hover {
+  transform: translate(-50%, -55%);
+}
+
+/* === MAIN GAME === */
 .game-container {
   display: grid;
-  grid-template-columns: 350px 1fr 350px;
+  grid-template-columns: 320px 1fr 320px;
   width: 100%;
-  height: 100vh;
+  height: calc(100vh - 220px);
   gap: 0;
   position: relative;
   z-index: 1;
 }
 
-.result-panel {
-  background: rgba(17, 24, 39, 0.98);
-  overflow-y: auto;
+.case-file-panel {
+  background: #222;
+  border-right: 6px solid #000;
+  padding: 20px;
   display: flex;
   flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+  z-index: 20;
+}
+
+.detective-profile {
+  text-align: center;
+  border-bottom: 2px dashed #555;
+  padding-bottom: 15px;
+}
+
+.detective-profile .img-box {
+  display: flex;
+  justify-content: center;
+}
+
+.detective-avatar {
+  width: 80px;
+  height: 80px;
+  border: 3px solid white;
+  border-radius: 50%;
+  object-fit: contain;
+  background: #81ecec;
+}
+
+.detective-name {
+  color: #f1c40f;
+  margin-top: 8px;
+  font-size: 0.7rem;
+}
+
+/* === INTERROGATION PANEL === */
+.interrogation-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 200px;
+  background: rgba(0, 0, 0, 0.95);
+  border-top: 6px solid #f1c40f;
+  display: flex;
+  padding: 20px;
+  gap: 20px;
+  z-index: 100;
+  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  cursor: pointer;
+}
+
+.interrogation-panel.panel-minimized {
+  transform: translateY(194px);
+}
+
+.interrogation-panel::before {
+  content: "▲ CLICK TO SHOW DETECTIVE ▲";
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #f1c40f;
+  color: black;
+  padding: 5px 15px;
+  font-size: 0.6rem;
+  font-weight: bold;
+  border: 4px solid black;
+  border-bottom: none;
+  display: none;
+}
+
+.interrogation-panel.panel-minimized::before {
+  display: block;
+  animation: bounce 1s infinite;
+}
+
+.detective-face {
+  width: 100px;
+  height: 100px;
+  border: 4px solid white;
+  background: #81ecec;
+  flex-shrink: 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.detective-face img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.dialog-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dialog-box {
+  flex: 1;
+  border: 2px dashed #555;
+  padding: 15px;
+  color: #f1c40f;
+  font-family: 'Courier Prime', monospace;
+  font-size: 1rem;
+  line-height: 1.6;
+  overflow-y: auto;
+}
+
+/* === ANIMATIONS === */
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes pulse-btn {
+  50% { opacity: 0.8; transform: translate(-50%, -50%) scale(0.98); }
 }
 </style>
