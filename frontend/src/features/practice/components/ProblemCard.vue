@@ -4,19 +4,25 @@
 
     <div class="problem-card" v-if="problem">
       <h3>{{ problem.title }}</h3>
-      <!-- <p>{{ problem.description }}</p> -->
-      <!-- <div class="problem-requirements">
-        <h4>📋 요구사항</h4>
+
+      <!-- 시나리오 -->
+      <p class="scenario" v-if="problem.scenario">{{ problem.scenario }}</p>
+
+      <!-- 미션 -->
+      <div class="problem-missions" v-if="problem.missions && problem.missions.length">
+        <h4>🚀 미션</h4>
+        <ul>
+          <li v-for="(mission, i) in problem.missions" :key="i">{{ mission }}</li>
+        </ul>
+      </div>
+
+      <!-- 기술 요구사항 -->
+      <div class="problem-requirements" v-if="problem.requirements && problem.requirements.length">
+        <h4>📋 기술 요구사항</h4>
         <ul>
           <li v-for="(req, i) in problem.requirements" :key="i">{{ req }}</li>
         </ul>
       </div>
-      <span
-        class="difficulty-badge"
-        :class="`difficulty-${problem.difficulty}`"
-      >
-        {{ problem.difficulty.toUpperCase() }}
-      </span> -->
     </div>
 
     <div
@@ -34,6 +40,12 @@
       {{ isEvaluating ? '🤖 분석 중...' : '📤 아키텍처 제출' }}
       <span v-if="isEvaluating" class="loading-spinner"></span>
     </button>
+
+    <!-- Generated Code -->
+    <div class="code-section" v-if="mermaidCode">
+      <h3 class="section-title">💻 Generated Code</h3>
+      <div class="code-output">{{ mermaidCode }}</div>
+    </div>
   </div>
 </template>
 
@@ -56,6 +68,10 @@ export default {
     isEvaluating: {
       type: Boolean,
       default: false
+    },
+    mermaidCode: {
+      type: String,
+      default: ''
     }
   },
   emits: ['start-evaluation'],
@@ -95,13 +111,41 @@ export default {
   color: #64b5f6;
   margin: 0 0 10px 0;
   font-size: 1.1em;
-  padding-right: 60px;
 }
 
-.problem-card > p {
+.problem-card .scenario {
   color: #b0bec5;
   font-size: 0.9em;
   margin-bottom: 15px;
+  line-height: 1.6;
+  padding: 10px;
+  background: rgba(100, 181, 246, 0.1);
+  border-radius: 8px;
+  border-left: 3px solid #64b5f6;
+}
+
+.problem-missions {
+  background: rgba(255, 71, 133, 0.1);
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 10px;
+}
+
+.problem-missions h4 {
+  color: #ff4785;
+  margin: 0 0 8px 0;
+  font-size: 0.95em;
+}
+
+.problem-missions ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.problem-missions li {
+  color: #e0e0e0;
+  font-size: 0.85em;
+  margin-bottom: 6px;
   line-height: 1.5;
 }
 
@@ -128,31 +172,6 @@ export default {
   font-size: 0.85em;
   margin-bottom: 4px;
   line-height: 1.4;
-}
-
-.difficulty-badge {
-  position: absolute;
-  top: 15px;
-  right: 15px;
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 0.75em;
-  font-weight: 700;
-}
-
-.difficulty-easy {
-  background: linear-gradient(135deg, #00ff9d, #00e676);
-  color: #0a0e27;
-}
-
-.difficulty-medium {
-  background: linear-gradient(135deg, #ffc107, #ffa000);
-  color: #0a0e27;
-}
-
-.difficulty-hard {
-  background: linear-gradient(135deg, #ff4785, #ff1744);
-  color: #fff;
 }
 
 .mode-indicator {
@@ -212,5 +231,32 @@ export default {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* Code Section */
+.code-section {
+  margin-top: 15px;
+}
+
+.section-title {
+  color: #64b5f6;
+  margin: 0 0 10px 0;
+  font-size: 0.95em;
+  font-family: 'Orbitron', sans-serif;
+}
+
+.code-output {
+  background: rgba(0, 0, 0, 0.5);
+  color: #00ff9d;
+  padding: 15px;
+  border-radius: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8em;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  border: 1px solid rgba(0, 255, 157, 0.2);
+  max-height: 200px;
+  overflow-y: auto;
 }
 </style>

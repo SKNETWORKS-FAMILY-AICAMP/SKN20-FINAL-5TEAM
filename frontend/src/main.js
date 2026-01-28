@@ -14,11 +14,13 @@ axios.defaults.xsrfCookieName = 'csrftoken'
 axios.defaults.xsrfHeaderName = 'X-CSRFToken'
 
 // 새로운 퀘스트 기반 Logic Mirror 임포트
-import LogicMirror from './features/practice/support/unit1/logic-mirror/LogicMirror.vue'
+import PseudoPractice from './features/practice/Pseudo_practice.vue'
 import SystemArchitecturePractice from './features/practice/SystemArchitecturePractice.vue'
 import BugHunt from './features/practice/BugHunt.vue'
 import VibeCodeCleanUp from './features/practice/VibeCodeCleanUp.vue'
 import OpsPractice from './features/practice/OpsPractice.vue'
+import AiDetectivePractice from './features/practice/AiDetectivePractice.vue' // [수정일: 2026-01-28] AI Detective 컴포넌트 임포트
+import PseudoForest from './features/practice/PseudoForest.vue' // [수정일: 2026-01-28] Pseudo Forest 컴포넌트 임포트
 
 const routes = [
   {
@@ -28,9 +30,9 @@ const routes = [
   },
   // [2026-01-24] 라우트 기반 모달을 위한 Logic Mirror 경로 등록 (App.vue에서 감시하여 모달 처리)
   {
-    path: '/practice/logic-mirror',
-    name: 'LogicMirror',
-    component: { render: () => null } // 실제 컴포넌트는 GlobalModals에서 렌더링
+    path: '/practice/pseudo-code',
+    name: 'PseudoCode',
+    component: PseudoPractice
   },
   {
     path: '/practice/system-architecture',
@@ -51,6 +53,18 @@ const routes = [
     path: '/practice/ops-practice',
     name: 'OpsPractice',
     component: OpsPractice
+  },
+  {
+    // [수정일: 2026-01-28] AI Detective 라우트 등록
+    path: '/practice/ai-detective',
+    name: 'AiDetective',
+    component: AiDetectivePractice
+  },
+  {
+    // [수정일: 2026-01-28] Pseudo Forest 라우트 등록
+    path: '/practice/pseudo-forest',
+    name: 'PseudoForest',
+    component: PseudoForest
   },
   {
     path: '/main.html',

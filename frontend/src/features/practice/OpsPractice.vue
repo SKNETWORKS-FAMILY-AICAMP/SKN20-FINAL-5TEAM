@@ -777,7 +777,6 @@ function getMetricWidth(metric) {
 }
 
 .hint-content {
-  max-height: 0;
   overflow: hidden;
   transition: max-height 0.3s;
   margin-top: 15px;

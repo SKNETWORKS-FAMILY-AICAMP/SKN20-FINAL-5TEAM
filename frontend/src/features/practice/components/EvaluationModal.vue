@@ -11,36 +11,10 @@
           <p>아키텍처를 분석하여 질문을 생성하는 중...</p>
         </div>
         <template v-else>
-          <!-- 현재 아키텍처 요약 -->
-          <div class="architecture-summary">
-            <span class="summary-title">📐 제출할 아키텍처</span>
-            <div class="architecture-content">
-              <div class="components-list">
-                <span class="list-label">컴포넌트 ({{ components.length }}개)</span>
-                <div class="component-tags">
-                  <span
-                    v-for="comp in components"
-                    :key="comp.id"
-                    class="component-tag"
-                    :class="comp.type"
-                  >
-                    {{ comp.text }}
-                  </span>
-                </div>
-              </div>
-              <div v-if="connections.length > 0" class="connections-list">
-                <span class="list-label">연결 ({{ connections.length }}개)</span>
-                <div class="connection-items">
-                  <span
-                    v-for="(conn, idx) in formattedConnections"
-                    :key="idx"
-                    class="connection-item"
-                  >
-                    {{ conn }}
-                  </span>
-                </div>
-              </div>
-            </div>
+          <!-- Mermaid Preview -->
+          <div class="mermaid-preview-section" v-if="mermaidCode">
+            <span class="preview-title">📊 아키텍처 다이어그램</span>
+            <div class="mermaid-preview" ref="mermaidPreview"></div>
           </div>
 
           <!-- 질문 -->
@@ -72,6 +46,8 @@
 </template>
 
 <script>
+import mermaid from 'mermaid';
+
 export default {
   name: 'EvaluationModal',
   props: {
@@ -94,6 +70,10 @@ export default {
     connections: {
       type: Array,
       default: () => []
+    },
+    mermaidCode: {
+      type: String,
+      default: ''
     }
   },
   emits: ['close', 'submit'],
@@ -118,6 +98,16 @@ export default {
     isActive(newVal) {
       if (newVal) {
         this.answer = '';
+        this.$nextTick(() => {
+          this.renderMermaid();
+        });
+      }
+    },
+    isGenerating(newVal) {
+      if (!newVal && this.mermaidCode) {
+        this.$nextTick(() => {
+          this.renderMermaid();
+        });
       }
     }
   },
@@ -129,6 +119,17 @@ export default {
       }
       this.$emit('submit', this.answer.trim());
       this.answer = '';
+    },
+    async renderMermaid() {
+      const container = this.$refs.mermaidPreview;
+      if (!container || !this.mermaidCode) return;
+
+      try {
+        const { svg } = await mermaid.render('eval-mermaid-' + Date.now(), this.mermaidCode);
+        container.innerHTML = svg;
+      } catch (error) {
+        container.innerHTML = '<p class="mermaid-error">다이어그램 렌더링 중 오류가 발생했습니다.</p>';
+      }
     }
   }
 };
@@ -397,5 +398,44 @@ export default {
 .btn-submit:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Mermaid Preview */
+.mermaid-preview-section {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(0, 255, 157, 0.2);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.preview-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.85em;
+  color: #64b5f6;
+  letter-spacing: 1px;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.mermaid-preview {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 15px;
+  border-radius: 8px;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+}
+
+.mermaid-preview :deep(svg) {
+  max-width: 100%;
+  height: auto;
+}
+
+.mermaid-error {
+  color: #ff4785;
+  font-size: 0.85em;
 }
 </style>

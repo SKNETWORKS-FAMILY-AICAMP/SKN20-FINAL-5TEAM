@@ -4,78 +4,133 @@
 
 /**
  * 문제 데이터를 앱에서 사용할 형식으로 변환
+ * 새로운 architecture.json 구조에 맞춤
  */
 export function transformProblems(data) {
-  const componentTypeMap = {
-    // Compute & Entry
-    'entry': 'gateway',
-    'compute': 'server',
+  // 컴포넌트 이름을 팔레트 타입으로 매핑
+  const componentNameToType = {
+    // Server & Gateway
+    'web server': 'server',
     'server': 'server',
+    'api server': 'server',
+    'feed service': 'server',
+    'search api': 'server',
+    'location api': 'server',
     'gateway': 'gateway',
+    'websocket gateway': 'gateway',
+    'load balancer': 'loadbalancer',
     'loadbalancer': 'loadbalancer',
-    // Storage & Search
-    'storage': 'storage',
-    'db': 'rdbms',
+    // Storage
     'rdbms': 'rdbms',
-    'nosql': 'nosql',
-    'cache': 'cache',
-    'redis': 'cache',
-    'search': 'search',
+    'database': 'rdbms',
+    'db': 'rdbms',
+    'history db': 'rdbms',
+    'history db (rdbms)': 'rdbms',
+    'object storage': 'storage',
+    'object storage (s3)': 'storage',
     's3': 'storage',
+    'storage': 'storage',
+    // Cache & Search
+    'cache': 'cache',
+    'cache (redis)': 'cache',
+    'redis': 'cache',
+    'redis (distributed lock/atomic)': 'cache',
+    'newsfeed cache': 'cache',
+    'newsfeed cache (redis)': 'cache',
+    'in-memory store': 'cache',
+    'in-memory store (redis geo)': 'cache',
+    'search engine': 'search',
+    'in-memory search engine': 'search',
+    'in-memory search engine (trie/redis/es)': 'search',
+    'elasticsearch': 'search',
     // Messaging
-    'message_queue': 'broker',
+    'message queue': 'broker',
+    'message queue (kafka/rabbitmq)': 'broker',
     'kafka': 'broker',
-    'broker': 'broker',
-    'eventbus': 'eventbus',
+    'rabbitmq': 'broker',
+    'task queue': 'broker',
+    'pub/sub': 'eventbus',
+    'pub/sub (redis)': 'eventbus',
     'pubsub': 'eventbus',
-    // Observability
-    'monitoring': 'monitoring',
-    'logging': 'logging',
-    'cicd': 'cicd',
-    // Legacy mappings
-    'network': 'monitoring',
+    // Workers
+    'worker': 'server',
+    'notification worker': 'server',
+    'cleanup worker': 'server',
+    'crawler worker': 'server',
+    // Others
     'cdn': 'storage',
-    'external': 'gateway'
+    'client': 'user',
+    'user': 'user',
+    'bus': 'user',
+    'bloom filter': 'cache',
+    'bloom filter (deduplicator)': 'cache',
+    'deduplicator': 'cache'
   };
 
-  return data.map((item, index) => {
-    let difficulty = 'easy';
-    let level = '초급';
-    if (index >= 7) {
-      difficulty = 'hard';
-      level = '고급';
-    } else if (index >= 4) {
-      difficulty = 'medium';
-      level = '중급';
+  /**
+   * 컴포넌트 이름을 팔레트 타입으로 변환
+   */
+  const getComponentType = (name) => {
+    const lowerName = name.toLowerCase().trim();
+    return componentNameToType[lowerName] || 'server';
+  };
+
+  return data.map((item) => {
+    // engineering_spec을 요구사항 배열로 변환
+    const requirementsArray = [];
+    if (item.engineering_spec) {
+      Object.entries(item.engineering_spec).forEach(([key, value]) => {
+        requirementsArray.push(`${key}: ${value}`);
+      });
     }
 
-    const requirementsArray = item.requirements
-      .split(/[,،]/)
-      .map(req => req.trim())
-      .filter(req => req.length > 0);
+    // mission 배열 추가
+    const missions = item.mission || [];
 
+    // rubric_functional에서 필수 컴포넌트 추출
+    const rubricFunctional = item.rubric_functional || {};
+    const requiredComponentNames = rubricFunctional.required_components || [];
+    const requiredFlows = rubricFunctional.required_flows || [];
+
+    // 컴포넌트 이름과 타입 매핑
+    const keyComponents = requiredComponentNames.map(name => ({
+      name: name,
+      type: getComponentType(name)
+    }));
+
+    // 타입만 추출 (기존 호환성)
+    const expectedComponents = keyComponents.map(c => c.type);
+
+    // rubric_non_functional에서 평가 토픽 추출
+    const rubricNonFunctional = item.rubric_non_functional || [];
+    const questionTopics = rubricNonFunctional.map(nfr => ({
+      topic: nfr.category,
+      keywords: [nfr.question_intent],
+      modelAnswer: nfr.model_answer
+    }));
+
+    // 후속 질문 생성
     let followUpQuestion = '';
-    if (item.question_topics && item.question_topics.length > 0) {
-      const topic = item.question_topics[0];
-      followUpQuestion = `${topic.topic}에 대해 설명해주세요. (키워드: ${topic.keywords.join(', ')})`;
+    if (rubricNonFunctional.length > 0) {
+      const firstNfr = rubricNonFunctional[0];
+      followUpQuestion = `${firstNfr.category}에 대해 설명해주세요. (${firstNfr.question_intent})`;
     }
-
-    const expectedComponents = item.key_components.map(comp =>
-      componentTypeMap[comp.type] || comp.type
-    );
 
     return {
-      level,
+      problemId: item.problem_id,
       title: item.title,
-      description: item.requirements,
-      difficulty,
+      scenario: item.scenario,
+      description: item.scenario, // 기존 호환성
       requirements: requirementsArray,
+      missions: missions,
+      engineeringSpec: item.engineering_spec,
       followUpQuestion,
       expectedComponents,
-      questionTopics: item.question_topics,
-      referenceMermaid: item.reference_mermaid,
-      referenceConcept: item.reference_concept,
-      evaluationRubric: item.evaluation_rubric
+      keyComponents,
+      requiredFlows, // 필수 연결 관계
+      questionTopics,
+      rubricFunctional,
+      rubricNonFunctional
     };
   });
 }
@@ -163,17 +218,28 @@ export function buildChatContext(problem) {
   if (!problem) return '';
 
   let context = `문제: ${problem.title}\n`;
-  context += `요구사항: ${problem.requirements.join(', ')}\n`;
+  context += `시나리오: ${problem.scenario || ''}\n`;
+
+  if (problem.missions && problem.missions.length > 0) {
+    context += `\n미션:\n`;
+    problem.missions.forEach(mission => {
+      context += `- ${mission}\n`;
+    });
+  }
+
+  if (problem.engineeringSpec) {
+    context += `\n기술 요구사항:\n`;
+    Object.entries(problem.engineeringSpec).forEach(([key, value]) => {
+      context += `- ${key}: ${value}\n`;
+    });
+  }
 
   if (problem.questionTopics && problem.questionTopics.length > 0) {
     context += `\n주요 토픽:\n`;
     problem.questionTopics.forEach(topic => {
-      context += `- ${topic.topic}: ${topic.keywords.join(', ')}\n`;
+      const keywords = topic.keywords?.join(', ') || topic.modelAnswer || '';
+      context += `- ${topic.topic}: ${keywords}\n`;
     });
-  }
-
-  if (problem.referenceConcept) {
-    context += `\n고려해야 할 개념들: ${Object.keys(problem.referenceConcept).join(', ')}`;
   }
 
   return context;
@@ -260,31 +326,159 @@ export function generateMermaidCode(components, connections) {
 }
 
 /**
- * Mock 평가 데이터 (API 실패 시 fallback)
+ * 문제 데이터 기반 동적 Mock 평가 생성 (API 실패 시 fallback)
+ * 5가지 NFR 기반 평가 형식으로 반환
+ * @param {Object} problem - 문제 데이터
+ * @param {Array} components - 학생이 배치한 컴포넌트
+ * @returns {Object} 평가 결과 객체
+ */
+export function generateMockEvaluation(problem, components = []) {
+  const keyComponents = problem?.keyComponents || [];
+  const rubricNonFunctional = problem?.rubricNonFunctional || [];
+  const missions = problem?.missions || [];
+
+  // 컴포넌트 배치에 따른 점수 계산 (0-100 전체 범위)
+  const baseScore = 50;
+  const componentBonus = Math.min(components.length * 5, 30); // 최대 30점
+  const score = baseScore + componentBonus + Math.floor(Math.random() * 20);
+
+  // 등급 결정
+  let grade = 'needs-improvement';
+  if (score >= 90) grade = 'excellent';
+  else if (score >= 70) grade = 'good';
+  else if (score < 50) grade = 'poor';
+
+  // 핵심 컴포넌트 기반 강점/약점 생성
+  const componentTypes = components.map(c => c.type);
+  const includedComponents = keyComponents.filter(kc => componentTypes.includes(kc.type));
+  const missingComponents = keyComponents.filter(kc => !componentTypes.includes(kc.type));
+
+  // NFR 기반 제안 생성 (새 데이터 구조)
+  const suggestions = rubricNonFunctional.length > 0
+    ? rubricNonFunctional.slice(0, 2).map(nfr =>
+        `[${nfr.category}] ${nfr.question_intent}: ${nfr.model_answer?.substring(0, 100) || ''}...`
+      )
+    : missions.slice(0, 2).map(m => m);
+
+  // 컴포넌트 타입 기반으로 NFR 체크리스트 자동 판정
+  const hasLoadBalancer = componentTypes.includes('loadbalancer');
+  const hasCache = componentTypes.includes('cache');
+  const hasBroker = componentTypes.includes('broker') || componentTypes.includes('eventbus');
+  const hasRdbms = componentTypes.includes('rdbms');
+  const hasNosql = componentTypes.includes('nosql');
+  const hasStorage = componentTypes.includes('storage');
+  const hasMultipleServers = components.filter(c => c.type === 'server').length > 1;
+
+  // NFR 점수 생성 (컴포넌트 기반)
+  const generateNfrScore = (base, hasFeatures = []) => {
+    const bonus = hasFeatures.filter(Boolean).length * 10;
+    return Math.min(100, base + bonus + Math.floor(Math.random() * 10));
+  };
+
+  return {
+    score,
+    grade,
+    componentCoverage: {
+      included: includedComponents.map(c => c.name),
+      missing: missingComponents.map(c => c.name),
+      extra: []
+    },
+    nfrScores: {
+      scalability: {
+        score: generateNfrScore(50, [hasLoadBalancer, hasMultipleServers, hasNosql]),
+        feedback: hasLoadBalancer
+          ? "Load Balancer가 포함되어 수평 확장 기반이 마련되었습니다. API 연결 후 상세 분석이 가능합니다."
+          : "수평 확장을 위한 Load Balancer 추가를 고려해보세요.",
+        checklist: {
+          scaleOut: hasMultipleServers || hasLoadBalancer,
+          loadBalancing: hasLoadBalancer,
+          sharding: hasNosql
+        }
+      },
+      availability: {
+        score: generateNfrScore(50, [hasLoadBalancer, hasMultipleServers]),
+        feedback: hasMultipleServers
+          ? "다중 서버 구성으로 가용성 기반이 마련되었습니다."
+          : "단일 장애점(SPOF) 제거를 위해 서버 다중화를 고려해보세요.",
+        checklist: {
+          noSPOF: hasMultipleServers,
+          replication: hasRdbms || hasNosql,
+          failover: hasLoadBalancer
+        }
+      },
+      performance: {
+        score: generateNfrScore(50, [hasCache, hasBroker]),
+        feedback: hasCache
+          ? "캐시가 포함되어 성능 최적화 기반이 마련되었습니다."
+          : "자주 조회되는 데이터를 위한 캐시 레이어 추가를 권장합니다.",
+        checklist: {
+          caching: hasCache,
+          asyncProcessing: hasBroker,
+          indexing: hasRdbms
+        }
+      },
+      consistency: {
+        score: generateNfrScore(55, [hasRdbms]),
+        feedback: hasRdbms
+          ? "RDBMS를 통해 ACID 트랜잭션 지원이 가능합니다."
+          : "데이터 일관성이 중요한 경우 RDBMS 사용을 고려해보세요.",
+        checklist: {
+          acidTransaction: hasRdbms,
+          lockingStrategy: hasRdbms,
+          eventualConsistency: hasNosql || hasCache
+        }
+      },
+      reliability: {
+        score: generateNfrScore(55, [hasStorage, hasRdbms, hasNosql]),
+        feedback: (hasStorage || hasRdbms || hasNosql)
+          ? "영구 저장소가 포함되어 데이터 지속성이 확보되었습니다."
+          : "데이터 영구 저장을 위한 스토리지 또는 데이터베이스가 필요합니다.",
+        checklist: {
+          dataPersistence: hasStorage || hasRdbms || hasNosql,
+          idempotency: hasBroker
+        }
+      }
+    },
+    interviewScore: {
+      score: Math.floor(Math.random() * 20) + 60,
+      feedback: "API 연결 문제로 면접 답변에 대한 상세 분석이 제한됩니다. 재시도해주세요."
+    },
+    conceptUnderstanding: {
+      demonstrated: rubricNonFunctional.slice(0, 1).map(r => r.category),
+      needsImprovement: rubricNonFunctional.slice(1).map(r => r.category)
+    },
+    summary: `${problem?.title || '시스템 아키텍처'}에 대한 기본적인 이해를 보여주셨습니다. API 연결 문제로 상세 평가가 제한되어 기본 피드백을 제공합니다. ${missingComponents.length > 0 ? `누락된 핵심 컴포넌트: ${missingComponents.map(c => c.name).join(', ')}` : ''}`,
+    strengths: includedComponents.length > 0
+      ? includedComponents.slice(0, 2).map(c => `${c.name} 컴포넌트 포함`)
+      : ["기본 아키텍처 구조 이해", "컴포넌트 배치 시도"],
+    weaknesses: missingComponents.length > 0
+      ? missingComponents.slice(0, 2).map(c => `${c.name} 컴포넌트 누락`)
+      : ["세부 연결 관계 보완 필요"],
+    suggestions: suggestions.length > 0
+      ? suggestions
+      : ["아키텍처 문서를 참고하여 핵심 컴포넌트를 추가해보세요."]
+  };
+}
+
+/**
+ * 레거시 호환용 Mock 평가 데이터
+ * @deprecated generateMockEvaluation 사용 권장
  */
 export const mockEvaluations = {
   0: {
-    score: 85,
+    score: 75,
     grade: "good",
-    summary: "기본적인 3-Tier 아키텍처 구조를 잘 이해하고 계시네요. 특히 CDN을 적절히 배치한 점이 훌륭합니다.",
-    strengths: ["Client와 API의 분리", "DB 연결의 명확성", "정적 리소스 처리를 위한 CDN 배치"],
-    weaknesses: ["API 서버의 이중화 부족"],
-    suggestions: ["서버 장애 대비를 위해 Load Balancer 도입을 고려해보세요."]
-  },
-  1: {
-    score: 92,
-    grade: "excellent",
-    summary: "트래픽 분산과 캐싱 전략이 매우 훌륭합니다. 블랙프라이데이와 같은 상황에서도 안정적으로 동작할 것 같네요.",
-    strengths: ["Redis 캐시를 통한 DB 부하 감소 전략", "Load Balancer를 이용한 Scale-out 구조"],
-    weaknesses: ["비동기 처리에 대한 구체적 흐름 미흡"],
-    suggestions: ["주문 처리와 결제 알림 등을 분리하기 위해 Message Queue를 더 적극적으로 활용해보세요."]
-  },
-  2: {
-    score: 78,
-    grade: "needs-improvement",
-    summary: "글로벌 서비스를 위한 기본적인 컴포넌트는 갖추었으나, 실시간성 보장을 위한 구조가 다소 아쉽습니다.",
-    strengths: ["글로벌 CDN 활용 의도", "데이터베이스 분리"],
-    weaknesses: ["UDP/TCP 서버 분리 미고려", "지역별 엣지 서버 배치 전략 부재"],
-    suggestions: ["실시간 게임 서버는 상태(Stateful) 관리가 중요하므로 Redis Session Store 활용을 구체화해보세요."]
+    nfrScores: {
+      scalability: { score: 70, feedback: "기본 확장성 고려됨", checklist: { scaleOut: false, loadBalancing: false, sharding: false } },
+      availability: { score: 65, feedback: "가용성 개선 필요", checklist: { noSPOF: false, replication: false, failover: false } },
+      performance: { score: 70, feedback: "성능 최적화 고려 필요", checklist: { caching: false, asyncProcessing: false, indexing: false } },
+      consistency: { score: 75, feedback: "일관성 기본 구조 포함", checklist: { acidTransaction: false, lockingStrategy: false, eventualConsistency: false } },
+      reliability: { score: 70, feedback: "신뢰성 개선 필요", checklist: { dataPersistence: false, idempotency: false } }
+    },
+    interviewScore: { score: 70, feedback: "API 연결 후 상세 평가 가능" },
+    summary: "API 연결 문제로 기본 평가를 제공합니다. 아키텍처 설계의 기본 구조는 갖추었습니다.",
+    strengths: ["기본 컴포넌트 배치", "구조적 이해"],
+    weaknesses: ["상세 연결 관계 확인 필요"],
+    suggestions: ["API 연결 후 재평가를 권장합니다."]
   }
 };
