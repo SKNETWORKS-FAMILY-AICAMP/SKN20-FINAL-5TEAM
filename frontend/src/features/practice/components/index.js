@@ -7,3 +7,9 @@ export { default as EvaluationResult } from './EvaluationResult.vue';
 export { default as EvaluationModal } from './EvaluationModal.vue';
 export { default as DeepDiveModal } from './DeepDiveModal.vue';
 export { default as EvaluationResultScreen } from './EvaluationResultScreen.vue';
+
+// New refactored components
+export { default as DetectiveToast } from './DetectiveToast.vue';
+export { default as GameHeader } from './GameHeader.vue';
+export { default as IntroScene } from './IntroScene.vue';
+export { default as CaseFilePanel } from './CaseFilePanel.vue';

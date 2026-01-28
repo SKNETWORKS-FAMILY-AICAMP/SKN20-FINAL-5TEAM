@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DUCK DETECTIVE: THE INTERROGATION (Redesigned)</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Courier+Prime:wght@400;700&display=swap');
+
+        :root {
+            --bg-dark: #0f1115;
+            --bg-metal: #2c3e50;
+            --panel-grey: #1a1a1a;
+            --accent-yellow: #f1c40f;
+            --danger-red: #e74c3c;
+            --neon-blue: #00f3ff;
+            --text-white: #ecf0f1;
+            --border-black: #000;
+            
+            --pixel-font: 'Press Start 2P', cursive;
+            --typewriter-font: 'Courier Prime', monospace;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-white);
+            font-family: var(--pixel-font);
+            margin: 0; padding: 0;
+            display: flex; justify-content: center; align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+            /* CRT Scanline Effect Background */
+            background-image: 
+                linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+                linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 6px 100%;
+        }
+
+        /* === GLOBAL FX LAYERS === */
+        .vignette {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, transparent 50%, rgba(0,0,0,0.9) 100%);
+            pointer-events: none; z-index: 900;
+        }
+        .noise {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0.03;
+            background-image: repeating-radial-gradient(#000 0 0.0001%, #fff 0 0.0002%);
+            pointer-events: none; z-index: 899;
+        }
+        
+        /* === CONTAINER: The Interrogation Room === */
+        .container {
+            width: 95%; max-width: 1400px; height: 92vh;
+            border: 8px solid #111;
+            box-shadow: 0 0 50px rgba(0,0,0,1), inset 0 0 100px rgba(0,0,0,0.8);
+            background: #1e272e;
+            position: relative;
+            display: flex; flex-direction: column;
+            overflow: hidden;
+            /* Metal Plate Texture */
+            background-image: 
+                linear-gradient(90deg, transparent 50%, rgba(0,0,0,0.2) 50%),
+                linear-gradient(0deg, transparent 50%, rgba(0,0,0,0.2) 50%);
+            background-size: 50px 50px;
+        }
+
+        /* Decorative Screws */
+        .screw {
+            position: absolute; width: 15px; height: 15px;
+            background: #555; border-radius: 50%;
+            border: 2px solid #222;
+            box-shadow: inset 2px 2px 5px rgba(255,255,255,0.2), 2px 2px 5px rgba(0,0,0,0.5);
+            z-index: 100; pointer-events: none;
+        }
+        .screw::after {
+            content: ''; position: absolute; top: 50%; left: 10%; width: 80%; height: 2px;
+            background: #111; transform: translateY(-50%) rotate(45deg);
+        }
+        .screw.tl { top: 10px; left: 10px; }
+        .screw.tr { top: 10px; right: 10px; }
+        .screw.bl { bottom: 10px; left: 10px; }
+        .screw.br { bottom: 10px; right: 10px; }
+
+        .hidden { display: none !important; }
+
+        /* === SCENE 1: INTRO === */
+        #scene-intro {
+            width: 100%; height: 100%;
+            background: #000;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: flex-end;
+            position: relative; cursor: pointer;
+        }
+
+        /* Dynamic Spotlight */
+        .spotlight {
+            position: absolute; top: -150px; left: 50%; transform: translateX(-50%);
+            width: 800px; height: 120%;
+            background: radial-gradient(ellipse at top, rgba(255,255,255,0.1) 0%, transparent 60%);
+            pointer-events: none; z-index: 1;
+            animation: flickerLight 4s infinite alternate;
+        }
+
+        /* Intro Duck */
+        .intro-duck {
+            width: 400px; height: 400px; z-index: 2;
+            filter: drop-shadow(0 0 30px rgba(0,0,0,0.8)) sepia(0.3) contrast(1.2);
+            transform: translateY(100px); opacity: 0;
+            transition: all 1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .intro-duck.appear { transform: translateY(0); opacity: 1; }
+
+        /* Intro Dialog */
+        .intro-dialog-box {
+            width: 80%; height: 220px;
+            background: rgba(10, 10, 10, 0.95);
+            border: 2px solid #fff;
+            box-shadow: 0 0 0 4px #000, 0 10px 40px rgba(0,0,0,1);
+            margin-bottom: 50px; padding: 25px; z-index: 10;
+            display: flex; flex-direction: column; gap: 10px;
+            position: relative;
+        }
+        .intro-dialog-box::before {
+            content: ''; position: absolute; top: 5px; left: 5px; right: 5px; bottom: 5px;
+            border: 1px dashed #555; pointer-events: none;
+        }
+
+        .speaker-name {
+            color: var(--accent-yellow); font-size: 1rem;
+            text-shadow: 2px 2px 0 #000;
+            background: #222; display: inline-block; padding: 5px 10px;
+            border-left: 4px solid var(--accent-yellow);
+        }
+
+        .intro-text {
+            font-family: var(--typewriter-font); font-size: 1.3rem;
+            line-height: 1.6; color: #ddd; flex: 1;
+        }
+
+        .next-indicator {
+            align-self: flex-end; color: var(--danger-red);
+            font-size: 0.7rem; animation: blink 1s infinite;
+        }
+
+        /* Start Button */
+        .start-btn {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: repeating-linear-gradient(45deg, #000, #000 10px, #e74c3c 10px, #e74c3c 20px);
+            color: white; border: 4px solid white; padding: 20px 50px;
+            font-family: var(--pixel-font); font-size: 1.5rem; text-shadow: 2px 2px 0 black;
+            cursor: pointer; z-index: 20;
+            box-shadow: 10px 10px 0 rgba(0,0,0,0.8);
+            transition: transform 0.1s;
+        }
+        .start-btn:hover { transform: translate(-50%, -55%); filter: brightness(1.2); }
+
+        /* === SCENE 2: MAIN GAME === */
+        #scene-game { display: flex; flex-direction: row; height: 100%; position: relative;}
+
+        /* Sidebar: Case File */
+        .sidebar-left {
+            width: 340px; background: #1a1a1a;
+            border-right: 4px solid #000;
+            padding: 20px; display: flex; flex-direction: column; gap: 20px;
+            z-index: 20; box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+        }
+        
+        .profile-pic {
+            text-align: center; border-bottom: 2px solid #333; padding-bottom: 15px;
+            background: radial-gradient(circle, #333 0%, #1a1a1a 70%);
+            border: 2px solid #555; padding: 15px;
+        }
+
+        .case-file-folder {
+            background: #d35400; /* Darker orange */
+            padding: 4px; border: 2px solid #000;
+            box-shadow: 3px 3px 0 #000;
+            position: relative;
+        }
+        .case-file-folder::after {
+            content: 'CONFIDENTIAL';
+            position: absolute; top: -10px; right: 10px;
+            background: var(--danger-red); color: white;
+            font-size: 0.6rem; padding: 2px 5px; transform: rotate(5deg);
+            border: 1px solid white;
+        }
+
+        .case-paper {
+            background: #f4f3ee; color: #1a1a1a; padding: 20px;
+            font-family: var(--typewriter-font); font-size: 0.85rem; line-height: 1.4;
+            border: 1px solid #ccc;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.1);
+            background-image: linear-gradient(#ccc 1px, transparent 1px);
+            background-size: 100% 1.4rem;
+        }
+
+        /* Main Area */
+        .main-area { flex: 1; display: flex; flex-direction: column; position: relative; }
+
+        .header-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 20px; 
+            background: #2d3436; 
+            border-bottom: 4px solid #000;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            z-index: 50;
+        }
+        
+        .header-title {
+            font-size: 0.8rem; color: #aaa; letter-spacing: 2px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .rec-dot {
+            width: 12px; height: 12px; background: red; border-radius: 50%;
+            animation: blink 1s infinite;
+        }
+
+        .header-controls { display: flex; gap: 10px; }
+        
+        .btn {
+            font-family: var(--pixel-font);
+            background: #333; color: var(--text-white);
+            border: 2px solid #7f8c8d;
+            border-bottom: 4px solid #7f8c8d;
+            padding: 8px 15px; font-size: 0.7rem;
+            cursor: pointer; text-transform: uppercase;
+            transition: all 0.1s;
+        }
+        .btn:hover { background: #444; margin-top: -2px; border-bottom-width: 6px; }
+        .btn:active { margin-top: 2px; border-bottom-width: 2px; }
+        
+        .btn.primary { 
+            background: var(--danger-red); border-color: #c0392b; color: white;
+        }
+        .btn.toggle-active { 
+            background: var(--accent-yellow); color: black; border-color: #f39c12;
+            box-shadow: 0 0 10px var(--accent-yellow);
+        }
+
+        /* Workspace & Canvas */
+        .workspace { flex: 1; display: flex; position: relative; overflow: hidden; background: #222; }
+
+        .toolbox {
+            width: 130px; background: #2c3e50; 
+            border-right: 4px solid #000;
+            padding: 15px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto;
+            background-image: linear-gradient(0deg, #34495e 50%, #2c3e50 50%);
+            background-size: 100% 20px;
+            box-shadow: inset -5px 0 15px rgba(0,0,0,0.5);
+        }
+        .toolbox-label {
+            font-size: 0.6rem; color: #95a5a6; text-align: center; margin-bottom: 5px;
+            border-bottom: 1px solid #7f8c8d; padding-bottom: 5px;
+        }
+
+        .tool-item {
+            height: 60px; 
+            background: #ecf0f1; border: 2px solid #bdc3c7;
+            border-bottom: 4px solid #95a5a6;
+            color: #2c3e50; display: flex; align-items: center; justify-content: center;
+            text-align: center; font-size: 0.6rem; cursor: grab; 
+            position: relative;
+        }
+        .tool-item:hover { transform: scale(1.05); }
+        .tool-item::before {
+            content: ''; position: absolute; top: -5px; left: 50%; transform: translateX(-50%);
+            width: 30%; height: 8px; background: rgba(0,0,0,0.2); /* Tape look */
+        }
+
+        .canvas-zone {
+            flex: 1; position: relative;
+            background-color: #2f3542;
+            /* Blueprint Grid Pattern */
+            background-image: 
+                linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.8);
+        }
+        
+        .canvas-zone::after {
+            content: "SYSTEM ARCHITECTURE (DRAFT)";
+            position: absolute; bottom: 20px; right: 20px;
+            font-family: var(--typewriter-font); font-size: 2rem; color: rgba(255,255,255,0.05);
+            transform: rotate(-5deg); pointer-events: none;
+        }
+
+        /* SVG Connections */
+        #connection-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; }
+        .connection-line { stroke: var(--neon-blue); stroke-width: 3px; stroke-dasharray: 5, 5; filter: drop-shadow(0 0 5px var(--neon-blue)); }
+
+        .placed-component {
+            position: absolute; 
+            background: #3498db; color: white;
+            border: 2px solid #fff;
+            padding: 8px 12px; font-size: 0.7rem;
+            cursor: move; 
+            box-shadow: 3px 3px 0 rgba(0,0,0,0.5); 
+            z-index: 10; white-space: nowrap;
+            font-family: var(--typewriter-font); font-weight: bold;
+        }
+        .placed-component[data-type="DB"] { background: #e67e22; }
+        .placed-component[data-type="LB"] { background: #9b59b6; }
+        
+        .placed-component.selected { 
+            border-color: var(--accent-yellow); 
+            box-shadow: 0 0 15px var(--accent-yellow);
+            animation: pulse-border 1s infinite; 
+        }
+
+        /* INTERROGATION PANEL (Auto-hide logic applied) */
+        .interrogation-panel {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            width: 80%; max-width: 800px; min-height: 180px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid #444;
+            display: flex; gap: 20px; padding: 20px; z-index: 100;
+            box-shadow: 0 10px 50px rgba(0,0,0,1);
+            transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+            opacity: 1;
+            /* Tape deco */
+            background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,0,0.05) 10px, rgba(255,255,0,0.05) 20px);
+        }
+        
+        /* Auto-hide state */
+        .interrogation-panel.panel-hidden {
+            transform: translate(-50%, 150%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .detective-face { 
+            width: 100px; height: 100px; 
+            border: 2px solid #fff; background: #000; 
+            flex-shrink: 0; overflow: hidden;
+            box-shadow: 0 0 10px rgba(255,255,255,0.2);
+        }
+        
+        .dialog-container { flex: 1; display: flex; flex-direction: column; gap: 15px; }
+        
+        .dialog-box { 
+            flex: 1; 
+            color: var(--accent-yellow); 
+            font-family: var(--typewriter-font); font-size: 1.1rem; line-height: 1.5;
+            text-shadow: 0 0 5px rgba(241, 196, 15, 0.3);
+        }
+        
+        .input-area { display: flex; gap: 10px; border-top: 1px dashed #555; padding-top: 10px; }
+        .pixel-input { 
+            flex: 1; background: #111; border: 1px solid #555; 
+            color: white; padding: 10px; 
+            font-family: var(--typewriter-font); font-size: 1rem;
+            outline: none;
+        }
+        .pixel-input:focus { border-color: var(--neon-blue); box-shadow: 0 0 10px var(--neon-blue); }
+
+        /* RESULT SCREEN */
+        #scene-result {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 2000; 
+            display: flex; justify-content: center; align-items: center;
+            backdrop-filter: blur(5px);
+        }
+        .result-report {
+            background: #f4f3ee; color: #1a1a1a; width: 600px; padding: 40px;
+            border: 2px solid #000; box-shadow: 20px 20px 0 #111;
+            font-family: var(--typewriter-font); position: relative;
+            transform: rotate(-1deg);
+        }
+        /* Top Secret Tape */
+        .result-report::before {
+            content: ""; position: absolute; top: -15px; left: 30%; width: 40%; height: 30px;
+            background: rgba(255,255,255,0.3); border: 1px solid rgba(0,0,0,0.1);
+            transform: rotate(2deg);
+        }
+
+        .stamp-mark {
+            position: absolute; top: 20px; right: 20px;
+            border: 6px solid var(--danger-red); color: var(--danger-red);
+            font-family: var(--pixel-font); font-size: 3rem; padding: 10px 20px;
+            transform: rotate(-15deg) scale(2); opacity: 0; 
+            transition: 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100'><filter id='noise'><feTurbulence type='fractalNoise' baseFrequency='1.5' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23noise)' opacity='0.5'/></svg>");
+        }
+        .stamp-mark.stamped { transform: rotate(-15deg) scale(1); opacity: 1; }
+
+        /* Animations */
+        @keyframes flickerLight {
+            0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% { opacity: 1; }
+            20%, 24%, 55% { opacity: 0.8; }
+        }
+        @keyframes blink { 50% { opacity: 0; } }
+        @keyframes pulse-border { 50% { border-color: white; } }
+
+    </style>
+</head>
+<body>
+
+<svg style="display: none;">
+    <symbol id="duck-avatar" viewBox="0 0 200 200">
+        <rect width="200" height="200" fill="#2d3436"/>
+        <circle cx="100" cy="100" r="80" fill="#f1c40f"/> <circle cx="70" cy="80" r="10" fill="black"/> <circle cx="130" cy="80" r="10" fill="black"/> <ellipse cx="100" cy="120" rx="40" ry="15" fill="#e67e22"/> <path d="M60 40 L140 40 L130 10 L70 10 Z" fill="#2980b9"/> <rect x="60" y="35" width="80" height="5" fill="#111"/>
+    </symbol>
+</svg>
+
+<div class="vignette"></div>
+<div class="noise"></div>
+
+<div class="container">
+    <div class="screw tl"></div><div class="screw tr"></div>
+    <div class="screw bl"></div><div class="screw br"></div>
+
+    <div id="scene-intro" onclick="nextIntroLine()">
+        <div class="spotlight"></div>
+        <div class="intro-duck" id="intro-duck">
+            <svg width="100%" height="100%"><use href="#duck-avatar"/></svg>
+        </div>
+
+        <div class="intro-dialog-box" id="intro-box">
+            <div><span class="speaker-name">DET. DUCK</span></div>
+            <div class="intro-text" id="intro-text"></div>
+            <div class="next-indicator">▼ Click</div>
+        </div>
+
+        <button id="start-btn" class="start-btn hidden" onclick="enterGame()">
+            <span style="border-bottom: 2px solid white;">ENTER ROOM</span>
+        </button>
+    </div>
+
+    <div id="scene-game" class="hidden">
+        
+        <div class="sidebar-left">
+            <div class="profile-pic">
+                <svg width="60" height="60" style="border:2px solid #777; border-radius:50%; background:#000;"><use href="#duck-avatar"/></svg>
+                <p style="color:var(--accent-yellow); margin:5px 0 0 0; font-size:0.7rem;">DET. DUCK</p>
+            </div>
+            <div class="case-file-folder">
+                <div class="case-paper">
+                    <strong style="background:black; color:white; padding:2px;">CASE #2026-Q</strong>
+                    <hr style="border:1px dashed #000; margin:10px 0;">
+                    <strong>[SITUATION]</strong><br>
+                    블랙 프라이데이 트래픽 폭주로 인한 DB 커넥션 고갈 사태.<br><br>
+                    <strong>[MISSION]</strong>
+                    <ul style="padding-left:15px; margin:5px 0;">
+                        <li>L7 LB 필수 사용</li>
+                        <li>Redis 캐싱 적용</li>
+                        <li>DB Read/Write 분리</li>
+                    </ul>
+                </div>
+            </div>
+            <div style="margin-top:auto;">
+                <button class="btn primary" style="width:100%;" onclick="startDeepDive()">제출 (SUBMIT)</button>
+            </div>
+        </div>
+
+        <div class="main-area">
+            <div class="header-bar">
+                <div class="header-title">
+                    <div class="rec-dot"></div>
+                    REC [CAM-02] | ARCHITECTURE_ROOM
+                </div>
+                <div class="header-controls">
+                    <button id="btn-connect" class="btn" onclick="toggleConnectMode()">⚡ CABLE MODE</button>
+                    <button class="btn" onclick="showHint()">? HINT</button>
+                </div>
+            </div>
+
+            <div class="workspace" id="workspace">
+                <div class="toolbox">
+                    <div class="toolbox-label">EVIDENCE</div>
+                    <div class="tool-item" draggable="true" ondragstart="drag(event)" data-name="USER" data-type="CLIENT">USER</div>
+                    <div class="tool-item" draggable="true" ondragstart="drag(event)" data-name="L7 LB" data-type="LB">L7 LB</div>
+                    <div class="tool-item" draggable="true" ondragstart="drag(event)" data-name="WEB SVR" data-type="SVR">WEB SVR</div>
+                    <div class="tool-item" draggable="true" ondragstart="drag(event)" data-name="REDIS" data-type="DB">REDIS</div>
+                    <div class="tool-item" draggable="true" ondragstart="drag(event)" data-name="DB (M)" data-type="DB">DB (M)</div>
+                    <div class="tool-item" draggable="true" ondragstart="drag(event)" data-name="DB (S)" data-type="DB">DB (S)</div>
+                </div>
+                
+                <div class="canvas-zone" id="canvas-zone" ondrop="drop(event)" ondragover="allowDrop(event)">
+                    <svg id="connection-layer"></svg>
+                    <div style="position: absolute; top:20%; left:30%; width:2px; height:2px; background:white; opacity:0.3; box-shadow:0 0 5px white;"></div>
+                    <div style="position: absolute; top:60%; left:70%; width:3px; height:3px; background:white; opacity:0.2; box-shadow:0 0 5px white;"></div>
+                </div>
+            </div>
+
+            <div class="interrogation-panel panel-hidden" id="dialog-panel">
+                <div class="detective-face"><svg width="100%" height="100%"><use href="#duck-avatar"/></svg></div>
+                <div class="dialog-container">
+                    <div class="dialog-box" id="detective-msg"></div>
+                    <div class="input-area hidden" id="deep-dive-input">
+                        <span style="color:#7f8c8d; padding-top:10px;">></span>
+                        <input type="text" id="user-answer" class="pixel-input" placeholder="답변 입력..." onkeypress="if(event.key==='Enter') submitAnswer()">
+                        <button class="btn" onclick="submitAnswer()">SEND</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="scene-result" class="hidden">
+        <div class="result-report">
+            <div class="stamp-mark" id="final-stamp">GUILTY</div>
+            <h2 style="text-align:center; border-bottom:4px double black; margin-top:0;">INVESTIGATION REPORT</h2>
+            <p><strong>DATE:</strong> 2026-01-27</p>
+            <p><strong>SUBJECT:</strong> KIM-DEV</p>
+            <hr>
+            <h3>[ ANALYSIS ]</h3>
+            <p>> Architecture: <span style="color:red; font-weight:bold;">CRITICAL FAILURE</span></p>
+            <p>> Logic: <span style="color:orange; font-weight:bold;">INSUFFICIENT</span></p>
+            <br>
+            <p style="background: #222; color: #f1c40f; padding: 10px; border-left: 5px solid red;">
+                "설계도가 엉망이군. 기초부터 다시 공부하고 돌아와라. 꽥!"
+            </p>
+            <br>
+            <div style="text-align:center;">
+                <button class="btn primary" onclick="location.reload()">RETRY CASE</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    /* === INTRO LOGIC === */
+    const introLines = [
+        "거기 서! 도망갈 생각 마라. 꽥!",
+        "네가 김개발인가? 오늘 발생한 대규모 서버 폭파 사건...",
+        "가장 유력한 용의자로 지목되었다.",
+        "억울하다고? 그렇다면 취조실로 들어와서 직접 증명해 봐.",
+        "(철창 문이 열리는 소리가 들린다...)"
+    ];
+    let introIndex = 0;
+
+    window.onload = () => {
+        setTimeout(() => {
+            document.getElementById('intro-duck').classList.add('appear');
+            typeIntro(introLines[0]);
+        }, 800);
+    };
+
+    function nextIntroLine() {
+        if (introIsTyping) { 
+            finishIntroTyping();
+            return;
+        }
+
+        introIndex++;
+        if (introIndex < introLines.length) {
+            typeIntro(introLines[introIndex]);
+        } else {
+            document.getElementById('intro-box').classList.add('hidden');
+            document.getElementById('start-btn').classList.remove('hidden');
+        }
+    }
+
+    let introInterval;
+    let introIsTyping = false;
+    let currentIntroText = "";
+
+    function typeIntro(text) {
+        const el = document.getElementById('intro-text');
+        el.innerText = "";
+        currentIntroText = text;
+        introIsTyping = true;
+        let i = 0;
+        
+        clearInterval(introInterval);
+        introInterval = setInterval(() => {
+            if (i < text.length) {
+                el.innerText += text.charAt(i);
+                i++;
+            } else {
+                finishIntroTyping();
+            }
+        }, 30);
+    }
+
+    function finishIntroTyping() {
+        clearInterval(introInterval);
+        document.getElementById('intro-text').innerText = currentIntroText;
+        introIsTyping = false;
+    }
+
+    function enterGame() {
+        document.getElementById('scene-intro').classList.add('hidden');
+        document.getElementById('scene-game').classList.remove('hidden');
+        // Game start message
+        typeGameWriter("자, 앉아. 왼쪽 사건 파일을 보고 설계도를 완성해. (대화창은 자동으로 사라집니다)");
+    }
+
+
+    /* === MAIN GAME LOGIC === */
+    let isConnectMode = false;
+    let selectedComponent = null;
+    let componentCount = 0;
+    
+    // 심문 질문들
+    const questions = [
+        "L7 로드밸런서를 썼군. 트래픽은 어떤 알고리즘으로 분산할 셈이지?",
+        "Redis 캐시가 죽으면 DB 부하가 급증할 텐데(Cache Stampede), 대비책은?",
+        "좋아. 마지막으로 DB Master-Slave 간 동기화 지연(Lag)은 어떻게 해결하지?"
+    ];
+    let qIndex = 0;
+    let isDeepDive = false;
+    let autoHideTimer = null; // for Auto-hide
+
+    function toggleConnectMode() {
+        isConnectMode = !isConnectMode;
+        const btn = document.getElementById('btn-connect');
+        btn.classList.toggle('toggle-active');
+        btn.innerText = isConnectMode ? "⚡ CONNECTING..." : "⚡ CABLE MODE";
+        
+        if(isConnectMode) {
+            typeGameWriter("연결 모드 활성화. 두 컴포넌트를 차례로 클릭해라.");
+        } else {
+            if(selectedComponent) selectedComponent.classList.remove('selected');
+            selectedComponent = null;
+        }
+    }
+
+    function startDeepDive() {
+        isDeepDive = true;
+        qIndex = 0;
+        // Show panel permanently
+        showPanel(true);
+        document.getElementById('deep-dive-input').classList.remove('hidden');
+        typeGameWriter(`[심문 시작] ${questions[0]}`);
+    }
+
+    function submitAnswer() {
+        const input = document.getElementById('user-answer');
+        if(!input.value.trim()) return alert("묵비권 행사인가? 대답해! 꽥!");
+        
+        input.value = "";
+        qIndex++;
+        if(qIndex < questions.length) {
+            typeGameWriter(questions[qIndex]);
+        } else {
+            typeGameWriter("흐음... 기록했다. 최종 판결을 내리겠다...");
+            document.getElementById('deep-dive-input').classList.add('hidden');
+            setTimeout(showResult, 2500);
+        }
+    }
+
+    function showResult() {
+        document.getElementById('scene-game').classList.add('hidden');
+        document.getElementById('scene-result').classList.remove('hidden');
+        setTimeout(() => {
+            document.getElementById('final-stamp').classList.add('stamped');
+        }, 800);
+    }
+
+    function showHint() {
+        typeGameWriter("변호사(AI): 'L7 로드밸런서가 없으면 트래픽 분산이 안 됩니다!'");
+    }
+
+    /* === UTILS (Drag, Drop, Connect, Typewriter) === */
+    // Panel Logic Modified for Auto-Hide
+    function showPanel(stayOpen = false) {
+        const panel = document.getElementById('dialog-panel');
+        panel.classList.remove('panel-hidden');
+        
+        clearTimeout(autoHideTimer);
+        if (!stayOpen && !isDeepDive) {
+            autoHideTimer = setTimeout(() => {
+                panel.classList.add('panel-hidden');
+            }, 3000); // Hide after 3 seconds
+        }
+    }
+
+    function drag(ev) { 
+        ev.dataTransfer.setData("text", ev.target.getAttribute('data-name')); 
+        ev.dataTransfer.setData("type", ev.target.getAttribute('data-type'));
+    }
+    function allowDrop(ev) { ev.preventDefault(); }
+    
+    function drop(ev) {
+        ev.preventDefault();
+        const data = ev.dataTransfer.getData("text");
+        const type = ev.dataTransfer.getData("type");
+        const rect = document.getElementById('canvas-zone').getBoundingClientRect();
+        
+        const el = document.createElement("div");
+        el.className = "placed-component";
+        el.id = "comp-" + componentCount++;
+        el.innerText = data;
+        el.setAttribute('data-type', type || 'ETC'); // Set color type
+        el.style.left = (ev.clientX - rect.left - 40) + "px";
+        el.style.top = (ev.clientY - rect.top - 20) + "px";
+        
+        el.onclick = function(e) { 
+            e.stopPropagation();
+            if(isConnectMode) handleConnection(this);
+        };
+        document.getElementById('canvas-zone').appendChild(el);
+    }
+
+    function handleConnection(el) {
+        if(!selectedComponent) {
+            selectedComponent = el;
+            el.classList.add('selected');
+        } else {
+            if(selectedComponent !== el) drawLine(selectedComponent, el);
+            selectedComponent.classList.remove('selected');
+            selectedComponent = null;
+        }
+    }
+
+    function drawLine(el1, el2) {
+        const svg = document.getElementById('connection-layer');
+        const rect1 = el1.getBoundingClientRect();
+        const rect2 = el2.getBoundingClientRect();
+        const cRect = document.getElementById('canvas-zone').getBoundingClientRect();
+        
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', rect1.left + rect1.width/2 - cRect.left);
+        line.setAttribute('y1', rect1.top + rect1.height/2 - cRect.top);
+        line.setAttribute('x2', rect2.left + rect2.width/2 - cRect.left);
+        line.setAttribute('y2', rect2.top + rect2.height/2 - cRect.top);
+        line.setAttribute('class', 'connection-line');
+        svg.appendChild(line);
+    }
+
+    let gameTypeInterval;
+    function typeGameWriter(text) {
+        // Whenever typing starts, show panel
+        showPanel(isDeepDive); 
+        
+        const el = document.getElementById('detective-msg');
+        el.innerText = "";
+        let i = 0;
+        clearInterval(gameTypeInterval);
+        
+        gameTypeInterval = setInterval(() => {
+            if(i < text.length) { 
+                el.innerText += text.charAt(i); 
+                i++; 
+            } else { 
+                clearInterval(gameTypeInterval);
+                // If not in DeepDive mode, schedule auto-hide after typing finishes
+                if(!isDeepDive) {
+                     clearTimeout(autoHideTimer);
+                     autoHideTimer = setTimeout(() => {
+                        document.getElementById('dialog-panel').classList.add('panel-hidden');
+                     }, 3000); // 3 seconds after text finishes
+                }
+            }
+        }, 30);
+    }
+</script>
+
+</body>
+</html>
