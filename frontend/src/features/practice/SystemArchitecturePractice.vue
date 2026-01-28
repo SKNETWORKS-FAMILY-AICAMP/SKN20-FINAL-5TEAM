@@ -53,6 +53,16 @@
             :mermaid-code="mermaidCode"
             @start-evaluation="openEvaluationModal"
           />
+
+          <!-- 힌트 버튼 -->
+          <button
+            class="hint-btn"
+            :class="{ active: isHintActive }"
+            @click="toggleHint"
+          >
+            <span class="hint-icon">💡</span>
+            <span class="hint-text">{{ isHintActive ? '힌트 OFF' : '힌트 ON' }}</span>
+          </button>
         </div>
 
         <!-- 아키텍처 캔버스 -->
@@ -70,7 +80,11 @@
         />
 
         <!-- 컴포넌트 팔레트 -->
-        <ComponentPalette @drag-start="onPaletteDragStart" />
+        <ComponentPalette
+          :required-types="currentProblem?.expectedComponents || []"
+          :is-hint-active="isHintActive"
+          @drag-start="onPaletteDragStart"
+        />
       </div>
 
       <!-- 오리 형사 심문 패널 (하단) -->
@@ -211,7 +225,11 @@ export default {
 
       // Chat State
       chatMessages: [],
-      isChatLoading: false
+      isChatLoading: false,
+
+      // Hint State
+      isHintActive: false,
+      hintTimeoutId: null
     };
   },
   computed: {
@@ -575,6 +593,25 @@ export default {
       this.clearCanvas();
     },
 
+    // === Hint System ===
+    toggleHint() {
+      this.isHintActive = !this.isHintActive;
+
+      // 이전 타이머 클리어
+      if (this.hintTimeoutId) {
+        clearTimeout(this.hintTimeoutId);
+        this.hintTimeoutId = null;
+      }
+
+      // 힌트 활성화 시 5초 후 자동 해제
+      if (this.isHintActive) {
+        this.hintTimeoutId = setTimeout(() => {
+          this.isHintActive = false;
+          this.hintTimeoutId = null;
+        }, 5000);
+      }
+    },
+
     // === Chat ===
     async handleChatMessage(userMessage) {
       const messageType = detectMessageType(userMessage);
@@ -713,15 +750,15 @@ export default {
 
 .speaker-name {
   color: #f1c40f;
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   text-transform: uppercase;
   letter-spacing: 2px;
 }
 
 .intro-text {
   font-family: 'Courier Prime', monospace;
-  font-size: 1.6rem;
-  line-height: 1.8;
+  font-size: 1.3rem;
+  line-height: 1.7;
   color: white;
   flex: 1;
 }
@@ -730,7 +767,7 @@ export default {
   align-self: flex-end;
   color: #f1c40f;
   animation: bounce 1s infinite;
-  font-size: 1.2rem;
+  font-size: 1rem;
 }
 
 .start-btn {
@@ -741,12 +778,12 @@ export default {
   background: #e74c3c;
   color: white;
   border: 4px solid white;
-  padding: 20px 40px;
+  padding: 18px 35px;
   font-family: 'Press Start 2P', cursive;
-  font-size: 1rem;
+  font-size: 0.85rem;
   cursor: pointer;
   z-index: 20;
-  box-shadow: 10px 10px 0 black;
+  box-shadow: 8px 8px 0 black;
   animation: pulse-btn 1s infinite;
   transition: transform 0.2s;
 }
@@ -760,7 +797,7 @@ export default {
   display: grid;
   grid-template-columns: 320px 1fr 320px;
   width: 100%;
-  height: calc(100vh - 220px);
+  height: 100%;
   gap: 0;
   position: relative;
   z-index: 1;
@@ -799,29 +836,71 @@ export default {
 
 .detective-name {
   color: #f1c40f;
-  margin-top: 8px;
-  font-size: 0.7rem;
+  margin-top: 6px;
+  font-size: 0.6rem;
+}
+
+/* === HINT BUTTON === */
+.hint-btn {
+  width: 100%;
+  padding: 12px 15px;
+  background: linear-gradient(135deg, #2c3e50, #1a1a2e);
+  border: 3px solid #f1c40f;
+  border-radius: 6px;
+  color: #f1c40f;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.6rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.3s ease;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.5);
+  margin-top: 10px;
+}
+
+.hint-btn:hover {
+  background: linear-gradient(135deg, #f1c40f, #e67e22);
+  color: #1a1a1a;
+  transform: translateY(-2px);
+  box-shadow: 5px 5px 0 rgba(0, 0, 0, 0.5);
+}
+
+.hint-btn.active {
+  background: linear-gradient(135deg, #f1c40f, #e67e22);
+  color: #1a1a1a;
+  animation: hint-pulse 1s infinite;
+}
+
+.hint-icon {
+  font-size: 1rem;
+}
+
+@keyframes hint-pulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(241, 196, 15, 0.5); }
+  50% { box-shadow: 0 0 20px rgba(241, 196, 15, 0.8), 0 0 30px rgba(241, 196, 15, 0.4); }
 }
 
 /* === INTERROGATION PANEL === */
 .interrogation-panel {
   position: fixed;
   bottom: 0;
-  left: 0;
+  left: 320px;
   right: 0;
-  height: 200px;
+  height: 180px;
   background: rgba(0, 0, 0, 0.95);
-  border-top: 6px solid #f1c40f;
+  border-top: 4px solid #f1c40f;
   display: flex;
-  padding: 20px;
-  gap: 20px;
+  padding: 15px 20px;
+  gap: 15px;
   z-index: 100;
   transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   cursor: pointer;
 }
 
 .interrogation-panel.panel-minimized {
-  transform: translateY(194px);
+  transform: translateY(174px);
 }
 
 .interrogation-panel::before {
@@ -846,9 +925,9 @@ export default {
 }
 
 .detective-face {
-  width: 100px;
-  height: 100px;
-  border: 4px solid white;
+  width: 80px;
+  height: 80px;
+  border: 3px solid white;
   background: #81ecec;
   flex-shrink: 0;
   border-radius: 8px;
@@ -871,11 +950,11 @@ export default {
 .dialog-box {
   flex: 1;
   border: 2px dashed #555;
-  padding: 15px;
+  padding: 12px;
   color: #f1c40f;
   font-family: 'Courier Prime', monospace;
-  font-size: 1rem;
-  line-height: 1.6;
+  font-size: 0.85rem;
+  line-height: 1.5;
   overflow-y: auto;
 }
 

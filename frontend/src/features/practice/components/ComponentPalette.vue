@@ -1,6 +1,12 @@
 <template>
-  <div class="palette">
+  <div class="palette" :class="{ 'hint-mode': isHintActive }">
     <h2>⚡ Components</h2>
+
+    <!-- 힌트 안내 메시지 -->
+    <div v-if="isHintActive && requiredTypes.length > 0" class="hint-guide">
+      <span class="hint-guide-icon">💡</span>
+      <span>필수 컴포넌트가 강조됩니다!</span>
+    </div>
 
     <!-- 그룹 A. 진입 및 연산 (Compute & Entry) -->
     <div class="component-group">
@@ -9,10 +15,11 @@
         v-for="comp in computeComponents"
         :key="comp.type"
         class="component"
-        :class="comp.type"
+        :class="[comp.type, { 'required-hint': isHintActive && isRequired(comp.type), 'dimmed': isHintActive && !isRequired(comp.type) }]"
         draggable="true"
         @dragstart="onDragStart($event, comp.type, comp.label)"
       >
+        <span v-if="isHintActive && isRequired(comp.type)" class="required-badge">필수</span>
         {{ comp.label }}
       </div>
     </div>
@@ -24,10 +31,11 @@
         v-for="comp in storageComponents"
         :key="comp.type"
         class="component"
-        :class="comp.type"
+        :class="[comp.type, { 'required-hint': isHintActive && isRequired(comp.type), 'dimmed': isHintActive && !isRequired(comp.type) }]"
         draggable="true"
         @dragstart="onDragStart($event, comp.type, comp.label)"
       >
+        <span v-if="isHintActive && isRequired(comp.type)" class="required-badge">필수</span>
         {{ comp.label }}
       </div>
     </div>
@@ -39,10 +47,11 @@
         v-for="comp in messagingComponents"
         :key="comp.type"
         class="component"
-        :class="comp.type"
+        :class="[comp.type, { 'required-hint': isHintActive && isRequired(comp.type), 'dimmed': isHintActive && !isRequired(comp.type) }]"
         draggable="true"
         @dragstart="onDragStart($event, comp.type, comp.label)"
       >
+        <span v-if="isHintActive && isRequired(comp.type)" class="required-badge">필수</span>
         {{ comp.label }}
       </div>
     </div>
@@ -54,10 +63,11 @@
         v-for="comp in observabilityComponents"
         :key="comp.type"
         class="component"
-        :class="comp.type"
+        :class="[comp.type, { 'required-hint': isHintActive && isRequired(comp.type), 'dimmed': isHintActive && !isRequired(comp.type) }]"
         draggable="true"
         @dragstart="onDragStart($event, comp.type, comp.label)"
       >
+        <span v-if="isHintActive && isRequired(comp.type)" class="required-badge">필수</span>
         {{ comp.label }}
       </div>
     </div>
@@ -67,6 +77,16 @@
 <script>
 export default {
   name: 'ComponentPalette',
+  props: {
+    requiredTypes: {
+      type: Array,
+      default: () => []
+    },
+    isHintActive: {
+      type: Boolean,
+      default: false
+    }
+  },
   emits: ['drag-start'],
   data() {
     return {
@@ -99,6 +119,9 @@ export default {
       event.dataTransfer.setData('componentType', type);
       event.dataTransfer.setData('componentText', text);
       this.$emit('drag-start', { type, text });
+    },
+    isRequired(type) {
+      return this.requiredTypes.includes(type);
     }
   }
 };
@@ -114,15 +137,39 @@ export default {
 
 .palette h2 {
   font-family: 'Orbitron', sans-serif;
-  font-size: 1.3em;
+  font-size: 1.1em;
   color: #00ff9d;
-  margin: 0 0 20px 0;
+  margin: 0 0 15px 0;
   text-shadow: 0 0 15px rgba(0, 255, 157, 0.5);
 }
 
+/* Hint Guide */
+.hint-guide {
+  background: linear-gradient(135deg, rgba(241, 196, 15, 0.2), rgba(230, 126, 34, 0.2));
+  border: 2px solid #f1c40f;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.7em;
+  color: #f1c40f;
+  animation: hint-fade-in 0.3s ease;
+}
+
+.hint-guide-icon {
+  font-size: 1.2em;
+}
+
+@keyframes hint-fade-in {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .component-group {
-  margin-bottom: 20px;
-  padding: 12px;
+  margin-bottom: 15px;
+  padding: 10px;
   background: rgba(0, 0, 0, 0.3);
   border-radius: 8px;
   border: 1px solid rgba(100, 181, 246, 0.2);
@@ -130,22 +177,64 @@ export default {
 
 .component-group h3 {
   font-family: 'Space Mono', monospace;
-  font-size: 0.85em;
+  font-size: 0.75em;
   color: #64b5f6;
-  margin: 0 0 10px 0;
-  padding-bottom: 8px;
+  margin: 0 0 8px 0;
+  padding-bottom: 6px;
   border-bottom: 1px solid rgba(100, 181, 246, 0.3);
 }
 
 .component {
-  padding: 12px 15px;
-  margin-bottom: 8px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
   border-radius: 8px;
   cursor: grab;
-  font-size: 0.9em;
+  font-size: 0.8em;
   font-weight: 600;
   transition: all 0.3s ease;
   border: 2px solid transparent;
+  position: relative;
+}
+
+/* Required component hint styles */
+.component.required-hint {
+  border-color: #f1c40f !important;
+  box-shadow: 0 0 15px rgba(241, 196, 15, 0.6), 0 0 30px rgba(241, 196, 15, 0.3);
+  animation: required-glow 1.5s ease-in-out infinite;
+}
+
+@keyframes required-glow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(241, 196, 15, 0.6), 0 0 30px rgba(241, 196, 15, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(241, 196, 15, 0.8), 0 0 50px rgba(241, 196, 15, 0.5);
+  }
+}
+
+.required-badge {
+  position: absolute;
+  top: -8px;
+  right: -5px;
+  background: #f1c40f;
+  color: #1a1a1a;
+  font-size: 0.55em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+  animation: badge-bounce 0.5s ease;
+}
+
+@keyframes badge-bounce {
+  0% { transform: scale(0); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+/* Dimmed styles for non-required components */
+.component.dimmed {
+  opacity: 0.4;
+  filter: grayscale(50%);
 }
 
 .component:active {

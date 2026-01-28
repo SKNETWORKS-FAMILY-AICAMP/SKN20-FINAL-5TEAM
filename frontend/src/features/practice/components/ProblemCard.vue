@@ -34,12 +34,12 @@
     </div>
 
     <!-- 모드 인디케이터 -->
-    <div
+    <!-- <div
       class="mode-indicator"
       :class="{ 'connection-mode': isConnectionMode }"
     >
       {{ modeIndicatorText }}
-    </div>
+    </div> -->
 
     <!-- 제출 버튼 -->
     <button
