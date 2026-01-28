@@ -1,12 +1,10 @@
 <template>
   <div class="palette" :class="{ 'hint-mode': isHintActive }">
-    <h2>⚡ Components</h2>
-
     <!-- 힌트 안내 메시지 -->
-    <div v-if="isHintActive && requiredTypes.length > 0" class="hint-guide">
+    <!-- <div v-if="isHintActive && requiredTypes.length > 0" class="hint-guide">
       <span class="hint-guide-icon">💡</span>
       <span>필수 컴포넌트가 강조됩니다!</span>
-    </div>
+    </div> -->
 
     <!-- 그룹 A. 진입 및 연산 (Compute & Entry) -->
     <div class="component-group">
@@ -162,10 +160,6 @@ export default {
   font-size: 0.5rem;
   color: #f1c40f;
   animation: hint-fade-in 0.3s ease;
-}
-
-.hint-guide-icon {
-  font-size: 0.8rem;
 }
 
 .hint-guide span:last-child {

@@ -36,9 +36,7 @@
           :can-evaluate="droppedComponents.length > 0"
           :is-evaluating="isEvaluating"
           :mermaid-code="mermaidCode"
-          :is-hint-active="isHintActive"
           @start-evaluation="openEvaluationModal"
-          @toggle-hint="toggleHint"
         />
 
         <!-- 메인 작업 영역 -->
@@ -46,8 +44,10 @@
           <!-- 헤더 바 -->
           <GameHeader
             :is-connection-mode="isConnectionMode"
+            :is-hint-active="isHintActive"
             @toggle-mode="toggleMode"
             @clear-canvas="clearCanvas"
+            @toggle-hint="toggleHint"
           />
 
           <!-- 작업 공간 (툴박스 + 캔버스) -->

@@ -159,7 +159,6 @@ export default {
 
 .case-section ul {
   margin: 5px 0;
-  padding-left: 18px;
 }
 
 .case-section li {

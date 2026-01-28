@@ -13,6 +13,13 @@
         {{ isConnectionMode ? '📦 배치 모드' : '🔗 연결 모드' }}
       </button>
       <button class="ctrl-btn danger" @click="$emit('clear-canvas')">🗑️ 초기화</button>
+      <button
+        class="ctrl-btn hint"
+        :class="{ active: isHintActive }"
+        @click="$emit('toggle-hint')"
+      >
+        💡 {{ isHintActive ? '힌트 OFF' : '힌트 ON' }}
+      </button>
     </div>
   </div>
 </template>
@@ -24,9 +31,13 @@ export default {
     isConnectionMode: {
       type: Boolean,
       default: false
+    },
+    isHintActive: {
+      type: Boolean,
+      default: false
     }
   },
-  emits: ['toggle-mode', 'clear-canvas']
+  emits: ['toggle-mode', 'clear-canvas', 'toggle-hint']
 };
 </script>
 
@@ -116,5 +127,23 @@ export default {
 
 .ctrl-btn.danger:hover {
   background: #c0392b;
+}
+
+.ctrl-btn.hint {
+  background: #333;
+  border-color: #7f8c8d;
+}
+
+.ctrl-btn.hint.active {
+  background: var(--accent-yellow);
+  color: black;
+  border-color: #f39c12;
+  box-shadow: 0 0 10px var(--accent-yellow);
+  animation: hint-pulse 1s infinite;
+}
+
+@keyframes hint-pulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(241, 196, 15, 0.5); }
+  50% { box-shadow: 0 0 20px rgba(241, 196, 15, 0.8), 0 0 30px rgba(241, 196, 15, 0.4); }
 }
 </style>
