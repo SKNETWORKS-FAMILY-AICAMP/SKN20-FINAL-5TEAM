@@ -1,6 +1,6 @@
 <template>
   <div class="canvas">
-    <div class="canvas-header">
+    <div v-if="!hideHeader" class="canvas-header">
       <h2>⚡ ARCHITECTURE CANVAS</h2>
       <div class="btn-group">
         <button
@@ -79,6 +79,10 @@ export default {
       default: () => []
     },
     isConnectionMode: {
+      type: Boolean,
+      default: false
+    },
+    hideHeader: {
       type: Boolean,
       default: false
     }
@@ -267,10 +271,11 @@ export default {
 
 <style scoped>
 .canvas {
-  background: linear-gradient(145deg, rgba(10, 14, 39, 0.95), rgba(17, 24, 39, 0.98));
+  background: #2c3e50;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid rgba(100, 181, 246, 0.3);
+  flex: 1;
+  position: relative;
 }
 
 .canvas-header {
@@ -331,10 +336,11 @@ export default {
   flex: 1;
   position: relative;
   overflow: hidden;
-  background:
-    linear-gradient(rgba(100, 181, 246, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(100, 181, 246, 0.05) 1px, transparent 1px);
-  background-size: 30px 30px;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+  background-size: 25px 25px;
+  background-color: #2c3e50;
 }
 
 .dropped-component {

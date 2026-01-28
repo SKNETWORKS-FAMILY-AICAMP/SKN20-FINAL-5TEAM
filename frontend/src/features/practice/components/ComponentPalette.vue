@@ -91,25 +91,25 @@ export default {
   data() {
     return {
       computeComponents: [
-        { type: 'user', label: '👤 User/Client' },
-        { type: 'loadbalancer', label: '⚖️ Load Balancer' },
-        { type: 'gateway', label: '🚪 API Gateway' },
-        { type: 'server', label: '🖥️ Compute Service' }
+        { type: 'user', label: '👤 USER' },
+        { type: 'loadbalancer', label: '⚖️ L7 LB' },
+        { type: 'gateway', label: '🚪 GATEWAY' },
+        { type: 'server', label: '🖥️ SERVER' }
       ],
       storageComponents: [
-        { type: 'rdbms', label: '🗃️ Relational DB' },
-        { type: 'nosql', label: '📊 NoSQL DB' },
-        { type: 'cache', label: '⚡ In-Memory Cache' },
-        { type: 'search', label: '🔍 Search Engine' },
-        { type: 'storage', label: '📦 Object Storage' }
+        { type: 'rdbms', label: '🗃️ RDBMS' },
+        { type: 'nosql', label: '📊 NoSQL' },
+        { type: 'cache', label: '⚡ CACHE' },
+        { type: 'search', label: '🔍 SEARCH' },
+        { type: 'storage', label: '📦 STORAGE' }
       ],
       messagingComponents: [
-        { type: 'broker', label: '📬 Message Broker' },
-        { type: 'eventbus', label: '📡 Event Bus' }
+        { type: 'broker', label: '📬 MQ' },
+        { type: 'eventbus', label: '📡 EVENT' }
       ],
       observabilityComponents: [
-        { type: 'monitoring', label: '📈 Monitoring' },
-        { type: 'logging', label: '📋 Logging' },
+        { type: 'monitoring', label: '📈 MONITOR' },
+        { type: 'logging', label: '📋 LOG' },
         { type: 'cicd', label: '🔄 CI/CD' }
       ]
     };
@@ -128,38 +128,48 @@ export default {
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
 .palette {
-  background: rgba(17, 24, 39, 0.98);
-  padding: 20px;
+  background: #34495e;
+  padding: 8px;
   overflow-y: auto;
-  border-right: 1px solid rgba(100, 181, 246, 0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .palette h2 {
-  font-family: 'Orbitron', sans-serif;
-  font-size: 1.1em;
-  color: #00ff9d;
-  margin: 0 0 15px 0;
-  text-shadow: 0 0 15px rgba(0, 255, 157, 0.5);
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.5rem;
+  color: #f1c40f;
+  margin: 0 0 8px 0;
+  text-align: center;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #2c3e50;
 }
 
-/* Hint Guide */
+/* Hint Guide - Compact */
 .hint-guide {
-  background: linear-gradient(135deg, rgba(241, 196, 15, 0.2), rgba(230, 126, 34, 0.2));
+  background: rgba(241, 196, 15, 0.2);
   border: 2px solid #f1c40f;
-  border-radius: 6px;
-  padding: 8px 12px;
-  margin-bottom: 15px;
+  border-radius: 4px;
+  padding: 6px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.7em;
+  justify-content: center;
+  gap: 4px;
+  font-size: 0.5rem;
   color: #f1c40f;
   animation: hint-fade-in 0.3s ease;
 }
 
 .hint-guide-icon {
-  font-size: 1.2em;
+  font-size: 0.8rem;
+}
+
+.hint-guide span:last-child {
+  display: none;
 }
 
 @keyframes hint-fade-in {
@@ -167,83 +177,86 @@ export default {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Component Groups - Compact */
 .component-group {
-  margin-bottom: 15px;
-  padding: 10px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 8px;
-  border: 1px solid rgba(100, 181, 246, 0.2);
+  margin-bottom: 4px;
 }
 
 .component-group h3 {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.75em;
-  color: #64b5f6;
-  margin: 0 0 8px 0;
-  padding-bottom: 6px;
-  border-bottom: 1px solid rgba(100, 181, 246, 0.3);
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.4rem;
+  color: #95a5a6;
+  margin: 0 0 4px 0;
+  padding: 4px 0;
+  text-align: center;
+  background: #2c3e50;
+  border-radius: 2px;
 }
 
+/* Tool Items - Compact Blocks */
 .component {
-  padding: 10px 12px;
-  margin-bottom: 6px;
-  border-radius: 8px;
+  height: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  margin-bottom: 4px;
+  border-radius: 4px;
   cursor: grab;
-  font-size: 0.8em;
+  font-size: 0.5rem;
   font-weight: 600;
-  transition: all 0.3s ease;
-  border: 2px solid transparent;
+  font-family: 'Press Start 2P', cursive;
+  transition: all 0.2s ease;
+  border: 3px solid #000;
   position: relative;
+  user-select: none;
+  box-shadow: 3px 3px 0 rgba(0,0,0,0.5);
+}
+
+.component:active {
+  cursor: grabbing;
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 rgba(0,0,0,0.5);
+}
+
+.component:hover {
+  transform: translateY(-2px);
+  box-shadow: 5px 5px 0 rgba(0,0,0,0.5);
 }
 
 /* Required component hint styles */
 .component.required-hint {
   border-color: #f1c40f !important;
-  box-shadow: 0 0 15px rgba(241, 196, 15, 0.6), 0 0 30px rgba(241, 196, 15, 0.3);
-  animation: required-glow 1.5s ease-in-out infinite;
+  box-shadow: 0 0 10px rgba(241, 196, 15, 0.8), 3px 3px 0 rgba(0,0,0,0.5);
+  animation: required-glow 1s ease-in-out infinite;
 }
 
 @keyframes required-glow {
   0%, 100% {
-    box-shadow: 0 0 15px rgba(241, 196, 15, 0.6), 0 0 30px rgba(241, 196, 15, 0.3);
+    box-shadow: 0 0 10px rgba(241, 196, 15, 0.8), 3px 3px 0 rgba(0,0,0,0.5);
   }
   50% {
-    box-shadow: 0 0 25px rgba(241, 196, 15, 0.8), 0 0 50px rgba(241, 196, 15, 0.5);
+    box-shadow: 0 0 20px rgba(241, 196, 15, 1), 3px 3px 0 rgba(0,0,0,0.5);
   }
 }
 
 .required-badge {
   position: absolute;
-  top: -8px;
-  right: -5px;
+  top: -6px;
+  right: -6px;
   background: #f1c40f;
-  color: #1a1a1a;
-  font-size: 0.55em;
-  padding: 2px 6px;
-  border-radius: 4px;
+  color: #000;
+  font-size: 0.35rem;
+  padding: 2px 4px;
+  border-radius: 2px;
   font-weight: 700;
-  animation: badge-bounce 0.5s ease;
-}
-
-@keyframes badge-bounce {
-  0% { transform: scale(0); }
-  50% { transform: scale(1.2); }
-  100% { transform: scale(1); }
+  border: 2px solid #000;
 }
 
 /* Dimmed styles for non-required components */
 .component.dimmed {
-  opacity: 0.4;
-  filter: grayscale(50%);
-}
-
-.component:active {
-  cursor: grabbing;
-}
-
-.component:hover {
-  transform: translateX(5px);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  opacity: 0.35;
+  filter: grayscale(70%);
 }
 
 /* Compute & Entry */

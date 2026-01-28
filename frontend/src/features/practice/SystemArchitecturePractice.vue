@@ -34,7 +34,7 @@
 
       <div class="game-container">
 
-        <!-- 케이스 파일 패널 (좌측) -->
+        <!-- 케이스 파일 패널 (좌측 사이드바) -->
         <div class="case-file-panel">
           <!-- 오리 형사 프로필 -->
           <div class="detective-profile">
@@ -65,26 +65,50 @@
           </button>
         </div>
 
-        <!-- 아키텍처 캔버스 -->
-        <ArchitectureCanvas
-          :components="droppedComponents"
-          :connections="connections"
-          :is-connection-mode="isConnectionMode"
-          @toggle-mode="toggleMode"
-          @clear-canvas="clearCanvas"
-          @component-dropped="onComponentDropped"
-          @component-moved="onComponentMoved"
-          @component-renamed="onComponentRenamed"
-          @component-deleted="onComponentDeleted"
-          @connection-created="onConnectionCreated"
-        />
+        <!-- 메인 작업 영역 -->
+        <div class="main-workspace">
+          <!-- 헤더 바 -->
+          <div class="workspace-header">
+            <h2>⚡ SYSTEM ARCHITECTURE CANVAS</h2>
+            <div class="header-controls">
+              <button
+                class="ctrl-btn"
+                :class="{ active: isConnectionMode }"
+                @click="toggleMode"
+              >
+                {{ isConnectionMode ? '📦 배치 모드' : '🔗 연결 모드' }}
+              </button>
+              <button class="ctrl-btn danger" @click="clearCanvas">🗑️ 초기화</button>
+            </div>
+          </div>
 
-        <!-- 컴포넌트 팔레트 -->
-        <ComponentPalette
-          :required-types="currentProblem?.expectedComponents || []"
-          :is-hint-active="isHintActive"
-          @drag-start="onPaletteDragStart"
-        />
+          <!-- 작업 공간 (툴박스 + 캔버스) -->
+          <div class="workspace-content">
+            <!-- 좌측 툴박스 (컴포넌트 팔레트) -->
+            <ComponentPalette
+              :required-types="currentProblem?.expectedComponents || []"
+              :is-hint-active="isHintActive"
+              @drag-start="onPaletteDragStart"
+              class="toolbox-panel"
+            />
+
+            <!-- 캔버스 영역 -->
+            <ArchitectureCanvas
+              :components="droppedComponents"
+              :connections="connections"
+              :is-connection-mode="isConnectionMode"
+              :hide-header="true"
+              @toggle-mode="toggleMode"
+              @clear-canvas="clearCanvas"
+              @component-dropped="onComponentDropped"
+              @component-moved="onComponentMoved"
+              @component-renamed="onComponentRenamed"
+              @component-deleted="onComponentDeleted"
+              @connection-created="onConnectionCreated"
+              class="canvas-panel"
+            />
+          </div>
+        </div>
       </div>
 
       <!-- 오리 형사 토스트 메시지 -->
@@ -828,30 +852,112 @@ export default {
 
 /* === MAIN GAME === */
 .game-container {
-  display: grid;
-  grid-template-columns: 320px 1fr 320px;
+  display: flex;
   width: 100%;
   height: 100%;
-  gap: 0;
   position: relative;
   z-index: 1;
 }
 
 .case-file-panel {
+  width: 280px;
+  min-width: 280px;
   background: #222;
   border-right: 6px solid #000;
-  padding: 20px;
+  padding: 15px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 15px;
   overflow-y: auto;
   z-index: 20;
+}
+
+/* === MAIN WORKSPACE === */
+.main-workspace {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.workspace-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  background: #2c3e50;
+  border-bottom: 4px solid #000;
+}
+
+.workspace-header h2 {
+  margin: 0;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.8rem;
+  color: #f1c40f;
+  text-shadow: 2px 2px 0 #000;
+}
+
+.header-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.ctrl-btn {
+  font-family: 'Press Start 2P', cursive;
+  background: #f1c40f;
+  color: #000;
+  border: 3px solid #000;
+  padding: 8px 15px;
+  font-size: 0.6rem;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.2s;
+}
+
+.ctrl-btn:active {
+  transform: translate(2px, 2px);
+}
+
+.ctrl-btn.active {
+  background: #3498db;
+  color: #fff;
+  animation: pulse-btn 1s infinite;
+}
+
+.ctrl-btn.danger {
+  background: #e74c3c;
+  color: #fff;
+}
+
+.ctrl-btn.danger:hover {
+  background: #c0392b;
+}
+
+/* === WORKSPACE CONTENT === */
+.workspace-content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.toolbox-panel {
+  width: 140px;
+  min-width: 140px;
+  background: #34495e;
+  border-right: 4px solid #000;
+  padding: 10px;
+  overflow-y: auto;
+}
+
+.canvas-panel {
+  flex: 1;
+  position: relative;
 }
 
 .detective-profile {
   text-align: center;
   border-bottom: 2px dashed #555;
-  padding-bottom: 15px;
+  padding-bottom: 10px;
 }
 
 .detective-profile .img-box {
@@ -860,9 +966,9 @@ export default {
 }
 
 .detective-avatar {
-  width: 80px;
-  height: 80px;
-  border: 3px solid white;
+  width: 60px;
+  height: 60px;
+  border: 2px solid white;
   border-radius: 50%;
   object-fit: contain;
   background: #81ecec;
@@ -870,8 +976,8 @@ export default {
 
 .detective-name {
   color: #f1c40f;
-  margin-top: 6px;
-  font-size: 0.6rem;
+  margin-top: 5px;
+  font-size: 0.5rem;
 }
 
 /* === HINT BUTTON === */
@@ -920,16 +1026,16 @@ export default {
 .detective-toast {
   position: fixed;
   bottom: 30px;
-  left: 50%;
+  left: calc(50% + 140px);
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 12px;
   background: rgba(0, 0, 0, 0.95);
   border: 3px solid #f1c40f;
-  border-radius: 12px;
-  padding: 15px 20px;
-  max-width: 600px;
+  border-radius: 8px;
+  padding: 12px 16px;
+  max-width: 500px;
   z-index: 100;
   cursor: pointer;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(241, 196, 15, 0.2);
@@ -962,8 +1068,8 @@ export default {
 }
 
 .toast-duck {
-  width: 60px;
-  height: 60px;
+  width: 50px;
+  height: 50px;
   border: 2px solid white;
   background: #81ecec;
   border-radius: 50%;
@@ -981,15 +1087,15 @@ export default {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .toast-message {
   margin: 0;
   color: #f1c40f;
   font-family: 'Courier Prime', monospace;
-  font-size: 0.85rem;
-  line-height: 1.5;
+  font-size: 0.8rem;
+  line-height: 1.4;
 }
 
 .detective-toast.connect .toast-message {
