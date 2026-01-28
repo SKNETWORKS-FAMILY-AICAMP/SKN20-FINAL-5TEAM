@@ -18,7 +18,7 @@
         <!-- Header: 상태 바 및 프로그레스 -->
         <div id="status-bar">
           <div class="status-item">🏆 점수: <span>{{ totalScore }}</span></div>
-          <div class="status-item">🌳 Stage: <span>{{ currentStageIndex + 1 }}/7</span></div>
+          <div class="status-item">🌳 Stage: <span>{{ currentStageIndex + 1 }}/{{ gameData.length }}</span></div>
           <div class="step-indicator">
             <span v-for="s in currentStage.steps.length" :key="s" :class="['step-dot', { active: currentStepIndex + 1 >= s, current: currentStepIndex + 1 === s }]"></span>
           </div>
@@ -28,14 +28,22 @@
         <div id="game-area">
           <!-- 왼쪽: 주민 인터랙션 -->
           <div id="left-panel">
-            <div id="character-container" :class="{ 'talking': isAnalyzing }">
-              <img :src="currentStage.character.image" :alt="currentStage.character.name">
+            <div id="character-container" 
+                 @mouseenter="isCharHovered = true" 
+                 @mouseleave="isCharHovered = false"
+                 :class="{ 'talking': isAnalyzing }">
+              <transition name="fade-char" mode="out-in">
+                <img :key="isCharHovered" 
+                     :src="isCharHovered ? (currentStage.character.hoverImage || currentStage.character.image) : currentStage.character.image" 
+                     :alt="currentStage.character.name"
+                     class="character-img">
+              </transition>
             </div>
             <div id="dialogue-box">
               <div id="speaker-name">{{ currentStage.character.name }}</div>
               <p id="dialogue-text">{{ currentStage.dialogue }}</p>
               <!-- 단계별 질문 텍스트 -->
-              <div class="step-question animate-fade-in" :key="currentStepIndex">
+              <div class="step-question animate-fade-in" :key="currentStepIndex" v-if="currentStep">
                 <strong>질문 {{ currentStepIndex + 1 }}:</strong> {{ currentStep.question }}
               </div>
             </div>
@@ -48,14 +56,18 @@
               <p id="quest-desc" class="dark-text">주민의 질문에 적절한 **의사코드(Pseudo-code)**나 논리를 자유롭게 작성해보세요.</p>
             </div>
 
-            <!-- 입력 영역: 주관식 -->
+            <!-- 입력 영역: 주관식 [수정일: 2026-01-28] Monaco Editor 적용 -->
             <div id="code-section" v-if="currentStep.type === 'subjective'">
-              <textarea 
-                v-model="userResponse" 
-                placeholder="여기에 답변을 작성하세요..."
-                id="code-input"
-                :disabled="isStepFeedbackOpen"
-              ></textarea>
+              <div class="monaco-forest-container">
+                <vue-monaco-editor
+                  v-model:value="userResponse"
+                  theme="vs-light"
+                  language="plaintext"
+                  :options="forestEditorOptions"
+                  class="forest-monaco-editor"
+                  :disabled="isStepFeedbackOpen"
+                />
+              </div>
             </div>
 
             <!-- 입력 영역: 파이썬 빈칸 채우기 (4단계) [수정일: 2026-01-28] -->
@@ -112,7 +124,7 @@
               </div>
               <p class="feedback-msg" v-html="stepResult.message"></p>
               <button @click="proceedNext" class="btn next-btn">
-                {{ currentStepIndex < 2 ? '다음 단계로' : '종합 평가 보기' }}
+                {{ currentStepIndex < currentStage.steps.length - 1 ? '다음 단계로' : '종합 평가 보기' }}
               </button>
             </div>
           </div>
@@ -129,9 +141,21 @@
               
               <div class="eval-body">
                 <div class="eval-scores">
-                  <div class="score-item">통찰력: <span class="val">{{ finalEval.insight }}</span></div>
-                  <div class="score-item">구성력: <span class="val">{{ finalEval.structure }}</span></div>
-                  <div class="score-item">정밀도: <span class="val">{{ finalEval.precision }}</span></div>
+                  <div class="score-card insight">
+                    <div class="card-icon">💡</div>
+                    <div class="card-label">통찰력</div>
+                    <div class="card-val">{{ finalEval.insight }}</div>
+                  </div>
+                  <div class="score-card structure">
+                    <div class="card-icon">🏗️</div>
+                    <div class="card-label">구성력</div>
+                    <div class="card-val">{{ finalEval.structure }}</div>
+                  </div>
+                  <div class="score-card precision">
+                    <div class="card-icon">🎯</div>
+                    <div class="card-label">정밀도</div>
+                    <div class="card-val">{{ finalEval.precision }}</div>
+                  </div>
                 </div>
                 <div class="eval-report-box">
                   <h4>🤖 AI 분석관 리포트</h4>
@@ -153,294 +177,39 @@
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue';
 import { useGameStore } from '@/stores/game';
+import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
+import gameData from './PseudoForestData'; // [수정일: 2026-01-28] 외부 데이터 임포트
 
 const emit = defineEmits(['close']);
 const game = useGameStore();
 
-// --- 4단계 퀘스트 데이터 (Stage 7개 x Step 4개) [수정일: 2026-01-28] ---
-const gameData = [
-  {
-    stageId: 1,
-    character: { name: "감자쥬 (카피바라)", image: "/image/forest/char_gamjaju.png" },
-    dialogue: "뭐~ 되면 됐쥬. 마을 입구 공지판이 너무 복잡해유. 똑같은 글은 한 번만 보이게 정리해주면 고맙겠쥬~",
-    steps: [
-      {
-        type: "subjective",
-        question: "중복된 게시글을 어떻게 찾아내고 제거할지 기본적인 아이디어를 말해보세요!",
-        evalCriteria: { insightKeywords: ["중복", "제거", "비교"], structureKeywords: ["순회", "반복", "리스트"], precisionKeywords: ["삭제", "하나만"] },
-        duckEncouragement: "이장님, 중복 제거는 마을 정비의 기본이쥬! 어떻게 걸러낼지 생각나는 대로 적어보슈."
-      },
-      {
-        type: "objective",
-        question: "수만 개의 게시글이 있을 때, 가장 빠르게 중복을 체크할 수 있는 자료구조는 무엇일까요?",
-        options: ["배열 (Array)", "집합 (Set)", "연결 리스트", "스택 (Stack)"],
-        correctIndex: 1,
-        explanation: "Set은 데이터 존재 여부를 O(1) 시간에 확인하여 가장 효율적입니다."
-      },
-      {
-        type: "subjective",
-        question: "만약 '글을 쓴 순서'를 그대로 유지하면서 중복만 제거해야 한다면, 로직에 무엇을 추가해야 할까요?",
-        evalCriteria: { insightKeywords: ["순서", "유지", "정렬"], structureKeywords: ["새로운", "배열", "담기"], precisionKeywords: ["기존", "그대로"] },
-        duckEncouragement: "순서가 뒤섞이면 마을 사람들이 헷갈려해유. '순서 유지'가 핵심이구먼유!"
-      },
-      {
-        type: "python-fill",
-        question: "순서를 유지하며 중복을 제거하는 파이썬 코드를 완성해보세요! (Set 활용)",
-        codeSnippet: "def clean_board(posts):\n    seen = set()\n    result = []\n    for p in posts:\n        if p {{blank}} seen:\n            result.append(p)\n            seen.{{blank}}(p)\n    return result",
-        blanks: ["not in", "add"],
-        duckEncouragement: "오호, 이제 파이썬으로 옮겨볼 차례구먼유! 'not in'과 'add'를 적절히 써보슈."
-      }
-    ],
-    finalAppraisal: {
-      insightMentions: { high: "중복된 데이터의 본질을 아주 명확하게 꿰뚫어 보셨구먼유!", low: "데이터가 겹치는 부분을 찾는 게 조금 헷갈리셨나 보네유." },
-      structureMentions: { high: "Set을 활용한 논리 구성이 마을 입구만큼이나 깔끔하네유!", low: "순서 유지 로직을 짤 때 조금 더 차근차근 생각해보셔유." },
-      precisionMentions: { high: "파이썬 문법 실력은 이미 이 동네 최고인 것 같구먼유!", low: "코드 작성 시 문법적인 부분을 조금 더 정교하게 다듬어보셔유." },
-      overallSummary: { high: "이장님 덕분에 마을 입구가 다시 환해졌슈! 천재 설계사네유.", mid: "실력이 일취월장하고 계셔유. 아주 훌륭한 정비사네유!", low: "천천히 가도 괜찮슈. 새마을 정신으로 하면 다 되게 되어 있어유!" }
-    }
-  },
-  {
-    stageId: 2,
-    character: { name: "두부 (곰)", image: "/image/forest/char_dubu.png" },
-    dialogue: "이장님! 날씨에 따라 배달 경로를 다르게 짜야 해요. 맑을 땐 빠른 길, 비 올 땐 안 미끄러운 길!",
-    steps: [
-      {
-        type: "subjective",
-        question: "맑은 날씨일 때, 단순히 '거리'만 고려하여 최단 경로를 찾는 로직을 어떻게 설계할까요?",
-        evalCriteria: { insightKeywords: ["맑음", "거리", "최단"], structureKeywords: ["비교", "가장 짧은"], precisionKeywords: ["ID", "선택"] },
-        duckEncouragement: "맑은 날엔 역시 지름길이 최고쥬! 가장 짧은 길을 어떻게 찾을지 적어보슈."
-      },
-      {
-        type: "subjective",
-        question: "비 오는 날에는 '미끄러움' 수치를 1순위로 고려해야 합니다. 어떤 조건문이 추가되어야 할까요?",
-        evalCriteria: { insightKeywords: ["비", "미끄러움", "우선"], structureKeywords: ["만약", "if", "조건"], precisionKeywords: ["판단", "기준"] },
-        duckEncouragement: "비 올 땐 안전이 제일이쥬! 미끄러운 길을 피하는 조건을 넣어보슈."
-      },
-      {
-        type: "objective",
-        question: "상황에 따라 다른 알고리즘을 선택하여 실행하는 패턴을 무엇이라고 부를까요?",
-        options: ["싱글톤 패턴", "전략 패턴 (Strategy Pattern)", "팩토리 패턴", "어댑터 패턴"],
-        correctIndex: 1,
-        explanation: "전략 패턴은 실행 중에 알고리즘을 선택할 수 있게 해주는 유용한 패턴입니다."
-      },
-      {
-        type: "python-fill",
-        question: "날씨에 따라 정렬 기준을 바꾸는 파이썬 코드를 완성해보슈!",
-        codeSnippet: "def get_best_path(paths, weather):\n    if weather == 'sunny':\n        return sorted(paths, key=lambda x: x.{{blank}})\n    else:\n        return sorted(paths, key=lambda x: x.{{blank}})",
-        blanks: ["distance", "slip"],
-        duckEncouragement: "람다(lambda) 함수를 써서 기준(key)을 정해주는 거구먼유! 거리와 미끄러움을 잘 넣어보슈."
-      }
-    ],
-    finalAppraisal: {
-      insightMentions: { high: "날씨와 지형에 따른 최적화 조건을 완벽하게 이해하셨네유!", low: "상황별 조건 분기가 조금 엉키신 것 같아유. 다시 살펴봐유." },
-      structureMentions: { high: "전략 패턴을 적용하는 설계 능력이 곰처럼 듬직하구먼유!", low: "람다 함수와 정렬 기준 설정을 조금 더 연습해보면 좋겠슈." },
-      precisionMentions: { high: "파이썬으로 구현한 경로 로직이 아주 정밀하고 군더더기 없슈!", low: "코드 실전 구현에서 작은 실수들을 조심하면 완벽하겠슈." },
-      overallSummary: { high: "두부가 정말 고마워해유! 이제 비가 와도 배달 걱정은 없겠구먼유.", mid: "배달부로서의 자질이 충분해유. 로직이 탄탄해지고 있어유!", low: "안전이 제일이쥬. 논리를 조금만 더 다듬어보면 금방 좋아질 거예유." }
-    }
-  },
-  {
-    stageId: 3,
-    character: { name: "유리 (토끼)", image: "/image/forest/char_yuri.png" },
-    dialogue: "우편물이 너무 많아요! 긴급도가 높은 것부터, 같으면 카테고리 순으로 정렬해야 해요!",
-    steps: [
-      {
-        type: "subjective",
-        question: "1순위(긴급도)가 같을 때 2순위(카테고리)를 비교하는 의사코드를 한 줄로 표현한다면?",
-        evalCriteria: { insightKeywords: ["긴급도", "동일", "같으면"], structureKeywords: ["카테고리", "비교", "다음"], precisionKeywords: ["사전순", "정렬"] },
-        duckEncouragement: "긴급한 게 똑같으면 다음 기준을 봐야쥬. 차근차근 비교해보슈!"
-      },
-      {
-        type: "subjective",
-        question: "카테고리도 같다면 3순위(이름)를 확인해야 합니다. 이 전체적인 흐름을 최적화할 방법이 있을까요?",
-        evalCriteria: { insightKeywords: ["이름", "삼단계", "마지막"], structureKeywords: ["정렬", "함수", "Comparator"], precisionKeywords: ["조건", "우선"] },
-        duckEncouragement: "기준이 세 개나 되네유! 이걸 한 번에 처리하는 멋진 방법이 있을까유!"
-      },
-      {
-        type: "objective",
-        question: "여러 정렬 기준을 적용할 때, 정렬 결과가 뒤바뀌지 않는 성질을 무엇이라 할까요?",
-        options: ["안정 정렬 (Stable Sort)", "불안정 정렬", "병합 정렬", "힙 정렬"],
-        correctIndex: 0,
-        explanation: "안정 정렬은 동일한 키값을 가진 요소들의 상대적 순서를 유지해줍니다."
-      },
-      {
-        type: "python-fill",
-        question: "다중 조건 정렬을 수행하는 파이썬 코드를 완성해보슈! (튜플 활용)",
-        codeSnippet: "def sort_mail(mails):\n    # priority는 오름차순, 나머지는 사전순\n    mails.sort(key=lambda x: (x.{{blank}}, x.{{blank}}, x.{{blank}}))\n    return mails",
-        blanks: ["priority", "category", "name"],
-        duckEncouragement: "파이썬에선 튜플을 반환하면 알아서 순서대로 비교해줘유! 아주 편하쥬?"
-      }
-    ],
-    finalAppraisal: {
-      insightMentions: { high: "다중 조건 정렬의 핵심 원리를 완벽하게 간파하셨구먼유!", low: "정렬 순서가 꼬이면 우편함도 꼬여유. 우선순위를 다시 생각해봐유." },
-      structureMentions: { high: "튜플을 활용한 다층적 구조 설계가 토끼처럼 아주 기발해유!", low: "안정 정렬의 특성을 조금 더 깊이 고민해보면 도움이 될 거예유." },
-      precisionMentions: { high: "정교한 파이썬 정렬 문법 구사가 아주 인상적이고 깔끔해유!", low: "복합적인 기준을 코드로 옮길 때 괄호나 콤마 실수를 조심하셔유." },
-      overallSummary: { high: "유리가 춤을 추고 있어유! 우편물이 착착 정리되는 소리가 들리네유.", mid: "체계적인 정리 능력이 돋보여유. 실력이 아주 일취월장해유!", low: "처음엔 다 복잡한 법이쥬. 하나씩 정리하다 보면 길이 보일 거예유." }
-    }
-  },
-  {
-    stageId: 4,
-    character: { name: "모래 (두더지)", image: "/image/forest/char_morae.png" },
-    dialogue: "마을 축제 부스를 배치해야 하는데, 사이가 안 좋은 이웃끼리는 옆에 두면 안 돼요!",
-    steps: [
-      {
-        type: "subjective",
-        question: "부스를 하나씩 놓아보다가 규칙에 어긋나는(앙숙 인접) 상황이 발생하면 어떻게 해야 할까요?",
-        evalCriteria: { insightKeywords: ["어긋남", "위반", "취소"], structureKeywords: ["되돌리기", "back", "이전"], precisionKeywords: ["자리", "변경"] },
-        duckEncouragement: "싸움 나면 축제 망쳐유! 안 되겠다 싶을 때 되돌아가는 법을 써보슈."
-      },
-      {
-        type: "objective",
-        question: "가능한 모든 경우를 탐색하다가 유망하지 않으면 되돌아가는 알고리즘 기법은?",
-        options: ["백트래킹 (Backtracking)", "플로이드-워셜", "다익스트라", "프림 알고리즘"],
-        correctIndex: 0,
-        explanation: "백트래킹은 해를 찾는 과정에서 막히면 되돌아가서 다시 탐색하는 기법입니다."
-      },
-      {
-        type: "subjective",
-        question: "앙숙 관계를 미리 리스트(forbiddenPairs)로 만들어두면 어떤 점이 좋아질까요?",
-        evalCriteria: { insightKeywords: ["리스트", "미리", "앙숙"], structureKeywords: ["검사", "빠름", "조회"], precisionKeywords: ["시간", "단축"] },
-        duckEncouragement: "미리 명단을 뽑아두면 일 처리가 훨씬 빠르겠쥬? 장점을 적어보슈."
-      },
-      {
-        type: "python-fill",
-        question: "부스 배치가 유효한지 검사하는 파이썬 함수를 완성해보슈!",
-        codeSnippet: "def is_valid(booths, forbidden):\n    for i in range(len(booths) - 1):\n        pair = (booths[i], booths[i+1])\n        if pair {{blank}} forbidden:\n            return {{blank}}\n    return True",
-        blanks: ["in", "False"],
-        duckEncouragement: "앙숙 쌍이 명단에 있는지 확인하고, 있으면 안 된다고(False) 알려줘야쥬!"
-      }
-    ],
-    finalAppraisal: {
-      insightMentions: { high: "갈등을 미연에 방지하는 위기 관리 능력이 탁월하시네유!", low: "앙숙 관계를 미리 파악하는 통찰력이 조금 더 필요해 보여유." },
-      structureMentions: { high: "백트래킹 기법을 자유자재로 다루시는 모습이 두더지처럼 영리해유!", low: "되돌아가는 지점을 찾는 논리가 조금 복잡하셨나 보네유." },
-      precisionMentions: { high: "불가능한 경우를 빠르게 쳐내는 코드 구현이 아주 날카로워유!", low: "파이썬 조건문 검사 로직을 조금 더 세밀하게 짜보셔유." },
-      overallSummary: { high: "모래가 축제 준비 걱정을 덜었슈! 평화로운 마을 축제가 되겠구먼유.", mid: "위기 대응 능력이 훌륭해유. 논리적인 안전 장치가 돋보여유!", low: "평화는 멀고도 험하네유. 조금 더 정교한 검역 로직을 응원해유!" }
-    }
-  },
-  {
-    stageId: 5,
-    character: { name: "밤송 (고슴도치)", image: "/image/forest/char_bamsong.png" },
-    dialogue: "고민 상담 예약이 꽉 찼어요! 가장 많은 사람을 상담해주려면 어떻게 일정을 짜야 할까요?",
-    steps: [
-      {
-        type: "subjective",
-        question: "가장 많은 상담을 수락하기 위해, '상담 시간'과 '마감 기한' 중 무엇을 먼저 정렬하는 게 좋을까요?",
-        evalCriteria: { insightKeywords: ["마감", "기한", "정렬"], structureKeywords: ["가장 빠른", "먼저"], precisionKeywords: ["순서", "Greedy"] },
-        duckEncouragement: "시간은 금이쥬! 어떤 걸 먼저 처리해야 상담을 많이 할 수 있을까유?"
-      },
-      {
-        type: "objective",
-        question: "매 순간 가장 최선의 선택을 하는 알고리즘 설계 패러다임은?",
-        options: ["그리디 (Greedy)", "동적 계획법", "분할 정복", "브루트 포스"],
-        correctIndex: 0,
-        explanation: "그리디 알고리즘은 탐욕적으로 현재의 최선책을 선택해 나가는 방식입니다."
-      },
-      {
-        type: "subjective",
-        question: "만약 상담 시간이 겹칠 때, 어떤 상담을 취소하고 어떤 상담을 유지할지 판단 근거를 말해보세요.",
-        evalCriteria: { insightKeywords: ["겹침", "취소", "선택"], structureKeywords: ["마감", "빠른", "유지"], precisionKeywords: ["효율", "최적"] },
-        duckEncouragement: "몸이 열 개라도 모자라유! 겹쳤을 때 누굴 먼저 봐줄지 기준을 세워보슈."
-      },
-      {
-        type: "python-fill",
-        question: "마감 시간이 빠른 순으로 정렬하는 파이썬 코드를 완성해보슈!",
-        codeSnippet: "def schedule_counsel(tasks):\n    # end_time(마감 시간) 기준으로 정렬\n    tasks.{{blank}}(key=lambda x: x.{{blank}})\n    return tasks",
-        blanks: ["sort", "end_time"],
-        duckEncouragement: "정렬(sort) 함수와 람다를 쓰면 아주 간단하쥬! 마감 시간을 기준으로 해보슈."
-      }
-    ],
-    finalAppraisal: {
-      insightMentions: { high: "매 순간 최선의 선택을 찾는 눈썰미가 고슴도치 가시처럼 예리해유!", low: "마감 기한의 중요성을 놓친 것 같아유. 어떤 게 더 급한지 봐유." },
-      structureMentions: { high: "그리디 알고리즘의 정수를 마을 일정표에 아주 잘 녹여내셨구먼유!", low: "효율적인 정렬 기준을 정하는 게 이번 퀘스트의 핵심이었슈." },
-      precisionMentions: { high: "시간순 정렬 코드가 아주 명료하고 실수가 전혀 없으시네유!", low: "코드에서 인덱스나 변수명을 조금 더 꼼꼼히 챙겨보셔유." },
-      overallSummary: { high: "밤송이가 상담 왕이 됐슈! 덕분에 마을 주민들이 속 시원해해유.", mid: "효율적인 시간 관리 능력이 일품이셔유. 아주 똑똑한 이장님이셔유!", low: "시간 관리가 참 어렵쥬. 우선순위를 다시 세우는 법을 같이 고민해봐유." }
-    }
-  },
-  {
-    stageId: 6,
-    character: { name: "바나나 (원숭이)", image: "/image/forest/char_banana.png" },
-    dialogue: "우유 배달을 해야 하는데 마을이 너무 넓어요! 적당히 효율적인 경로를 빨리 찾아야 해요!",
-    steps: [
-      {
-        type: "objective",
-        question: "모든 경로를 다 확인하는 대신, '적당한 수준의 해'를 빠르게 찾는 방식을 무엇이라 할까요?",
-        options: ["브루트 포스", "휴리스틱 (Heuristic)", "완전 탐색", "이진 탐색"],
-        correctIndex: 1,
-        explanation: "휴리스틱은 완벽한 정답 대신 실행 가능한 수준의 결과를 빠르게 얻는 방법입니다."
-      },
-      {
-        type: "subjective",
-        question: "마을이 너무 커서 모든 경로를 다 계산하기 힘들 때, '가장 가까운 집부터 가기'라는 전략은 어떤가요?",
-        evalCriteria: { insightKeywords: ["가까운", "전략", "휴리스틱"], structureKeywords: ["반복", "이동"], precisionKeywords: ["효율", "빠름"] },
-        duckEncouragement: "다 계산하다간 해 떨어져유! 그냥 눈앞의 가까운 곳부터 가는 건 어때유?"
-      },
-      {
-        type: "subjective",
-        question: "이 배달 로직에서 '복잡도'를 줄이기 위해 어떤 타협을 할 수 있을지 의견을 주세요.",
-        evalCriteria: { insightKeywords: ["복잡도", "타협", "적당한"], structureKeywords: ["근사치", "Heuristic", "포기"], precisionKeywords: ["시간", "단축"] },
-        duckEncouragement: "완벽보단 적당히 빠른 게 실속 있쥬! 어떤 점을 포기하면 빨라질까유?"
-      },
-      {
-        type: "python-fill",
-        question: "현재 위치에서 가장 가까운 이웃을 찾는 파이썬 코드를 완성해보슈!",
-        codeSnippet: "def find_nearest(current, neighbors):\n    nearest = min(neighbors, key=lambda n: {{blank}}(current, n))\n    return {{blank}}",
-        blanks: ["distance", "nearest"],
-        duckEncouragement: "거리(distance)가 최소(min)인 이웃을 찾는 거구먼유! 힌트를 잘 보슈."
-      }
-    ],
-    finalAppraisal: {
-      insightMentions: { high: "휴리스틱의 가치를 완벽히 이해하고 빠른 판단을 내리셨구먼유!", low: "완벽함에 너무 집착하다가 해가 다 졌슈! 적당한 타협이 필요해유." },
-      structureMentions: { high: "근사치를 찾는 논리가 바나나처럼 아주 유연하고 실용적이에유!", low: "가까운 곳을 찾는 기준(min-key) 설정을 다시 한 번 검토해봐유." },
-      precisionMentions: { high: "복잡한 계산을 최소화하는 파이썬 코드 구현 능력이 훌륭해유!", low: "입력값의 변동에 따른 예외 처리를 조금 더 정교하게 해보셔유." },
-      overallSummary: { high: "바나나가 바나나 우유를 쐈슈! 아주 신속하고 정확한 배달이었슈.", mid: "융통성 있는 문제 해결 능력이 돋보여유. 아주 실전적인 실력이셔유!", low: "때로는 '적당히'가 최고일 때가 있어유. 휴리스틱을 다시 새겨봐유." }
-    }
-  },
-  {
-    stageId: 7,
-    character: { name: "라임 (앵무새)", image: "/image/forest/char_lime.png" },
-    dialogue: "알림 시스템을 만들 거예요! 필터링하고, 정렬하고, 그룹화해서 보내야 해요! 정신 똑바로 차리세요!",
-    steps: [
-      {
-        type: "subjective",
-        question: "데이터를 가공할 때 '필터링 -> 정렬 -> 그룹화' 순서를 지켜야 하는 이유는 무엇일까요?",
-        evalCriteria: { insightKeywords: ["순서", "이유", "데이터"], structureKeywords: ["효율", "먼저", "줄이기"], precisionKeywords: ["단계", "정확"] },
-        duckEncouragement: "일에도 순서가 있쥬! 왜 이 순서로 해야 효율적인지 생각해보슈."
-      },
-      {
-        type: "objective",
-        question: "여러 연산(Filter, Map, Sort)을 한 줄로 엮어 처리하는 데이터 가공 방식을 무엇이라 할까요?",
-        options: ["데이터 마이닝", "파이프라인 (Pipeline)", "데이터 복제", "더미 데이터"],
-        correctIndex: 1,
-        explanation: "여러 단계를 체인처럼 엮어 처리하는 방식을 파이프라인 또는 스트림 처리라고 합니다."
-      },
-      {
-        type: "subjective",
-        question: "만약 긴급 알림이 발생했다면, 이 파이프라인의 어떤 단계에서 예외로 가로채야 할까요?",
-        evalCriteria: { insightKeywords: ["긴급", "예외", "가로채기"], structureKeywords: ["필터링", "시작", "먼저"], precisionKeywords: ["우선", "전송"] },
-        duckEncouragement: "불나면 만사 제치고 달려가야쥬! 긴급 데이터는 어디서 빼돌릴까유?"
-      },
-      {
-        type: "python-fill",
-        question: "데이터를 필터링하고 정렬하는 파이썬 파이프라인을 완성해보슈!",
-        codeSnippet: "def process_data(data):\n    # 유효한 것만 거르고(Filter), 시간순 정렬\n    filtered = [d for d in data if d.{{blank}}]\n    return sorted(filtered, key=lambda x: x.{{blank}})",
-        blanks: ["is_valid", "timestamp"],
-        duckEncouragement: "유효성(is_valid) 검사를 먼저 하고, 시간(timestamp)대로 줄 세우는 거구먼유!"
-      }
-    ],
-    finalAppraisal: {
-      insightMentions: { high: "데이터 파이프라인의 복잡한 흐름을 완전히 장악하셨구먼유!", low: "필터링과 정렬의 순서가 뒤섞이면 일이 두 배로 힘들어져유." },
-      structureMentions: { high: "연쇄적인 연산을 체계적으로 엮어내는 설계가 앵무새처럼 똑부러져유!", low: "긴급 상황 가로채기 지점을 찾는 논리를 조금 더 보완해봐유." },
-      precisionMentions: { high: "리스팅과 소팅을 한 줄에 담는 고난도 구현력이 최상급이셔유!", low: "파이썬 리스트 컴프리헨션 문법을 조금 더 익혀보면 좋겠슈." },
-      overallSummary: { high: "라임이 할 말이 없대유! 완벽한 자동화 시스템이 구축됐슈. 최고유!", mid: "체계적인 데이터 처리 능력이 뛰어나유. 마을 알림장이 아주 든든해유.", low: "복잡한 시스템도 결국 한 줄부터 시작이쥬. 차근차근 다시 지어봐유." }
-    }
-  }
-];
+// [수정일: 2026-01-28] 내부 gameData 제거 (PseudoForestData.js 사용)
 
 // --- 상태 관리 ---
 // [수정일: 2026-01-28] 상태 관리 변수 선언 (순서 최적화)
-const currentStageIndex = ref(0);
+const currentStageIndex = ref(game.selectedQuestIndex || 0);
 const currentStepIndex = ref(0);
 const totalScore = ref(0);
 const userResponse = ref('');
 const pythonBlanks = ref([]);
+const isCharHovered = ref(false); // [수정일: 2026-01-28] 캐릭터 호버 상태 추가
+
+// [수정일: 2026-01-28] 동숲 감성 모나코 에디터 옵션 - 가독성 극대화를 위해 폰트 크기 대폭 확대 (28px)
+const forestEditorOptions = {
+  minimap: { enabled: false },
+  fontSize: 28,
+  lineNumbers: 'off',
+  glyphMargin: false,
+  folding: false,
+  lineDecorationsWidth: 0,
+  lineNumbersMinChars: 0,
+  wordWrap: 'on',
+  scrollbar: { vertical: 'hidden', horizontal: 'hidden' },
+  scrollBeyondLastLine: false,
+  automaticLayout: true,
+  placeholder: "여기에 답변을 작성하세요...",
+  fontFamily: "'Gaegu', cursive, 'Jua', sans-serif"
+};
 
 const currentStage = computed(() => gameData[currentStageIndex.value]);
 const currentStep = computed(() => {
@@ -627,24 +396,38 @@ const proceedNext = () => {
  */
 const generateFinalEvaluation = () => {
   const totalRaw = stageLogs.value.reduce((acc, log) => acc + log.rawScore, 0);
-  const stepCount = currentStage.value.steps.length;
   
-  // [수정일: 2026-01-28] 단계별 성취도 정밀 분석 로직
-  // Step 1: 통찰력 (Insight)
+  // [수정일: 2026-01-28] 단계 수에 따른 유연한 분석 로직 적용 (3단계 vs 4단계 대응)
+  const stepCount = stageLogs.value.length;
   const step1 = stageLogs.value[0] || { rawScore: 0 };
+  const step2 = stageLogs.value[1] || { rawScore: 0 };
+  const step3 = stageLogs.value[2] || { rawScore: 0 };
+  const step4 = stageLogs.value[3] || null; // 4단계가 없을 수 있음
+
+  // Step 1: 통찰력 (Insight)
   const insight = Math.min(Math.round(step1.rawScore * 1.1), 100);
   
   // Step 2 & 3: 구성력 (Structure)
-  const step2 = stageLogs.value[1] || { rawScore: 0 };
-  const step3 = stageLogs.value[2] || { rawScore: 0 };
-  const structure = Math.min(Math.round(((step2.rawScore + step3.rawScore) / 2) * 1.05), 100);
+  let structure = 0;
+  if (step2 && !step4) {
+    // 3단계 구성일 경우 2단계를 구성력의 핵심으로 평가
+    structure = Math.min(Math.round(step2.rawScore * 1.05), 100);
+  } else {
+    structure = Math.min(Math.round(((step2.rawScore + step3.rawScore) / 2) * 1.05), 100);
+  }
   
-  // Step 4: 정밀도 (Precision) - 파이썬 코딩
-  const step4 = stageLogs.value[3] || { rawScore: 0 };
-  const precision = step4.rawScore;
+  // Step 3 or 4: 정밀도 (Precision)
+  const precision = step4 ? step4.rawScore : step3.rawScore;
 
   const avg = (insight + structure + precision) / 3;
-  const appraisal = currentStage.value.finalAppraisal;
+  
+  // [수정일: 2026-01-28] 데이터에 appraisal 정보가 없을 경우를 위한 폴백 처리
+  const appraisal = currentStage.value?.finalAppraisal || {
+    overallSummary: { high: "훌륭한 논리력입니다!", mid: "준수한 실력이군요.", low: "조금 더 연습해봅시다." },
+    insightMentions: { high: "핵심을 꿰뚫는 통찰력이 보입니다.", low: "기본적인 접근은 좋았습니다." },
+    structureMentions: { high: "구조적인 설계가 매우 안정적입니다.", low: "구성 단계를 차근차근 밟아보세요." },
+    precisionMentions: { high: "정밀한 구현 능력이 돋보입니다.", low: "세부적인 구현에 주의를 기울여주세요." }
+  };
 
   // 개인화된 분석 리포트 생성 (데이터 기반)
   let comment = "";
@@ -656,11 +439,13 @@ const generateFinalEvaluation = () => {
     insight,
     structure,
     precision,
-    report: `<strong>[${currentStage.value.character.name} 스테이지 분석]</strong><br><br>` +
-            `• <strong>통찰 분석:</strong> ${insight >= 80 ? appraisal.insightMentions.high : appraisal.insightMentions.low}<br>` +
-            `• <strong>논리 구성:</strong> ${structure >= 80 ? appraisal.structureMentions.high : appraisal.structureMentions.low}<br>` +
-            `• <strong>실전 구현:</strong> ${precision >= 80 ? appraisal.precisionMentions.high : appraisal.precisionMentions.low}<br><br>` +
-            `<strong>🤖 총평:</strong> ${comment}`
+    report: `<div class="report-main-title">[${currentStage.value?.character?.name || '마을'} 스테이지 분석]</div>` +
+            `<ul class="report-list">` +
+            `<li><strong>통찰 분석:</strong> ${insight >= 80 ? appraisal.insightMentions.high : appraisal.insightMentions.low}</li>` +
+            `<li><strong>논리 구성:</strong> ${structure >= 80 ? appraisal.structureMentions.high : appraisal.structureMentions.low}</li>` +
+            `<li><strong>실전 구현:</strong> ${precision >= 80 ? appraisal.precisionMentions.high : appraisal.precisionMentions.low}</li>` +
+            `</ul>` +
+            `<div class="report-summary"><strong>🤖 총평:</strong> ${comment}</div>`
   };
   
   isFinalEvalOpen.value = true;
@@ -673,14 +458,8 @@ const finishStage = () => {
   // gameStore 연동: 현재 스테이지 완료 처리 및 다음 해금
   game.unlockNextStage('Pseudo Forest', currentStageIndex.value);
   
-  if (currentStageIndex.value < gameData.length - 1) {
-    currentStageIndex.value++;
-    currentStepIndex.value = 0;
-    stageLogs.value = [];
-    userResponse.value = '';
-  } else {
-    emit('close');
-  }
+  // [수정일: 2026-01-28] 스테이지 완료 후 즉시 창을 닫아 맵에서 해금 상태를 확인하도록 변경
+  emit('close');
 };
 
 </script>
@@ -724,53 +503,128 @@ const finishStage = () => {
 #game-area { flex: 1; display: grid; grid-template-columns: 1fr 1.2fr; gap: 30px; min-height: 0; }
 
 #left-panel { display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }
-#character-container { flex: 1; display: flex; align-items: center; justify-content: center; transition: 0.3s; }
-#character-container img { max-height: 250px; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.2)); }
+#character-container { flex: 1; display: flex; align-items: center; justify-content: center; transition: 0.3s; cursor: pointer; }
+.character-img { 
+  max-height: 250px; 
+  filter: drop-shadow(0 10px 20px rgba(0,0,0,0.2)); 
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+#character-container:hover .character-img { 
+  transform: scale(1.15) rotate(3deg); 
+  filter: drop-shadow(0 20px 40px rgba(0,0,0,0.3));
+}
 #character-container.talking { animation: bounce 0.5s infinite alternate; }
+
+/* 캐릭터 페이드 전환 애니메이션 [수정일: 2026-01-28] */
+.fade-char-enter-active, .fade-char-leave-active { transition: opacity 0.2s ease; }
+.fade-char-enter-from, .fade-char-leave-to { opacity: 0; }
 
 #dialogue-box {
   background: #fff9c4; border: 4px solid #fbc02d; border-radius: 20px; padding: 20px; position: relative;
   box-shadow: 0 5px 15px rgba(0,0,0,0.1);
 }
-#speaker-name { position: absolute; top: -15px; left: 20px; background: #f9a825; color: white; padding: 3px 15px; border-radius: 10px; font-weight: 800; }
-#dialogue-text { font-size: 1.3rem; margin-bottom: 10px; color: #5d4037; }
-.step-question { font-size: 1.4rem; color: #2e7d32; border-top: 2px dashed #fbc02d; padding-top: 10px; line-height: 1.4; }
+#speaker-name { position: absolute; top: -20px; left: 20px; background: #f9a825; color: white; padding: 5px 20px; border-radius: 12px; font-weight: 800; font-size: 1.1rem; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+#dialogue-text { font-size: 1.8rem; font-weight: 700; margin-bottom: 12px; color: #5d4037; line-height: 1.6; }
+.step-question { font-size: 2rem; font-weight: 800; color: #1b5e20; border-top: 3px dashed #fbc02d; padding-top: 15px; line-height: 1.5; }
 
 #right-panel { display: flex; flex-direction: column; gap: 20px; }
-#code-section { flex: 1; display: flex; flex-direction: column; }
-#code-input {
-  flex: 1; width: 100%; font-family: 'Nanum Gothic Coding', monospace; font-size: 1.3rem;
-  padding: 20px; border: 4px solid #ced4da; border-radius: 20px; background: white;
-  color: #1a1a1a; resize: none; transition: 0.3s;
+#code-section { flex: 1; display: flex; flex-direction: column; min-height: 400px; }
+
+#quest-desc { 
+  font-size: 1.8rem; 
+  font-weight: 800; 
+  margin-bottom: 10px; 
+  color: #5d4037; 
+  line-height: 1.6;
+  text-shadow: 1px 1px 0px rgba(255,255,255,0.5);
 }
-.dark-text { color: #5d4037 !important; font-weight: 700; } /* [수정일: 2026-01-28] 가시성 보정용 스타일 */
+.dark-text { color: #5d4037 !important; font-weight: 800; } 
 
-#code-input:focus { border-color: #8b4513; outline: none; box-shadow: 0 0 20px rgba(139,69,19,0.1); }
+/* 모나코 에디터 동숲 테마 컨테이너 [수정일: 2026-01-28] */
+.monaco-forest-container {
+  background: #fff9c4;
+  border: 8px solid #8d6e63; /* 나무색 두꺼운 테두리 */
+  border-radius: 30px;
+  padding: 15px;
+  box-shadow: 
+    inset 0 0 20px rgba(0,0,0,0.1),
+    0 10px 20px rgba(0,0,0,0.2);
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+}
 
-/* [수정일: 2026-01-28] 실시간 AI 오리 가이드 스타일 */
+.monaco-forest-container::after {
+  content: '🍃';
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 1.5rem;
+  z-index: 10;
+  opacity: 0.8;
+}
+
+.forest-monaco-editor {
+  width: 100%;
+  height: 100%;
+}
+
+/* 모나코 내부 배경 투명화 및 폰트 보정 */
+:deep(.monaco-editor), :deep(.monaco-editor-background), :deep(.monaco-editor .margin) {
+  background-color: #fff9c4 !important;
+}
+:deep(.monaco-editor .view-line) {
+  color: #5d4037 !important;
+}
+
+#code-input { display: none; } /* 기존 input 제거 */
+
+/* [수정일: 2026-01-28] 실시간 AI 오리 가이드 스타일 - 에디터와 너비 맞춤 및 오리 크기 조정 */
 .ai-duck-guide {
   display: flex;
-  align-items: flex-end;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: -10px;
+  align-items: flex-end; /* 말풍선 바닥과 오리 바닥 정렬 */
+  justify-content: space-between;
+  gap: 15px;
+  margin-top: 15px;
   margin-bottom: 5px;
+  width: 100%;
 }
 .duck-speech-bubble {
+  flex: 1; /* 가용한 너비 모두 차지 */
   background: #fff9c4;
-  border: 3px solid #fbc02d;
-  padding: 10px 15px;
-  border-radius: 20px 20px 0 20px;
-  max-width: 250px;
-  font-size: 1.1rem;
+  border: 4px solid #fbc02d;
+  padding: 15px 20px;
+  border-radius: 24px;
+  font-size: 1.5rem;
+  font-weight: 700;
   color: #5d4037;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  line-height: 1.5;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+  position: relative;
+}
+
+/* 말풍선 꼬리 추가하여 생동감 부여 */
+.duck-speech-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: 20px;
+  right: -15px;
+  border-left: 15px solid #fbc02d;
+  border-top: 10px solid transparent;
+  border-bottom: 10px solid transparent;
 }
 .duck-img {
-  width: 70px;
-  height: 70px;
+  width: 130px; /* 더 크게 확대 (100px -> 130px) */
+  height: 130px;
   object-fit: contain;
-  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+  filter: drop-shadow(0 8px 16px rgba(0,0,0,0.2));
+  flex-shrink: 0;
+  margin-bottom: -10px; /* 위치 상향 조정 */
+  transition: transform 0.3s ease;
+}
+.duck-img:hover {
+  transform: scale(1.1) rotate(5deg);
 }
 
 /* 객관식 스타일 */
@@ -804,15 +658,78 @@ const finishStage = () => {
 .feedback-header .icon { font-size: 3rem; }
 .feedback-msg { font-size: 1.3rem; line-height: 1.6; color: #5d4037; margin-bottom: 30px; }
 
-.final-eval-card { max-width: 750px; }
-.eval-header h2 { color: #5d4037; font-size: 2rem; margin: 0; }
-.resident-seal { padding: 5px 15px; border: 3px double #d32f2f; color: #d32f2f; font-weight: 900; transform: rotate(-5deg); border-radius: 10px; background: rgba(211, 47, 47, 0.05); }
-.eval-scores { display: flex; justify-content: space-around; margin-bottom: 30px; background: #fdf5e6; padding: 20px; border-radius: 20px; border: 2px solid #deb887; }
-.score-item { text-align: center; font-size: 1.3rem; display: flex; flex-direction: column; color: #5d4037; font-weight: 700; }
-.score-item .val { font-size: 3rem; font-weight: 900; color: #2e7d32; text-shadow: 2px 2px 0 white; }
-.eval-report-box { background: white; padding: 25px; border-radius: 20px; border: 3px solid #e0e0e0; box-shadow: inset 0 2px 10px rgba(0,0,0,0.05); }
-.eval-report-box h4 { margin-bottom: 15px; color: #5d4037; font-size: 1.4rem; display: flex; align-items: center; gap: 10px; }
-.eval-report-box p { line-height: 1.8; font-size: 1.25rem; color: #4e342e; text-align: left; }
+/* 평가 보고서 콤팩트화 [수정일: 2026-01-28] */
+.final-eval-card { max-width: 650px; background: #fffdf9; border: 6px solid #8b4513; padding: 25px; }
+.eval-header { 
+  display: flex; justify-content: space-between; align-items: center; 
+  padding-bottom: 12px; border-bottom: 3px double #deb887; margin-bottom: 20px;
+}
+.eval-header h2 { color: #5d4037; font-size: 2.22rem; margin: 0; }
+
+/* 주민 인증 도장 크기 축소 */
+.resident-seal { 
+  width: 80px; height: 80px;
+  border: 4px solid #d32f2f; color: #d32f2f; 
+  font-weight: 900; font-size: 1rem;
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  border-radius: 50%; background: rgba(211, 47, 47, 0.03);
+  transform: rotate(-15deg);
+  box-shadow: 0 0 0 2px white, 0 0 0 4px #d32f2f;
+  line-height: 1.1;
+  position: relative;
+}
+.resident-seal::after {
+  content: '인';
+  position: absolute; bottom: 6px; right: 6px; font-size: 0.7rem; opacity: 0.6;
+}
+
+/* 점수 카드 크기 축소 */
+.eval-scores { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px; }
+.score-card {
+  background: white; padding: 15px 10px; border-radius: 20px;
+  border: 3px solid #deb887; text-align: center;
+  transition: 0.3s; box-shadow: 0 3px 6px rgba(0,0,0,0.05);
+}
+.score-card:hover { transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0,0,0,0.1); border-color: #fbc02d; }
+.card-icon { font-size: 2rem; margin-bottom: 4px; }
+.card-label { font-size: 1.2rem; font-weight: 800; color: #8b4513; margin-bottom: 4px; }
+.card-val { font-size: 2.8rem; font-weight: 900; color: #2e7d32; text-shadow: 1.5px 1.5px 0 #e8f5e9; }
+
+/* 리포트 박스 크기 및 여백 최적화 */
+.eval-report-box { 
+  background: #fff9c4; padding: 20px 25px; border-radius: 20px; 
+  border: 3px solid #fbc02d; box-shadow: inset 0 2px 8px rgba(0,0,0,0.05); 
+}
+.eval-report-box h4 { 
+  margin-bottom: 12px; color: #5d4037; font-size: 1.5rem; 
+  display: flex; align-items: center; gap: 10px;
+  border-bottom: 2px solid rgba(139, 69, 19, 0.1); padding-bottom: 8px;
+}
+.eval-report-box p { 
+  margin: 0;
+}
+:deep(.report-main-title) {
+  font-size: 1.25rem; color: #d84315; font-weight: 800; margin-bottom: 8px;
+}
+:deep(.report-list) {
+  list-style: none; padding: 0; margin: 0 0 12px 0;
+}
+:deep(.report-list li) {
+  line-height: 1.4; font-size: 1.2rem; color: #4e342e; margin-bottom: 6px;
+  position: relative; padding-left: 18px; font-weight: 700;
+}
+:deep(.report-list li::before) {
+  content: '•'; position: absolute; left: 0; color: #fbc02d; font-size: 1.4rem;
+}
+:deep(.report-summary) {
+  border-top: 2px dashed rgba(139, 69, 19, 0.1);
+  padding-top: 12px; line-height: 1.4; font-size: 1.3rem; color: #4e342e;
+  font-weight: 800; word-break: keep-all;
+}
+:deep(.eval-report-box strong) { color: #d84315; }
+
+.eval-footer { margin-top: 15px; }
+.eval-footer .btn { font-size: 1.5rem; padding: 12px; }
 
 @keyframes popIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
 @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-10px); } }
