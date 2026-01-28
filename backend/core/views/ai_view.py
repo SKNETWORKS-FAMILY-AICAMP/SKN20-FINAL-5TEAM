@@ -103,7 +103,9 @@ class BugHuntEvaluationView(APIView):
         mission_title = data.get('missionTitle', 'Unknown Mission')
         steps = data.get('steps', [])
         explanations = data.get('explanations', {})
+        explanations = data.get('explanations', {})
         user_codes = data.get('userCodes', {})
+        performance = data.get('performance', {})
 
         if not steps:
             return Response({"error": "Steps data is required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -148,6 +150,12 @@ class BugHuntEvaluationView(APIView):
 
 미션: {mission_title}
 
+[사용자 성과 지표]
+- 퀴즈 오답 횟수: {performance.get('quizIncorrectCount', 0)}회
+- 코드 제출 실패: {performance.get('codeSubmitFailCount', 0)}회
+- 힌트 사용 횟수: {performance.get('hintCount', 0)}회
+- 총 소요 시간: {performance.get('totalDebugTime', 0)}초
+
 {step_context_str}
 
 ## 평가 단계
@@ -174,17 +182,47 @@ class BugHuntEvaluationView(APIView):
    - 근거 제시: 왜 그렇게 수정했는지 이유를 설명했는가?
    - 명확성: 설명이 명확하고 이해하기 쉬운가?
    - 기술적 정확성: 사용한 용어와 개념이 정확한가?
+   (참고: 오답이나 힌트 사용이 많다면, 사고의 자립성을 낮게 평가하라)
    → 사고 점수 0~100
 
+4. **각 단계별 설명 피드백 생성 (필수)**
+   위에 제시된 각 Step의 "사용자 설명"을 개별적으로 평가하여 피드백을 생성하라.
+   각 피드백은 한 문단으로 작성하되, 다음 내용을 포함:
+   - 설명 품질 점수 (0-100점)
+   - 잘한 점 (구체적으로)
+   - 부족한 점 (구체적으로)
+   - 개선 방향 제안
+
+   예시:
+   - 설명이 부실한 경우: "설명 품질: 20/100. 버그 발견 의도는 있으나 구체성이 부족합니다. '어떤 변수'가 '왜' 문제인지, '어떻게' 수정했는지 명확히 작성해주세요."
+   - 설명이 양호한 경우: "설명 품질: 75/100. 원인과 해결책을 논리적으로 연결했습니다. 다만 수정으로 인한 부작용 고려까지 추가하면 더욱 완벽합니다."
+
 ## 출력 형식
-반드시 아래 JSON 형식만 출력하라. 다른 텍스트는 포함하지 마라.
+**반드시 아래 JSON 형식만 출력하라. 다른 텍스트는 포함하지 마라.**
 
 {{
-  "thinking_pass": true 또는 false,
-  "code_risk": 0에서 100 사이의 숫자,
-  "thinking_score": 0에서 100 사이의 숫자,
-  "총평": "전체 평가를 요약하여 시니어 엔지니어 입장에서 설명"
-}}"""
+  "thinking_pass": true,
+  "code_risk": 45,
+  "thinking_score": 70,
+  "총평": "전체 평가를 요약하여 시니어 엔지니어 입장에서 설명하고 존댓말로 입력",
+  "step_feedbacks": [
+    {{
+      "step": 1,
+      "feedback": "실제 Step 1 사용자 설명을 분석한 구체적인 피드백 (점수 포함, 한 문단)"
+    }},
+    {{
+      "step": 2,
+      "feedback": "실제 Step 2 사용자 설명을 분석한 구체적인 피드백 (점수 포함, 한 문단)"
+    }},
+    {{
+      "step": 3,
+      "feedback": "실제 Step 3 사용자 설명을 분석한 구체적인 피드백 (점수 포함, 한 문단)"
+    }}
+  ]
+}}
+
+**중요**: step_feedbacks 배열은 반드시 3개 항목을 포함해야 하며, 각 step에 대한 실제 평가 내용을 작성해야 한다.
+"""
 
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
@@ -192,7 +230,7 @@ class BugHuntEvaluationView(APIView):
                     {"role": "system", "content": system_message},
                     {"role": "user", "content": prompt}
                 ],
-                max_tokens=1500,
+                max_tokens=2500,
                 temperature=0.3
             )
 
@@ -208,11 +246,14 @@ class BugHuntEvaluationView(APIView):
 
             if json_match:
                 result = json.loads(json_match)
+                print(f"AI Response Result: {result}")
+                print(f"Step Feedbacks: {result.get('step_feedbacks', [])}")
                 return Response({
                     "thinking_pass": bool(result.get('thinking_pass', False)),
                     "code_risk": int(result.get('code_risk', 50)),
                     "thinking_score": int(result.get('thinking_score', 50)),
-                    "총평": result.get('총평', result.get('summary', '평가를 완료했습니다.'))
+                    "총평": result.get('총평', result.get('summary', '평가를 완료했습니다.')),
+                    "step_feedbacks": result.get('step_feedbacks', [])
                 }, status=status.HTTP_200_OK)
             else:
                 return Response({"error": "Invalid JSON format from AI"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
