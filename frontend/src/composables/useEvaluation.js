@@ -79,8 +79,42 @@ export function useEvaluation() {
       return { needsDeepDive: true };
     }
 
-    await showEvaluationModal(problem, droppedComponents, connections, mermaidCode);
+    // DeepDive만 사용하므로 EvaluationModal 대신 바로 평가 진행
+    await directEvaluate(problem, droppedComponents, connections, mermaidCode);
     return { needsDeepDive: false };
+  }
+
+  async function directEvaluate(problem, droppedComponents, connections, mermaidCode) {
+    showResultScreen.value = true;
+    isEvaluating.value = true;
+    evaluationResult.value = null;
+
+    const architectureContext = buildArchitectureContext(
+      droppedComponents,
+      connections,
+      mermaidCode
+    );
+
+    const deepDiveQnA = collectedDeepDiveAnswers.value.map(item => ({
+      category: item.category,
+      question: item.question,
+      answer: item.answer === '(스킵됨)' ? '' : item.answer
+    }));
+
+    try {
+      evaluationResult.value = await evaluateArchitecture(
+        problem,
+        architectureContext,
+        null, // EvaluationModal 질문 없음
+        null, // EvaluationModal 답변 없음
+        deepDiveQnA
+      );
+    } catch (error) {
+      console.error('Evaluation error:', error);
+      evaluationResult.value = generateMockEvaluation(problem, droppedComponents);
+    } finally {
+      isEvaluating.value = false;
+    }
   }
 
   async function showEvaluationModal(problem, droppedComponents, connections, mermaidCode) {
@@ -217,6 +251,7 @@ export function useEvaluation() {
     closeModal,
     submitEvaluationAnswer,
     evaluate,
+    directEvaluate,
     handleRetry,
     resetEvaluationState,
     isPendingEvaluation,

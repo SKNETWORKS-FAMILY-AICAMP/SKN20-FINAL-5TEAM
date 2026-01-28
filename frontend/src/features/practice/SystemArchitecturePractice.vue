@@ -87,19 +87,7 @@
         @dismiss="dismissToast"
       />
 
-      <!-- 평가 모달 -->
-      <EvaluationModal
-        :is-active="isModalActive"
-        :question="generatedQuestion"
-        :is-generating="isGeneratingQuestion"
-        :components="droppedComponents"
-        :connections="connections"
-        :mermaid-code="mermaidCode"
-        @close="closeModal"
-        @submit="submitEvaluationAnswer"
-      />
-
-      <!-- Deep Dive 모달 (3개 질문 순차 처리) -->
+      <!-- Deep Dive 모달 (3개 질문 순차 처리) - 평가는 여기서만 진행 -->
       <DeepDiveModal
         :is-active="isDeepDiveModalActive"
         :question="deepDiveQuestion"
@@ -121,7 +109,6 @@ import mermaid from 'mermaid';
 // Components
 import ComponentPalette from './components/ComponentPalette.vue';
 import ArchitectureCanvas from './components/ArchitectureCanvas.vue';
-import EvaluationModal from './components/EvaluationModal.vue';
 import DeepDiveModal from './components/DeepDiveModal.vue';
 import EvaluationResultScreen from './components/EvaluationResultScreen.vue';
 import DetectiveToast from './components/DetectiveToast.vue';
@@ -144,7 +131,6 @@ export default {
   components: {
     ComponentPalette,
     ArchitectureCanvas,
-    EvaluationModal,
     DeepDiveModal,
     EvaluationResultScreen,
     DetectiveToast,
@@ -204,11 +190,8 @@ export default {
       onConnectionCreatedComposable: canvas.onConnectionCreated,
 
       // Evaluation
-      isModalActive: evaluation.isModalActive,
       isEvaluating: evaluation.isEvaluating,
       evaluationResult: evaluation.evaluationResult,
-      isGeneratingQuestion: evaluation.isGeneratingQuestion,
-      generatedQuestion: evaluation.generatedQuestion,
       showResultScreen: evaluation.showResultScreen,
       isDeepDiveModalActive: evaluation.isDeepDiveModalActive,
       isGeneratingDeepDive: evaluation.isGeneratingDeepDive,
@@ -218,10 +201,7 @@ export default {
       skipDeepDiveComposable: evaluation.skipDeepDive,
       submitDeepDiveAnswerComposable: evaluation.submitDeepDiveAnswer,
       openEvaluationModalComposable: evaluation.openEvaluationModal,
-      showEvaluationModalComposable: evaluation.showEvaluationModal,
-      closeModal: evaluation.closeModal,
-      submitEvaluationAnswerComposable: evaluation.submitEvaluationAnswer,
-      evaluateComposable: evaluation.evaluate,
+      directEvaluateComposable: evaluation.directEvaluate,
       handleRetryComposable: evaluation.handleRetry,
       resetEvaluationState: evaluation.resetEvaluationState,
       isPendingEvaluation: evaluation.isPendingEvaluation,
@@ -333,7 +313,8 @@ export default {
       const allDone = await this.skipDeepDiveComposable();
       if (allDone && this.isPendingEvaluation()) {
         this.clearPendingEvaluation();
-        await this.showEvaluationModalComposable(
+        // EvaluationModal 없이 바로 평가 진행
+        await this.directEvaluateComposable(
           this.currentProblem,
           this.droppedComponents,
           this.connections,
@@ -346,7 +327,8 @@ export default {
       const allDone = await this.submitDeepDiveAnswerComposable(answer);
       if (allDone && this.isPendingEvaluation()) {
         this.clearPendingEvaluation();
-        await this.showEvaluationModalComposable(
+        // EvaluationModal 없이 바로 평가 진행
+        await this.directEvaluateComposable(
           this.currentProblem,
           this.droppedComponents,
           this.connections,
@@ -358,16 +340,6 @@ export default {
     // === Evaluation ===
     async openEvaluationModal() {
       await this.openEvaluationModalComposable(
-        this.currentProblem,
-        this.droppedComponents,
-        this.connections,
-        this.mermaidCode
-      );
-    },
-
-    async submitEvaluationAnswer(answer) {
-      await this.submitEvaluationAnswerComposable(answer);
-      await this.evaluateComposable(
         this.currentProblem,
         this.droppedComponents,
         this.connections,
