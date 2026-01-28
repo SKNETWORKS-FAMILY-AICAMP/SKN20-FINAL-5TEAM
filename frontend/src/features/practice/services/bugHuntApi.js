@@ -15,7 +15,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000
  * @param {Object} explanations - 각 단계별 사용자 설명 {1: '...', 2: '...', 3: '...'}
  * @param {Object} userCodes - 각 단계별 사용자 수정 코드 {1: '...', 2: '...', 3: '...'}
  * @param {Object} performance - 풀이 성과 지표 (오답 횟수 등)
- * @returns {Object} 평가 결과 {thinking_pass, code_risk, thinking_score, 총평}
+ * @returns {Object} 평가 결과 {thinking_pass, code_risk, thinking_score, 총평, step_feedbacks}
  */
 export async function evaluateBugHunt(missionTitle, steps, explanations, userCodes, performance = {}) {
     try {

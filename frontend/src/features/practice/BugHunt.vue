@@ -1440,12 +1440,37 @@ function checkProgressiveSolution() {
   const code = progressiveStepCodes.value[currentProgressiveStep.value];
 
   switch (check.type) {
+    case 'multi_condition':
+      // required_all: 모든 조건이 코드에 포함되어야 함 (AND)
+      const hasAllRequired = check.required_all?.every(req => code.includes(req)) ?? true;
+
+      // required_any: 조건 중 하나라도 코드에 포함되어야 함 (OR)
+      const hasAnyRequired = check.required_any?.length > 0
+        ? check.required_any.some(req => code.includes(req))
+        : true;
+
+      // forbidden: 금지된 패턴이 코드에 없어야 함
+      const hasNoForbidden = check.forbidden?.every(forbidden => !code.includes(forbidden)) ?? true;
+
+      return hasAllRequired && hasAnyRequired && hasNoForbidden;
+
     case 'contains':
       return code.includes(check.value);
+
     case 'notContains':
       return !code.includes(check.value);
+
+    case 'regex':
+      // 패턴 일치 여부 확인 (string -> RegExp)
+      try {
+        const re = new RegExp(check.value, check.flags ?? '');
+        return re.test(code);
+      } catch {
+        return false;
+      }
+
     default:
-      return code.includes(check.value);
+      return false;
   }
 }
 
