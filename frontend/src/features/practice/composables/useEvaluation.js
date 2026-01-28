@@ -3,11 +3,11 @@ import {
   generateEvaluationQuestion,
   evaluateArchitecture,
   generateArchitectureAnalysisQuestions
-} from '../features/practice/services/architectureApiFast';
+} from '../services/architectureApiFastTest';
 import {
   buildArchitectureContext,
   generateMockEvaluation
-} from '../features/practice/utils/architectureUtils';
+} from '../utils/architectureUtils';
 
 export function useEvaluation() {
   // Evaluation State

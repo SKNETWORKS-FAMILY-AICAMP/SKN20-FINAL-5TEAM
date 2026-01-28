@@ -117,13 +117,13 @@ import IntroScene from './components/IntroScene.vue';
 import CaseFilePanel from './components/CaseFilePanel.vue';
 
 // Composables
-import { useToast } from '@/composables/useToast';
-import { useHint } from '@/composables/useHint';
-import { useCanvasState } from '@/composables/useCanvasState';
-import { useEvaluation } from '@/composables/useEvaluation';
+import { useToast } from './composables/useToast';
+import { useHint } from './composables/useHint';
+import { useCanvasState } from './composables/useCanvasState';
+import { useEvaluation } from './composables/useEvaluation';
 
 // Services & Utils
-import { fetchProblems } from './services/architectureApiFast';
+import { fetchProblems } from './services/architectureApiFastTest';
 import { transformProblems } from './utils/architectureUtils';
 
 export default {

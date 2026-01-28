@@ -13,15 +13,15 @@
         <div class="next-indicator">▼ Click to continue</div>
       </div>
     </div>
-
     <button v-if="showStartBtn" class="start-btn" @click.stop="handleEnterGame">
       <span>취조실 입장 (ENTER)</span>
     </button>
+
   </div>
 </template>
 
 <script>
-import { useIntro } from '@/composables/useIntro';
+import { useIntro } from '../composables/useIntro';
 import { onMounted, onUnmounted, watch } from 'vue';
 
 export default {
@@ -192,7 +192,7 @@ export default {
 /* 시작 버튼 (인트로 끝날 때 등장) */
 .start-btn {
   position: absolute;
-  top: 50%;
+  top: 83%;
   left: 50%;
   transform: translate(-50%, -50%);
   background: var(--danger-red);

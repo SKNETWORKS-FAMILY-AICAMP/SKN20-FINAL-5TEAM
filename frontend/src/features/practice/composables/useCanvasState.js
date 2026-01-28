@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue';
-import { generateMermaidCode } from '../features/practice/utils/architectureUtils';
+import { generateMermaidCode } from '../utils/architectureUtils';
 
 export function useCanvasState() {
   const isConnectionMode = ref(false);
