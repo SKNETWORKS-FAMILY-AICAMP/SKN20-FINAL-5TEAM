@@ -187,50 +187,62 @@ export default {
   border-radius: 2px;
 }
 
-/* Tool Items - Compact Blocks */
+/* Tool Items - Evidence Tag Style */
 .component {
-  height: 45px;
+  height: 60px;
+  background: #ecf0f1;
+  border: 2px solid #bdc3c7;
+  border-bottom: 4px solid #95a5a6;
+  color: #2c3e50;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
-  margin-bottom: 4px;
-  border-radius: 4px;
+  margin-bottom: 6px;
   cursor: grab;
-  font-size: 0.5rem;
+  font-size: 0.55rem;
   font-weight: 600;
   font-family: 'Press Start 2P', cursive;
-  transition: all 0.2s ease;
-  border: 3px solid #000;
+  transition: all 0.15s ease;
   position: relative;
   user-select: none;
-  box-shadow: 3px 3px 0 rgba(0,0,0,0.5);
+}
+
+/* Tape look on top */
+.component::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30%;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .component:active {
   cursor: grabbing;
-  transform: translate(2px, 2px);
-  box-shadow: 1px 1px 0 rgba(0,0,0,0.5);
+  border-bottom-width: 2px;
+  transform: translateY(2px);
 }
 
 .component:hover {
-  transform: translateY(-2px);
-  box-shadow: 5px 5px 0 rgba(0,0,0,0.5);
+  transform: scale(1.05);
 }
 
 /* Required component hint styles */
 .component.required-hint {
   border-color: #f1c40f !important;
-  box-shadow: 0 0 10px rgba(241, 196, 15, 0.8), 3px 3px 0 rgba(0,0,0,0.5);
+  box-shadow: 0 0 10px rgba(241, 196, 15, 0.8);
   animation: required-glow 1s ease-in-out infinite;
 }
 
 @keyframes required-glow {
   0%, 100% {
-    box-shadow: 0 0 10px rgba(241, 196, 15, 0.8), 3px 3px 0 rgba(0,0,0,0.5);
+    box-shadow: 0 0 10px rgba(241, 196, 15, 0.8);
   }
   50% {
-    box-shadow: 0 0 20px rgba(241, 196, 15, 1), 3px 3px 0 rgba(0,0,0,0.5);
+    box-shadow: 0 0 20px rgba(241, 196, 15, 1);
   }
 }
 
@@ -245,6 +257,7 @@ export default {
   border-radius: 2px;
   font-weight: 700;
   border: 2px solid #000;
+  z-index: 1;
 }
 
 /* Dimmed styles for non-required components */
@@ -252,26 +265,4 @@ export default {
   opacity: 0.35;
   filter: grayscale(70%);
 }
-
-/* Compute & Entry */
-.component.user { background: linear-gradient(135deg, #ff4785, #ff1744); color: #fff; }
-.component.loadbalancer { background: linear-gradient(135deg, #26c6da, #00acc1); color: #0a0e27; }
-.component.gateway { background: linear-gradient(135deg, #64b5f6, #2196f3); color: #fff; }
-.component.server { background: linear-gradient(135deg, #ab47bc, #8e24aa); color: #fff; }
-
-/* Storage & Search */
-.component.rdbms { background: linear-gradient(135deg, #00ff9d, #00e676); color: #0a0e27; }
-.component.nosql { background: linear-gradient(135deg, #4db6ac, #26a69a); color: #0a0e27; }
-.component.cache { background: linear-gradient(135deg, #ffc107, #ffa000); color: #0a0e27; }
-.component.search { background: linear-gradient(135deg, #7c4dff, #651fff); color: #fff; }
-.component.storage { background: linear-gradient(135deg, #ff7043, #f4511e); color: #fff; }
-
-/* Messaging */
-.component.broker { background: linear-gradient(135deg, #ff8a65, #ff5722); color: #fff; }
-.component.eventbus { background: linear-gradient(135deg, #ba68c8, #ab47bc); color: #fff; }
-
-/* Observability */
-.component.monitoring { background: linear-gradient(135deg, #66bb6a, #43a047); color: #fff; }
-.component.logging { background: linear-gradient(135deg, #78909c, #607d8b); color: #fff; }
-.component.cicd { background: linear-gradient(135deg, #42a5f5, #1e88e5); color: #fff; }
 </style>

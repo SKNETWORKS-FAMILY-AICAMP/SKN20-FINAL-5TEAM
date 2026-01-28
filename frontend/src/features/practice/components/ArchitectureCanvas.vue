@@ -336,11 +336,11 @@ export default {
   flex: 1;
   position: relative;
   overflow: hidden;
-  background-image:
+  /* background-image:
     linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+    linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px); */
   background-size: 25px 25px;
-  background-color: #2c3e50;
+  /* background-color: #2c3e50; */
 }
 
 .dropped-component {

@@ -2,7 +2,7 @@
   <div class="workspace-header">
     <div class="header-title">
       <div class="rec-dot"></div>
-      <span>REC [CAM-02] | ARCHITECTURE_ROOM</span>
+      <span>REC | ARCHITECTURE_ROOM</span>
     </div>
     <div class="header-controls">
       <button

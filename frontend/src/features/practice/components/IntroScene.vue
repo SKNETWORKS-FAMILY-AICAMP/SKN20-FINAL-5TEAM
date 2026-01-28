@@ -87,55 +87,50 @@ export default {
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Courier+Prime:wght@400;700&display=swap');
 
-/* === INTRO SCENE === */
+/* === INTRO SCENE (sa_panic_room.html 스타일) === */
 .scene-intro {
   --accent-yellow: #f1c40f;
   --danger-red: #e74c3c;
+  --text-white: #ecf0f1;
   --pixel-font: 'Press Start 2P', cursive;
   --typewriter-font: 'Courier Prime', monospace;
 
   width: 100%;
   height: 100%;
-  background: #000;
+  background: #111;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
   position: relative;
   cursor: pointer;
 }
 
+/* 스포트라이트 효과 */
 .spotlight {
   position: absolute;
-  top: -150px;
+  top: -100px;
   left: 50%;
   transform: translateX(-50%);
-  width: 800px;
-  height: 120%;
-  background: radial-gradient(ellipse at top, rgba(255, 255, 255, 0.1) 0%, transparent 60%);
+  width: 600px;
+  height: 100%;
+  background: radial-gradient(ellipse at top, rgba(255, 255, 255, 0.15) 0%, transparent 70%);
   pointer-events: none;
   z-index: 1;
-  animation: flickerLight 4s infinite alternate;
 }
 
-@keyframes flickerLight {
-  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% { opacity: 1; }
-  20%, 24%, 55% { opacity: 0.8; }
-}
-
+/* 오리 형사 (거대 사이즈) */
 .intro-duck {
   width: 400px;
   height: 400px;
   z-index: 2;
-  filter: drop-shadow(0 0 30px rgba(0, 0, 0, 0.8)) sepia(0.3) contrast(1.2);
-  transform: translateY(100px);
-  opacity: 0;
-  transition: all 1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  filter: drop-shadow(0 0 20px rgba(0, 0, 0, 0.5));
+  transform: translateY(50px);
+  transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .intro-duck.appear {
   transform: translateY(0);
-  opacity: 1;
 }
 
 .intro-duck img {
@@ -144,91 +139,81 @@ export default {
   object-fit: contain;
 }
 
+/* 인트로 대화창 (하단 고정) */
 .intro-dialog-box {
-  width: 80%;
-  height: 220px;
-  background: rgba(10, 10, 10, 0.95);
-  border: 2px solid #fff;
-  box-shadow: 0 0 0 4px #000, 0 10px 40px rgba(0, 0, 0, 1);
-  margin-bottom: 50px;
-  padding: 25px;
-  z-index: 10;
-  position: relative;
-}
-
-.intro-dialog-box::before {
-  content: '';
   position: absolute;
-  top: 5px;
-  left: 5px;
-  right: 5px;
-  bottom: 5px;
-  border: 1px dashed #555;
-  pointer-events: none;
+  bottom: 40px;
+  width: 90%;
+  height: 200px;
+  background: rgba(0, 0, 0, 0.9);
+  border: 4px solid white;
+  border-radius: 10px;
+  padding: 30px;
+  z-index: 10;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 1);
 }
 
 .intro-dialog-inner {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 15px;
   height: 100%;
 }
 
 .speaker-name {
   color: var(--accent-yellow);
   font-family: var(--pixel-font);
-  font-size: 1rem;
-  text-shadow: 2px 2px 0 #000;
-  background: #222;
-  display: inline-block;
-  padding: 5px 10px;
-  border-left: 4px solid var(--accent-yellow);
+  font-size: 1.2rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
 }
 
 .intro-text {
   font-family: var(--typewriter-font);
-  font-size: 1.3rem;
+  font-size: 1.5rem;
   line-height: 1.6;
-  color: #ddd;
+  color: white;
   flex: 1;
 }
 
 .next-indicator {
   align-self: flex-end;
-  color: var(--danger-red);
+  color: var(--accent-yellow);
   font-family: var(--pixel-font);
-  font-size: 0.7rem;
-  animation: blink 1s infinite;
+  font-size: 0.8rem;
+  animation: bounce 1s infinite;
 }
 
-@keyframes blink {
-  50% { opacity: 0; }
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
 }
 
+/* 시작 버튼 (인트로 끝날 때 등장) */
 .start-btn {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: repeating-linear-gradient(45deg, #000, #000 10px, #e74c3c 10px, #e74c3c 20px);
+  background: var(--danger-red);
   color: white;
   border: 4px solid white;
-  padding: 20px 50px;
+  padding: 20px 40px;
   font-family: var(--pixel-font);
-  font-size: 1.2rem;
-  text-shadow: 2px 2px 0 black;
+  font-size: 1.5rem;
   cursor: pointer;
   z-index: 20;
-  box-shadow: 10px 10px 0 rgba(0, 0, 0, 0.8);
-  transition: transform 0.1s;
+  box-shadow: 10px 10px 0 black;
+  animation: sway 2s ease-in-out infinite;
 }
 
-.start-btn span {
-  border-bottom: 2px solid white;
+@keyframes sway {
+  0%, 100% { transform: translate(-50%, -50%) translateX(-10px); }
+  50% { transform: translate(-50%, -50%) translateX(10px); }
 }
 
 .start-btn:hover {
+  animation: none;
   transform: translate(-50%, -55%);
-  filter: brightness(1.2);
 }
 </style>
