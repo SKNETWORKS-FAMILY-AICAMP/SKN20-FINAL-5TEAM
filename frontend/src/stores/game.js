@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import axios from 'axios';
 import { aiQuests } from '../features/practice/support/unit1/logic-mirror/data/stages.js';
+import { aiDetectiveQuests } from '../features/practice/support/unit1/logic-mirror/data/aiDetectiveQuests.js';
 import progressiveData from '../features/practice/progressive-problems.json';
 
 /**
@@ -12,15 +13,21 @@ export const useGameStore = defineStore('game', {
         chapters: [],
         unitProgress: {
             'Pseudo Practice': [0],
+            // [수정일: 2026-01-28] 난이도별(초/중/고) 첫 문제를 기본 해금하여 즉시 선택 가능하도록 설정
+            'AI Detective': [0, 10, 20],
             'Debug Practice': [0],
             'System Practice': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
             'Ops Practice': [0],
-            'Agent Practice': [0]
+            'Agent Practice': [0],
+            // [수정일: 2026-01-28] Pseudo Forest 전용 진행도 초기값 추가
+            'Pseudo Forest': [0]
         },
         activeUnit: null,
         activeProblem: null,
         activeChapter: null,
         currentDebugMode: 'bug-hunt',
+        // [수정일: 2026-01-28] Unit 1의 현재 모드 확장 (pseudo-practice | ai-detective | pseudo-forest)
+        unit1Mode: 'pseudo-practice',
         selectedQuestIndex: 0,
         selectedSystemProblemIndex: 0
     }),
@@ -78,7 +85,14 @@ export const useGameStore = defineStore('game', {
                 // [2026-01-26] 로컬 스토리지에서 저장된 진행도 로드
                 const savedProgress = localStorage.getItem('logic_mirror_progress');
                 if (savedProgress) {
-                    this.unitProgress = JSON.parse(savedProgress);
+                    const parsed = JSON.parse(savedProgress);
+                    // [수정일: 2026-01-28] 구버전 데이터 호환 및 난이도별 시작점(0, 10, 20) 강제 해금 보장
+                    if (parsed['AI Detective']) {
+                        [0, 10, 20].forEach(idx => {
+                            if (!parsed['AI Detective'].includes(idx)) parsed['AI Detective'].push(idx);
+                        });
+                    }
+                    this.unitProgress = parsed;
                 }
 
             } catch (error) {
@@ -92,31 +106,61 @@ export const useGameStore = defineStore('game', {
          * - 그 외의 유닛들은 백엔드 DB의 PracticeDetail 정보를 기반으로 동적으로 구성됩니다.
          */
         mapDetailsToProblems(unit, unitNum) {
-            // [Unit 1] Pseudo Practice는 stages.js의 퀘스트 데이터를 유지
-            if (unit.title === 'Pseudo Practice') {
-                return aiQuests.map((q, idx) => ({
-                    id: q.id,
-                    title: q.title,
-                    questIndex: idx,
-                    displayNum: `${unitNum}-${idx + 1}`,
-                    difficulty: q.level > 3 ? 'hard' : (q.level > 1 ? 'medium' : 'easy'),
-                    config: q
-                }));
+            // [수정일: 2026-01-28] 필드명 유연성 확보: unit.name과 unit.title 모두 체크
+            const unitTitle = unit.name || unit.title;
+
+            // [Unit 1] Pseudo Practice 처리
+            if (unitTitle === 'Pseudo Practice') {
+                // unit1Mode에 따라 서로 다른 문제 세트 매핑 및 반환
+                if (this.unit1Mode === 'pseudo-practice') {
+                    return aiQuests.map((q, idx) => ({
+                        id: q.id,
+                        title: q.title,
+                        questIndex: idx,
+                        displayNum: `${unitNum}-${idx + 1}`,
+                        difficulty: q.level > 3 ? 'hard' : (q.level > 1 ? 'medium' : 'easy'),
+                        config: q,
+                        mode: 'pseudo-practice'
+                    }));
+                }
+                else if (this.unit1Mode === 'pseudo-forest') {
+                    // [수정일: 2026-01-28] Pseudo Forest 전용 데이터 (현재는 placeholder)
+                    return [{
+                        id: 'forest-01',
+                        title: 'Forest Discovery',
+                        questIndex: 0,
+                        displayNum: 'F-01',
+                        difficulty: 'medium',
+                        mode: 'pseudo-forest'
+                    }];
+                }
+                else {
+                    return aiDetectiveQuests.map((q, idx) => ({
+                        id: q.id,
+                        title: q.title,
+                        level: q.level, // [수정일: 2026-01-28] App.vue 필터링을 위해 level 필드 추가
+                        questIndex: idx,
+                        displayNum: `DNA-${idx + 1}`,
+                        difficulty: q.level === '고급' ? 'hard' : (q.level === '중급' ? 'medium' : 'easy'),
+                        config: q,
+                        mode: 'ai-detective'
+                    }));
+                }
             }
 
-            // [Unit 2] Debug Practice는 progressive-problems.json 데이터를 우선 사용 (Bug Hunt 모드 지원)
-            if (unit.title === 'Debug Practice' && progressiveData.progressiveProblems) {
+            // [Unit 2] Debug Practice 처리
+            if (unitTitle === 'Debug Practice' && progressiveData.progressiveProblems) {
                 return progressiveData.progressiveProblems.map((m, idx) => ({
                     id: m.id,
                     missionId: m.id,
                     title: m.project_title,
                     displayNum: `Campaign ${idx + 1}`,
-                    questIndex: idx // UI 노드 동기화용
+                    questIndex: idx
                 }));
             }
 
-            // [Unit 3] System Practice는 현재 하드코딩된 시나리오 데이터를 우선 사용
-            if (unit.title === 'System Practice') {
+            // [Unit 3] System Practice 처리
+            if (unitTitle === 'System Practice') {
                 return [
                     { id: 1, title: 'Instagram Home Feed', displayNum: '3-1', problemIndex: 0 },
                     { id: 2, title: 'YouTube VOD 업로드/스트리밍', displayNum: '3-2', problemIndex: 1 },
@@ -130,7 +174,7 @@ export const useGameStore = defineStore('game', {
                     { id: 10, title: 'RTB 광고 입찰', displayNum: '3-10', problemIndex: 9 }
                 ].map(p => ({
                     ...p,
-                    questIndex: p.problemIndex // 기존 UI 호환성 유지
+                    questIndex: p.problemIndex
                 }));
             }
 
@@ -153,12 +197,20 @@ export const useGameStore = defineStore('game', {
         },
 
         unlockNextStage(unitName, index) {
-            const progress = this.unitProgress[unitName];
+            // [수정일: 2026-01-28] Unit 1의 경우 'Pseudo Practice' 또는 'AI Detective' 중 현재 활성 모드로 키값 결정
+            let targetKey = unitName;
+            if (this.activeUnit?.name === 'Pseudo Practice') {
+                targetKey = this.unit1Mode === 'pseudo-practice' ? 'Pseudo Practice' : 'AI Detective';
+            }
+
+            const progress = this.unitProgress[targetKey];
             if (progress && !progress.includes(index)) {
                 progress.push(index);
             }
             const nextIdx = index + 1;
-            if (progress && nextIdx < 10 && !progress.includes(nextIdx)) {
+            // [수정일: 2026-01-28] 유닛별 최대 문제 수에 맞춰 해금 제한 동적 조절 (AI Detective는 30개)
+            const maxCount = targetKey === 'AI Detective' ? 30 : 10;
+            if (progress && nextIdx < maxCount && !progress.includes(nextIdx)) {
                 progress.push(nextIdx);
             }
 
@@ -174,6 +226,18 @@ export const useGameStore = defineStore('game', {
     getters: {
         currentUnitProgress: (state) => {
             if (!state.activeUnit) return [0];
+
+            // [수정일: 2026-01-28] Unit 1의 경우 현재 모드에 따라 진행도 키값 분기 처리
+            if (state.activeUnit.name === 'Pseudo Practice') {
+                const modeMap = {
+                    'pseudo-practice': 'Pseudo Practice',
+                    'ai-detective': 'AI Detective',
+                    'pseudo-forest': 'Pseudo Forest'
+                };
+                const modeKey = modeMap[state.unit1Mode] || 'Pseudo Practice';
+                return state.unitProgress[modeKey] || [0];
+            }
+
             return state.unitProgress[state.activeUnit.name] || [0];
         }
     }
