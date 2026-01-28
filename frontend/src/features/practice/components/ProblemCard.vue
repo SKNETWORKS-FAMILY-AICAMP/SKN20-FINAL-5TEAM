@@ -112,12 +112,16 @@ export default {
 }
 
 .case-paper {
-  background: #fff;
-  color: #000;
-  padding: 15px;
-  font-family: 'Courier Prime', monospace;
-  font-size: 0.8rem;
-  line-height: 1.5;
+  background: #f4f3ee; 
+  color: #1a1a1a; 
+  padding: 20px;
+  font-family: var(--typewriter-font); 
+  font-size: 0.85rem; 
+  line-height: 1.4;
+  border: 1px solid #ccc;
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.1);
+  background-image: linear-gradient(#ccc 1px, transparent 1px);
+  background-size: 100% 1.4rem;
 }
 
 .case-header {
@@ -146,8 +150,8 @@ export default {
 
 .section-label {
   display: block;
-  color: #e74c3c;
-  font-size: 0.75rem;
+  color: #1a1a1a;
+  font-size: 0.65rem;
   margin-bottom: 5px;
   font-family: 'Press Start 2P', cursive;
 }
@@ -167,11 +171,11 @@ export default {
 }
 
 .case-section.missions .section-label {
-  color: #e67e22;
+  color: #1a1a1a;
 }
 
 .case-section.constraints .section-label {
-  color: #3498db;
+  color: #1a1a1a;
 }
 
 /* 모드 인디케이터 */
