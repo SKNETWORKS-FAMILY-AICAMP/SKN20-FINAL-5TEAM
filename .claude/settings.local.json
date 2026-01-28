@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nMerge branch ''main'' into debug_csy2\n\n충돌 해결:\n- bugHuntApi.js: 백엔드 API 호출 방식 유지 + step_feedbacks 필드 추가\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+    ]
+  }
+}

@@ -3,6 +3,7 @@ import axios from 'axios';
 import { aiQuests } from '../features/practice/support/unit1/logic-mirror/data/stages.js';
 import { aiDetectiveQuests } from '../features/practice/support/unit1/logic-mirror/data/aiDetectiveQuests.js';
 import progressiveData from '../features/practice/progressive-problems.json';
+import forestGameData from '../features/practice/PseudoForestData.js'; // [수정일: 2026-01-28] Forest 데이터 임포트
 
 /**
  * [수정일: 2026-01-27]
@@ -86,13 +87,25 @@ export const useGameStore = defineStore('game', {
                 const savedProgress = localStorage.getItem('logic_mirror_progress');
                 if (savedProgress) {
                     const parsed = JSON.parse(savedProgress);
-                    // [수정일: 2026-01-28] 구버전 데이터 호환 및 난이도별 시작점(0, 10, 20) 강제 해금 보장
-                    if (parsed['AI Detective']) {
+
+                    // [수정일: 2026-01-28] 전체 덮어쓰기 대신 기존 초기값(state)과 '병합(Merge)' 처리
+                    // 이렇게 하면 새로운 모드(Pseudo Forest 등)가 추가되어도 기존 유저의 로컬 데이터에 의해 지워지지 않습니다.
+                    Object.keys(this.unitProgress).forEach(key => {
+                        if (parsed[key]) {
+                            // 기존 데이터가 있으면 병합 후 중복 제거
+                            this.unitProgress[key] = Array.from(new Set([...this.unitProgress[key], ...parsed[key]])).sort((a, b) => a - b);
+                        }
+                    });
+
+                    // [수정일: 2026-01-28] AI Detective 난이도별 시작점 보장
+                    if (this.unitProgress['AI Detective']) {
                         [0, 10, 20].forEach(idx => {
-                            if (!parsed['AI Detective'].includes(idx)) parsed['AI Detective'].push(idx);
+                            if (!this.unitProgress['AI Detective'].includes(idx)) {
+                                this.unitProgress['AI Detective'].push(idx);
+                            }
                         });
+                        this.unitProgress['AI Detective'].sort((a, b) => a - b);
                     }
-                    this.unitProgress = parsed;
                 }
 
             } catch (error) {
@@ -124,15 +137,16 @@ export const useGameStore = defineStore('game', {
                     }));
                 }
                 else if (this.unit1Mode === 'pseudo-forest') {
-                    // [수정일: 2026-01-28] Pseudo Forest 전용 데이터 (현재는 placeholder)
-                    return [{
-                        id: 'forest-01',
-                        title: 'Forest Discovery',
-                        questIndex: 0,
-                        displayNum: 'F-01',
+                    // [수정일: 2026-01-28] Pseudo Forest 정규 10단계 데이터 매핑
+                    return forestGameData.map((q, idx) => ({
+                        id: `forest-${q.stageId}`,
+                        title: `${q.character.name}의 의뢰`, // [수정일: 2026-01-28] 맵 표시 이름 변경
+                        questIndex: idx,
+                        displayNum: `F-${idx + 1}`,
                         difficulty: 'medium',
+                        config: q,
                         mode: 'pseudo-forest'
-                    }];
+                    }));
                 }
                 else {
                     return aiDetectiveQuests.map((q, idx) => ({
@@ -197,10 +211,15 @@ export const useGameStore = defineStore('game', {
         },
 
         unlockNextStage(unitName, index) {
-            // [수정일: 2026-01-28] Unit 1의 경우 'Pseudo Practice' 또는 'AI Detective' 중 현재 활성 모드로 키값 결정
+            // [수정일: 2026-01-28] Unit 1의 경우 현재 활성 모드에 따라 키값 결정
             let targetKey = unitName;
             if (this.activeUnit?.name === 'Pseudo Practice') {
-                targetKey = this.unit1Mode === 'pseudo-practice' ? 'Pseudo Practice' : 'AI Detective';
+                const modeMap = {
+                    'pseudo-practice': 'Pseudo Practice',
+                    'ai-detective': 'AI Detective',
+                    'pseudo-forest': 'Pseudo Forest'
+                };
+                targetKey = modeMap[this.unit1Mode] || 'Pseudo Practice';
             }
 
             const progress = this.unitProgress[targetKey];
