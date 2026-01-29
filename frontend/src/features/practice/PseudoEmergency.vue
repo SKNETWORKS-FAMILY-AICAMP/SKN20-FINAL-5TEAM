@@ -189,11 +189,17 @@
 </template>
 
 <script>
-import { reactive, computed, nextTick, ref } from 'vue';
+import { reactive, computed, nextTick, ref, onMounted } from 'vue';
+import { useUiStore } from '@/stores/ui';
 
 export default {
   name: 'PseudoEmergency',
   setup() {
+    const ui = useUiStore();
+    
+    onMounted(() => {
+        ui.isNoticeOpen = false;
+    });
     // Stage Data
     const STAGES = [
         {
