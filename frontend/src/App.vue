@@ -134,6 +134,14 @@
                 >
                   <i data-lucide="trees"></i> pseudo forest
                 </button>
+                <!-- [수정일: 2026-01-29] Pseudo Company 메뉴 버튼 추가 -->
+                <button 
+                  class="game-mode-btn pseudo-company" 
+                  :class="{ 'active': game.unit1Mode === 'pseudo-company' }" 
+                  @click="selectUnit1Mode('pseudo-company')"
+                >
+                  <i data-lucide="building-2"></i> pseudo company
+                </button>
                 
                 <!-- [수정일: 2026-01-28] AI Detective 선택 시 난이도 필터 탭 노출 -->
                 <div v-if="game.unit1Mode === 'ai-detective'" class="difficulty-tabs animate-in fade-in slide-in-from-bottom-2">
@@ -214,7 +222,8 @@ const isPracticePage = computed(() => {
     'VibeCodeCleanUp', 
     'OpsPractice',
     'AiDetective',
-    'PseudoForest' // [수정일: 2026-01-28] Pseudo Forest 라우트 추가
+    'PseudoForest',
+    'PseudoCompany' // [수정일: 2026-01-29] Pseudo Company 라우트 추가
   ];
   return practiceRoutes.includes(route?.name);
 });
@@ -350,6 +359,8 @@ function selectProblem(problem) {
       router.push('/practice/ai-detective');
     } else if (game.unit1Mode === 'pseudo-forest') {
       router.push('/practice/pseudo-forest');
+    } else if (game.unit1Mode === 'pseudo-company') {
+      router.push('/practice/pseudo-company');
     } else {
       router.push('/practice/pseudo-code');
     }
@@ -449,7 +460,7 @@ watch(() => game.chapters, (newChapters) => {
 // [2026-01-24] 라우트 설정을 감시하여 Unit 1 모달 강제 제어 (필요 시 URL 직접 접근 대응)
 watch(() => route.name, (newName) => {
     // 1. URL이 변경될 때마다 모달 상태를 동기화합니다.
-    if (newName === 'PseudoCode' || newName === 'AiDetective' || newName === 'PseudoForest') {
+    if (newName === 'PseudoCode' || newName === 'AiDetective' || newName === 'PseudoForest' || newName === 'PseudoCompany') {
         ui.isPseudoCodeOpen = true; // 관련 라우트 접속 시 상태 활성화
         
         // [2026-01-27] 직접 URL 접근이나 새로고침 시 activeUnit이 상실되는 문제 해결
@@ -546,8 +557,20 @@ onUpdated(() => {
 }
 
 .game-mode-btn.pseudo-forest.active {
+  border: 2px solid white;
+}
+
+/* [수정일: 2026-01-29] Pseudo Company 버튼 스타일 (Blue/Corporate 테마) */
+.game-mode-btn.pseudo-company {
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  color: white;
+  box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
+  opacity: 0.6;
+}
+
+.game-mode-btn.pseudo-company.active {
   opacity: 1;
-  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.6);
+  box-shadow: 0 4px 20px rgba(14, 165, 233, 0.6);
   border: 2px solid white;
 }
 

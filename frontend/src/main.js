@@ -21,6 +21,7 @@ import VibeCodeCleanUp from './features/practice/VibeCodeCleanUp.vue'
 import OpsPractice from './features/practice/OpsPractice.vue'
 import AiDetectivePractice from './features/practice/AiDetectivePractice.vue' // [수정일: 2026-01-28] AI Detective 컴포넌트 임포트
 import PseudoForest from './features/practice/PseudoForest.vue' // [수정일: 2026-01-28] Pseudo Forest 컴포넌트 임포트
+import PseudoCompany from './features/practice/PsuedoCompany.vue' // [수정일: 2026-01-29] Pseudo Company 컴포넌트 임포트
 
 const routes = [
   {
@@ -65,6 +66,12 @@ const routes = [
     path: '/practice/pseudo-forest',
     name: 'PseudoForest',
     component: PseudoForest
+  },
+  {
+    // [수정일: 2026-01-29] Pseudo Company 라우트 등록
+    path: '/practice/pseudo-company',
+    name: 'PseudoCompany',
+    component: PseudoCompany
   },
   {
     path: '/main.html',
