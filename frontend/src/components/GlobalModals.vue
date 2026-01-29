@@ -76,8 +76,15 @@
     <!-- [Pseudo Code 실습 라우트 대응] - Unit 1 전용 (수정일: 2026-01-27) -->
 
     <!-- [Logic Mirror 가이드북 모달] - Unit 1 전용 (수정일: 2026-01-24) -->
-    <LogicMirrorGuidebook 
-        :isOpen="ui.isGuidebookOpen" 
+    <!-- [Bug Hunt 가이드북 모달] - Debug Practice 전용 (수정일: 2026-01-29) -->
+    <BugHuntGuidebook
+        v-if="game.activeUnit?.name === 'Debug Practice' && game.currentDebugMode === 'bug-hunt'"
+        :isOpen="ui.isGuidebookOpen"
+        @close="ui.isGuidebookOpen = false"
+    />
+    <LogicMirrorGuidebook
+        v-else
+        :isOpen="ui.isGuidebookOpen"
         @close="ui.isGuidebookOpen = false"
     />
 
@@ -118,6 +125,7 @@ import SignUpModal from './SignUpModal.vue';
 import ConstructionModal from './ConstructionModal.vue';
 import PseudoPractice from '../features/practice/Pseudo_practice.vue';
 import LogicMirrorGuidebook from '../features/practice/support/unit1/logic-mirror/LogicMirrorGuidebook.vue';
+import BugHuntGuidebook from '../features/practice/BugHuntGuidebook.vue';
 
 /**
  * [수정일: 2026-01-24] 
