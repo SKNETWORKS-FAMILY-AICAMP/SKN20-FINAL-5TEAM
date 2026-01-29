@@ -840,7 +840,6 @@ import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
 import progressiveData from './progressive-problems.json';
 import { evaluateBugHunt } from './services/bugHuntApi';
 import './BugHunt.css';
-import './animations.css';
 
 const route = useRoute();
 const router = useRouter();
@@ -1798,5 +1797,4 @@ onUnmounted(() => {
 </script>
 
 
-<style src="./BugHunt.css" scoped></style>
-<style src="./animations.css"></style>
+<style scoped src="./BugHunt.css"></style>
