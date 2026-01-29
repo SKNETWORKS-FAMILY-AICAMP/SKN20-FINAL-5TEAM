@@ -19,6 +19,8 @@ import SystemArchitecturePractice from './features/practice/SystemArchitecturePr
 import BugHunt from './features/practice/BugHunt.vue'
 import VibeCodeCleanUp from './features/practice/VibeCodeCleanUp.vue'
 import OpsPractice from './features/practice/OpsPractice.vue'
+import AiDetectivePractice from './features/practice/AiDetectivePractice.vue' // [수정일: 2026-01-28] AI Detective 컴포넌트 임포트
+import PseudoForest from './features/practice/PseudoForest.vue' // [수정일: 2026-01-28] Pseudo Forest 컴포넌트 임포트
 
 const routes = [
   {
@@ -28,9 +30,9 @@ const routes = [
   },
   // [2026-01-27] Pseudo Practice (구 Logic Mirror) 라우트 최신화
   {
-    path: '/practice/pseudo',
-    name: 'PseudoPractice',
-    component: { render: () => null } // 실제 컴포넌트는 GlobalModals에서 렌더링 (배경 유지용)
+    path: '/practice/pseudo-code',
+    name: 'PseudoCode',
+    component: PseudoPractice
   },
   {
     path: '/practice/system-architecture',
@@ -51,6 +53,18 @@ const routes = [
     path: '/practice/ops-practice',
     name: 'OpsPractice',
     component: OpsPractice
+  },
+  {
+    // [수정일: 2026-01-28] AI Detective 라우트 등록
+    path: '/practice/ai-detective',
+    name: 'AiDetective',
+    component: AiDetectivePractice
+  },
+  {
+    // [수정일: 2026-01-28] Pseudo Forest 라우트 등록
+    path: '/practice/pseudo-forest',
+    name: 'PseudoForest',
+    component: PseudoForest
   },
   {
     path: '/main.html',

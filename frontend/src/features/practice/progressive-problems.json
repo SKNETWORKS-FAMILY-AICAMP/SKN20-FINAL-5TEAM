@@ -3,7 +3,7 @@
     {
       "id": "P1",
       "project_title": "정확도가 비정상적으로 높은 분류 모델",
-      "scenario": "사용자 이탈 여부를 예측하는 분류 모델을 만들고 있습니다. 학습은 정상적으로 완료되었고 정확도도 높게 나오지만, 실제 서비스에서는 예측이 거의 무작위에 가깝다는 문제가 보고되었습니다. 학습 파이프라인의 기본 버그를 찾아 수정하세요.",
+      "scenario": "사용자 이탈 여부를 예측하는 분류 모델을 만들고 있습니다. 학습은 정상적으로 완료되었고 정확도도 높게 나오지만, 실제 서비스에서는 예측이 거의 무작위에 가깝다는 문제가 보고되었습니다.",
       "difficulty": 1,
       "totalSteps": 3,
       "steps": [
@@ -13,7 +13,7 @@
           "bug_type": "A",
           "bug_type_name": "Data Leakage",
           "questions": {
-            "text": "모델 정확도가 0.98로 매우 높게 나오는데 실제 성능이 낮다면, 가장 먼저 의심해야 할 원인은 무엇일까요?",
+            "text": "모델 정확도가 0.98로 매우 높게 나오는데 실제 성능이 낮다면, 가장 먼저 의심해야 할 원인은?",
             "options": [
               "모델 구조가 너무 단순해서",
               "테스트 데이터 정보가 학습 과정에 포함되었을 가능성",
@@ -22,14 +22,19 @@
             ],
             "answer": 1
           },
-          "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\ndef prepare_data(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n\n    scaler = StandardScaler()\n    X_scaled = scaler.fit_transform(X)\n\n    X_train, X_test, y_train, y_test = train_test_split(\n        X_scaled, y, test_size=0.2, random_state=42\n    )\n    return X_train, X_test, y_train, y_test",
-          "correct_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\ndef prepare_data(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n\n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42\n    )\n\n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    return X_train, X_test, y_train, y_test",
-          "hint": "전처리 과정에서 테스트 데이터의 정보가 학습에 섞이지 않도록 수정하세요. (fit_transform 적용 대상을 확인)",
+          "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\ndef prepare_data(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X)\n    X_test = scaler.transform(X_test)\n    return X_train, X_test, y_train, y_test",
+          "correct_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\ndef prepare_data(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    return X_train, X_test, y_train, y_test",
+          "hint": "scaler.fit_transform(X)를 전체 데이터로 하면 test 정보가 학습에 포함됩니다.",
           "solution_check": {
-            "type": "contains",
-            "value": "fit_transform(X_train)"
+            "type": "multi_condition",
+            "required_all": [
+              "fit_transform(X_train)"
+            ],
+            "forbidden": [
+              "fit_transform(X)"
+            ]
           },
-          "coaching": "테스트 데이터의 통계 정보가 학습에 들어가면, 재현 불가능한 성능 착시가 발생합니다."
+          "coaching": "🎯 현업: Data Leakage는 모델이 '너무 잘 나올 때' 의심해야 하는 1순위 버그입니다. 전처리는 반드시 train/test 분할 후에 해야 합니다."
         },
         {
           "step": 2,
@@ -37,54 +42,66 @@
           "bug_type": "B",
           "bug_type_name": "Metric Misuse",
           "questions": {
-            "text": "학습 로그에 출력된 accuracy가 신뢰하기 어렵습니다. 가장 가능성이 높은 이유는 무엇일까요?",
+            "text": "accuracy가 1.0으로 나와 신뢰하기 어렵습니다. 가장 가능성이 높은 이유는?",
             "options": [
               "정확도는 분류 문제에 적합하지 않아서",
-              "훈련 데이터 기준으로 성능을 계산했기 때문에",
               "모델이 너무 복잡해서",
-              "난수 시드(seed)를 고정하지 않았기 때문에"
+              "예측값을 자기 자신과 비교했기 때문에",
+              "난수 시드를 고정하지 않았기 때문에"
             ],
-            "answer": 1
+            "answer": 2
           },
-          "buggy_code": "from sklearn.metrics import accuracy_score\n\ndef evaluate(model, X_test, y_test, y_pred):\n    # AS-IS\n    accuracy = accuracy_score(y_pred, y_pred)\n    return accuracy",
-          "correct_code": "from sklearn.metrics import accuracy_score\n\ndef evaluate(model, X_test, y_test, y_pred):\n    # TO-BE (수정된 부분)\n    accuracy = accuracy_score(y_test, y_pred)\n    return accuracy",
-          "hint": "정확도는 '정답(y_test)'과 '예측(y_pred)'을 비교해야 합니다. 비교 대상을 올바르게 수정하세요.",
+          "buggy_code": "from sklearn.metrics import accuracy_score\n\ndef evaluate(model, X_test, y_test, y_pred):\n    accuracy = accuracy_score(y_pred, y_pred)\n    return accuracy",
+          "correct_code": "from sklearn.metrics import accuracy_score\n\ndef evaluate(model, X_test, y_test, y_pred):\n    accuracy = accuracy_score(y_test, y_pred)\n    return accuracy",
+          "hint": "accuracy_score는 '정답'과 '예측'을 비교해야 합니다. 같은 값끼리 비교하면 항상 1.0이 나옵니다.",
           "solution_check": {
-            "type": "contains",
-            "value": "accuracy_score(y_test, y_pred)"
+            "type": "multi_condition",
+            "required_all": [
+              "accuracy_score(y_test, y_pred)"
+            ],
+            "forbidden": [
+              "accuracy_score(y_pred, y_pred)",
+              "accuracy_score(y_train"
+            ]
           },
-          "coaching": "평가 지표는 항상 '정답 vs 예측' 비교입니다. 잘못 비교하면 높은 점수가 나와도 전혀 의미가 없습니다."
+          "coaching": "🎯 현업: 평가 지표는 항상 '정답 vs 예측'을 비교합니다. 같은 값끼리 비교하는 실수는 초보자가 가장 많이 하는 실수입니다."
         },
         {
           "step": 3,
-          "title": "라벨 인코딩 재사용 오류 (Silent Bug)",
+          "title": "라벨 인코딩 재사용 오류",
           "bug_type": "C",
           "bug_type_name": "Encoding Drift",
           "questions": {
-            "text": "라벨 인코딩을 train/test에 각각 따로 fit하면 어떤 문제가 생길 수 있을까요?",
+            "text": "라벨 인코딩을 train/test에 각각 따로 fit하면 어떤 문제가 생길까요?",
             "options": [
-              "학습 속도가 느려진다",
               "train과 test의 라벨 숫자 의미가 달라질 수 있다",
+              "학습 속도가 느려진다",
               "메모리 사용량이 증가한다",
               "모델 구조가 자동으로 변경된다"
             ],
-            "answer": 1
+            "answer": 0
           },
           "buggy_code": "from sklearn.preprocessing import LabelEncoder\n\ndef encode_labels(y_train, y_test):\n    le = LabelEncoder()\n    y_train = le.fit_transform(y_train)\n    y_test = le.fit_transform(y_test)\n    return y_train, y_test",
           "correct_code": "from sklearn.preprocessing import LabelEncoder\n\ndef encode_labels(y_train, y_test):\n    le = LabelEncoder()\n    y_train = le.fit_transform(y_train)\n    y_test = le.transform(y_test)\n    return y_train, y_test",
-          "hint": "학습 데이터로만 인코딩 기준을 만들고, 테스트에는 transform만 적용하도록 수정하세요.",
+          "hint": "인코딩 기준은 train으로만 만들고, test에는 그 기준을 적용해야 합니다.",
           "solution_check": {
-            "type": "contains",
-            "value": "y_test = le.transform(y_test)"
+            "type": "multi_condition",
+            "required_all": [
+              "y_test = le.transform(y_test)"
+            ],
+            "forbidden": [
+              "fit_transform(y_test)",
+              "fit(y_test)"
+            ]
           },
-          "coaching": "인코딩 기준이 달라지면 모델은 서로 다른 의미의 숫자를 학습/평가하게 됩니다. 반드시 같은 인코더를 재사용하세요."
+          "coaching": "🎯 현업: 인코딩 기준이 달라지면 모델은 완전히 다른 의미의 숫자를 학습/평가하게 됩니다. 전처리 객체는 항상 저장해서 재사용하세요."
         }
       ]
     },
     {
       "id": "P2",
       "project_title": "데이터 전처리 파이프라인 기본 방어",
-      "scenario": "사용자 행동 로그로 이탈 예측 모델을 학습하고 있습니다. 전처리 파이프라인이 종종 예외로 터지거나, 학습이 ‘되는 것처럼’ 보이지만 결과가 불안정합니다. 기본적인 안정성 버그를 수정하세요.",
+      "scenario": "사용자 행동 로그로 이탈 예측 모델을 학습하고 있습니다. 전처리 파이프라인이 종종 예외로 터지거나, 학습이 '되는 것처럼' 보이지만 결과가 불안정합니다.",
       "difficulty": 2,
       "totalSteps": 3,
       "steps": [
@@ -94,23 +111,24 @@
           "bug_type": "A",
           "bug_type_name": "Null Handling",
           "questions": {
-            "text": "모델 학습 직전에 'Input contains NaN' 에러가 발생했습니다. 가장 가능성이 높은 원인은 무엇일까요?",
+            "text": "모델 학습 직전에 'Input contains NaN' 에러가 발생했습니다. 가장 가능성이 높은 원인은?",
             "options": [
               "학습 데이터가 너무 커서",
               "전처리 과정에서 결측치(NaN)가 남아 있어서",
               "모델이 너무 단순해서",
-              "정규화(normalization)를 해서"
+              "정규화를 해서"
             ],
             "answer": 1
           },
-          "buggy_code": "import pandas as pd\n\ndef preprocess(df):\n    # AS-IS\n    df['age'] = df['age'].astype(int)\n    df['spend'] = df['spend'].astype(float)\n    return df",
-          "correct_code": "import pandas as pd\n\ndef preprocess(df):\n    # TO-BE (수정된 부분)\n    df = df.copy()\n    df['age'] = df['age'].fillna(0).astype(int)\n    df['spend'] = df['spend'].fillna(0).astype(float)\n    return df",
-          "hint": "결측치(NaN)를 처리하지 않으면 많은 모델이 학습 단계에서 실패합니다. fillna를 적용하세요.",
+          "buggy_code": "import pandas as pd\n\ndef preprocess(df):\n    df = df.copy()\n    df['age'] = df['age'].astype(int)\n    return df",
+          "correct_code": "import pandas as pd\n\ndef preprocess(df):\n    df = df.copy()\n    df['age'] = df['age'].fillna(0).astype(int)\n    return df",
+          "hint": "NaN이 있으면 astype()이 실패합니다. 결측치를 처리하세요.",
           "solution_check": {
-            "type": "contains",
-            "value": "fillna("
+            "type": "regex",
+            "value": "(fillna\\(\\s*(0)?\\s*\\)|dropna\\(\\s*\\))",
+            "flags": ""
           },
-          "coaching": "에러를 막는 것만이 아니라, 결측치를 어떤 값으로 대체할지(0, 평균 등)까지가 엔지니어 판단입니다."
+          "coaching": "🎯 현업: 실무 데이터는 항상 결측치를 포함합니다. fillna(0), fillna(평균), fillna(중앙값) 중 도메인에 맞는 전략을 선택하세요."
         },
         {
           "step": 2,
@@ -118,7 +136,7 @@
           "bug_type": "B",
           "bug_type_name": "Null Guard",
           "questions": {
-            "text": "사용자별 평균 구매액을 계산하는 코드에서 ZeroDivisionError가 발생했습니다. 어떤 상황이 가장 그럴듯할까요?",
+            "text": "사용자별 평균 구매액 계산 시 'division by zero' 에러가 발생했습니다. 어떤 상황일까요?",
             "options": [
               "구매액이 너무 커서",
               "특정 사용자의 구매 횟수(count)가 0이어서",
@@ -127,45 +145,53 @@
             ],
             "answer": 1
           },
-          "buggy_code": "def avg_spend(total_spend, count):\n    # AS-IS\n    return total_spend / count",
-          "correct_code": "def avg_spend(total_spend, count):\n    # TO-BE (수정된 부분)\n    if count == 0:\n        return 0\n    return total_spend / count",
-          "hint": "분모(count)가 0이 될 수 있는지 확인하고, 예외를 방어하세요.",
+          "buggy_code": "def avg_spend(total_spend, count):\n    return total_spend / count",
+          "correct_code": "def avg_spend(total_spend, count):\n    if count == 0:\n        return 0\n    return total_spend / count",
+          "hint": "count가 0일 때를 방어해야 합니다.",
           "solution_check": {
-            "type": "contains",
-            "value": "if count == 0"
+            "type": "multi_condition",
+            "required_all": [
+              "if count == 0"
+            ],
+            "forbidden": []
           },
-          "coaching": "실무 데이터는 항상 비어있는 그룹(0)이 존재합니다. 방어 코드는 선택이 아니라 필수입니다."
+          "coaching": "🎯 현업: 신규 가입자나 비활성 사용자는 count가 0일 수 있습니다. 방어 코드는 선택이 아니라 필수입니다."
         },
         {
           "step": 3,
-          "title": "원본 데이터 보존 (State Leak 방지)",
+          "title": "원본 데이터 보존 (State Leak)",
           "bug_type": "C",
           "bug_type_name": "State Leak",
           "questions": {
-            "text": "전처리 함수를 호출한 뒤 원본 데이터프레임까지 함께 바뀌었습니다. 가장 적절한 설명은 무엇일까요?",
+            "text": "전처리 함수를 호출한 뒤 원본 데이터프레임까지 함께 바뀌었습니다. 왜일까요?",
             "options": [
-              "컴퓨터 메모리가 부족해서",
-              "데이터프레임이 참조(Reference)로 전달되어 원본이 수정되었기 때문에",
+              "메모리가 부족해서",
+              "데이터프레임이 참조로 전달되어 원본이 수정되었기 때문에",
               "Pandas 버그라서",
-              "파이썬이 전역 변수를 자동 생성해서"
+              "전역 변수가 자동 생성되어서"
             ],
             "answer": 1
           },
-          "buggy_code": "def add_feature(df):\n    # AS-IS\n    df['is_vip'] = df['spend'] > 100\n    return df",
-          "correct_code": "def add_feature(df):\n    # TO-BE (수정된 부분)\n    new_df = df.copy()\n    new_df['is_vip'] = new_df['spend'] > 100\n    return new_df",
-          "hint": "원본을 직접 수정하지 않도록 copy()로 복사본을 만들어 작업하세요.",
+          "buggy_code": "def add_feature(df):\n    df['is_vip'] = df['spend'] > 100\n    return df",
+          "correct_code": "def add_feature(df):\n    df = df.copy()\n    df['is_vip'] = df['spend'] > 100\n    return df",
+          "hint": "DataFrame은 참조로 전달되므로 원본이 수정됩니다. 복사본을 만들어 작업하세요.",
           "solution_check": {
-            "type": "contains",
-            "value": "copy()"
+            "type": "multi_condition",
+            "required_all": [
+              ".copy()"
+            ],
+            "forbidden": [
+              "inplace=True"
+            ]
           },
-          "coaching": "상태 누수(State Leak)가 있으면 재현(reproducibility, 재현성) 가능한 실험이 불가능해집니다."
+          "coaching": "🎯 현업: State Leak는 재현 불가능한 버그의 주요 원인입니다. 함수는 입력을 변경하지 않고 새로운 객체를 반환하세요."
         }
       ]
     },
     {
       "id": "P3",
       "project_title": "평가 파이프라인 신뢰성 확보",
-      "scenario": "이탈 예측 모델을 배포하기 전, 성능 리포트를 만들었습니다. 그런데 리포트 수치가 과도하게 좋거나, 실행할 때마다 결과가 달라집니다. 평가 파이프라인을 신뢰 가능하게 고치세요.",
+      "scenario": "이탈 예측 모델을 배포하기 전 성능 리포트를 만들었습니다. 그런데 리포트 수치가 과도하게 좋거나, 실행할 때마다 결과가 달라집니다.",
       "difficulty": 3,
       "totalSteps": 3,
       "steps": [
@@ -175,23 +201,24 @@
           "bug_type": "A",
           "bug_type_name": "Sampling Bug",
           "questions": {
-            "text": "이탈(churn) 비율이 5%인 데이터에서 매번 평가 결과가 크게 흔들립니다. 가장 먼저 의심해야 할 것은 무엇일까요?",
+            "text": "이탈률 5%인 데이터에서 매번 평가 결과가 크게 흔들립니다. 가장 먼저 의심해야 할 것은?",
             "options": [
               "모델이 너무 단순해서",
               "train/test 분할 시 클래스 비율이 깨졌을 가능성",
               "전처리 시간이 너무 길어서",
-              "특성(feature)이 너무 많아서"
+              "특성이 너무 많아서"
             ],
             "answer": 1
           },
-          "buggy_code": "from sklearn.model_selection import train_test_split\n\ndef split(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2\n    )\n    return X_train, X_test, y_train, y_test",
-          "correct_code": "from sklearn.model_selection import train_test_split\n\ndef split(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, stratify=y, random_state=42\n    )\n    return X_train, X_test, y_train, y_test",
-          "hint": "불균형 데이터에서는 stratify 옵션으로 클래스 비율을 유지하도록 수정하세요.",
+          "buggy_code": "from sklearn.model_selection import train_test_split\n\ndef split(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42\n    )\n    return X_train, X_test, y_train, y_test", 
+          "correct_code": "from sklearn.model_selection import train_test_split\n\ndef split(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42, stratify=y\n    )\n    return X_train, X_test, y_train, y_test",
+          "hint": "데이터가 불균형합니다. train_test_split의 특정 파라미터를 활용해 y 클래스 비율을 유지하세요.",
           "solution_check": {
-            "type": "contains",
-            "value": "stratify=y"
+            "type": "regex",
+            "value": "stratify\\s*=\\s*y\\s*(?=,\\s*\\w|\\))",
+            "flags": ""
           },
-          "coaching": "평가의 흔들림은 종종 모델 문제가 아니라 ‘분할 방식’ 문제입니다."
+          "coaching": "🎯 현업: 불균형 데이터(사기 탐지, 이탈 예측)에서 stratify 없이 split하면 test에 positive 샘플이 거의 없어 평가가 무의미해집니다."
         },
         {
           "step": 2,
@@ -199,33 +226,37 @@
           "bug_type": "B",
           "bug_type_name": "Non-determinism",
           "questions": {
-            "text": "같은 코드로 학습했는데 실행할 때마다 점수가 다릅니다. 가장 그럴듯한 원인은 무엇일까요?",
+            "text": "같은 코드로 학습했는데 실행할 때마다 점수가 다릅니다. 가장 그럴듯한 원인은?",
             "options": [
               "CPU 성능이 달라서",
-              "난수 시드(seed)가 고정되지 않아서",
+              "난수 시드가 고정되지 않아서",
               "데이터가 너무 많아서",
               "모델이 너무 단순해서"
             ],
             "answer": 1
           },
-          "buggy_code": "import numpy as np\n\ndef train(model, X_train, y_train):\n    model.fit(X_train, y_train)\n    return model",
+          "buggy_code": "import numpy as np\nimport random\n\ndef train(model, X_train, y_train):\n    random.seed(42)\n    model.fit(X_train, y_train)\n    return model",
           "correct_code": "import numpy as np\nimport random\n\ndef train(model, X_train, y_train):\n    random.seed(42)\n    np.random.seed(42)\n    model.fit(X_train, y_train)\n    return model",
-          "hint": "결과 재현을 위해 random/np 난수 시드(seed)를 고정하도록 수정하세요.",
+          "hint": "결과를 재현하려면 Numpy의 난수 시드를 학습 전에 고정하세요.",
           "solution_check": {
-            "type": "contains",
-            "value": "np.random.seed(42)"
+            "type": "multi_condition",
+            "required_all": [
+              "np.random.seed(",
+              "random.seed("
+            ],
+            "forbidden": []
           },
-          "coaching": "재현성 없는 리포트는 신뢰할 수 없고, 디버깅도 불가능해집니다."
+          "coaching": "🎯 현업: 재현 불가능하면 A/B 테스트, 디버깅, 하이퍼파라미터 튜닝이 모두 무의미해집니다. 시드 고정은 필수입니다."
         },
         {
           "step": 3,
-          "title": "지표 선택 오류 (Accuracy 함정)",
+          "title": "불균형 데이터 지표 선택 오류 (Accuracy 함정)",
           "bug_type": "C",
           "bug_type_name": "Metric Choice",
           "questions": {
-            "text": "불균형 데이터에서 accuracy만 보면 좋아 보이지만 실사용에서 실패합니다. 가장 적절한 이유는 무엇일까요?",
+            "text": "이탈률 5%인 데이터에서 accuracy 95%가 나왔지만 이탈 고객을 하나도 못 잡습니다. 이유는?",
             "options": [
-              "accuracy가 불균형 데이터에서 오해를 만들 수 있어서",
+              "accuracy가 불균형 데이터에서 다수 클래스에 편향되어 오해를 만들 수 있어서",
               "모델이 너무 복잡해서",
               "데이터가 너무 커서",
               "전처리를 해서"
@@ -234,19 +265,25 @@
           },
           "buggy_code": "from sklearn.metrics import accuracy_score\n\ndef evaluate(model, X_test, y_test):\n    y_pred = model.predict(X_test)\n    return accuracy_score(y_test, y_pred)",
           "correct_code": "from sklearn.metrics import f1_score\n\ndef evaluate(model, X_test, y_test):\n    y_pred = model.predict(X_test)\n    return f1_score(y_test, y_pred)",
-          "hint": "불균형 데이터에서는 F1, Precision/Recall 같은 지표를 사용하도록 수정하세요.",
+          "hint": "불균형 데이터에서는 accuracy 대신 재현율과 정밀도를 모두 고려하는 지표를 사용하세요.",
           "solution_check": {
-            "type": "contains",
-            "value": "f1_score"
+            "type": "multi_condition",
+            "required_all": [],
+            "required_any": [
+              "f1_score"
+            ],
+            "forbidden": [
+              "accuracy_score"
+            ]
           },
-          "coaching": "서비스 관점에서는 ‘맞춘 개수’보다 ‘놓친 케이스(이탈/사기)’를 줄이는 것이 더 중요할 때가 많습니다."
+          "coaching": "🎯 현업: 모든 것을 '유지'로 예측해도 95% accuracy가 나옵니다. F1-score는 recall과 precision과 조화평균으로 불균형 데이터에 적합합니다."
         }
       ]
     },
     {
       "id": "P4",
       "project_title": "배포 전 마지막 함정 제거",
-      "scenario": "모델은 충분히 학습되었고 평가도 통과했습니다. 하지만 배포 직전 점검에서 운영 환경에서만 터지는 문제가 발견되었습니다. 입력 스키마와 전처리 아티팩트(artifact, 산출물) 일관성을 보장하도록 수정하세요.",
+      "scenario": "모델은 충분히 학습되었고 평가도 통과했습니다. 하지만 배포 직전 점검에서 운영 환경에서만 터지는 문제가 발견되었습니다.",
       "difficulty": 4,
       "totalSteps": 3,
       "steps": [
@@ -256,23 +293,26 @@
           "bug_type": "A",
           "bug_type_name": "Schema Drift",
           "questions": {
-            "text": "오프라인 평가에서는 통과했는데, 운영 환경에서 예측 시 컬럼 관련 에러가 발생했습니다. 가장 의심되는 원인은 무엇일까요?",
+            "text": "오프라인에서는 통과했는데 운영에서 'Feature names mismatch' 에러가 발생했습니다. 원인은?",
             "options": [
               "모델이 너무 커서",
-              "학습 시 사용한 피처 컬럼과 서빙 입력 컬럼이 달라서",
+              "학습 시 사용한 피처 컬럼과 서빙 입력 컬럼의 순서나 개수가 달라서",
               "데이터가 너무 적어서",
               "난수 시드를 고정해서"
             ],
             "answer": 1
           },
-          "buggy_code": "def serve(model, input_df):\n    # AS-IS\n    return model.predict(input_df)",
-          "correct_code": "def serve(model, input_df, feature_cols):\n    # TO-BE (수정된 부분)\n    X = input_df[feature_cols]\n    return model.predict(X)",
-          "hint": "서빙 시에도 학습과 동일한 피처 컬럼/순서를 강제하도록 수정하세요.",
+          "buggy_code": "def serve(model, input_df):\n    return model.predict(input_df)",
+          "correct_code": "def serve(model, input_df, feature_cols):\n    X = input_df[feature_cols]\n    return model.predict(X)",
+          "hint": "학습 시 사용한 feature 컬럼 리스트를 저장해두고, 서빙 시 그 컬럼만 선택해서 사용하세요.",
           "solution_check": {
-            "type": "contains",
-            "value": "input_df[feature_cols]"
+            "type": "multi_condition",
+            "required_all": [
+              "input_df[feature_cols]"
+            ],
+            "forbidden": []
           },
-          "coaching": "운영 이슈의 상당수는 모델이 아니라 ‘스키마 불일치’에서 발생합니다."
+          "coaching": "🎯 현업: Train-Serve Skew는 ML 시스템 장애의 70% 이상을 차지합니다. Feature 컬럼 리스트를 모델 메타데이터로 저장하세요."
         },
         {
           "step": 2,
@@ -280,10 +320,10 @@
           "bug_type": "B",
           "bug_type_name": "Unseen Category",
           "questions": {
-            "text": "운영 데이터에 학습 때 없던 새로운 카테고리가 들어오면 어떤 문제가 생길 수 있을까요?",
+            "text": "운영 데이터에 학습 때 없던 신규 국가 코드가 들어오면서 에러가 발생했습니다. 어떤 문제일까요?",
             "options": [
               "속도가 빨라진다",
-              "인코더가 에러를 내거나 잘못된 매핑을 할 수 있다",
+              "인코더가 학습 시 보지 못한 카테고리를 처리하지 못해 에러를 낸다",
               "메모리가 줄어든다",
               "정확도가 자동으로 올라간다"
             ],
@@ -291,12 +331,16 @@
           },
           "buggy_code": "from sklearn.preprocessing import OneHotEncoder\n\ndef fit_encoder(train_cat):\n    enc = OneHotEncoder()\n    enc.fit(train_cat)\n    return enc",
           "correct_code": "from sklearn.preprocessing import OneHotEncoder\n\ndef fit_encoder(train_cat):\n    enc = OneHotEncoder(handle_unknown='ignore')\n    enc.fit(train_cat)\n    return enc",
-          "hint": "운영에서 새로운 카테고리가 들어와도 터지지 않도록 handle_unknown 옵션을 수정하세요.",
+          "hint": "OneHotEncoder에 handle_unknown='_ _ _ _ _ _' 옵션을 설정하세요.",
+
           "solution_check": {
-            "type": "contains",
-            "value": "handle_unknown='ignore'"
+            "type": "multi_condition",
+            "required_all": [
+              "handle_unknown='ignore'"
+            ],
+            "forbidden": []
           },
-          "coaching": "운영 데이터는 항상 학습 데이터보다 더 다양합니다. 방어가 없으면 바로 장애로 이어집니다."
+          "coaching": "🎯 현업: 운영 데이터는 항상 학습 데이터보다 다양합니다. 새 상품, 신규 국가 등이 계속 추가되므로 방어 코드가 필수입니다."
         },
         {
           "step": 3,
@@ -304,23 +348,28 @@
           "bug_type": "C",
           "bug_type_name": "Artifact Drift",
           "questions": {
-            "text": "운영에서 성능이 갑자기 나빠졌는데 모델은 바꾸지 않았습니다. 가장 가능성이 높은 원인은 무엇일까요?",
+            "text": "모델을 재배포했는데 성능이 갑자기 나빠졌습니다. 모델 코드는 안 바꿨는데 왜일까요?",
             "options": [
               "모델이 스스로 변해서",
-              "전처리기(scaler/encoder)와 모델의 버전이 맞지 않아서",
+              "전처리기가 재학습되어 이전과 다른 기준으로 변환하기 때문에",
               "CPU가 느려져서",
               "데이터가 줄어서"
             ],
             "answer": 1
           },
-          "buggy_code": "import joblib\n\ndef save_model(model, path):\n    joblib.dump(model, path)\n    return path",
-          "correct_code": "import joblib\n\ndef save_bundle(model, scaler, encoder, path):\n    bundle = {\n        'model': model,\n        'scaler': scaler,\n        'encoder': encoder\n    }\n    joblib.dump(bundle, path)\n    return path",
-          "hint": "모델만 저장하면 동일한 전처리를 재현할 수 없습니다. 전처리기까지 함께 저장하도록 수정하세요.",
+          "buggy_code": "import joblib\n\ndef save_model(model, scaler, encoder, path):\n    joblib.dump(model, path)\n    return path",
+          "correct_code": "import joblib\n\ndef save_model(model, scaler, encoder, path):\n    bundle = {\n        'model': model,\n        'scaler': scaler,\n        'encoder': encoder\n    }\n    joblib.dump(bundle, path)\n    return path",
+          "hint": "모델뿐 아니라 scaler, encoder도 함께 저장해야 합니다. 딕셔너리로 묶어서 bundle 형태로 만든 후 dump하세요.",
           "solution_check": {
-            "type": "contains",
-            "value": "'encoder'"
+            "type": "multi_condition",
+            "required_all": [
+              "'model':",
+              "'scaler':",
+              "'encoder':"
+            ],
+            "forbidden": []
           },
-          "coaching": "운영 품질은 모델보다 ‘전처리/버전 일관성’에서 무너지는 경우가 많습니다."
+          "coaching": "🎯 현업: 모델만 저장하면 전처리 기준이 달라져서 성능이 무너집니다. 모델+전처리기를 하나의 번들로 관리하세요."
         }
       ]
     }

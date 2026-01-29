@@ -5,7 +5,7 @@
 <template>
   <div id="app" v-cloak>
     <!-- [라우터 뷰 - Practice 페이지 (메인 레이아웃 없이 단독 표시)] -->
-    <router-view v-if="isPracticePage"></router-view>
+    <router-view v-if="isPracticePage" @close="handlePracticeClose"></router-view>
 
     <!-- [메인 페이지] -->
     <template v-else>
@@ -45,6 +45,11 @@
                   <template v-if="game.activeUnit?.name === 'Debug Practice'">
                     {{ game.currentDebugMode === 'bug-hunt' ? '🐞 Bug Hunt' : '✨ Vibe Code Clean Up' }}
                   </template>
+                  <template v-else-if="game.activeUnit?.name === 'Pseudo Practice'">
+                    <template v-if="game.unit1Mode === 'ai-detective'">🕵️ AI Detective</template>
+                    <template v-else-if="game.unit1Mode === 'pseudo-forest'">🌳 Pseudo Forest</template>
+                    <template v-else>💻 Pseudo Practice</template>
+                  </template>
                   <template v-else>
                     {{ game.activeUnit?.unitTitle || (game.activeUnit?.problems && game.activeUnit.problems[0]?.title) || game.activeUnit?.name || 'Loading...' }}
                   </template>
@@ -67,16 +72,16 @@
 
                 <div v-for="(problem, pIdx) in displayProblems" :key="problem.id" class="node-platform-v3"
                 :class="['node-' + pIdx, {
-                  active: pIdx === currentMaxIdx,
-                  unlocked: game.currentUnitProgress.includes(pIdx)
+                  active: problem.questIndex === currentMaxIdx,
+                  unlocked: game.currentUnitProgress.includes(problem.questIndex)
                 }]"
-                @click="isUnlocked(pIdx) && selectProblem(problem)">
+                @click="isUnlocked(problem.questIndex) && selectProblem(problem)">
 
-                <div class="platform-glow-v3" v-if="pIdx === currentMaxIdx"></div>
+                <div class="platform-glow-v3" v-if="problem.questIndex === currentMaxIdx"></div>
 
                 <div class="platform-circle-v3">
-                  <template v-if="game.currentUnitProgress.includes(pIdx)">
-                    <img v-if="pIdx === currentMaxIdx" src="/image/unit_duck.png" class="duck-on-node-v3">
+                  <template v-if="game.currentUnitProgress.includes(problem.questIndex)">
+                    <img v-if="problem.questIndex === currentMaxIdx" src="/image/unit_duck.png" class="duck-on-node-v3">
                     <div style="width: 20px; height: 20px; background: #b6ff40; border-radius: 50%; box-shadow: 0 0 10px #b6ff40;"></div>
                   </template>
                   <template v-else>
@@ -85,7 +90,12 @@
                 </div>
 
                 <div class="node-label-premium">
-                  {{ problem.displayNum || problem.title }} - {{ problem.title }}
+                  <template v-if="game.activeUnit?.name === 'Debug Practice' && game.currentDebugMode === 'vibe-cleanup'">
+                    개발중..
+                  </template>
+                  <template v-else>
+                    {{ problem.displayNum || problem.title }} - {{ problem.title }}
+                  </template>
                 </div>
               </div>
 
@@ -100,10 +110,52 @@
           </div>
 
             <footer class="unit-stats-bar-v3">
-              <template v-if="game.activeUnit?.name === 'Debug Practice'">
+              <!-- [수정일: 2026-01-28] Unit 1(Pseudo Practice) 전용 모드 전환 버튼 추가 -->
+              <template v-if="game.activeUnit?.name === 'Pseudo Practice'">
+                <button 
+                  class="game-mode-btn pseudo-practice" 
+                  :class="{ 'active': game.unit1Mode === 'pseudo-practice' }" 
+                  @click="selectUnit1Mode('pseudo-practice')"
+                >
+                  <i data-lucide="code-2"></i> pseudo practice
+                </button>
+                <button 
+                  class="game-mode-btn ai-detective" 
+                  :class="{ 'active': game.unit1Mode === 'ai-detective' }" 
+                  @click="selectUnit1Mode('ai-detective')"
+                >
+                  <i data-lucide="search"></i> ai detective
+                </button>
+                <!-- [수정일: 2026-01-28] Pseudo Forest 메뉴 버튼 추가 -->
+                <button 
+                  class="game-mode-btn pseudo-forest" 
+                  :class="{ 'active': game.unit1Mode === 'pseudo-forest' }" 
+                  @click="selectUnit1Mode('pseudo-forest')"
+                >
+                  <i data-lucide="trees"></i> pseudo forest
+                </button>
+                
+                <!-- [수정일: 2026-01-28] AI Detective 선택 시 난이도 필터 탭 노출 -->
+                <div v-if="game.unit1Mode === 'ai-detective'" class="difficulty-tabs animate-in fade-in slide-in-from-bottom-2">
+                  <button 
+                    v-for="lv in ['초급', '중급', '고급']" 
+                    :key="lv"
+                    class="diff-tab"
+                    :class="{ 'active': detectiveLevel === lv }"
+                    @click="detectiveLevel = lv"
+                  >
+                    {{ lv }}
+                  </button>
+                </div>
+              </template>
+
+              <!-- 기존 Debug Practice 모드 전환 버튼 -->
+              <template v-else-if="game.activeUnit?.name === 'Debug Practice'">
                 <button class="game-mode-btn bug-hunt" :class="{ 'active': game.currentDebugMode === 'bug-hunt' }" @click="selectGameMode('bug-hunt')">🐞 Bug Hunt</button>
                 <button class="game-mode-btn vibe-cleanup" :class="{ 'active': game.currentDebugMode === 'vibe-cleanup' }" @click="selectGameMode('vibe-cleanup')">✨ Vibe Code Clean Up</button>
               </template>
+
+              <!-- 일반 상태 표시 (진행도/잠금) -->
               <template v-else>
                 <div class="stat-pill-v3 active"><i data-lucide="check-circle" style="width: 16px;"></i>{{ game.currentUnitProgress.length }}개 활성화</div>
                 <div class="stat-pill-v3 locked"><i data-lucide="lock" style="width: 16px;"></i>{{ displayProblems.length - game.currentUnitProgress.length }}개 잠금</div>
@@ -120,7 +172,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUpdated, nextTick } from 'vue';
+import { ref, computed, watch, onMounted, onUpdated, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useGameStore } from '@/stores/game';
@@ -149,14 +201,20 @@ const leaderboard = ref([
   { id: 5, username: 'OpsWizard', solved: 30, shakes: 1400 }
 ]);
 
+// [수정일: 2026-01-28] AI Detective 난이도 필터링을 위한 상태
+const detectiveLevel = ref('초급');
+
 // Computed
 const isPracticePage = computed(() => {
-  // LogicMirror는 모달로 띄우기 위해 practiceRoutes에서 제외합니다. (배경 유지 목적)
+  // PseudoCode는 페이지/모달 하이브리드로 동작 (isPracticePage에 포함하여 배경 제어)
   const practiceRoutes = [
+    'PseudoCode',
     'SystemArchitecturePractice', 
     'BugHunt', 
     'VibeCodeCleanUp', 
-    'OpsPractice'
+    'OpsPractice',
+    'AiDetective',
+    'PseudoForest' // [수정일: 2026-01-28] Pseudo Forest 라우트 추가
   ];
   return practiceRoutes.includes(route?.name);
 });
@@ -165,15 +223,29 @@ const displayProblems = computed(() => {
   const activeUnit = game.activeUnit;
   if (!activeUnit) return [];
 
+  // [수정일: 2026-01-28] Unit 1(Pseudo Practice)의 경우 현재 모드(unit1Mode) 전환을 감지하여 문제 목록을 즉시 갱신
+  if (activeUnit.name === 'Pseudo Practice') {
+    const mode = game.unit1Mode; // 반응성 핵심: 이 값을 참조해야 함
+    const unitIndex = game.chapters.indexOf(activeUnit);
+    const allProblems = game.mapDetailsToProblems(activeUnit, unitIndex + 1);
+    
+    // AI Detective 모드인 경우 현재 선택된 난이도(detectiveLevel)로 필터링
+    if (mode === 'ai-detective') {
+      // [수정일: 2026-01-28] 문자열 불일치 방지를 위해 trim() 적용
+      const filtered = allProblems.filter(p => p.level?.trim() === detectiveLevel.value?.trim());
+      return filtered;
+    }
+    return allProblems;
+  }
+
+  // [기존 로직 복구] Debug Practice는 현재 디버그 모드에 따라 문제 세트 분기
   if (activeUnit.name === 'Debug Practice') {
     if (game.currentDebugMode === 'bug-hunt') {
-      return (progressiveData?.progressiveProblems || []).map(mission => ({
-        id: mission.id,
-        title: mission.project_title,
-        displayNum: mission.id
-      }));
+      return activeUnit.problems || [];
     } else {
-      return [{ id: game.currentDebugMode, title: 'Vibe Code Clean Up' }];
+      // Vibe 문제 세트가 없으면 기본 문제 목록으로 폴백
+      const vibeProblems = activeUnit.vibeProblems || [];
+      return vibeProblems.length > 0 ? vibeProblems : (activeUnit.problems || []);
     }
   }
   return activeUnit.problems || [];
@@ -187,8 +259,31 @@ const displayLabelsCount = computed(() => {
 
 const currentMaxIdx = computed(() => {
   const progress = game.currentUnitProgress;
-  if (!Array.isArray(progress) || progress.length === 0) return 0;
-  return Math.max(...progress);
+  const displayedIndices = displayProblems.value.map(p => p.questIndex);
+  if (displayedIndices.length === 0) return 0;
+
+  // [수정일: 2026-01-28] 현재 화면에 표시된 문제들 중 '해금된 마지막' 문제를 선택하여 오리 위치 고정
+  // 이렇게 하면 항상 해금된 노드에 오리가 앉게 되어 즉시 클릭(선택)이 가능해집니다.
+  const unlockedIndices = displayedIndices.filter(idx => progress.includes(idx));
+  
+  if (unlockedIndices.length > 0) {
+    return Math.max(...unlockedIndices);
+  }
+  
+  // 만약 현재 난이도에서 아무것도 해금되지 않았다면(이론상 불가) 첫 번째 노드 반환
+  return displayedIndices[0];
+});
+
+// [수정일: 2026-01-28] 라우트 감시: 연습 페이지에서 홈으로 돌아올 때 유닛 상세 모달 자동 재개
+watch(() => route.name, (newNav, oldNav) => {
+  const practiceRoutes = ['PseudoCode', 'SystemArchitecturePractice', 'BugHunt', 'VibeCodeCleanUp', 'OpsPractice', 'AiDetective', 'PseudoForest'];
+  // 연습 페이지에서 홈('/')으로 돌아오는 경우
+  if (newNav === 'Home' && practiceRoutes.includes(oldNav)) {
+    if (game.activeUnit) {
+      ui.isUnitModalOpen = true;
+      nextTick(() => { if (window.lucide) window.lucide.createIcons(); });
+    }
+  }
 });
 
 // Methods
@@ -250,8 +345,14 @@ function selectProblem(problem) {
 
   if (chapterName === 'Pseudo Practice') {
     game.selectedQuestIndex = problem.questIndex || 0;
-    ui.isLogicMirrorOpen = true;
-    router.push({ name: 'PseudoPractice' });
+    // [수정일: 2026-01-28] 현재 유닛1의 모드에 따라 라우팅 분기 처리
+    if (game.unit1Mode === 'ai-detective') {
+      router.push('/practice/ai-detective');
+    } else if (game.unit1Mode === 'pseudo-forest') {
+      router.push('/practice/pseudo-forest');
+    } else {
+      router.push('/practice/pseudo-code');
+    }
   } else if (chapterName === 'System Practice') {
     game.selectedSystemProblemIndex = problem.problemIndex || 0;
     router.push({ path: '/practice/system-architecture', query: { problem: problem.problemIndex || 0 } });
@@ -276,6 +377,23 @@ function selectProblem(problem) {
   } else {
     ui.isConstructionModalOpen = true;
   }
+}
+
+function handlePracticeClose() {
+    // [2026-01-27] 실습 페이지에서 'X' 또는 닫기 이벤트 발생 시 처리
+    ui.isPseudoCodeOpen = false;
+    router.push('/');
+    // 닫은 후 유닛 선택 팝업을 다시 보여주어 연속성 유지
+    ui.isUnitModalOpen = true;
+}
+
+function selectUnit1Mode(mode) {
+  // [수정일: 2026-01-28] 모드 전환 시 스토어 값만 변경해도 displayProblems가 자동으로 갱신됨
+  game.unit1Mode = mode;
+  
+  nextTick(() => {
+    if (window.lucide) window.lucide.createIcons();
+  });
 }
 
 function selectGameMode(mode) {
@@ -320,20 +438,19 @@ onMounted(() => {
 });
 
 // [2026-01-24] 라우트 설정을 감시하여 Unit 1 모달 강제 제어 (필요 시 URL 직접 접근 대응)
-import { watch } from 'vue';
-
 // [2026-01-27] 데이터 로드 완료 시 라우트에 따른 activeUnit 자동 복구
 watch(() => game.chapters, (newChapters) => {
-    if (newChapters.length > 0 && route.name === 'PseudoPractice' && !game.activeUnit) {
+    if (newChapters.length > 0 && route.name === 'PseudoCode' && !game.activeUnit) {
         const pseudoUnit = newChapters.find(c => c.name === 'Pseudo Practice');
         if (pseudoUnit) game.activeUnit = pseudoUnit;
     }
 }, { deep: true });
 
+// [2026-01-24] 라우트 설정을 감시하여 Unit 1 모달 강제 제어 (필요 시 URL 직접 접근 대응)
 watch(() => route.name, (newName) => {
     // 1. URL이 변경될 때마다 모달 상태를 동기화합니다.
-    if (newName === 'PseudoPractice') {
-        ui.isLogicMirrorOpen = true; // /practice/pseudo 접속 시 모달 활성화
+    if (newName === 'PseudoCode' || newName === 'AiDetective' || newName === 'PseudoForest') {
+        ui.isPseudoCodeOpen = true; // 관련 라우트 접속 시 상태 활성화
         
         // [2026-01-27] 직접 URL 접근이나 새로고침 시 activeUnit이 상실되는 문제 해결
         if (game.chapters.length > 0 && !game.activeUnit) {
@@ -341,8 +458,8 @@ watch(() => route.name, (newName) => {
             if (pseudoUnit) game.activeUnit = pseudoUnit;
         }
     } else if (!isPracticePage.value) {
-        // 2. 다른 일반 페이지(Landing 등)로 이동 시 모든 실습 모달을 명시적으로 닫습니다.
-        ui.isLogicMirrorOpen = false;
+        // 2. 다른 일반 페이지(Landing 드)로 이동 시 모든 실습 모달을 명시적으로 닫습니다.
+        ui.isPseudoCodeOpen = false;
     }
 }, { immediate: true });
 
@@ -391,6 +508,86 @@ onUpdated(() => {
 .game-mode-btn.vibe-cleanup:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 25px rgba(255, 255, 0, 0.5);
+}
+
+/* [수정일: 2026-01-28] Unit 1 전용 모드 전환 버튼 스타일 추가 */
+.game-mode-btn.pseudo-practice {
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  color: white;
+  box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+  opacity: 0.6;
+}
+
+.game-mode-btn.pseudo-practice.active {
+  opacity: 1;
+  box-shadow: 0 4px 20px rgba(79, 70, 229, 0.6);
+  border: 2px solid white;
+}
+
+.game-mode-btn.ai-detective {
+  background: linear-gradient(135deg, #facc15, #eab308); /* yellow 계열 */
+  color: #1e293b;
+  box-shadow: 0 4px 15px rgba(234, 179, 8, 0.3);
+  opacity: 0.6;
+}
+
+.game-mode-btn.ai-detective.active {
+  opacity: 1;
+  box-shadow: 0 4px 20px rgba(234, 179, 8, 0.6);
+  border: 2px solid #1e293b;
+}
+
+/* [수정일: 2026-01-28] Pseudo Forest 버튼 스타일 (Green 테마) */
+.game-mode-btn.pseudo-forest {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+  opacity: 0.6;
+}
+
+.game-mode-btn.pseudo-forest.active {
+  opacity: 1;
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.6);
+  border: 2px solid white;
+}
+
+.game-mode-btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+}
+
+/* [수정일: 2026-01-28] AI Detective 난이도 탭 스타일 추가 */
+.difficulty-tabs {
+  display: flex;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 6px;
+  border-radius: 12px;
+  margin-left: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.diff-tab {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #64748b;
+  background: transparent;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+}
+
+.diff-tab.active {
+  background: #facc15;
+  color: #0f172a;
+  box-shadow: 0 0 15px rgba(250, 204, 21, 0.3);
+}
+
+.diff-tab:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.05);
+  color: #facc15;
 }
 
 /* Auth Buttons for LandingView Slot */

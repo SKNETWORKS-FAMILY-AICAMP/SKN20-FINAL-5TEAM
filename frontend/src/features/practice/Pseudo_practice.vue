@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="modal-overlay" @click.self="$emit('close')">
     <!-- [로딩 화면 또는 AI 평가 대기 화면] -->
     <div v-if="isLoading || isEvaluating" class="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-slate-900 text-white p-6 text-center animate-in fade-in duration-700">
@@ -16,7 +16,7 @@
     <div class="max-w-6xl w-full bg-white rounded-[3.5rem] shadow-2xl overflow-hidden border-[12px] border-slate-900 relative flex flex-col h-[750px]">
       <!-- 헤더: 여백 최적화 (라운딩 56px + 테두리 12px 고려하여 80px 설정) -->
       <div class="bg-slate-900 text-white flex justify-between items-center font-jua border-b-4 border-slate-800" 
-           style="padding: 30px 60px;">
+           style="padding: 40px 80px 20px 80px;">
         <div class="flex items-center gap-6">
           <h1 class="text-4xl font-black text-yellow-400 drop-shadow-md">PseudoPractice</h1>
           <span class="bg-white/10 px-6 py-1.5 rounded-full text-lg border border-white/20">{{ currentStep }}층 진행 중</span>
@@ -31,8 +31,8 @@
       </div>
 
       <div class="flex flex-col md:flex-row flex-grow overflow-hidden min-h-0">
-        <!-- 왼쪽 영역: 계단 및 오리 (비율 축소: 42%) -->
-        <div class="w-full md:w-[42%] bg-sky-100 p-6 border-r-4 border-slate-900 relative overflow-hidden flex items-end h-full">
+        <!-- 왼쪽 영역: 계단 및 오리 (비율 조정: 48%) -->
+        <div class="w-full md:w-[48%] bg-sky-100 p-6 border-r-4 border-slate-900 relative overflow-hidden flex items-end h-full">
           <!-- 말풍선 -->
           <div class="absolute top-8 left-6 right-6 z-[110]">
             <div class="duck-bubble transition-opacity duration-300 min-h-[50px] flex items-center justify-center shadow-lg" :style="{ opacity: showBubble ? 1 : 0 }">
@@ -45,8 +45,8 @@
             <!-- START 플랫폼 -->
             <div class="stair-start absolute" 
                  :style="{ 
-                    width: '200px', 
-                    height: '80px', 
+                    width: '180px', 
+                    height: '60px', 
                     left: '20px', 
                     bottom: '40px',
                     zIndex: 0
@@ -60,9 +60,9 @@
                  class="stair-pill group transition-all duration-300" 
                  :class="{ 'active-target': (currentStep === i-1) }"
                  :style="{ 
-                    width: '320px', 
+                    width: '260px', 
                     height: '55px', 
-                    left: (i * 55 + 20) + 'px', 
+                    left: (i * 30 + (i % 2 === 0 ? 120 : 0)) + 'px', 
                     bottom: (i * 80 + 30) + 'px',
                     zIndex: i 
                  }"
@@ -86,7 +86,10 @@
 
             <!-- 골 지점 -->
             <div class="absolute w-[80px] h-[80px] flex items-center justify-center transition-all duration-500" 
-                 :style="{ left: (currentQuest.solution.length * 45 + 50) + 'px', bottom: (currentQuest.solution.length * 80 + 30) + 'px' }">
+                 :style="{ 
+                    left: (currentQuest.solution.length * 30 + (currentQuest.solution.length % 2 === 0 ? 160 : 40)) + 'px', 
+                    bottom: (currentQuest.solution.length * 80 + 30) + 'px' 
+                 }">
                 <div class="text-5xl animate-bounce">👑</div>
             </div>
           </div>
@@ -118,8 +121,8 @@
           </div>
         </div>
 
-        <!-- 오른쪽 영역: 문제 풀이 (비율 확대: 58%) -->
-        <div class="w-full md:w-[58%] p-10 flex flex-col bg-white overflow-y-auto h-full">
+        <!-- 오른쪽 영역: 문제 풀이 (비율 조정: 52%) -->
+        <div class="w-full md:w-[52%] p-10 flex flex-col bg-white overflow-y-auto h-full">
           
           <!-- 1단계: 퍼즐 -->
           <div v-if="stage === 1" class="space-y-10 h-full flex flex-col">
@@ -201,93 +204,171 @@
             <div class="bg-blue-50 p-8 rounded-[2.5rem] border-4 border-blue-200 space-y-6">
               <p class="text-slate-700 font-bold text-lg italic">"이 로직을 더 고도화하려면?"</p>
               <div class="grid grid-cols-1 gap-4">
-                <button v-for="(opt, i) in currentQuest.quizOptions" :key="i" @click="verifyStage3(opt.correct)" class="p-4 bg-white border-2 border-slate-200 rounded-2xl hover:border-blue-500 font-bold text-slate-600 shadow-sm text-left">
+                <button v-for="(opt, i) in currentQuest.quizOptions" :key="i" @click="verifyStage3(opt.correct)" class="p-4 bg-white border-2 border-slate-200 rounded-2xl hover:border-blue-500 font-bold text-slate-600 shadow-sm text-left transition-all hover:scale-[1.02]">
                   {{ opt.text }}
                 </button>
               </div>
             </div>
           </div>
 
-          <div v-else-if="stage === 4" class="flex flex-col items-center text-center space-y-12 py-10 w-full overflow-y-auto">
-            <!-- 등급 및 페르소나 통합 헤더 -->
-            <div class="space-y-4">
-              <p class="text-indigo-500 font-black text-sm uppercase tracking-[0.3em]">Engineering Persona</p>
-              <div class="flex items-center justify-center gap-6 bg-slate-50 px-10 py-6 rounded-[3rem] border-2 border-slate-100 shadow-sm">
-                <!-- 등급 엠블럼 -->
-                <div class="relative group">
-                  <div class="text-6xl animate-bounce-slow transform group-hover:scale-110 transition-transform cursor-default">
-                    {{ finalGrade === 'S' ? '💎' : (finalGrade === 'A' ? '🥇' : '🥈') }}
-                  </div>
-                  <div class="absolute -top-1 -right-1 bg-indigo-600 text-white w-8 h-8 rounded-full text-base font-black flex items-center justify-center shadow-lg border-2 border-white">
-                    {{ finalGrade }}
-                  </div>
-                </div>
-                <!-- 타이틀 -->
-                <h2 class="text-5xl font-black text-slate-900 font-jua">[{{ personaTitle }}]</h2>
-              </div>
-            </div>
-
-            <!-- 시각화 영역: 방사형 그래프 & 통계 -->
-            <div class="flex flex-col md:flex-row items-center gap-10 w-full max-w-4xl bg-slate-50/50 p-8 rounded-[3rem] border-2 border-slate-100">
-              <!-- Radar Chart (SVG) -->
-              <div class="relative w-48 h-48 bg-white rounded-full p-4 shadow-inner border-4 border-slate-100 flex items-center justify-center">
-                <svg viewBox="0 0 100 100" class="w-full h-full transform -rotate-90">
-                  <!-- Grid -->
-                  <circle cx="50" cy="50" r="45" fill="none" stroke="#e2e8f0" stroke-width="0.5"/>
-                  <circle cx="50" cy="50" r="30" fill="none" stroke="#e2e8f0" stroke-width="0.5"/>
-                  <circle cx="50" cy="50" r="15" fill="none" stroke="#e2e8f0" stroke-width="0.5"/>
-                  <line x1="50" y1="50" x2="50" y2="5" stroke="#e2e8f0" stroke-width="0.5"/>
-                  <line x1="50" y1="50" x2="89" y2="72.5" stroke="#e2e8f0" stroke-width="0.5"/>
-                  <line x1="50" y1="50" x2="11" y2="72.5" stroke="#e2e8f0" stroke-width="0.5"/>
-                  
-                  <!-- Data Area -->
-                  <polygon :points="radarPoints" fill="rgba(99, 102, 241, 0.4)" stroke="#6366f1" stroke-width="2" class="transition-all duration-1000"/>
-                </svg>
-                <!-- Labels -->
-                <span class="absolute top-0 text-[10px] font-black text-slate-400">논리</span>
-                <span class="absolute bottom-2 right-2 text-[10px] font-black text-slate-400">구현</span>
-                <span class="absolute bottom-2 left-2 text-[10px] font-black text-slate-400">설계</span>
-              </div>
-
-              <!-- 상세 수치 -->
-              <div class="flex-grow grid grid-cols-2 gap-4 w-full">
-                <div class="bg-white p-4 rounded-3xl shadow-sm border border-slate-100">
-                  <p class="text-[10px] text-slate-400 font-bold mb-1">TOTAL SCORE</p>
-                  <p class="text-2xl font-black text-indigo-600">{{ Math.round(score) }} <span class="text-xs font-bold text-slate-300 italic">pts</span></p>
-                </div>
-                <div class="bg-white p-4 rounded-3xl shadow-sm border border-slate-100">
-                  <p class="text-[10px] text-slate-400 font-bold mb-1">TIME SPENT</p>
-                  <p class="text-2xl font-black text-slate-700">{{ formatTime(evaluationResults.timeSpent) }}</p>
-                </div>
-                <div class="bg-white p-4 rounded-3xl shadow-sm border border-slate-100">
-                  <p class="text-[10px] text-slate-400 font-bold mb-1">PENALTIES</p>
-                  <p class="text-2xl font-black text-rose-500">{{ evaluationResults.penaltyCount }}회</p>
-                </div>
-                <div class="bg-white p-4 rounded-3xl shadow-sm border border-slate-100">
-                  <p class="text-[10px] text-slate-400 font-bold mb-1">HINTS USED</p>
-                  <p class="text-2xl font-black text-amber-500">{{ evaluationResults.hintsUsed }}개</p>
-                </div>
-              </div>
-            </div>
-
-            <!-- 격려 및 분석 메시지 -->
-            <div class="w-full max-w-3xl bg-white/70 backdrop-blur-sm p-12 rounded-[3.5rem] border-2 border-indigo-100 shadow-xl shadow-indigo-100/50">
-              <div class="flex items-center gap-4 mb-8">
-                <div class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg transform -rotate-6">
-                  <i data-lucide="sparkles" class="text-white w-6 h-6"></i>
-                </div>
-                <div class="text-left">
-                  <h3 class="text-xl font-black text-slate-800 font-jua">AI 위저드의 심층 분석</h3>
-                  <p class="text-xs text-indigo-500 font-bold uppercase tracking-widest">Wizard's Deep Insights</p>
-                </div>
-              </div>
+          <!-- [2026-01-27] Stage 3.5: The Thinking Bridge (꼬리 질문 스테이지) -->
+          <div v-else-if="stage === 3.5" class="h-full flex flex-col justify-center items-center p-8 relative overflow-hidden bg-slate-900 rounded-[3rem] text-white">
+            <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-500/10 via-transparent to-transparent"></div>
+            
+            <div class="z-10 text-center space-y-8 w-full max-w-xl">
+              <div class="inline-block px-4 py-1.5 bg-amber-500 text-slate-900 rounded-full text-xs font-black uppercase tracking-[0.2em] mb-4">The Wizard's Meditation</div>
               
-              <div class="space-y-6 text-left">
-                <template v-for="(p, idx) in evaluationParagraphs" :key="idx">
-                  <p class="feedback-paragraph text-slate-700 font-medium leading-[1.8] text-lg tracking-tight">
-                    {{ p }}
-                  </p>
-                </template>
+              <div class="space-y-4">
+                <h3 class="text-3xl font-black text-white leading-tight">잠시만요, 라이언님!</h3>
+                <p class="text-indigo-300 font-bold text-lg">최종 분석 전에 대현자님이 궁금한 게 있대요.</p>
+              </div>
+
+              <!-- 질문 타이핑 영역 -->
+              <div class="bg-white/5 border border-white/10 p-8 rounded-[2rem] backdrop-blur-xl min-h-[140px] flex items-center justify-center">
+                <p class="text-xl font-bold leading-relaxed text-amber-200 italic">
+                  "{{ typedQuestion || '분석 중...' }}"
+                </p>
+              </div>
+
+              <!-- 답변 입력창 (Min 10 chars) -->
+              <div class="space-y-4">
+                <textarea 
+                  v-model="userFreeAnswer" 
+                  placeholder="대현자님께 라이언님의 생각을 들려주세요 (최소 10자)..."
+                  class="w-full bg-slate-800 border-2 border-white/10 rounded-2xl p-6 text-white font-bold outline-none focus:border-indigo-500 transition-all resize-none h-32"
+                ></textarea>
+                <div class="flex justify-between items-center text-xs font-bold px-2">
+                  <span :class="userFreeAnswer.length >= 10 ? 'text-emerald-400' : 'text-slate-500'">글자수: {{ userFreeAnswer.length }} / 최소 10자</span>
+                  <span class="text-slate-500 italic">"진정한 엔지니어는 자신의 논리를 설명할 수 있어야 하네."</span>
+                </div>
+              </div>
+
+              <button 
+                @click="submitFinalAnswer" 
+                :disabled="userFreeAnswer.length < 10 || isSubmittingAnswer"
+                class="w-full py-5 rounded-2xl font-black text-xl transition-all flex items-center justify-center gap-3 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 disabled:opacity-50 shadow-xl shadow-indigo-500/20"
+              >
+                {{ isSubmittingAnswer ? '대현자의 최종 분석을 기다리는 중...' : '생각 전달하기' }}
+              </button>
+            </div>
+          </div>
+
+          <div v-else-if="stage === 4" class="h-full flex flex-col items-center justify-start space-y-4 py-6 overflow-y-auto px-10">
+            <!-- 트로피 제거 및 상단 정제 (마진 축소) -->
+            <div class="text-center space-y-1 mb-2">
+              <h2 class="text-3xl font-black text-slate-900 font-jua tracking-tight">{{ finalGrade === 'A+' ? '완벽한 엔지니어의 탄생!' : '미션을 완료했습니다!' }}</h2>
+              <p class="text-slate-400 font-bold text-[10px] uppercase tracking-[0.4em]">Integrated Performance Report v7.5</p>
+            </div>
+
+            <!-- 성과 보드 (2컬럼 프리미엄 리포트) -->
+            <div class="w-full max-w-5xl bg-slate-50 border-4 border-slate-900 rounded-[3rem] p-10 shadow-2xl flex flex-col md:flex-row gap-12 animate-in zoom-in duration-700 relative overflow-hidden">
+              <!-- 배경 장식 -->
+              <div class="absolute -top-24 -left-24 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl"></div>
+              <div class="absolute -bottom-24 -right-24 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl"></div>
+
+              <!-- 왼쪽: 레이더 차트 시각화 (AI 전용 - 영역 축소: 32%) -->
+              <div class="w-full md:w-[32%] flex flex-col items-center justify-center p-6 bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] border-2 border-slate-100 relative z-10 min-h-[350px]">
+                <div class="text-center mb-6">
+                  <p class="text-slate-400 text-[9px] font-bold uppercase tracking-[0.3em] mb-1">AI-Powered Analysis</p>
+                  <h3 class="text-slate-900 font-extrabold text-sm tracking-tight">PERFORMANCE SPECTRUM</h3>
+                </div>
+                
+                <div class="relative w-48 h-48 flex items-center justify-center">
+                  <svg viewBox="0 0 200 200" class="w-full h-full filter drop-shadow-[0_10px_10px_rgba(0,0,0,0.05)]">
+                    <!-- 배경 그리드 (정오각형, Top에서 시작하도록 좌표 재계산) -->
+                    <polygon points="100,10 185.6,72.2 152.9,172.8 47.1,172.8 14.4,72.2" fill="none" stroke="#f1f5f9" stroke-width="2" />
+                    <polygon points="100,40 157.1,81.5 135.3,148.5 64.7,148.5 42.9,81.5" fill="none" stroke="#f8fafc" stroke-width="1.5" />
+                    <polygon points="100,70 128.5,90.7 117.6,124.3 82.4,124.3 71.5,90.7" fill="none" stroke="#fbfcfd" stroke-width="1" />
+                    
+                    <!-- 축 표시 -->
+                    <line v-for="i in 5" :key="i" x1="100" y1="100" 
+                          :x2="100 + 90 * Math.sin((i-1) * (Math.PI * 2) / 5)" 
+                          :y2="100 - 90 * Math.cos((i-1) * (Math.PI * 2) / 5)" 
+                          stroke="#f1f5f9" stroke-width="1.5" />
+
+                    <!-- 데이터 영역 (AI 로딩 전후 처리) -->
+                    <g v-if="aiMetrics">
+                      <polygon :points="radarPointsPath" fill="rgba(99, 102, 241, 0.2)" stroke="#6366f1" stroke-width="4" stroke-linejoin="round" class="transition-all duration-1000" />
+                      <circle v-for="p in radarCirclePoints" :key="p.x + p.y" :cx="p.x" :cy="p.y" r="5" fill="white" stroke="#6366f1" stroke-width="3" />
+                    </g>
+                    <!-- 로딩 상태 가이드 차트 (중점만 표시) -->
+                    <circle v-else cx="100" cy="100" r="3" fill="#e2e8f0" />
+                  </svg>
+                  
+                  <!-- 지표 라벨 (축소된 차트에 맞춰 위치/크기 보정) -->
+                  <div class="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-black text-slate-500 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-200">정합성</div>
+                  <div class="absolute top-[28%] -right-12 -translate-y-1/2 text-[10px] font-black text-slate-500 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-200">추상화</div>
+                  <div class="absolute bottom-4 -right-6 text-[10px] font-black text-slate-500 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-200">예외처리</div>
+                  <div class="absolute bottom-4 -left-6 text-[10px] font-black text-slate-500 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-200">구현력</div>
+                  <div class="absolute top-[28%] -left-12 -translate-y-1/2 text-[10px] font-black text-slate-500 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-200">설계력</div>
+                </div>
+              </div>
+
+              <!-- 오른쪽: 상세 지표 및 AI 피드백 (영역 확장: 68%) -->
+              <div class="w-full md:w-[68%] space-y-6 text-left relative z-10">
+                <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-200 space-y-4">
+                  <div class="flex justify-between items-start">
+                    <div>
+                      <p class="text-slate-400 text-[9px] font-black uppercase tracking-widest">Assessment Profile</p>
+                      <h4 class="text-2xl font-black text-slate-900 leading-tight">Training Performance</h4>
+                    </div>
+                    <div class="bg-indigo-600 text-white px-5 py-3 rounded-2xl flex flex-col items-center justify-center shadow-xl shadow-indigo-100 gap-1 shrink-0">
+                      <span class="text-[9px] font-bold opacity-70 uppercase tracking-tighter leading-none">TOTAL SCORE</span>
+                      <div class="flex items-baseline gap-0.5">
+                        <span class="text-3xl font-black leading-none">{{ score }}</span>
+                        <span class="text-[10px] font-bold opacity-80">pts</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- 상세 지표 리스트 (하드코딩 제거: AI 지표만 사용) -->
+                  <div class="grid grid-cols-2 gap-4">
+                    <div v-for="(val, key) in radarPoints" :key="key" 
+                         class="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col justify-between group overflow-hidden relative">
+                      <div class="relative z-10">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{{ key }}</p>
+                        <p class="text-2xl font-black text-slate-800 transition-transform group-hover:scale-110 origin-left">{{ val }}<span class="text-sm font-bold ml-0.5 opacity-50">%</span></p>
+                      </div>
+                      <!-- 미니 막대 프로그레스 -->
+                      <div class="w-full h-1.5 bg-slate-200 rounded-full mt-3 overflow-hidden">
+                        <div class="h-full bg-indigo-500 transition-all duration-1000" :style="{ width: val + '%' }"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- AI 위저드 인사이트 (내부 스크롤 가능하게 수정) -->
+                <div class="relative pt-4 flex-grow min-h-0">
+                  <!-- 말풍선 꼬리 -->
+                  <div class="absolute top-1 left-10 w-6 h-6 bg-amber-50 rotate-45 border-l-2 border-t-2 border-amber-100 -z-0"></div>
+                  
+                  <div class="bg-amber-50 p-6 rounded-[2.5rem] border-2 border-amber-100 relative shadow-sm group h-full flex flex-col">
+                    <div class="flex items-center gap-3 mb-3 shrink-0">
+                      <div class="w-10 h-10 bg-amber-400 rounded-2xl flex items-center justify-center text-xl shadow-md animate-bounce-slow">🧙‍♂️</div>
+                      <div>
+                        <h4 class="text-amber-900 font-extrabold text-xs"> 대현자 '코드 위저드'의 분석</h4>
+                      </div>
+                      <div v-if="!isLogical" class="bg-rose-100 text-rose-600 px-2 py-0.5 rounded text-[8px] font-black animate-pulse">LOGIC WARNING</div>
+                    </div>
+                    <div class="overflow-y-auto pr-2 max-h-[160px]">
+                      <p class="text-amber-900/80 font-bold text-[14px] leading-relaxed relative z-10 whitespace-pre-line">
+                        {{ mentorAnalysis || evaluationMessage }}
+                      </p>
+                      
+                      <!-- [2026-01-27] 추가 조언(Advice) 섹션 -->
+                      <div v-if="mentorAdvice" class="mt-4 p-4 bg-white/50 rounded-2xl border border-amber-200/50">
+                        <p class="text-[9px] font-black text-amber-500 uppercase tracking-widest mb-1">Mentor's Advice</p>
+                        <p class="text-amber-800 text-xs font-black italic">"{{ mentorAdvice }}"</p>
+                      </div>
+                    </div>
+                    <!-- AI 로딩 스피너 -->
+                    <div v-if="!mentorAnalysis" class="mt-2 flex items-center gap-2">
+                      <div class="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse"></div>
+                      <div class="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse delay-150"></div>
+                      <div class="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse delay-300"></div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -365,6 +446,8 @@ const availableBlocks = ref([]);
 const droppedBlocks = ref([]);
 const showHint = ref(false);
 const hintMessage = ref("");
+const aiFeedback = ref(""); // This seems to be an older variable, replaced by mentorAnalysis/Advice
+const aiMetrics = ref(null);
 
 const isBlockUsed = (id) => droppedBlocks.value.some(b => b && b.id === id);
 const codeInputs = reactive({ price: '', fee1: '', fee2: '' });
@@ -405,13 +488,14 @@ onMounted(() => {
 const duckPosition = computed(() => {
     // 1. START 위치 초기값 (축소된 가로 너비에 맞춰 보정)
     let x = 40;
-    let y = 110;
+    let y = 80;
 
-    // 2. 현재 단계 계단 위치로 이동
+    // 2. 현재 단계 계단 위치로 이동 (지그재그 보정)
     if (currentStep.value > 0) {
-        const stairIndex = Math.min(currentStep.value, currentQuest.value.solution.length - 1);
-        x = (stairIndex * 55 + 20) + 40; // 계단 left + 보정
-        y = (stairIndex * 80 + 30) + 55; // 계단 bottom + 보정
+        const stairIndex = Math.min(currentStep.value, currentQuest.value.solution.length);
+        const i = stairIndex; 
+        x = (i * 30 + (i % 2 === 0 ? 120 : 0)) + 40; 
+        y = (i * 80 + 30) + 55; 
     }
     
     return {
@@ -420,6 +504,15 @@ const duckPosition = computed(() => {
     };
 });
 
+// [2026-01-27] 생각하는 힘 강화용 상태 추가
+const tailQuestion = ref(null);
+const userFreeAnswer = ref("");
+const typedQuestion = ref(""); // 질문 타이핑 효과용
+const mentorAnalysis = ref(""); // AI 최종 분석 결과
+const mentorAdvice = ref(""); // AI 최종 조언
+const isLogical = ref(true); // AI가 판단한 논리적 일관성
+const isSubmittingAnswer = ref(false); // 답변 제출 중 로딩 상태
+
 const finalGrade = computed(() => {
     if (score.value >= 90) return 'S';
     if (score.value >= 75) return 'A';
@@ -427,43 +520,58 @@ const finalGrade = computed(() => {
     return 'C';
 });
 
-const evaluationMessageOverride = ref("");
-
-const evaluationParagraphs = computed(() => {
-    return evaluationMessage.value.split('\n\n').filter(p => p.trim());
-});
-
 const evaluationMessage = computed(() => {
-    if (evaluationMessageOverride.value) return evaluationMessageOverride.value;
-    if (finalGrade.value === 'S') return "완벽한 설계와 구현 능력입니다!\n엔지니어의 품격이 느껴지네요! ✨";
-    if (finalGrade.value === 'A') return "매우 훌륭합니다!\n실무에서도 충분히 통할 실력이에요.";
-    if (finalGrade.value === 'B') return "기초가 탄탄하시군요!\n조금만 더 세밀하게 로직을 다듬어보세요.";
-    return "수고하셨습니다!\n실패는 성공의 어머니! 한 번 더 도전해볼까요?";
+    if (mentorAnalysis.value) return mentorAnalysis.value; // Use mentorAnalysis if available
+    
+    // AI 피드백이 없을 때의 기본 대화 (등급 기반)
+    if (finalGrade.value === 'S') return "완벽한 설계와 구현 능력입니다!\n라이언님은 이미 훌륭한 엔지니어예요!";
+    if (finalGrade.value === 'A') return "매우 훌륭합니다!\n조금만 더 연습하면 마스터가 될 수 있어요.";
+    if (finalGrade.value === 'B') return "고생하셨습니다!\n프로그래밍의 기초를 착실히 다졌네요.";
+    return "수고하셨습니다!\n한 번 더 도전하여 높은 등급을 받아보세요!";
 });
 
+// --- Radar Chart Logic ---
 const radarPoints = computed(() => {
-  const center = 50;
-  const radius = 45;
-  // 각 역량별 0~100 기준 좌표 (120도 간격)
-  const l = (evaluationResults.logicScore / 100) * radius;
-  const c = (evaluationResults.codingScore / 100) * radius;
-  const d = (evaluationResults.designScore / 100) * radius;
-
-  // Top (Logic) - 0도
-  const p1 = `${center},${center - l}`;
-  // Bottom-Right (Coding) - 120도
-  const p2 = `${center + (c * Math.sin(Math.PI * 2 / 3))},${center - (c * Math.cos(Math.PI * 2 / 3))}`;
-  // Bottom-Left (Design) - 240도
-  const p3 = `${center + (d * Math.sin(Math.PI * 4 / 3))},${center - (d * Math.cos(Math.PI * 4 / 3))}`;
-  
-  return `${p1} ${p2} ${p3}`;
+    // [2026-01-27] 하드코딩 완전 제거: AI 분석 데이터가 있는 경우에만 유의미한 수치 반환
+    if (aiMetrics.value) {
+        return {
+            "정합성": aiMetrics.value["정합성"] || 0,
+            "추상화": aiMetrics.value["추상화"] || 0,
+            "예외처리": aiMetrics.value["예외처리"] || 0,
+            "구현력": aiMetrics.value["구현력"] || 0,
+            "설계력": aiMetrics.value["설계력"] || 0
+        };
+    }
+    // AI 데이터 로딩 전에는 0으로 초기화하여 시각적 정합성 유지 (하드코딩 Fallback 제거)
+    return {
+        "정합성": 0,
+        "추상화": 0,
+        "예외처리": 0,
+        "구현력": 0,
+        "설계력": 0
+    };
 });
 
-function formatTime(sec) {
-  const m = Math.floor(sec / 60);
-  const s = Math.floor(sec % 60);
-  return `${m}:${s < 10 ? '0' : ''}${s}`;
-}
+const radarCirclePoints = computed(() => {
+    const points = Object.values(radarPoints.value);
+    const center = 100;
+    const radius = 90;
+    const angleStep = (Math.PI * 2) / 5;
+
+    return points.map((val, i) => {
+        const r = (val / 100) * radius;
+        // [2026-01-27] Geometry 보정: Math.sin/cos 사용하여 Top(-90deg) 위치에서 정오각형 산출
+        const angle = i * angleStep - Math.PI / 2; // Start from top (-90 degrees)
+        return {
+            x: center + r * Math.cos(angle),
+            y: center + r * Math.sin(angle)
+        };
+    });
+});
+
+const radarPointsPath = computed(() => {
+    return radarCirclePoints.value.map(p => `${p.x},${p.y}`).join(' ');
+});
 
 // --- Methods ---
 const displayMessage = (msg) => {
@@ -516,12 +624,13 @@ const onDrop = (e, stairIdx) => {
 
 const removeBlock = (idx) => {
     if (idx < currentStep.value) {
-        // 이미 맞춘 블록을 지울 때의 로직 (현재는 순차적이므로 마지막 블록만 지우는 것이 안전할 수 있음)
-        if (idx === currentStep.value - 1) {
-            droppedBlocks.value[idx] = null;
+        // [2026-01-27] 중간 블록 삭제 시 그 위로 배치된 모든 블록을 함께 취소하여 논리적 순차성 유지
+        for (let i = currentStep.value - 1; i >= idx; i--) {
+            droppedBlocks.value[i] = null;
             currentStep.value--;
-            score.value -= 20;
+            score.value = Math.max(0, score.value - 20);
         }
+        displayMessage("로직을 재구성합니다! 🔧");
     }
 };
 
@@ -556,24 +665,77 @@ const checkStage2 = () => {
     }
 };
 
-const verifyStage3 = async (correct) => {
-    if (correct) {
-        evaluationResults.perkFlags.perfectDesign = true;
-        evaluationResults.stageTimestamps.end = Date.now();
+const verifyStage3 = async (isCorrect) => {
+    if (isCorrect) {
+        score.value += 20; // Adjusted score as per instruction
         currentEmotion.value = 'happy';
-        displayMessage("설계 천재 라이언님!");
+        displayMessage("완벽한 설계군요! 대현자님이 이제 라이언님의 깊은 생각을 묻고자 하십니다.");
         
-        isEvaluating.value = true;
-        try {
-            await calculateFinalResults(); // [2026-01-27] LLM 연동 비동기 계산
-        } finally {
-            isEvaluating.value = false;
-        }
-        
-        setTimeout(() => stage.value = 4, 1500);
+        // [2026-01-27] Stage 3.5 (Bridge) 진입 및 꼬리 질문 1차 페치
+        stage.value = 3.5;
+        fetchInitialTailQuestion();
         emit('quest-complete', currentQuestIdx.value);
     } else {
         handleFailure();
+    }
+};
+const fetchInitialTailQuestion = async () => {
+    typedQuestion.value = "";
+    try {
+        const response = await axios.post('/api/core/ai-evaluate/', {
+            score: score.value,
+            grade: finalGrade.value,
+            quest_title: currentQuest.value.title,
+            user_logic: droppedBlocks.value.filter(b => b).map(b => b.text),
+            user_code: codeInputs,
+            user_free_answer: ""
+        });
+        
+        if (response.data.tail_question) {
+            tailQuestion.value = response.data.tail_question;
+            startTypingEffect(tailQuestion.value.question);
+        }
+    } catch (e) {
+        console.error("Tail question fetch failed:", e);
+        startTypingEffect("자네의 로직이 어떤 예외 상황에서 멈출 수 있을지 말해주겠나?");
+    }
+};
+
+const startTypingEffect = (text) => {
+    let i = 0;
+    typedQuestion.value = "";
+    const interval = setInterval(() => {
+        typedQuestion.value += text[i];
+        i++;
+        if (i === text.length) clearInterval(interval);
+    }, 40);
+};
+
+const submitFinalAnswer = async () => {
+    isSubmittingAnswer.value = true;
+    try {
+        const response = await axios.post('/api/core/ai-evaluate/', {
+            score: score.value,
+            grade: finalGrade.value,
+            quest_title: currentQuest.value.title,
+            user_logic: droppedBlocks.value.filter(b => b).map(b => b.text),
+            user_code: codeInputs,
+            user_free_answer: userFreeAnswer.value
+        });
+        
+        if (response.data.metrics) aiMetrics.value = response.data.metrics;
+        mentorAnalysis.value = response.data.analysis || response.data.feedback;
+        mentorAdvice.value = response.data.advice;
+        isLogical.value = response.data.is_logical !== false;
+        
+        if (isLogical.value) score.value += 10;
+        
+        stage.value = 4;
+    } catch (e) {
+        console.error("Final analysis failed:", e);
+        stage.value = 4;
+    } finally {
+        isSubmittingAnswer.value = false;
     }
 };
 
@@ -633,11 +795,18 @@ const resetGame = () => {
     stage.value = 1;
     score.value = 0;
     currentStep.value = 0;
-    droppedBlocks.value = new Array(5).fill(null);
+    droppedBlocks.value = new Array(currentQuest.value.cards.length).fill(null);
     showHint.value = false;
     codeInputs.price = '';
     codeInputs.fee1 = '';
     codeInputs.fee2 = '';
+    aiMetrics.value = null;
+    mentorAnalysis.value = '';
+    mentorAdvice.value = '';
+    isLogical.value = true;
+    userFreeAnswer.value = '';
+    typedQuestion.value = '';
+    tailQuestion.value = null;
     currentEmotion.value = 'idle';
 };
 
@@ -677,7 +846,7 @@ onMounted(() => {
     position: absolute;
 }
 .platform-top {
-    height: 70px;
+    height: 45px;
     background: #cccccc;
     border-radius: 20px;
     display: flex;
@@ -690,7 +859,7 @@ onMounted(() => {
     z-index: 2;
 }
 .platform-side {
-    height: 30px;
+    height: 20px;
     background: #999999;
     border-radius: 0 0 20px 20px;
     margin-top: -10px;
@@ -744,11 +913,14 @@ onMounted(() => {
 .placed-block-refined.border-amber-500 { border-color: #f59e0b; }
 
 .block-text {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: 800;
     color: #1e293b;
     flex-grow: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
+    max-width: 170px;
 }
 
 .remove-btn-refined {
@@ -762,6 +934,9 @@ onMounted(() => {
     justify-content: center;
     font-weight: bold;
     transition: all 0.2s;
+    cursor: pointer;
+    position: relative;
+    z-index: 50;
 }
 
 .remove-btn-refined:hover {
