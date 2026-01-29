@@ -25,13 +25,15 @@ export const useGameStore = defineStore('game', {
             // [수정일: 2026-01-28] Pseudo Forest 전용 진행도 초기값 추가
             'Pseudo Forest': [0],
             // [수정일: 2026-01-29] Pseudo Company 전용 진행도 초기값 추가
-            'Pseudo Company': [0]
+            'Pseudo Company': [0],
+            // [수정일: 2026-01-29] Pseudo Emergency 전용 진행도 초기값 추가
+            'Pseudo Emergency': [0]
         },
         activeUnit: null,
         activeProblem: null,
         activeChapter: null,
         currentDebugMode: 'bug-hunt',
-        // [수정일: 2026-01-28] Unit 1의 현재 모드 확장 (pseudo-practice | ai-detective | pseudo-forest | pseudo-company)
+        // [수정일: 2026-01-28] Unit 1의 현재 모드 확장 (pseudo-practice | ai-detective | pseudo-forest | pseudo-company | pseudo-emergency)
         unit1Mode: 'pseudo-practice',
         selectedQuestIndex: 0,
         selectedSystemProblemIndex: 0
@@ -178,6 +180,17 @@ export const useGameStore = defineStore('game', {
                         mode: 'pseudo-company'
                     }];
                 }
+                else if (this.unit1Mode === 'pseudo-emergency') {
+                    // [수정일: 2026-01-29] Pseudo Emergency 기초 데이터 매핑
+                    return [{
+                        id: 'emergency-1',
+                        title: '긴급 차단 스위치',
+                        questIndex: 0,
+                        displayNum: 'E-1',
+                        difficulty: 'hard',
+                        mode: 'pseudo-emergency'
+                    }];
+                }
                 else {
                     return aiDetectiveQuests.map((q, idx) => ({
                         id: q.id,
@@ -248,7 +261,8 @@ export const useGameStore = defineStore('game', {
                     'pseudo-practice': 'Pseudo Practice',
                     'ai-detective': 'AI Detective',
                     'pseudo-forest': 'Pseudo Forest',
-                    'pseudo-company': 'Pseudo Company'
+                    'pseudo-company': 'Pseudo Company',
+                    'pseudo-emergency': 'Pseudo Emergency'
                 };
                 targetKey = modeMap[this.unit1Mode] || 'Pseudo Practice';
             }
@@ -290,7 +304,8 @@ export const useGameStore = defineStore('game', {
                     'pseudo-practice': 'Pseudo Practice',
                     'ai-detective': 'AI Detective',
                     'pseudo-forest': 'Pseudo Forest',
-                    'pseudo-company': 'Pseudo Company'
+                    'pseudo-company': 'Pseudo Company',
+                    'pseudo-emergency': 'Pseudo Emergency'
                 };
                 const modeKey = modeMap[state.unit1Mode] || 'Pseudo Practice';
                 return state.unitProgress[modeKey] || [0];
