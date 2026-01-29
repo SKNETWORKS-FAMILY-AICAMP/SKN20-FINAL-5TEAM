@@ -22,6 +22,7 @@ import OpsPractice from './features/practice/OpsPractice.vue'
 import AiDetectivePractice from './features/practice/AiDetectivePractice.vue' // [수정일: 2026-01-28] AI Detective 컴포넌트 임포트
 import PseudoForest from './features/practice/PseudoForest.vue' // [수정일: 2026-01-28] Pseudo Forest 컴포넌트 임포트
 import PseudoCompany from './features/practice/PsuedoCompany.vue' // [수정일: 2026-01-29] Pseudo Company 컴포넌트 임포트
+import PseudoEmergency from './features/practice/PseudoEmergency.vue' // [수정일: 2026-01-29] Pseudo Emergency 컴포넌트 임포트
 
 const routes = [
   {
@@ -74,6 +75,12 @@ const routes = [
     component: PseudoCompany
   },
   {
+    // [수정일: 2026-01-29] Pseudo Emergency 라우트 등록
+    path: '/practice/pseudo-emergency',
+    name: 'PseudoEmergency',
+    component: PseudoEmergency
+  },
+  {
     path: '/main.html',
     redirect: '/'
   }
@@ -95,7 +102,8 @@ import {
   ArrowRight,
   ChevronLeft,
   ChevronRight,
-  Home
+  Home,
+  AlertCircle
 } from 'lucide-vue-next'
 
 const app = createApp(App)
@@ -112,6 +120,7 @@ app.component('ArrowRight', ArrowRight)
 app.component('ChevronLeft', ChevronLeft)
 app.component('ChevronRight', ChevronRight)
 app.component('Home', Home)
+app.component('alert-circle', AlertCircle)
 const pinia = createPinia()
 
 app.use(pinia)
