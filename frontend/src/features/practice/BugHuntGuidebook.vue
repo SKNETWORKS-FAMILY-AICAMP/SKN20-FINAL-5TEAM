@@ -238,6 +238,7 @@ const typedExplanation = ref('');
 const isTyping = ref(false);
 const explanationComplete = ref(false);
 const fullExplanation = '문자열 "0"을 숫자 0으로 변경했습니다. 숫자 연산을 위해 올바른 타입을 사용해야 합니다.';
+let typingInterval = null;
 
 // 진행 상황
 const progressPercent = computed(() => {
@@ -298,17 +299,26 @@ const triggerAutoActions = () => {
 
 // 타이핑 애니메이션
 const typeExplanation = () => {
+  // 이전 인터벌 정리
+  if (typingInterval) {
+    clearInterval(typingInterval);
+    typingInterval = null;
+  }
+
+  // 초기화
+  typedExplanation.value = '';
   let index = 0;
   const typingSpeed = 50;
 
-  const typeInterval = setInterval(() => {
+  typingInterval = setInterval(() => {
     if (index < fullExplanation.length) {
       typedExplanation.value += fullExplanation[index];
       index++;
     } else {
       isTyping.value = false;
       explanationComplete.value = true;
-      clearInterval(typeInterval);
+      clearInterval(typingInterval);
+      typingInterval = null;
     }
   }, typingSpeed);
 };
@@ -334,6 +344,12 @@ watch(currentStep, (newStep) => {
 // 가이드북 열릴 때마다 초기화
 watch(() => props.isOpen, (newVal) => {
   if (newVal) {
+    // 타이핑 인터벌 정리
+    if (typingInterval) {
+      clearInterval(typingInterval);
+      typingInterval = null;
+    }
+
     // 모든 상태 초기화
     currentStep.value = 1;
     autoSelectedQuiz.value = null;
@@ -344,6 +360,12 @@ watch(() => props.isOpen, (newVal) => {
     typedExplanation.value = '';
     isTyping.value = false;
     explanationComplete.value = false;
+  } else {
+    // 가이드북 닫힐 때도 인터벌 정리
+    if (typingInterval) {
+      clearInterval(typingInterval);
+      typingInterval = null;
+    }
   }
 });
 </script>
