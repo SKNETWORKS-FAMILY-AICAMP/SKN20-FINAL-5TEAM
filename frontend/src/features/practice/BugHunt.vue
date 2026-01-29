@@ -1,12 +1,5 @@
 <template>
   <div class="debug-practice-page" :class="{ 'shake-effect': isShaking }">
-    <!-- 콤보 플로팅 텍스트 -->
-    <transition name="combo-fade">
-      <div v-if="showComboPopup" class="combo-popup">
-        {{ comboText }}
-      </div>
-    </transition>
-
     <!-- 레벨업 이펙트 -->
     <transition name="levelup">
       <div v-if="showLevelUp" class="levelup-overlay">
@@ -71,10 +64,6 @@
             <div class="stat-row">
               <span class="stat-label">🐛 Bugs Fixed</span>
               <span class="stat-value">{{ gameData.stats.totalBugsFixed }}</span>
-            </div>
-            <div class="stat-row">
-              <span class="stat-label">🔥 Max Combo</span>
-              <span class="stat-value">{{ gameData.maxCombo }}</span>
             </div>
             <div class="stat-row">
               <span class="stat-label">🏅 Achievements</span>
@@ -889,8 +878,6 @@ const defaultGameData = {
   level: 1,
   xp: 0,
   totalScore: 0,
-  combo: 0,
-  maxCombo: 0,
   completedProblems: [],
   achievements: [],
   stats: {
@@ -981,8 +968,6 @@ const allAchievements = [
   { id: 'first_blood', name: 'First Blood', desc: '첫 번째 버그를 잡았습니다', icon: '🎯', condition: () => gameData.stats.totalBugsFixed >= 1 },
   { id: 'bug_hunter', name: 'Bug Hunter', desc: '10개의 버그를 잡았습니다', icon: '🐛', condition: () => gameData.stats.totalBugsFixed >= 10 },
   { id: 'perfectionist', name: 'Perfectionist', desc: '힌트 없이 문제를 해결했습니다', icon: '💎', condition: () => gameData.stats.perfectClears >= 1 },
-  { id: 'combo_starter', name: 'Combo Starter', desc: '3연속 콤보를 달성했습니다', icon: '🔥', condition: () => gameData.maxCombo >= 3 },
-  { id: 'combo_master', name: 'Combo Master', desc: '5연속 콤보를 달성했습니다', icon: '💥', condition: () => gameData.maxCombo >= 5 },
   { id: 'level_5', name: 'Rising Star', desc: '레벨 5에 도달했습니다', icon: '⭐', condition: () => gameData.level >= 5 },
   { id: 'mission_master', name: 'Mission Master', desc: '모든 미션을 완료했습니다', icon: '👑', condition: () => getProgressiveMissionsCompleted() >= progressiveProblems.length }
 ];
@@ -1064,10 +1049,8 @@ const showMissionComplete = ref(false);
 const progressiveMissionXP = ref(0);
 const progressiveMissionScore = ref(0);
 
-// 화면 흔들림 및 콤보 효과
+// 화면 흔들림 효과
 const isShaking = ref(false);
-const showComboPopup = ref(false);
-const comboText = ref('');
 
 // 버그 수정 알림 팝업 (중앙에서 대화창으로 날아가는 효과)
 const showAlertPopup = ref(false);
@@ -1076,9 +1059,6 @@ const alertPopupPhase = ref(''); // 'shake' | 'fly' | ''
 const chatInterfaceRef = ref(null);
 
 
-
-// PHASE 3 설명 팝업 제거됨
-// const showExplainPopup = ref(false);
 
 // 미션 해금 여부 (순차적)
 function isMissionUnlocked(index) {
@@ -1208,11 +1188,16 @@ function showQuizPhase() {
 // 퀴즈 제출
 function submitQuiz() {
   const stepData = getCurrentStepData();
+  if (!stepData || !stepData.questions) {
+    console.error('Step data or questions not found');
+    return;
+  }
+
   if (selectedQuizOption.value === stepData.questions.answer) {
     quizCorrectCount.value++;
     quizFeedback.value = '정답입니다! 디버깅을 시작하세요.';
     quizFeedbackType.value = 'success';
-    
+
     setTimeout(() => {
       showQuizPopup.value = false;
       startDebugPhase();
@@ -1335,19 +1320,12 @@ function handleChatSubmit() {
 
 // 평가 화면 보기
 async function showEvaluation() {
-  console.log('=== showEvaluation 호출됨 ===');
   showMissionComplete.value = false;
   currentView.value = 'evaluation';
 
-  // AI 평가 시작
-  console.log('currentProgressiveMission:', currentProgressiveMission.value);
-  console.log('stepExplanations:', stepExplanations);
-
   if (currentProgressiveMission.value) {
     isEvaluatingAI.value = true;
-    console.log('AI 평가 시작...');
     try {
-      console.log('evaluateBugHunt 호출 직전');
       aiEvaluationResult.value = await evaluateBugHunt(
         currentProgressiveMission.value.project_title,
         currentProgressiveMission.value.steps,
@@ -1360,16 +1338,11 @@ async function showEvaluation() {
           totalDebugTime: totalDebugTime.value
         }
       );
-      console.log('✅ AI Evaluation Result:', aiEvaluationResult.value);
-      console.log('✅ Step Feedbacks:', aiEvaluationResult.value?.step_feedbacks);
     } catch (error) {
       console.error('❌ AI Evaluation failed:', error);
     } finally {
       isEvaluatingAI.value = false;
-      console.log('AI 평가 완료');
     }
-  } else {
-    console.log('⚠️ currentProgressiveMission이 없음!');
   }
 }
 
@@ -1396,11 +1369,6 @@ function replayMission(mission) {
 
   const index = progressiveProblems.findIndex(m => m.id === mission.id);
   startProgressiveMission(mission, index);
-}
-
-// Progressive 코드 변경 감지
-function onProgressiveCodeChange() {
-  // 코드 변경 감지
 }
 
 // 현재 스텝 리셋
@@ -1627,11 +1595,6 @@ const hitEffectPosition = ref({ x: 0, y: 0 });
 const missEffectPosition = ref({ x: 0, y: 0 });
 const hitEffectText = ref('SQUASH!');
 
-// 게임 데이터 자동 저장
-watch(gameData, (newData) => {
-  saveGameData(newData);
-}, { deep: true });
-
 const bulletStyle = computed(() => ({
   left: `${bulletPosition.value.x}px`,
   top: `${bulletPosition.value.y}px`
@@ -1727,25 +1690,6 @@ function shootBug(targetStep, isHit) {
     } else {
       showBullet.value = false;
       
-      // 명중 여부는 이 함수 외부에서 결정된 passed 값을 따름 (shootBug 호출 시 두 번째 인자)
-      // 이 로직은 shootBug 내부에 있으므로 passed를 직접 참조할 수 없음. 
-      // 하지만 shootBug는 passed가 true일 때만 호출되는 것이 아니라 결과에 따라 호출됨.
-      // 원본 코드 로직 유지: shootBug는 결과 상관없이 호출되지만, 여기서는 이펙트만 담당.
-
-      if (isHit) {
-         showHitEffect.value = true;
-         hitEffectPosition.value = { x: targetX, y: targetY };
-         // 텍스트 랜덤 (CRITICAL, HIT, SQUASH)
-         const texts = ['CRITICAL!', 'SQUASH!', 'DELETED!'];
-         hitEffectText.value = texts[Math.floor(Math.random() * texts.length)];
-         
-         setTimeout(() => { showHitEffect.value = false; }, 800);
-      } else {
-         showMissEffect.value = true;
-         missEffectPosition.value = { x: targetX, y: targetY };
-         setTimeout(() => { showMissEffect.value = false; }, 800);
-      }
-
       // 화면 흔들림 효과
       isShaking.value = true;
       setTimeout(() => { isShaking.value = false; }, 500);
@@ -1754,13 +1698,6 @@ function shootBug(targetStep, isHit) {
         hitEffectPosition.value = { x: targetX, y: targetY };
         hitEffectText.value = ['SQUASH!', 'GOTCHA!', 'ELIMINATED!'][Math.floor(Math.random() * 3)];
         showHitEffect.value = true;
-
-        // 콤보 팝업 표시 (2콤보 이상일 때)
-        if (gameData.combo >= 2) {
-          comboText.value = gameData.combo >= 5 ? 'PERFECT!' : `${gameData.combo} COMBO!`;
-          showComboPopup.value = true;
-          setTimeout(() => { showComboPopup.value = false; }, 1000);
-        }
 
         // 해당 버그 애니메이션 중지
         if (bugAnimationIds[targetStep]) {
@@ -4220,39 +4157,6 @@ onUnmounted(() => {
 
 .shake-effect {
   animation: shake 0.5s;
-}
-
-/* --- 콤보 텍스트 애니메이션 --- */
-.combo-popup {
-  position: fixed;
-  top: 20%;
-  left: 50%;
-  transform: translateX(-50%);
-  font-family: 'Orbitron', sans-serif;
-  font-size: 3rem;
-  font-weight: bold;
-  color: var(--neon-magenta);
-  text-shadow: 0 0 20px var(--neon-magenta), 0 0 40px var(--neon-magenta);
-  pointer-events: none;
-  z-index: 1000;
-  animation: floatUp 1s ease-out forwards;
-}
-
-@keyframes floatUp {
-  0% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
-  50% { transform: translateX(-50%) translateY(-30px) scale(1.2); }
-  100% { opacity: 0; transform: translateX(-50%) translateY(-60px) scale(0.8); }
-}
-
-/* 콤보 트랜지션 */
-.combo-fade-enter-active,
-.combo-fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.combo-fade-enter-from,
-.combo-fade-leave-to {
-  opacity: 0;
 }
 
 /* --- PHASE 3: EXPLAIN 팝업 --- */
