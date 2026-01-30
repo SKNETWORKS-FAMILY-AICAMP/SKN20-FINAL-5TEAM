@@ -87,7 +87,7 @@
         @dismiss="dismissToast"
       />
 
-      <!-- Deep Dive 모달 (3개 질문 순차 처리) - 평가는 여기서만 진행 -->
+      <!-- Deep Dive 모달 (설명 입력 + 꼬리질문 순차 처리) -->
       <DeepDiveModal
         :is-active="isDeepDiveModalActive"
         :question="deepDiveQuestion"
@@ -96,8 +96,10 @@
         :total-questions="deepDiveQuestions.length"
         :category="deepDiveQuestions[currentQuestionIndex]?.category || ''"
         :mermaid-code="mermaidCode"
+        :phase="evaluationPhase"
         @skip="skipDeepDive"
         @submit="submitDeepDiveAnswer"
+        @submit-explanation="submitUserExplanation"
       />
     </template>
   </div>
@@ -205,7 +207,11 @@ export default {
       handleRetryComposable: evaluation.handleRetry,
       resetEvaluationState: evaluation.resetEvaluationState,
       isPendingEvaluation: evaluation.isPendingEvaluation,
-      clearPendingEvaluation: evaluation.clearPendingEvaluation
+      clearPendingEvaluation: evaluation.clearPendingEvaluation,
+
+      // NEW: 설명 Phase
+      evaluationPhase: evaluation.evaluationPhase,
+      submitUserExplanationComposable: evaluation.submitUserExplanation
     };
   },
   computed: {
@@ -310,6 +316,12 @@ export default {
 
     // === Deep Dive ===
     async skipDeepDive() {
+      // 설명 Phase에서 skip하면 기본 질문으로 진행
+      if (this.evaluationPhase === 'explanation') {
+        await this.submitUserExplanation('(설명 생략)');
+        return;
+      }
+
       const allDone = await this.skipDeepDiveComposable();
       if (allDone && this.isPendingEvaluation()) {
         this.clearPendingEvaluation();
@@ -320,6 +332,32 @@ export default {
           this.connections,
           this.mermaidCode
         );
+      }
+    },
+
+    // NEW: 사용자 설명 제출 핸들러
+    async submitUserExplanation(explanation) {
+      this.showToastMessage('설명을 분석하고 꼬리질문을 생성 중입니다... 꽥!', 'guide');
+
+      const allDone = await this.submitUserExplanationComposable(
+        explanation,
+        this.currentProblem,
+        this.droppedComponents,
+        this.connections,
+        this.mermaidCode
+      );
+
+      if (allDone && this.isPendingEvaluation()) {
+        // 질문 없이 바로 평가로 진행
+        this.clearPendingEvaluation();
+        await this.directEvaluateComposable(
+          this.currentProblem,
+          this.droppedComponents,
+          this.connections,
+          this.mermaidCode
+        );
+      } else {
+        this.showToastMessage('좋아, 이제 몇 가지 질문에 답해봐. 꽥!', 'guide');
       }
     },
 

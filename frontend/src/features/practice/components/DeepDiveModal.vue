@@ -4,10 +4,11 @@
       <!-- 헤더 -->
       <div class="frame-header">
         <div class="header-left">
-          <div class="header-title">INTERROGATION IN PROGRESS</div>
+          <div class="header-title">{{ headerTitle }}</div>
           <div class="header-meta">
             <span class="rec">REC</span>
-            <span v-if="totalQuestions > 0">질문 {{ currentQuestion }} / {{ totalQuestions }}</span>
+            <span v-if="isExplanationPhase">Step 1: 설명 작성</span>
+            <span v-else-if="totalQuestions > 0">질문 {{ currentQuestion }} / {{ totalQuestions }}</span>
           </div>
         </div>
         <div class="header-right">
@@ -49,11 +50,12 @@
 
             <!-- 용의자 진술 -->
             <div class="testimony-section">
-              <div class="testimony-label">[ANSWER]</div>
+              <div class="testimony-label">{{ isExplanationPhase ? '[EXPLANATION]' : '[ANSWER]' }}</div>
               <textarea
                 class="testimony-input"
+                :class="{ 'explanation-mode': isExplanationPhase }"
                 v-model="answer"
-                placeholder="진술하세요... (거짓말은 금지! 꽥!)"
+                :placeholder="placeholderText"
               ></textarea>
             </div>
 
@@ -66,14 +68,15 @@
       <!-- 푸터 -->
       <div class="frame-footer">
         <button class="btn btn-silent" @click="$emit('skip')">
-          {{ isLastQuestion ? '묵비권 행사 (평가)' : '묵비권 (건너뛰기)' }}
+          {{ skipButtonText }}
         </button>
         <button
           class="btn btn-submit"
+          :class="{ 'btn-explanation': isExplanationPhase }"
           @click="submitAnswer"
-          :disabled="isGenerating"
+          :disabled="isGenerating || (isExplanationPhase && answer.trim().length < 10)"
         >
-          {{ isLastQuestion ? '최종 진술 (평가)' : '진술 완료' }}
+          {{ submitButtonText }}
         </button>
       </div>
     </div>
@@ -113,9 +116,14 @@ export default {
     mermaidCode: {
       type: String,
       default: ''
+    },
+    // NEW: 현재 Phase (explanation | questioning)
+    phase: {
+      type: String,
+      default: 'questioning'
     }
   },
-  emits: ['skip', 'submit'],
+  emits: ['skip', 'submit', 'submit-explanation'],
   data() {
     return {
       answer: ''
@@ -129,6 +137,34 @@ export default {
     isLastQuestion() {
       return this.currentQuestion >= this.totalQuestions;
     },
+    // NEW: Phase에 따른 UI 텍스트
+    isExplanationPhase() {
+      return this.phase === 'explanation';
+    },
+    submitButtonText() {
+      if (this.isExplanationPhase) {
+        return '설명 제출';
+      }
+      return this.isLastQuestion ? '최종 진술 (평가)' : '진술 완료';
+    },
+    skipButtonText() {
+      if (this.isExplanationPhase) {
+        return '건너뛰기';
+      }
+      return this.isLastQuestion ? '묵비권 행사 (평가)' : '묵비권 (건너뛰기)';
+    },
+    placeholderText() {
+      if (this.isExplanationPhase) {
+        return '아키텍처에 대한 설명을 작성해주세요. (최소 50자 권장)';
+      }
+      return '진술하세요... (거짓말은 금지! 꽥!)';
+    },
+    headerTitle() {
+      if (this.isExplanationPhase) {
+        return 'ARCHITECTURE EXPLANATION';
+      }
+      return 'INTERROGATION IN PROGRESS';
+    }
   },
   watch: {
     question(newVal) {
@@ -154,7 +190,14 @@ export default {
   },
   methods: {
     submitAnswer() {
-      this.$emit('submit', this.answer.trim());
+      const trimmedAnswer = this.answer.trim();
+      if (this.isExplanationPhase) {
+        // 설명 Phase: 설명 제출 이벤트
+        this.$emit('submit-explanation', trimmedAnswer);
+      } else {
+        // 질문 Phase: 기존 답변 제출 이벤트
+        this.$emit('submit', trimmedAnswer);
+      }
       this.answer = '';
     },
     async renderMermaid() {
@@ -497,6 +540,24 @@ export default {
 
 .testimony-input::placeholder {
   color: rgba(234, 234, 234, 0.4);
+}
+
+/* 설명 모드 스타일 */
+.testimony-input.explanation-mode {
+  min-height: 150px;
+  border-color: #3498db;
+}
+
+.testimony-input.explanation-mode:focus {
+  border-color: #2980b9;
+}
+
+.btn-explanation {
+  background: #3498db !important;
+}
+
+.btn-explanation:hover:not(:disabled) {
+  background: #2980b9 !important;
 }
 
 /* =====================

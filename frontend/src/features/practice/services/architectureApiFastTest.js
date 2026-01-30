@@ -404,6 +404,95 @@ totalScore = architectureScore + interviewScore (100점 만점)
 }
 
 /**
+ * 사용자 설명 기반 꼬리질문 생성
+ * 사용자가 먼저 아키텍처 설명을 제출하면, 그 설명을 분석하여 꼬리질문 생성
+ */
+export async function generateFollowUpQuestions(problem, components, connections, mermaidCode, userExplanation) {
+  const componentList = components.map(c => `- ${c.text} (타입: ${c.type})`).join('\n');
+  const connectionList = connections.map(conn => {
+    const from = components.find(c => c.id === conn.from);
+    const to = components.find(c => c.id === conn.to);
+    return from && to ? `- ${from.text} → ${to.text}` : null;
+  }).filter(Boolean).join('\n');
+
+  const scenario = problem?.scenario || '';
+  const rubricNfr = problem?.rubricNonFunctional || problem?.rubric_non_functional || [];
+  const nfrTopics = rubricNfr.map(r => `${r.category}: ${r.question_intent}`).join('\n') || '없음';
+
+  const prompt = `당신은 시스템 아키텍처 면접관입니다.
+학생이 설계한 아키텍처와 그에 대한 설명을 분석하여, 꼬리질문 3개를 생성하세요.
+
+## 문제 정보
+- 제목: ${problem?.title || '시스템 아키텍처 설계'}
+- 시나리오: ${scenario}
+
+### 평가 기준:
+${nfrTopics}
+
+## 학생의 아키텍처 설계
+### 컴포넌트 (${components.length}개):
+${componentList || '없음'}
+
+### 연결 관계 (${connections.length}개):
+${connectionList || '없음'}
+
+### Mermaid 다이어그램:
+\`\`\`
+${mermaidCode || '없음'}
+\`\`\`
+
+## 학생의 설명
+"${userExplanation}"
+
+## 꼬리질문 생성 기준
+학생의 설명을 분석하여:
+1. **불명확한 부분**: 설명에서 모호하거나 구체적이지 않은 부분을 파고드는 질문
+2. **누락된 관점**: 설명에서 언급하지 않은 중요한 아키텍처 고려사항 질문
+3. **심화 검증**: 학생이 언급한 개념을 더 깊이 이해하고 있는지 확인하는 질문
+
+## 출력 형식 (JSON만):
+{
+  "explanation_analysis": {
+    "key_points": ["학생이 언급한 핵심 포인트"],
+    "unclear_points": ["불명확한 부분"],
+    "missing_aspects": ["누락된 관점"]
+  },
+  "questions": [
+    {"category": "불명확한 부분", "question": "구체적인 질문", "intent": "이 질문으로 확인하려는 것"},
+    {"category": "누락된 관점", "question": "구체적인 질문", "intent": "이 질문으로 확인하려는 것"},
+    {"category": "심화 검증", "question": "구체적인 질문", "intent": "이 질문으로 확인하려는 것"}
+  ]
+}`;
+
+  try {
+    const response = await callOpenAI(prompt, { maxTokens: 800, temperature: 0.7 });
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return {
+        analysis: parsed.explanation_analysis || {},
+        questions: parsed.questions || []
+      };
+    }
+    throw new Error('Invalid JSON');
+  } catch (error) {
+    console.error('Follow-up questions error:', error);
+    return {
+      analysis: {
+        key_points: ['분석 실패'],
+        unclear_points: [],
+        missing_aspects: []
+      },
+      questions: [
+        { category: '설계 의도', question: '이 아키텍처에서 가장 중요하게 고려한 부분은 무엇이며, 왜 그렇게 판단하셨나요?', intent: '설계 의도 확인' },
+        { category: '확장성', question: '트래픽이 급증할 경우 가장 먼저 병목이 발생할 곳은 어디이며, 어떻게 대응하시겠습니까?', intent: '확장성 이해도 확인' },
+        { category: '장애 대응', question: '주요 컴포넌트에 장애가 발생했을 때 시스템은 어떻게 동작하나요?', intent: '장애 대응 전략 확인' }
+      ]
+    };
+  }
+}
+
+/**
  * 채팅 메시지 전송
  */
 export async function sendChatMessage(chatContext, chatHistory, userMessage) {

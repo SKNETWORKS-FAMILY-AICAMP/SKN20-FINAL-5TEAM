@@ -2,7 +2,8 @@ import { ref } from 'vue';
 import {
   generateEvaluationQuestion,
   evaluateArchitecture,
-  generateArchitectureAnalysisQuestions
+  generateArchitectureAnalysisQuestions,
+  generateFollowUpQuestions
 } from '../services/architectureApiFastTest';
 import {
   buildArchitectureContext,
@@ -27,6 +28,11 @@ export function useEvaluation() {
   const currentQuestionIndex = ref(0);
   const collectedDeepDiveAnswers = ref([]);
   const pendingEvaluationAfterDeepDive = ref(false);
+
+  // NEW: 설명 입력 Phase 상태
+  const evaluationPhase = ref('idle'); // 'idle' | 'explanation' | 'questioning' | 'evaluating'
+  const userExplanation = ref('');
+  const explanationAnalysis = ref(null);
 
   // Chat messages for evaluation context
   const chatMessages = ref([]);
@@ -75,13 +81,78 @@ export function useEvaluation() {
   async function openEvaluationModal(problem, droppedComponents, connections, mermaidCode) {
     if (droppedComponents.length > 0) {
       pendingEvaluationAfterDeepDive.value = true;
-      await triggerFinalDeepDiveQuestions(problem, droppedComponents, connections, mermaidCode);
-      return { needsDeepDive: true };
+      // Phase 1: 설명 입력 모드로 시작
+      evaluationPhase.value = 'explanation';
+      isDeepDiveModalActive.value = true;
+      isGeneratingDeepDive.value = false;
+      currentQuestionIndex.value = 0;
+      collectedDeepDiveAnswers.value = [];
+      userExplanation.value = '';
+
+      // 설명 요청 안내 메시지
+      deepDiveQuestion.value = '설계한 아키텍처에 대해 설명해주세요. 왜 이런 구조를 선택했는지, 각 컴포넌트의 역할과 데이터 흐름에 대해 자유롭게 작성해주세요.';
+      deepDiveQuestions.value = [{ category: '아키텍처 설명', question: deepDiveQuestion.value }];
+
+      return { needsDeepDive: true, phase: 'explanation' };
     }
 
     // DeepDive만 사용하므로 EvaluationModal 대신 바로 평가 진행
     await directEvaluate(problem, droppedComponents, connections, mermaidCode);
     return { needsDeepDive: false };
+  }
+
+  // NEW: 사용자 설명 제출 후 꼬리질문 생성
+  async function submitUserExplanation(explanation, problem, droppedComponents, connections, mermaidCode) {
+    userExplanation.value = explanation;
+    isGeneratingDeepDive.value = true;
+
+    // 설명을 첫 번째 답변으로 저장
+    collectedDeepDiveAnswers.value.push({
+      category: '아키텍처 설명',
+      question: deepDiveQuestion.value,
+      answer: explanation
+    });
+
+    try {
+      // 사용자 설명 기반 꼬리질문 생성
+      const result = await generateFollowUpQuestions(
+        problem,
+        droppedComponents,
+        connections,
+        mermaidCode,
+        explanation
+      );
+
+      explanationAnalysis.value = result.analysis;
+
+      // 꼬리질문들 설정
+      if (result.questions && result.questions.length > 0) {
+        deepDiveQuestions.value = result.questions;
+        currentQuestionIndex.value = 0;
+        deepDiveQuestion.value = result.questions[0].question;
+        evaluationPhase.value = 'questioning';
+      } else {
+        // 질문이 없으면 바로 평가로
+        evaluationPhase.value = 'evaluating';
+        isDeepDiveModalActive.value = false;
+        return true; // 평가 진행 가능
+      }
+    } catch (error) {
+      console.error('Failed to generate follow-up questions:', error);
+      // 에러 시 기본 질문 사용
+      deepDiveQuestions.value = [
+        { category: '설계 의도', question: '이 아키텍처에서 가장 중요하게 고려한 부분은 무엇인가요?' },
+        { category: '확장성', question: '트래픽이 10배로 증가하면 어떤 부분을 수정해야 할까요?' },
+        { category: '장애 대응', question: '주요 컴포넌트 장애 시 어떻게 대응하시겠습니까?' }
+      ];
+      currentQuestionIndex.value = 0;
+      deepDiveQuestion.value = deepDiveQuestions.value[0].question;
+      evaluationPhase.value = 'questioning';
+    } finally {
+      isGeneratingDeepDive.value = false;
+    }
+
+    return false; // 아직 질문 단계
   }
 
   async function directEvaluate(problem, droppedComponents, connections, mermaidCode) {
@@ -212,6 +283,9 @@ export function useEvaluation() {
     currentQuestionIndex.value = 0;
     collectedDeepDiveAnswers.value = [];
     chatMessages.value = [];
+    evaluationPhase.value = 'idle';
+    userExplanation.value = '';
+    explanationAnalysis.value = null;
   }
 
   function isPendingEvaluation() {
@@ -240,6 +314,11 @@ export function useEvaluation() {
     currentQuestionIndex,
     collectedDeepDiveAnswers,
 
+    // NEW: 설명 Phase 상태
+    evaluationPhase,
+    userExplanation,
+    explanationAnalysis,
+
     // Chat
     chatMessages,
 
@@ -255,6 +334,9 @@ export function useEvaluation() {
     handleRetry,
     resetEvaluationState,
     isPendingEvaluation,
-    clearPendingEvaluation
+    clearPendingEvaluation,
+
+    // NEW: 설명 제출 메서드
+    submitUserExplanation
   };
 }
