@@ -3,158 +3,120 @@
     <div class="bg-[#0a0e17] w-full max-w-7xl h-[90vh] rounded-3xl border border-white/10 shadow-2xl overflow-hidden flex flex-col relative animate-scale-in">
       
     <!-- HUD Header -->
-    <header class="h-24 border-b border-cyan-500/30 bg-black flex justify-between items-center px-10 relative overflow-hidden shrink-0">
-      <!-- Background Scanline effect -->
-      <div class="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%] pointer-events-none opacity-20"></div>
-      
+    <header class="h-20 border-b border-white/5 bg-[#07090e] flex justify-between items-center px-10 relative overflow-hidden shrink-0">
       <div class="flex items-center space-x-6 z-10">
-        <div class="relative group">
-          <div class="absolute -inset-1 bg-cyan-500/20 rounded-lg blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
-          <div class="relative bg-black border border-cyan-500/50 p-3 rounded-lg">
-            <Terminal class="text-cyan-400 w-6 h-6 animate-pulse" />
-          </div>
+        <!-- Exact Logo Match -->
+        <div class="w-10 h-10 bg-[#117e96] rounded flex items-center justify-center">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M7 8L11 12L7 16M13 16H17" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
         </div>
-        <div class="space-y-1">
-          <div class="flex items-center gap-3">
-            <h1 class="font-black text-2xl tracking-[0.2em] text-white italic">RE-BOOT_OS</h1>
-            <span class="text-[10px] bg-cyan-500/10 text-cyan-400 px-2 py-0.5 border border-cyan-500/20 rounded font-mono">V.2.0.4_STABLE</span>
-          </div>
-          <div class="flex items-center gap-2 text-[10px] font-mono text-cyan-500/50 uppercase tracking-widest">
-            <span class="animate-pulse">●</span> SESSION_ID: 0x88EAD... | SECTOR: DATA_PROTOCOL
+        <div class="space-y-0">
+          <h1 class="font-black text-2xl tracking-tighter text-white uppercase italic leading-none">PROJECT: RE-BOOT</h1>
+          <div class="text-[12px] font-bold text-cyan-400/60 uppercase tracking-widest mt-1">
+            Stage {{ currentStep }}: Data Cleaning Protocol
           </div>
         </div>
       </div>
 
-      <div class="flex items-center gap-10 z-10">
-        <div class="hidden lg:flex flex-col items-end font-mono">
-          <div class="text-[10px] text-gray-500 tracking-widest uppercase mb-1">System Health</div>
-          <div class="flex gap-1">
-            <div v-for="i in 10" :key="i" class="w-1 h-3" :class="i < 9 ? 'bg-cyan-500/60' : 'bg-gray-800'"></div>
-          </div>
+      <div class="flex items-center gap-8 z-10">
+        <div class="flex items-center gap-2 font-mono text-xs">
+          <span class="text-gray-500 uppercase tracking-widest">SYS_STATUS:</span>
+          <span class="text-[#4ade80] font-black animate-pulse">STABLE</span>
         </div>
         
-        <div class="h-12 w-px bg-white/10"></div>
-
         <button 
           @click="$emit('close')" 
-          class="group relative"
+          class="flex items-center justify-center w-10 h-10 rounded hover:bg-white/5 transition-all text-gray-500 hover:text-white"
         >
-          <div class="absolute -inset-2 bg-red-500/20 rounded-full blur opacity-0 group-hover:opacity-100 transition duration-300"></div>
-          <div class="relative flex items-center gap-3 px-4 py-2 border border-white/10 rounded-lg hover:border-red-500/50 hover:bg-red-500/5 transition-all text-gray-400 hover:text-red-400">
-             <span class="text-[10px] font-black tracking-widest uppercase">Terminate</span>
-             <X class="w-5 h-5" />
-          </div>
+          <X class="w-6 h-6" />
         </button>
       </div>
       
-      <!-- Bottom Neon Line -->
-      <div class="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-cyan-500 to-transparent shadow-[0_0_15px_#00f3ff]"></div>
+      <!-- Top Neon Line -->
+      <div class="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent"></div>
     </header>
 
 
 
-
     <!-- Main Content -->
-    <main class="flex-1 p-6 lg:p-12 max-w-7xl mx-auto w-full relative flex flex-col min-h-0 overflow-y-auto custom-scrollbar">
+    <main class="flex-1 p-6 lg:p-12 max-w-7xl mx-auto w-full relative flex flex-col min-h-0 overflow-y-auto custom-scrollbar bg-[#07090e]">
       <!-- Glow Decor -->
       <div class="absolute top-0 left-1/4 w-[600px] h-[600px] bg-cyan-500/[0.03] rounded-full blur-[120px] pointer-events-none"></div>
       <div class="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-pink-500/[0.03] rounded-full blur-[120px] pointer-events-none"></div>
 
 
-      <!-- HUD Progress -->
-      <div v-if="currentStep <= 4" class="max-w-4xl mx-auto w-full mb-16 px-4">
-        <div class="flex justify-between mb-3 px-2">
-          <span class="text-[10px] font-black text-cyan-400/60 uppercase tracking-[0.3em]">Protocol Progress</span>
-          <span class="text-[10px] font-mono text-cyan-400/60">{{ currentStep * 25 }}% COMPLETE</span>
-        </div>
-        <div class="flex items-center space-x-4">
-          <div
-            v-for="step in 4"
-            :key="step"
-            class="flex-1 h-2 relative overflow-hidden group cursor-help"
-            :class="step <= currentStep ? 'bg-cyan-500/20' : 'bg-white/5'"
-          >
-            <!-- Progress Fill -->
-            <div 
-              class="absolute inset-0 bg-cyan-500 transition-all duration-1000 shadow-[0_0_15px_rgba(6,182,212,0.5)]"
-              :style="{ width: step < currentStep ? '100%' : (step === currentStep ? '100%' : '0%') }"
-            >
-               <div v-if="step === currentStep" class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer"></div>
-            </div>
-            <!-- Marker -->
-            <div class="absolute inset-0 border border-white/10"></div>
-          </div>
+      <!-- HUD Progress (Pill Style Match) -->
+      <div v-if="currentStep <= 4" class="max-w-6xl mx-auto w-full mb-12 px-4 shrink-0">
+        <div class="grid grid-cols-4 gap-6 h-3">
+           <div 
+             v-for="i in 4" 
+             :key="i"
+             class="relative h-full transition-all duration-700 rounded-full bg-white/10"
+           >
+             <div 
+               v-if="i <= currentStep" 
+               class="absolute inset-0 bg-cyan-400 rounded-full shadow-[0_0_20px_rgba(0,243,255,0.6)]"
+               :class="i === currentStep ? 'animate-pulse' : ''"
+             ></div>
+           </div>
         </div>
       </div>
 
 
-      <!-- STAGE 1: Quiz -->
-      <div v-if="currentStep === 1" class="grid grid-cols-1 lg:grid-cols-2 gap-12 animate-fade-in-up items-stretch max-w-6xl mx-auto w-full">
+      <!-- STAGE 1: Quiz (Refined Clean Aesthetic) -->
+      <div v-if="currentStep === 1" class="grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-8 animate-fade-in-up items-stretch max-w-6xl mx-auto w-full flex-1 min-h-0">
         <!-- Info Card -->
-        <div class="flex flex-col">
-          <div class="bg-black/40 border border-cyan-500/20 p-10 relative group overflow-hidden flex-1 hud-box-clip">
-            <div class="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-cyan-500/10 transition-all duration-1000"></div>
-            
-            <div class="flex items-center gap-4 mb-8">
-              <div class="p-3 bg-cyan-500/10 rounded-xl border border-cyan-500/30">
-                <Cpu class="text-cyan-400 w-8 h-8" />
-              </div>
-              <div>
-                <h2 class="text-3xl font-black text-white italic tracking-tighter">DATA_INTEGRITY</h2>
-                <p class="text-[10px] text-cyan-500 font-mono tracking-widest">SUB_MODULE: MEMORY_RESTORE_01</p>
-              </div>
+        <div class="bg-[#0b0e14] border border-white/5 p-10 rounded-2xl flex flex-col relative overflow-hidden group shadow-2xl">
+          <div class="flex items-center gap-4 mb-4">
+            <div class="p-3 bg-cyan-500/10 rounded-xl border border-cyan-500/20">
+              <Cpu class="text-cyan-400 w-8 h-8" />
             </div>
+            <h2 class="text-3xl font-black text-[#00f3ff] italic tracking-tighter uppercase">Stage 1: 오염된 기억</h2>
+          </div>
 
-            <div class="space-y-8 text-gray-400 leading-relaxed font-medium">
-              <p class="text-lg text-white/90">복구 프로세스를 시작하기 전에 데이터 품질의 핵심 원칙을 확인해야 합니다.</p>
-              
-              <div class="relative pt-6">
-                <div class="absolute top-0 left-0 w-8 h-1 bg-cyan-500"></div>
-                <h3 class="text-cyan-300 font-black text-xs uppercase tracking-[0.3em] mb-4">Core Concept: GIGO</h3>
-                <div class="bg-white/[0.03] p-8 border border-white/5 relative overflow-hidden group">
-                   <div class="absolute top-2 right-4 text-[8px] font-mono text-white/20">RULE_ENFORCER_V1</div>
-                   <p class="text-xl text-white italic mb-4 font-black">"Garbage In, Garbage Out"</p>
-                   <p class="text-sm text-gray-500 leading-relaxed">알고리즘이 아무리 정교해도, 오염된 데이터로 학습하면 모델의 출력 또한 가치 없는 '쓰레기'가 됩니다.</p>
-                </div>
-              </div>
+          <div class="space-y-8 text-gray-400 leading-relaxed font-medium">
+            <p class="text-[17px] text-[#8b949e]">Lion의 메모리 뱅크가 손상되었습니다. 복구 프로세스를 시작하기 전에 가장 중요한 원칙을 확인해야 합니다.</p>
+            
+            <div class="bg-[#0d1117] p-8 border border-white/5 rounded-xl relative overflow-hidden group/gigo mt-auto">
+               <h3 class="text-cyan-400 font-bold text-lg mb-4 flex items-center gap-2">
+                 핵심 개념: GIGO (Garbage In, Garbage Out)
+               </h3>
+               <p class="text-lg text-white font-medium leading-relaxed">
+                 "쓰레기가 들어가면 쓰레기가 나온다."
+               </p>
+               <p class="text-sm text-[#8b949e] mt-2">
+                 모델이 아무리 뛰어나도, 학습 데이터의 품질이 낮으면 결과물도 엉망이 됩니다.
+               </p>
             </div>
           </div>
         </div>
 
         <!-- Quiz Card -->
-        <div class="flex flex-col">
-          <div class="bg-black/40 border border-white/10 p-10 hud-box-clip flex-1 flex flex-col">
-            <div class="mb-10">
-              <div class="text-[10px] text-gray-600 font-black tracking-widest uppercase mb-2">Security Verification</div>
-              <h3 class="text-2xl font-black text-white tracking-tight leading-tight">데이터 전처리를 수행해야 하는 가장 타당한 엔지니어링적 이유는?</h3>
-            </div>
+        <div class="bg-[#0b0e14] border border-white/5 p-10 rounded-2xl flex flex-col shadow-2xl">
+          <h3 class="text-2xl font-black text-white mb-10 leading-tight">Q. 다음 중 데이터 전처리를 수행해야 하는 가장 타당한 이유는?</h3>
 
-            <div class="space-y-4 flex-1">
-              <button
-                v-for="(opt, idx) in step1Options"
-                :key="idx"
-                @click="handleStep1Submit(idx)"
-                class="w-full text-left p-6 bg-white/[0.02] hover:bg-cyan-500/10 border border-white/5 hover:border-cyan-500/30 transition-all group relative overflow-hidden active:scale-[0.98] hud-button-clip"
-              >
-                <div class="flex items-center relative z-10">
-                  <div class="w-10 h-10 bg-white/5 border border-white/10 flex items-center justify-center mr-5 text-xs font-mono text-cyan-400 group-hover:bg-cyan-500 group-hover:text-black transition-all">
-                    0{{ idx + 1 }}
-                  </div>
-                  <span class="flex-1 font-bold text-gray-300 group-hover:text-white transition-colors">{{ opt }}</span>
-                  <div class="w-1 h-6 bg-transparent group-hover:bg-cyan-500 transition-all ml-4"></div>
-                </div>
-              </button>
-            </div>
+          <div class="space-y-4 flex-1">
+            <button
+              v-for="(opt, idx) in step1Options"
+              :key="idx"
+              @click="handleStep1Submit(idx)"
+              class="w-full text-left p-6 bg-[#161b22] hover:bg-cyan-500/10 border border-transparent hover:border-cyan-500/30 transition-all group flex items-center rounded-xl"
+            >
+              <span class="flex-1 font-bold text-[#c9d1d9] group-hover:text-white transition-colors">
+                {{ idx + 1 }}. {{ opt }}
+              </span>
+            </button>
           </div>
         </div>
       </div>
 
 
       <!-- STAGE 2: Pseudocode -->
-      <div v-if="currentStep === 2" class="grid grid-cols-1 lg:grid-cols-2 gap-10 animate-fade-in-up items-stretch max-w-7xl mx-auto w-full">
-        <div class="flex flex-col gap-10">
+      <div v-if="currentStep === 2" class="grid grid-cols-1 lg:grid-cols-2 gap-10 animate-fade-in-up items-stretch max-w-7xl mx-auto w-full flex-1 min-h-0">
+        <div class="flex flex-col gap-10 min-h-0">
           <!-- Problem Definition HUD -->
-          <div class="bg-black/40 border border-cyan-500/20 p-10 hud-box-clip flex-1 relative overflow-hidden group">
+          <div class="bg-black/40 border border-cyan-500/20 p-10 hud-box-clip flex-1 relative overflow-hidden group min-h-[200px]">
             <h3 class="text-2xl font-black text-white italic mb-6 flex items-center gap-3">
               <CodeIcon class="w-6 h-6 text-cyan-400" /> MISSION_OBJECTIVE
             </h3>
@@ -175,7 +137,7 @@
           </div>
 
           <!-- Lion Chat HUD -->
-          <div class="bg-black/60 border border-white/5 hud-box-clip flex-[0.8] flex flex-col overflow-hidden relative">
+          <div class="bg-black/60 border border-white/5 hud-box-clip flex-[0.8] flex flex-col overflow-hidden relative max-h-[400px]">
             <div class="bg-white/5 p-3 text-[10px] font-mono text-cyan-400/50 border-b border-white/5 flex justify-between items-center tracking-widest px-6 italic uppercase">
               <span>Agent_Link_Active</span>
               <span class="flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse"></div> ENCRYPTED</span>
@@ -237,10 +199,10 @@
       <!-- STAGE 3: Python Blocks Refined -->
       <div v-if="currentStep === 3" class="grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-10 animate-fade-in-up items-stretch max-w-7xl mx-auto w-full flex-1 min-h-0">
         <!-- Left: Code Block Storage -->
-        <div class="bg-[#0f1219]/60 border border-white/5 p-10 hud-box-clip flex flex-col relative group">
+        <div class="bg-[#0f1219]/60 border border-white/5 p-10 hud-box-clip flex flex-col relative group min-h-0">
           <div class="absolute inset-0 bg-gradient-to-b from-cyan-500/[0.02] to-transparent pointer-events-none"></div>
           
-          <div class="mb-10 relative">
+          <div class="mb-10 relative shrink-0">
             <h3 class="text-2xl font-black text-cyan-400 italic tracking-tighter uppercase mb-2">코드 블록 보관함</h3>
             <p class="text-gray-400 text-sm leading-relaxed font-bold">
               아래 블록을 클릭하여 선택한 후, 오른쪽 코드의 빈칸을 클릭해 채워넣으세요.
@@ -248,16 +210,17 @@
             <div class="absolute -left-10 top-0 w-1 h-full bg-cyan-500/50"></div>
           </div>
           
-          <div class="grid grid-cols-2 gap-4 mb-8">
+          <!-- Blocks Grid - Fixed Height Scrollable -->
+          <div class="grid grid-cols-2 gap-4 flex-1 overflow-y-auto custom-scrollbar pr-4 min-h-0">
             <button
               v-for="block in blocks"
               :key="block.id"
-              @click="selectBlock(block)"
-              class="group h-20 transition-all active:scale-[0.98] relative"
+              @click="selectedBlock = block"
+              class="group relative h-28 transition-all active:scale-[0.98]"
             >
               <div 
-                class="absolute inset-0 bg-white/[0.03] border transition-all duration-300 hud-button-clip"
-                :class="selectedBlock && selectedBlock.id === block.id ? 'bg-cyan-500/10 border-cyan-400 ring-1 ring-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]' : 'border-white/10 group-hover:border-cyan-500/40 group-hover:bg-white/5'"
+                class="absolute inset-0 bg-black/40 border transition-all duration-300 hud-box-clip"
+                :class="selectedBlock && selectedBlock.id === block.id ? 'border-cyan-500 shadow-[0_0_20px_rgba(0,243,255,0.2)] bg-cyan-500/10' : 'border-white/10 group-hover:border-cyan-500/30'"
               ></div>
               <div class="relative h-full flex items-center justify-center px-4">
                 <span 
@@ -271,7 +234,7 @@
           </div>
 
           <!-- Tip Box -->
-          <div class="mt-auto p-6 bg-white/[0.02] border-l-2 border-pink-500 hud-box-clip relative overflow-hidden">
+          <div class="mt-8 p-6 bg-white/[0.02] border-l-2 border-pink-500 hud-box-clip relative overflow-hidden shrink-0">
              <div class="absolute top-0 right-0 w-16 h-16 bg-pink-500/5 rotate-45 translate-x-8 -translate-y-8"></div>
              <p class="text-[13px] text-gray-400 leading-relaxed font-bold italic">
                <span class="text-pink-500 not-italic font-black mr-2">Tip:</span> continue는 건너뛰기, break는 멈추기입니다. 우리는 끝까지 다 검사해야 해요.
@@ -280,13 +243,13 @@
         </div>
 
         <!-- Right: Python Executor -->
-        <div class="bg-[#1a1a1a] border border-white/5 hud-box-clip flex flex-col relative overflow-hidden group shadow-2xl">
+        <div class="bg-[#1a1a1a] border border-white/5 hud-box-clip flex flex-col relative overflow-hidden group shadow-2xl min-h-0">
           <!-- source header -->
           <div class="p-4 px-8 flex justify-end items-center shrink-0">
              <span class="text-[11px] font-mono text-gray-600 uppercase tracking-widest italic">data_cleaning.py</span>
           </div>
 
-          <div class="flex-1 p-12 relative overflow-y-auto custom-scrollbar" style="font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;">
+          <div class="flex-1 p-12 relative overflow-y-auto custom-scrollbar min-h-0" style="font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;">
             <!-- Code Structure -->
             <div class="text-[17px] leading-[2.4] font-medium text-gray-300">
               <pre>def clean_news_data(news_list):
@@ -346,9 +309,9 @@
 
 
       <!-- STAGE 4: Deep Dive HUD -->
-      <div v-if="currentStep === 4" class="grid grid-cols-1 lg:grid-cols-2 gap-12 animate-fade-in-up items-stretch max-w-6xl mx-auto w-full">
-        <div class="flex flex-col">
-          <div class="bg-black/40 border border-pink-500/20 p-10 relative group overflow-hidden flex-1 hud-box-clip">
+      <div v-if="currentStep === 4" class="grid grid-cols-1 lg:grid-cols-2 gap-12 animate-fade-in-up items-stretch max-w-6xl mx-auto w-full flex-1 min-h-0">
+        <div class="flex flex-col min-h-0">
+          <div class="bg-black/40 border border-pink-500/20 p-10 relative group overflow-hidden flex-1 hud-box-clip min-h-0">
             <div class="absolute top-0 right-0 w-32 h-32 bg-pink-500/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-pink-500/10 transition-all duration-1000"></div>
             
             <div class="flex items-center gap-4 mb-8">
