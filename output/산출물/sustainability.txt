@@ -1,0 +1,618 @@
+The sustainability pillar in the Google Cloud Well-Architected Framework provides recommendations to design, build, and manage workloads in Google Cloud that are energy-efficient and carbon-aware.
+
+The target audience for this document includes decision-makers, architects, administrators, developers, and operators who design, build, deploy, and maintain workloads in Google Cloud.
+
+Architectural and operational decisions have a significant impact on the energy usage, water impact, and carbon footprint that's driven by your workloads in the cloud. Every workload, whether it's a small website or a large-scale ML model, consumes energy and contributes to carbon emissions and water resource intensity. When you integrate sustainability into your cloud architecture and design process, you build systems that are efficient, cost-effective, and environmentally sustainable. A sustainable architecture is resilient and optimized, which creates a positive feedback loop of higher efficiency, lower cost, and lower environmental impact.
+
+Sustainable by design: Holistic business outcomes
+Sustainability isn't a trade-off against other core business objectives; sustainability practices help to accelerate your other business objectives. Architecture choices that prioritize low-carbon resources and operations help you build systems that are also faster, cheaper, and more secure. Such systems are considered to be sustainable by design, where optimizing for sustainability leads to overall positive outcomes for performance, cost, security, resilience, and user experience.
+
+Performance optimization
+Systems that are optimized for performance inherently use fewer resources. An efficient application that completes a task faster requires compute resources for a shorter duration. Therefore, the underlying hardware consumes less kilowatt-hours (kWh) of energy. Optimized performance also leads to lower latency and better user experience. Time and energy aren't wasted by resources waiting on inefficient processes. When you use specialized hardware (for example, GPUs and TPUs), adopt efficient algorithms, and maximize parallel processing, you improve performance and reduce the carbon footprint of your cloud workload.
+
+Cost optimization
+Cloud operational expenditure depends on resource usage. Due to this direct correlation, when you continuously optimize cost, you also reduce energy consumption and carbon emissions. When you right-size VMs, implement aggressive autoscaling, archive old data, and eliminate idle resources, you reduce resource usage and cloud costs. You also reduce the carbon footprint of your systems, because the data centers consume less energy to run your workloads.
+
+Security and resilience
+Security and reliability are prerequisites for a sustainable cloud environment. A compromised system—for example, a system that's affected by a denial of service (DoS) attack or an unauthorized data breach—can dramatically increase resource consumption. These incidents can trigger massive spikes in traffic, create runaway compute cycles for mitigation, and necessitate lengthy, high-energy operations for forensic analysis, cleanup, and data restoration. Strong security measures can help to prevent unnecessary spikes in resource usage, so that your operations remain stable, predictable, and energy-efficient.
+
+User experience
+Systems that prioritize efficiency, performance, accessibility, and minimal use of data can help to reduce energy usage by end users. An application that loads a smaller model or processes less data to deliver results faster helps to reduce the energy that's consumed by network devices and end-user devices. This reduction in energy usage particularly benefits users who have limited bandwidth or who use older devices. Further, sustainable architecture helps to minimize planetary harm and demonstrates your commitment to socially responsible technology.
+
+Sustainability value of migrating to the cloud
+Migrating on-premises workloads to the cloud can help to reduce your organization's environmental footprint. The transition to cloud infrastructure can reduce energy usage and associated emissions by 1.4 to 2 times when compared to typical on-premises deployments. Cloud data centers are modern, custom-designed facilities that are built for high power usage effectiveness (PUE). Older on-premises data centers often lack the scale that's necessary to justify investments in advanced cooling and power distribution systems.
+
+Shared responsibility and shared fate
+Shared responsibilities and shared fate on Google Cloud describes how security for cloud workloads is a shared responsibility between Google and you, the customer. This shared responsibility model also applies to sustainability.
+
+Google is responsible for the sustainability of Google Cloud, which means the energy efficiency and water stewardship of our data centers, infrastructure, and core services. We invest continuously in renewable energy, climate-conscious cooling, and hardware optimization. For more information about Google's sustainability strategy and progress, see Google Sustainability 2025 Environmental Report.
+
+You, the customer, are responsible for sustainability in the cloud, which means optimizing your workloads to be energy efficient. For example, you can right-size resources, use serverless services that scale to zero, and manage data lifecycles effectively.
+
+We also advocate a shared fate model: sustainability isn't just a division of tasks but a collaborative partnership between you and Google to reduce the environmental footprint for the entire ecosystem.
+
+Use AI for business impact
+The sustainability pillar of the Well-Architected Framework (this document) includes guidance to help you design sustainable AI systems. However, a comprehensive sustainability strategy extends beyond the environmental impact of AI workloads. The strategy should include ways to use AI to optimize operations and create new business value.
+
+AI serves as a catalyst for sustainability by transforming vast datasets into actionable insights. It enables organizations to transition from reactive compliance to proactive optimization, such as in the following areas:
+
+Operational efficiency: Streamline operations through improved inventory management, supply chain optimization, and intelligent energy management.
+Transparency and risk: Use data for granular supply chain transparency, regulatory compliance, and climate risk modeling.
+Value and growth: Develop new revenue streams in sustainable finance and recommerce.
+Google offers the following products and features to help you derive insights from data and build capabilities for a sustainable future:
+
+Google Earth AI: Uses planetary-scale geospatial data to analyze environmental changes and monitor supply chain impacts.
+WeatherNext: Provides advanced weather forecasting and climate risk analytics to help you build resilience against climate volatility.
+Geospatial insights with Google Earth: Uses geospatial data to add rich contextual data to locations, which enables smarter site selection, resource planning, and operations.
+Google Maps routes optimization: Optimizes logistics and delivery routes to increase efficiency and reduce fuel consumption and transportation emissions.
+Collaborations with partners and customers
+Google Cloud and TELUS have partnered to advance cloud sustainability by migrating workloads to Google's carbon-neutral infrastructure and leveraging data analytics to optimize operations. This collaboration provides social and environmental benefits through initiatives like smart-city technology, which uses real-time data to reduce traffic congestion and carbon emissions across municipalities in Canada. For more information about this collaboration, see Google Cloud and TELUS collaborate for sustainability.
+
+Core principles
+The recommendations in the sustainability pillar of the Well-Architected Framework are mapped to the following core principles:
+
+Use regions that consume low-carbon energy
+Optimize AI and ML workloads for energy efficiency
+Optimize resource usage for sustainability
+Develop energy-efficient software
+Optimize data and storage for sustainability
+Continuously measure and improve sustainability
+Promote a culture of sustainability
+Align sustainability practices with industry guidelines
+Contributors
+Author: Brett Tackaberry | Principal Architect
+
+Other contributors:
+
+Alex Stepney | Lead Principal Architect
+Daniel Lees | Cloud Security Architect
+Denise Pearl | Global Marketing Lead, Sustainability
+Kumar Dhanagopal | Cross-Product Solution Developer
+Laura Hyatt | Customer Engineer, FSI
+Nicolas Pintaux | Customer Engineer, Application Modernization Specialist
+Radhika Kanakam | Program Lead, Google Cloud Well-Architected Framework
+
+Use regions that consume low-carbon energy
+This principle in the sustainability pillar of the Google Cloud Well-Architected Framework provides recommendations to help you select low-carbon regions for your workloads in Google Cloud.
+
+Principle overview
+When you plan to deploy a workload in Google Cloud, an important architectural decision is the choice of Google Cloud region for the workload. This decision affects the carbon footprint of your workload. To minimize the carbon footprint, your region-selection strategy must include the following elements:
+
+Data-driven selection: To identify and prioritize regions, consider the leaf icon Low CO2 indicator and the carbon-free energy (CFE) metric.
+Policy-based governance: Restrict resource creation to environmentally optimal locations by using the resource locations constraint in Organization Policy Service.
+Operational flexibility: Use techniques like time-shifting and carbon-aware scheduling to run batch workloads during hours when the carbon intensity of the electrical grid is the lowest.
+The electricity that's used to power your application and workloads in the cloud is an important factor that affects your choice of Google Cloud regions. In addition, consider the following factors:
+
+Data residency and sovereignty: The location where you need to store your data is a foundational factor that dictates your choice of Google Cloud region. This choice affects compliance with local data residency requirements.
+Latency for end users: The geographical distance between your end users and the regions where you deploy applications affects user experience and application performance.
+Cost: The pricing for Google Cloud resources can be different across regions.
+The Google Cloud Region Picker tool helps you select optimal Google Cloud regions based on your requirements for carbon footprint, cost, and latency. You can also use Cloud Location Finder to find cloud locations in Google Cloud and other providers based on your requirements for proximity, carbon-free energy (CFE) usage, and other parameters.
+
+Recommendations
+To deploy your cloud workloads in low-carbon regions, consider the recommendations in the following sections. These recommendations are based on the guidance in Carbon-free energy for Google Cloud regions.
+
+Understand the carbon intensity of cloud regions
+Google Cloud data centers in a region use energy from the electrical grid where the region is located. Google measures the carbon impact of a region by using the CFE metric, which is calculated every hour. CFE indicates the percentage of carbon-free energy out of the total energy that's consumed during an hour. The CFE metric depends on two factors:
+
+The type of power-generation plants that supply the grid during a given period.
+Google-attributed clean energy that's supplied to the grid during that time.
+For information about the aggregated average hourly CFE% for each Google Cloud region, see Carbon-free energy for Google Cloud regions. You can also get this data in a machine-readable format from the Carbon free energy for Google Cloud regions repository in GitHub and a BigQuery public dataset.
+
+Incorporate CFE in your location-selection strategy
+Consider the following recommendations:
+
+Select the cleanest region for your applications. If you plan to run an application for a long period, run it in the region that has the highest CFE%. For batch workloads, you have greater flexibility in choosing a region because you can predict when the workload must run.
+Select low-carbon regions. Certain pages in the Google Cloud website and location selectors in the Google Cloud console show the leaf icon Low CO2 indicator for regions that have the lowest carbon impact.
+Restrict the creation of resources to specific low-carbon Google Cloud regions by using the resource locations Organization Policy constraint. For example, to allow the creation of resources in only US-based low-carbon regions, create a constraint that specifies the in:us-low-carbon-locations value group.
+When you select locations for your Google Cloud resources, also consider best practices for region selection, including factors like data residency requirements, latency to end users, redundancy of the application, availability of services, and pricing.
+
+Use time-of-day scheduling
+The carbon intensity of an electrical grid can vary significantly throughout the day. The variation depends on the mix of energy sources that supply the grid. You can schedule workloads, particularly those that are flexible or non-urgent, to run when the grid is supplied by a higher proportion of CFE.
+
+For example, many grids have higher CFE percentages during off-peak hours or when renewable sources like solar and wind supply more power to the grid. By scheduling compute-intensive tasks such as model training and large-scale batch inference during higher-CFE hours, you can significantly reduce the associated carbon emissions without affecting performance or cost. This approach is known as time-shifting, where you use the dynamic nature of a grid's carbon intensity to optimize your workloads for sustainability.
+
+
+Optimize AI and ML workloads for energy efficiency
+This principle in the sustainability pillar of the Google Cloud Well-Architected Framework provides recommendations for optimizing AI and ML workloads to reduce their energy usage and carbon footprint.
+
+Principle overview
+To optimize AI and ML workloads for sustainability, you need to adopt a holistic approach to designing, deploying, and operating the workloads. Select appropriate models and specialized hardware like Tensor Processing Units (TPUs), run the workloads in low-carbon regions, optimize to reduce resource usage, and apply operational best practices.
+
+Architectural and operational practices that optimize the cost and performance of AI and ML workloads inherently lead to reduced energy consumption and lower carbon footprint. The AI and ML perspective in the Well-Architected Framework describes principles and recommendations to design, build, and manage AI and ML workloads that meet your operational, security, reliability, cost, and performance goals. In addition, the Cloud Architecture Center provides detailed reference architectures and design guides for AI and ML workloads in Google Cloud.
+
+Recommendations
+To optimize AI and ML workloads for energy efficiency, consider the recommendations in the following sections.
+
+Architect for energy efficiency by using TPUs
+AI and ML workloads can be compute-intensive. The energy consumption by AI and ML workloads is a key consideration for sustainability. TPUs let you significantly improve the energy efficiency and sustainability of your AI and ML workloads.
+
+TPUs are custom-designed accelerators that are purpose-built for AI and ML workloads. The specialized architecture of TPUs make them highly effective for large-scale matrix multiplication, which is the foundation of deep learning. TPUs can perform complex tasks at scale with greater efficiency than general-purpose processors like CPUs or GPUs.
+
+TPUs provide the following direct benefits for sustainability:
+
+Lower energy consumption: TPUs are engineered for optimal energy efficiency. They deliver higher computations per watt of energy consumed. Their specialized architecture significantly reduces the power demands of large-scale training and inference tasks, which leads to reduced operational costs and lower energy consumption.
+Faster training and inference: The exceptional performance of TPUs lets you train complex AI models in hours rather than days. This significant reduction in the total compute time contributes directly to a smaller environmental footprint.
+Reduced cooling needs: TPUs incorporate advanced liquid cooling, which provides efficient thermal management and significantly reduces the energy that's used for cooling the data center.
+Optimization of the AI lifecycle: By integrating hardware and software, TPUs provide an optimized solution across the entire AI lifecycle, from data processing to model serving.
+Follow the 4Ms best practices for resource selection
+Google recommends a set of best practices to reduce energy usage and carbon emissions significantly for AI and ML workloads. We call these best practices 4Ms:
+
+Model: Select efficient ML model architectures. For example, sparse models improve ML quality and reduce computation by 3-10 times when compared to dense models.
+Machine: Choose processors and systems that are optimized for ML training. These processors improve performance and energy efficiency by 2-5 times when compared to general-purpose processors.
+Mechanization: Deploy your compute-intensive workloads in the cloud. Your workloads use less energy and cause lower emissions by 1.4 to 2 times when compared to on-premises deployments. Cloud data centers use newer, custom-designed warehouses that are built for energy efficiency and have a high power usage effectiveness (PUE) ratio. On-premises data centers are often older and smaller, therefore investments in energy-efficient cooling and power distribution systems might not be economical.
+Map: Select Google Cloud locations that use the cleanest energy. This approach helps to reduce the gross carbon footprint of your workloads by 5-10 times. For more information, see Carbon-free energy for Google Cloud regions.
+For more information about the 4Ms best practices and efficiency metrics, see the following research papers:
+
+The carbon footprint of machine learning training will plateau, then shrink
+The data denter as a computer: An introduction to the design of warehouse-scale machines, second edition
+Optimize AI models and algorithms for training and inference
+The architecture of an AI model and the algorithms that are used for training and inference have a significant impact on energy consumption. Consider the following recommendations.
+
+Select efficient AI models
+Choose smaller, more efficient AI models that meet your performance requirements. Don't select the largest available model as a default choice. For example, a smaller, distilled model version like DistilBERT can deliver similar performance with significantly less computational overhead and faster inference than a larger model like BERT.
+
+Use domain-specific, hyper-efficient solutions
+Choose specialized ML solutions that provide better performance and require significantly less compute power than a large foundation model. These specialized solutions are often pre-trained and hyper-optimized. They can provide significant reductions in energy consumption and research effort for both training and inference workloads. The following are examples of domain-specific specialized solutions:
+
+Earth AI is an energy-efficient solution that synthesizes large amounts of global geospatial data to provide timely, accurate, and actionable insights.
+WeatherNext produces faster, more efficient, and highly accurate global weather forecasts when compared to conventional physics-based methods.
+Apply appropriate model compression techniques
+The following are examples of techniques that you can use for model compression:
+
+Pruning: Remove unnecessary parameters from a neural network. These are parameters that don't contribute significantly to a model's performance. This technique reduces the size of the model and the computational resources that are required for inference.
+Quantization: Reduce the precision of model parameters. For example, reduce the precision from 32-bit floating-point to 8-bit integers. This technique can help to significantly decrease the memory footprint and power consumption without a noticeable reduction in accuracy.
+Knowledge distillation: Train a smaller student model to mimic the behavior of a larger, more complex teacher model. The student model can achieve a high level of performance with fewer parameters and by using less energy.
+Use specialized hardware
+As mentioned in Follow the 4Ms best practices for resource selection, choose processors and systems that are optimized for ML training. These processors improve performance and energy efficiency by 2-5 times when compared to general-purpose processors.
+
+Use parameter-efficient fine-tuning
+Instead of adjusting all of a model's billions of parameters (full fine-tuning), use parameter-efficient fine-tuning (PEFT) methods like low-rank adaptation (LoRA). With this technique, you freeze the original model's weights and train only a small number of new, lightweight layers. This approach helps to reduce cost and energy consumption.
+
+Follow best practices for AI and ML operations
+Operational practices significantly affect the sustainability of your AI and ML workloads. Consider the following recommendations.
+
+Optimize model training processes
+Use the following techniques to optimize your model training processes:
+
+Early stopping: Monitor the training process and stop it when you don't observe further improvement in model performance against the validation set. This technique helps you prevent unnecessary computations and energy use.
+Efficient data loading: Use efficient data pipelines to ensure that the GPUs and TPUs are always utilized and don't wait for data. This technique helps to maximize resource utilization and reduce wasted energy.
+Optimized hyperparameter tuning: To find optimal hyperparameters more efficiently, use techniques like Bayesian optimization or reinforcement learning. Avoid exhaustive grid searches, which can be resource-intensive operations.
+Improve inference efficiency
+To improve the efficiency of AI inference tasks, use the following techniques:
+
+Batching: Group multiple inference requests in batches and take advantage of parallel processing on GPUs and TPUs. This technique helps to reduce the energy cost per prediction.
+Advanced caching: Implement a multi-layered caching strategy, which includes key-value (KV) caching for autoregressive generation and semantic-prompt caching for application responses. This technique helps to bypass redundant model computations and can yield significant reductions in energy usage and carbon emissions.
+Measure and monitor
+Monitor and measure the following parameters:
+
+Usage and cost: Use appropriate tools to track the token usage, energy consumption, and carbon footprint of your AI workloads. This data helps you identify opportunities for optimization and report progress toward sustainability goals.
+Performance: Continuously monitor model performance in production. Identify issues like data drift, which can indicate that the model needs to be fine-tuned again. If you need to re-train the model, you can use the original fine-tuned model as a starting point and save significant time, money, and energy on updates.
+To track performance metrics, use Cloud Monitoring.
+To correlate model changes with improvements in performance metrics, use event annotations.
+For more information about operationalizing continuous improvement, see Continuously measure and improve sustainability.
+
+Implement carbon-aware scheduling
+Architect your ML pipeline jobs to run in regions with the cleanest energy mix. Use the Carbon Footprint report to identify the least carbon-intensive regions. Schedule resource-intensive tasks as batch jobs during periods when the local electrical grid has a higher percentage of carbon-free energy (CFE).
+
+Optimize data pipelines
+ML operations and fine-tuning require a clean, high-quality dataset. Before you start ML jobs, use managed data processing services to prepare the data efficiently. For example, use Dataflow for streaming and batch processing and use Dataproc for managed Spark and Hadoop pipelines. An optimized data pipeline helps to ensure that your fine-tuning workload doesn't wait for data, so you can maximize resource utilization and help reduce wasted energy.
+
+Embrace MLOps
+To automate and manage the entire ML lifecycle, implement ML Operations (MLOps) practices. These practices help to ensure that models are continuously monitored, validated, and redeployed efficiently, which helps to prevent unnecessary training or resource allocation.
+
+Use managed services
+Instead of managing your own infrastructure, use managed cloud services like Vertex AI. The cloud platform handles the underlying resource management, which lets you focus on the fine-tuning process. Use services that include built-in tools for hyperparameter tuning, model monitoring, and resource management.
+
+What's next
+How much energy does Google's AI use? We did the math
+Ironwood: The first Google TPU for the age of inference
+Google Sustainability 2025 Environmental Report
+More Efficient In-Context Learning with GLaM
+Context caching overview
+
+Optimize resource usage for sustainability
+This principle in the sustainability pillar of the Google Cloud Well-Architected Framework provides recommendations to help you optimize resource usage by your workloads in Google Cloud.
+
+Principle overview
+Optimizing resource usage is crucial for enhancing the sustainability of your cloud environment. Every resource that's provisioned—from compute cycles to data storage—directly affects energy usage, water intensity, and carbon emissions. To reduce the environmental footprint of your workloads, you need to make informed choices when you provision, manage, and use cloud resources.
+
+Recommendations
+To optimize resource usage, consider the recommendations in the following sections.
+
+Implement automated and dynamic scaling
+Automated and dynamic scaling ensures that resource usage is optimal, which helps to prevent energy waste from idle or over-provisioned infrastructure. The reduction in wasted energy translates to lower costs and lower carbon emissions.
+
+Use the following techniques to implement automated and dynamic scalability.
+
+Use horizontal scaling
+Horizontal scaling is the preferred scaling technique for most cloud-first applications. Instead of increasing the size of each instance, known as vertical scaling, you add instances to distribute the load. For example, you can use managed instance groups (MIGs) to automatically scale out a group of Compute Engine VMs. Horizontally scaled infrastructure is more resilient because the failure of an instance doesn't affect the availability of the application. Horizontal scaling is also a resource-efficient technique for applications that have variable load levels.
+
+Configure appropriate scaling policies
+Configure autoscaling settings based on the requirements of your workloads. Define custom metrics and thresholds that are specific to application behavior. Instead of relying solely on CPU utilization, consider metrics like queue depth for asynchronous tasks, request latency, and custom application metrics. To prevent frequent, unnecessary scaling or flapping, define clear scaling policies. For example, for workloads that you deploy in Google Kubernetes Engine (GKE), configure an appropriate cluster autoscaling policy.
+
+Combine reactive and proactive scaling
+With reactive scaling, the system scales in response to real-time load changes. This technique is suitable for applications that have unpredictable spikes in load.
+
+Proactive scaling is suitable for workloads with predictable patterns, such as fixed daily business hours and weekly reports generation. For such workloads, use scheduled autoscaling to pre-provision resources so that they can handle an anticipated load level. This technique prevents a scramble for resources and ensures smoother user experience with higher efficiency. This technique also helps you plan proactively for known spikes in load such as major sales events and focused marketing efforts.
+
+Google Cloud managed services and features like GKE Autopilot, Cloud Run, and MIGs automatically manage proactive scaling by learning from your workload patterns. By default, when a Cloud Run service doesn't receive any traffic, it scales to zero instances.
+
+Design stateless applications
+For an application to scale horizontally, its components should be stateless. This means that a specific user's session or data isn't tied to a single compute instance. When you store session state outside the compute instance, such as in Memorystore for Redis, any compute instance can handle requests from any user. This design approach enables horizontal scaling that's seamless and efficient.
+
+Use scheduling and batches
+Batch processing is ideal for large-scale, non-urgent workloads. Batch jobs can help to optimize your workloads for energy efficiency and cost.
+
+Use the following techniques to implement scheduling and batch jobs.
+
+Schedule for low carbon intensity
+Schedule your batch jobs to run in low-carbon regions and during periods when the local electrical grid has a high percentage of clean energy. To identify the least carbon-intensive times of day for a region, use the Carbon Footprint report.
+
+Use Spot VMs for noncritical workloads
+Spot VMs let you take advantage of unused Compute Engine capacity at a steep discount. Spot VMs can be preempted, but they provide a cost-effective way to process large datasets without the need for dedicated, always-on resources. Spot VMs are ideal for non-critical, fault-tolerant batch jobs.
+
+Consolidate and parallelize jobs
+To reduce the overhead for starting up and shutting down individual jobs, group similar jobs into a single large batch. Run these high-volume workloads on services like Batch. The service automatically provisions and manages the necessary infrastructure, which helps to ensures optimal resource utilization.
+
+Use managed services
+Managed services like Batch and Dataflow automatically handle resource provisioning, scheduling, and monitoring. The cloud platform handles resource optimization. You can focus on the application logic. For example, Dataflow automatically scales the number of workers based on the data volume in the pipeline, so you don't pay for idle resources.
+
+Match VM machine families to workload requirements
+The machine types that you can use for your Compute Engine VMs are grouped into machine families, which are optimized for different workloads. Choose appropriate machine families based on the requirements of your workloads.
+
+Machine family	Recommended for workload types	Sustainability guidance
+General-purpose instances (E2, N2, N4, Tau T2A/T2D): These instances provide a balanced ratio of CPU to memory.	Web servers, microservices, small to medium databases, and development environments.	The E2 series is highly cost-efficient and energy-efficient due to its dynamic allocation of resources. The Tau T2A series uses Arm-based processors, which are often more energy-efficient per unit of performance for large-scale workloads.
+Compute-optimized instances (C2, C3): These instances provide a high vCPU-to-memory ratio and high performance per core.	High performance computing (HPC), batch processing, gaming servers, and CPU-based data analytics.	A C-series instance lets you complete CPU-intensive tasks faster, which reduces the total compute time and energy consumption of the job.
+Memory-optimized instances (M3, M2): These instances are designed for workloads that require a large amount of memory.	Large in-memory databases and data warehouses, such as SAP HANA or in-memory analytics.	Memory-optimized instances enable the consolidation of memory-heavy workloads on fewer physical nodes. This consolidation reduces the total energy that's required when compared to using multiple smaller instances. High-performance memory reduces data-access latency, which can reduce the total time that the CPU spends in an active state.
+Storage-optimized instances (Z3): These instances provide high-throughput, low-latency local SSD storage.	Data warehousing, log analytics, and SQL, NoSQL, and vector databases.	Storage-optimized instances process massive datasets locally, which helps to eliminate the energy that's used for cross-location network data egress. When you use local storage for high-IOPS tasks, you avoid over-provisioning multiple standard instances.
+Accelerator-optimized instances (A3, A2, G2): These instances are built for GPU and TPU-accelerated workloads, such as AI, ML, and HPC.	ML model training and inference, and scientific simulations.	
+TPUs are engineered for optimal energy efficiency. They deliver higher computations per watt.
+
+A GPU-accelerated instance like the A3 series with NVIDIA H100 GPUs can be significantly more energy-efficient for training large models than a CPU-only alternative. Although a GPU-accelerated instance has higher nominal power usage, the task is completed much faster.
+
+Upgrade to the latest machine types
+Use of the latest machine types might help to improve sustainability. When machine types are updated, they're often designed to be more energy-efficient and to provide higher performance per watt. VMs that use the latest machine types might complete the same amount of work with lower power consumption.
+
+CPUs, GPUs, and TPUs often benefit from technical advancements in chip architecture, such as the following:
+
+Specialized cores: Advancements in processors often include specialized cores or instructions for common workloads. For example, CPUs might have dedicated cores for vector operations or integrated AI accelerators. When these tasks are offloaded from the main CPU, the tasks are completed more efficiently and they consume less energy.
+Improved power management: Advancements in chip architectures often include more sophisticated power management features, such as dynamic adjustment of voltage and frequency based on the workload. These power-management features enable the chips to run at peak efficiency and enter low-power states when they are idle, which minimizes energy consumption.
+The technical improvements in chip architecture provide the following direct benefits for sustainability and cost:
+
+Higher performance per watt: This is a key metric for sustainability. For example, the C4 VMs demonstrate 40% higher price-performance when compared to C3 VMs for the same energy consumption. The C4A processor provides 60% higher energy-efficiency over comparable x86 processors. These performance capabilities let you complete tasks faster or use fewer instances for the same load.
+Lower total energy consumption: With improved processors, compute resources are used for a shorter duration for a given task, which reduces the overall energy usage and carbon footprint. The carbon impact is particularly high for short-lived, compute-intensive workloads like batch jobs and ML model training.
+Optimal resource utilization: The latest machine types are often better suited for modern software and are more compatible with advanced features of cloud platforms. These machine types typically enable better resource utilization, which reduces the need for over-provisioning and helps to ensure that every watt of power is used productively.
+Deploy containerized applications
+You can use container-based, fully-managed services such as GKE and Cloud Run as a part of your strategy for sustainable cloud computing. These services help to optimize resource utilization and automate resource management.
+
+Leverage the scale-to-zero capability of Cloud Run
+Cloud Run provides a managed serverless environment that automatically scales instances to zero when there is no incoming traffic for a service or when a job is completed. Autoscaling helps to eliminate energy consumption by idle infrastructure. Resources are powered only when they actively process requests. This strategy is highly effective for intermittent or event-driven workloads. For AI workloads, you can use GPUs with Cloud Run, which lets you consume and pay for GPUs only when they are used.
+
+Automate resource optimization using GKE
+GKE is a container orchestration platform, which ensures that applications use only the resources that they need. To help you automate resource optimization, GKE provides the following techniques:
+
+Bin packing: GKE Autopilot intelligently packs multiple containers on the available nodes. Bin packing maximizes the utilization of each node and reduces the number of idle or underutilized nodes, which helps to reduce energy consumption.
+Horizontal Pod autoscaling (HPA): With HPA, the number of container replicas (Pods) is adjusted automatically based on predefined metrics like CPU usage or custom application-specific metrics. For example, if your application experiences a spike in traffic, GKE adds Pods to meet the demand. When the traffic subsides, GKE reduces the number of Pods. This dynamic scaling prevents over-provisioning of resources, so you don't pay for or power up unnecessary compute capacity.
+Vertical Pod autoscaling (VPA): You can configure GKE to automatically adjust the CPU and memory allocations and limits for individual containers. This configuration ensures that a container isn't allocated more resources than it needs, which helps to prevent resource over-provisioning.
+GKE multidimensional Pod autoscaling: For complex workloads, you can configure HPA and VPA simultaneously to optimize both the number of Pods and the size of each Pod. This technique helps to ensure the smallest possible energy footprint for the required performance.
+Topology-Aware Scheduling (TAS): TAS enhances the network efficiency for AI and ML workloads in GKE by placing Pods based on the physical structure of the data center infrastructure. TAS strategically colocates workloads to minimize network hops. This colocation helps to reduce communication latency and energy consumption. By optimizing the physical alignment of nodes and specialized hardware, TAS accelerates task completion and maximizes the energy efficiency of large-scale AI and ML workloads.
+Configure carbon-aware scheduling
+At Google, we continually shift our workloads to locations and times that provide the cleanest electricity. We also repurpose, or harvest, older equipment for alternative use cases. You can use this carbon-aware scheduling strategy to ensure that your containerized workloads use clean energy.
+
+To implement carbon-aware scheduling, you need information about the energy mix that powers data centers in a region in real time. You can get this information in a machine-readable format from the Carbon free energy for Google Cloud regions repository in GitHub or from a BigQuery public dataset. The hourly grid mix and carbon intensity data that's used to calculate the Google annual carbon dataset is sourced from Electricity Maps.
+
+To implement carbon-aware scheduling, we recommend the following techniques:
+
+Geographical shifting: Schedule your workloads to run in regions that use a higher proportion of renewable energy sources. This approach lets you use cleaner electrical grids.
+Temporal shifting: For non-critical, flexible workloads like batch processing, configure the workloads to run during off-peak hours or when renewable energy is most abundant. This approach is known as temporal shifting and helps reduce the overall carbon footprint by taking advantage of cleaner energy sources when they are available.
+Architect energy-efficient disaster recovery
+Preparing for disaster recovery (DR) often involves pre-provisioning redundant resources in a secondary region. However, idle or under-utilized resources can cause significant energy waste. Choose DR strategies that maximize resource utilization and minimize the carbon impact without compromising your recovery time objectives (RTO).
+
+Optimize for cold start efficiency
+Use the following approaches to minimize or eliminate active resources in your secondary (DR) region:
+
+Prioritize cold DR: Keep resources in the DR region turned off or in a scaled-to-zero state. This approach helps to eliminate the carbon footprint of idle compute resources.
+Take advantage of serverless failover: Use managed serverless services like Cloud Run for DR endpoints. Cloud Run scales to zero when it isn't in use, so you can maintain a DR topology that consumes no energy until traffic is diverted to the DR region.
+Automate recovery with infrastructure-as-code (IaC): Instead of keeping resources in the DR site running (warm), use an IaC tool like Terraform to rapidly provision environments only when needed.
+Balance redundancy and utilization
+Resource redundancy is a primary driver of energy waste. To reduce redundancy, use the following approaches:
+
+Prefer active-active over active-passive: In an active-passive setup, the resources in the passive site are idle, which results in wasted energy. An active-active architecture that's optimally sized ensures that all of the provisioned resources across both regions actively serve traffic. This approach helps you maximize the energy efficiency of your infrastructure.
+Right-size redundancy: Replicate data and services across regions only when the replication is necessary to meet high-availability or DR requirements. Every additional replica increases the energy cost of persistent storage and network egress.
+
+Develop energy-efficient software
+This principle in the sustainability pillar of the Google Cloud Well-Architected Framework provides recommendations to write software that minimizes energy consumption and server load.
+
+Principle overview
+When you follow best practices to build your cloud applications, you optimize the energy that's utilized by the cloud infrastructure resources: AI, compute, storage, and network. You also help to reduce the water requirements of the data centers and the energy that end-user devices consume when they access your applications.
+
+To build energy-efficient software, you need to integrate sustainability considerations throughout the software lifecycle, from design and development to deployment, maintenance, and archival. For detailed guidance about using AI to build software that minimizes the environmental impact of cloud workloads, see the Google Cloud ebook, Build Software Sustainably.
+
+Recommendations
+The recommendations in this section are grouped into the following focus areas:
+
+Minimize computational work: Favor lean, focused code that eliminates redundant logic and avoids unnecessary computations or feature bloat.
+Use efficient algorithms and data structures: Choose time-efficient and memory-efficient algorithms that reduce CPU load and minimize memory usage.
+Optimize compute and data operations: Develop with the goal of efficiently using all of the available resources, including CPU, memory, disk I/O, and network. For example, when you replace busy loops with event-driven logic, you avoid unnecessary polling.
+Implement frontend optimization: To reduce the power that's consumed by end-user devices, use strategies like minimization, compression, and lazy-loading for images and assets.
+Minimize computational work
+To write energy-efficient software, you need to minimize the total amount of computational work that your application performs. Every unnecessary instruction, redundant loop, and extra feature consumes energy, time, and resources. Use the following recommendations to build software that performs minimal computations.
+
+Write lean, focused code
+To write minimal code that's essential to achieve the required outcomes, use the following approaches:
+
+Eliminate redundant logic and feature bloat: Write code that performs only the essential functions. Avoid features that increase the computational overhead and complexity but don't provide measurable value to your users.
+Refactor: To improve energy efficiency over time, regularly audit your applications to identify unused features. Take action to remove or refactor such features as appropriate.
+Avoid unnecessary operations: Don't compute a value or run an action until the result is needed. Use techniques like lazy evaluation, which delay computations until a dependent component in the application needs the output.
+Prioritize code readability and reusability: Write code that's readable and reusable. This approach minimizes duplication and follows the don't repeat yourself (DRY) principle, which can help to reduce carbon emissions from software development and maintenance.
+Use backend caching
+Backend caching ensures that an application does not perform the same work repeatedly. A high cache-hit ratio leads to an almost linear reduction in energy consumption per request. To implement backend caching, use the following techniques:
+
+Cache frequent data: Store frequently accessed data in a temporary, high-performance storage location. For example, use an in-memory caching service like Memorystore. When an application retrieves data from a cache, the volume of database queries and disk I/O operations is reduced. Consequently, the load on the databases and servers in the backend decreases.
+Cache API responses: To avoid redundant and costly network calls, cache the results of frequent API requests.
+Prioritize in-memory caching: To eliminate slow disk I/O operations and complex database queries, store data in high-speed memory (RAM).
+Select appropriate cache-write strategies:
+The write-through strategy ensures that data is written synchronously to the cache and the persistent store. This strategy increases the likelihood of cache hits, so the persistent store gets fewer energy-intensive read requests.
+The write-back (write-behind) strategy enhances the performance of write-heavy applications. Data is written to the cache first, and the database is updated asynchronously later. This strategy reduces the immediate write load on slower databases.
+Use smart eviction policies: Keep the cache lean and efficient. To remove stale or low-utility data and to maximize the space that's available for frequently requested data, use policies like time to live (TTL), least recently used (LRU), and least frequently used (LFU).
+Use efficient algorithms and data structures
+The algorithms and data structures that you choose determine the raw computational complexity of your software. When you select appropriate algorithms and data structures, you minimize the number of CPU cycles and memory operations that are required to complete a task. Fewer CPU cycles and memory operations lead to lower energy consumption.
+
+Choose algorithms for optimal time complexity
+Prioritize algorithms that achieve the required result in the least amount of time. This approach helps to reduce the duration of resource usage. To select algorithms that optimize resource usage, use the following approaches:
+
+Focus on reducing complexity: To evaluate complexity, look beyond runtime metrics and consider the theoretical complexity of the algorithm. For example, when compared to bubble sorting, merge sorting significantly reduces the computational load and energy consumption for large datasets.
+Avoid redundant work: Use built-in, optimized functions in your chosen programming language or framework. These functions are often implemented in a lower-level and more energy-efficient language like C or C++, so they are better optimized for the underlying hardware compared to custom-coded functions.
+Select data structures for efficiency
+The data structures that you choose determine the speed at which data can be retrieved, inserted, or processed. This speed affects CPU and memory usage. To select efficient data structures, use the following approaches:
+
+Optimize for search and retrieval: For common operations like checking whether an item exists or retrieving a specific value, prefer data structures that are optimized for speed. For example, hash maps or hash sets enable near-constant time lookups, which is a more energy-efficient approach than linearly searching through an array.
+Minimize memory footprint: Efficient data structures help to reduce the overall memory footprint of an application. Reduced memory access and management leads to lower power consumption. In addition, a leaner memory profile enables processes to run more efficiently, which lets you postpone resource upgrades.
+Use specialized structures: Use data structures that are purpose-built for a given problem. For example, use a trie data structure for rapid string-prefix searching, and use a priority queue when you need to access only the highest or lowest value efficiently.
+Optimize compute and data operations
+When you develop software, focus on efficient and proportional resource usage across the entire technology stack. Treat CPU, memory, disk, and network as limited and shared resources. Recognize that efficient usage of resources leads to tangible reductions in costs and energy consumption.
+
+Optimize CPU utilization and idle time
+To minimize the time that the CPU spends in an active, energy-consuming state without performing meaningful work, use the following approaches:
+
+Prefer event-driven logic over polling: Replace resource-intensive busy loops or constant checking (polling) with event-driven logic. An event-driven architecture ensures that the components of an application operate only when they're triggered by relevant events. This approach enables on-demand processing, which eliminates the need for resource-intensive polling.
+Prevent constant high frequency: Write code that doesn't force the CPU to constantly operate at its highest frequency. To minimize energy consumption, systems that are idle should be able to enter low-power states or sleep modes.
+Use asynchronous processing: To prevent threads from being locked during idle wait times, use asynchronous processing. This approach frees resources and leads to higher overall resource utilization.
+Manage memory and disk I/O efficiently
+Inefficient memory and disk usage leads to unnecessary processing and increased power consumption. To manage memory and I/O efficiently, use the following techniques:
+
+Strict memory management: Take action to proactively release unused memory resources. Avoid holding large objects in memory for longer periods than necessary. This approach prevents performance bottlenecks and reduces the power that's consumed for memory access.
+Optimize disk I/O: Reduce the frequency of your application's read and write interactions with persistent storage resources. For example, use an intermediary memory buffer to store data. Write the data to persistent storage at fixed intervals or when the buffer reaches a certain size.
+Batch operations: Consolidate frequent, small disk operations into fewer, larger batch operations. A batch operation consumes less energy than many individual, small transactions.
+Use compression: Reduce the amount of data that's written to or read from disks by applying suitable data-compression techniques. For example, to compress data that you store in Cloud Storage, you can use decompressive transcoding.
+Minimize network traffic
+Network resources consume significant energy during data transfer operations. To optimize network communication, use the following techniques:
+
+Minimize payload size: Design your APIs and applications to transfer only the data that's needed for a request. Avoid fetching or returning large JSON or XML structures in cases where only a few fields are required. Ensure that the data structures that are returned are concise.
+Reduce round-trips: To reduce the number of network round-trips that are required to complete a user action, use smarter protocols. For example, prefer HTTP/3 over HTTP/1.1, choose GraphQL over REST, use binary protocols, and consolidate API calls. When you reduce the volume of network calls, you reduce the energy consumption for both your servers and for end-user devices.
+Implement frontend optimization
+Frontend optimization minimizes the data that your end users must download and process, which helps to reduce the load on the resources of end-user devices.
+
+Minimize code and assets
+When end users need to download and process smaller and more efficiently structured resources, their devices consume less power. To minimize the download volume and processing load on end-user devices, use the following techniques:
+
+Minimization and compression: For JavaScript, CSS, and HTML files, remove unnecessary characters like whitespaces and comments by using appropriate minimization tools. Ensure that files like images are compressed and optimized. You can automate the minimization and compression of web assets by using a CI/CD pipeline.
+Lazy loading: Load images, videos, and non-critical assets only when they are actually needed, such as when these elements scroll into the viewport of a web page. This approach reduces the volume of initial data transfer and the processing load on end-user devices.
+Smaller JavaScript bundles: Eliminate unused code from your JavaScript bundles by using modern module bundlers and techniques like tree shaking. This approach results in smaller files that load faster and use fewer server resources.
+Browser caching: Use HTTP caching headers to instruct the user's browser to store static assets locally. Browser caching helps to prevent repeated downloads and unnecessary network traffic on subsequent visits.
+Prioritize lightweight user experience (UX)
+The design of your user interface can have a significant impact on the computational complexity for rendering frontend content. To build frontend interfaces that provide a lightweight UX, use the following techniques:
+
+Efficient rendering: Avoid resource-intensive, frequent Document Object Model (DOM) manipulation. Write code that minimizes the rendering complexity and eliminates unnecessary re-rendering.
+Lightweight design patterns: Where appropriate, prefer static sites or progressive web apps (PWAs). Such sites and apps load faster and require fewer server resources.
+Accessibility and performance: Responsive, fast-loading sites are often more sustainable and accessible. An optimized, clutter-free design reduces the resources that are consumed when content is rendered. Websites that are optimized for performance and speed can help to drive higher revenue. According to a research study by Deloitte and Google, Milliseconds Make Millions, a 0.1-second (100ms) improvement in site speed leads to an 8.4% increase in conversions for retail sites and a 9.2% increase in the average order value.
+
+Optimize data and storage for sustainability
+This principle in the sustainability pillar of the Google Cloud Well-Architected Framework provides recommendations to help you optimize the energy efficiency and carbon footprint for your storage resources in Google Cloud.
+
+Principle overview
+Stored data isn't a passive resource. Energy is consumed and carbon emissions occur throughout the lifecycle of data. Every gigabyte of stored data requires physical infrastructure that's continuously powered, cooled, and managed. To achieve sustainable cloud architecture, treat data as a valuable but environmentally costly asset and prioritize proactive data governance.
+
+Your decisions about data retention, quality, and location can help you achieve substantial reductions in cloud costs and energy consumption. Minimize the data that you store, optimize where and how data you store data, and implement automated deletion and archival strategies. When you reduce data clutter, you improve system performance and fundamentally reduce the long-term environmental footprint of your data.
+
+Recommendations
+To optimize your data lifecycle and storage resources for sustainability, consider the recommendations in the following sections.
+
+Prioritize high-value data
+Stored data that's unused, duplicated, or obsolete continues to consume energy to power the underlying infrastructure. To reduce the storage-related carbon footprint, use the following techniques.
+
+Identify and eliminate duplication
+Establish policies to prevent the needless replication of datasets across multiple Google Cloud projects or services. Use central data repositories like BigQuery datasets or Cloud Storage buckets as single sources of truth and grant appropriate access to these repositories.
+
+Remove shadow data and dark data
+Dark data is data for which the utility or owner is unknown. Shadow data means unauthorized copies of data. Scan your storage systems and find dark data and shadow data by using a data discovery and cataloging solution like Dataplex Universal Catalog. Regularly audit these findings and implement a process for archival or deletion of dark and shadow data as appropriate.
+
+Minimize the data volume for AI workloads
+Store only the features and processed data that are required for model training and serving. Where possible, use techniques like data sampling, aggregation, and synthetic data generation to achieve model performance without relying on massive raw datasets.
+
+Integrate data quality checks
+Implement automatic data validation and data cleaning pipelines by using services like Dataproc, Dataflow, or Dataplex Universal Catalog at the point of data ingestion. Low-quality data causes wasted storage space. It also leads to unnecessary energy consumption when the data is used later for analytics or AI training.
+
+Review the value density of data
+Periodically review high-volume datasets like logs and IoT streams. Determine whether any data can be summarized, aggregated, or down-sampled to maintain the required information density and reduce the physical storage volume.
+
+Critically evaluate the need for backups
+Assess the need for backups of data that you can regenerate with minimal effort. Examples of such data include intermediate ETL results, ephemeral caches, and training data that's derived from a stable, permanent source. Retain backups for only the data that is unique or expensive to recreate.
+
+Optimize storage lifecycle management
+Automate the storage lifecycle so that when the utility of data declines, the data is moved to an energy-efficient storage class or retired, as appropriate. Use the following techniques.
+
+Select an appropriate Cloud Storage class
+Automate the transition of data in Cloud Storage to lower-carbon storage classes based on access frequency by using Object Lifecycle Management.
+
+Use Standard storage for only actively used datasets, such as current production models.
+Transition data such as older AI training datasets or less-frequently accessed backups to Nearline or Coldline storage.
+For long-term retention, use Archive storage, which is optimized for energy efficiency at scale.
+Implement aggressive data lifecycle policies
+Define clear, automated time to live (TTL) policies for non-essential data, such as log files, temporary model artifacts, and outdated intermediate results. Use lifecycle rules to automatically delete such data after a defined period.
+
+Mandate resource tagging
+Mandate the use of consistent resource tags and labels for all of your Cloud Storage buckets, BigQuery datasets, and persistent disks. Create tags that indicate the data owner, purpose of the data, and the retention period. Use Organization Policy Service constraints to ensure that required tags, such as retention period, are applied to resources. Tags let you automate lifecycle management, create granular FinOps reports, and produce carbon emissions reports.
+
+Right-size and deprovision compute storage
+Regularly audit persistent disks that are attached to Compute Engine instances and ensure that the disks aren't over-provisioned. Use snapshots only when they are necessary for backup. Delete old, unused snapshots. For databases, use data retention policies to reduce the size of the underlying persistent disks.
+
+Optimize the storage format
+For storage that serves analytics workloads, prefer compressed, columnar formats like Parquet or optimized Avro over row-based formats like JSON or CSV. Columnar storage significantly reduces physical disk-space requirements and improves the read efficiency. This optimization helps to reduce energy consumption for the associated compute and I/O operations.
+
+Optimize regionality and data movement
+The physical location and movement of your data affect the consumption of network resources and the energy required for storage. Optimize data regionality by using the following techniques.
+
+Select low-carbon storage regions
+Depending on your compliance requirements, store data in Google Cloud regions that use a higher percentage of carbon-free energy (CFE) or that have lower grid carbon intensity. Restrict the creation of storage buckets in high-carbon regions by using the resource locations Organization Policy constraint. For information about CFE and carbon-intensity data for Google Cloud regions, see Carbon-free energy for Google Cloud regions.
+
+Minimize replication
+Replicate data across regions only to meet mandatory disaster recovery (DR) or high-availability (HA) requirements. Cross-region and multi-region replication operations significantly increase the energy cost and carbon footprint of your data.
+
+Optimize data processing locations
+To reduce energy consumption for network data transfer, deploy compute-intensive workloads like AI training and BigQuery processing in the same region as the data source.
+
+Optimize data movement for your partners and customers
+To move large volumes of data across cloud services, locations, and providers, encourage your partners and customers to use Storage Transfer Service or data-sharing APIs. Avoid mass data dumps. For public datasets, use Requester Pays buckets to shift the data transfer and processing costs and the environmental impact to end users.
+
+
+Continuously measure and improve sustainability
+This principle in the sustainability pillar of the Google Cloud Well-Architected Framework provides recommendations to help you measure and continuously improve the sustainability of your workloads in Google Cloud.
+
+Principle overview
+To ensure that your cloud workloads remain sustainable, you need accurate and transparent metrics. Verifiable metrics let you translate sustainability goals to actions. Every resource that you create in the cloud has an associated carbon footprint. To build and maintain sustainable cloud architectures, you must integrate the measurement of carbon data into your operational feedback loop.
+
+The recommendations in this section provide a framework for using Carbon Footprint to quantify carbon emissions, identify carbon hotspots, implement targeted workload optimizations, and verify the outcomes of the optimization efforts. This framework lets you efficiently align your cost optimization goals with verifiable carbon reduction targets.
+
+Carbon Footprint reporting methodology
+Carbon Footprint provides a transparent, auditable, and globally-aligned report of your cloud-related emissions. The report adheres to international standards, primarily the Greenhouse Gas (GHG) Protocol for carbon reporting and accounting. The Carbon Footprint report uses location-based and market-based accounting methods. Location-based accounting is based on the local grid's emissions factor. Market-based accounting considers Google's purchases of carbon-free energy (CFE). This dual approach helps you understand both the physical-grid impact and the carbon benefit of your workloads in Google Cloud.
+
+For more information about how the Carbon Footprint report is prepared, including the data sources used, Scope-3 inclusions, and the customer allocation model, see Carbon Footprint reporting methodology.
+
+Recommendations
+To use carbon measurement for continuous improvement, consider the recommendations in the following sections. The recommendations are structured as phases of maturity for implementing sustainable-by-design cloud operations:
+
+Phase 1: Establish a baseline
+Phase 2: Identify hotspots
+Phase 3: Implement targeted optimization
+Phase 4: Institutionalize sustainability practices and reporting
+Phase 1: Establish a baseline
+In this phase, you set up the necessary tools and ensure that data is accessible and correctly integrated.
+
+Grant permissions: Grant permissions to teams like FinOps, SecOps and platform engineering so that they can access the Carbon Footprint dashboard in the Google Cloud console. Grant the Carbon Footprint Viewer role (roles/billing.carbonViewer) in Identity and Access Management (IAM) for the appropriate billing account.
+Automate data export: Configure automated export of Carbon Footprint data to BigQuery. The exported data lets you perform deep analysis, correlate carbon data with cost and usage data, and produce custom reports.
+Define carbon-related key performance indicators (KPIs): Establish metrics that connect carbon emissions to business value. For example, carbon intensity is a metric for the number of kilograms of CO2 equivalent per customer, transaction, or revenue unit.
+Phase 2: Identify carbon hotspots
+Identify the areas that have the largest environmental impact by analyzing the granular data in the Carbon Footprint report. Use the following techniques for this analysis:
+
+Prioritize by scope: To quickly identify the largest gross carbon emitters, analyze the data in the dashboard by project, region, and service.
+Use dual-accounting: When you evaluate the carbon impact in a region, consider both location-based emissions (the environmental impact of the local electrical grid) and market-based emissions (the benefit of Google's CFE investments).
+Correlate with cost: Join the carbon data in BigQuery with your billing data and assess the impact of optimization actions on sustainability and cost. High cost can often be correlated with high carbon emissions.
+Annotate data to measure return on effort (ROE): Annotate the carbon data in BigQuery with specific events, like right-sizing a resource or decommissioning a large service. The annotations let you attribute reductions in carbon emission and cost to specific optimization initiatives, so that you can measure and demonstrate the outcome of each initiative.
+Phase 3: Implement targeted optimization
+This is the execution phase for implementing sustainable-by-design cloud operations. Use the following strategies to optimize specific resources that you identify as significant drivers of cost and carbon emissions:
+
+Decommission unattended projects: Regularly check the unattended project recommender that's integrated with the Carbon Footprint data. To achieve immediate, verified reductions in carbon emissions and cost, automate the review and eventual removal of unused projects.
+Right-size resources: Match the provisioned resource capacity to actual utilization by using Active Assist right-sizing recommenders like machine type recommendations for Compute Engine VMs. For compute-intensive tasks and AI workloads, use the most efficient machine types and AI models.
+Adopt carbon-aware scheduling: For batch workloads that aren't time-critical, integrate regional CFE data into the scheduling logic. Where feasible, limit the creation of new resources to low-carbon regions by using the resource locations constraint in Organization Policy Service.
+Reduce data sprawl: Implement data governance policies to ensure that infrequently accessed data is transitioned to an appropriate cold storage class (Nearline, Coldline, or Archive) or is permanently deleted. This strategy helps to reduce the energy cost of your storage resources.
+Refine application code: Fix code-level inefficiencies that cause excessive resource usage or unnecessary computation.
+For more information, see the following:
+
+Use regions that consume low-carbon energy
+Optimize AI and ML workloads
+Optimize resource usage
+Develop energy-efficient software
+Optimize data and storage for sustainability
+Phase 4: Institutionalize your sustainability practices and reporting
+In this phase, you embed carbon measurement into your governance framework. This approach helps to ensure that your organization has the capabilities and controls that are necessary for continuous sustainability improvements and verifiable reporting.
+
+Implement GreenOps governance: Establish a formal GreenOps function or working group to integrate Carbon Footprint data with Cloud Billing data. This function must define accountability for carbon reduction targets across projects, align cost optimization with sustainability goals, and implement reporting to track carbon efficiency against spending.
+Use Carbon Footprint data for reporting and compliance: Use the verified, auditable Carbon Footprint data in BigQuery to create formal environmental, social, and governance (ESG) disclosures. This approach lets you meet stakeholder demands for transparency and helps to ensure compliance with mandatory and voluntary regulations.
+Invest in training and awareness: Implement mandatory sustainability training for relevant technical and non-technical teams. Your teams need to know how to access and interpret the Carbon Footprint data and how to apply optimization recommendations in their daily workflows and design choices. For more information, see Provide role-based sustainability training.
+Define carbon requirements: Incorporate carbon emission metrics as non-functional requirements (NFR) in your application's acceptance criteria for new deployments. This practice helps to ensure that architects and developers prioritize low-carbon design options from the start of the application development lifecycle.
+Automate GreenOps: Automate the implementation of Active Assist recommendations by using scripts, templates, and infrastructure-as-code (IaC) pipelines. This practice ensures that teams apply recommendations consistently and rapidly across the organization.
+
+Promote a culture of sustainability
+This principle in the sustainability pillar of the Google Cloud Well-Architected Framework provides recommendations to help you build a culture where teams across your organization are aware of and proficient in sustainability practices.
+
+Principle overview
+To apply sustainability practices, you need more than tools and techniques. You need a cultural shift that's driven by education and accountability. Your teams need to be aware of sustainability concerns and they must have practical proficiency in sustainability practices.
+
+Awareness of sustainability is the contextual knowledge that every architectural and operational decision has tangible effects on sustainability. Teams must recognize that the cloud isn't an abstract collection of virtual resources, but it's driven by physical resources that consume energy and produce carbon emissions.
+Proficiency in sustainability practices includes knowledge to interpret carbon emissions data, experience with implementing cloud sustainability governance, and technical skills to refactor code for energy efficiency.
+To align sustainability practices with organizational goals, your teams need to understand how energy usage by cloud infrastructure and software contributes to the organization's carbon footprint. Well-planned training helps to ensure that all of your stakeholders—from developers and architects to finance professionals and operations engineers—understand the sustainability context of their daily work. This shared understanding empowers teams to move beyond passive compliance to active optimization, which makes your cloud workloads sustainable-by-design. Sustainability becomes a core non-functional requirement (NFR) like other requirements for security, cost, performance, and reliability.
+
+Recommendations
+To build awareness of sustainability concerns and proficiency in sustainability practices, consider the recommendations in the following sections.
+
+Provide business context and alignment with organizational goals
+Sustainability isn't just a technical exercise; it requires a cultural shift that aligns individual actions with the environmental mission of your organization. When teams understand the why behind sustainability initiatives, they are more likely to adopt the initiatives as core principles rather than as optional tasks.
+
+Connect to the big picture
+Help your teams understand how individual architectural choices—such as selecting a low-carbon region or optimizing a data pipeline—contribute to the organization's overall sustainability commitments. Explicitly communicate how these choices affect the local community and the industry. Transform abstract carbon metrics into tangible indicators of progress toward corporate social responsibility (CSR) goals.
+
+For example, a message like the following informs teams about the positive outcome and executive recognition of a decision to migrate a workload to a low-carbon region and to use a power-efficient machine type. The message references the CO2 equivalent, which helps your team contextualize the impact of carbon reduction measures.
+
+"By migrating our data analytics engine to the us-central1 leaf icon Low CO2 region and upgrading our clusters to C4A Axion-based instances, we fundamentally changed our carbon profile. This shift resulted in a 75% reduction in the carbon intensity of our data analytics engine, which translates to a reduction of 12 metric tons of CO2 equivalent this quarter. This migration had a significant impact on our business goals and was included in the Q4 newsletter to our board."
+
+Communicate financial and sustainability goals
+Transparency is critical for aligning sustainability practices with goals. To the extent feasible, widely share sustainability goals and progress across the organization. Highlight sustainability progress in the annual financial statements. Such communication ensures that technical teams view their work as a vital part of the organization's public-facing commitments and financial health.
+
+Embrace a shared fate mindset
+Educate teams about the collaborative nature of cloud sustainability. Google is responsible for the sustainability of the cloud, which includes the efficiency of the infrastructure and data centers. You (the customer) are responsible for sustainability of your resources and workloads in the cloud. When you frame this collaboration as a partnership of shared fate, you reinforce the understanding that your organization and Google work together to achieve optimal environmental outcomes.
+
+Provide role-based sustainability training
+To ensure that sustainability is a practical skill rather than a theoretical concept, tailor the sustainability training to specific job roles. The sustainability tools and techniques that a data scientist can use are very different from those available to a FinOps analyst, as described in the following table:
+
+Role	Training focus
+Data scientists and ML engineers	Carbon-intensity of compute: Demonstrate the differences between running AI training jobs on legacy systems versus purpose-built AI accelerators. Highlight how a model with fewer parameters can produce the required accuracy with significantly lower energy consumption.
+Developers	Code efficiency and resource consumption: Illustrate how high-latency code or inefficient loops translate directly to extended CPU runtime and increased energy consumption. Emphasize the importance of lightweight containers and the need to optimize application performance to reduce the environmental footprint of software.
+Architects	Sustainable by design: Focus on region selection and workload placement. Show how choosing a leaf icon Low CO2 region with a high percentage of renewable energy (like northamerica-northeast1) fundamentally changes the carbon profile of your entire application stack before you write a single line of code.
+Platform engineers and operations engineers	Maximizing utilization: Emphasize the environmental cost of idle resources and over-provisioning. Present scenarios for automated scaling and right-sizing to ensure that cloud resources are used efficiently. Explain how to create and track sustainability-related metrics like utilization and how to translate metrics like compute time into equivalent metrics of carbon emissions.
+FinOps	Unit economics of carbon: Focus on the relationship between financial spend and environmental impact. Demonstrate how GreenOps practices let an organization track carbon per transaction, which helps to make sustainability a key performance indicator (KPI) that's as critical as conventional KPIs like cost and utilization.
+Product managers	Sustainability as a feature: Demonstrate how to integrate carbon-reduction goals into product roadmaps. Show how simplified user journeys can help to reduce the energy consumption by both cloud resources and end-user devices.
+Business leaders	Strategic alignment and reporting: Focus on how cloud sustainability affects environmental, social, and governance (ESG) scores and public reputation. Illustrate how sustainability choices help to reduce regulatory risk and fulfill commitments to the community and industry.
+Advocate for sustainability and recognize success
+To sustain long-term progress, you need to move beyond internal technical fixes and begin influencing your partners and the industry.
+
+Empower managers to advocate for sustainability
+Provide managers the data and permissions that they need to prioritize environmental impact similar to other business metrics like speed-to-market and cost. When managers have this data, they begin to view sustainability as a quality and efficiency standard rather than as a nice-to-have capability that slows production. They actively advocate for new cloud provider features—such as more granular carbon data and newer, greener processors in specific regions.
+
+Align with industry standards and frameworks
+To ensure that your sustainability efforts are credible and measurable, align internal practices with recognized global and regional standards. For more information, see Align sustainability practices with industry guidelines.
+
+Incentivize sustainability efforts
+To ensure that sustainability becomes an enduring part of the engineering culture, teams must realize the value of prioritizing sustainability. Transition from high-level goals to specific, measurable KPIs that reward improvement and efficiency.
+
+Define carbon KPIs and NFRs
+Treat sustainability as a core technical requirement. When you define carbon KPIs, such as grams of CO2 equivalent per million requests or carbon-intensity per AI training run, you make the impact on sustainability visible and actionable. For example, integrate sustainability into the NFRs for every new project. In other words, just as a system must meet a specific latency or availability target, the system must also stay within a defined carbon emissions budget.
+
+Measure return on effort
+Help your teams identify high-impact, low-effort sustainability wins—such as shifting a batch job to a different region—versus a complex code refactoring exercise that might provide minimal gains. Provide visibility into the return on effort (ROE). When a team chooses a more efficient processor family, they must know exactly how much carbon emission they avoided relative to the time and effort that's required to migrate to the new processor.
+
+Recognize and celebrate carbon reduction
+Sustainability impact is often hidden in the background of infrastructure. To build the momentum for sustainability progress, make successes visible to the entire organization. For example, use annotations in monitoring dashboards to mark when a team deployed a specific sustainability optimization. This visibility lets teams point to data in the dashboard and claim recognition for their successes.
+
+
+Align sustainability practices with industry guidelines
+This principle in the sustainability pillar of the Google Cloud Well-Architected Framework provides an overview of industry guidelines and frameworks with which you should align your sustainability efforts.
+
+Principle overview
+To ensure that your sustainability initiatives are built upon a foundation of globally recognized methods for measurement, reporting, and verification, we recommend that you align your initiatives with the following industry guidelines:
+
+W3C Web Sustainability Guidelines
+Green Software Foundation
+Greenhouse Gas Protocol Protocol
+When you align your sustainability initiatives with these shared external guidelines, your initiatives get the credibility and auditability that investors, regulatory bodies, and other external stakeholders demand. You also foster accountability across engineering teams, embed sustainability within employee training, and successfully integrate cloud operations into enterprise-wide commitments for environmental, social, and governance (ESG) reporting.
+
+W3C Web Sustainability Guidelines
+W3C Web Sustainability Guidelines (WSG) is an emerging framework of best practices developed by a W3C working group to address the environmental impact of digital products and services. The guidelines cover the entire lifecycle of a digital solution including business and product strategy, user experience (UX) design, web development, hosting, infrastructure, and systems. The core goal of WSG is to enable developers and architects to build websites and web applications that are more energy-efficient and that reduce network traffic, client-side processing, and server-side resource consumption. These guidelines serve a critical reference point for aligning application-level sustainability with cloud-level architectural decisions.
+
+Green Software Foundation
+The Green Software Foundation (GSF) focuses on building an industry ecosystem around sustainable software. Its mission is to drive the creation of software that's designed, built, and operated to minimize the carbon footprint. The GSF developed the Software Carbon Intensity (SCI) specification, which provides a common standard for measuring the rate of carbon emissions of any piece of software. Alignment with the GSF helps developers connect an application's efficiency directly to the carbon impact of the cloud environment.
+
+Greenhouse Gas Protocol
+The Greenhouse Gas (GHG) Protocol is a widely used set of standards for measuring, managing, and publicly reporting greenhouse gas emissions. The protocol was developed through a partnership between the World Resources Institute (WRI) and the World Business Council for Sustainable Development (WBCSD). The GHG protocol provides the essential framework for corporate climate accounting. The Carbon Footprint report provides data for emission scopes that are relevant to cloud usage. For more information, see Carbon Footprint reporting methodology.
+
+Adherence to the GHG Protocol helps to ensure that your sustainability initiatives have credibility and that external parties can audit your carbon emissions data. You also help prevent the perception of greenwashing and satisfy the due-diligence requirements of your investors, regulators, and external stakeholders. Verified and audited data helps your organization prove accountability and build trust in public-facing sustainability commitments.
