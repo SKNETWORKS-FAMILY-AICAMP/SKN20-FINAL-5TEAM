@@ -419,6 +419,13 @@ export async function generateFollowUpQuestions(problem, components, connections
   const rubricNfr = problem?.rubricNonFunctional || problem?.rubric_non_functional || [];
   const nfrTopics = rubricNfr.map(r => `${r.category}: ${r.question_intent}`).join('\n') || '없음';
 
+  // 컴포넌트 타입별로 정리
+  const componentTypes = [...new Set(components.map(c => c.type))];
+  const hasCache = components.some(c => c.type === 'cache' || c.text.toLowerCase().includes('cache') || c.text.toLowerCase().includes('redis'));
+  const hasQueue = components.some(c => c.type === 'queue' || c.text.toLowerCase().includes('queue') || c.text.toLowerCase().includes('kafka'));
+  const hasLoadBalancer = components.some(c => c.type === 'loadbalancer' || c.text.toLowerCase().includes('load') || c.text.toLowerCase().includes('lb'));
+  const hasDatabase = components.some(c => c.type === 'database' || c.text.toLowerCase().includes('db') || c.text.toLowerCase().includes('database'));
+
   const prompt = `당신은 시스템 아키텍처 면접관입니다.
 학생이 설계한 아키텍처와 그에 대한 설명을 분석하여, 꼬리질문 3개를 생성하세요.
 
@@ -429,38 +436,52 @@ export async function generateFollowUpQuestions(problem, components, connections
 ### 평가 기준:
 ${nfrTopics}
 
-## 학생의 아키텍처 설계
+## ⚠️ 중요: 학생이 실제로 배치한 컴포넌트 목록 (이것만 기준으로 질문!)
 ### 컴포넌트 (${components.length}개):
 ${componentList || '없음'}
+
+### 컴포넌트 타입: ${componentTypes.join(', ')}
+- 캐시 포함 여부: ${hasCache ? '있음' : '없음'}
+- 메시지 큐 포함 여부: ${hasQueue ? '있음' : '없음'}
+- 로드밸런서 포함 여부: ${hasLoadBalancer ? '있음' : '없음'}
+- 데이터베이스 포함 여부: ${hasDatabase ? '있음' : '없음'}
 
 ### 연결 관계 (${connections.length}개):
 ${connectionList || '없음'}
 
-### Mermaid 다이어그램:
-\`\`\`
-${mermaidCode || '없음'}
-\`\`\`
-
 ## 학생의 설명
 "${userExplanation}"
 
-## 꼬리질문 생성 기준
-학생의 설명을 분석하여:
-1. **불명확한 부분**: 설명에서 모호하거나 구체적이지 않은 부분을 파고드는 질문
-2. **누락된 관점**: 설명에서 언급하지 않은 중요한 아키텍처 고려사항 질문
-3. **심화 검증**: 학생이 언급한 개념을 더 깊이 이해하고 있는지 확인하는 질문
+---
+
+## ⚠️ 핵심 규칙 (반드시 준수!)
+
+### 절대 금지 사항
+1. **없는 컴포넌트에 대해 질문하지 말 것**
+   - 캐시가 없으면 → 캐시 관련 질문 금지
+   - 메시지 큐가 없으면 → 비동기 처리 질문 금지
+   - 로드밸런서가 없으면 → 부하 분산 질문 금지
+
+2. **학생이 배치한 컴포넌트만** 기준으로 질문해야 함
+   - 위 '컴포넌트 목록'에 있는 것만 언급 가능
+
+### 질문 생성 기준
+1. **실제 배치 컴포넌트 관련**: 학생이 배치한 특정 컴포넌트의 역할, 연결 이유
+2. **누락 지적 (있는 것 기준)**: 배치한 컴포넌트들 간의 연결에서 부족한 부분
+3. **설계 의도 확인**: 왜 이런 구조를 선택했는지
 
 ## 출력 형식 (JSON만):
 {
+  "student_components": ["학생이 실제로 배치한 컴포넌트 목록을 여기에 복사"],
   "explanation_analysis": {
     "key_points": ["학생이 언급한 핵심 포인트"],
     "unclear_points": ["불명확한 부분"],
-    "missing_aspects": ["누락된 관점"]
+    "missing_aspects": ["배치된 컴포넌트 기준으로 누락된 관점만"]
   },
   "questions": [
-    {"category": "불명확한 부분", "question": "구체적인 질문", "intent": "이 질문으로 확인하려는 것"},
-    {"category": "누락된 관점", "question": "구체적인 질문", "intent": "이 질문으로 확인하려는 것"},
-    {"category": "심화 검증", "question": "구체적인 질문", "intent": "이 질문으로 확인하려는 것"}
+    {"category": "배치 컴포넌트 관련", "question": "학생이 배치한 특정 컴포넌트에 대한 질문", "intent": "이 질문으로 확인하려는 것"},
+    {"category": "연결 관계", "question": "배치된 컴포넌트들의 연결에 대한 질문", "intent": "이 질문으로 확인하려는 것"},
+    {"category": "설계 의도", "question": "설계 선택 이유에 대한 질문", "intent": "이 질문으로 확인하려는 것"}
   ]
 }`;
 
@@ -477,6 +498,10 @@ ${mermaidCode || '없음'}
     throw new Error('Invalid JSON');
   } catch (error) {
     console.error('Follow-up questions error:', error);
+    // Fallback: 학생이 배치한 컴포넌트 기반 일반 질문
+    const firstComponent = components[0]?.text || '주요 컴포넌트';
+    const lastComponent = components[components.length - 1]?.text || '데이터 저장소';
+
     return {
       analysis: {
         key_points: ['분석 실패'],
@@ -484,9 +509,21 @@ ${mermaidCode || '없음'}
         missing_aspects: []
       },
       questions: [
-        { category: '설계 의도', question: '이 아키텍처에서 가장 중요하게 고려한 부분은 무엇이며, 왜 그렇게 판단하셨나요?', intent: '설계 의도 확인' },
-        { category: '확장성', question: '트래픽이 급증할 경우 가장 먼저 병목이 발생할 곳은 어디이며, 어떻게 대응하시겠습니까?', intent: '확장성 이해도 확인' },
-        { category: '장애 대응', question: '주요 컴포넌트에 장애가 발생했을 때 시스템은 어떻게 동작하나요?', intent: '장애 대응 전략 확인' }
+        {
+          category: '설계 의도',
+          question: `${firstComponent}를 이 위치에 배치한 이유는 무엇인가요?`,
+          intent: '설계 의도 확인'
+        },
+        {
+          category: '데이터 흐름',
+          question: `${firstComponent}에서 ${lastComponent}까지 데이터가 어떻게 흐르는지 설명해주세요.`,
+          intent: '데이터 흐름 이해도 확인'
+        },
+        {
+          category: '장애 대응',
+          question: '현재 설계에서 단일 장애점(SPOF)이 있다면 어디이며, 어떻게 해결하시겠습니까?',
+          intent: '장애 대응 전략 확인'
+        }
       ]
     };
   }

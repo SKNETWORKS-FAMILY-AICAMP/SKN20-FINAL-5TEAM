@@ -1,7 +1,8 @@
 import { ref } from 'vue';
+// 마스터 에이전트 기반 다중 에이전트 평가 사용
+import { evaluateWithMasterAgent } from '../services/architectureApiMasterAgent';
 import {
   generateEvaluationQuestion,
-  evaluateArchitecture,
   generateArchitectureAnalysisQuestions,
   generateFollowUpQuestions
 } from '../services/architectureApiFastTest';
@@ -173,7 +174,8 @@ export function useEvaluation() {
     }));
 
     try {
-      evaluationResult.value = await evaluateArchitecture(
+      // 마스터 에이전트 기반 다중 에이전트 평가 사용
+      evaluationResult.value = await evaluateWithMasterAgent(
         problem,
         architectureContext,
         null, // EvaluationModal 질문 없음
@@ -181,7 +183,7 @@ export function useEvaluation() {
         deepDiveQnA
       );
     } catch (error) {
-      console.error('Evaluation error:', error);
+      console.error('Master Agent Evaluation error:', error);
       evaluationResult.value = generateMockEvaluation(problem, droppedComponents);
     } finally {
       isEvaluating.value = false;
@@ -258,7 +260,8 @@ export function useEvaluation() {
     }));
 
     try {
-      evaluationResult.value = await evaluateArchitecture(
+      // 마스터 에이전트 기반 다중 에이전트 평가 사용
+      evaluationResult.value = await evaluateWithMasterAgent(
         problem,
         architectureContext,
         generatedQuestion.value,
@@ -266,7 +269,7 @@ export function useEvaluation() {
         deepDiveQnA
       );
     } catch (error) {
-      console.error('Evaluation error:', error);
+      console.error('Master Agent Evaluation error:', error);
       evaluationResult.value = generateMockEvaluation(problem, droppedComponents);
     } finally {
       isEvaluating.value = false;

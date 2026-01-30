@@ -279,7 +279,7 @@ ${evaluationAreasText}
 ### 문제: ${problem?.title || '시스템 아키텍처 설계'}
 시나리오: ${problem?.scenario || ''}
 
-### 학생의 아키텍처
+### 학생의 아키텍처 (매우 중요 - 반드시 이 내용만 기준으로 평가!)
 ${architectureContext}
 
 ### 학생의 답변
@@ -287,12 +287,36 @@ ${userAnswer || '(답변 없음)'}
 
 ---
 
+## ⚠️ 핵심 규칙 (반드시 준수!)
+
+### 1. 실제 컴포넌트 기반 분석
+- **학생이 실제로 배치한 컴포넌트만** 분석해야 함
+- 위 '학생의 아키텍처'에 명시된 컴포넌트 목록을 정확히 파악할 것
+- **없는 컴포넌트에 대해 질문하거나 평가하지 말 것**
+- 예: 캐시(Redis)가 없으면 캐시 관련 질문 금지
+
+### 2. 엄격한 채점 기준 (관대한 채점 금지!)
+- **기본 점수는 30점에서 시작** (관대한 채점 절대 금지)
+- 필수 컴포넌트 누락: -15점씩
+- 연결이 비논리적: -10점씩
+- 답변이 없거나 10자 미만: 최대 20점
+- 답변이 질문과 무관하거나 이상함: 최대 30점
+- 기술 용어 없이 막연한 답변: 최대 40점
+- 70점 이상은 정말 잘한 경우에만 부여
+
+### 3. 심층 질문 생성 규칙
+- **학생이 실제로 배치한 컴포넌트**에 대해서만 질문
+- 없는 컴포넌트(예: 캐시가 없는데 캐시 질문)는 절대 금지
+- 학생의 설계에서 **부족한 부분**이나 **의도가 불명확한 연결**에 대해 질문
+
+---
+
 ## 평가 기준 (4대 기준)
 
-1. **설계 적합성 (Suitability):** 권장 모범 사례 충실도
-2. **가시성 확보 (Data Collection):** 필요한 데이터/지표 수집 가능 여부
-3. **강점 및 필요성 (Strengths & Necessity):** 잘 설계된 부분과 개선 필요 영역
-4. **예상 어려움 (Difficulties):** 잠재적 장애 요인 및 리스크
+1. **설계 적합성 (Suitability):** 권장 모범 사례 충실도 - 필수 컴포넌트 포함 여부
+2. **가시성 확보 (Data Collection):** 모니터링/로깅 컴포넌트 포함 여부
+3. **강점 (Strengths):** 잘 설계된 부분 (있는 경우에만)
+4. **리스크 (Difficulties):** 누락된 컴포넌트, 잘못된 연결, SPOF
 
 ---
 
@@ -300,10 +324,12 @@ ${userAnswer || '(답변 없음)'}
 
 {
   "pillarScore": 0-100,
+  "actualComponents": ["학생이 실제로 배치한 컴포넌트 목록"],
+  "missingCritical": ["이 Pillar 관점에서 누락된 중요 컴포넌트"],
   "evaluation": {
     "suitability": {
       "score": 0-100,
-      "analysis": "분석 내용 (2-3문장)"
+      "analysis": "분석 내용 - 실제 배치된 컴포넌트 기준 (2-3문장)"
     },
     "dataCollection": {
       "score": 0-100,
@@ -312,17 +338,16 @@ ${userAnswer || '(답변 없음)'}
     "strengths": {
       "score": 0-100,
       "analysis": "분석 내용 (2-3문장)",
-      "highlights": ["강점1", "강점2"]
+      "highlights": ["실제로 잘한 부분만"]
     },
     "difficulties": {
       "score": 0-100,
       "analysis": "분석 내용 (2-3문장)",
-      "concerns": ["리스크1", "리스크2"]
+      "concerns": ["실제 문제점"]
     }
   },
   "deepDiveQuestions": [
-    "이 영역에서 학생에게 물어볼 심층 질문 1",
-    "심층 질문 2"
+    "학생이 배치한 실제 컴포넌트에 대한 질문만 (없는 컴포넌트 질문 금지)"
   ],
   "recommendations": {
     "shortTerm": ["즉시 개선 가능한 사항"],
@@ -350,16 +375,18 @@ ${userAnswer || '(답변 없음)'}
       agentId: agentConfig.id,
       agentName: agentConfig.name,
       emoji: agentConfig.emoji,
-      pillarScore: 50,
+      pillarScore: 30, // 오류 시 낮은 기본 점수
+      actualComponents: [],
+      missingCritical: ['평가 오류로 분석 불가'],
       evaluation: {
-        suitability: { score: 50, analysis: '평가 오류' },
-        dataCollection: { score: 50, analysis: '평가 오류' },
-        strengths: { score: 50, analysis: '평가 오류', highlights: [] },
-        difficulties: { score: 50, analysis: '평가 오류', concerns: [] }
+        suitability: { score: 30, analysis: '평가 오류로 분석할 수 없습니다.' },
+        dataCollection: { score: 30, analysis: '평가 오류로 분석할 수 없습니다.' },
+        strengths: { score: 30, analysis: '평가 오류로 분석할 수 없습니다.', highlights: [] },
+        difficulties: { score: 30, analysis: '평가 오류로 분석할 수 없습니다.', concerns: ['평가 오류'] }
       },
       deepDiveQuestions: [],
-      recommendations: { shortTerm: [], longTerm: [] },
-      summary: '평가 중 오류가 발생했습니다.'
+      recommendations: { shortTerm: ['다시 시도해주세요'], longTerm: [] },
+      summary: '평가 중 오류가 발생했습니다. 다시 시도해주세요.'
     };
   }
 }
@@ -379,6 +406,14 @@ async function masterAgentSynthesize(initialAssessment, subAgentResults, problem
   const allStrengths = subAgentResults.flatMap(r => r.evaluation?.strengths?.highlights || []);
   const allConcerns = subAgentResults.flatMap(r => r.evaluation?.difficulties?.concerns || []);
 
+  // 하위 에이전트들의 평균 점수 계산
+  const avgSubScore = Math.round(
+    subAgentResults.reduce((sum, r) => sum + r.pillarScore, 0) / subAgentResults.length
+  );
+
+  // 누락된 중요 컴포넌트 수집
+  const allMissingCritical = subAgentResults.flatMap(r => r.missingCritical || []);
+
   const prompt = `${MASTER_AGENT_SYSTEM}
 
 ---
@@ -392,11 +427,34 @@ async function masterAgentSynthesize(initialAssessment, subAgentResults, problem
 ## 하위 에이전트 평가 결과
 ${subResultsSummary}
 
+## 하위 에이전트 평균 점수: ${avgSubScore}점
+
 ## 수집된 강점
 ${allStrengths.join(', ') || '없음'}
 
 ## 수집된 리스크
 ${allConcerns.join(', ') || '없음'}
+
+## 누락된 중요 컴포넌트
+${allMissingCritical.join(', ') || '없음'}
+
+---
+
+## ⚠️ 엄격한 최종 점수 산정 규칙 (반드시 준수!)
+
+### 점수 기준
+- **기본 점수는 하위 에이전트 평균(${avgSubScore}점)에서 시작**
+- 누락된 중요 컴포넌트가 있으면: 컴포넌트당 -5점
+- Stateless가 low면: -10점
+- Decoupled가 low면: -10점
+- 답변이 이상하거나 무관하면: -15점
+- **최종 점수가 60점을 넘으려면 정말 잘해야 함**
+
+### 등급 기준 (엄격하게!)
+- excellent (80+): 모든 영역에서 우수, 누락 없음, 답변도 훌륭
+- good (60-79): 대부분 양호, 약간의 누락이나 개선점
+- needs-improvement (40-59): 여러 문제점, 중요 컴포넌트 누락
+- poor (0-39): 심각한 설계 문제, 다수 누락, 답변 불량
 
 ---
 

@@ -41,8 +41,147 @@
 
         <hr class="divider" />
 
-        <!-- 아키텍처 평가 -->
-        <div v-if="result.architectureEvaluation" class="eval-section">
+        <!-- 마스터 에이전트 1차 진단 -->
+        <div v-if="result.masterAgentEvaluation" class="eval-section master-assessment">
+          <h3>[ 1차 진단 - Master Agent ]</h3>
+          <div class="assessment-grid">
+            <div class="assessment-item">
+              <span class="label">Stateless 준수</span>
+              <span class="value" :class="result.masterAgentEvaluation.initialAssessment?.statelessCompliance">
+                {{ formatLevel(result.masterAgentEvaluation.initialAssessment?.statelessCompliance) }}
+              </span>
+            </div>
+            <div class="assessment-item">
+              <span class="label">Decoupled 준수</span>
+              <span class="value" :class="result.masterAgentEvaluation.initialAssessment?.decoupledCompliance">
+                {{ formatLevel(result.masterAgentEvaluation.initialAssessment?.decoupledCompliance) }}
+              </span>
+            </div>
+            <div class="assessment-item">
+              <span class="label">전체 성숙도</span>
+              <span class="value" :class="result.masterAgentEvaluation.initialAssessment?.overallMaturity">
+                {{ formatMaturity(result.masterAgentEvaluation.initialAssessment?.overallMaturity) }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <hr class="divider" />
+
+        <!-- 하위 에이전트 평가 결과 -->
+        <div v-if="result.subAgentResults && result.subAgentResults.length" class="eval-section">
+          <h3>[ 전문 분석관 평가 ]</h3>
+          <div class="sub-agent-list">
+            <div
+              v-for="agent in result.subAgentResults"
+              :key="agent.agentId"
+              class="sub-agent-card"
+              :class="getScoreClass(agent.pillarScore)"
+            >
+              <div class="sub-agent-header">
+                <span class="agent-emoji">{{ agent.emoji }}</span>
+                <span class="agent-name">{{ agent.agentName }}</span>
+                <span class="agent-score" :class="getScoreClass(agent.pillarScore)">{{ agent.pillarScore }}점</span>
+              </div>
+              <p class="agent-summary">{{ agent.summary }}</p>
+
+              <!-- 4대 평가 기준 -->
+              <div v-if="agent.evaluation" class="agent-eval-grid">
+                <div class="eval-mini" v-if="agent.evaluation.suitability">
+                  <span class="eval-label">🎯 적합성</span>
+                  <span class="eval-score" :class="getScoreClass(agent.evaluation.suitability.score)">
+                    {{ agent.evaluation.suitability.score }}
+                  </span>
+                </div>
+                <div class="eval-mini" v-if="agent.evaluation.dataCollection">
+                  <span class="eval-label">📊 가시성</span>
+                  <span class="eval-score" :class="getScoreClass(agent.evaluation.dataCollection.score)">
+                    {{ agent.evaluation.dataCollection.score }}
+                  </span>
+                </div>
+                <div class="eval-mini" v-if="agent.evaluation.strengths">
+                  <span class="eval-label">✅ 강점</span>
+                  <span class="eval-score" :class="getScoreClass(agent.evaluation.strengths.score)">
+                    {{ agent.evaluation.strengths.score }}
+                  </span>
+                </div>
+                <div class="eval-mini" v-if="agent.evaluation.difficulties">
+                  <span class="eval-label">⚠️ 리스크</span>
+                  <span class="eval-score" :class="getScoreClass(agent.evaluation.difficulties.score)">
+                    {{ agent.evaluation.difficulties.score }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- 심층 질문 -->
+              <div v-if="agent.deepDiveQuestions && agent.deepDiveQuestions.length" class="deep-questions">
+                <strong>💬 추가 질문:</strong>
+                <ul>
+                  <li v-for="q in agent.deepDiveQuestions" :key="q">{{ q }}</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4대 기준 최종 리포트 -->
+        <div v-if="result.masterAgentEvaluation?.finalReport" class="eval-section final-report">
+          <h3>[ 4대 기준 최종 리포트 ]</h3>
+
+          <!-- 종합 적합성 -->
+          <div v-if="result.masterAgentEvaluation.finalReport.overallSuitability" class="report-item">
+            <div class="report-header">
+              <span class="report-icon">🏛️</span>
+              <span class="report-title">종합 적합성</span>
+              <span class="report-score" :class="getScoreClass(result.masterAgentEvaluation.finalReport.overallSuitability.cloudNativeScore)">
+                {{ result.masterAgentEvaluation.finalReport.overallSuitability.cloudNativeScore }}점
+              </span>
+            </div>
+            <p>{{ result.masterAgentEvaluation.finalReport.overallSuitability.analysis }}</p>
+          </div>
+
+          <!-- 통합 가시성 -->
+          <div v-if="result.masterAgentEvaluation.finalReport.unifiedObservability" class="report-item">
+            <div class="report-header">
+              <span class="report-icon">👁️</span>
+              <span class="report-title">통합 가시성</span>
+              <span class="report-score" :class="getScoreClass(result.masterAgentEvaluation.finalReport.unifiedObservability.score)">
+                {{ result.masterAgentEvaluation.finalReport.unifiedObservability.score }}점
+              </span>
+            </div>
+            <p>{{ result.masterAgentEvaluation.finalReport.unifiedObservability.analysis }}</p>
+          </div>
+
+          <!-- 핵심 강점 -->
+          <div v-if="result.masterAgentEvaluation.finalReport.strategicStrengths" class="report-item">
+            <div class="report-header">
+              <span class="report-icon">💪</span>
+              <span class="report-title">핵심 강점</span>
+            </div>
+            <div v-if="result.masterAgentEvaluation.finalReport.strategicStrengths.priorityImprovement" class="priority-box">
+              <strong>우선 개선:</strong>
+              {{ result.masterAgentEvaluation.finalReport.strategicStrengths.priorityImprovement.pillar }}
+            </div>
+            <p>{{ result.masterAgentEvaluation.finalReport.strategicStrengths.analysis }}</p>
+          </div>
+
+          <!-- 복합 리스크 -->
+          <div v-if="result.masterAgentEvaluation.finalReport.crossPillarRisks" class="report-item risk">
+            <div class="report-header">
+              <span class="report-icon">⚠️</span>
+              <span class="report-title">복합 리스크</span>
+            </div>
+            <div v-if="result.masterAgentEvaluation.finalReport.crossPillarRisks.tradeoffs?.length" class="tradeoffs">
+              <div v-for="(t, i) in result.masterAgentEvaluation.finalReport.crossPillarRisks.tradeoffs" :key="i" class="tradeoff">
+                {{ t.action }} → {{ t.sideEffect }}
+              </div>
+            </div>
+            <p>{{ result.masterAgentEvaluation.finalReport.crossPillarRisks.analysis }}</p>
+          </div>
+        </div>
+
+        <!-- 기존 형식 호환 (레거시) -->
+        <div v-else-if="result.architectureEvaluation" class="eval-section">
           <h3>[ 설계도 분석 결과 ] ({{ result.architectureEvaluation.score || 0 }}/50점)</h3>
 
           <div v-if="result.architectureEvaluation.details && result.architectureEvaluation.details.length" class="eval-details">
@@ -52,60 +191,6 @@
                 <span class="eval-item-score" :class="getScoreClass(detail.score * 4)">{{ detail.score }}점</span>
               </div>
               <p class="eval-item-basis">{{ detail.basis }}</p>
-            </div>
-          </div>
-
-          <!-- 누락된 컴포넌트 -->
-          <div v-if="result.architectureEvaluation.missingComponents && result.architectureEvaluation.missingComponents.length" class="missing-section">
-            <strong>❌ 누락된 증거:</strong>
-            <div class="tag-list">
-              <span v-for="comp in result.architectureEvaluation.missingComponents" :key="comp" class="tag missing">
-                {{ comp }}
-              </span>
-            </div>
-          </div>
-
-          <!-- 잘못된 연결 -->
-          <div v-if="result.architectureEvaluation.incorrectFlows && result.architectureEvaluation.incorrectFlows.length" class="incorrect-section">
-            <strong>⚠️ 의심스러운 연결:</strong>
-            <div class="tag-list">
-              <span v-for="flow in result.architectureEvaluation.incorrectFlows" :key="flow" class="tag incorrect">
-                {{ flow }}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <hr class="divider" />
-
-        <!-- 심문 평가 -->
-        <div v-if="result.interviewEvaluation" class="eval-section">
-          <h3>[ 심문 기록 분석 ] ({{ result.interviewEvaluation.score || 0 }}/50점)</h3>
-
-          <div v-if="result.interviewEvaluation.questionAnalysis && result.interviewEvaluation.questionAnalysis.length" class="question-list">
-            <div v-for="(qa, idx) in result.interviewEvaluation.questionAnalysis" :key="idx" class="question-item" :class="qa.matchStatus">
-              <div class="question-header">
-                <span class="question-number">Q{{ idx + 1 }}</span>
-                <span v-if="qa.category" class="question-category">{{ qa.category }}</span>
-                <span class="match-badge" :class="qa.matchStatus">
-                  {{ matchStatusText(qa.matchStatus) }}
-                </span>
-                <span class="question-score">{{ qa.score }}점</span>
-              </div>
-              <p class="question-text">{{ qa.question }}</p>
-              <div class="answer-comparison">
-                <div class="user-answer-box">
-                  <span class="box-label">[용의자 진술]</span>
-                  <p>{{ qa.userAnswer || '(묵비권 행사)' }}</p>
-                </div>
-                <div class="model-answer-box">
-                  <span class="box-label">[모범 답안]</span>
-                  <p>{{ qa.modelAnswer }}</p>
-                </div>
-              </div>
-              <div v-if="qa.deductionReason" class="deduction-reason">
-                <strong>감점 사유:</strong> {{ qa.deductionReason }}
-              </div>
             </div>
           </div>
         </div>
@@ -230,9 +315,9 @@ export default {
   },
   methods: {
     getScoreClass(score) {
-      if (score >= 90) return 'excellent';
-      if (score >= 70) return 'good';
-      if (score >= 50) return 'needs-improvement';
+      if (score >= 80) return 'excellent';
+      if (score >= 60) return 'good';
+      if (score >= 40) return 'needs-improvement';
       return 'poor';
     },
     matchStatusText(status) {
@@ -242,6 +327,14 @@ export default {
         'mismatch': '❌ 불일치'
       };
       return texts[status] || status;
+    },
+    formatLevel(level) {
+      const labels = { high: '높음', medium: '보통', low: '낮음' };
+      return labels[level] || level || '-';
+    },
+    formatMaturity(maturity) {
+      const labels = { advanced: '고급', intermediate: '중급', beginner: '초급' };
+      return labels[maturity] || maturity || '-';
     }
   }
 };
@@ -763,6 +856,203 @@ export default {
   box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.8);
 }
 
+/* 마스터 에이전트 평가 스타일 */
+.master-assessment .assessment-grid {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  margin-top: 15px;
+}
+
+.master-assessment .assessment-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.master-assessment .assessment-item .label {
+  font-size: 0.75rem;
+  color: #7f8c8d;
+}
+
+.master-assessment .assessment-item .value {
+  padding: 4px 12px;
+  border: 2px solid;
+  font-weight: bold;
+  font-size: 0.8rem;
+}
+
+.master-assessment .value.high { border-color: #27ae60; color: #27ae60; background: rgba(39, 174, 96, 0.1); }
+.master-assessment .value.medium { border-color: #f39c12; color: #f39c12; background: rgba(243, 156, 18, 0.1); }
+.master-assessment .value.low { border-color: #e74c3c; color: #e74c3c; background: rgba(231, 76, 60, 0.1); }
+.master-assessment .value.advanced { border-color: #27ae60; color: #27ae60; background: rgba(39, 174, 96, 0.1); }
+.master-assessment .value.intermediate { border-color: #3498db; color: #3498db; background: rgba(52, 152, 219, 0.1); }
+.master-assessment .value.beginner { border-color: #f39c12; color: #f39c12; background: rgba(243, 156, 18, 0.1); }
+
+/* 하위 에이전트 카드 */
+.sub-agent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.sub-agent-card {
+  background: rgba(0, 0, 0, 0.05);
+  border-left: 4px solid #3498db;
+  padding: 15px;
+}
+
+.sub-agent-card.excellent { border-left-color: #27ae60; }
+.sub-agent-card.good { border-left-color: #3498db; }
+.sub-agent-card.needs-improvement { border-left-color: #f39c12; }
+.sub-agent-card.poor { border-left-color: #e74c3c; }
+
+.sub-agent-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.agent-emoji {
+  font-size: 1.5rem;
+}
+
+.agent-name {
+  flex: 1;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.agent-score {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.8rem;
+}
+
+.agent-score.excellent { color: #27ae60; }
+.agent-score.good { color: #3498db; }
+.agent-score.needs-improvement { color: #f39c12; }
+.agent-score.poor { color: #e74c3c; }
+
+.agent-summary {
+  font-size: 0.85rem;
+  color: #555;
+  margin: 0 0 10px 0;
+  line-height: 1.5;
+}
+
+.agent-eval-grid {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.eval-mini {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: white;
+  border: 1px solid #ddd;
+  font-size: 0.75rem;
+}
+
+.eval-mini .eval-label {
+  color: #555;
+}
+
+.eval-mini .eval-score {
+  font-weight: bold;
+}
+
+.eval-mini .eval-score.excellent { color: #27ae60; }
+.eval-mini .eval-score.good { color: #3498db; }
+.eval-mini .eval-score.needs-improvement { color: #f39c12; }
+.eval-mini .eval-score.poor { color: #e74c3c; }
+
+.deep-questions {
+  margin-top: 10px;
+  font-size: 0.8rem;
+}
+
+.deep-questions ul {
+  margin: 5px 0 0 0;
+  padding-left: 18px;
+}
+
+.deep-questions li {
+  color: #666;
+  margin-bottom: 3px;
+}
+
+/* 4대 기준 최종 리포트 */
+.final-report .report-item {
+  background: rgba(0, 0, 0, 0.03);
+  padding: 15px;
+  margin-bottom: 12px;
+  border-left: 4px solid #3498db;
+}
+
+.final-report .report-item.risk {
+  border-left-color: #e74c3c;
+}
+
+.report-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.report-icon {
+  font-size: 1.3rem;
+}
+
+.report-title {
+  flex: 1;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.report-score {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.7rem;
+}
+
+.report-score.excellent { color: #27ae60; }
+.report-score.good { color: #3498db; }
+.report-score.needs-improvement { color: #f39c12; }
+.report-score.poor { color: #e74c3c; }
+
+.report-item p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #555;
+  line-height: 1.5;
+}
+
+.priority-box {
+  background: rgba(243, 156, 18, 0.1);
+  border: 1px solid #f39c12;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  font-size: 0.85rem;
+  color: #f39c12;
+}
+
+.tradeoffs {
+  margin-bottom: 10px;
+}
+
+.tradeoff {
+  background: rgba(231, 76, 60, 0.1);
+  padding: 6px 10px;
+  margin-bottom: 5px;
+  font-size: 0.8rem;
+  color: #e74c3c;
+}
+
 @media (max-width: 600px) {
   .answer-comparison {
     grid-template-columns: 1fr;
@@ -776,6 +1066,14 @@ export default {
     font-size: 1rem;
     top: 30px;
     right: 15px;
+  }
+
+  .master-assessment .assessment-grid {
+    flex-direction: column;
+  }
+
+  .agent-eval-grid {
+    flex-direction: column;
   }
 }
 </style>
