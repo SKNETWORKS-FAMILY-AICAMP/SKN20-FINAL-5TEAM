@@ -1659,6 +1659,11 @@
   box-shadow: 0 0 15px var(--neon-cyan), inset 0 0 10px rgba(0, 243, 255, 0.3);
 }
 
+.quiz-modal.neon-border {
+  border-color: var(--neon-magenta);
+  box-shadow: 0 0 15px var(--neon-magenta), inset 0 0 10px rgba(255, 0, 255, 0.3);
+}
+
 .phase-badge {
   display: inline-block;
   background: var(--neon-cyan);
@@ -1683,6 +1688,7 @@
   line-height: 1.6;
   color: #e0e0e0;
   margin-bottom: 30px;
+  white-space: pre-line;
 }
 
 .quiz-options {
