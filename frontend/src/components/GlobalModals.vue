@@ -122,8 +122,7 @@ import { useRouter } from 'vue-router';
 import NoticeModal from './NoticeModal.vue';
 import LoginModal from './LoginModal.vue';
 import SignUpModal from './SignUpModal.vue';
-import ConstructionModal from './ConstructionModal.vue';
-import PseudoPractice from '../features/practice/Pseudo_practice.vue';
+import ConstructionModal from './ConstructionModal.vue';    
 import LogicMirrorGuidebook from '../features/practice/support/unit1/logic-mirror/LogicMirrorGuidebook.vue';
 import BugHuntGuidebook from '../features/practice/BugHuntGuidebook.vue';
 
