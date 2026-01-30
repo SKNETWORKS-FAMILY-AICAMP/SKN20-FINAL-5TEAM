@@ -49,6 +49,8 @@ services:
     tty: true
     env_file:
       - .env
+    environment:
+      - VITE_API_Target=http://backend:8000
 
 volumes:
   postgres_data:
