@@ -190,7 +190,11 @@
             <!-- PHASE 3: EXPLAIN은 팝업으로 표시됨 -->
             <!-- CHAT INTERFACE -->
             <!-- CHAT INTERFACE -->
-            <div class="chat-interface neon-border" ref="chatInterfaceRef">
+            <div
+              class="chat-interface neon-border"
+              :class="{ 'mission-log-active': currentProgressivePhase === 'explain' }"
+              ref="chatInterfaceRef"
+            >
               <div class="chat-header">
                 <span class="chat-icon">💬</span>
                 <span class="chat-title">MISSION LOG</span>
@@ -237,6 +241,7 @@
               v-for="step in 3"
               :key="'bug-' + step"
               class="code-bug"
+              :ref="el => (bugRefs[step] = el)"
               :class="{
                 dead: progressiveCompletedSteps.includes(step),
                 eating: !progressiveCompletedSteps.includes(step),
@@ -558,6 +563,11 @@
   overflow: hidden;
   min-height: 300px;
   max-height: 450px;
+}
+
+.chat-interface.mission-log-active {
+  border-color: var(--neon-magenta);
+  box-shadow: 0 0 15px var(--neon-magenta), inset 0 0 10px rgba(255, 0, 255, 0.3);
 }
 
 .chat-header {
@@ -906,6 +916,18 @@ const handleEditorMount = (editorInstance) => {
   monacoEditorRef.value = editorInstance;
 };
 
+// 타이머 관리 (언마운트 시 정리)
+const activeTimeouts = new Set();
+function scheduleTimeout(fn, ms) {
+  const id = setTimeout(fn, ms);
+  activeTimeouts.add(id);
+  return id;
+}
+function clearAllTimeouts() {
+  activeTimeouts.forEach((id) => clearTimeout(id));
+  activeTimeouts.clear();
+}
+
 // 게임 데이터 변경 시 자동 저장
 watch(gameData, (newData) => {
   saveGameData(newData);
@@ -988,13 +1010,13 @@ const showStatsPanel = ref(false);
 function showLevelUpEffect(oldLevel, newLevel, title) {
   levelUpInfo.value = { oldLevel, newLevel, title };
   showLevelUp.value = true;
-  setTimeout(() => { showLevelUp.value = false; }, 3000);
+  scheduleTimeout(() => { showLevelUp.value = false; }, 3000);
 }
 
 function showAchievementUnlock(achievement) {
   newAchievement.value = achievement;
   showAchievementPopup.value = true;
-  setTimeout(() => { showAchievementPopup.value = false; }, 3000);
+  scheduleTimeout(() => { showAchievementPopup.value = false; }, 3000);
 }
 
 // ============================================
@@ -1159,7 +1181,7 @@ function startProgressiveMission(mission, index, startAtStep = 1) {
   ];
 
   // 버그 애니메이션 시작
-  setTimeout(() => {
+  scheduleTimeout(() => {
     startBugAnimations();
   }, 500);
 
@@ -1192,7 +1214,7 @@ function submitQuiz() {
     quizFeedback.value = '정답입니다! 디버깅을 시작하세요.';
     quizFeedbackType.value = 'success';
 
-    setTimeout(() => {
+    scheduleTimeout(() => {
       showQuizPopup.value = false;
       startDebugPhase();
     }, 1000);
@@ -1200,7 +1222,7 @@ function submitQuiz() {
     quizIncorrectCount.value++;
     quizFeedback.value = '틀렸습니다. 다시 생각해보세요!';
     quizFeedbackType.value = 'error';
-    setTimeout(() => { quizFeedback.value = ''; }, 2000);
+    scheduleTimeout(() => { quizFeedback.value = ''; }, 2000);
   }
 }
 
@@ -1227,7 +1249,7 @@ function addChatMessage(role, text) {
   
   if (isSystem) {
     hasNewMessage.value = true;
-    setTimeout(() => { hasNewMessage.value = false; }, 500);
+    scheduleTimeout(() => { hasNewMessage.value = false; }, 500);
   }
 
   // DOM 업데이트 후 스크롤
@@ -1251,7 +1273,7 @@ function dismissAlertPopup() {
   alertPopupPhase.value = 'fly';
 
   // 0.8초 후 팝업 숨기고 대화창에 메시지 추가
-  setTimeout(() => {
+  scheduleTimeout(() => {
     showAlertPopup.value = false;
     const message = alertPopupMessage.value;
     alertPopupPhase.value = '';
@@ -1274,7 +1296,7 @@ function moveToNextStep() {
 function scrollToBottom() {
   if (chatMessagesRef.value) {
     // 부드러운 스크롤을 위해 약간의 딜레이 보장 및 smooth behavior
-    setTimeout(() => {
+    scheduleTimeout(() => {
       chatMessagesRef.value.scrollTo({
         top: chatMessagesRef.value.scrollHeight,
         behavior: 'smooth'
@@ -1297,10 +1319,10 @@ function handleChatSubmit() {
   stepExplanations[currentProgressiveStep.value] = userText;
 
   // 시스템 응답 및 다음 단계 진행
-  setTimeout(() => {
+  scheduleTimeout(() => {
     addChatMessage('system', '설명이 기록되었습니다. 훌륭합니다! 데이터가 처리되는 동안 잠시만 기다려주세요...');
     
-    setTimeout(() => {
+    scheduleTimeout(() => {
       if (currentProgressiveStep.value < 3) {
         addChatMessage('system', `STEP ${currentProgressiveStep.value} 완료. 다음 보안 레벨로 접근합니다.`);
         moveToNextStep();
@@ -1453,19 +1475,27 @@ function animateSkullToBug(targetStep) {
   const targetX = (centerX / window.innerWidth) * 100;
   const targetY = (centerY / window.innerHeight) * 100;
 
-  // 해골 표시 (중앙에서 시작)
-  flyingSkullPosition.x = 50;
-  flyingSkullPosition.y = 50;
+  // 해골 표시 (잡은 버그 위치에서 시작)
+  const bugEl = bugRefs[targetStep];
+  if (bugEl) {
+    const bugRect = bugEl.getBoundingClientRect();
+    flyingSkullPosition.x = (bugRect.left + bugRect.width / 2) / window.innerWidth * 100;
+    flyingSkullPosition.y = (bugRect.top + bugRect.height / 2) / window.innerHeight * 100;
+  } else {
+    const { left: bugLeft, top: bugTop } = getBugPositionPercent(targetStep);
+    flyingSkullPosition.x = bugLeft;
+    flyingSkullPosition.y = bugTop;
+  }
   showFlyingSkull.value = true;
 
   // 애니메이션 (CSS transition 사용)
-  setTimeout(() => {
+  scheduleTimeout(() => {
     flyingSkullPosition.x = targetX;
     flyingSkullPosition.y = targetY;
   }, 50);
 
   // 애니메이션 완료 후 숨기기
-  setTimeout(() => {
+  scheduleTimeout(() => {
     showFlyingSkull.value = false;
   }, 1000);
 }
@@ -1481,13 +1511,13 @@ function submitProgressiveStep() {
     type: 'command'
   });
 
-  setTimeout(() => {
+  scheduleTimeout(() => {
     const passed = checkProgressiveSolution();
 
     // 저격 애니메이션
     shootBug(currentProgressiveStep.value, passed);
 
-    setTimeout(() => {
+    scheduleTimeout(() => {
       if (passed) {
         // 성공!
         const endTime = Date.now();
@@ -1519,10 +1549,10 @@ function submitProgressiveStep() {
         showProgressiveHintPanel.value = false;
 
         // 해골이 버그 위치로 날아가는 애니메이션 - 1초 딜레이 후 표시
-        setTimeout(() => {
+        scheduleTimeout(() => {
           animateSkullToBug(currentProgressiveStep.value);
 
-          setTimeout(() => {
+          scheduleTimeout(() => {
             // 3단계: 설명 페이즈로 전환 (채팅으로)
             currentProgressivePhase.value = 'explain';
 
@@ -1591,10 +1621,11 @@ const editorFrameRef = ref(null);
 const editorBodyRef = ref(null);
 const sectionRefs = ref([]);
 const bugStatusRefs = reactive({}); // 상단 bugs-status 아이템 참조
+const bugRefs = reactive({}); // 버그 요소 참조
 
 // 스텝 변경 시 자동 스크롤
 watch(currentProgressiveStep, (newStep) => {
-  setTimeout(() => {
+  scheduleTimeout(() => {
     const el = sectionRefs.value[newStep - 1];
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1726,7 +1757,7 @@ function shootBug(targetStep, isHit) {
       
       // 화면 흔들림 효과
       isShaking.value = true;
-      setTimeout(() => { isShaking.value = false; }, 500);
+      scheduleTimeout(() => { isShaking.value = false; }, 500);
 
       if (isHit) {
         hitEffectPosition.value = { x: targetX, y: targetY };
@@ -1739,11 +1770,11 @@ function shootBug(targetStep, isHit) {
           bugAnimationIds[targetStep] = null;
         }
 
-        setTimeout(() => { showHitEffect.value = false; }, 1500);
+        scheduleTimeout(() => { showHitEffect.value = false; }, 1500);
       } else {
         missEffectPosition.value = { x: targetX + 30, y: targetY - 20 };
         showMissEffect.value = true;
-        setTimeout(() => { showMissEffect.value = false; }, 1000);
+        scheduleTimeout(() => { showMissEffect.value = false; }, 1000);
       }
     }
   }
@@ -1792,6 +1823,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  clearAllTimeouts();
   stopBugAnimations();
 });
 </script>
