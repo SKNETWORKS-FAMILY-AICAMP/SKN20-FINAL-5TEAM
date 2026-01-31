@@ -60,6 +60,11 @@ export const semanticMatch = (source, keyword) => {
     return false;
 };
 
+// [Lion's Code Snippet] [수정일: 2026-01-29] 성능 및 정확도 향상을 위한 조사 제거 로직 최적화
+const PARTICLES = ['은', '는', '이', '가', '을', '를', '의', '로', '에', '서', '한', '하'];
+// 파이프(|)로 연결하여 한 번에 매칭 (Performance Up)
+const PARTICLE_REGEX = new RegExp(`(${PARTICLES.join('|')})$`, 'i');
+
 /**
  * 한글 조사 및 어미를 제거/정규화하여 핵심 키워드를 추출하기 쉽게 만듭니다.
  * @param {string} text 원문 텍스트
@@ -68,32 +73,15 @@ export const semanticMatch = (source, keyword) => {
 export const normalizeKorean = (text) => {
     if (!text) return '';
 
-    let normalized = text.toLowerCase().trim();
+    // 1. 기본 정제
+    let normalized = text.toLowerCase().trim()
+        .replace(/[\s\t\n\r]/g, '')
+        .replace(/[.,!?;:()[\]{}'"]/g, '');
 
-    // 1. 공백 및 특수문자 제거 (키워드 매칭 확률 향상)
-    normalized = normalized.replace(/[\s\t\n\r]/g, '');
-    normalized = normalized.replace(/[.,!?;:()[\]{}'"]/g, '');
-
-    // 2. 한글 조사 및 어미 정규 표현식 (핵심 명사/동사 위주로 남기기 위해 자주 쓰이는 조사 제거)
-    // 은, 는, 이, 가, 을, 를, 함, 해서, 하여, 이고, 이며, 습니다, 에요, 예요, 쥬, 구먼 등
-    const particles = [
-        '은', '는', '이', '가', '을', '를', '와', '과', '의', '로', '으로', '에', '에서', '에게', '한테',
-        '이며', '이고', '하고', '해서', '하여', '합니다', '습니다', '네요', '아요', '어요', '해요',
-        '쥬', '구먼', '슈', '다', '함', '음', '기'
-    ];
-
-    // 조사가 단어 끝에 붙어 있는 경우 제거 (간이 형태소 분석 효과)
-    // 복잡한 형태소 분석기 없이 정규표현식으로 처리 (Fuzzy Matching 대용)
-    particles.forEach(p => {
-        // 단순히 문자열 포함 시 제거가 아니라, 단어 문맥을 고려하기 위해 반복 처리
-        // 여기서는 includes(kw)를 보완하는 목적이므로 normalize 단계에서 최대한 '핵심'만 남김
-        const regex = new RegExp(`${p}$`, 'g');
-        // 실제로는 문장 중간의 조사를 제거하기 위해 공백 제거 전에 처리했어야 하나,
-        // 사용자가 입력한 짧은 답변(의사코드) 특성상 공백 제거 후 후미 매칭도 유효함
-    });
-
-    // [수정일: 2026-01-29] 실질적인 매칭 성능 향상을 위해 '조사' 성격의 문자들을 공백으로 치환 후 다시 결합하는 방식 도입 고려
-    // 하지만 여기서는 간단하게 "Set을써서" -> "Set", "중복을" -> "중복" 등으로 핵심단어가 매칭되게끔 하는 것이 목표
+    // 2. 조사 제거 (단, 길이가 2글자 이상일 때만 제거하여 '사(Apple)', '비(Rain)' 같은 외자 단어 보호)
+    if (normalized.length > 1) {
+        normalized = normalized.replace(PARTICLE_REGEX, '');
+    }
 
     return normalized;
 };

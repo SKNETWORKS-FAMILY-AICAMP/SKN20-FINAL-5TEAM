@@ -1,11 +1,87 @@
 export const aiQuests = [
     {
         id: 1,
+        title: "오염된 뉴스 정화",
+        category: "NLP",
+        emoji: "🚫",
+        desc: "불필요한 광고성 데이터와 노이즈를 제어하는 정화 모듈을 완성하세요.",
+        rewardXP: 500,
+        subModuleTitle: "DATA_CLEANER",
+        quizTitle: "AI 성능을 저하시키는 데이터 오염을 막기 위한 첫 번째 단계는?",
+        missionObjective: "리스트에 담긴 뉴스 제목들 중 다음 조건에 해당하는 데이터를 '제거(skip)'하는 로직을 작성하세요: ① 제목이 5자 미만인 경우 ② '광고' 또는 '클릭'이라는 단어가 포함된 경우.",
+        pythonSnippets: [
+            { label: '조건 제외 (건너뛰기)', code: 'continue', icon: 'RotateCcw' },
+            { label: '데이터 저장 (추가)', code: 'cleaned_data.append(news)', icon: 'CodeIcon' },
+            { label: '아무것도 안 함 (통과)', code: 'pass', icon: 'X' }
+        ],
+        pythonTemplate: `def clean_news_data(news_list):
+    cleaned_data = []
+
+    for news in news_list:
+        # [Step 3-1] 필터 조건: 5자 미만 또는 "광고" 포함
+        if len(news) < 5 or "광고" in news:
+            # TODO: 여기에 건너뛰기 로직 작성 (힌트: continue)
+            
+            
+        # [Step 3-2] 정화된 데이터 추가
+        # TODO: news를 결과에 추가 (힌트: append)
+        
+
+    return cleaned_data`,
+        sampleData: [
+            "삼성전자 주가 급등",
+            "광고) 지금 바로 클릭하세요",
+            "날씨",
+            "AI 모델의 미래 전망",
+            "초특가 광고 상품 안내"
+        ],
+        step4Options: [
+            "모든 광고성 단어를 수동으로 검수한다.",
+            "문맥을 분석하는 고도화된 AI 필터를 도입한다.",
+            "전처리를 생략하고 모델의 성능에 맡긴다.",
+            "긴 뉴스는 무조건 삭제한다."
+        ],
+        cards: [
+            { id: 'b1', text: '반복: 뉴스_목록의 뉴스에 대해:', color: 'border-indigo-500', icon: '🔁' },
+            { id: 'b2', text: '    만약 뉴스가 "광고"를 포함하면:', color: 'border-amber-500', icon: '❗' },
+            { id: 'b3', text: '        건너뛰기(continue)', color: 'border-rose-500', icon: '⏭️' },
+            { id: 'b4', text: '    정화된_목록에 뉴스 추가', color: 'border-emerald-500', icon: '✨' },
+            { id: 'b5', text: '정화된_목록 반환', color: 'border-emerald-500', icon: '✅' }
+        ],
+        solution: ['b1', 'b2', 'b3', 'b4', 'b5'],
+        codeValidation: { price: 'news_list', fee1: 'continue', fee2: 'append' },
+        quizOptions: [
+            { text: "A. 모든 광고 데이터를 수동으로 지운다.", correct: false },
+            { text: "B. 반복문과 조건문을 통해 자동화할 수 있다.", correct: true },
+            { text: "C. 데이터가 적을 때는 처리하지 않아도 된다.", correct: false }
+        ],
+        mapPos: { x: 100, y: 450 }
+    },
+    {
+        id: 2,
         title: "로그인 인증 시스템",
         category: "Auth",
         emoji: "🔐",
         desc: "아이디와 비밀번호가 일치하는지 확인하는 로직을 조립하세요.",
         rewardXP: 100,
+        quizTitle: "보안 시스템의 논리 구조 중 가장 적절한 것은?",
+        missionObjective: "사용자 로그인 인증 로직의 핵심 규칙을 설계하세요: ① 아이디가 'lion'이어야 함 ② 비밀번호가 '1234'여야 함 (두 조건이 모두 충족될 때만 성공).",
+        pythonTemplate: `def login_check(user_id, user_pw):
+    # TODO: 아이디가 'lion'이고 비밀번호가 '1234'인지 확인하는 조건문 작성
+    # 힌트: user_id == "lion" and user_pw == "1234"
+    
+    return False`,
+        pythonSnippets: [
+            { label: '아이디 확인', code: 'user_id == "lion"', icon: 'Cpu' },
+            { label: '비밀번호 확인', code: 'user_pw == "1234"', icon: 'Award' },
+            { label: '로그인 성공', code: 'return True', icon: 'CodeIcon' }
+        ],
+        step4Options: [
+            "보안을 위해 모든 접속 시도를 무조건 차단한다.",
+            "잘못된 입력이 반복될 경우 일시적으로 계정을 잠금 처리한다.",
+            "비밀번호를 화면에 그대로 노출시킨다.",
+            "아무나 로그인할 수 있게 로직을 삭제한다."
+        ],
         cards: [
             { id: 'b1', text: '만약 아이디 == "lion" 이면:', color: 'border-indigo-500', icon: '❓' },
             { id: 'b2', text: '    만약 비밀번호 == "1234" 이면:', color: 'border-indigo-500', icon: '❓' },
@@ -14,7 +90,7 @@ export const aiQuests = [
             { id: 'b5', text: '        반환 "실패"', color: 'border-rose-500', icon: '❌' }
         ],
         solution: ['b1', 'b2', 'b3', 'b4', 'b5'],
-        codeValidation: { price: 'lion', fee1: '1234', fee2: 'Success' }, // 필드명은 재활용하거나 추후 일반화
+        codeValidation: { price: 'lion', fee1: '1234', fee2: 'Success' },
         quizOptions: [
             { text: "A. 비밀번호가 틀려도 성공 처리한다.", correct: false },
             { text: "B. and 연산자를 사용하여 한 줄로 합칠 수 있다.", correct: true },
@@ -23,7 +99,7 @@ export const aiQuests = [
         mapPos: { x: 200, y: 150 }
     },
     {
-        id: 2,
+        id: 3,
         title: "재고 관리 알림",
         category: "Inventory",
         emoji: "📦",
@@ -46,7 +122,7 @@ export const aiQuests = [
         mapPos: { x: 350, y: 250 }
     },
     {
-        id: 3,
+        id: 4,
         title: "기온별 옷차림 추천",
         category: "Service",
         emoji: "🌡️",
@@ -69,7 +145,7 @@ export const aiQuests = [
         mapPos: { x: 500, y: 350 }
     },
     {
-        id: 4,
+        id: 5,
         title: "평균 제곱 오차 (MSE)",
         category: "AI Basic",
         emoji: "📈",
@@ -92,7 +168,7 @@ export const aiQuests = [
         mapPos: { x: 650, y: 250 }
     },
     {
-        id: 5,
+        id: 6,
         title: "배달비 자동 계산",
         category: "Logistics",
         emoji: "🚚",
@@ -115,7 +191,7 @@ export const aiQuests = [
         mapPos: { x: 800, y: 150 }
     },
     {
-        id: 6,
+        id: 7,
         title: "최대값 찾기",
         category: "Algorithm",
         emoji: "🔝",
@@ -138,7 +214,7 @@ export const aiQuests = [
         mapPos: { x: 700, y: 450 }
     },
     {
-        id: 7,
+        id: 8,
         title: "연속 출석 체크",
         category: "Service",
         emoji: "📅",
@@ -161,7 +237,7 @@ export const aiQuests = [
         mapPos: { x: 550, y: 550 }
     },
     {
-        id: 8,
+        id: 9,
         title: "스마트 점등 제어",
         category: "IoT",
         emoji: "💡",
@@ -184,7 +260,7 @@ export const aiQuests = [
         mapPos: { x: 400, y: 650 }
     },
     {
-        id: 9,
+        id: 10,
         title: "비밀번호 안전성",
         category: "Security",
         emoji: "🛡️",
@@ -205,28 +281,5 @@ export const aiQuests = [
             { text: "C. 짧은 비밀번호가 더 기억하기 쉽고 안전하다.", correct: false }
         ],
         mapPos: { x: 250, y: 550 }
-    },
-    {
-        id: 10,
-        title: "비속어 필터링",
-        category: "NLP",
-        emoji: "🚫",
-        desc: "채팅창의 깨끗한 환경을 위해 비속어를 마스킹합니다.",
-        rewardXP: 500,
-        cards: [
-            { id: 'b1', text: '반복: 금지어_목록의 단어에 대해:', color: 'border-indigo-500', icon: '🔁' },
-            { id: 'b2', text: '    만약 메시지에 단어가 포함되면:', color: 'border-amber-500', icon: '❗' },
-            { id: 'b3', text: '        단어를 "***"로 치환한다', color: 'border-rose-500', icon: '🫧' },
-            { id: 'b4', text: '반복 종료', color: 'border-indigo-500', icon: '🏁' },
-            { id: 'b5', text: '정화된 메시지 반환', color: 'border-emerald-500', icon: '✨' }
-        ],
-        solution: ['b1', 'b2', 'b3', 'b4', 'b5'],
-        codeValidation: { price: 'words', fee1: 'replace', fee2: 'clean_msg' },
-        quizOptions: [
-            { text: "A. 모든 단어를 지워버린다.", correct: false },
-            { text: "B. 반복문을 통해 금지어 리스트를 순회한다.", correct: true },
-            { text: "C. 대소문자를 구분하지 않도록 소문자로 바꾸면 더 좋다.", correct: true }
-        ],
-        mapPos: { x: 100, y: 450 }
     }
 ];

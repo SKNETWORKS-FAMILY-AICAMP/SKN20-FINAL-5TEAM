@@ -14,14 +14,16 @@ axios.defaults.xsrfCookieName = 'csrftoken'
 axios.defaults.xsrfHeaderName = 'X-CSRFToken'
 
 // 새로운 퀘스트 기반 Logic Mirror 임포트
-import PseudoPractice from './features/practice/Pseudo_practice.vue'
+import PseudoPractice from './features/practice/pseudoProblem.vue'
 import SystemArchitecturePractice from './features/practice/SystemArchitecturePractice.vue'
 import BugHunt from './features/practice/BugHunt.vue'
 import VibeCodeCleanUp from './features/practice/VibeCodeCleanUp.vue'
 import OpsPractice from './features/practice/OpsPractice.vue'
-import AiDetectivePractice from './features/practice/AiDetectivePractice.vue' // [수정일: 2026-01-28] AI Detective 컴포넌트 임포트
-import PseudoForest from './features/practice/PseudoForest.vue' // [수정일: 2026-01-28] Pseudo Forest 컴포넌트 임포트
-import PseudoCompany from './features/practice/PsuedoCompany.vue' // [수정일: 2026-01-29] Pseudo Company 컴포넌트 임포트
+// [수정일: 2026-01-31] 사용하지 않는 구버전/비활성 컴포넌트 임포트 주석 처리
+// import AiDetectivePractice from './features/practice/AiDetectivePractice.vue'
+// import PseudoForest from './features/practice/PseudoForest.vue'
+// import PseudoCompany from './features/practice/PseudoCompany.vue'
+// import PseudoEmergency from './features/practice/PseudoEmergency.vue'
 import BugHuntDemo from './features/practice/BugHuntDemo.vue' // [수정일: 2026-01-30] BugHunt Demo 컴포넌트 임포트
 
 const routes = [
@@ -56,24 +58,23 @@ const routes = [
     name: 'OpsPractice',
     component: OpsPractice
   },
+  /* [수정일: 2026-01-31] 비활성 라우트 주석 처리
   {
-    // [수정일: 2026-01-28] AI Detective 라우트 등록
     path: '/practice/ai-detective',
     name: 'AiDetective',
     component: AiDetectivePractice
   },
   {
-    // [수정일: 2026-01-28] Pseudo Forest 라우트 등록
     path: '/practice/pseudo-forest',
     name: 'PseudoForest',
     component: PseudoForest
   },
   {
-    // [수정일: 2026-01-29] Pseudo Company 라우트 등록
     path: '/practice/pseudo-company',
     name: 'PseudoCompany',
     component: PseudoCompany
   },
+  */
   {
     // [수정일: 2026-01-30] BugHunt Demo 라우트 등록
     path: '/practice/bug-hunt-demo',
@@ -102,7 +103,8 @@ import {
   ArrowRight,
   ChevronLeft,
   ChevronRight,
-  Home
+  Home,
+  AlertCircle
 } from 'lucide-vue-next'
 
 const app = createApp(App)
@@ -119,6 +121,7 @@ app.component('ArrowRight', ArrowRight)
 app.component('ChevronLeft', ChevronLeft)
 app.component('ChevronRight', ChevronRight)
 app.component('Home', Home)
+app.component('alert-circle', AlertCircle)
 const pinia = createPinia()
 
 app.use(pinia)

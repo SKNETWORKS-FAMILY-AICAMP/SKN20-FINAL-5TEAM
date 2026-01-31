@@ -93,23 +93,26 @@ class AIEvaluationView(APIView):
             반드시 아래의 **JSON 형식으로만** 응답해야 합니다. 다른 텍스트는 섞지 마세요.
 
             {
-              "score": 0-100,
-              "analysis": "답변 및 코드 논리에 대한 구체적인 분석 (2~3문장)",
-              "advice": "제자를 위한 따뜻한 조언",
-              "is_logical": true/false,
-              "metrics": {
-                "정합성": 0-100, "추상화": 0-100, "예외처리": 0-100, "구현력": 0-100, "설계력": 0-100
-              },
-              "tail_question": {
-                "question": "논리적 헛점을 찌르는 날카로운 질문 1개",
-                "options": [
-                  {"text": "정답", "is_correct": true, "reason": "..."},
-                  {"text": "오답1", "is_correct": false, "reason": "..."},
-                  {"text": "오답2", "is_correct": false, "reason": "..."}
-                ]
-              }
-            }
-            """
+  "score": 0-100,
+  "analysis": "답변 및 코드 논리에 대한 구체적인 분석 (특히 단순 키워드 나열인지, 실제 논리적 문장인지 판별하여 2~3문단으로 상세히 작성)",
+  "advice": "제자를 위한 따뜻한 조언 및 개선 방향",
+  "is_logical": true/false (단순 키워드 나열이면 false),
+  "metrics": {
+    "정합성": 0-100, "추상화": 0-100, "예외처리": 0-100, "구현력": 0-100, "설계력": 0-100
+  },
+  "tail_question": {
+    "question": "논리적 헛점을 찌르는 날카로운 질문 1개",
+    "options": [
+      {"text": "정답", "is_correct": true, "reason": "..."},
+      {"text": "오답1", "is_correct": false, "reason": "..."},
+      {"text": "오답2", "is_correct": false, "reason": "..."}
+    ]
+  }
+}
+"""
+            
+            # [수정일: 2026-01-31] 프롬프트 지시 강화: 단순 키워드 나열(예: "반복 만약 제거")은 낮은 점수를 주도록 설정
+            system_prompt += "\n**중요 지침**: 사용자가 입력한 '로직'이 단순히 '반복', '조건', '삭제' 처럼 의미 없는 단어의 나열이거나 논리적 연결이 없는 경우, `is_logical`을 `false`로 설정하고 `score`를 40점 이하로 감점하십시오. 실제 사람이 이해할 수 있는 '의사코드' 문장 형태를 갖추어야 합니다."
             
             logic_str = ', '.join(user_logic) if isinstance(user_logic, list) else str(user_logic)
             user_msg = f"""
