@@ -405,6 +405,20 @@
                 <span class="label">FINAL SCORE</span>
                 <span class="value">{{ progressiveMissionScore }}</span>
               </div>
+              <div class="penalty-stats" v-if="(quizIncorrectCount || codeSubmitFailCount || Object.values(progressiveHintUsed).filter(v => v).length)">
+                 <div class="penalty-item">
+                   <span class="p-label">WRONG QUIZ ({{ quizIncorrectCount }})</span>
+                   <span class="p-value">-{{ quizIncorrectCount * 2 }}</span>
+                 </div>
+                 <div class="penalty-item">
+                   <span class="p-label">CODE RETRY ({{ codeSubmitFailCount }})</span>
+                   <span class="p-value">-{{ codeSubmitFailCount * 2 }}</span>
+                 </div>
+                 <div class="penalty-item">
+                   <span class="p-label">HINTS USED ({{ Object.values(progressiveHintUsed).filter(v => v).length }})</span>
+                   <span class="p-value">-{{ Object.values(progressiveHintUsed).filter(v => v).length }}</span>
+                 </div>
+              </div>
             </div>
           </div>
 
@@ -457,7 +471,7 @@
                       class="pass-badge"
                       :class="aiEvaluationResult.thinking_pass ? 'pass' : 'fail'"
                     >
-                      {{ aiEvaluationResult.thinking_pass ? '✅ 통과' : '❌ 탈락' }}
+                      {{ aiEvaluationResult.thinking_pass ? '✅ 안전' : '🚫 위험' }}
                     </span>
                   </div>
                 </div>
@@ -515,6 +529,12 @@
               <div class="step-explanation">
                 <span class="label">Strategy:</span>
                 <p>{{ stepExplanations[step] || '설명이 작성되지 않았습니다.' }}</p>
+              </div>
+
+              <!-- AI 피드백 -->
+              <div v-if="getStepFeedback(step)" class="step-feedback">
+                <div class="feedback-label">🤖 AI FEEDBACK</div>
+                <p class="feedback-text">{{ getStepFeedback(step) }}</p>
               </div>
             </div>
           </div>
@@ -1018,6 +1038,8 @@ const selectedQuizOption = ref(null);
 const quizFeedback = ref('');
 const quizFeedbackType = ref('');
 const quizCorrectCount = ref(0);
+const quizIncorrectCount = ref(0);
+const codeSubmitFailCount = ref(0);
 
 // 설명 및 평가 데이터
 const stepExplanations = reactive({ 1: '', 2: '', 3: '' });
@@ -1099,6 +1121,13 @@ function getStepData(stepNum) {
   return currentProgressiveMission.value.steps.find(s => Number(s.step) === Number(stepNum));
 }
 
+// 스텝별 AI 피드백 가져오기
+function getStepFeedback(stepNum) {
+  if (!aiEvaluationResult.value?.step_feedbacks) return null;
+  const feedback = aiEvaluationResult.value.step_feedbacks.find(f => f.step === stepNum);
+  return feedback?.feedback || null;
+}
+
 // 현재 스텝 데이터 가져오기
 function getCurrentStepData() {
   return getStepData(currentProgressiveStep.value);
@@ -1140,6 +1169,8 @@ function startProgressiveMission(mission, index, startAtStep = 1) {
   stepExplanations[2] = '';
   stepExplanations[3] = '';
   quizCorrectCount.value = 0;
+  quizIncorrectCount.value = 0;
+  codeSubmitFailCount.value = 0;
   totalDebugTime.value = 0;
   evaluationStats.perfectClears = 0;
 
@@ -1187,6 +1218,7 @@ function submitQuiz() {
       startDebugPhase();
     }, 1000);
   } else {
+    quizIncorrectCount.value++;
     quizFeedback.value = '틀렸습니다. 다시 생각해보세요!';
     quizFeedbackType.value = 'error';
     setTimeout(() => { quizFeedback.value = ''; }, 2000);
@@ -1303,24 +1335,41 @@ function handleChatSubmit() {
 
 // 평가 화면 보기
 async function showEvaluation() {
+  console.log('=== showEvaluation 호출됨 ===');
   showMissionComplete.value = false;
   currentView.value = 'evaluation';
 
   // AI 평가 시작
+  console.log('currentProgressiveMission:', currentProgressiveMission.value);
+  console.log('stepExplanations:', stepExplanations);
+
   if (currentProgressiveMission.value) {
     isEvaluatingAI.value = true;
+    console.log('AI 평가 시작...');
     try {
+      console.log('evaluateBugHunt 호출 직전');
       aiEvaluationResult.value = await evaluateBugHunt(
         currentProgressiveMission.value.project_title,
         currentProgressiveMission.value.steps,
         stepExplanations,
-        progressiveStepCodes.value
+        progressiveStepCodes.value,
+        {
+          quizIncorrectCount: quizIncorrectCount.value,
+          codeSubmitFailCount: codeSubmitFailCount.value,
+          hintCount: Object.values(progressiveHintUsed.value).filter(v => v).length,
+          totalDebugTime: totalDebugTime.value
+        }
       );
+      console.log('✅ AI Evaluation Result:', aiEvaluationResult.value);
+      console.log('✅ Step Feedbacks:', aiEvaluationResult.value?.step_feedbacks);
     } catch (error) {
-      console.error('AI Evaluation failed:', error);
+      console.error('❌ AI Evaluation failed:', error);
     } finally {
       isEvaluatingAI.value = false;
+      console.log('AI 평가 완료');
     }
+  } else {
+    console.log('⚠️ currentProgressiveMission이 없음!');
   }
 }
 
@@ -1489,6 +1538,7 @@ function submitProgressiveStep() {
 
       } else {
         // 실패
+        codeSubmitFailCount.value++;
         terminalStatus.value = 'error';
         terminalOutput.value.push({
           prompt: '✗',
@@ -1518,8 +1568,13 @@ function completeMission() {
   }
 
   // 보상 계산
+  // 보상 계산 (감점 로직 적용)
+  const baseScore = 100;
+  const hintCount = Object.values(progressiveHintUsed.value).filter(v => v).length;
+  const penalty = (quizIncorrectCount.value * 2) + (codeSubmitFailCount.value * 2) + (hintCount * 1);
+  
   progressiveMissionXP.value = 100;
-  progressiveMissionScore.value = 500;
+  progressiveMissionScore.value = Math.max(0, baseScore - penalty);
 
   addXP(progressiveMissionXP.value);
   gameData.totalScore += progressiveMissionScore.value;
@@ -2386,9 +2441,9 @@ onUnmounted(() => {
 }
 
 .scenario-text {
-  color: #a0aec0;
+  color: #ffffff;
   line-height: 1.6;
-  font-size: 0.95rem;
+  font-size: 1.1rem;
 }
 
 .current-target-box {
@@ -3819,6 +3874,30 @@ onUnmounted(() => {
   font-size: 1rem;
 }
 
+.step-feedback {
+  margin-top: 20px;
+  padding: 15px;
+  background: rgba(0, 255, 255, 0.05);
+  border-left: 3px solid var(--neon-cyan);
+  border-radius: 8px;
+}
+
+.step-feedback .feedback-label {
+  font-size: 0.85rem;
+  color: var(--neon-cyan);
+  font-weight: bold;
+  margin-bottom: 10px;
+  display: block;
+  font-family: 'Orbitron', monospace;
+}
+
+.step-feedback .feedback-text {
+  line-height: 1.8;
+  color: #e0e0e0;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
 .evaluation-actions {
   text-align: center;
 }
@@ -4410,5 +4489,38 @@ onUnmounted(() => {
 @keyframes duckPopIn {
   from { transform: scale(0.5) translateY(50px); opacity: 0; }
   to { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+/* Penalty Stats */
+.penalty-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(255, 0, 0, 0.1);
+  padding: 15px;
+  border-radius: 8px;
+  margin-top: 15px;
+  border-left: 2px solid var(--neon-red);
+  min-width: 200px;
+}
+
+.penalty-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  font-size: 0.85rem;
+  color: #fab1b1;
+}
+
+.p-label {
+  font-family: 'Orbitron', monospace;
+  letter-spacing: 0.5px;
+  font-size: 0.75rem;
+}
+
+.p-value {
+  color: var(--neon-red);
+  font-family: 'Orbitron', monospace;
+  font-weight: bold;
 }
 </style>

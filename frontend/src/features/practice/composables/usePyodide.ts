@@ -1,4 +1,4 @@
-/* 
+/*
   생성일: 2026-01-24
   내용: Pyodide(WASM 기반 파이썬 엔진) 로드 및 코드 실행을 위한 Vue Composable
 */
@@ -54,7 +54,7 @@ try:
         _user_result = ${functionName}()
     else:
         _user_result = ${functionName}(_input_val)
-        
+
     _repr_result = repr(_user_result)
     _is_passed = _repr_result == ${test.expected} or str(_user_result) == ${test.expected}
     print(f"TEST_CASE|{repr(_input_val)}|{_repr_result}|{_is_passed}")

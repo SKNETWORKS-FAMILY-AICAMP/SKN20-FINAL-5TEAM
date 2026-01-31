@@ -17,17 +17,23 @@ export const useGameStore = defineStore('game', {
             // [수정일: 2026-01-28] 난이도별(초/중/고) 첫 문제를 기본 해금하여 즉시 선택 가능하도록 설정
             'AI Detective': [0, 10, 20],
             'Debug Practice': [0],
+            // [수정일: 2026-01-28] Vibe Clean Up 전용 진행도
+            'Vibe Clean Up': [0],
             'System Practice': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
             'Ops Practice': [0],
             'Agent Practice': [0],
             // [수정일: 2026-01-28] Pseudo Forest 전용 진행도 초기값 추가
-            'Pseudo Forest': [0]
+            'Pseudo Forest': [0],
+            // [수정일: 2026-01-29] Pseudo Company 전용 진행도 초기값 추가
+            'Pseudo Company': [0],
+            // [수정일: 2026-01-29] Pseudo Emergency 전용 진행도 초기값 추가
+            'Pseudo Emergency': [0]
         },
         activeUnit: null,
         activeProblem: null,
         activeChapter: null,
         currentDebugMode: 'bug-hunt',
-        // [수정일: 2026-01-28] Unit 1의 현재 모드 확장 (pseudo-practice | ai-detective | pseudo-forest)
+        // [수정일: 2026-01-28] Unit 1의 현재 모드 확장 (pseudo-practice | ai-detective | pseudo-forest | pseudo-company | pseudo-emergency)
         unit1Mode: 'pseudo-practice',
         selectedQuestIndex: 0,
         selectedSystemProblemIndex: 0
@@ -64,24 +70,39 @@ export const useGameStore = defineStore('game', {
                 };
 
                 // [데이터 매핑 로직] DB 필드값을 UI 카드 컴포넌트의 props 형식에 맞게 변환하여 chapters 배열 구성
-                this.chapters = response.data.map((item, idx) => ({
-                    id: item.id,            // 고유 ID
-                    db_id: item.id,         // DB 연동 확인용 ID
-                    name: item.title,       // 화면 표시 제목
-                    unitTitle: item.title,  // 상세 모달 제목용
-                    description: item.subtitle, // 카드 하단 부제
-                    participant_count: item.participant_count, // 훈련 참여자 수
-                    unit_number: item.unit_number, // 유닛 번호 (UNIT XX)
-                    level: item.level,      // 권장 레벨 (LV.XX)
+                this.chapters = response.data.map((item, idx) => {
+                    const problems = this.mapDetailsToProblems(item, idx + 1);
+                    const isDebugPractice = item.title === 'Debug Practice';
 
-                    // [2026-01-25] DB 필드 우선 사용, 없으면 하드코딩 폴백 적용
-                    image: item.icon_image || imageMap[item.title] || '/image/unit_code.png',
-                    color: item.color_code || colors[idx % colors.length],
-                    icon: item.icon_name || iconMap[item.title] || 'book',
+                    return {
+                        id: item.id,            // 고유 ID
+                        db_id: item.id,         // DB 연동 확인용 ID
+                        name: item.title,       // 화면 표시 제목
+                        unitTitle: item.title,  // 상세 모달 제목용
+                        description: item.subtitle, // 카드 하단 부제
+                        participant_count: item.participant_count, // 훈련 참여자 수
+                        unit_number: item.unit_number, // 유닛 번호 (UNIT XX)
+                        level: item.level,      // 권장 레벨 (LV.XX)
 
-                    // [2026-01-25] 하드코딩 제거: DB의 PracticeDetail 리스트에서 'PROBLEM' 타입만 추출하여 문제 구성
-                    problems: this.mapDetailsToProblems(item, idx + 1)
-                }));
+                        // [2026-01-25] DB 필드 우선 사용, 없으면 하드코딩 폴백 적용
+                        image: item.icon_image || imageMap[item.title] || '/image/unit_code.png',
+                        color: item.color_code || colors[idx % colors.length],
+                        icon: item.icon_name || iconMap[item.title] || 'book',
+
+                        // [2026-01-25] 하드코딩 제거: DB의 PracticeDetail 리스트에서 'PROBLEM' 타입만 추출하여 문제 구성
+                        problems,
+                        // [2026-01-28] Debug Practice의 Vibe Clean Up 전용 문제 세트
+                        vibeProblems: isDebugPractice
+                            ? (progressiveData.progressiveProblems || []).map((m, mIdx) => ({
+                                id: `vibe-${m.id}`,
+                                missionId: `vibe-${m.id}`,
+                                title: `Vibe ${mIdx + 1} - ${m.project_title}`,
+                                displayNum: `Vibe ${mIdx + 1}`,
+                                questIndex: mIdx
+                            }))
+                            : undefined
+                    };
+                });
 
                 // [2026-01-26] 로컬 스토리지에서 저장된 진행도 로드
                 const savedProgress = localStorage.getItem('logic_mirror_progress');
@@ -147,6 +168,28 @@ export const useGameStore = defineStore('game', {
                         config: q,
                         mode: 'pseudo-forest'
                     }));
+                }
+                else if (this.unit1Mode === 'pseudo-company') {
+                    // [수정일: 2026-01-29] Pseudo Company 기초 데이터 매핑
+                    return [{
+                        id: 'company-1',
+                        title: '기업 로직 분석',
+                        questIndex: 0,
+                        displayNum: 'C-1',
+                        difficulty: 'hard',
+                        mode: 'pseudo-company'
+                    }];
+                }
+                else if (this.unit1Mode === 'pseudo-emergency') {
+                    // [수정일: 2026-01-29] Pseudo Emergency 기초 데이터 매핑
+                    return [{
+                        id: 'emergency-1',
+                        title: '긴급 차단 스위치',
+                        questIndex: 0,
+                        displayNum: 'E-1',
+                        difficulty: 'hard',
+                        mode: 'pseudo-emergency'
+                    }];
                 }
                 else {
                     return aiDetectiveQuests.map((q, idx) => ({
@@ -217,9 +260,14 @@ export const useGameStore = defineStore('game', {
                 const modeMap = {
                     'pseudo-practice': 'Pseudo Practice',
                     'ai-detective': 'AI Detective',
-                    'pseudo-forest': 'Pseudo Forest'
+                    'pseudo-forest': 'Pseudo Forest',
+                    'pseudo-company': 'Pseudo Company',
+                    'pseudo-emergency': 'Pseudo Emergency'
                 };
                 targetKey = modeMap[this.unit1Mode] || 'Pseudo Practice';
+            }
+            if (this.activeUnit?.name === 'Debug Practice') {
+                targetKey = this.currentDebugMode === 'vibe-cleanup' ? 'Vibe Clean Up' : 'Debug Practice';
             }
 
             const progress = this.unitProgress[targetKey];
@@ -227,8 +275,12 @@ export const useGameStore = defineStore('game', {
                 progress.push(index);
             }
             const nextIdx = index + 1;
-            // [수정일: 2026-01-28] 유닛별 최대 문제 수에 맞춰 해금 제한 동적 조절 (AI Detective는 30개)
-            const maxCount = targetKey === 'AI Detective' ? 30 : 10;
+            // [수정일: 2026-01-28] 유닛별 최대 문제 수에 맞춰 해금 제한 동적 조절
+            const maxCount = targetKey === 'AI Detective'
+                ? 30
+                : (targetKey === 'Debug Practice' || targetKey === 'Vibe Clean Up')
+                    ? (progressiveData.progressiveProblems?.length || 0)
+                    : 10;
             if (progress && nextIdx < maxCount && !progress.includes(nextIdx)) {
                 progress.push(nextIdx);
             }
@@ -251,9 +303,17 @@ export const useGameStore = defineStore('game', {
                 const modeMap = {
                     'pseudo-practice': 'Pseudo Practice',
                     'ai-detective': 'AI Detective',
-                    'pseudo-forest': 'Pseudo Forest'
+                    'pseudo-forest': 'Pseudo Forest',
+                    'pseudo-company': 'Pseudo Company',
+                    'pseudo-emergency': 'Pseudo Emergency'
                 };
                 const modeKey = modeMap[state.unit1Mode] || 'Pseudo Practice';
+                return state.unitProgress[modeKey] || [0];
+            }
+
+            // [수정일: 2026-01-28] Debug Practice는 현재 디버그 모드에 따라 진행도 키값 분기 처리
+            if (state.activeUnit.name === 'Debug Practice') {
+                const modeKey = state.currentDebugMode === 'vibe-cleanup' ? 'Vibe Clean Up' : 'Debug Practice';
                 return state.unitProgress[modeKey] || [0];
             }
 

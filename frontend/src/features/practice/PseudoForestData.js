@@ -41,8 +41,8 @@ const forestGameData = [
             {
                 type: "python-fill",
                 question: "4. 파이썬의 set을 사용하여 리스트의 중복을 제거하는 코드를 완성해보세유!",
-                codeSnippet: "def clean_board(posts):\n    # 중복을 제거한 결과를 리스트로 반환\n    return list({{blank}}(posts))",
-                blanks: ["set"],
+                codeSnippet: "def clean_board(posts):\n    # 중복을 제거한 결과를 리스트로 반환\n    return {{blank}}(set(posts))",
+                blanks: ["list"],
                 duckEncouragement: "리스트를 집합(set)으로 변환하면 중복이 싹 사라지쥬!"
             }
         ],
@@ -94,8 +94,8 @@ const forestGameData = [
             {
                 type: "python-fill",
                 question: "4. 여러 경로 중 거리가 최소인 값을 찾아내는 파이썬 코드를 완성해봅시다!",
-                codeSnippet: "min_dist = float('inf')\nfor d in distances:\n    if d < {{blank}}:\n        min_dist = d",
-                blanks: ["min_dist"],
+                codeSnippet: "min_dist = float('inf')\nfor d in distances:\n    if d < min_dist:\n        min_dist = {{blank}}",
+                blanks: ["d"],
                 duckEncouragement: "현재까지 찾은 가장 짧은 거리(min_dist)보다 더 짧은 게 나오면 바꿔줘야쥬!"
             }
         ],
@@ -466,7 +466,7 @@ const forestGameData = [
                 type: "python-fill",
                 question: "4. 방문한 지점을 기록하는 set(집합)을 활용하는 코드를 완성해보세유!",
                 codeSnippet: "if node not in {{blank}}:\n    print('처음 온 곳이유!')\n    visited.add(node)",
-                blanks: ["visited"],
+                blanks: [["visited", "checked", "seen", "visited_nodes"]],
                 duckEncouragement: "이미 왔던 곳인지 visited 리스트나 집합에서 꼭 확인해야쥬!"
             }
         ],

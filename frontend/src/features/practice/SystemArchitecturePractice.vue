@@ -1,8 +1,19 @@
 <template>
-  <div class="arch-challenge-container">
+  <div class="arch-challenge-container panic-room-theme">
+    <!-- 글로벌 FX 레이어 -->
+    <div class="vignette"></div>
+    <div class="noise"></div>
+
+    <!-- 인트로 씬 (비주얼 노벨 스타일) -->
+    <IntroScene
+      v-if="showIntro"
+      :intro-lines="introLines"
+      @enter-game="onEnterGame"
+    />
+
     <!-- 평가 결과 화면 -->
     <EvaluationResultScreen
-      v-if="showResultScreen"
+      v-else-if="showResultScreen"
       :result="evaluationResult"
       :problem="currentProblem"
       :is-loading="isEvaluating"
@@ -11,61 +22,72 @@
 
     <!-- 메인 게임 화면 -->
     <template v-else>
-      <div class="bg-animation"></div>
+      <!-- 나사 장식 -->
+      <div class="screw tl"></div>
+      <div class="screw tr"></div>
+      <div class="screw bl"></div>
+      <div class="screw br"></div>
 
       <div class="game-container">
-        
-        <!-- 결과 패널 -->
-        <div class="result-panel">
-          <!-- 문제 카드 -->
-          <ProblemCard
+        <!-- 케이스 파일 패널 (좌측 사이드바) -->
+        <CaseFilePanel
           :problem="currentProblem"
           :is-connection-mode="isConnectionMode"
           :can-evaluate="droppedComponents.length > 0"
           :is-evaluating="isEvaluating"
           :mermaid-code="mermaidCode"
           @start-evaluation="openEvaluationModal"
-          />
-          
-          <!-- 채팅 패널 -->
-          <!-- <ChatPanel
-          :messages="chatMessages"
-          :is-loading="isChatLoading"
-          @send-message="handleChatMessage"
-          /> -->
-        </div>
+        />
 
-        <!-- 아키텍처 캔버스 -->
-        <ArchitectureCanvas
-          :components="droppedComponents"
-          :connections="connections"
-          :is-connection-mode="isConnectionMode"
-          @toggle-mode="toggleMode"
-          @clear-canvas="clearCanvas"
-          @component-dropped="onComponentDropped"
-          @component-moved="onComponentMoved"
-          @component-renamed="onComponentRenamed"
-          @component-deleted="onComponentDeleted"
-          @connection-created="onConnectionCreated"
+        <!-- 메인 작업 영역 -->
+        <div class="main-workspace">
+          <!-- 헤더 바 -->
+          <GameHeader
+            :is-connection-mode="isConnectionMode"
+            :is-hint-active="isHintActive"
+            @toggle-mode="toggleMode"
+            @clear-canvas="clearCanvas"
+            @toggle-hint="toggleHint"
           />
-          
-          <!-- 컴포넌트 팔레트 -->
-          <ComponentPalette @drag-start="onPaletteDragStart" />
+
+          <!-- 작업 공간 (툴박스 + 캔버스) -->
+          <div class="workspace-content">
+            <!-- 좌측 툴박스 (컴포넌트 팔레트) -->
+            <ComponentPalette
+              :required-types="currentProblem?.expectedComponents || []"
+              :is-hint-active="isHintActive"
+              @drag-start="onPaletteDragStart"
+              class="toolbox-panel"
+            />
+
+            <!-- 캔버스 영역 -->
+            <ArchitectureCanvas
+              :components="droppedComponents"
+              :connections="connections"
+              :is-connection-mode="isConnectionMode"
+              :hide-header="true"
+              @toggle-mode="toggleMode"
+              @clear-canvas="clearCanvas"
+              @component-dropped="onComponentDropped"
+              @component-moved="onComponentMoved"
+              @component-renamed="onComponentRenamed"
+              @component-deleted="onComponentDeleted"
+              @connection-created="onConnectionCreated"
+              class="canvas-panel"
+            />
+          </div>
         </div>
-  
-      <!-- 평가 모달 -->
-      <EvaluationModal
-        :is-active="isModalActive"
-        :question="generatedQuestion"
-        :is-generating="isGeneratingQuestion"
-        :components="droppedComponents"
-        :connections="connections"
-        :mermaid-code="mermaidCode"
-        @close="closeModal"
-        @submit="submitEvaluationAnswer"
+      </div>
+
+      <!-- 오리 형사 토스트 메시지 -->
+      <DetectiveToast
+        :show="showToast"
+        :message="toastMessage"
+        :type="toastType"
+        @dismiss="dismissToast"
       />
 
-      <!-- Deep Dive 모달 (3개 질문 순차 처리) -->
+      <!-- Deep Dive 모달 (3개 질문 순차 처리) - 평가는 여기서만 진행 -->
       <DeepDiveModal
         :is-active="isDeepDiveModalActive"
         :question="deepDiveQuestion"
@@ -87,76 +109,103 @@ import mermaid from 'mermaid';
 // Components
 import ComponentPalette from './components/ComponentPalette.vue';
 import ArchitectureCanvas from './components/ArchitectureCanvas.vue';
-import ProblemCard from './components/ProblemCard.vue';
-import ChatPanel from './components/ChatPanel.vue';
-import EvaluationModal from './components/EvaluationModal.vue';
 import DeepDiveModal from './components/DeepDiveModal.vue';
 import EvaluationResultScreen from './components/EvaluationResultScreen.vue';
+import DetectiveToast from './components/DetectiveToast.vue';
+import GameHeader from './components/GameHeader.vue';
+import IntroScene from './components/IntroScene.vue';
+import CaseFilePanel from './components/CaseFilePanel.vue';
+
+// Composables
+import { useToast } from './composables/useToast';
+import { useHint } from './composables/useHint';
+import { useCanvasState } from './composables/useCanvasState';
+import { useEvaluation } from './composables/useEvaluation';
 
 // Services & Utils
-import {
-  fetchProblems,
-  generateDeepDiveQuestion,
-  generateEvaluationQuestion,
-  evaluateArchitecture,
-  sendChatMessage,
-  generateArchitectureAnalysisQuestions
-} from './services/architectureApi';
-
-import {
-  transformProblems,
-  detectMessageType,
-  buildChatContext,
-  buildArchitectureContext,
-  generateMermaidCode,
-  generateMockEvaluation
-} from './utils/architectureUtils';
+import { fetchProblems } from './services/architectureApiFastTest';
+import { transformProblems } from './utils/architectureUtils';
 
 export default {
   name: 'SystemArchitectureChallenge',
   components: {
     ComponentPalette,
     ArchitectureCanvas,
-    ProblemCard,
-    ChatPanel,
-    EvaluationModal,
     DeepDiveModal,
-    EvaluationResultScreen
+    EvaluationResultScreen,
+    DetectiveToast,
+    GameHeader,
+    IntroScene,
+    CaseFilePanel
   },
   data() {
     return {
-      // Canvas State
-      isConnectionMode: false,
-      droppedComponents: [],
-      connections: [],
-      componentCounter: 0,
+      // Intro State
+      showIntro: true,
+      introLines: [
+        "거기 서! 도망갈 생각 마라. 꽥!",
+        "네가 오늘 발생한 대규모 서버 폭파 사건의 가장 유력한 용의자로 지목되었다.",
+        "억울하다고? 그렇다면 취조실로 들어와서 직접 증명해 봐.",
+        "올바른 시스템 아키텍처를 설계해서 네 결백을 입증하는 거다!",
+        "(철창 문이 열린다...)"
+      ],
 
       // Problem State
       currentProblemIndex: 0,
-      problems: [],
+      problems: []
+    };
+  },
+  setup() {
+    // Initialize composables
+    const toast = useToast();
+    const hint = useHint();
+    const canvas = useCanvasState();
+    const evaluation = useEvaluation();
 
-      // Evaluation State
-      isModalActive: false,
-      isEvaluating: false,
-      evaluationResult: null,
-      isGeneratingQuestion: false,
-      generatedQuestion: null,
-      userAnswer: '',
-      mermaidCode: 'graph LR\n    %% 컴포넌트를 배치하고 연결하세요!',
-      showResultScreen: false,
+    return {
+      // Toast
+      showToast: toast.showToast,
+      toastMessage: toast.toastMessage,
+      toastType: toast.toastType,
+      showToastMessage: toast.showToastMessage,
+      dismissToast: toast.dismissToast,
+      cleanupToast: toast.cleanup,
 
-      // Deep Dive State (3개 질문 순차 처리)
-      isDeepDiveModalActive: false,
-      isGeneratingDeepDive: false,
-      deepDiveQuestion: null,
-      deepDiveQuestions: [], // 3개 질문 배열
-      currentQuestionIndex: 0, // 현재 질문 인덱스
-      collectedDeepDiveAnswers: [], // 수집된 답변들
-      pendingEvaluationAfterDeepDive: false, // 심화질문 후 평가 진행 플래그
+      // Hint
+      isHintActive: hint.isHintActive,
+      toggleHintComposable: hint.toggleHint,
+      cleanupHint: hint.cleanup,
 
-      // Chat State
-      chatMessages: [],
-      isChatLoading: false
+      // Canvas
+      isConnectionMode: canvas.isConnectionMode,
+      droppedComponents: canvas.droppedComponents,
+      connections: canvas.connections,
+      mermaidCode: canvas.mermaidCode,
+      toggleModeComposable: canvas.toggleMode,
+      clearCanvasComposable: canvas.clearCanvas,
+      onComponentDroppedComposable: canvas.onComponentDropped,
+      onComponentMovedComposable: canvas.onComponentMoved,
+      onComponentRenamedComposable: canvas.onComponentRenamed,
+      onComponentDeletedComposable: canvas.onComponentDeleted,
+      onConnectionCreatedComposable: canvas.onConnectionCreated,
+
+      // Evaluation
+      isEvaluating: evaluation.isEvaluating,
+      evaluationResult: evaluation.evaluationResult,
+      showResultScreen: evaluation.showResultScreen,
+      isDeepDiveModalActive: evaluation.isDeepDiveModalActive,
+      isGeneratingDeepDive: evaluation.isGeneratingDeepDive,
+      deepDiveQuestion: evaluation.deepDiveQuestion,
+      deepDiveQuestions: evaluation.deepDiveQuestions,
+      currentQuestionIndex: evaluation.currentQuestionIndex,
+      skipDeepDiveComposable: evaluation.skipDeepDive,
+      submitDeepDiveAnswerComposable: evaluation.submitDeepDiveAnswer,
+      openEvaluationModalComposable: evaluation.openEvaluationModal,
+      directEvaluateComposable: evaluation.directEvaluate,
+      handleRetryComposable: evaluation.handleRetry,
+      resetEvaluationState: evaluation.resetEvaluationState,
+      isPendingEvaluation: evaluation.isPendingEvaluation,
+      clearPendingEvaluation: evaluation.clearPendingEvaluation
     };
   },
   computed: {
@@ -169,12 +218,12 @@ export default {
       startOnLoad: false,
       theme: 'dark',
       themeVariables: {
-        primaryColor: '#00ff9d',
-        primaryTextColor: '#0a0e27',
-        primaryBorderColor: '#00e676',
-        lineColor: '#64b5f6',
-        secondaryColor: '#ff4785',
-        tertiaryColor: '#ffc107'
+        primaryColor: '#f1c40f',
+        primaryTextColor: '#1a1a1a',
+        primaryBorderColor: '#f1c40f',
+        lineColor: '#f1c40f',
+        secondaryColor: '#e74c3c',
+        tertiaryColor: '#3498db'
       },
       securityLevel: 'loose'
     });
@@ -187,13 +236,25 @@ export default {
 
     await this.loadProblems();
   },
+  beforeUnmount() {
+    this.cleanupToast();
+    this.cleanupHint();
+  },
   methods: {
+    // === Enter Game ===
+    onEnterGame() {
+      this.showIntro = false;
+      this.showToastMessage(
+        '자, 여기에 앉아. 오른쪽 팔레트에서 컴포넌트를 드래그해서 캔버스에 배치해. 꽥!',
+        'guide'
+      );
+    },
+
     // === Problem Loading ===
     async loadProblems() {
       try {
         const data = await fetchProblems();
         this.problems = transformProblems(data);
-        // 인덱스 범위 체크
         if (this.currentProblemIndex >= this.problems.length) {
           this.currentProblemIndex = 0;
         }
@@ -205,19 +266,12 @@ export default {
 
     // === Mode & Canvas Control ===
     toggleMode() {
-      this.isConnectionMode = !this.isConnectionMode;
+      this.toggleModeComposable(this.showToastMessage);
     },
 
     clearCanvas() {
-      this.droppedComponents = [];
-      this.connections = [];
-      this.componentCounter = 0;
-      this.evaluationResult = null;
-      this.deepDiveQuestions = [];
-      this.currentQuestionIndex = 0;
-      this.collectedDeepDiveAnswers = [];
-      this.chatMessages = [];
-      this.updateMermaid();
+      this.clearCanvasComposable();
+      this.resetEvaluationState();
     },
 
     // === Palette Events ===
@@ -226,317 +280,232 @@ export default {
     },
 
     // === Canvas Events ===
-    onComponentDropped({ type, text, x, y }) {
-      this.droppedComponents.push({
-        id: `comp_${this.componentCounter++}`,
-        type,
-        text,
-        x,
-        y
-      });
-      this.updateMermaid();
+    onComponentDropped(data) {
+      this.onComponentDroppedComposable(data);
     },
 
-    onComponentMoved({ id, x, y }) {
-      const comp = this.droppedComponents.find(c => c.id === id);
-      if (comp) {
-        comp.x = x;
-        comp.y = y;
-      }
+    onComponentMoved(data) {
+      this.onComponentMovedComposable(data);
     },
 
-    onComponentRenamed({ id, text }) {
-      const comp = this.droppedComponents.find(c => c.id === id);
-      if (comp) {
-        comp.text = text;
-        this.updateMermaid();
-      }
+    onComponentRenamed(data) {
+      this.onComponentRenamedComposable(data);
     },
 
     onComponentDeleted(compId) {
-      // Remove the component
-      this.droppedComponents = this.droppedComponents.filter(c => c.id !== compId);
-      // Remove all connections involving this component
-      this.connections = this.connections.filter(
-        conn => conn.from !== compId && conn.to !== compId
+      this.onComponentDeletedComposable(compId);
+    },
+
+    onConnectionCreated(data) {
+      this.onConnectionCreatedComposable(data);
+    },
+
+    // === Hint System ===
+    toggleHint() {
+      this.toggleHintComposable(
+        this.showToastMessage,
+        this.currentProblem?.expectedComponents
       );
-      this.updateMermaid();
     },
 
-    onConnectionCreated({ from, to, fromType, toType }) {
-      // Check for existing connection
-      const exists = this.connections.some(c =>
-        (c.from === from && c.to === to) ||
-        (c.from === to && c.to === from)
-      );
-
-      if (!exists) {
-        this.connections.push({ from, to, fromType, toType });
-        this.updateMermaid();
-        // 심화질문은 최종 제출 시에만 진행 (단계별 질문 제거)
-      }
-    },
-
-    // === Mermaid ===
-    updateMermaid() {
-      this.mermaidCode = generateMermaidCode(this.droppedComponents, this.connections);
-    },
-
-    // === Deep Dive Modal (3개 질문 순차 처리) ===
+    // === Deep Dive ===
     async skipDeepDive() {
-      // 답변 없이 스킵 - 빈 답변 기록
-      this.collectedDeepDiveAnswers.push({
-        category: this.deepDiveQuestions[this.currentQuestionIndex]?.category || '',
-        question: this.deepDiveQuestion,
-        answer: '(스킵됨)'
-      });
-
-      // 다음 질문으로 이동
-      await this.moveToNextQuestion();
+      const allDone = await this.skipDeepDiveComposable();
+      if (allDone && this.isPendingEvaluation()) {
+        this.clearPendingEvaluation();
+        // EvaluationModal 없이 바로 평가 진행
+        await this.directEvaluateComposable(
+          this.currentProblem,
+          this.droppedComponents,
+          this.connections,
+          this.mermaidCode
+        );
+      }
     },
 
     async submitDeepDiveAnswer(answer) {
-      // 답변 저장
-      if (answer) {
-        this.collectedDeepDiveAnswers.push({
-          category: this.deepDiveQuestions[this.currentQuestionIndex]?.category || '',
-          question: this.deepDiveQuestion,
-          answer: answer
-        });
-
-        // 채팅 메시지에도 기록 (평가에 사용)
-        this.chatMessages.push({
-          role: 'user',
-          content: `[심화 질문 - ${this.deepDiveQuestions[this.currentQuestionIndex]?.category}] ${this.deepDiveQuestion}\n\n[답변] ${answer}`,
-          type: 'answer'
-        });
-      }
-
-      // 다음 질문으로 이동
-      await this.moveToNextQuestion();
-    },
-
-    async moveToNextQuestion() {
-      this.currentQuestionIndex++;
-
-      // 아직 질문이 남아있으면 다음 질문 표시
-      if (this.currentQuestionIndex < this.deepDiveQuestions.length) {
-        this.deepDiveQuestion = this.deepDiveQuestions[this.currentQuestionIndex].question;
-      } else {
-        // 모든 질문 완료 - 평가 모달로 진행
-        this.isDeepDiveModalActive = false;
-        this.deepDiveQuestion = null;
-
-        if (this.pendingEvaluationAfterDeepDive) {
-          this.pendingEvaluationAfterDeepDive = false;
-          await this.showEvaluationModal();
-        }
+      const allDone = await this.submitDeepDiveAnswerComposable(answer);
+      if (allDone && this.isPendingEvaluation()) {
+        this.clearPendingEvaluation();
+        // EvaluationModal 없이 바로 평가 진행
+        await this.directEvaluateComposable(
+          this.currentProblem,
+          this.droppedComponents,
+          this.connections,
+          this.mermaidCode
+        );
       }
     },
 
-    // === Evaluation Modal ===
+    // === Evaluation ===
     async openEvaluationModal() {
-      // 컴포넌트가 있으면 먼저 아키텍처 분석 기반 심화질문 진행
-      if (this.droppedComponents.length > 0) {
-        this.pendingEvaluationAfterDeepDive = true;
-        await this.triggerFinalDeepDiveQuestions();
-        return;
-      }
-
-      // 컴포넌트가 없으면 바로 평가 모달 열기
-      await this.showEvaluationModal();
-    },
-
-    async showEvaluationModal() {
-      this.isModalActive = true;
-      this.isGeneratingQuestion = true;
-      this.generatedQuestion = null;
-
-      try {
-        const architectureContext = buildArchitectureContext(
-          this.droppedComponents,
-          this.connections,
-          this.mermaidCode
-        );
-        this.generatedQuestion = await generateEvaluationQuestion(
-          this.currentProblem,
-          architectureContext
-        );
-      } finally {
-        this.isGeneratingQuestion = false;
-      }
-    },
-
-    // 최종 제출 시 아키텍처 분석 기반 3개 심화질문 생성
-    async triggerFinalDeepDiveQuestions() {
-      this.isDeepDiveModalActive = true;
-      this.isGeneratingDeepDive = true;
-      this.currentQuestionIndex = 0;
-      this.collectedDeepDiveAnswers = [];
-
-      try {
-        // Mermaid 다이어그램과 아키텍처 정보를 분석하여 3개 질문 생성
-        this.deepDiveQuestions = await generateArchitectureAnalysisQuestions(
-          this.currentProblem,
-          this.droppedComponents,
-          this.connections,
-          this.mermaidCode
-        );
-
-        // 첫 번째 질문 표시
-        if (this.deepDiveQuestions.length > 0) {
-          this.deepDiveQuestion = this.deepDiveQuestions[0].question;
-        }
-      } finally {
-        this.isGeneratingDeepDive = false;
-      }
-    },
-
-    closeModal() {
-      this.isModalActive = false;
-      this.generatedQuestion = null;
-    },
-
-    async submitEvaluationAnswer(answer) {
-      this.userAnswer = answer;
-      this.isModalActive = false;
-      // 평가 결과 화면으로 전환
-      this.showResultScreen = true;
-      await this.evaluate();
-    },
-
-    async evaluate() {
-      this.isEvaluating = true;
-      this.evaluationResult = null;
-
-      const architectureContext = buildArchitectureContext(
+      await this.openEvaluationModalComposable(
+        this.currentProblem,
         this.droppedComponents,
         this.connections,
         this.mermaidCode
       );
-
-      // 수집된 심화질문 답변들 정리
-      const deepDiveAnswers = this.collectedDeepDiveAnswers
-        .filter(item => item.answer !== '(스킵됨)')
-        .map(item => `[${item.category}] Q: ${item.question}\nA: ${item.answer}`)
-        .join('\n\n');
-
-      try {
-        this.evaluationResult = await evaluateArchitecture(
-          this.currentProblem,
-          architectureContext,
-          this.generatedQuestion,
-          this.userAnswer,
-          deepDiveAnswers
-        );
-      } catch (error) {
-        console.error('Evaluation error:', error);
-        // 문제 데이터 기반으로 동적 Mock 평가 생성
-        this.evaluationResult = generateMockEvaluation(
-          this.currentProblem,
-          this.droppedComponents
-        );
-      } finally {
-        this.isEvaluating = false;
-      }
     },
 
-    // === Retry (from result screen) ===
+    // === Retry ===
     handleRetry() {
-      this.showResultScreen = false;
+      this.handleRetryComposable();
       this.clearCanvas();
-    },
-
-    // === Chat ===
-    async handleChatMessage(userMessage) {
-      const messageType = detectMessageType(userMessage);
-
-      this.chatMessages.push({
-        role: 'user',
-        content: userMessage,
-        type: messageType
-      });
-
-      this.isChatLoading = true;
-
-      try {
-        const chatContext = buildChatContext(this.currentProblem);
-        const response = await sendChatMessage(
-          chatContext,
-          this.chatMessages.slice(0, -1), // Exclude the just-added message
-          userMessage
-        );
-
-        const hasFollowUp = response.includes('?') && response.split('?').length > 1;
-
-        this.chatMessages.push({
-          role: 'assistant',
-          content: response,
-          type: hasFollowUp ? 'followup' : 'answer'
-        });
-      } catch (error) {
-        console.error('Chat error:', error);
-        this.chatMessages.push({
-          role: 'assistant',
-          content: 'API 연결에 문제가 발생했습니다. API 키를 확인해주세요.',
-          type: 'error'
-        });
-      } finally {
-        this.isChatLoading = false;
-      }
     }
   }
 };
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&family=Space+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Courier+Prime:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap');
 
-.arch-challenge-container {
-  font-family: 'Space Mono', monospace;
-  background: #0a0e27;
-  color: #e0e0e0;
+/* === 취조실 테마 변수 === */
+.arch-challenge-container.panic-room-theme {
+  --bg-dark: #0f1115;
+  --bg-metal: #2c3e50;
+  --panel-grey: #1a1a1a;
+  --accent-yellow: #f1c40f;
+  --danger-red: #e74c3c;
+  --neon-blue: #00f3ff;
+  --text-white: #ecf0f1;
+  --border-black: #000;
+  --pixel-font: 'Press Start 2P', cursive;
+  --typewriter-font: 'Courier Prime', monospace;
+
+  font-family: var(--pixel-font);
+  background-color: var(--bg-dark);
+  color: var(--text-white);
   height: 100vh;
   overflow: hidden;
   position: relative;
+  user-select: none;
+  /* CRT 스캔라인 효과 */
+  background-image:
+    linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+    linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+  background-size: 100% 2px, 6px 100%;
 }
 
-.bg-animation {
+/* === 글로벌 FX 레이어 === */
+.vignette {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
+  background: radial-gradient(circle, transparent 50%, rgba(0, 0, 0, 0.9) 100%);
   pointer-events: none;
-  z-index: 0;
-  opacity: 0.3;
-  background:
-    radial-gradient(ellipse at 20% 30%, rgba(0, 255, 157, 0.15) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 70%, rgba(255, 71, 133, 0.15) 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 50%, rgba(100, 181, 246, 0.1) 0%, transparent 50%);
-  animation: float 20s ease-in-out infinite;
+  z-index: 900;
 }
 
-@keyframes float {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(30px, -30px) scale(1.1); }
-  66% { transform: translate(-30px, 30px) scale(0.9); }
-}
-
-.game-container {
-  display: grid;
-  grid-template-columns: 350px 1fr 350px;
+.noise {
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 100%;
-  height: 100vh;
-  gap: 0;
+  height: 100%;
+  opacity: 0.03;
+  background-image: repeating-radial-gradient(#000 0 0.0001%, #fff 0 0.0002%);
+  pointer-events: none;
+  z-index: 899;
+}
+
+/* === 나사 장식 === */
+.screw {
+  position: fixed;
+  width: 15px;
+  height: 15px;
+  background: #555;
+  border-radius: 50%;
+  border: 2px solid #222;
+  box-shadow: inset 2px 2px 5px rgba(255, 255, 255, 0.2), 2px 2px 5px rgba(0, 0, 0, 0.5);
+  z-index: 950;
+  pointer-events: none;
+}
+
+.screw::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 10%;
+  width: 80%;
+  height: 2px;
+  background: #111;
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.screw.tl { top: 10px; left: 10px; }
+.screw.tr { top: 10px; right: 10px; }
+.screw.bl { bottom: 10px; left: 10px; }
+.screw.br { bottom: 10px; right: 10px; }
+
+/* === MAIN GAME === */
+.game-container {
+  display: flex;
+  width: 100%;
+  height: 100%;
   position: relative;
   z-index: 1;
+  /* 금속 패널 텍스처 */
+  background: #1e272e;
+  background-image:
+    linear-gradient(90deg, transparent 50%, rgba(0, 0, 0, 0.2) 50%),
+    linear-gradient(0deg, transparent 50%, rgba(0, 0, 0, 0.2) 50%);
+  background-size: 50px 50px;
+  box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.8);
 }
 
-.result-panel {
-  background: rgba(17, 24, 39, 0.98);
-  overflow-y: auto;
+/* === MAIN WORKSPACE === */
+.main-workspace {
+  flex: 1;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+/* === WORKSPACE CONTENT === */
+.workspace-content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  background: #222;
+}
+
+.toolbox-panel {
+  width: 130px;
+  min-width: 130px;
+  background: var(--bg-metal);
+  border-right: 4px solid #000;
+  padding: 15px;
+  overflow-y: auto;
+  /* 금속 스트라이프 패턴 */
+  background-image: linear-gradient(0deg, #34495e 50%, #2c3e50 50%);
+  background-size: 100% 20px;
+  box-shadow: inset -5px 0 15px rgba(0, 0, 0, 0.5);
+}
+
+.canvas-panel {
+  flex: 1;
+  position: relative;
+  /* 블루프린트 그리드 패턴 */
+  background-color: #2f3542;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+  box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.8);
+}
+
+.canvas-panel::after {
+  content: "SYSTEM ARCHITECTURE (DRAFT)";
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  font-family: var(--typewriter-font);
+  font-size: 2rem;
+  color: rgba(255, 255, 255, 0.05);
+  transform: rotate(-5deg);
+  pointer-events: none;
 }
 </style>

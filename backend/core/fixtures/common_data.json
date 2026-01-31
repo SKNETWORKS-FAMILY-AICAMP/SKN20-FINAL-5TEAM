@@ -1,257 +1,257 @@
 [
-{
-    "model": "core.common",
-    "pk": 1,
-    "fields": {
-        "top_code": "JOB_ROLE",
-        "code_id": "frontend",
-        "code_name": "Frontend Engineer",
-        "order_number": 10,
-        "create_date": "2026-01-20T21:24:08.137Z",
-        "update_date": "2026-01-20T21:24:08.137Z",
-        "create_id": null,
-        "update_id": null,
-        "use_yn": "Y"
+    {
+        "model": "core.common",
+        "pk": 1,
+        "fields": {
+            "top_code": "JOB_ROLE",
+            "code_id": "frontend",
+            "code_name": "Frontend Engineer",
+            "order_number": 10,
+            "create_date": "2026-01-20T21:24:08.137Z",
+            "update_date": "2026-01-20T21:24:08.137Z",
+            "create_id": null,
+            "update_id": null,
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.common",
+        "pk": 2,
+        "fields": {
+            "top_code": "JOB_ROLE",
+            "code_id": "backend",
+            "code_name": "Backend Engineer",
+            "order_number": 20,
+            "create_date": "2026-01-20T21:24:08.137Z",
+            "update_date": "2026-01-20T21:24:08.137Z",
+            "create_id": null,
+            "update_id": null,
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.common",
+        "pk": 3,
+        "fields": {
+            "top_code": "JOB_ROLE",
+            "code_id": "fullstack",
+            "code_name": "Fullstack Engineer",
+            "order_number": 30,
+            "create_date": "2026-01-20T21:24:08.137Z",
+            "update_date": "2026-01-20T21:24:08.137Z",
+            "create_id": null,
+            "update_id": null,
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.common",
+        "pk": 4,
+        "fields": {
+            "top_code": "JOB_ROLE",
+            "code_id": "devops",
+            "code_name": "DevOps / SRE",
+            "order_number": 40,
+            "create_date": "2026-01-20T21:24:08.137Z",
+            "update_date": "2026-01-20T21:24:08.137Z",
+            "create_id": null,
+            "update_id": null,
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.common",
+        "pk": 5,
+        "fields": {
+            "top_code": "JOB_ROLE",
+            "code_id": "ai",
+            "code_name": "AI / ML Engineer",
+            "order_number": 50,
+            "create_date": "2026-01-20T21:24:08.137Z",
+            "update_date": "2026-01-20T21:24:08.137Z",
+            "create_id": null,
+            "update_id": null,
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.common",
+        "pk": 6,
+        "fields": {
+            "top_code": "JOB_ROLE",
+            "code_id": "mobile",
+            "code_name": "Mobile App Engineer",
+            "order_number": 60,
+            "create_date": "2026-01-20T21:24:08.137Z",
+            "update_date": "2026-01-20T21:24:08.137Z",
+            "create_id": null,
+            "update_id": null,
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.common",
+        "pk": 7,
+        "fields": {
+            "top_code": "JOB_ROLE",
+            "code_id": "data",
+            "code_name": "Data Engineer",
+            "order_number": 70,
+            "create_date": "2026-01-20T21:24:08.137Z",
+            "update_date": "2026-01-20T21:24:08.137Z",
+            "create_id": null,
+            "update_id": null,
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.common",
+        "pk": 8,
+        "fields": {
+            "top_code": "JOB_ROLE",
+            "code_id": "security",
+            "code_name": "Security Engineer",
+            "order_number": 80,
+            "create_date": "2026-01-20T21:24:08.137Z",
+            "update_date": "2026-01-20T21:24:08.137Z",
+            "create_id": null,
+            "update_id": null,
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.common",
+        "pk": 9,
+        "fields": {
+            "top_code": "JOB_ROLE",
+            "code_id": "etc",
+            "code_name": "ETC",
+            "order_number": 90,
+            "create_date": "2026-01-20T21:24:08.137Z",
+            "update_date": "2026-01-20T21:24:08.137Z",
+            "create_id": null,
+            "update_id": null,
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.common",
+        "pk": 10,
+        "fields": {
+            "top_code": "IT_INTEREST",
+            "code_id": "ai",
+            "code_name": "Artificial Intelligence",
+            "order_number": 10,
+            "create_date": "2026-01-20T21:24:08.140Z",
+            "update_date": "2026-01-20T21:24:08.140Z",
+            "create_id": null,
+            "update_id": null,
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.common",
+        "pk": 11,
+        "fields": {
+            "top_code": "IT_INTEREST",
+            "code_id": "web",
+            "code_name": "Web Development",
+            "order_number": 20,
+            "create_date": "2026-01-20T21:24:08.140Z",
+            "update_date": "2026-01-20T21:24:08.140Z",
+            "create_id": null,
+            "update_id": null,
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.common",
+        "pk": 12,
+        "fields": {
+            "top_code": "IT_INTEREST",
+            "code_id": "data",
+            "code_name": "Data Science",
+            "order_number": 30,
+            "create_date": "2026-01-20T21:24:08.140Z",
+            "update_date": "2026-01-20T21:24:08.140Z",
+            "create_id": null,
+            "update_id": null,
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.common",
+        "pk": 13,
+        "fields": {
+            "top_code": "IT_INTEREST",
+            "code_id": "cloud",
+            "code_name": "Cloud Computing",
+            "order_number": 40,
+            "create_date": "2026-01-20T21:24:08.140Z",
+            "update_date": "2026-01-20T21:24:08.140Z",
+            "create_id": null,
+            "update_id": null,
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.common",
+        "pk": 14,
+        "fields": {
+            "top_code": "IT_INTEREST",
+            "code_id": "blockchain",
+            "code_name": "Blockchain",
+            "order_number": 50,
+            "create_date": "2026-01-20T21:24:08.140Z",
+            "update_date": "2026-01-20T21:24:08.140Z",
+            "create_id": null,
+            "update_id": null,
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.common",
+        "pk": 15,
+        "fields": {
+            "top_code": "IT_INTEREST",
+            "code_id": "iot",
+            "code_name": "IoT",
+            "order_number": 60,
+            "create_date": "2026-01-20T21:24:08.140Z",
+            "update_date": "2026-01-20T21:24:08.140Z",
+            "create_id": null,
+            "update_id": null,
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.common",
+        "pk": 16,
+        "fields": {
+            "top_code": "IT_INTEREST",
+            "code_id": "game",
+            "code_name": "Game Development",
+            "order_number": 70,
+            "create_date": "2026-01-20T21:24:08.140Z",
+            "update_date": "2026-01-20T21:24:08.140Z",
+            "create_id": null,
+            "update_id": null,
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.common",
+        "pk": 17,
+        "fields": {
+            "top_code": "IT_INTEREST",
+            "code_id": "mobile",
+            "code_name": "Mobile Application",
+            "order_number": 80,
+            "create_date": "2026-01-20T21:24:08.140Z",
+            "update_date": "2026-01-20T21:24:08.140Z",
+            "create_id": null,
+            "update_id": null,
+            "use_yn": "Y"
+        }
     }
-},
-{
-    "model": "core.common",
-    "pk": 2,
-    "fields": {
-        "top_code": "JOB_ROLE",
-        "code_id": "backend",
-        "code_name": "Backend Engineer",
-        "order_number": 20,
-        "create_date": "2026-01-20T21:24:08.137Z",
-        "update_date": "2026-01-20T21:24:08.137Z",
-        "create_id": null,
-        "update_id": null,
-        "use_yn": "Y"
-    }
-},
-{
-    "model": "core.common",
-    "pk": 3,
-    "fields": {
-        "top_code": "JOB_ROLE",
-        "code_id": "fullstack",
-        "code_name": "Fullstack Engineer",
-        "order_number": 30,
-        "create_date": "2026-01-20T21:24:08.137Z",
-        "update_date": "2026-01-20T21:24:08.137Z",
-        "create_id": null,
-        "update_id": null,
-        "use_yn": "Y"
-    }
-},
-{
-    "model": "core.common",
-    "pk": 4,
-    "fields": {
-        "top_code": "JOB_ROLE",
-        "code_id": "devops",
-        "code_name": "DevOps / SRE",
-        "order_number": 40,
-        "create_date": "2026-01-20T21:24:08.137Z",
-        "update_date": "2026-01-20T21:24:08.137Z",
-        "create_id": null,
-        "update_id": null,
-        "use_yn": "Y"
-    }
-},
-{
-    "model": "core.common",
-    "pk": 5,
-    "fields": {
-        "top_code": "JOB_ROLE",
-        "code_id": "ai",
-        "code_name": "AI / ML Engineer",
-        "order_number": 50,
-        "create_date": "2026-01-20T21:24:08.137Z",
-        "update_date": "2026-01-20T21:24:08.137Z",
-        "create_id": null,
-        "update_id": null,
-        "use_yn": "Y"
-    }
-},
-{
-    "model": "core.common",
-    "pk": 6,
-    "fields": {
-        "top_code": "JOB_ROLE",
-        "code_id": "mobile",
-        "code_name": "Mobile App Engineer",
-        "order_number": 60,
-        "create_date": "2026-01-20T21:24:08.137Z",
-        "update_date": "2026-01-20T21:24:08.137Z",
-        "create_id": null,
-        "update_id": null,
-        "use_yn": "Y"
-    }
-},
-{
-    "model": "core.common",
-    "pk": 7,
-    "fields": {
-        "top_code": "JOB_ROLE",
-        "code_id": "data",
-        "code_name": "Data Engineer",
-        "order_number": 70,
-        "create_date": "2026-01-20T21:24:08.137Z",
-        "update_date": "2026-01-20T21:24:08.137Z",
-        "create_id": null,
-        "update_id": null,
-        "use_yn": "Y"
-    }
-},
-{
-    "model": "core.common",
-    "pk": 8,
-    "fields": {
-        "top_code": "JOB_ROLE",
-        "code_id": "security",
-        "code_name": "Security Engineer",
-        "order_number": 80,
-        "create_date": "2026-01-20T21:24:08.137Z",
-        "update_date": "2026-01-20T21:24:08.137Z",
-        "create_id": null,
-        "update_id": null,
-        "use_yn": "Y"
-    }
-},
-{
-    "model": "core.common",
-    "pk": 9,
-    "fields": {
-        "top_code": "JOB_ROLE",
-        "code_id": "etc",
-        "code_name": "ETC",
-        "order_number": 90,
-        "create_date": "2026-01-20T21:24:08.137Z",
-        "update_date": "2026-01-20T21:24:08.137Z",
-        "create_id": null,
-        "update_id": null,
-        "use_yn": "Y"
-    }
-},
-{
-    "model": "core.common",
-    "pk": 10,
-    "fields": {
-        "top_code": "IT_INTEREST",
-        "code_id": "ai",
-        "code_name": "Artificial Intelligence",
-        "order_number": 10,
-        "create_date": "2026-01-20T21:24:08.140Z",
-        "update_date": "2026-01-20T21:24:08.140Z",
-        "create_id": null,
-        "update_id": null,
-        "use_yn": "Y"
-    }
-},
-{
-    "model": "core.common",
-    "pk": 11,
-    "fields": {
-        "top_code": "IT_INTEREST",
-        "code_id": "web",
-        "code_name": "Web Development",
-        "order_number": 20,
-        "create_date": "2026-01-20T21:24:08.140Z",
-        "update_date": "2026-01-20T21:24:08.140Z",
-        "create_id": null,
-        "update_id": null,
-        "use_yn": "Y"
-    }
-},
-{
-    "model": "core.common",
-    "pk": 12,
-    "fields": {
-        "top_code": "IT_INTEREST",
-        "code_id": "data",
-        "code_name": "Data Science",
-        "order_number": 30,
-        "create_date": "2026-01-20T21:24:08.140Z",
-        "update_date": "2026-01-20T21:24:08.140Z",
-        "create_id": null,
-        "update_id": null,
-        "use_yn": "Y"
-    }
-},
-{
-    "model": "core.common",
-    "pk": 13,
-    "fields": {
-        "top_code": "IT_INTEREST",
-        "code_id": "cloud",
-        "code_name": "Cloud Computing",
-        "order_number": 40,
-        "create_date": "2026-01-20T21:24:08.140Z",
-        "update_date": "2026-01-20T21:24:08.140Z",
-        "create_id": null,
-        "update_id": null,
-        "use_yn": "Y"
-    }
-},
-{
-    "model": "core.common",
-    "pk": 14,
-    "fields": {
-        "top_code": "IT_INTEREST",
-        "code_id": "blockchain",
-        "code_name": "Blockchain",
-        "order_number": 50,
-        "create_date": "2026-01-20T21:24:08.140Z",
-        "update_date": "2026-01-20T21:24:08.140Z",
-        "create_id": null,
-        "update_id": null,
-        "use_yn": "Y"
-    }
-},
-{
-    "model": "core.common",
-    "pk": 15,
-    "fields": {
-        "top_code": "IT_INTEREST",
-        "code_id": "iot",
-        "code_name": "IoT",
-        "order_number": 60,
-        "create_date": "2026-01-20T21:24:08.140Z",
-        "update_date": "2026-01-20T21:24:08.140Z",
-        "create_id": null,
-        "update_id": null,
-        "use_yn": "Y"
-    }
-},
-{
-    "model": "core.common",
-    "pk": 16,
-    "fields": {
-        "top_code": "IT_INTEREST",
-        "code_id": "game",
-        "code_name": "Game Development",
-        "order_number": 70,
-        "create_date": "2026-01-20T21:24:08.140Z",
-        "update_date": "2026-01-20T21:24:08.140Z",
-        "create_id": null,
-        "update_id": null,
-        "use_yn": "Y"
-    }
-},
-{
-    "model": "core.common",
-    "pk": 17,
-    "fields": {
-        "top_code": "IT_INTEREST",
-        "code_id": "mobile",
-        "code_name": "Mobile Application",
-        "order_number": 80,
-        "create_date": "2026-01-20T21:24:08.140Z",
-        "update_date": "2026-01-20T21:24:08.140Z",
-        "create_id": null,
-        "update_id": null,
-        "use_yn": "Y"
-    }
-}
 ]

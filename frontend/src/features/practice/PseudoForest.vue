@@ -175,10 +175,11 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue';
+import { ref, computed, watch, nextTick, onUnmounted } from 'vue';
 import { useGameStore } from '@/stores/game';
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
 import gameData from './PseudoForestData'; // [수정일: 2026-01-28] 외부 데이터 임포트
+import { semanticMatch } from './utils/analysisUtils'; // [수정일: 2026-01-29] 시맨틱 채점 유틸리티로 업그레이드
 
 const emit = defineEmits(['close']);
 const game = useGameStore();
@@ -194,10 +195,11 @@ const userResponse = ref('');
 const pythonBlanks = ref([]);
 const isCharHovered = ref(false); // [수정일: 2026-01-28] 캐릭터 호버 상태 추가
 
-// [수정일: 2026-01-28] 동숲 감성 모나코 에디터 옵션 - 가독성 극대화를 위해 폰트 크기 대폭 확대 (28px)
+// [수정일: 2026-01-29] 에디터 옵션 최적화: 폰트 크기 조정(28px -> 18px) 및 줄 간격 추가로 가독성 향상
 const forestEditorOptions = {
   minimap: { enabled: false },
-  fontSize: 28,
+  fontSize: 18,
+  lineHeight: 28,
   lineNumbers: 'off',
   glyphMargin: false,
   folding: false,
@@ -222,7 +224,8 @@ const codeParts = computed(() => {
   if (!currentStep.value || currentStep.value.type !== 'python-fill') return [];
   const snippet = currentStep.value.codeSnippet || '';
   const parts = [];
-  const splitPattern = /{{blank}}/;
+  // [수정일: 2026-01-29] 공백이 포함된 {{ blank }} 상황에도 대응할 수 있도록 견고한 정규식 적용
+  const splitPattern = /\{\{\s*blank\s*\}\}/;
   const splitTexts = snippet.split(splitPattern);
   
   splitTexts.forEach((text, i) => {
@@ -241,8 +244,9 @@ watch(() => currentStepIndex.value, (newIdx) => {
   if (!currentStep.value || currentStep.value.type !== 'python-fill') return;
   
   // 이미 값이 있으면 유지, 없으면 빈 문자열로 초기화
+  // [수정일: 2026-01-29] 견고한 정규식으로 빈칸 개수 계산
   const snippet = currentStep.value.codeSnippet || '';
-  const blankCount = (snippet.match(/{{blank}}/g) || []).length;
+  const blankCount = (snippet.match(/\{\{\s*blank\s*\}\}/g) || []).length;
   if (pythonBlanks.value.length !== blankCount) {
     pythonBlanks.value = new Array(blankCount).fill('');
   }
@@ -257,8 +261,8 @@ const duckHint = computed(() => {
     const resp = userResponse.value.trim().toLowerCase();
     if (resp.length === 0) return "이장님, 뭐라도 적어보슈! 내가 옆에서 도와줄게유~";
     
-    // 핵심 키워드가 포함되었을 때 (데이터 기반 리액션)
-    const hits = step.evalCriteria.insightKeywords.filter(kw => resp.includes(kw));
+    // 핵심 키워드가 포함되었을 때 (데이터 기반 리액션) [수정일: 2026-01-29] semanticMatch 적용
+    const hits = step.evalCriteria.insightKeywords.filter(kw => semanticMatch(resp, kw));
     if (hits.length > 0) return `오! '${hits[0]}' 같은 핵심을 잘 짚으셨구먼유. 계속 가보슈!`;
     
     // 입력이 길어지는데 키워드가 없을 때 보조 힌트
@@ -285,6 +289,9 @@ const stepResult = ref({ success: false, message: '' });
 const finalEval = ref({ insight: 0, structure: 0, precision: 0, report: '' });
 const stageLogs = ref([]); // 현재 스테이지의 3단계 답변 및 평가 로그
 
+// [수정일: 2026-01-29] 메모리 누수 방지를 위한 타이머 관리 변수
+let analysisTimer = null;
+
 
 // --- 핸들러: 주관식 제출 ---
 const submitSubjective = () => {
@@ -299,20 +306,37 @@ const submitSubjective = () => {
   }
   isAnalyzing.value = true;
 
-  // AI 분석 시뮬레이션
-  setTimeout(() => {
+  // AI 분석 시뮬레이션 [수정일: 2026-01-29] flexibleMatch 기반 유연한 채점 로직으로 고도화
+  // [수정일: 2026-01-29] 타이머 참조 저장
+  analysisTimer = setTimeout(() => {
     const code = userResponse.value.toLowerCase();
     const criteria = currentStep.value.evalCriteria;
     
+    // [수정일: 2026-01-29] 시맨틱 매칭 기반으로 점수 계산 (기술 용어 포용)
+    const insightMatches = criteria.insightKeywords.filter(kw => semanticMatch(code, kw));
+    const structureMatches = criteria.structureKeywords.filter(kw => semanticMatch(code, kw));
+    const precisionMatches = criteria.precisionKeywords.filter(kw => semanticMatch(code, kw));
+
     let score = 0;
-    if (criteria.insightKeywords.some(kw => code.includes(kw))) score += 40;
-    if (criteria.structureKeywords.some(kw => code.includes(kw))) score += 40;
-    if (criteria.precisionKeywords.some(kw => code.includes(kw))) score += 20;
+    if (insightMatches.length > 0) score += 40;
+    if (structureMatches.length > 0) score += 40;
+    if (precisionMatches.length > 0) score += 20;
 
     const success = score >= 60;
-    const msg = success 
-      ? `<strong>AI 통찰:</strong> 논리적 키워드가 정확합니다! 단계별 요구사항을 완벽히 이해하셨네요.`
-      : `<strong>AI 조언:</strong> 핵심 개념인 '${criteria.insightKeywords[0]}' 등에 대해 조금 더 명확히 서술해보세요.`;
+    
+    // [수정일: 2026-01-29] 피드백 생성 시 점진적 힌트(오답 노트) 제공 로직 강화
+    let msg = "";
+    if (success) {
+      const bestKw = insightMatches[0] || structureMatches[0] || "핵심 로직";
+      msg = `<strong>AI 통찰:</strong> '${bestKw}'을(를) 포함한 논리적 구성이 훌륭합니다! 단계별 요구사항을 정확히 꿰뚫어 보셨네유.`;
+    } else {
+      // 누락된 키워드 중 첫 번째를 힌트로 활용
+      const missingKw = criteria.insightKeywords.find(kw => !insightMatches.includes(kw)) || criteria.insightKeywords[0];
+      msg = `<strong>AI 조언:</strong> 논리가 조금 부족해유. 혹시 <strong>'${missingKw}'</strong> 개념을 활용해서 다시 설명해주실 수 있나유?`;
+      if (currentStep.value.duckEncouragement) {
+        msg += `<br><span style='font-size:0.9em; color:#64748b;'>💡 힌트: ${currentStep.value.duckEncouragement}</span>`;
+      }
+    }
 
     stepResult.value = { success, message: msg, rawScore: score, response: userResponse.value };
     stageLogs.value.push(stepResult.value);
@@ -351,21 +375,38 @@ const submitPythonFill = () => {
     return;
   }
 
-  isAnalyzing.value = true;
-  setTimeout(() => {
+  // [수정일: 2026-01-29] 타이머 참조 저장 및 다중 정답 지원 로직 강화
+  analysisTimer = setTimeout(() => {
     let correctCount = 0;
     pythonBlanks.value.forEach((val, idx) => {
-      if (val.trim() === blanks[idx]) correctCount++;
+      const userValue = val.trim();
+      const correctAnswer = blanks[idx];
+      
+      if (Array.isArray(correctAnswer)) {
+        // 다중 정답 중 하나라도 일치하면 성공
+        if (correctAnswer.some(ans => userValue === ans)) correctCount++;
+      } else {
+        // 단일 정답 비교
+        if (userValue === correctAnswer) correctCount++;
+      }
     });
 
     const success = correctCount === blanks.length;
     const score = Math.round((correctCount / blanks.length) * 100);
     
+    // [수정일: 2026-01-29] 파이썬 빈칸 문제 실패 시 오답 노트(duckEncouragement) 노출
+    let msg = success 
+      ? "<strong>AI 채점:</strong> 파이썬 문법을 완벽히 활용해 로직을 구현하셨군유!"
+      : "<strong>AI 조언:</strong> 빈칸의 문법이나 로직이 조금 어긋난 것 같아유. 다시 한 번 살펴볼까유?";
+    
+    if (!success && currentStep.value.duckEncouragement) {
+      msg += `<br><div style='margin-top:8px; padding:10px; background:rgba(0,0,0,0.05); border-radius:8px; font-size:0.9em;'>`;
+      msg += `<strong style='color:#0ea5e9;'>📝 오답 노트:</strong> ${currentStep.value.duckEncouragement}</div>`;
+    }
+
     stepResult.value = {
       success,
-      message: success 
-        ? "<strong>AI 통찰:</strong> 완벽한 파이썬 코드구먼유! 의사코드의 논리를 정확히 이해하셨네유."
-        : `<strong>AI 조언:</strong> 조금 아깝구먼유! ${blanks.length - correctCount}개가 틀려슈. 문법을 다시 한 번 확인해보슈!`,
+      message: msg,
       rawScore: score,
       response: pythonBlanks.value.join(', ')
     };
@@ -461,6 +502,13 @@ const finishStage = () => {
   // [수정일: 2026-01-28] 스테이지 완료 후 즉시 창을 닫아 맵에서 해금 상태를 확인하도록 변경
   emit('close');
 };
+
+// [수정일: 2026-01-29] 컴포넌트 종료 시 진행 중인 분석 타이머 제거 (메모리 누수 방지)
+onUnmounted(() => {
+  if (analysisTimer) {
+    clearTimeout(analysisTimer);
+  }
+});
 
 </script>
 

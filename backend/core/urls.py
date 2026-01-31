@@ -8,11 +8,11 @@ from core.views import (
     DashboardLogViewSet,
     CommonViewSet,
     PracticeViewSet,
-    LoginView, 
-    LogoutView, 
+    LoginView,
+    LogoutView,
     SessionCheckView,
-    AIChatView,
-    AIEvaluationView
+    AIEvaluationView,
+    BugHuntEvaluationView
 )
 
 router = DefaultRouter()
@@ -36,6 +36,6 @@ urlpatterns = [
     path('auth/login/', LoginView.as_view(), name='login'),
     path('auth/logout/', LogoutView.as_view(), name='logout'),
     path('auth/me/', SessionCheckView.as_view(), name='session_check'),
-    path('ai-chat/', AIChatView.as_view(), name='ai_chat'),
     path('ai-evaluate/', AIEvaluationView.as_view(), name='ai_evaluate'),
+    path('ai-bughunt-evaluate/', BugHuntEvaluationView.as_view(), name='bughunt_evaluate'),
 ]

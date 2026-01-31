@@ -1,49 +1,59 @@
 <template>
-  <div class="problem-section">
-    <h2>🎯 CHALLENGE</h2>
+  <div class="case-file-section">
+    <!-- 케이스 파일 폴더 -->
+    <div class="case-file-folder" v-if="problem">
+      <div class="case-paper">
+        <div class="case-header">
+          <span class="case-number">CASE #{{ problem.id || '2026-Q' }}</span>
+        </div>
 
-    <div class="problem-card" v-if="problem">
-      <h3>{{ problem.title }}</h3>
+        <h3 class="case-title">{{ problem.title }}</h3>
 
-      <!-- 시나리오 -->
-      <p class="scenario" v-if="problem.scenario">{{ problem.scenario }}</p>
+        <!-- 시나리오 (SITUATION) -->
+        <div class="case-section" v-if="problem.scenario">
+          <strong class="section-label">[SITUATION]</strong>
+          <p>{{ problem.scenario }}</p>
+        </div>
 
-      <!-- 미션 -->
-      <div class="problem-missions" v-if="problem.missions && problem.missions.length">
-        <h4>🚀 미션</h4>
-        <ul>
-          <li v-for="(mission, i) in problem.missions" :key="i">{{ mission }}</li>
-        </ul>
-      </div>
+        <!-- 미션 (MISSION) -->
+        <div class="case-section missions" v-if="problem.missions && problem.missions.length">
+          <strong class="section-label">[MISSION]</strong>
+          <ul>
+            <li v-for="(mission, i) in problem.missions" :key="i">{{ mission }}</li>
+          </ul>
+        </div>
 
-      <!-- 기술 요구사항 -->
-      <div class="problem-requirements" v-if="problem.requirements && problem.requirements.length">
-        <h4>📋 기술 요구사항</h4>
-        <ul>
-          <li v-for="(req, i) in problem.requirements" :key="i">{{ req }}</li>
-        </ul>
+        <!-- 제약조건 (CONSTRAINTS) -->
+        <div class="case-section constraints" v-if="problem.requirements && problem.requirements.length">
+          <strong class="section-label">[CONSTRAINTS]</strong>
+          <ul>
+            <li v-for="(req, i) in problem.requirements" :key="i">{{ req }}</li>
+          </ul>
+        </div>
       </div>
     </div>
 
-    <div
+    <!-- 모드 인디케이터 -->
+    <!-- <div
       class="mode-indicator"
       :class="{ 'connection-mode': isConnectionMode }"
     >
       {{ modeIndicatorText }}
-    </div>
+    </div> -->
 
+    <!-- 제출 버튼 -->
     <button
-      class="evaluate-btn"
+      class="submit-btn"
       :disabled="!canEvaluate || isEvaluating"
       @click="$emit('start-evaluation')"
     >
-      {{ isEvaluating ? '🤖 분석 중...' : '📤 아키텍처 제출' }}
+      {{ isEvaluating ? '심문 준비 중...' : '제출 (SUBMIT)' }}
       <span v-if="isEvaluating" class="loading-spinner"></span>
     </button>
 
-    <!-- Generated Code -->
-    <div class="code-section" v-if="mermaidCode">
-      <h3 class="section-title">💻 Generated Code</h3>
+    <!-- Generated Code (Optional) -->
+    <div class="evidence-section" v-if="mermaidCode && mermaidCode.includes('comp_')">
+      <strong class="section-label">[EVIDENCE]</strong>
       <div class="code-output">{{ mermaidCode }}</div>
     </div>
   </div>
@@ -78,151 +88,151 @@ export default {
   computed: {
     modeIndicatorText() {
       return this.isConnectionMode
-        ? '🔗 연결 모드 - 컴포넌트를 클릭하여 연결하세요'
-        : '🎯 배치 모드 - 컴포넌트를 드래그하여 배치하세요';
+        ? '⚡ 연결 모드 - 컴포넌트를 클릭하여 연결'
+        : '📦 배치 모드 - 컴포넌트를 드래그하여 배치';
     }
   }
 };
 </script>
 
 <style scoped>
-.problem-section {
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Courier+Prime:wght@400;700&display=swap');
+
+.case-file-section {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.case-file-folder {
+  background: #e67e22;
+  padding: 5px;
+  border: 4px solid #000;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.5);
+}
+
+.case-paper {
+  background: #f4f3ee; 
+  color: #1a1a1a; 
   padding: 20px;
-}
-
-.problem-section h2 {
-  font-family: 'Orbitron', sans-serif;
-  font-size: 1.2em;
-  color: #ff4785;
-  margin: 0 0 15px 0;
-  text-shadow: 0 0 15px rgba(255, 71, 133, 0.5);
-}
-
-.problem-card {
-  background: rgba(0, 0, 0, 0.4);
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 15px;
-  border: 1px solid rgba(100, 181, 246, 0.3);
-  position: relative;
-}
-
-.problem-card h3 {
-  color: #64b5f6;
-  margin: 0 0 10px 0;
-  font-size: 1.1em;
-}
-
-.problem-card .scenario {
-  color: #b0bec5;
-  font-size: 0.9em;
-  margin-bottom: 15px;
-  line-height: 1.6;
-  padding: 10px;
-  background: rgba(100, 181, 246, 0.1);
-  border-radius: 8px;
-  border-left: 3px solid #64b5f6;
-}
-
-.problem-missions {
-  background: rgba(255, 71, 133, 0.1);
-  border-radius: 8px;
-  padding: 12px;
-  margin-top: 10px;
-}
-
-.problem-missions h4 {
-  color: #ff4785;
-  margin: 0 0 8px 0;
-  font-size: 0.95em;
-}
-
-.problem-missions ul {
-  margin: 0;
-  padding-left: 20px;
-}
-
-.problem-missions li {
-  color: #e0e0e0;
-  font-size: 0.85em;
-  margin-bottom: 6px;
-  line-height: 1.5;
-}
-
-.problem-requirements {
-  background: rgba(0, 255, 157, 0.1);
-  border-radius: 8px;
-  padding: 12px;
-  margin-top: 10px;
-}
-
-.problem-requirements h4 {
-  color: #00ff9d;
-  margin: 0 0 8px 0;
-  font-size: 0.95em;
-}
-
-.problem-requirements ul {
-  margin: 0;
-  padding-left: 20px;
-}
-
-.problem-requirements li {
-  color: #e0e0e0;
-  font-size: 0.85em;
-  margin-bottom: 4px;
+  font-family: var(--typewriter-font); 
+  font-size: 0.85rem; 
   line-height: 1.4;
+  border: 1px solid #ccc;
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.1);
+  background-image: linear-gradient(#ccc 1px, transparent 1px);
+  background-size: 100% 1.4rem;
 }
 
+.case-header {
+  margin-bottom: 10px;
+}
+
+.case-number {
+  background: #000;
+  color: #fff;
+  padding: 3px 8px;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.6rem;
+}
+
+.case-title {
+  color: #2c3e50;
+  font-size: 0.9rem;
+  margin: 10px 0;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #bdc3c7;
+}
+
+.case-section {
+  margin-top: 12px;
+}
+
+.section-label {
+  display: block;
+  color: #1a1a1a;
+  font-size: 0.65rem;
+  margin-bottom: 5px;
+  font-family: 'Press Start 2P', cursive;
+}
+
+.case-section p {
+  margin: 5px 0;
+  color: #34495e;
+}
+
+.case-section ul {
+  margin: 5px 0;
+}
+
+.case-section li {
+  color: #34495e;
+  margin-bottom: 4px;
+}
+
+.case-section.missions .section-label {
+  color: #1a1a1a;
+}
+
+.case-section.constraints .section-label {
+  color: #1a1a1a;
+}
+
+/* 모드 인디케이터 */
 .mode-indicator {
-  background: rgba(100, 181, 246, 0.15);
-  border: 1px solid rgba(100, 181, 246, 0.3);
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 15px;
-  font-size: 0.85em;
+  background: rgba(52, 152, 219, 0.2);
+  border: 2px solid #3498db;
+  border-radius: 4px;
+  padding: 10px;
+  font-size: 0.65rem;
   text-align: center;
-  color: #64b5f6;
+  color: #3498db;
   transition: all 0.3s ease;
+  font-family: 'Press Start 2P', cursive;
 }
 
 .mode-indicator.connection-mode {
-  background: rgba(0, 255, 157, 0.15);
-  border-color: rgba(0, 255, 157, 0.3);
-  color: #00ff9d;
+  background: rgba(241, 196, 15, 0.2);
+  border-color: #f1c40f;
+  color: #f1c40f;
 }
 
-.evaluate-btn {
+/* 제출 버튼 */
+.submit-btn {
   width: 100%;
   padding: 15px;
-  background: linear-gradient(135deg, #ff4785, #ff1744);
-  border: none;
-  border-radius: 10px;
+  background: #e74c3c;
+  border: 4px solid #000;
   color: #fff;
-  font-family: 'Space Mono', monospace;
-  font-size: 1em;
-  font-weight: 700;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.7rem;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.5);
 }
 
-.evaluate-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(255, 71, 133, 0.4);
+.submit-btn:hover:not(:disabled) {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.5);
 }
 
-.evaluate-btn:disabled {
+.submit-btn:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+}
+
+.submit-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
 .loading-spinner {
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-top-color: #fff;
   border-radius: 50%;
@@ -233,30 +243,30 @@ export default {
   to { transform: rotate(360deg); }
 }
 
-/* Code Section */
-.code-section {
-  margin-top: 15px;
+/* Evidence Section */
+.evidence-section {
+  background: rgba(0, 0, 0, 0.8);
+  border: 2px solid #f1c40f;
+  border-radius: 4px;
+  padding: 10px;
 }
 
-.section-title {
-  color: #64b5f6;
-  margin: 0 0 10px 0;
-  font-size: 0.95em;
-  font-family: 'Orbitron', sans-serif;
+.evidence-section .section-label {
+  color: #f1c40f;
+  margin-bottom: 8px;
 }
 
 .code-output {
-  background: rgba(0, 0, 0, 0.5);
-  color: #00ff9d;
-  padding: 15px;
-  border-radius: 8px;
+  background: #000;
+  color: #f1c40f;
+  padding: 10px;
+  border-radius: 4px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.8em;
+  font-size: 0.7rem;
   overflow-x: auto;
   white-space: pre-wrap;
   word-wrap: break-word;
-  border: 1px solid rgba(0, 255, 157, 0.2);
-  max-height: 200px;
+  max-height: 150px;
   overflow-y: auto;
 }
 </style>

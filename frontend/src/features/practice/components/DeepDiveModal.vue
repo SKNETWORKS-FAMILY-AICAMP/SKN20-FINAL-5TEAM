@@ -1,57 +1,79 @@
 <template>
   <div class="modal-overlay" :class="{ active: isActive }">
-    <div class="modal-window deep-dive-modal">
-      <div class="modal-header">
-        <h3>🎯 아키텍처 심층 분석</h3>
-        <div class="modal-subtitle">Architecture Deep Dive</div>
-        <div v-if="totalQuestions > 0" class="question-progress">
-          <span class="progress-text">질문 {{ currentQuestion }} / {{ totalQuestions }}</span>
-          <div class="progress-bar">
+    <div class="interrogation-frame">
+      <!-- 헤더 -->
+      <div class="frame-header">
+        <div class="header-left">
+          <div class="header-title">INTERROGATION IN PROGRESS</div>
+          <div class="header-meta">
+            <span class="rec">REC</span>
+            <span v-if="totalQuestions > 0">질문 {{ currentQuestion }} / {{ totalQuestions }}</span>
+          </div>
+        </div>
+        <div class="header-right">
+          <div v-if="totalQuestions > 0" class="progress-bar">
             <div class="progress-fill" :style="{ width: progressPercent + '%' }"></div>
           </div>
         </div>
       </div>
-      <div class="modal-body">
-        <div v-if="isGenerating" class="loading-question">
-          <div class="loading-spinner-large"></div>
-          <p>아키텍처를 분석하여 질문을 생성하는 중...</p>
+
+      <!-- 메인 -->
+      <div class="frame-main">
+        <div v-if="isGenerating" class="loading-section">
+          <div class="loading-spinner"></div>
+          <p>용의자의 설계도를 분석 중... 꽥!</p>
         </div>
+
         <template v-else>
-          <div class="content-layout">
-            <!-- 왼쪽: Mermaid Preview -->
-            <div class="mermaid-preview-section" v-if="mermaidCode">
-              <span class="preview-title">📊 아키텍처 다이어그램</span>
-              <div class="mermaid-preview" ref="mermaidPreview"></div>
+          <!-- 좌측: 증거물 (다이어그램) -->
+          <div class="evidence-section">
+            <div class="section-title">[EVIDENCE] SYSTEM DIAGRAM</div>
+            <div class="diagram-container" ref="mermaidPreview">
+              <span v-if="!mermaidCode" class="diagram-placeholder">Mermaid Diagram Here</span>
+            </div>
+          </div>
+
+          <!-- 우측: 형사 & 답변 -->
+          <div class="detective-section">
+            <!-- 오리 형사 -->
+            <div class="det-card">
+              <div class="det-avatar">
+                <img src="/image/duck_det.png" alt="Detective Duck" />
+              </div>
+              <div class="det-text">
+                <div class="det-name">DET. DUCK</div>
+                <!-- <div class="det-category" v-if="category">{{ categoryIcon }} {{ category }}</div> -->
+                <p class="det-question">{{ question }}</p>
+              </div>
             </div>
 
-            <!-- 오른쪽: 질문 및 답변 -->
-            <div class="question-section">
-              <div class="question-category-badge" v-if="category">
-                {{ categoryIcon }} {{ category }}
-              </div>
-              <div class="ai-question deep-dive">
-                <span class="ai-question-title">DEEP DIVE QUESTION</span>
-                <span>{{ question }}</span>
-              </div>
+            <!-- 용의자 진술 -->
+            <div class="testimony-section">
+              <div class="testimony-label">[ANSWER]</div>
               <textarea
-                class="user-answer"
+                class="testimony-input"
                 v-model="answer"
-                placeholder="설계 의도와 함께 구체적으로 설명해주세요..."
+                placeholder="진술하세요... (거짓말은 금지! 꽥!)"
               ></textarea>
             </div>
+
+            <!-- 스탬프 -->
+            <!-- <div class="verdict-stamp">UNDER INVESTIGATION</div> -->
           </div>
         </template>
       </div>
-      <div class="modal-footer">
-        <button class="btn-cancel" @click="$emit('skip')">
-          {{ isLastQuestion ? '스킵하고 평가하기' : '건너뛰기' }}
+
+      <!-- 푸터 -->
+      <div class="frame-footer">
+        <button class="btn btn-silent" @click="$emit('skip')">
+          {{ isLastQuestion ? '묵비권 행사 (평가)' : '묵비권 (건너뛰기)' }}
         </button>
         <button
-          class="btn-submit"
+          class="btn btn-submit"
           @click="submitAnswer"
           :disabled="isGenerating"
         >
-          {{ isLastQuestion ? '답변 후 평가하기' : '다음 질문' }}
+          {{ isLastQuestion ? '최종 진술 (평가)' : '진술 완료' }}
         </button>
       </div>
     </div>
@@ -107,18 +129,9 @@ export default {
     isLastQuestion() {
       return this.currentQuestion >= this.totalQuestions;
     },
-    categoryIcon() {
-      const icons = {
-        '설계 의도': '🎨',
-        '확장성/성능': '📈',
-        '장애 대응': '🛡️'
-      };
-      return icons[this.category] || '💡';
-    }
   },
   watch: {
     question(newVal) {
-      // 질문이 변경되면 답변 초기화
       if (newVal) {
         this.answer = '';
       }
@@ -152,7 +165,7 @@ export default {
         const { svg } = await mermaid.render('deepdive-mermaid-' + Date.now(), this.mermaidCode);
         container.innerHTML = svg;
       } catch (error) {
-        container.innerHTML = '<p class="mermaid-error">다이어그램 렌더링 중 오류가 발생했습니다.</p>';
+        container.innerHTML = '<p class="mermaid-error">다이어그램 렌더링 오류</p>';
       }
     }
   }
@@ -160,20 +173,34 @@ export default {
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Courier+Prime:wght@400;700&display=swap');
+
+/* =====================
+   OVERLAY
+===================== */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.85);
+  background: radial-gradient(circle at top, #444 0%, #000 60%);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 2000;
   opacity: 0;
   visibility: hidden;
   transition: all 0.3s ease;
+}
+
+/* CRT Noise */
+.modal-overlay::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  pointer-events: none;
 }
 
 .modal-overlay.active {
@@ -181,110 +208,113 @@ export default {
   visibility: visible;
 }
 
-.modal-window {
-  background: linear-gradient(145deg, #0a0e27, #111827);
-  border: 2px solid #ff4785;
-  border-radius: 20px;
-  width: 95%;
-  max-width: 1100px;
+/* =====================
+   FRAME
+===================== */
+.interrogation-frame {
+  width: 1100px;
+  max-width: 95%;
   max-height: 90vh;
+  background: #111;
+  border: 6px solid #555;
+  box-shadow: 0 0 40px rgba(255, 0, 0, 0.25);
+  position: relative;
   overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(255, 71, 133, 0.3);
   transform: scale(0.9);
   transition: transform 0.3s ease;
 }
 
-.modal-overlay.active .modal-window {
+.modal-overlay.active .interrogation-frame {
   transform: scale(1);
 }
 
-.modal-header {
-  padding: 25px;
-  border-bottom: 1px solid rgba(255, 71, 133, 0.3);
-  text-align: center;
+/* =====================
+   HEADER
+===================== */
+.frame-header {
+  padding: 16px 20px;
+  border-bottom: 3px solid #333;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #0a0a0a;
 }
 
-.modal-header h3 {
-  margin: 0 0 5px 0;
-  font-family: 'Orbitron', sans-serif;
-  font-size: 1.5em;
-  color: #ff4785;
-  text-shadow: 0 0 15px rgba(255, 71, 133, 0.5);
+.header-title {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 14px;
+  color: #e74c3c;
+  letter-spacing: 2px;
+  margin-bottom: 6px;
 }
 
-.modal-subtitle {
-  color: #ff4785;
-  font-size: 0.9em;
+.header-meta {
+  font-family: 'Courier Prime', monospace;
+  font-size: 12px;
+  color: #aaa;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
-.question-progress {
-  margin-top: 15px;
+.rec {
+  color: #ff3b3b;
+  font-weight: bold;
+  animation: blink 1s infinite;
 }
 
-.progress-text {
-  display: block;
-  font-size: 0.85em;
-  color: #b0bec5;
-  margin-bottom: 8px;
+.rec::before {
+  content: "● ";
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0.3; }
+}
+
+.header-right {
+  min-width: 150px;
 }
 
 .progress-bar {
   width: 100%;
-  height: 6px;
-  background: rgba(255, 71, 133, 0.2);
-  border-radius: 3px;
-  overflow: hidden;
+  height: 8px;
+  background: #333;
+  border: 2px solid #555;
 }
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #ff4785, #ff1744);
-  border-radius: 3px;
+  background: #e74c3c;
   transition: width 0.3s ease;
 }
 
-.question-category-badge {
-  display: inline-block;
-  padding: 6px 14px;
-  background: rgba(255, 71, 133, 0.2);
-  border: 1px solid rgba(255, 71, 133, 0.4);
-  border-radius: 20px;
-  font-size: 0.85em;
-  color: #ff4785;
-  margin-bottom: 15px;
-  font-weight: 600;
-}
-
-.modal-body {
-  padding: 20px;
-}
-
-.content-layout {
-  display: flex;
+/* =====================
+   MAIN
+===================== */
+.frame-main {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
   gap: 20px;
-  align-items: stretch;
+  padding: 20px;
+  min-height: 350px;
 }
 
-.question-section {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.loading-question {
+/* Loading */
+.loading-section {
+  grid-column: 1 / -1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px;
+  padding: 60px;
 }
 
-.loading-spinner-large {
+.loading-spinner {
   width: 50px;
   height: 50px;
-  border: 4px solid rgba(255, 71, 133, 0.3);
-  border-top-color: #ff4785;
+  border: 4px solid rgba(231, 76, 60, 0.3);
+  border-top-color: #e74c3c;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 20px;
@@ -294,99 +324,212 @@ export default {
   to { transform: rotate(360deg); }
 }
 
-.loading-question p {
-  color: #b0bec5;
-  font-size: 1em;
+.loading-section p {
+  color: #e74c3c;
+  font-family: 'Courier Prime', monospace;
+  font-size: 1rem;
 }
 
-.ai-question {
-  background: rgba(255, 71, 133, 0.1);
-  border: 1px solid rgba(255, 71, 133, 0.3);
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 20px;
+/* =====================
+   EVIDENCE (Left)
+===================== */
+.evidence-section {
+  background: #0b0b0b;
+  border: 3px solid #555;
+  padding: 15px;
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 10px;
 }
 
-.ai-question-title {
-  font-family: 'Orbitron', sans-serif;
-  font-size: 0.8em;
-  color: #ff4785;
-  letter-spacing: 2px;
+.section-title {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 10px;
+  color: #aaa;
+  margin-bottom: 12px;
 }
 
-.ai-question > span:last-child {
-  font-size: 1.1em;
-  color: #e0e0e0;
-  line-height: 1.6;
-}
-
-.user-answer {
-  width: 100%;
-  min-height: 120px;
-  background: rgba(0, 0, 0, 0.4);
-  border: 2px solid rgba(255, 71, 133, 0.3);
-  border-radius: 12px;
-  padding: 15px;
-  color: #e0e0e0;
-  font-family: 'Space Mono', monospace;
-  font-size: 0.95em;
-  resize: vertical;
-  transition: border-color 0.3s ease;
-}
-
-.user-answer:focus {
-  outline: none;
-  border-color: #ff4785;
-}
-
-.user-answer::placeholder {
-  color: rgba(224, 224, 224, 0.4);
-}
-
-.modal-footer {
-  padding: 20px 25px;
-  border-top: 1px solid rgba(255, 71, 133, 0.3);
+.diagram-container {
+  flex: 1;
+  min-height: 220px;
+  border: 2px dashed #444;
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 10px;
+}
+
+.diagram-placeholder {
+  color: #666;
+  font-family: 'Courier Prime', monospace;
+}
+
+.diagram-container :deep(svg) {
+  width: 100%;
+  height: auto;
+  max-height: 240px;
+}
+
+.mermaid-error {
+  color: #e74c3c;
+  font-size: 0.8rem;
+}
+
+/* Stamp */
+.stamp {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-12deg);
+  border: 6px solid #c0392b;
+  color: #c0392b;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 16px;
+  padding: 12px 20px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.stamp.stamp-active {
+  opacity: 0.85;
+}
+
+/* =====================
+   DETECTIVE (Right)
+===================== */
+.detective-section {
+  background: #0b0b0b;
+  border: 3px solid #555;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
   gap: 15px;
 }
 
-.btn-cancel {
-  padding: 12px 25px;
-  background: transparent;
-  border: 2px solid #78909c;
-  border-radius: 8px;
-  color: #78909c;
-  font-family: 'Space Mono', monospace;
-  font-size: 0.9em;
-  cursor: pointer;
-  transition: all 0.3s ease;
+.det-card {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
 }
 
-.btn-cancel:hover {
-  background: #78909c;
-  color: #0a0e27;
+.det-avatar {
+  width: 70px;
+  height: 70px;
+  border: 3px solid #f1c40f;
+  background: #222;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.det-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.det-text {
+  flex: 1;
+}
+
+.det-name {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 10px;
+  color: #f1c40f;
+  margin-bottom: 6px;
+}
+
+.det-category {
+  display: inline-block;
+  padding: 3px 8px;
+  background: rgba(231, 76, 60, 0.2);
+  border: 2px solid #e74c3c;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 8px;
+  color: #e74c3c;
+  margin-bottom: 8px;
+}
+
+.det-question {
+  font-family: 'Courier Prime', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #eaeaea;
+  margin: 0;
+}
+
+/* Testimony */
+.testimony-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.testimony-label {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 9px;
+  color: #e74c3c;
+}
+
+.testimony-input {
+  flex: 1;
+  min-height: 80px;
+  background: #000;
+  border: 3px solid #e74c3c;
+  padding: 12px;
+  color: #eaeaea;
+  font-family: 'Courier Prime', monospace;
+  font-size: 14px;
+  resize: none;
+  transition: border-color 0.3s ease;
+}
+
+.testimony-input:focus {
+  outline: none;
+  border-color: #e74c3c;
+}
+
+.testimony-input::placeholder {
+  color: rgba(234, 234, 234, 0.4);
+}
+
+/* =====================
+   FOOTER
+===================== */
+.frame-footer {
+  border-top: 3px solid #333;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  background: #0a0a0a;
+}
+
+.btn {
+  flex: 1;
+  max-width: 250px;
+  padding: 14px 20px;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 1.0rem;
+  cursor: pointer;
+  border: 3px solid #000;
+  transition: all 0.2s ease;
 }
 
 .btn-submit {
-  padding: 12px 25px;
-  background: linear-gradient(135deg, #ff4785, #ff1744);
-  border: none;
-  border-radius: 8px;
-  color: #fff;
-  font-family: 'Space Mono', monospace;
-  font-size: 0.9em;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.3s ease;
+  background: #f1c40f;
+  color: #000;
 }
 
 .btn-submit:hover:not(:disabled) {
+  background: #f39c12;
   transform: translateY(-2px);
-  box-shadow: 0 5px 20px rgba(255, 71, 133, 0.4);
 }
 
 .btn-submit:disabled {
@@ -394,44 +537,26 @@ export default {
   cursor: not-allowed;
 }
 
-/* Mermaid Preview */
-.mermaid-preview-section {
-  flex: 1;
-  min-width: 0;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(0, 255, 157, 0.2);
-  border-radius: 12px;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
+.btn-silent {
+  background: #333;
+  color: #aaa;
 }
 
-.preview-title {
-  font-family: 'Orbitron', sans-serif;
-  font-size: 0.85em;
-  color: #64b5f6;
-  letter-spacing: 1px;
-  margin-bottom: 10px;
+.btn-silent:hover {
+  background: #444;
+  color: #fff;
 }
 
-.mermaid-preview {
-  flex: 1;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px;
-}
+/* =====================
+   RESPONSIVE
+===================== */
+@media (max-width: 900px) {
+  .frame-main {
+    grid-template-columns: 1fr;
+  }
 
-.mermaid-preview :deep(svg) {
-  width: 100%;
-  height: auto;
-  max-height: 280px;
-}
-
-.mermaid-error {
-  color: #ff4785;
-  font-size: 0.85em;
+  .evidence-section {
+    min-height: 200px;
+  }
 }
 </style>

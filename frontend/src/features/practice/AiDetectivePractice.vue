@@ -129,9 +129,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue';
+import { ref, computed, onMounted, nextTick, onUnmounted } from 'vue';
 import { useGameStore } from '@/stores/game';
 import { aiDetectiveQuests } from './support/unit1/logic-mirror/data/aiDetectiveQuests.js';
+import { semanticMatch } from './utils/analysisUtils'; // [수정일: 2026-01-29] 시맨틱 채점 유틸리티로 업그레이드
 
 const props = defineProps({
   initialQuestIndex: { type: Number, default: 0 }
@@ -161,6 +162,9 @@ const userCode = ref('');
 const isSubmitting = ref(false);
 const result = ref(null);
 
+// [수정일: 2026-01-29] 메모리 누수 방지를 위한 타이머 관리 변수
+let submitTimer = null;
+
 const levelClass = computed(() => {
   const l = currentQuest.value.level;
   if (l === '초급') return 'easy';
@@ -177,8 +181,9 @@ const submitLogic = async () => {
   isSubmitting.value = true;
   result.value = null;
 
-  // [수정일: 2026-01-28] 고도화된 AI 평가 엔진 로직
-  setTimeout(() => {
+  // [수정일: 2026-01-28] 고도화된 AI 평가 엔진 로직 
+  // [수정일: 2026-01-29] 타이머 참조 저장
+  submitTimer = setTimeout(() => {
     const code = userCode.value.toLowerCase();
     const quest = currentQuest.value;
     
@@ -191,8 +196,9 @@ const submitLogic = async () => {
     const missionNumbers = quest.mission.match(/\d+(\.\d+)?/g) || [];
     const hasMissionNumbers = missionNumbers.some(num => code.includes(num));
 
-    const hasDataRef = dataKeywords.some(k => code.includes(k));
-    const hasTargetRef = targetKeywords.some(k => code.includes(k));
+    // [수정일: 2026-01-29] flexibleMatch를 사용하여 더 유연하게 데이터 및 타겟 탐지
+    const hasDataRef = dataKeywords.some(k => flexibleMatch(code, k));
+    const hasTargetRef = targetKeywords.some(k => flexibleMatch(code, k));
     
     if (hasDataRef) insightScore += 20;
     if (hasTargetRef) insightScore += 20;
@@ -205,9 +211,10 @@ const submitLogic = async () => {
     if (hasLoop) structureScore += 20;
     if (hasIf) structureScore += 10;
 
-    // 3. 정밀도 (Precision) 평가: 출력 명령 및 논리적 완결성
+    // 3. 정밀도 (Precision) 평가: 출력 명령 및 논리적 완결성 [수정일: 2026-01-29]
     let precisionScore = 0;
-    const hasOutput = code.includes('print') || code.includes('출력') || code.includes('return') || code.includes('collect') || code.includes('filter');
+    const outputKeywords = ['print', '출력', 'return', 'collect', 'filter', '찾기', '검색'];
+    const hasOutput = outputKeywords.some(k => semanticMatch(code, k));
     if (hasOutput) precisionScore += 10;
     if (code.length > 40) precisionScore += 10; 
 
@@ -284,6 +291,13 @@ function generateAiFeedback(isSuccess, quest, code, scores) {
 
 onMounted(() => {
   nextTick(() => { if (window.lucide) window.lucide.createIcons(); });
+});
+
+// [수정일: 2026-01-29] 컴포넌트 종료 시 진행 중인 분석 타이머 제거 (메모리 누수 방지)
+onUnmounted(() => {
+  if (submitTimer) {
+    clearTimeout(submitTimer);
+  }
 });
 </script>
 
