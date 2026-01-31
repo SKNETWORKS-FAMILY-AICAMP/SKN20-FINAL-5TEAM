@@ -219,6 +219,7 @@ const isPracticePage = computed(() => {
     'PseudoCode',
     'SystemArchitecturePractice', 
     'BugHunt', 
+    'BugHuntDemo', // [수정일: 2026-01-30] BugHunt Demo 라우트 추가
     'VibeCodeCleanUp', 
     'OpsPractice',
     'AiDetective',
@@ -227,6 +228,7 @@ const isPracticePage = computed(() => {
   ];
   return practiceRoutes.includes(route?.name);
 });
+
 
 const displayProblems = computed(() => {
   const activeUnit = game.activeUnit;

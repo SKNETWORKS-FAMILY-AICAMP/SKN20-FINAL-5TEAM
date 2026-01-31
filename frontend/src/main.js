@@ -22,6 +22,7 @@ import OpsPractice from './features/practice/OpsPractice.vue'
 import AiDetectivePractice from './features/practice/AiDetectivePractice.vue' // [수정일: 2026-01-28] AI Detective 컴포넌트 임포트
 import PseudoForest from './features/practice/PseudoForest.vue' // [수정일: 2026-01-28] Pseudo Forest 컴포넌트 임포트
 import PseudoCompany from './features/practice/PsuedoCompany.vue' // [수정일: 2026-01-29] Pseudo Company 컴포넌트 임포트
+import BugHuntDemo from './features/practice/BugHuntDemo.vue' // [수정일: 2026-01-30] BugHunt Demo 컴포넌트 임포트
 
 const routes = [
   {
@@ -72,6 +73,12 @@ const routes = [
     path: '/practice/pseudo-company',
     name: 'PseudoCompany',
     component: PseudoCompany
+  },
+  {
+    // [수정일: 2026-01-30] BugHunt Demo 라우트 등록
+    path: '/practice/bug-hunt-demo',
+    name: 'BugHuntDemo',
+    component: BugHuntDemo
   },
   {
     path: '/main.html',
