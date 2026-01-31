@@ -343,18 +343,10 @@ export function usePseudoProblem(props, emit) {
         const hasCondition = /(만약|일 때|if|경우)/.test(code)
         const hasAction = /(제거|삭제|추가|저장|append|remove|continue)/.test(code)
 
-        const loopIdx = code.search(/(반복|하나씩|for|each)/)
-        const condIdx = code.search(/(만약|if|경우)/)
-        const actionIdx = code.search(/(제거|삭제|추가|저장|append|remove|continue)/)
+        // [수정일: 2026-01-31] 하드코딩된 순서 체크 제거 (자연어 표현의 다양성 존중)
+        // 기존에는 '제거' 등의 키워드가 앞에 나오면 오류를 냈으나, 이제는 AI가 전체 맥락을 파악하도록 넘깁니다.
 
-        if (hasLoop && hasCondition && hasAction) {
-            if (actionIdx < loopIdx && actionIdx < condIdx) {
-                showFeedback("🤔 논리 순서 불분명", "행동(제거/저장)이 조건보다 앞에 나옵니다.", "실제 실행 순서에 맞춰 의사코드를 작성해보세요.", false)
-                return
-            }
-        }
-
-        isEvaluating.value = true
+        isEvaluating.value = true;
         chatMessages.value.push({ sender: charName.value, text: `${charName.value === 'Coduck' ? '꽥! ' : ''}잠시만 기다려주세요. 엔지니어님의 논리 엔진을 정밀 분석 중입니다...` })
         scrollToBottom()
 
@@ -399,9 +391,17 @@ export function usePseudoProblem(props, emit) {
             )
         } catch (error) {
             console.error("AI Evaluation Failed:", error)
-            const oldScore = (stats.hasLoop ? 6 : 0) + (stats.hasCondition ? 6 : 0) + (stats.hasAction ? 6 : 0) + 7
+            // [수정일: 2026-01-31] stats가 미정의된 상태에서 참조되는 오류 수정 (hasLoop 등 기존 정의된 변수 사용)
+            const oldScore = (hasLoop ? 6 : 0) + (hasCondition ? 6 : 0) + (hasAction ? 6 : 0) + 7
             userScore.step2 = oldScore
-            showFeedback(`${charName.value}의 간이 평가`, "통신 장애로 인해 간이 분석기로 대체합니다.", "논리 키워드 기반으로 분석되었습니다.", true)
+            // [수정일: 2026-01-31] Quest 1(튜토리얼)의 경우 실습 편의를 위해 무조건 통과 허용
+            const tutorialPass = currentQuest.value.id === 1 && (hasLoop || hasCondition || hasAction)
+            showFeedback(
+                `${charName.value}의 간이 평가`,
+                "통신 장애로 인해 간이 분석기로 대체합니다.",
+                "논리 키워드 기반으로 분석되었습니다.",
+                tutorialPass || oldScore >= 15
+            )
         } finally {
             isEvaluating.value = false
         }
@@ -413,37 +413,40 @@ export function usePseudoProblem(props, emit) {
 
     const submitStep3 = () => {
         const code = pythonInput.value
-        const hasContinue = code.includes('continue')
-        const hasAppend = code.includes('append(news)')
-        const hasPass = code.includes('pass')
-        const hasBreak = code.includes('break')
+        // [수정일: 2026-01-31] 하드코딩된 검증 키워드를 stages.js의 데이터 기반(codeValidation)으로 변경
+        const v = currentQuest.value.codeValidation || {}
+        const mainVar = v.price || 'data' // 템플릿 변수명
+        const key1 = v.fee1 || 'continue' // 필수 키워드 1
+        const key2 = v.fee2 || 'append'   // 필수 키워드 2
+
+        const hasKey1 = code.includes(key1)
+        const hasKey2 = code.includes(key2)
+        const hasMainVar = code.includes(mainVar)
 
         let score = 0
-        let details = '<div class="space-y-2"><p><strong>분석 결과:</strong></p>'
+        let details = '<div class="space-y-2"><p><strong>코드 정밀 검사 보고서:</strong></p>'
 
-        // 논리적 정확성 체크
-        if (hasContinue) {
+        // 논리적 정확성 체크 (키워드 매칭)
+        if (hasKey1) {
             score += 12
-            details += '<p class="text-green-400">✓ 필터링 조건 시 continue를 사용하여 효율적으로 데이터를 건너뛰었습니다.</p>'
-        } else if (hasPass) {
-            score += 8
-            details += '<p class="text-yellow-400">! pass를 사용했습니다. 로직은 작동하지만 continue가 더 명확할 수 있습니다.</p>'
-        } else if (hasBreak) {
-            score += 5
-            details += '<p class="text-pink-400">✗ break는 반복문을 완전히 멈춥니다. 남은 데이터를 검사하지 못하게 됩니다.</p>'
+            details += `<p class="text-green-400">✓ 핵심 키워드 [${key1}]를 사용하여 리스크 대응 로직을 구현했습니다.</p>`
+        } else {
+            details += `<p class="text-pink-400">✗ 필수 로직 [${key1}]이 누락되었습니다.</p>`
         }
 
-        if (hasAppend) {
+        if (hasKey2) {
             score += 13
-            details += '<p class="text-green-400">✓ valid한 데이터를 cleaned_data에 성공적으로 저장했습니다.</p>'
+            details += `<p class="text-green-400">✓ 핵심 액션 [${key2}]를 통해 파이프라인 무결성을 확보했습니다.</p>`
+        } else {
+            details += `<p class="text-pink-400">✗ 핵심 처리 [${key2}]가 보이지 않습니다.</p>`
         }
 
         details += '</div>'
 
         userScore.step3 = score
         showFeedback(
-            score >= 20 ? "🐍 파이썬 구현: 완벽함" : "🐍 파이썬 구현: 로직 보완 필요",
-            score >= 20 ? "논리를 코드로 완벽하게 변환하셨습니다." : "일부 로직이 의도와 다르게 동작할 수 있습니다.",
+            score >= 20 ? "🐍 파이썬 구현: 성공" : "🐍 파이썬 구현: 검토 필요",
+            score >= 20 ? "설계하신 논리가 실제 파이썬 코드로 완벽하게 변환되었습니다." : "데이터 정화 로직의 일부가 누락된 것 같습니다.",
             details,
             score >= 20
         )
@@ -461,13 +464,13 @@ export function usePseudoProblem(props, emit) {
         simulationOutput.value = '<span class="text-cyan-500 font-black animate-pulse">AI-GYM Sandbox Environment Initializing...</span><br>'
 
         // 실제 파이썬 코드 실행을 위한 래핑
-        // 1. 유저의 함수 정의 
-        // 2. target_data(worker에서 주입됨)를 인자로 함수 호출 및 결과 출력
+        // [수정일: 2026-01-31] 하드코딩된 함수명 대신 stages.js의 functionName 사용
+        const funcName = currentQuest.value.functionName || 'clean_news_data'
         const wrappedCode = `
 ${code}
 
 try:
-    result = clean_news_data(target_data)
+    result = ${funcName}(target_data)
     print(f"[SYSTEM_RESULT]: {result}")
 except Exception as e:
     print(f"[SYSTEM_ERROR]: {str(e)}")
@@ -519,7 +522,9 @@ except Exception as e:
     }
 
     const handleStep4Submit = (idx) => {
-        const isCorrect = idx === 1
+        // [수정일: 2026-01-31] 하드코딩된 정답 인덱스(idx === 1) 대신 데이터 기반(step4CorrectIdx) 사용
+        const correctIdx = currentQuest.value.step4CorrectIdx ?? 0
+        const isCorrect = idx === correctIdx
         userScore.step4 = isCorrect ? 25 : 0
 
         // [수정일: 2026-01-31] 정답 시 다음 스테이지 자동 해금
@@ -527,10 +532,14 @@ except Exception as e:
             gameStore.unlockNextStage('Pseudo Practice', currentQuestIdx.value)
         }
 
+        // [수정일: 2026-01-31] 하드코딩된 피드백 텍스트 대신 stages.js의 데이터 사용
+        const success = currentQuest.value.step4SuccessFeedback || {}
+        const failure = currentQuest.value.step4FailFeedback || {}
+
         showFeedback(
-            isCorrect ? "⚖️ 심화 분석: 트레이드오프" : "🤔 심화 분석: 다시 생각해보세요",
-            isCorrect ? "정답입니다. 너무 엄격한 필터링은 유용한 데이터까지 버릴 수 있습니다(False Positive)." : "아닙니다. 필터링을 너무 강하게 하면 오히려 데이터 부족 현상이 발생할 수 있습니다.",
-            "활용 사례: 스팸 메일 필터가 너무 강력하면, 중요한 업무 메일까지 스팸통으로 들어가는 것과 같습니다. 엔지니어는 항상 '정확도'와 '재현율' 사이의 균형을 맞춰야 합니다.",
+            isCorrect ? (success.title || "⚖️ 심화 분석: 성공") : (failure.title || "🤔 심화 분석: 다시 생각해보세요"),
+            isCorrect ? (success.desc || "정답입니다.") : (failure.desc || "다시 한번 고민해보세요."),
+            isCorrect ? (success.details || "훌륭한 통찰입니다.") : (failure.details || "엔지니어링 사고방식으로 접근해 보세요."),
             isCorrect
         )
     }

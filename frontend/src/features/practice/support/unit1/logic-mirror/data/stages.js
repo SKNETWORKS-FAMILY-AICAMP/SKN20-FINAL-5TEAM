@@ -56,13 +56,25 @@ export const aiQuests = [
             "AI는 신기하고 재미있다는 것을 배웠습니다."
         ],
         cards: [
-            { id: 'b1', text: 'Step 1: 문제의 전체 흐름 그리기', color: 'border-indigo-500', icon: '�️' },
+            { id: 'b1', text: 'Step 1: 문제의 전체 흐름 그리기', color: 'border-indigo-500', icon: '️' },
             { id: 'b2', text: 'Step 2: 핵심 로직 상세 설계', color: 'border-amber-500', icon: '🔍' },
             { id: 'b3', text: 'Step 3: 실무 리스크 대응 코드 작성', color: 'border-rose-500', icon: '💻' },
             { id: 'b4', text: 'Step 4: 면접 답변으로 멋지게 정리', color: 'border-emerald-500', icon: '🏁' }
         ],
         solution: ['b1', 'b2', 'b3', 'b4'],
+        functionName: 'intro_pipeline',
         codeValidation: { price: 'data_list', fee1: 'continue', fee2: 'append' },
+        step4CorrectIdx: 0,
+        step4SuccessFeedback: {
+            title: "⚖️ 심화 분석: AI 사고법의 가치",
+            desc: "정답입니다! 코딩 실력을 넘어선 '엔지니어링 마인드'를 완벽히 이해하셨네요.",
+            details: "훌륭합니다. 실제 현업에서도 기술 스택보다 중요한 것이 바로 이 '흐름 설계'와 '리스크 관리' 역량입니다. 튜토리얼을 성공적으로 마치셨습니다!"
+        },
+        step4FailFeedback: {
+            title: "🤔 심화 분석: 다시 생각해보세요",
+            desc: "단순한 구현 능력보다는, 우리가 왜 4단계로 나누어 생각하는지 그 이유를 고민해 보세요.",
+            details: "AI 엔지니어는 나무(코드 한 줄)가 아닌 숲(전체 파이프라인)을 보는 사람입니다. 첫 번째 선택지의 의미를 다시 한번 읽어보시겠어요?"
+        },
         quizOptions: [
             { text: "A. 4단계 사고법은 실력을 키우는 최고의 도구다.", correct: true },
             { text: "B. AI는 공부 안 해도 알아서 잘한다.", correct: false }
@@ -130,7 +142,19 @@ export const aiQuests = [
             { id: 'b4', text: 'Step 4: 누수 없는 깨끗한 데이터셋 반환', color: 'border-emerald-500', icon: '🏁' }
         ],
         solution: ['b1', 'b2', 'b3', 'b4'],
-        codeValidation: { price: 'scaler', fee1: 'fit', fee2: 'transform' },
+        functionName: 'leakage_free_scaling',
+        codeValidation: { price: 'train_df', fee1: 'fit', fee2: 'transform' },
+        step4CorrectIdx: 0,
+        step4SuccessFeedback: {
+            title: "⚖️ 심화 분석: 데이터 무결성 확보",
+            desc: "완벽합니다! 시계열 데이터에서 '미래 정보의 오염' 리스크를 정확히 짚어내셨습니다.",
+            details: "Fit before Split을 막는 것만으로도 서비스 배포 후 성능이 급락하는 대참사를 예방할 수 있습니다. 시니어급 엔지니어링 감각이 돋보입니다!"
+        },
+        step4FailFeedback: {
+            title: "🤔 심화 분석: 리스크 재검토 필요",
+            desc: "데이터 누수(Leakage)는 인공지능이 문제의 답을 컨닝하는 것과 같습니다.",
+            details: "누수된 모델은 테스트 점수만 높고 실전에서는 무용지물이 됩니다. 모델의 강건성을 위해 무엇을 고정해야 할지 다시 생각해보세요."
+        },
         quizOptions: [
             { text: "A. 데이터 누수는 인공지능이 미래를 보는 부정행위다.", correct: true },
             { text: "B. 검증 데이터와 학습 데이터는 섞일수록 좋다.", correct: false }
@@ -195,7 +219,19 @@ def prevent_serving_skew(data):
             { id: 'b4', text: 'Step 4: 강건한 학습 데이터셋 반환', color: 'border-emerald-500', icon: '🏁' }
         ],
         solution: ['b1', 'b2', 'b3', 'b4'],
+        functionName: 'prevent_serving_skew',
         codeValidation: { price: 'random', fee1: 'shuffle', fee2: 'indices' },
+        step4CorrectIdx: 0,
+        step4SuccessFeedback: {
+            title: "⚖️ 심화 분석: 환경 동기화 전문가",
+            desc: "정답입니다! 학습과 서빙 사이의 '유령 리스크'를 관리할 줄 아는 안목을 가지셨군요.",
+            details: "전처리 파이프라인의 형상 관리는 MLOps의 핵심입니다. 드리프트 모니터링까지 언급하신 점이 매우 훌륭합니다."
+        },
+        step4FailFeedback: {
+            title: "🤔 심화 분석: 배포 리스크 간과",
+            desc: "데이터를 단순히 섞는 것만으로는 배포 후의 성능 급락을 막을 수 없습니다.",
+            details: "학습 때 아무리 잘해도 서빙 때의 로직이 0.1%만 달라도 모델은 오작동합니다. '일관성'의 관점에서 다시 고민해보세요."
+        },
         quizOptions: [
             { text: "A. 스큐를 막으려면 전처리 코드의 공용화가 필요하다.", correct: true },
             { text: "B. 서빙용 데이터는 학습용보다 더 복잡해야 한다.", correct: false }
@@ -261,7 +297,19 @@ def prevent_serving_skew(data):
             { id: 'b4', text: 'Step 4: 안전한 최종 예측물만 배포 승인', color: 'border-emerald-500', icon: '🏁' }
         ],
         solution: ['b1', 'b2', 'b3', 'b4'],
+        functionName: 'filter_by_threshold',
         codeValidation: { price: 'predictions', fee1: 'threshold', fee2: 'append' },
+        step4CorrectIdx: 0,
+        step4SuccessFeedback: {
+            title: "⚖️ 심화 분석: 비즈니스 가치 최적화",
+            desc: "최고의 답변입니다! 기술적 수치(F1)를 비즈니스 언어(비용/가치)로 번역할 줄 아는 엔지니어시군요.",
+            details: "임계값 튜닝은 모델을 서비스화하는 마지막 단추입니다. 상황에 맞는 트레이드오프 전략이 돋보입니다."
+        },
+        step4FailFeedback: {
+            title: "🤔 심화 분석: 트레이드오프 리스크",
+            desc: "모든 상황에 일관된 임계값(0.5나 0.9)을 적용하는 것은 위험합니다.",
+            details: "오판했을 때 발생하는 리스크 비용이 도메인마다 다르기 때문입니다. 스팸 정보 보존 리스크를 다시 한번 상기해보세요."
+        },
         quizOptions: [
             { text: "A. 임계값 결정은 모델링만큼 중요한 의사결정이다.", correct: true },
             { text: "B. 모든 서비스에는 임계값 0.9가 가장 안전하다.", correct: false }
@@ -327,6 +375,7 @@ def prevent_serving_skew(data):
             { id: 'b4', text: 'Step 4: 드리프트 감지 시 재학습 신호 발송', color: 'border-emerald-500', icon: '🏁' }
         ],
         solution: ['b1', 'b2', 'b3', 'b4'],
+        functionName: 'monitor_drift_loss',
         codeValidation: { price: 'zip', fee1: '**2', fee2: 'sum' },
         quizOptions: [
             { text: "A. 드리프트 감지는 모델 수명 연장의 필수 요소다.", correct: true },
@@ -392,6 +441,7 @@ def prevent_serving_skew(data):
             { id: 'b4', text: 'Step 4: 효율적인 수치화 데이터셋 생성', color: 'border-emerald-500', icon: '🏁' }
         ],
         solution: ['b1', 'b2', 'b3', 'b4'],
+        functionName: 'robust_encode',
         codeValidation: { price: 'mapping', fee1: 'get', fee2: 'NLP' },
         quizOptions: [
             { text: "A. 원-핫 인코딩은 범주 간의 서열을 만들지 않는다.", correct: true },
@@ -454,6 +504,7 @@ def prevent_serving_skew(data):
             { id: 'b4', text: 'Step 4: 기준 통과 항목에 한해 Argmax 정답 반환', color: 'border-emerald-500', icon: '🏁' }
         ],
         solution: ['b1', 'b2', 'b3', 'b4'],
+        functionName: 'get_final_prediction',
         codeValidation: { price: 'max', fee1: 'probs', fee2: 'index' },
         quizOptions: [
             { text: "A. Argmax는 다중 클래스 분류의 입을 완성한다.", correct: true },
@@ -527,6 +578,7 @@ def prevent_serving_skew(data):
             { id: 'b4', text: 'Step 4: 최적 시점에서 학습 중단 및 모델 덤프', color: 'border-emerald-500', icon: '🏁' }
         ],
         solution: ['b1', 'b2', 'b3', 'b4'],
+        functionName: 'check_early_stopping',
         codeValidation: { price: 'loss', fee1: 'count', fee2: 'patience' },
         quizOptions: [
             { text: "A. 얼리 스토핑은 규제화(Regularization) 기법 중 하나다.", correct: true },
@@ -591,6 +643,7 @@ def choose_smart_action(epsilon, q_values):
             { id: 'b4', text: 'Step 4: 행동 실행 및 보상 피드백 루프 순환', color: 'border-emerald-500', icon: '🏁' }
         ],
         solution: ['b1', 'b2', 'b3', 'b4'],
+        functionName: 'choose_smart_action',
         codeValidation: { price: 'random', fee1: 'epsilon', fee2: 'index' },
         quizOptions: [
             { text: "A. RL은 경험을 통해 직접 정책을 학습한다.", correct: true },
@@ -657,6 +710,7 @@ def secure_tokenize(text):
             { id: 'b4', text: 'Step 4: 보안이 강화된 학습용 코퍼스 배포', color: 'border-emerald-500', icon: '🏁' }
         ],
         solution: ['b1', 'b2', 'b3', 'b4'],
+        functionName: 'secure_tokenize',
         codeValidation: { price: 're', fee1: 'sub', fee2: 'lower' },
         quizOptions: [
             { text: "A. NLP 전처리는 모델의 언어 이해력을 결정한다.", correct: true },

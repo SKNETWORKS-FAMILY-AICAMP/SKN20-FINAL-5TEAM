@@ -438,7 +438,7 @@
           <!-- Quiz -->
           <div class="flex flex-col gap-6">
             <div class="bg-black/40 border border-white/10 p-10 lg:p-14 hud-box-clip flex-1 flex flex-col">
-              <h3 class="text-2xl lg:text-3xl font-black text-white mb-12 leading-tight uppercase tracking-tight italic border-l-4 border-cyan-500 pl-6">Q. 필터링의 부작용을 최소화하고 정보의 가치를 보존하기 위한 최적의 엔지니어링 접근은?</h3>
+              <h3 class="text-2xl lg:text-3xl font-black text-white mb-12 leading-tight uppercase tracking-tight italic border-l-4 border-cyan-500 pl-6">Q. {{ currentQuest.quizTitle || '최적의 엔지니어링 접근은?' }}</h3>
               <div class="space-y-6">
                 <button v-for="(opt, idx) in step4Options" :key="idx"
                   @click="handleStep4Submit(idx)"
