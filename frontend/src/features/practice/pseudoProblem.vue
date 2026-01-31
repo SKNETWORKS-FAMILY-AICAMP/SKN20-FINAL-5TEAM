@@ -591,6 +591,7 @@ const currentQuest = computed(() => aiQuests[currentQuestIdx.value] || aiQuests[
 // --- State ---
 const currentStep = ref(1)
 const userScore = reactive({ step1: 0, step2: 0, step3: 0, step4: 0 })
+const pseudoInput = ref('') // [수정일: 2026-01-31] 워처에서 사용하므로 선언 위치 상향 조정
 
 // [수정일: 2026-01-31] 동적 데이터 연동으로 인한 로컬 상태 초기화
 const availableBlocks = ref([])
@@ -598,14 +599,17 @@ const droppedBlocks = ref([])
 const pythonInputs = reactive({ blankA: '', blankB: '' })
 
 watch(currentQuest, (newQuest) => {
-  if (newQuest) {
+  // [수정일: 2026-01-31] newQuest와 cards 존재 여부 검증 강화
+  if (newQuest && newQuest.cards) {
     availableBlocks.value = [...newQuest.cards].sort(() => Math.random() - 0.5)
     droppedBlocks.value = []
     pythonInputs.blankA = ''
     pythonInputs.blankB = ''
     currentStep.value = 1
     // [수정일: 2026-01-31] 퀘스트 변경 시 에디터 초기화
-    pseudoInput.value = ''
+    if (pseudoInput.value !== undefined) {
+      pseudoInput.value = ''
+    }
   }
 }, { immediate: true })
 
@@ -634,7 +638,7 @@ const editorOptions = {
 // [수정일: 2026-01-31] 하드코딩된 옵션 대신 stages.js의 데이터를 사용하므로 기존 배열 제거
 
 // Step 2 Data
-const pseudoInput = ref('')
+// const pseudoInput = ref('') // 상단으로 이동됨
 const chatMessages = ref([
   { sender: 'Lion', text: '엔지니어님, 깨어나셨군요. 오염된 데이터를 정화해야 제 기억이 돌아옵니다. 오른쪽 패널에 한글로 로직을 설계해주세요.' }
 ])
