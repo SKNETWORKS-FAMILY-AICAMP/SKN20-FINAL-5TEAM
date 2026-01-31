@@ -567,7 +567,8 @@ import {
   RotateCcw, 
   ChevronRight, 
   AlertTriangle, 
-  X 
+  X,
+  Code as CodeIcon
 } from 'lucide-vue-next'
 import { useGameStore } from '@/stores/game'
 import { useRouter } from 'vue-router'
