@@ -1,7 +1,10 @@
 /**
- [수정일: 2026-01-31]
- 내용: pseudoProblem.vue의 로직을 Composable 패턴으로 분리
-*/
+ * [수정일: 2026-01-31]
+ * [수정내용:
+ * 1. 캐릭터 명칭 및 아이콘 변경 (Lion 🦁 -> Coduck 🦆)
+ * 2. 챗봇 가이드 및 피드백 텍스트의 캐릭터 브랜딩 고도화
+ * 3. AI 상담 모드(askCoduck) 도입 및 통합]
+ */
 import { ref, reactive, computed, watch, nextTick, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useGameStore } from '@/stores/game'
@@ -30,7 +33,7 @@ export function usePseudoProblem(props, emit) {
     const pseudoInput = ref('')
 
     const chatMessages = ref([
-        { sender: 'Lion', text: '엔지니어님, 깨어나셨군요. 오염된 데이터를 정화해야 제 기억이 돌아옵니다. 오른쪽 패널에 한글로 로직을 설계해주세요.' }
+        { sender: 'Coduck', text: '엔지니어님, 깨어나하셨군요! 데이터 바다를 정화해 정보를 복구해야 제 기억이 돌아옵니다. 오른쪽 패널에 한글로 로직을 설계해주세요.' }
     ])
     const chatContainer = ref(null)
 
@@ -46,8 +49,10 @@ export function usePseudoProblem(props, emit) {
     const simulationContainer = ref(null)
     const isSimulating = ref(false)
     const isEvaluating = ref(false)
+    const isAsking = ref(false) // AI에게 질문 중인지 여부
     const isSuccess = ref(false) // 단계 성공 여부 추적
     const step4Options = computed(() => currentQuest.value.step4Options || [])
+
 
     // 코드 스니펫 삽입 기능 (초보자 지원) - 주석(# TODO)을 감지하여 스마트하게 삽입
     const insertSnippet = (snippet) => {
@@ -115,7 +120,7 @@ export function usePseudoProblem(props, emit) {
 
             // 챗봇용 퀘스트 정보 업데이트
             chatMessages.value = [
-                { sender: 'Lion', text: `안녕하세요! 오늘의 미션은 [${newQuest.title}]입니다. ${newQuest.desc}` }
+                { sender: 'Coduck', text: `안녕하세요! Coduck입니다. 오늘의 미션은 [${newQuest.title}]입니다. ${newQuest.desc}` }
             ]
         }
     }, { immediate: true })
@@ -131,7 +136,7 @@ export function usePseudoProblem(props, emit) {
         isSuccess.value = false
     }, { immediate: true })
 
-    // [수정일: 2026-01-31] Lion Agent: 지능형 휴면 감지 및 능동적 가이드 로직
+    // [수정일: 2026-01-31] Coduck Agent: 지능형 휴면 감지 및 능동적 가이드 로직
     const inactivityTimer = ref(null)
     const resetInactivityTimer = () => {
         if (inactivityTimer.value) clearTimeout(inactivityTimer.value)
@@ -155,7 +160,7 @@ export function usePseudoProblem(props, emit) {
 
         if (nudgeText && !chatMessages.value.some(m => m.text === nudgeText)) {
             chatMessages.value.push({
-                sender: 'Lion',
+                sender: 'Coduck',
                 text: nudgeText,
                 isNudge: true
             })
@@ -174,11 +179,11 @@ export function usePseudoProblem(props, emit) {
 
     watch(pseudoInput, (newVal) => {
         if (newVal.length > 10 && !chatMessages.value.some(m => m.text.includes('시작'))) {
-            chatMessages.value.push({ sender: 'Lion', text: '좋습니다. 먼저 데이터를 하나씩 꺼내는 "반복" 구조가 필요해 보입니다.' })
+            chatMessages.value.push({ sender: 'Coduck', text: '좋습니다. 먼저 데이터를 하나씩 꺼내는 "반복" 구조가 필요해 보입니다.' })
             scrollToBottom()
         }
         if (newVal.includes('만약') && !chatMessages.value.some(m => m.text.includes('조건'))) {
-            chatMessages.value.push({ sender: 'Lion', text: '조건문을 잘 작성하고 계시군요. "제거"하거나 "저장"하는 행동도 명시해주세요.' })
+            chatMessages.value.push({ sender: 'Coduck', text: '조건문을 잘 작성하고 계시군요. "제거"하거나 "저장"하는 행동도 명시해주세요.' })
             scrollToBottom()
         }
     })
@@ -201,6 +206,40 @@ export function usePseudoProblem(props, emit) {
             "활용 사례: 실제 현업에서도 전체 프로젝트 기간의 80%를 데이터 전처리에 사용합니다. 금융 사기 탐지 모델에서 정상 거래를 사기로 오해하지 않게 하려면 노이즈 제거가 필수적입니다.",
             isCorrect
         )
+    }
+
+    // [추가] Coduck에게 질문하기 (제출 전 질의)
+    const askCoduck = async () => {
+        const code = pseudoInput.value.trim()
+        if (code.length < 5) {
+            chatMessages.value.push({ sender: 'Coduck', text: '질문하시려면 먼저 로직을 조금 작성해주세요!' })
+            scrollToBottom()
+            return
+        }
+
+        isAsking.value = true
+        chatMessages.value.push({ sender: 'User', text: '이 로직에 대해 피드백을 줄 수 있어?' })
+        chatMessages.value.push({ sender: 'Coduck', text: '엔지니어님의 로직을 검토 중입니다... 잠시만요.' })
+        scrollToBottom()
+
+        try {
+            const response = await axios.post('/api/core/ai-evaluate/', {
+                quest_title: currentQuest.value.title,
+                user_logic: code,
+                mode: 'consult', // 단순 상담 모드 (점수 미반영)
+            }, { withCredentials: true })
+
+            const result = response.data
+            chatMessages.value.push({
+                sender: 'Coduck',
+                text: result.analysis || result.feedback || "논리적인 흐름이 좋습니다. 규칙을 빼먹지는 않았는지 다시 한번 확인해보세요!"
+            })
+        } catch (error) {
+            chatMessages.value.push({ sender: 'Coduck', text: '통신 상태가 좋지 않아 지금은 상담이 어렵습니다. 하지만 계속 진행하실 수 있어요!' })
+        } finally {
+            isAsking.value = false
+            scrollToBottom()
+        }
     }
 
     const submitStep2 = async () => {
@@ -226,7 +265,7 @@ export function usePseudoProblem(props, emit) {
         }
 
         isEvaluating.value = true
-        chatMessages.value.push({ sender: 'Lion', text: '흐음... 잠시만 기다려주세요. 엔지니어님의 논리 엔진을 정밀 분석 중입니다...' })
+        chatMessages.value.push({ sender: 'Coduck', text: '꽥! 잠시만 기다려주세요. 엔지니어님의 논리 엔진을 정밀 분석 중입니다...' })
         scrollToBottom()
 
         try {
@@ -257,7 +296,7 @@ export function usePseudoProblem(props, emit) {
           </div>
           ${metricsHtml}
           <div class="mt-4 pt-4 border-t border-white/10 text-lg">
-            <p class="text-cyan-400 font-bold italic">Lion의 조언: ${result.advice || "훌륭한 접근입니다!"}</p>
+            <p class="text-cyan-400 font-bold italic">Coduck의 조언: ${result.advice || "훌륭한 접근입니다!"}</p>
           </div>
         </div>
       `
@@ -272,7 +311,7 @@ export function usePseudoProblem(props, emit) {
             console.error("AI Evaluation Failed:", error)
             const oldScore = (hasLoop ? 6 : 0) + (hasCondition ? 6 : 0) + (hasAction ? 6 : 0) + 7
             userScore.step2 = oldScore
-            showFeedback("🦁 Lion의 간이 평가", "통신 장애로 인해 간이 분석기로 대체합니다.", "논리 키워드 기반으로 분석되었습니다.", true)
+            showFeedback("🦆 Coduck의 간이 평가", "통신 장애로 인해 간이 분석기로 대체합니다.", "논리 키워드 기반으로 분석되었습니다.", true)
         } finally {
             isEvaluating.value = false
         }
@@ -417,7 +456,7 @@ except Exception as e:
 
     const finalReviewText = computed(() => {
         let review = `엔지니어님은 데이터가 AI 모델에 미치는 영향을 정확히 이해하고 있습니다. `
-        review += userScore.step2 >= 20 ? "수도코드를 통한 논리 구조화 능력이 뛰어나며, " : "수도코드 작성에 조금 더 연습이 연습이 필요해 보이지만, "
+        review += userScore.step2 >= 20 ? "수도코드를 통한 논리 구조화 능력이 뛰어나며, " : "수도코드 작성에 조금 더 연습이 필요해 보이지만, "
         review += userScore.step3 >= 20 ? "파이썬 코드로의 변환 능력도 훌륭합니다." : "코드 구현 디테일을 조금만 더 다듬으면 훌륭한 엔지니어가 될 것입니다."
         review += "<br/><br/>이제 오염된 데이터가 제거되었으니, 다음 스테이지(RAG 시스템 구축)로 나아갈 준비가 되었습니다."
         return review
@@ -438,6 +477,7 @@ except Exception as e:
         simulationContainer,
         isSimulating,
         isEvaluating,
+        isAsking,
         isSuccess,
         step4Options,
         feedbackModal,
@@ -450,6 +490,7 @@ except Exception as e:
         handleStep4Submit,
         nextStep,
         reloadApp,
-        insertSnippet // 추가
+        insertSnippet,
+        askCoduck
     }
 }

@@ -92,7 +92,7 @@
 
             <div class="space-y-12">
               <p class="text-lg lg:text-[22px] text-[#8b949e] leading-relaxed font-bold">
-                Lion의 메모리 뱅크가 손상되었습니다. 복구 프로세스를 시작하기 전에 가장 중요한 원칙을 확인해야 합니다.
+                Coduck의 메모리 뱅크가 손상되었습니다. 복구 프로세스를 시작하기 전에 가장 중요한 원칙을 확인해야 합니다.
               </p>
               
               <div class="bg-[#090c10] p-10 lg:p-12 border border-cyan-500/40 rounded-3xl relative shadow-inner">
@@ -167,7 +167,7 @@
                   class="flex flex-col" :class="msg.sender === 'User' ? 'items-end' : 'items-start'">
                   <span class="text-[8px] text-gray-500 font-black mb-2 uppercase tracking-tighter">{{ msg.sender }}_ID</span>
                   <div class="max-w-[90%] p-4 text-sm leading-relaxed hud-button-clip"
-                       :class="msg.sender === 'Lion' ? 'bg-cyan-500/10 text-cyan-100 border border-cyan-500/20' : 'bg-white/5 text-white border border-white/10'">
+                       :class="msg.sender === 'Coduck' ? 'bg-cyan-500/10 text-cyan-100 border border-cyan-500/20' : 'bg-white/5 text-white border border-white/10'">
                     {{ msg.text }}
                   </div>
                 </div>
@@ -202,14 +202,27 @@
               <div class="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-cyan-500/20 pointer-events-none transition-colors"></div>
             </div>
 
-            <button @click="submitStep2" class="mt-12 group relative transition-all active:scale-[0.98]">
-              <div class="absolute -inset-1 bg-gradient-to-r from-cyan-600/50 to-blue-700/50 rounded-lg blur opacity-50 group-hover:opacity-100 transition duration-500"></div>
-              <div class="relative w-full py-6 bg-black border border-cyan-500/50 text-white font-black text-xl tracking-[0.3em] uppercase hover:bg-cyan-500/10 transition-all hud-button-clip flex items-center justify-center gap-4">
-                <div v-if="isEvaluating" class="w-5 h-5 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin"></div>
-                <Terminal v-else class="w-6 h-6 text-cyan-400" />
-                {{ isEvaluating ? 'ANALYZING_LOGIC...' : 'SUBMIT_LOGIC_NODE' }}
-              </div>
-            </button>
+            <div class="grid grid-cols-2 gap-4 mt-12">
+              <!-- AI에게 질문하기 (상담 모드) -->
+              <button @click="askCoduck" :disabled="isAsking || isEvaluating" class="group relative transition-all active:scale-[0.98]">
+                <div class="absolute -inset-1 bg-gradient-to-r from-cyan-600/30 to-blue-700/30 rounded-lg blur opacity-30 group-hover:opacity-100 transition duration-500"></div>
+                <div class="relative w-full py-5 bg-black/40 border border-cyan-500/30 text-cyan-400 font-bold text-lg tracking-widest uppercase hover:bg-cyan-500/10 transition-all hud-button-clip flex items-center justify-center gap-4">
+                  <div v-if="isAsking" class="w-4 h-4 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin"></div>
+                  <Cpu v-else class="w-5 h-5" />
+                  {{ isAsking ? 'ANALYZING...' : 'Coduck에게 질문하기' }}
+                </div>
+              </button>
+
+              <!-- 최종 로직 제출 (평가 모드) -->
+              <button @click="submitStep2" :disabled="isAsking || isEvaluating" class="group relative transition-all active:scale-[0.98]">
+                <div class="absolute -inset-1 bg-gradient-to-r from-pink-600/40 to-cyan-700/40 rounded-lg blur opacity-50 group-hover:opacity-100 transition duration-500"></div>
+                <div class="relative w-full py-5 bg-black border border-cyan-500/50 text-white font-black text-lg tracking-[0.2em] uppercase hover:bg-cyan-500/10 transition-all hud-button-clip flex items-center justify-center gap-4">
+                  <div v-if="isEvaluating" class="w-5 h-5 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin"></div>
+                  <Terminal v-else class="w-5 h-5 text-cyan-400" />
+                  {{ isEvaluating ? 'EVALUATING...' : '최종 로직 제출' }}
+                </div>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -297,7 +310,7 @@
                     <AlertTriangle class="text-cyan-400 w-6 h-6 animate-pulse" />
                   </div>
                   <div class="flex-1">
-                    <h4 class="text-[11px] font-mono text-cyan-500 uppercase tracking-[0.2em] mb-1 font-black">LION_SYSTEM_GUIDE</h4>
+                    <h4 class="text-[11px] font-mono text-cyan-500 uppercase tracking-[0.2em] mb-1 font-black">CODUCK_SYSTEM_GUIDE</h4>
                     <p class="text-base lg:text-lg text-gray-400 font-bold leading-relaxed">
                       작성하신 논리를 <span class="text-cyan-400 italic font-black uppercase tracking-tighter">Python 코드로 구현</span>할 차례입니다.
                       에디터 내의 <span class="text-white bg-cyan-500/20 px-2 py-0.5 rounded text-sm mx-1"># TODO</span> 주석 위치에 적절한 제어문과 행동을 배치해 정화 모듈을 완성하세요.
@@ -437,7 +450,7 @@
                 </div>
               </div>
 
-              <!-- Lion Review Section -->
+              <!-- Coduck Review Section -->
               <div class="bg-black/40 border border-cyan-500/20 p-10 hud-box-clip text-left relative overflow-hidden">
                 <div class="flex items-start gap-10">
                   <div class="shrink-0 hidden lg:block">
@@ -449,7 +462,7 @@
                   <div class="flex-1 space-y-8">
                     <h3 class="text-cyan-400 font-black text-sm uppercase tracking-[0.5em] italic flex items-center gap-4">
                       <span class="w-3 h-3 bg-cyan-500 rounded-full animate-ping"></span>
-                      Lion_Integrated_Synthetic_Review
+                      Coduck_Integrated_Synthetic_Review
                     </h3>
                     <p class="text-2xl lg:text-3xl text-gray-100 leading-relaxed font-black italic border-l-8 border-cyan-500/40 pl-10" v-html="finalReviewText"></p>
                   </div>
@@ -570,7 +583,8 @@ const {
   handleStep4Submit,
   nextStep,
   reloadApp,
-  insertSnippet
+  insertSnippet,
+  askCoduck
 } = usePseudoProblem(props, emit)
 </script>
 

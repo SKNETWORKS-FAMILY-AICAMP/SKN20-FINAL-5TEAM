@@ -1,11 +1,15 @@
 <!--
-수정일: 2026-01-26
-수정내용: Composition API + Pinia stores로 리팩토링
+수정일: 2026-01-31
+수정내용: 
+1. 캐릭터 브랜딩 전면 교체: 'Lion' 명칭을 'Coduck'으로 변경하고 픽사 스타일 캐릭터 이미지 적용.
+2. 유닛 2/3 로딩 문제 해결: displayProblems 계산 시 매번 최신 데이터를 매핑하도록 수정하여 캐시 및 캐스팅 이슈 해결.
+3. 유닛 매칭 유연화: 유닛 제목 비교 시 대소문자 및 공백을 무시하도록 정규화 로직 도입.
 -->
 <template>
   <div id="app" v-cloak>
     <!-- [메인 페이지 배경 (맵)] -->
     <LandingView
+      v-if="!isPracticePage"
       :isLoggedIn="auth.isLoggedIn"
       :userProteinShakes="auth.userProteinShakes"
       :chapters="game.chapters"
@@ -173,12 +177,7 @@ const isPracticePage = computed(() => {
     'SystemArchitecturePractice', 
     'BugHunt', 
     'VibeCodeCleanUp', 
-    'OpsPractice',
-    'AiDetective',
-    // [수정일: 2026-01-31] 비활성 컴포넌트 이름 주석 처리
-    // 'PseudoForest',
-    // 'PseudoCompany',
-    // 'PseudoEmergency'
+    'OpsPractice'
   ];
   return practiceRoutes.includes(route?.name);
 });
@@ -187,23 +186,18 @@ const displayProblems = computed(() => {
   const activeUnit = game.activeUnit;
   if (!activeUnit) return [];
 
-  if (activeUnit.name === 'Pseudo Practice') {
-    // [수정일: 2026-01-31] 모드 통합 이후 Unit 1의 문제 목록 매핑 단순화
-    const unitIndex = game.chapters.indexOf(activeUnit);
-    return game.mapDetailsToProblems(activeUnit, unitIndex + 1);
+  // [수정일: 2026-01-31] 모든 유닛에 대해 최신 매핑 데이터 사용 (일부 유닛의 캐시 문제 해결)
+  const unitIndex = game.chapters.indexOf(activeUnit);
+  const problems = game.mapDetailsToProblems(activeUnit, unitIndex + 1);
+  const unitName = (activeUnit.name || '').toLowerCase().replace(/\s+/g, '');
+
+  if (unitName === 'debugpractice' && game.currentDebugMode !== 'bug-hunt') {
+    // Vibe 문제 세트가 있으면 우선 사용
+    const vibeProblems = activeUnit.vibeProblems || [];
+    return vibeProblems.length > 0 ? vibeProblems : problems;
   }
 
-  // [기존 로직 복구] Debug Practice는 현재 디버그 모드에 따라 문제 세트 분기
-  if (activeUnit.name === 'Debug Practice') {
-    if (game.currentDebugMode === 'bug-hunt') {
-      return activeUnit.problems || [];
-    } else {
-      // Vibe 문제 세트가 없으면 기본 문제 목록으로 폴백
-      const vibeProblems = activeUnit.vibeProblems || [];
-      return vibeProblems.length > 0 ? vibeProblems : (activeUnit.problems || []);
-    }
-  }
-  return activeUnit.problems || [];
+  return problems;
 });
 
 const displayLabelsCount = computed(() => {
@@ -296,16 +290,17 @@ function selectProblem(problem) {
   game.activeChapter = game.activeUnit;
   ui.isUnitModalOpen = false;
 
-  const chapterName = game.activeUnit?.name;
+  const rawName = game.activeUnit?.name || '';
+  const chapterName = rawName.toLowerCase().replace(/\s+/g, '');
 
-  if (chapterName === 'Pseudo Practice') {
+  if (chapterName === 'pseudopractice') {
     game.selectedQuestIndex = problem.questIndex || 0;
     // [수정일: 2026-01-31] 모든 Unit 1 문제는 HUD 스타일의 통합 연습 화면(pseudoProblem.vue)으로 연결됩니다.
     router.push('/practice/pseudo-code');
-  } else if (chapterName === 'System Practice') {
+  } else if (chapterName === 'systempractice') {
     game.selectedSystemProblemIndex = problem.problemIndex || 0;
     router.push({ path: '/practice/system-architecture', query: { problem: problem.problemIndex || 0 } });
-  } else if (chapterName === 'Debug Practice') {
+  } else if (chapterName === 'debugpractice') {
     if (game.currentDebugMode === 'bug-hunt') {
       // p1, p2, p3 미션으로 바로 이동
       router.push({
@@ -316,7 +311,7 @@ function selectProblem(problem) {
       // Vibe Code Clean Up
       router.push('/practice/vibe-cleanup');
     }
-  } else if (chapterName === 'Ops Practice') {
+  } else if (chapterName === 'opspractice') {
     router.push('/practice/ops-practice');
   } else if (chapterName === 'Agent Practice') {
     ui.isAgentModalOpen = true;

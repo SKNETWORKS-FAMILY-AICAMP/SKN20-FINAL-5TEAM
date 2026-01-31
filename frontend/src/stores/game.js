@@ -17,7 +17,6 @@ export const useGameStore = defineStore('game', {
         unitProgress: {
             'Pseudo Practice': [0],
             // [수정일: 2026-01-28] 난이도별(초/중/고) 첫 문제를 기본 해금하여 즉시 선택 가능하도록 설정
-            'AI Detective': [0, 10, 20],
             'Debug Practice': [0],
             // [수정일: 2026-01-28] Vibe Clean Up 전용 진행도
             'Vibe Clean Up': [0],
@@ -144,11 +143,12 @@ export const useGameStore = defineStore('game', {
          * - 그 외의 유닛들은 백엔드 DB의 PracticeDetail 정보를 기반으로 동적으로 구성됩니다.
          */
         mapDetailsToProblems(unit, unitNum) {
-            // [수정일: 2026-01-28] 필드명 유연성 확보: unit.name과 unit.title 모두 체크
-            const unitTitle = unit.name || unit.title;
+            // [수정일: 2026-01-31] 필드명 유연성 확보 및 대소문자/공백 무시 비교
+            const rawTitle = unit.name || unit.title || '';
+            const unitTitle = rawTitle.toLowerCase().replace(/\s+/g, '');
 
             // [Unit 1] Pseudo Practice 처리
-            if (unitTitle === 'Pseudo Practice') {
+            if (unitTitle === 'pseudopractice') {
                 // unit1Mode에 따라 서로 다른 문제 세트 매핑 및 반환
                 if (this.unit1Mode === 'pseudo-practice') {
                     return aiQuests.map((q, idx) => ({
@@ -212,7 +212,7 @@ export const useGameStore = defineStore('game', {
             }
 
             // [Unit 2] Debug Practice 처리
-            if (unitTitle === 'Debug Practice' && progressiveData.progressiveProblems) {
+            if (unitTitle === 'debugpractice' && progressiveData.progressiveProblems) {
                 return progressiveData.progressiveProblems.map((m, idx) => ({
                     id: m.id,
                     missionId: m.id,
@@ -223,7 +223,7 @@ export const useGameStore = defineStore('game', {
             }
 
             // [Unit 3] System Practice 처리
-            if (unitTitle === 'System Practice') {
+            if (unitTitle === 'systempractice') {
                 return [
                     { id: 1, title: 'Instagram Home Feed', displayNum: '3-1', problemIndex: 0 },
                     { id: 2, title: 'YouTube VOD 업로드/스트리밍', displayNum: '3-2', problemIndex: 1 },
@@ -317,10 +317,17 @@ export const useGameStore = defineStore('game', {
                 return state.unitProgress[modeKey] || [0];
             }
 
-            // [수정일: 2026-01-28] Debug Practice는 현재 디버그 모드에 따라 진행도 키값 분기 처리
-            if (state.activeUnit.name === 'Debug Practice') {
+            // [수정일: 2026-01-31] 유닛 이름을 정규화하여 진행도 키값 매칭 (대소문자/공백 무시)
+            const rawTitle = state.activeUnit.name || state.activeUnit.title || '';
+            const unitTitle = rawTitle.toLowerCase().replace(/\s+/g, '');
+
+            if (unitTitle === 'debugpractice') {
                 const modeKey = state.currentDebugMode === 'vibe-cleanup' ? 'Vibe Clean Up' : 'Debug Practice';
                 return state.unitProgress[modeKey] || [0];
+            }
+
+            if (unitTitle === 'systempractice') {
+                return state.unitProgress['System Practice'] || [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
             }
 
             return state.unitProgress[state.activeUnit.name] || [0];
