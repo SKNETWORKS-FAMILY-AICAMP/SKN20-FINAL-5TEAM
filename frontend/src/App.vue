@@ -79,7 +79,8 @@
 
                 <div class="platform-circle-v3">
                   <template v-if="game.currentUnitProgress.includes(problem.questIndex)">
-                    <img v-if="problem.questIndex === currentMaxIdx" src="/image/unit_duck.png" class="duck-on-node-v3">
+                    <!-- [수정일: 2026-01-31] 오리 이미지가 클릭 이벤트를 가로채지 않도록 pointer-events-none 추가 -->
+                    <img v-if="problem.questIndex === currentMaxIdx" src="/image/unit_duck.png" class="duck-on-node-v3 pointer-events-none">
                     <div style="width: 20px; height: 20px; background: #b6ff40; border-radius: 50%; box-shadow: 0 0 10px #b6ff40;"></div>
                   </template>
                   <template v-else>
@@ -297,7 +298,8 @@ function selectProblem(problem) {
 
   const chapterName = game.activeUnit?.name;
 
-  if (chapterName === 'Pseudo Practice') {
+  // [수정일: 2026-01-31] 유닛 이름 체크를 유연하게(포함 여부 확인) 수정하여 맵 데이터와의 호환성 확보
+  if (chapterName && (chapterName.includes('Pseudo') || chapterName.includes('알고리즘'))) {
     game.selectedQuestIndex = problem.questIndex || 0;
     // [수정일: 2026-01-31] 모든 Unit 1 문제는 HUD 스타일의 통합 연습 화면(pseudoProblem.vue)으로 연결됩니다.
     router.push('/practice/pseudo-code');
