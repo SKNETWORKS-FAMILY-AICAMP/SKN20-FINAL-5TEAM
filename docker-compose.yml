@@ -24,7 +24,7 @@ services:
       - 8.8.8.8
       - 8.8.4.4
     env_file:
-      - .env
+      - ./.env # 2026-01-26 수정: 루트 .env 사용 명시
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings
       - DB_NAME=${DB_NAME}

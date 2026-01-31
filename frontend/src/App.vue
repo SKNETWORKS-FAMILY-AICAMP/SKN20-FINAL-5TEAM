@@ -4,33 +4,32 @@
 -->
 <template>
   <div id="app" v-cloak>
-    <!-- [라우터 뷰 - Practice 페이지 (메인 레이아웃 없이 단독 표시)] -->
-    <router-view v-if="isPracticePage" @close="handlePracticeClose"></router-view>
-
-    <!-- [메인 페이지] -->
-    <template v-else>
-      <LandingView
-        :isLoggedIn="auth.isLoggedIn"
-        :userProteinShakes="auth.userProteinShakes"
-        :chapters="game.chapters"
-        :leaderboard="leaderboard"
-        @go-to-playground="handleGoToPlayground"
-        @open-unit="openUnitPopup"
-      >
-        <template #auth-buttons>
-          <template v-if="!auth.isLoggedIn">
-            <button class="btn-login-ref" @click="ui.openLogin">Login</button>
-            <button class="btn-signup-ref" @click="ui.openSignUp">Sign Up</button>
-          </template>
-          <div v-else class="user-profile-v2">
-            <div class="user-info-v2">
-              <span class="user-name-v2">{{ auth.sessionNickname }}</span>
-              <span class="user-rank-v2">ENGINEER</span>
-            </div>
-            <button class="btn-logout-v2" @click="auth.logout">Logout</button>
-          </div>
+    <!-- [메인 페이지 배경 (맵)] -->
+    <LandingView
+      :isLoggedIn="auth.isLoggedIn"
+      :userProteinShakes="auth.userProteinShakes"
+      :chapters="game.chapters"
+      :leaderboard="leaderboard"
+      @go-to-playground="handleGoToPlayground"
+      @open-unit="openUnitPopup"
+    >
+      <template #auth-buttons>
+        <template v-if="!auth.isLoggedIn">
+          <button class="btn-login-ref" @click="ui.openLogin">Login</button>
+          <button class="btn-signup-ref" @click="ui.openSignUp">Sign Up</button>
         </template>
-      </LandingView>
+        <div v-else class="user-profile-v2">
+          <div class="user-info-v2">
+            <span class="user-name-v2">{{ auth.sessionNickname }}</span>
+            <span class="user-rank-v2">ENGINEER</span>
+          </div>
+          <button class="btn-logout-v2" @click="auth.logout">Logout</button>
+        </div>
+      </template>
+    </LandingView>
+
+    <!-- [라우터 뷰 - Practice 페이지 (HUD 오버레이 스타일)] -->
+    <router-view v-if="isPracticePage" @close="handlePracticeClose"></router-view>
 
       <!-- [유닛 상세 팝업 모달] -->
       <transition name="fade">
@@ -46,9 +45,8 @@
                     {{ game.currentDebugMode === 'bug-hunt' ? '🐞 Bug Hunt' : '✨ Vibe Code Clean Up' }}
                   </template>
                   <template v-else-if="game.activeUnit?.name === 'Pseudo Practice'">
-                    <template v-if="game.unit1Mode === 'ai-detective'">🕵️ AI Detective</template>
-                    <template v-else-if="game.unit1Mode === 'pseudo-forest'">🌳 Pseudo Forest</template>
-                    <template v-else>💻 Pseudo Practice</template>
+                    <!-- [수정일: 2026-01-31] 유닛 1 모드 통합: AI Detective, Pseudo Forest 등의 개별 타이틀을 제거하고 통합 타이틀로 표시 -->
+                    💻 Pseudo Code Practice
                   </template>
                   <template v-else>
                     {{ game.activeUnit?.unitTitle || (game.activeUnit?.problems && game.activeUnit.problems[0]?.title) || game.activeUnit?.name || 'Loading...' }}
@@ -110,63 +108,11 @@
           </div>
 
             <footer class="unit-stats-bar-v3">
-              <!-- [수정일: 2026-01-28] Unit 1(Pseudo Practice) 전용 모드 전환 버튼 추가 -->
-              <template v-if="game.activeUnit?.name === 'Pseudo Practice'">
-                <button 
-                  class="game-mode-btn pseudo-practice" 
-                  :class="{ 'active': game.unit1Mode === 'pseudo-practice' }" 
-                  @click="selectUnit1Mode('pseudo-practice')"
-                >
-                  <i data-lucide="code-2"></i> pseudo practice
-                </button>
-                <button 
-                  class="game-mode-btn ai-detective" 
-                  :class="{ 'active': game.unit1Mode === 'ai-detective' }" 
-                  @click="selectUnit1Mode('ai-detective')"
-                >
-                  <i data-lucide="search"></i> ai detective
-                </button>
-                <!-- [수정일: 2026-01-28] Pseudo Forest 메뉴 버튼 추가 -->
-                <button 
-                  class="game-mode-btn pseudo-forest" 
-                  :class="{ 'active': game.unit1Mode === 'pseudo-forest' }" 
-                  @click="selectUnit1Mode('pseudo-forest')"
-                >
-                  <i data-lucide="trees"></i> pseudo forest
-                </button>
-                <!-- [수정일: 2026-01-29] Pseudo Company 메뉴 버튼 추가 -->
-                <button 
-                  class="game-mode-btn pseudo-company" 
-                  :class="{ 'active': game.unit1Mode === 'pseudo-company' }" 
-                  @click="selectUnit1Mode('pseudo-company')"
-                >
-                  <i data-lucide="building-2"></i> pseudo company
-                </button>
-                <!-- [수정일: 2026-01-29] Pseudo Emergency 메뉴 버튼 추가 -->
-                <button 
-                  class="game-mode-btn pseudo-emergency" 
-                  :class="{ 'active': game.unit1Mode === 'pseudo-emergency' }" 
-                  @click="selectUnit1Mode('pseudo-emergency')"
-                >
-                  <i data-lucide="alert-circle"></i> pseudo emergency
-                </button>
-                
-                <!-- [수정일: 2026-01-28] AI Detective 선택 시 난이도 필터 탭 노출 -->
-                <div v-if="game.unit1Mode === 'ai-detective'" class="difficulty-tabs animate-in fade-in slide-in-from-bottom-2">
-                  <button 
-                    v-for="lv in ['초급', '중급', '고급']" 
-                    :key="lv"
-                    class="diff-tab"
-                    :class="{ 'active': detectiveLevel === lv }"
-                    @click="detectiveLevel = lv"
-                  >
-                    {{ lv }}
-                  </button>
-                </div>
-              </template>
+              <!-- [수정일: 2026-01-31] Unit 1(Pseudo Practice) 전용 하단 모드 전환 버튼 제거 -->
+              <!-- 기존의 ai detective, pseudo forest 등 모드 전환 기능을 제거하고 통합된 연습 경험을 제공합니다. -->
 
               <!-- 기존 Debug Practice 모드 전환 버튼 -->
-              <template v-else-if="game.activeUnit?.name === 'Debug Practice'">
+              <template v-if="game.activeUnit?.name === 'Debug Practice'">
                 <button class="game-mode-btn bug-hunt" :class="{ 'active': game.currentDebugMode === 'bug-hunt' }" @click="selectGameMode('bug-hunt')">🐞 Bug Hunt</button>
                 <button class="game-mode-btn vibe-cleanup" :class="{ 'active': game.currentDebugMode === 'vibe-cleanup' }" @click="selectGameMode('vibe-cleanup')">✨ Vibe Code Clean Up</button>
               </template>
@@ -180,7 +126,6 @@
           </div>
         </div>
       </transition>
-    </template>
 
     <!-- [전역 모달 통합 컨테이너] -->
     <GlobalModals />
@@ -217,8 +162,8 @@ const leaderboard = ref([
   { id: 5, username: 'OpsWizard', solved: 30, shakes: 1400 }
 ]);
 
-// [수정일: 2026-01-28] AI Detective 난이도 필터링을 위한 상태
-const detectiveLevel = ref('초급');
+// [수정일: 2026-01-31] 미사용 상태 제거 (모드 통합으로 인해 불필요)
+// const detectiveLevel = ref('초급');
 
 // Computed
 const isPracticePage = computed(() => {
@@ -230,9 +175,10 @@ const isPracticePage = computed(() => {
     'VibeCodeCleanUp', 
     'OpsPractice',
     'AiDetective',
-    'PseudoForest',
-    'PseudoCompany',
-    'PseudoEmergency' // [수정일: 2026-01-29] Pseudo Emergency 라우트 추가
+    // [수정일: 2026-01-31] 비활성 컴포넌트 이름 주석 처리
+    // 'PseudoForest',
+    // 'PseudoCompany',
+    // 'PseudoEmergency'
   ];
   return practiceRoutes.includes(route?.name);
 });
@@ -241,19 +187,10 @@ const displayProblems = computed(() => {
   const activeUnit = game.activeUnit;
   if (!activeUnit) return [];
 
-  // [수정일: 2026-01-28] Unit 1(Pseudo Practice)의 경우 현재 모드(unit1Mode) 전환을 감지하여 문제 목록을 즉시 갱신
   if (activeUnit.name === 'Pseudo Practice') {
-    const mode = game.unit1Mode; // 반응성 핵심: 이 값을 참조해야 함
+    // [수정일: 2026-01-31] 모드 통합 이후 Unit 1의 문제 목록 매핑 단순화
     const unitIndex = game.chapters.indexOf(activeUnit);
-    const allProblems = game.mapDetailsToProblems(activeUnit, unitIndex + 1);
-    
-    // AI Detective 모드인 경우 현재 선택된 난이도(detectiveLevel)로 필터링
-    if (mode === 'ai-detective') {
-      // [수정일: 2026-01-28] 문자열 불일치 방지를 위해 trim() 적용
-      const filtered = allProblems.filter(p => p.level?.trim() === detectiveLevel.value?.trim());
-      return filtered;
-    }
-    return allProblems;
+    return game.mapDetailsToProblems(activeUnit, unitIndex + 1);
   }
 
   // [기존 로직 복구] Debug Practice는 현재 디버그 모드에 따라 문제 세트 분기
@@ -294,7 +231,7 @@ const currentMaxIdx = computed(() => {
 
 // [수정일: 2026-01-28] 라우트 감시: 연습 페이지에서 홈으로 돌아올 때 유닛 상세 모달 자동 재개
 watch(() => route.name, (newNav, oldNav) => {
-  const practiceRoutes = ['PseudoCode', 'SystemArchitecturePractice', 'BugHunt', 'VibeCodeCleanUp', 'OpsPractice', 'AiDetective', 'PseudoForest', 'PseudoCompany', 'PseudoEmergency'];
+  const practiceRoutes = ['PseudoCode', 'SystemArchitecturePractice', 'BugHunt', 'VibeCodeCleanUp', 'OpsPractice' /*, 'AiDetective', 'PseudoForest', 'PseudoCompany', 'PseudoEmergency' */];
   // 연습 페이지에서 홈('/')으로 돌아오는 경우
   if (newNav === 'Home' && practiceRoutes.includes(oldNav)) {
     if (game.activeUnit) {
@@ -363,18 +300,8 @@ function selectProblem(problem) {
 
   if (chapterName === 'Pseudo Practice') {
     game.selectedQuestIndex = problem.questIndex || 0;
-    // [수정일: 2026-01-28] 현재 유닛1의 모드에 따라 라우팅 분기 처리
-    if (game.unit1Mode === 'ai-detective') {
-      router.push('/practice/ai-detective');
-    } else if (game.unit1Mode === 'pseudo-forest') {
-      router.push('/practice/pseudo-forest');
-    } else if (game.unit1Mode === 'pseudo-company') {
-      router.push('/practice/pseudo-company');
-    } else if (game.unit1Mode === 'pseudo-emergency') {
-      router.push('/practice/pseudo-emergency');
-    } else {
-      router.push('/practice/pseudo-code');
-    }
+    // [수정일: 2026-01-31] 모든 Unit 1 문제는 HUD 스타일의 통합 연습 화면(pseudoProblem.vue)으로 연결됩니다.
+    router.push('/practice/pseudo-code');
   } else if (chapterName === 'System Practice') {
     game.selectedSystemProblemIndex = problem.problemIndex || 0;
     router.push({ path: '/practice/system-architecture', query: { problem: problem.problemIndex || 0 } });
@@ -409,14 +336,8 @@ function handlePracticeClose() {
     ui.isUnitModalOpen = true;
 }
 
-function selectUnit1Mode(mode) {
-  // [수정일: 2026-01-28] 모드 전환 시 스토어 값만 변경해도 displayProblems가 자동으로 갱신됨
-  game.unit1Mode = mode;
-  
-  nextTick(() => {
-    if (window.lucide) window.lucide.createIcons();
-  });
-}
+// [수정일: 2026-01-31] 미사용 메서드 제거 (모드 전환 기능 제거)
+// function selectUnit1Mode(mode) { ... }
 
 function selectGameMode(mode) {
   game.currentDebugMode = mode;
@@ -471,7 +392,8 @@ watch(() => game.chapters, (newChapters) => {
 // [2026-01-24] 라우트 설정을 감시하여 Unit 1 모달 강제 제어 (필요 시 URL 직접 접근 대응)
 watch(() => route.name, (newName) => {
     // 1. URL이 변경될 때마다 모달 상태를 동기화합니다.
-    if (newName === 'PseudoCode' || newName === 'AiDetective' || newName === 'PseudoForest' || newName === 'PseudoCompany' || newName === 'PseudoEmergency') {
+    // [수정일: 2026-01-31] 비활성 라우트 체크 간소화
+    if (newName === 'PseudoCode') {
         ui.isPseudoCodeOpen = true; // 관련 라우트 접속 시 상태 활성화
         
         // [2026-01-27] 직접 URL 접근이나 새로고침 시 activeUnit이 상실되는 문제 해결
@@ -530,112 +452,6 @@ onUpdated(() => {
 .game-mode-btn.vibe-cleanup:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 25px rgba(255, 255, 0, 0.5);
-}
-
-/* [수정일: 2026-01-28] Unit 1 전용 모드 전환 버튼 스타일 추가 */
-.game-mode-btn.pseudo-practice {
-  background: linear-gradient(135deg, #4f46e5, #6366f1);
-  color: white;
-  box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
-  opacity: 0.6;
-}
-
-.game-mode-btn.pseudo-practice.active {
-  opacity: 1;
-  box-shadow: 0 4px 20px rgba(79, 70, 229, 0.6);
-  border: 2px solid white;
-}
-
-.game-mode-btn.ai-detective {
-  background: linear-gradient(135deg, #facc15, #eab308); /* yellow 계열 */
-  color: #1e293b;
-  box-shadow: 0 4px 15px rgba(234, 179, 8, 0.3);
-  opacity: 0.6;
-}
-
-.game-mode-btn.ai-detective.active {
-  opacity: 1;
-  box-shadow: 0 4px 20px rgba(234, 179, 8, 0.6);
-  border: 2px solid #1e293b;
-}
-
-/* [수정일: 2026-01-28] Pseudo Forest 버튼 스타일 (Green 테마) */
-.game-mode-btn.pseudo-forest {
-  background: linear-gradient(135deg, #10b981, #059669);
-  color: white;
-  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
-  opacity: 0.6;
-}
-
-.game-mode-btn.pseudo-forest.active {
-  border: 2px solid white;
-}
-
-/* [수정일: 2026-01-29] Pseudo Company 버튼 스타일 (Blue/Corporate 테마) */
-.game-mode-btn.pseudo-company {
-  background: linear-gradient(135deg, #0ea5e9, #0284c7);
-  color: white;
-  box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
-  opacity: 0.6;
-}
-
-.game-mode-btn.pseudo-company.active {
-  opacity: 1;
-  box-shadow: 0 4px 20px rgba(14, 165, 233, 0.6);
-  border: 2px solid white;
-}
-
-/* [수정일: 2026-01-29] Pseudo Emergency 버튼 스타일 (Red 테마) */
-.game-mode-btn.pseudo-emergency {
-  background: linear-gradient(135deg, #ff3e3e, #b31d1d);
-  color: white;
-  box-shadow: 0 4px 15px rgba(255, 62, 62, 0.3);
-  opacity: 0.6;
-}
-
-.game-mode-btn.pseudo-emergency.active {
-  opacity: 1;
-  box-shadow: 0 4px 20px rgba(255, 62, 62, 0.6);
-  border: 2px solid white;
-}
-
-.game-mode-btn:hover {
-  transform: translateY(-2px);
-  filter: brightness(1.1);
-}
-
-/* [수정일: 2026-01-28] AI Detective 난이도 탭 스타일 추가 */
-.difficulty-tabs {
-  display: flex;
-  gap: 8px;
-  background: rgba(0, 0, 0, 0.3);
-  padding: 6px;
-  border-radius: 12px;
-  margin-left: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.diff-tab {
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 800;
-  color: #64748b;
-  background: transparent;
-  transition: all 0.2s ease;
-  cursor: pointer;
-  border: none;
-}
-
-.diff-tab.active {
-  background: #facc15;
-  color: #0f172a;
-  box-shadow: 0 0 15px rgba(250, 204, 21, 0.3);
-}
-
-.diff-tab:hover:not(.active) {
-  background: rgba(255, 255, 255, 0.05);
-  color: #facc15;
 }
 
 /* Auth Buttons for LandingView Slot */

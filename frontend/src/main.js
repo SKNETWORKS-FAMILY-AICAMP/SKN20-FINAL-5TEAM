@@ -19,10 +19,11 @@ import SystemArchitecturePractice from './features/practice/SystemArchitecturePr
 import BugHunt from './features/practice/BugHunt.vue'
 import VibeCodeCleanUp from './features/practice/VibeCodeCleanUp.vue'
 import OpsPractice from './features/practice/OpsPractice.vue'
-import AiDetectivePractice from './features/practice/AiDetectivePractice.vue' // [수정일: 2026-01-28] AI Detective 컴포넌트 임포트
-import PseudoForest from './features/practice/PseudoForest.vue' // [수정일: 2026-01-28] Pseudo Forest 컴포넌트 임포트
-import PseudoCompany from './features/practice/PseudoCompany.vue' // [수정일: 2026-01-29] Pseudo Company 컴포넌트 임포트
-import PseudoEmergency from './features/practice/PseudoEmergency.vue' // [수정일: 2026-01-29] Pseudo Emergency 컴포넌트 임포트
+// [수정일: 2026-01-31] 사용하지 않는 구버전/비활성 컴포넌트 임포트 주석 처리
+// import AiDetectivePractice from './features/practice/AiDetectivePractice.vue'
+// import PseudoForest from './features/practice/PseudoForest.vue'
+// import PseudoCompany from './features/practice/PseudoCompany.vue'
+// import PseudoEmergency from './features/practice/PseudoEmergency.vue'
 
 const routes = [
   {
@@ -56,30 +57,28 @@ const routes = [
     name: 'OpsPractice',
     component: OpsPractice
   },
+  /* [수정일: 2026-01-31] 비활성 라우트 주석 처리
   {
-    // [수정일: 2026-01-28] AI Detective 라우트 등록
     path: '/practice/ai-detective',
     name: 'AiDetective',
     component: AiDetectivePractice
   },
   {
-    // [수정일: 2026-01-28] Pseudo Forest 라우트 등록
     path: '/practice/pseudo-forest',
     name: 'PseudoForest',
     component: PseudoForest
   },
   {
-    // [수정일: 2026-01-29] Pseudo Company 라우트 등록
     path: '/practice/pseudo-company',
     name: 'PseudoCompany',
     component: PseudoCompany
   },
   {
-    // [수정일: 2026-01-29] Pseudo Emergency 라우트 등록
     path: '/practice/pseudo-emergency',
     name: 'PseudoEmergency',
     component: PseudoEmergency
   },
+  */
   {
     path: '/main.html',
     redirect: '/'

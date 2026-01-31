@@ -1,9 +1,11 @@
 import { defineStore } from 'pinia';
 import axios from 'axios';
 import { aiQuests } from '../features/practice/support/unit1/logic-mirror/data/stages.js';
-import { aiDetectiveQuests } from '../features/practice/support/unit1/logic-mirror/data/aiDetectiveQuests.js';
+// [수정일: 2026-01-31] 비활성 데이터 임포트 주석 처리
+// import { aiDetectiveQuests } from '../features/practice/support/unit1/logic-mirror/data/aiDetectiveQuests.js';
 import progressiveData from '../features/practice/progressive-problems.json';
-import forestGameData from '../features/practice/PseudoForestData.js'; // [수정일: 2026-01-28] Forest 데이터 임포트
+// [수정일: 2026-01-31] 비활성 데이터 임포트 주석 처리
+// import forestGameData from '../features/practice/PseudoForestData.js';
 
 /**
  * [수정일: 2026-01-27]
@@ -64,9 +66,11 @@ export const useGameStore = defineStore('game', {
                 const imageMap = {
                     'Pseudo Practice': '/image/unit_code.png',
                     'Debug Practice': '/image/unit_debug.png',
+                    /* [수정일: 2026-01-31] 비활성 이미지 맵 주석 처리
                     'System Practice': '/image/unit_system.png',
                     'Ops Practice': '/image/unit_ops.png',
                     'Agent Practice': '/image/unit_agent.png'
+                    */
                 };
 
                 // [데이터 매핑 로직] DB 필드값을 UI 카드 컴포넌트의 props 형식에 맞게 변환하여 chapters 배열 구성
@@ -191,6 +195,7 @@ export const useGameStore = defineStore('game', {
                         mode: 'pseudo-emergency'
                     }];
                 }
+                /* [수정일: 2026-01-31] 비활성 모드 데이터 매핑 주석 처리
                 else {
                     return aiDetectiveQuests.map((q, idx) => ({
                         id: q.id,
@@ -203,6 +208,7 @@ export const useGameStore = defineStore('game', {
                         mode: 'ai-detective'
                     }));
                 }
+                */
             }
 
             // [Unit 2] Debug Practice 처리
