@@ -175,9 +175,10 @@ const isPracticePage = computed(() => {
     'VibeCodeCleanUp', 
     'OpsPractice',
     'AiDetective',
-    'PseudoForest',
-    'PseudoCompany',
-    'PseudoEmergency' // [수정일: 2026-01-29] Pseudo Emergency 라우트 추가
+    // [수정일: 2026-01-31] 비활성 컴포넌트 이름 주석 처리
+    // 'PseudoForest',
+    // 'PseudoCompany',
+    // 'PseudoEmergency'
   ];
   return practiceRoutes.includes(route?.name);
 });
@@ -230,7 +231,7 @@ const currentMaxIdx = computed(() => {
 
 // [수정일: 2026-01-28] 라우트 감시: 연습 페이지에서 홈으로 돌아올 때 유닛 상세 모달 자동 재개
 watch(() => route.name, (newNav, oldNav) => {
-  const practiceRoutes = ['PseudoCode', 'SystemArchitecturePractice', 'BugHunt', 'VibeCodeCleanUp', 'OpsPractice', 'AiDetective', 'PseudoForest', 'PseudoCompany', 'PseudoEmergency'];
+  const practiceRoutes = ['PseudoCode', 'SystemArchitecturePractice', 'BugHunt', 'VibeCodeCleanUp', 'OpsPractice' /*, 'AiDetective', 'PseudoForest', 'PseudoCompany', 'PseudoEmergency' */];
   // 연습 페이지에서 홈('/')으로 돌아오는 경우
   if (newNav === 'Home' && practiceRoutes.includes(oldNav)) {
     if (game.activeUnit) {
@@ -391,7 +392,8 @@ watch(() => game.chapters, (newChapters) => {
 // [2026-01-24] 라우트 설정을 감시하여 Unit 1 모달 강제 제어 (필요 시 URL 직접 접근 대응)
 watch(() => route.name, (newName) => {
     // 1. URL이 변경될 때마다 모달 상태를 동기화합니다.
-    if (newName === 'PseudoCode' || newName === 'AiDetective' || newName === 'PseudoForest' || newName === 'PseudoCompany' || newName === 'PseudoEmergency') {
+    // [수정일: 2026-01-31] 비활성 라우트 체크 간소화
+    if (newName === 'PseudoCode') {
         ui.isPseudoCodeOpen = true; // 관련 라우트 접속 시 상태 활성화
         
         // [2026-01-27] 직접 URL 접근이나 새로고침 시 activeUnit이 상실되는 문제 해결
