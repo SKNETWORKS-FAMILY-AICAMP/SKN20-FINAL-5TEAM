@@ -163,67 +163,61 @@ export function usePseudoProblem(props, emit) {
         inactivityTimer.value = setTimeout(nudgeUser, 30000) // 30초 휴면 시 발동
     }
 
-    // [수정일: 2026-01-31] nudgeUser 고도화: 단순 키워드 체크를 넘어 코드 완성도(AST 대용)와 문맥을 분석
+    // [수정일: 2026-01-31] nudgeUser 고도화: 사용자가 이미 구현한 논리를 인식하여 중복 가이드를 방지하고 칭찬과 다른 힌트를 제공
     const nudgeUser = () => {
         const questions = currentQuest.value.interviewQuestions || []
-        // Stage 1 인터뷰 중일 때는 별도 넛지 생략 (인터뷰 자체가 가이드)
         if (currentStep.value === 1 && questions.length > 0) return
 
         let nudgeText = ""
         const code = (currentStep.value === 2) ? pseudoInput.value : pythonInput.value
 
-        // 코드 완성도 체커
+        // [수정일: 2026-01-31] 상세 논리 상태 분석
         const getCompleteness = (txt, type) => {
-            if (!txt) return 0
-            let score = 0
-            if (type === 'pseudo') {
-                if (/(반복|하나씩|for|each)/.test(txt)) score += 30
-                if (/(만약|일 때|if|경우)/.test(txt)) score += 30
-                if (/(제거|삭제|추가|저장|기록|append|remove|continue|clean)/.test(txt)) score += 30
-                if (txt.length > 50) score += 10
-            } else {
-                if (/for\s+\w+\s+in\s+/.test(txt)) score += 30
-                if (/if\s+/.test(txt)) score += 30
-                if (/\.append\(/.test(txt) || /continue/.test(txt)) score += 30
-                if (txt.length > 100) score += 10
+            if (!txt) return { score: 0, hasLoop: false, hasCondition: false, hasAction: false }
+            let s = 0
+            const state = {
+                hasLoop: type === 'pseudo' ? /(반복|하나씩|for|each)/.test(txt) : /for\s+\w+\s+in\s+/.test(txt),
+                hasCondition: type === 'pseudo' ? /(만약|일 때|if|경우)/.test(txt) : /if\s+/.test(txt),
+                hasAction: type === 'pseudo' ? /(제거|삭제|추가|저장|기록|append|remove|continue|clean)/.test(txt) : (/\.append\(/.test(txt) || /continue/.test(txt))
             }
-            return score
+            if (state.hasLoop) s += 30
+            if (state.hasCondition) s += 30
+            if (state.hasAction) s += 30
+            if (txt.length > (type === 'pseudo' ? 50 : 100)) s += 10
+            return { score: s, ...state }
         }
 
-        const completeness = getCompleteness(code, currentStep.value === 2 ? 'pseudo' : 'python')
+        const stats = getCompleteness(code, currentStep.value === 2 ? 'pseudo' : 'python')
 
-        if (completeness >= 90) {
-            // 완성도가 높을 때의 격려형 힌트 (오만한 톤 배제)
+        if (stats.score >= 90) {
             const compliments = [
-                "오! 논리 구조가 거의 완벽해요. 마지막 디테일만 점검하고 제출해보시겠어요?",
-                "굉장히 훌륭한 코드네요! 제가 더 이상 드릴 말씀이 없을 정도예요. 꽥!",
-                "엔지니어님의 실력이 대단하시네요. 실행 버튼을 눌러 결과를 확인해보고 싶어요."
+                "캬! 논리 구조가 완벽합니다. 이제 제출해서 결과를 확인해볼까요?",
+                "굉장히 훌륭한 로직이네요! 제가 더 가이드할 게 없어서 심심할 정도예요. 꽥!",
+                "엔지니어님의 설계 능력이 대단합니다. 바로 실행 엔진으로 돌려보고 싶어요."
             ]
             nudgeText = compliments[Math.floor(Math.random() * compliments.length)]
         } else if (currentStep.value === 2) {
-            if (completeness < 30) {
-                nudgeText = "먼저 전체적인 흐름을 잡아볼까요? 데이터를 어떻게 '반복'해서 살펴볼지 생각해보세요."
-            } else if (completeness < 60) {
-                nudgeText = "반복 구조는 잡혔네요! 이제 특정 데이터를 걸러낼 '조건'을 추가해볼까요?"
-            } else {
-                nudgeText = "조건에 따른 '행동(저장/제거)'까지 명시해주시면 완벽한 설계가 될 거예요."
+            if (!stats.hasLoop) {
+                nudgeText = "데이터를 하나씩 살펴봐야 해요. '반복'해서 확인하는 구조를 먼저 잡아보면 어떨까요?"
+            } else if (!stats.hasCondition) {
+                nudgeText = "반복문은 아주 좋습니다! 이제 오염된 데이터를 판별할 '조건(만약~)'을 넣어볼까요?"
+            } else if (!stats.hasAction) {
+                nudgeText = "논리가 거의 완성됐어요. 조건을 만족했을 때 '삭제'하거나 '건너뛰는' 행동을 명시해주세요."
             }
         } else if (currentStep.value === 3) {
-            if (completeness < 30) {
-                nudgeText = "파이썬 문법이 낯선가요? 상단의 스니펫 버튼을 눌러 'for'문부터 시작해보세요!"
-            } else if (completeness < 60) {
-                nudgeText = "코드의 뼈대가 보이네요. 'if'문을 사용해 퀘스트 목표에 맞는 조건을 채워주세요."
-            } else {
-                nudgeText = "정화된 데이터를 리스트에 'append'하는 부분을 확인해보셨나요? 꽥!"
+            if (!stats.hasLoop) {
+                nudgeText = "파이썬의 'for'문을 사용해 리스트를 순회해보세요. 상단의 스니펫이 도움이 될 거예요."
+            } else if (!stats.hasCondition) {
+                nudgeText = "코드 뼈대가 튼튼하네요! 'if'문을 사용해 필터링 조건을 채워주시면 됩니다."
+            } else if (!stats.hasAction) {
+                nudgeText = "마지막 단계예요! 'continue'로 넘기거나 'append'로 저장하는 로직을 마무리해주세요. 꽥!"
             }
         }
 
+        // 중복 답변 방지 및 상태 기반 출력
         if (nudgeText && !chatMessages.value.some(m => m.text === nudgeText)) {
-            chatMessages.value.push({
-                sender: 'Coduck',
-                text: nudgeText,
-                isNudge: true
-            })
+            // "이미 ~하셨네요!" 식의 보강 (사용자가 이미 했다면 nudgeText를 위에서 다른 걸로 바꿨을 것이므로 여기서는 출력만)
+            chatMessages.value.push({ sender: 'Coduck', text: nudgeText, isNudge: true })
             scrollToBottom()
         }
     }
@@ -237,16 +231,7 @@ export function usePseudoProblem(props, emit) {
         if (pythonWorker) pythonWorker.terminate()
     })
 
-    watch(pseudoInput, (newVal) => {
-        if (newVal.length > 10 && !chatMessages.value.some(m => m.text.includes('시작'))) {
-            chatMessages.value.push({ sender: 'Coduck', text: '좋습니다. 먼저 데이터를 하나씩 꺼내는 "반복" 구조가 필요해 보입니다.' })
-            scrollToBottom()
-        }
-        if (newVal.includes('만약') && !chatMessages.value.some(m => m.text.includes('조건'))) {
-            chatMessages.value.push({ sender: 'Coduck', text: '조건문을 잘 작성하고 계시군요. "제거"하거나 "저장"하는 행동도 명시해주세요.' })
-            scrollToBottom()
-        }
-    })
+    // [수정일: 2026-01-31] 단순 키워드 와처는 지능형 넛지 시스템(nudgeUser)으로 통합하여 중복 방지
 
     // --- Methods ---
     const scrollToBottom = () => {

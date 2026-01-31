@@ -203,7 +203,7 @@
             </div>
             <div class="col-user">
               <div class="user-avatar-mini">
-                <img src="/image/unit_duck.png" alt="avatar">
+                <img src="/assets/characters/coduck.png" alt="avatar">
               </div>
               <span class="username-premium">{{ user.username }}</span>
             </div>
