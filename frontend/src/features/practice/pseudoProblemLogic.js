@@ -2,26 +2,23 @@
  [수정일: 2026-01-31]
  내용: pseudoProblem.vue의 로직을 Composable 패턴으로 분리
 */
-import { ref, reactive, computed, watch, nextTick } from 'vue'
-import {
-    Terminal,
-    Cpu,
-    Code as CodeIcon,
-    Award,
-    RotateCcw,
-    ChevronRight,
-    AlertTriangle,
-    CheckCircle,
-    X
-} from 'lucide-vue-next'
-import { useGameStore } from '@/stores/game'
+import { ref, reactive, computed, watch, nextTick, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useGameStore } from '@/stores/game'
 import axios from 'axios'
 import { aiQuests } from './support/unit1/logic-mirror/data/stages.js'
 
 export function usePseudoProblem(props, emit) {
     const gameStore = useGameStore()
     const router = useRouter()
+
+    // [수정일: 2026-01-31] Web Worker 초기화 (Pyodide 엔진) - 안전한 초기화
+    let pythonWorker = null
+    try {
+        pythonWorker = new Worker('/scripts/pyodideWorker.js')
+    } catch (e) {
+        console.error("Worker initialization failed:", e)
+    }
 
     // --- Logic & Data Integration ---
     const currentQuestIdx = computed(() => gameStore.selectedQuestIndex || 0)
@@ -44,26 +41,37 @@ export function usePseudoProblem(props, emit) {
         { id: 'b4', text: 'remove(text)' }
     ]
     const selectedBlock = ref(null)
-    const pythonBlanks = reactive({ blankA: null, blankB: null })
+    const pythonInput = ref('') // Step 3 직접 코드 입력을 위한 변수
     const simulationOutput = ref('')
     const simulationContainer = ref(null)
     const isSimulating = ref(false)
     const isEvaluating = ref(false)
+    const isSuccess = ref(false) // 단계 성공 여부 추적
+    const step4Options = computed(() => currentQuest.value.step4Options || [])
 
-    const sampleData = [
-        "삼성전자 주가 급등",
-        "광고) 지금 바로 클릭하세요",
-        "날씨",
-        "AI 모델의 미래 전망",
-        "초특가 광고 상품 안내"
-    ]
+    // 코드 스니펫 삽입 기능 (초보자 지원) - 주석(# TODO)을 감지하여 스마트하게 삽입
+    const insertSnippet = (snippet) => {
+        const lines = pythonInput.value.split('\n')
+        let targetIndex = -1
 
-    const step4Options = [
-        "'광고' 단어가 포함된 모든 문서를 무조건 삭제한다.",
-        "단순 키워드 매칭 대신, 문맥을 이해하는 AI 모델을 사용하여 필터링한다.",
-        "데이터 전처리를 아예 하지 않는다.",
-        "사람이 모든 데이터를 직접 읽고 지운다."
-    ]
+        // 첫 번째 만나는 # TODO 주석을 찾음
+        for (let i = 0; i < lines.length; i++) {
+            if (lines[i].includes('# TODO')) {
+                targetIndex = i
+                break
+            }
+        }
+
+        if (targetIndex !== -1) {
+            // 해당 라인의 인덴트(공백)를 유지하며 코드 삽입
+            const indent = lines[targetIndex].match(/^\s*/)[0]
+            lines[targetIndex] = `${indent}${snippet}`
+            pythonInput.value = lines.join('\n')
+        } else {
+            // 주석이 없으면 맨 뒤에 추가
+            pythonInput.value += `\n${snippet}`
+        }
+    }
 
     const feedbackModal = reactive({
         visible: false,
@@ -73,13 +81,14 @@ export function usePseudoProblem(props, emit) {
         isSuccess: true
     })
 
-    // Monaco Editor Options
+    // Monaco Editor Options - 가독성 향상을 위해 폰트 크기 및 줄 간격 최적화
     const editorOptions = {
         minimap: { enabled: false },
-        fontSize: 20,
-        lineHeight: 32,
+        fontSize: 22,
+        lineHeight: 36,
         theme: 'vs-dark',
         lineNumbers: 'on',
+        renderLineHighlight: 'all',
         scrollbar: {
             vertical: 'visible',
             horizontal: 'visible',
@@ -87,26 +96,81 @@ export function usePseudoProblem(props, emit) {
             horizontalSliderSize: 6
         },
         wordWrap: 'on',
-        padding: { top: 20, bottom: 20 },
-        fontFamily: "'Nanum Gothic Coding', monospace",
+        padding: { top: 24, bottom: 24 },
+        fontFamily: "'Fira Code', 'Nanum Gothic Coding', monospace",
+        fontLigatures: true,
         automaticLayout: true,
         suggestOnTriggerCharacters: true,
         folding: true,
         roundedSelection: true
     }
 
-    // --- Watchers ---
+    // 퀘스트 변경 시 상태 초기화
     watch(currentQuest, (newQuest) => {
-        if (newQuest && newQuest.cards) {
+        if (newQuest) {
             currentStep.value = 1
-            pythonBlanks.blankA = null
-            pythonBlanks.blankB = null
+            pythonInput.value = '' // 퀘스트 변경 시 코드 비우기 (3단계 진입 시 템플릿 로드 유도)
             simulationOutput.value = ''
-            if (pseudoInput.value !== undefined) {
-                pseudoInput.value = ''
-            }
+            isSuccess.value = false
+
+            // 챗봇용 퀘스트 정보 업데이트
+            chatMessages.value = [
+                { sender: 'Lion', text: `안녕하세요! 오늘의 미션은 [${newQuest.title}]입니다. ${newQuest.desc}` }
+            ]
         }
     }, { immediate: true })
+
+    // 단계(Step) 변경 시 로직
+    watch(currentStep, (newStep) => {
+        // 3단계(Python 코딩) 진입 시 템플릿 로드
+        if (newStep === 3 && !pythonInput.value) {
+            pythonInput.value = currentQuest.value.pythonTemplate || ''
+        }
+
+        // 단계 정답 여부 초기화
+        isSuccess.value = false
+    }, { immediate: true })
+
+    // [수정일: 2026-01-31] Lion Agent: 지능형 휴면 감지 및 능동적 가이드 로직
+    const inactivityTimer = ref(null)
+    const resetInactivityTimer = () => {
+        if (inactivityTimer.value) clearTimeout(inactivityTimer.value)
+        inactivityTimer.value = setTimeout(nudgeUser, 30000) // 30초 휴면 시 발동
+    }
+
+    const nudgeUser = () => {
+        let nudgeText = ""
+        const code = (currentStep.value === 2) ? pseudoInput.value : pythonInput.value
+
+        if (currentStep.value === 2) {
+            if (!code.includes('만약')) nudgeText = "엔지니어님, 광고를 걸러내기 위한 '만약(if)' 조건문이 필요해 보입니다."
+            else if (!code.includes('반복')) nudgeText = "데이터가 여러 개이니 '반복' 구조를 먼저 설계해보는 건 어떨까요?"
+            else nudgeText = "설계가 막히셨나요? '제거'하거나 '저장'하는 로직을 구체화해보세요!"
+        } else if (currentStep.value === 3) {
+            if (!code.includes('for')) nudgeText = "파이썬의 'for news in news_list:' 문법을 활용해 데이터를 하나씩 꺼내보세요."
+            else if (!code.includes('if')) nudgeText = "필터링의 핵심은 'if' 조건문입니다. 5자 미만이나 '광고' 단어를 체크해보세요."
+            else if (!code.includes('append')) nudgeText = "정화된 데이터를 'cleaned_data.append(news)'로 저장하는 것을 잊지 마세요!"
+            else nudgeText = "코드가 거의 완성된 것 같습니다. 상단의 '코드 실행 및 검증' 버튼을 눌러보시겠어요?"
+        }
+
+        if (nudgeText && !chatMessages.value.some(m => m.text === nudgeText)) {
+            chatMessages.value.push({
+                sender: 'Lion',
+                text: nudgeText,
+                isNudge: true
+            })
+            scrollToBottom()
+        }
+    }
+
+    watch([pseudoInput, pythonInput, currentStep], () => {
+        resetInactivityTimer()
+    }, { immediate: true })
+
+    onUnmounted(() => {
+        if (inactivityTimer.value) clearTimeout(inactivityTimer.value)
+        if (pythonWorker) pythonWorker.terminate()
+    })
 
     watch(pseudoInput, (newVal) => {
         if (newVal.length > 10 && !chatMessages.value.some(m => m.text.includes('시작'))) {
@@ -215,71 +279,114 @@ export function usePseudoProblem(props, emit) {
     }
 
     const selectBlock = (block) => { selectedBlock.value = block }
-    const fillBlank = (blankId) => {
-        if (!selectedBlock.value) return
-        pythonBlanks[blankId] = selectedBlock.value
-        selectedBlock.value = null
-    }
+
+    // fillBlank 및 pythonBlanks 는 Monaco Editor 도입으로 더 이상 사용하지 않으므로 제거합니다.
 
     const submitStep3 = () => {
-        const val = currentQuest.value.codeValidation
-        const bA = pythonBlanks.blankA?.text === (currentQuestIdx.value === 0 ? 'continue' : val.fee1)
-        const bB = pythonBlanks.blankB?.text === (currentQuestIdx.value === 0 ? 'append(text)' : val.fee2)
+        const code = pythonInput.value
+        const hasContinue = code.includes('continue')
+        const hasAppend = code.includes('append(news)')
+        const hasPass = code.includes('pass')
+        const hasBreak = code.includes('break')
+
         let score = 0
-        if (bA) score += 12
-        if (bB) score += 13
+        let details = '<div class="space-y-2"><p><strong>분석 결과:</strong></p>'
+
+        // 논리적 정확성 체크
+        if (hasContinue) {
+            score += 12
+            details += '<p class="text-green-400">✓ 필터링 조건 시 continue를 사용하여 효율적으로 데이터를 건너뛰었습니다.</p>'
+        } else if (hasPass) {
+            score += 8
+            details += '<p class="text-yellow-400">! pass를 사용했습니다. 로직은 작동하지만 continue가 더 명확할 수 있습니다.</p>'
+        } else if (hasBreak) {
+            score += 5
+            details += '<p class="text-pink-400">✗ break는 반복문을 완전히 멈춥니다. 남은 데이터를 검사하지 못하게 됩니다.</p>'
+        }
+
+        if (hasAppend) {
+            score += 13
+            details += '<p class="text-green-400">✓ valid한 데이터를 cleaned_data에 성공적으로 저장했습니다.</p>'
+        }
+
+        details += '</div>'
 
         userScore.step3 = score
         showFeedback(
-            score === 25 ? "🐍 파이썬 구현: 완벽함" : "🐍 파이썬 구현: 일부 오류",
-            score === 25 ? "논리를 코드로 완벽하게 변환하셨습니다." : "일부 로직이 의도와 다르게 동작할 수 있습니다.",
-            `<div class="space-y-2"><p><strong>설명:</strong></p><p>1. <code>continue</code>는 현재 반복을 건너뛰고 다음 데이터로 넘어갑니다.</p><p>2. 유효한 데이터만 리스트에 <code>append</code> 해야 메모리를 효율적으로 사용합니다.</p></div>`,
-            score > 15
+            score >= 20 ? "🐍 파이썬 구현: 완벽함" : "🐍 파이썬 구현: 로직 보완 필요",
+            score >= 20 ? "논리를 코드로 완벽하게 변환하셨습니다." : "일부 로직이 의도와 다르게 동작할 수 있습니다.",
+            details,
+            score >= 20
         )
     }
 
     const runSimulation = () => {
-        const bA = pythonBlanks.blankA?.text
-        const bB = pythonBlanks.blankB?.text
+        const code = pythonInput.value
 
-        if (!bA || !bB) {
-            simulationOutput.value = '<span class="text-pink-500">Error: 빈칸을 모두 채워야 실행할 수 있습니다.</span>'
+        if (code.length < 50) {
+            simulationOutput.value = '<span class="text-pink-500">Error: 코드가 너무 짧습니다. 템플릿의 형식을 유지해주세요.</span>'
             return
         }
 
         isSimulating.value = true
-        simulationOutput.value = '<span class="text-cyan-500">Initializing cleaning_protocol.v3...</span><br>'
+        simulationOutput.value = '<span class="text-cyan-500 font-black animate-pulse">AI-GYM Sandbox Environment Initializing...</span><br>'
 
-        let cleaned_data = []
-        let log = '<span class="text-cyan-400 font-black tracking-widest uppercase text-[10px] italic">Checking system_integrity_protocol...</span><br>'
+        // 실제 파이썬 코드 실행을 위한 래핑
+        // 1. 유저의 함수 정의 
+        // 2. target_data(worker에서 주입됨)를 인자로 함수 호출 및 결과 출력
+        const wrappedCode = `
+${code}
 
-        for (let news of sampleData) {
-            log += `<span class="text-gray-500 italic mt-2">Checking_Node: "${news}"</span><br>`
-            if (news.length < 5 || news.includes("광고")) {
-                if (bA === 'continue') {
-                    log += `<span class="text-yellow-500 font-mono">&nbsp;&nbsp;[PROT_SKIP]: 필터링 조건 일치.</span><br>`
-                    continue
-                } else if (bA === 'break') {
-                    log += `<span class="text-red-500 font-mono">&nbsp;&nbsp;[PROT_HALT]: 반복문 강제 종료됨.</span><br>`
-                    break
-                }
-            }
-            if (bB === 'append(text)') {
-                cleaned_data.push(news)
-                log += `<span class="text-green-500 font-mono">&nbsp;&nbsp;[DATA_SAVE]: 데이터가 cleaned_data에 커밋됨.</span><br>`
-            }
+try:
+    result = clean_news_data(target_data)
+    print(f"[SYSTEM_RESULT]: {result}")
+except Exception as e:
+    print(f"[SYSTEM_ERROR]: {str(e)}")
+`
+
+        if (!pythonWorker) {
+            simulationOutput.value = '<span class="text-pink-500">Error: Python 엔진 초기화에 실패했습니다. 관리자에게 문의하세요.</span>'
+            isSimulating.value = false
+            return
         }
 
-        log += `<br><strong class="text-white bg-cyan-700/30 px-2 py-1 italic tracking-widest uppercase text-[10px]">SYNC_COMPLETED: [${cleaned_data.join(', ')}]</strong>`
+        pythonWorker.postMessage({
+            code: wrappedCode,
+            data: currentQuest.value.sampleData || []
+        })
 
-        setTimeout(() => {
+        pythonWorker.onmessage = (event) => {
+            const { success, output, error } = event.data
+            let log = '<span class="text-cyan-400 font-black tracking-widest uppercase text-[10px] italic">Executing cleaner_module.py on Pyodide_Runtime...</span><br><br>'
+
+            if (success) {
+                // 특정 색상 입히기
+                const formattedOutput = output
+                    .replace(/\[SYSTEM_RESULT\]:/g, '<strong class="text-white bg-cyan-700/30 px-2 py-1 italic tracking-widest uppercase text-[10px]">EXEC_COMPLETED:</strong>')
+                    .replace(/\n/g, '<br>')
+
+                log += `<div class="font-mono text-gray-300 leading-relaxed">${formattedOutput}</div>`
+
+                // 성공 시 자동으로 다음 단계 평가 진행 (실제로 결과가 나왔으므로)
+                setTimeout(() => {
+                    submitStep3()
+                }, 1000)
+            } else {
+                log += `<div class="text-pink-500 font-mono p-4 bg-pink-500/10 border border-pink-500/20 rounded-lg">
+                    <p class="font-black mb-2 uppercase text-xs">Runtime_Execution_Error</p>
+                    <p class="text-sm">${error}</p>
+                </div>`
+            }
+
             simulationOutput.value = log
             isSimulating.value = false
+
             nextTick(() => {
-                if (simulationContainer.value) simulationContainer.value.scrollTop = simulationContainer.value.scrollHeight
+                if (simulationContainer.value) {
+                    simulationContainer.value.scrollTop = simulationContainer.value.scrollHeight
+                }
             })
-            submitStep3()
-        }, 800)
+        }
     }
 
     const handleStep4Submit = (idx) => {
@@ -316,20 +423,22 @@ export function usePseudoProblem(props, emit) {
         return review
     })
 
+
     return {
         currentQuest,
         currentStep,
         userScore,
         pseudoInput,
+        pythonInput, // 추가
         chatMessages,
         chatContainer,
         blocks,
         selectedBlock,
-        pythonBlanks,
         simulationOutput,
         simulationContainer,
         isSimulating,
         isEvaluating,
+        isSuccess,
         step4Options,
         feedbackModal,
         editorOptions,
@@ -337,12 +446,10 @@ export function usePseudoProblem(props, emit) {
         handleStep1Submit,
         submitStep2,
         selectBlock,
-        fillBlank,
         runSimulation,
         handleStep4Submit,
         nextStep,
         reloadApp,
-        // 아이콘들도 템플릿에서 component :is로 쓸 수 있게 반환
-        Terminal, Cpu, CodeIcon, Award, RotateCcw, ChevronRight, AlertTriangle, CheckCircle, X
+        insertSnippet // 추가
     }
 }

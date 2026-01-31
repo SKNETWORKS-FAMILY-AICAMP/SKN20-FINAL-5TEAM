@@ -1,7 +1,7 @@
 <template>
   <!-- [수정일: 2026-01-31] 전역 모달(z-index 1000)보다 위에 오도록 z-index를 z-[2000]으로 상향 조정 -->
-  <div v-if="isOpen" class="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" @click.self="$emit('close')">
-    <div class="bg-[#0a0e17] w-full max-w-[1700px] h-[96vh] rounded-3xl border border-white/10 shadow-2xl overflow-hidden flex flex-col relative animate-scale-in">
+  <div v-if="isOpen" class="fixed inset-0 z-[2000] flex items-center justify-center md:p-4 bg-black/60 backdrop-blur-sm animate-fade-in" @click.self="$emit('close')">
+    <div class="bg-[#0a0e17] w-full max-w-[1700px] h-full md:h-[96vh] md:max-h-[1000px] md:rounded-3xl border border-white/10 shadow-2xl overflow-hidden flex flex-col relative animate-scale-in">
       
       <!-- Glow Decor (main 브랜치의 화려한 배경 효과 복구) -->
       <div class="absolute top-0 left-1/4 w-[600px] h-[600px] bg-cyan-500/[0.03] rounded-full blur-[120px] pointer-events-none"></div>
@@ -51,7 +51,7 @@
       </header>
 
       <!-- Main Content Area -->
-      <main class="flex-1 p-8 lg:p-12 max-w-full mx-auto w-full relative flex flex-col min-h-0 overflow-y-auto custom-scrollbar z-10">
+      <main class="flex-1 p-4 md:p-8 lg:p-12 max-w-full mx-auto w-full relative flex flex-col min-h-0 overflow-y-auto custom-scrollbar z-10">
         <!-- Progress Bar -->
         <div v-if="currentStep <= 4" class="max-w-4xl mx-auto w-full mb-16 px-6 shrink-0">
           <div class="flex justify-between mb-4 px-1">
@@ -116,7 +116,7 @@
               <div class="flex items-baseline gap-6 h-10">
                 <span class="text-cyan-500 font-black text-6xl italic leading-none">Q.</span>
               </div>
-              <h3 class="text-3xl lg:text-4xl font-black text-white leading-[1.2]">다음 중 데이터 전처리를 수행해야 하는 가장 타당한 이유는?</h3>
+              <h3 class="text-3xl lg:text-4xl font-black text-white leading-[1.2]">{{ currentQuest.quizTitle || '다음 중 올바른 정답을 고르세요.' }}</h3>
             </div>
 
             <div class="grid grid-cols-1 gap-6 flex-1">
@@ -125,7 +125,7 @@
                 class="w-full text-left p-8 lg:p-10 bg-[#161b22] border border-white/10 rounded-2xl hover:bg-[#1c2128] hover:border-cyan-500/60 transition-all group flex items-center shadow-md hover:shadow-cyan-500/10 relative overflow-hidden">
                 <div class="absolute inset-y-0 left-0 w-2.5 transition-all bg-transparent group-hover:bg-cyan-500"></div>
                 <span class="flex-1 font-bold text-[#c9d1d9] text-xl lg:text-[24px] group-hover:text-white transition-colors pl-6 lg:pl-10">
-                  {{ idx + 1 }}. {{ opt.text }}
+                  {{ idx + 1 }}. {{ opt?.text || '옵션이 없습니다.' }}
                 </span>
               </button>
             </div>
@@ -133,17 +133,17 @@
         </div>
 
         <!-- STAGE 2: Pseudocode (main 브랜치의 문제 정의 HUD 복구) -->
-        <div v-if="currentStep === 2" class="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 animate-fade-in-up items-start max-w-[1600px] mx-auto w-full flex-1 min-h-0 pb-10">
-          <div class="flex flex-col gap-10 min-h-0 w-full">
+        <div v-if="currentStep === 2" class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-14 animate-fade-in-up items-stretch max-w-[1600px] mx-auto w-full flex-1 min-h-0 pb-6 md:pb-10">
+          <div class="flex flex-col gap-6 lg:gap-10 min-h-0 w-full">
             <!-- Problem Definition -->
-            <div class="bg-black/40 border border-cyan-500/20 p-8 lg:p-12 hud-box-clip h-[350px] relative overflow-hidden group flex flex-col">
+            <div class="bg-black/40 border border-cyan-500/20 p-6 lg:p-12 hud-box-clip flex-1 md:h-[350px] relative overflow-hidden group flex flex-col">
               <h3 class="text-3xl font-black text-white italic mb-8 flex items-center gap-4 shrink-0">
                 <CodeIcon class="w-8 h-8 text-cyan-400" /> MISSION_OBJECTIVE
               </h3>
               <!-- Scrollable Content -->
               <div class="flex-1 overflow-y-auto custom-scrollbar pr-4 space-y-8">
                 <p class="text-gray-300 leading-relaxed font-bold text-xl lg:text-2xl">
-                  리스트에 담긴 뉴스 제목들 중 <span class="bg-cyan-500/20 text-cyan-300 px-2 rounded">"광고"</span>, <span class="bg-cyan-500/20 text-cyan-300 px-2 rounded">"클릭"</span>이 포함된 제목과, <span class="bg-pink-500/20 text-pink-300 px-2 rounded">길이가 5자 미만</span>인 데이터를 제거하는 필터링 로직을 설계하십시오.
+                  {{ currentQuest.missionObjective || '해당 단계의 매뉴얼이 업로드되지 않았습니다.' }}
                 </p>
                 <div class="h-px bg-gradient-to-r from-cyan-500/50 to-transparent"></div>
                 <div class="space-y-4">
@@ -189,7 +189,7 @@
             </div>
             
             <div class="relative flex-1 flex flex-col group/editor min-h-[400px]">
-              <vue-monaco-editor
+              <VueMonacoEditor
                 v-model:value="pseudoInput"
                 theme="vs-dark"
                 language="markdown"
@@ -213,94 +213,116 @@
           </div>
         </div>
 
-        <!-- STAGE 3: Python Blocks (main 브랜치의 시네마틱 스타일 복구) -->
-        <div v-if="currentStep === 3" class="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 animate-fade-in-up items-start max-w-[1600px] mx-auto w-full flex-1 min-h-0 pb-10">
-          <!-- Left: Blocks -->
-          <div class="bg-[#0f1219]/60 border border-white/5 p-10 hud-box-clip flex flex-col relative group min-h-0">
-            <div class="absolute inset-0 bg-gradient-to-b from-cyan-500/[0.02] to-transparent pointer-events-none"></div>
-            
-            <div class="mb-10 relative shrink-0">
-              <div class="flex items-center gap-4 mb-4">
-                <div class="w-1.5 h-8 bg-cyan-500 shadow-[0_0_10px_#00f3ff]"></div>
-                <h3 class="text-3xl lg:text-4xl font-black text-white italic tracking-tighter uppercase">코드 블록 보관함</h3>
+        <!-- STAGE 3: Python Build (중요: 블록/빈칸에서 Monaco Editor 직접 입력으로 개편) -->
+        <div v-if="currentStep === 3" class="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 animate-fade-in-up items-start max-w-[1600px] mx-auto w-full flex-1 min-h-0">
+          <!-- Left: Code Editor -->
+          <div class="flex flex-col min-h-0 h-full">
+            <div class="bg-black/40 border border-white/10 p-8 hud-box-clip flex-1 flex flex-col min-h-[500px]">
+              <div class="flex items-center justify-between mb-8">
+              <div class="flex items-center gap-6">
+                  <div class="p-4 bg-cyan-500/10 rounded-xl border-2 border-cyan-500/30">
+                    <CodeIcon class="text-cyan-400 w-8 h-8" />
+                  </div>
+                  <div>
+                    <h3 class="text-3xl font-black text-white italic tracking-tighter uppercase">{{ currentQuest.title }}</h3>
+                    <p class="text-xs text-cyan-500 font-mono tracking-[0.3em] font-bold">MODULE: {{ currentQuest.subModuleTitle || 'SYSTEM_CORE' }}</p>
+                  </div>
+                </div>
               </div>
-              <p class="text-gray-400 text-lg lg:text-xl leading-relaxed font-bold">
-                아래 블록을 클릭하여 선택한 후, 오른쪽 코드의 빈칸을 클릭해 채워넣으세요.
-              </p>
-            </div>
-            
-            <div class="grid grid-cols-2 gap-4 flex-1 overflow-y-auto custom-scrollbar pr-4 min-h-0 content-start">
-              <button v-for="block in blocks" :key="block.id"
-                @click="selectBlock(block)"
-                class="group relative h-28 transition-all active:scale-[0.98]">
-                <div class="absolute inset-0 bg-black/40 border transition-all duration-300 hud-box-clip"
-                     :class="selectedBlock && selectedBlock.id === block.id ? 'border-cyan-500 shadow-[0_0_20px_rgba(0,243,255,0.2)] bg-cyan-500/10' : 'border-white/10 group-hover:border-cyan-500/30'">
+              
+              <!-- [추가] Mission Briefing (상시 노출 문제 설명) -->
+              <div class="mb-10 p-6 bg-cyan-500/5 border border-cyan-500/20 rounded-2xl relative overflow-hidden">
+                <div class="flex items-start gap-5">
+                  <div class="p-3 bg-cyan-500/10 rounded-lg">
+                    <Terminal class="w-5 h-5 text-cyan-400" />
+                  </div>
+                  <div class="flex-1">
+                    <h4 class="text-[10px] font-mono text-cyan-500/40 uppercase tracking-[0.3em] mb-2 font-black italic">MISSION_BRIEFING</h4>
+                    <p class="text-lg text-gray-200 font-bold leading-relaxed italic">
+                      {{ currentQuest.missionObjective || '현재 단계의 규칙 분석 중...' }}
+                    </p>
+                  </div>
                 </div>
-                <div class="relative h-full flex items-center justify-center px-4">
-                  <span class="text-base font-black tracking-widest uppercase transition-all"
-                        :class="selectedBlock && selectedBlock.id === block.id ? 'text-cyan-400' : 'text-gray-400 group-hover:text-cyan-300'">
-                    {{ block.text }}
-                  </span>
+                <!-- Decoration dots -->
+                <div class="absolute top-2 right-4 flex gap-1">
+                  <div v-for="i in 3" :key="i" class="w-0.5 h-0.5 bg-cyan-500/40"></div>
                 </div>
-              </button>
-            </div>
+              </div>
+              
+              <!-- Python Monaco Editor Helper Chips (디자인 및 가독성 고도화) -->
+              <div class="mb-4">
+                <div class="flex items-center gap-3 mb-4">
+                  <div class="h-[1px] flex-1 bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent"></div>
+                  <span class="text-[10px] font-mono text-cyan-500/50 tracking-[0.4em] uppercase font-black italic">Assist_Interface</span>
+                  <div class="h-[1px] flex-1 bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent"></div>
+                </div>
+                <div class="flex flex-wrap gap-4 justify-center">
+                  <button 
+                    v-for="token in (currentQuest.pythonSnippets || [])" 
+                    :key="token.code"
+                    @click="insertSnippet(token.code)"
+                    class="flex items-center gap-3 px-5 py-2.5 bg-[#1a1a1a] hover:bg-white/[0.05] border border-white/10 hover:border-cyan-500/50 rounded-lg transition-all active:scale-[0.97] group/chip shadow-lg hover:shadow-cyan-500/5"
+                  >
+                    <div :class="['p-1.5 rounded-md transition-all group-hover/chip:scale-110 shadow-inner bg-cyan-500/10']">
+                      <!-- 아이콘을 토큰 데이터에 따라 동적으로 v-if로 렌더링 -->
+                      <RotateCcw v-if="token.icon === 'RotateCcw'" class="w-4 h-4 text-cyan-400" />
+                      <CodeIcon v-else-if="token.icon === 'CodeIcon'" class="w-4 h-4 text-cyan-400" />
+                      <X v-else-if="token.icon === 'X'" class="w-4 h-4 text-cyan-400" />
+                      <Cpu v-else-if="token.icon === 'Cpu'" class="w-4 h-4 text-cyan-400" />
+                      <Award v-else-if="token.icon === 'Award'" class="w-4 h-4 text-cyan-400" />
+                      <Terminal v-else class="w-4 h-4 text-cyan-400" />
+                    </div>
+                    <div class="flex flex-col items-start gap-0.5">
+                      <span class="text-[11px] font-black text-gray-500 group-hover/chip:text-cyan-400 transition-colors uppercase tracking-tighter">{{ token.label }}</span>
+                      <span class="text-[12px] font-mono font-bold text-gray-300">{{ token.code.split('(')[0] }}</span>
+                    </div>
+                  </button>
+                </div>
+              </div>
 
-            <div class="mt-8 p-8 bg-white/[0.02] border-l-4 border-pink-500 hud-box-clip relative overflow-hidden shrink-0">
-              <div class="absolute top-0 right-0 w-16 h-16 bg-pink-500/5 rotate-45 translate-x-8 -translate-y-8"></div>
-              <p class="text-base lg:text-lg text-gray-300 leading-relaxed font-bold italic">
-                <span class="text-pink-500 not-italic font-black mr-2">Tip:</span> continue는 건너뛰기, break는 멈추기입니다. 우리는 끝까지 다 검사해야 해요.
-              </p>
+              <!-- Python Monaco Editor -->
+              <div class="flex-1 border border-white/10 relative group bg-[#111] rounded-xl overflow-hidden min-h-0 shadow-[inset_0_0_30px_rgba(0,0,0,0.5)]">
+                <VueMonacoEditor
+                  v-model:value="pythonInput"
+                  language="python"
+                  :options="editorOptions"
+                  class="h-full"
+                />
+              </div>
+
+              <div class="mt-8 p-8 bg-cyan-500/[0.03] border border-cyan-500/10 rounded-2xl relative overflow-hidden shrink-0 group/tip">
+                <div class="absolute top-0 right-0 w-24 h-24 bg-cyan-500/5 rotate-45 translate-x-12 -translate-y-12"></div>
+                <div class="flex gap-6 items-center">
+                  <div class="w-12 h-12 bg-cyan-400/10 rounded-xl flex items-center justify-center shrink-0 border border-cyan-400/20 group-hover/tip:border-cyan-400/40 transition-colors">
+                    <AlertTriangle class="text-cyan-400 w-6 h-6 animate-pulse" />
+                  </div>
+                  <div class="flex-1">
+                    <h4 class="text-[11px] font-mono text-cyan-500 uppercase tracking-[0.2em] mb-1 font-black">LION_SYSTEM_GUIDE</h4>
+                    <p class="text-base lg:text-lg text-gray-400 font-bold leading-relaxed">
+                      작성하신 논리를 <span class="text-cyan-400 italic font-black uppercase tracking-tighter">Python 코드로 구현</span>할 차례입니다.
+                      에디터 내의 <span class="text-white bg-cyan-500/20 px-2 py-0.5 rounded text-sm mx-1"># TODO</span> 주석 위치에 적절한 제어문과 행동을 배치해 정화 모듈을 완성하세요.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <!-- Right: Executor -->
-          <div class="bg-[#1a1a1a] border border-white/5 hud-box-clip flex flex-col relative overflow-hidden group shadow-2xl min-h-[600px]">
+          <!-- Right: Executor (Simulation) -->
+          <div class="bg-[#1a1a1a] border border-white/5 hud-box-clip flex flex-col relative overflow-hidden group shadow-2xl min-h-[500px]">
             <div class="p-6 px-10 flex justify-between items-center shrink-0 border-b border-white/5 bg-black/20">
               <div class="flex items-center gap-3">
-                <div class="w-2 h-2 rounded-full bg-pink-500 animate-pulse"></div>
-                <span class="text-[12px] font-mono text-cyan-400/60 uppercase tracking-widest font-black">Python_Executor_v3.2</span>
+                <div class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></div>
+                <span class="text-[12px] font-mono text-cyan-400/60 uppercase tracking-widest font-black">AI_GYM_SANDBOX_v1.0</span>
               </div>
-              <span class="text-[11px] font-mono text-gray-500 uppercase tracking-widest italic font-bold">data_cleaning.py</span>
+              <span class="text-[11px] font-mono text-gray-500 uppercase tracking-widest italic font-bold">execution_log.v3</span>
             </div>
 
             <div class="flex-1 p-8 lg:p-12 relative overflow-y-auto custom-scrollbar min-h-0 font-mono" ref="simulationContainer">
-              <!-- Code Structure -->
-              <div v-if="!simulationOutput" class="text-[15px] lg:text-[17px] leading-[2.4] font-medium text-gray-300">
-                <pre>def clean_news_data(news_list):
-    cleaned_data = []
-
-    for news in news_list:
-        <span class="text-gray-500 italic"># 1. 길이 체크 및 키워드 필터링</span>
-        if len(news) < 5 or "광고" in news:</pre>
-                
-                <!-- Blank A -->
-                <div class="flex items-center gap-4 pl-8 lg:pl-12 h-20">
-                  <div @click="fillBlank('blankA')"
-                       class="min-w-[280px] border-b-2 transition-all cursor-pointer flex items-center justify-center relative group/blank"
-                       :class="pythonBlanks.blankA ? 'border-cyan-500 text-cyan-400' : 'border-gray-700 hover:border-gray-500 bg-white/[0.02]'">
-                    <span class="text-3xl font-black tracking-widest">{{ pythonBlanks.blankA ? pythonBlanks.blankA.text : "__________" }}</span>
-                    <div class="ml-6 text-xl text-yellow-500/80 font-black tracking-tighter">__(A)__</div>
-                  </div>
-                </div>
-
-                <pre class="mt-4">
-        <span class="text-gray-500 italic"># 2. 유효한 데이터 저장</span></pre>
-
-                <!-- Blank B -->
-                <div class="flex items-center pl-8 lg:pl-12 h-20">
-                  <span class="text-2xl">cleaned_data.</span>
-                  <div @click="fillBlank('blankB')"
-                       class="min-w-[280px] border-b-2 transition-all cursor-pointer flex items-center justify-center relative group/blank mx-4"
-                       :class="pythonBlanks.blankB ? 'border-cyan-500 text-cyan-400' : 'border-gray-700 hover:border-gray-500 bg-white/[0.02]'">
-                    <span class="text-3xl font-black tracking-widest">{{ pythonBlanks.blankB ? pythonBlanks.blankB.text : "__________" }}</span>
-                  </div>
-                  <div class="text-xl text-yellow-500/80 font-black tracking-tighter ml-6">__(B)__</div>
-                </div>
-
-                <pre class="mt-6">    return cleaned_data</pre>
+              <div v-if="!simulationOutput" class="h-full flex flex-col items-center justify-center text-gray-600 gap-6 opacity-40">
+                <Cpu class="w-20 h-20" />
+                <p class="text-lg font-black tracking-widest">AWAITING_CODE_COMMIT</p>
               </div>
-              
-              <!-- Simulation Output Display -->
               <div v-else class="font-mono text-sm leading-relaxed" v-html="simulationOutput"></div>
               
               <div class="absolute bottom-8 right-8 z-20">
@@ -319,10 +341,10 @@
         </div>
 
         <!-- STAGE 4: Deep Dive (main 브랜치의 트레이드오프 설명 HUD 복구) -->
-        <div v-if="currentStep === 4" class="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 animate-fade-in-up items-start max-w-[1600px] mx-auto w-full flex-1 min-h-0 pb-10">
-          <!-- Info -->
-          <div class="flex flex-col min-h-0">
-            <div class="bg-black/40 border border-pink-500/20 p-10 relative group overflow-hidden flex-1 hud-box-clip min-h-0">
+        <div v-if="currentStep === 4" class="grid grid-cols-1 xl:grid-cols-2 gap-8 lg:gap-14 animate-fade-in-up items-stretch max-w-[1800px] mx-auto w-full flex-1 min-h-0 pb-6 md:pb-10">
+          <!-- Left: Coding Editor Area -->
+          <div class="flex flex-col min-h-[500px] md:min-h-0 w-full">
+            <div class="bg-black/40 border border-white/5 p-6 lg:p-12 relative group overflow-hidden flex-1 flex flex-col hud-box-clip min-h-0">
               <div class="absolute top-0 right-0 w-32 h-32 bg-pink-500/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-pink-500/10 transition-all duration-1000"></div>
               
               <div class="flex items-center gap-6 mb-10">
@@ -461,7 +483,8 @@
 
             <div class="flex items-center space-x-6 mb-10">
               <div :class="feedbackModal.isSuccess ? 'bg-green-500/20 text-green-400' : 'bg-pink-500/20 text-pink-400'" class="p-4 border border-current rounded-xl">
-                <component :is="feedbackModal.isSuccess ? CheckCircle : AlertTriangle" class="w-12 h-12" />
+                <CheckCircle v-if="feedbackModal.isSuccess" class="w-12 h-12" />
+                <AlertTriangle v-else class="w-12 h-12" />
               </div>
               <h3 class="text-2xl lg:text-3xl font-black text-white italic tracking-tighter uppercase">{{ feedbackModal.title }}</h3>
             </div>
@@ -500,6 +523,17 @@
  내용: 스크립트 로직을 별도 파일(pseudoProblemLogic.js)로 분리하여 유지보수성 향상
 */
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
+import {
+  Terminal,
+  Cpu,
+  Code as CodeIcon,
+  Award,
+  RotateCcw,
+  ChevronRight,
+  AlertTriangle,
+  CheckCircle,
+  X
+} from 'lucide-vue-next'
 import Duck from './components/Duck.vue'
 import { usePseudoProblem } from './pseudoProblemLogic'
 
@@ -516,11 +550,11 @@ const {
   currentStep,
   userScore,
   pseudoInput,
+  pythonInput, // 추가
   chatMessages,
   chatContainer,
   blocks,
   selectedBlock,
-  pythonBlanks,
   simulationOutput,
   simulationContainer,
   isSimulating,
@@ -532,13 +566,11 @@ const {
   handleStep1Submit,
   submitStep2,
   selectBlock,
-  fillBlank,
   runSimulation,
   handleStep4Submit,
   nextStep,
   reloadApp,
-  // 템플릿에서 사용하는 아이콘들
-  Terminal, Cpu, CodeIcon, Award, RotateCcw, ChevronRight, AlertTriangle, CheckCircle, X
+  insertSnippet
 } = usePseudoProblem(props, emit)
 </script>
 

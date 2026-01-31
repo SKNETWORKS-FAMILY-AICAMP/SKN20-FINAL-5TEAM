@@ -21,7 +21,7 @@
           <span class="text-neon-ultimate">Playground!</span>
         </h1>
         <p class="playground-subtitle-v2">
-          단순한 실습을 넘어선 **압도적 AI 엔지니어링 경험.**<br>
+          단순한 실습을 넘어선 압도적 AI 엔지니어링 경험.<br>
           이제 오리들과 함께 당신의 한계를 돌파하세요.
         </p>
         
