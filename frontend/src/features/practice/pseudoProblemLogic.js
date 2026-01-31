@@ -222,6 +222,7 @@ export function usePseudoProblem(props, emit) {
         if (nudgeText && !chatMessages.value.some(m => m.text === nudgeText)) {
             // "이미 ~하셨네요!" 식의 보강 (사용자가 이미 했다면 nudgeText를 위에서 다른 걸로 바꿨을 것이므로 여기서는 출력만)
             chatMessages.value.push({ sender: charName.value, text: nudgeText, isNudge: true })
+
             scrollToBottom()
         }
     }
