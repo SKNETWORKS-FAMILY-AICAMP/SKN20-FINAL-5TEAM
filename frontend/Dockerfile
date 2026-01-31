@@ -1,7 +1,7 @@
 # 수정일: 2026-01-20
 # 수정내용: Vue.js (Vite) 개발 환경을 위한 Dockerfile 작성
 
-FROM node:20-slim
+FROM node:20
 
 WORKDIR /app
 
