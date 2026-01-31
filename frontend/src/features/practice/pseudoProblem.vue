@@ -273,12 +273,12 @@
         if len(news) < 5 or "광고" in news:</pre>
                 
                 <!-- Blank A -->
-                <div class="flex items-center gap-4 pl-8 lg:pl-12 h-14">
+                <div class="flex items-center gap-4 pl-8 lg:pl-12 h-20">
                   <div @click="fillBlank('blankA')"
-                       class="min-w-[200px] border-b-2 transition-all cursor-pointer flex items-center justify-center relative group/blank"
+                       class="min-w-[280px] border-b-2 transition-all cursor-pointer flex items-center justify-center relative group/blank"
                        :class="pythonBlanks.blankA ? 'border-cyan-500 text-cyan-400' : 'border-gray-700 hover:border-gray-500 bg-white/[0.02]'">
-                    <span class="text-sm font-bold tracking-widest">{{ pythonBlanks.blankA ? pythonBlanks.blankA.text : "__________" }}</span>
-                    <div class="ml-4 text-[12px] text-gray-600 font-bold tracking-tighter">__(A)__</div>
+                    <span class="text-3xl font-black tracking-widest">{{ pythonBlanks.blankA ? pythonBlanks.blankA.text : "__________" }}</span>
+                    <div class="ml-6 text-xl text-yellow-500/80 font-black tracking-tighter">__(A)__</div>
                   </div>
                 </div>
 
@@ -286,14 +286,14 @@
         <span class="text-gray-500 italic"># 2. 유효한 데이터 저장</span></pre>
 
                 <!-- Blank B -->
-                <div class="flex items-center pl-8 lg:pl-12 h-14">
-                  <span>cleaned_data.</span>
+                <div class="flex items-center pl-8 lg:pl-12 h-20">
+                  <span class="text-2xl">cleaned_data.</span>
                   <div @click="fillBlank('blankB')"
-                       class="min-w-[200px] border-b-2 transition-all cursor-pointer flex items-center justify-center relative group/blank mx-2"
+                       class="min-w-[280px] border-b-2 transition-all cursor-pointer flex items-center justify-center relative group/blank mx-4"
                        :class="pythonBlanks.blankB ? 'border-cyan-500 text-cyan-400' : 'border-gray-700 hover:border-gray-500 bg-white/[0.02]'">
-                    <span class="text-sm font-bold tracking-widest">{{ pythonBlanks.blankB ? pythonBlanks.blankB.text : "__________" }}</span>
+                    <span class="text-3xl font-black tracking-widest">{{ pythonBlanks.blankB ? pythonBlanks.blankB.text : "__________" }}</span>
                   </div>
-                  <div class="text-[12px] text-gray-600 font-bold tracking-tighter ml-4">__(B)__</div>
+                  <div class="text-xl text-yellow-500/80 font-black tracking-tighter ml-6">__(B)__</div>
                 </div>
 
                 <pre class="mt-6">    return cleaned_data</pre>
