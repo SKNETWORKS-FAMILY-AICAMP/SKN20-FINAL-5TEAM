@@ -4,33 +4,32 @@
 -->
 <template>
   <div id="app" v-cloak>
-    <!-- [라우터 뷰 - Practice 페이지 (메인 레이아웃 없이 단독 표시)] -->
-    <router-view v-if="isPracticePage" @close="handlePracticeClose"></router-view>
-
-    <!-- [메인 페이지] -->
-    <template v-else>
-      <LandingView
-        :isLoggedIn="auth.isLoggedIn"
-        :userProteinShakes="auth.userProteinShakes"
-        :chapters="game.chapters"
-        :leaderboard="leaderboard"
-        @go-to-playground="handleGoToPlayground"
-        @open-unit="openUnitPopup"
-      >
-        <template #auth-buttons>
-          <template v-if="!auth.isLoggedIn">
-            <button class="btn-login-ref" @click="ui.openLogin">Login</button>
-            <button class="btn-signup-ref" @click="ui.openSignUp">Sign Up</button>
-          </template>
-          <div v-else class="user-profile-v2">
-            <div class="user-info-v2">
-              <span class="user-name-v2">{{ auth.sessionNickname }}</span>
-              <span class="user-rank-v2">ENGINEER</span>
-            </div>
-            <button class="btn-logout-v2" @click="auth.logout">Logout</button>
-          </div>
+    <!-- [메인 페이지 배경 (맵)] -->
+    <LandingView
+      :isLoggedIn="auth.isLoggedIn"
+      :userProteinShakes="auth.userProteinShakes"
+      :chapters="game.chapters"
+      :leaderboard="leaderboard"
+      @go-to-playground="handleGoToPlayground"
+      @open-unit="openUnitPopup"
+    >
+      <template #auth-buttons>
+        <template v-if="!auth.isLoggedIn">
+          <button class="btn-login-ref" @click="ui.openLogin">Login</button>
+          <button class="btn-signup-ref" @click="ui.openSignUp">Sign Up</button>
         </template>
-      </LandingView>
+        <div v-else class="user-profile-v2">
+          <div class="user-info-v2">
+            <span class="user-name-v2">{{ auth.sessionNickname }}</span>
+            <span class="user-rank-v2">ENGINEER</span>
+          </div>
+          <button class="btn-logout-v2" @click="auth.logout">Logout</button>
+        </div>
+      </template>
+    </LandingView>
+
+    <!-- [라우터 뷰 - Practice 페이지 (HUD 오버레이 스타일)] -->
+    <router-view v-if="isPracticePage" @close="handlePracticeClose"></router-view>
 
       <!-- [유닛 상세 팝업 모달] -->
       <transition name="fade">
@@ -46,9 +45,8 @@
                     {{ game.currentDebugMode === 'bug-hunt' ? '🐞 Bug Hunt' : '✨ Vibe Code Clean Up' }}
                   </template>
                   <template v-else-if="game.activeUnit?.name === 'Pseudo Practice'">
-                    <template v-if="game.unit1Mode === 'ai-detective'">🕵️ AI Detective</template>
-                    <template v-else-if="game.unit1Mode === 'pseudo-forest'">🌳 Pseudo Forest</template>
-                    <template v-else>💻 Pseudo Practice</template>
+                    <!-- [수정일: 2026-01-31] 유닛 1 모드 통합: AI Detective, Pseudo Forest 등의 개별 타이틀을 제거하고 통합 타이틀로 표시 -->
+                    💻 Pseudo Code Practice
                   </template>
                   <template v-else>
                     {{ game.activeUnit?.unitTitle || (game.activeUnit?.problems && game.activeUnit.problems[0]?.title) || game.activeUnit?.name || 'Loading...' }}
@@ -128,7 +126,6 @@
           </div>
         </div>
       </transition>
-    </template>
 
     <!-- [전역 모달 통합 컨테이너] -->
     <GlobalModals />

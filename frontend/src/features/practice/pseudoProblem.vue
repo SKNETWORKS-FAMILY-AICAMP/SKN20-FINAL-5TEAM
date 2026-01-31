@@ -100,8 +100,8 @@
                 <Cpu class="text-cyan-400 w-8 h-8" />
               </div>
               <div>
-                <h2 class="text-3xl font-black text-white italic tracking-tighter">DATA_INTEGRITY</h2>
-                <p class="text-[10px] text-cyan-500 font-mono tracking-widest">SUB_MODULE: MEMORY_RESTORE_01</p>
+                <h2 class="text-3xl font-black text-white italic tracking-tighter">{{ currentQuest.category || 'DATA_INTEGRITY' }}</h2>
+                <p class="text-[10px] text-cyan-500 font-mono tracking-widest">SUB_MODULE: QUEST_0{{ currentQuest.id }}</p>
               </div>
             </div>
 
@@ -131,7 +131,7 @@
 
             <div class="space-y-4 flex-1">
               <button
-                v-for="(opt, idx) in step1Options"
+                v-for="(opt, idx) in currentQuest.quizOptions"
                 :key="idx"
                 @click="handleStep1Submit(idx)"
                 class="w-full text-left p-6 bg-white/[0.02] hover:bg-cyan-500/10 border border-white/5 hover:border-cyan-500/30 transition-all group relative overflow-hidden active:scale-[0.98] hud-button-clip"
@@ -140,7 +140,7 @@
                   <div class="w-10 h-10 bg-white/5 border border-white/10 flex items-center justify-center mr-5 text-xs font-mono text-cyan-400 group-hover:bg-cyan-500 group-hover:text-black transition-all">
                     0{{ idx + 1 }}
                   </div>
-                  <span class="flex-1 font-bold text-gray-300 group-hover:text-white transition-colors">{{ opt }}</span>
+                  <span class="flex-1 font-bold text-gray-300 group-hover:text-white transition-colors">{{ opt.text }}</span>
                   <div class="w-1 h-6 bg-transparent group-hover:bg-cyan-500 transition-all ml-4"></div>
                 </div>
               </button>
@@ -502,9 +502,6 @@
 
         <!-- Duck Component - Repositioned for Step 5 -->
         <div class="fixed bottom-10 right-10 scale-125 z-50">
-          <div class="bg-black/60 border border-cyan-500 px-6 py-3 hud-box-clip text-cyan-400 font-black text-[10px] tracking-widest italic mb-2 text-center animate-bounce">
-            주니어 오리 (사원)
-          </div>
           <Duck class-name="shadow-neon cursor-help animate-in zoom-in slide-in-from-right-20 delay-1500" />
         </div>
       </div>
@@ -560,41 +557,60 @@
 
 <script setup>
 /**
- * 수정일: 2026-01-30
- * 수정내용: HTML 하이브리드 코드를 정식 Vue SFC 구조로 리팩토링 및 Lucide 아이콘 적용
+ * 수정일: 2026-01-31
+ * 수정내용: 
+ * 1. 유닛 1 통합 연습 모드(Pseudo Code Practice) 메인 인터페이스로 확정
+ * 2. 페이지 모드로 로드 시 시인성 확보를 위해 isOpen 프롭 기본값 수정
+ * 3. 맵 노드의 오리(Duck) 아이콘 클릭 시 해당 컴포넌트로 정상 라우팅 확인
  */
 import { ref, reactive, computed, watch, nextTick } from 'vue'
 import { 
-  Terminal, 
-  Cpu, 
-  Code as CodeIcon, 
-  Award, 
+  Terminal, Shield, FileCode, CheckCircle, AlertCircle, 
+  ArrowRight, Play, RefreshCw, Trophy, ClipboardCheck, 
+  Cpu, Activity, Award, 
   RotateCcw, 
   ChevronRight, 
   AlertTriangle, 
-  CheckCircle,
   X 
 } from 'lucide-vue-next'
+import { useGameStore } from '@/stores/game'
+import { useRouter } from 'vue-router'
 import Duck from './components/Duck.vue'
+import { aiQuests } from './support/unit1/logic-mirror/data/stages.js'
 
 const props = defineProps({
-  isOpen: { type: Boolean, default: false }
+  // [수정일: 2026-01-31] 라우터를 통해 페이지로 접근 시 화면이 즉시 보이도록 기본값을 true로 설정합니다.
+  isOpen: { type: Boolean, default: true }
 })
 
 const emit = defineEmits(['close'])
+const gameStore = useGameStore()
+const router = useRouter()
 
+// [수정일: 2026-01-31] 맵에서 선택된 퀘스트 인덱스에 따라 동적으로 데이터를 불러옵니다.
+const currentQuestIdx = computed(() => gameStore.selectedQuestIndex || 0)
+const currentQuest = computed(() => aiQuests[currentQuestIdx.value] || aiQuests[0])
 
 // --- State ---
 const currentStep = ref(1)
 const userScore = reactive({ step1: 0, step2: 0, step3: 0, step4: 0 })
 
-// Step 1 Options
-const step1Options = [
-  "데이터의 용량을 줄여서 저장 공간을 아끼기 위해",
-  "복잡한 모델을 사용하여 학습 속도를 늦추기 위해",
-  "노이즈가 섞인 데이터가 모델의 성능을 저하시키는 것을 막기 위해",
-  "모든 데이터를 긍정적인 내용으로 바꾸기 위해"
-]
+// [수정일: 2026-01-31] 동적 데이터 연동으로 인한 로컬 상태 초기화
+const availableBlocks = ref([])
+const droppedBlocks = ref([])
+const pythonInputs = reactive({ blankA: '', blankB: '' })
+
+watch(currentQuest, (newQuest) => {
+  if (newQuest) {
+    availableBlocks.value = [...newQuest.cards].sort(() => Math.random() - 0.5)
+    droppedBlocks.value = []
+    pythonInputs.blankA = ''
+    pythonInputs.blankB = ''
+    currentStep.value = 1
+  }
+}, { immediate: true })
+
+// [수정일: 2026-01-31] 하드코딩된 옵션 대신 stages.js의 데이터를 사용하므로 기존 배열 제거
 
 // Step 2 Data
 const pseudoInput = ref('')
@@ -666,7 +682,7 @@ watch(pseudoInput, (newVal) => {
 
 // Step 1 Submit
 const handleStep1Submit = (idx) => {
-  const isCorrect = idx === 2
+  const isCorrect = currentQuest.value.quizOptions[idx].correct
   userScore.step1 = isCorrect ? 25 : 0
   showFeedback(
     isCorrect ? "✅ 정답: GIGO 원칙의 이해" : "⚠️ 오답: 다시 생각해보세요",
@@ -817,9 +833,11 @@ const runSimulation = () => {
     }, 800);
 }
 
+// [수정일: 2026-01-31] 선택된 퀘스트의 검증 기준에 맞춰 성공 여부 판단
 const submitStep3 = () => {
-  const bA = pythonBlanks.blankA?.text === 'continue'
-  const bB = pythonBlanks.blankB?.text === 'append(text)'
+  const val = currentQuest.value.codeValidation
+  const bA = pythonBlanks.blankA?.text === (currentQuestIdx.value === 0 ? 'continue' : val.fee1) // 예시 로직 보정
+  const bB = pythonBlanks.blankB?.text === (currentQuestIdx.value === 0 ? 'append(text)' : val.fee2)
 
   let score = 0
   if (bA) score += 12
