@@ -2,54 +2,48 @@
   <div v-if="isOpen" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" @click.self="$emit('close')">
     <div class="bg-[#0a0e17] w-full max-w-7xl h-[90vh] rounded-3xl border border-white/10 shadow-2xl overflow-hidden flex flex-col relative animate-scale-in">
       
-    <!-- HUD Header -->
-    <header class="h-24 border-b border-cyan-500/30 bg-black flex justify-between items-center px-10 relative overflow-hidden shrink-0">
-      <!-- Background Scanline effect -->
-      <div class="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%] pointer-events-none opacity-20"></div>
-      
-      <div class="flex items-center space-x-6 z-10">
-        <div class="relative group">
-          <div class="absolute -inset-1 bg-cyan-500/20 rounded-lg blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
-          <div class="relative bg-black border border-cyan-500/50 p-3 rounded-lg">
-            <Terminal class="text-cyan-400 w-6 h-6 animate-pulse" />
+      <!-- HUD Header -->
+      <header class="h-24 border-b border-white/5 bg-[#07090e] grid grid-cols-3 items-center px-10 relative shrink-0 z-30">
+        <!-- Left: Logo & Project Title -->
+        <div class="flex items-center gap-6">
+          <div class="w-10 h-10 bg-[#117e96] rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(0,243,255,0.3)] border border-cyan-400/20">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M7 8L11 12L7 16M13 16H17" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="space-y-0.5">
+            <div class="flex items-center gap-3">
+              <h1 class="font-black text-xl tracking-tight text-white uppercase italic leading-none">PROJECT: RE-BOOT</h1>
+              <span class="px-1.5 py-0.5 bg-pink-500/20 border border-pink-500/30 text-[9px] font-bold text-pink-400 rounded">VER 2.1</span>
+            </div>
+            <div class="text-[10px] font-bold text-cyan-400/40 uppercase tracking-widest">Data Cleaning Protocol</div>
           </div>
         </div>
-        <div class="space-y-1">
-          <div class="flex items-center gap-3">
-            <h1 class="font-black text-2xl tracking-[0.2em] text-white italic">RE-BOOT_OS</h1>
-            <span class="text-[10px] bg-cyan-500/10 text-cyan-400 px-2 py-0.5 border border-cyan-500/20 rounded font-mono">V.2.0.4_STABLE</span>
-          </div>
-          <div class="flex items-center gap-2 text-[10px] font-mono text-cyan-500/50 uppercase tracking-widest">
-            <span class="animate-pulse">●</span> SESSION_ID: 0x88EAD... | SECTOR: DATA_PROTOCOL
-          </div>
-        </div>
-      </div>
 
-      <div class="flex items-center gap-10 z-10">
-        <div class="hidden lg:flex flex-col items-end font-mono">
-          <div class="text-[10px] text-gray-500 tracking-widest uppercase mb-1">System Health</div>
-          <div class="flex gap-1">
-            <div v-for="i in 10" :key="i" class="w-1 h-3" :class="i < 9 ? 'bg-cyan-500/60' : 'bg-gray-800'"></div>
+        <!-- Center: System Status -->
+        <div class="flex justify-center items-center gap-8 font-mono">
+          <div class="flex items-center gap-3">
+            <span class="text-gray-600 text-[10px] uppercase font-bold tracking-widest">UPLINK_STATUS:</span>
+            <span class="text-[#4ade80] text-[11px] font-black animate-pulse">ACTIVE</span>
           </div>
+          <div class="h-4 w-[1px] bg-white/10"></div>
+          <div class="text-[9px] text-gray-500 font-bold uppercase tracking-tighter">{{ currentQuest.category || 'LV_04_SECURITY_BYPASS' }}</div>
+        </div>
+
+        <!-- Right: Close Button -->
+        <div class="flex justify-end pr-2">
+          <button 
+            @click="$emit('close')" 
+            class="flex items-center justify-center w-12 h-12 rounded-xl border border-white/10 hover:bg-pink-500/20 hover:border-pink-500/60 transition-all text-gray-400 hover:text-pink-400 group relative"
+          >
+            <X class="w-7 h-7 group-hover:rotate-180 transition-transform duration-500 relative z-10" />
+            <div class="absolute -top-1 -right-1 w-3 h-3 bg-pink-500 rounded-full border-2 border-[#0a0e17] shadow-[0_0_10px_#ec4899] animate-bounce"></div>
+          </button>
         </div>
         
-        <div class="h-12 w-px bg-white/10"></div>
-
-        <button 
-          @click="$emit('close')" 
-          class="group relative"
-        >
-          <div class="absolute -inset-2 bg-red-500/20 rounded-full blur opacity-0 group-hover:opacity-100 transition duration-300"></div>
-          <div class="relative flex items-center gap-3 px-4 py-2 border border-white/10 rounded-lg hover:border-red-500/50 hover:bg-red-500/5 transition-all text-gray-400 hover:text-red-400">
-             <span class="text-[10px] font-black tracking-widest uppercase">Terminate</span>
-             <X class="w-5 h-5" />
-          </div>
-        </button>
-      </div>
-      
-      <!-- Bottom Neon Line -->
-      <div class="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-cyan-500 to-transparent shadow-[0_0_15px_#00f3ff]"></div>
-    </header>
+        <!-- Decoration Line -->
+        <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-48 h-[2px] bg-cyan-500 shadow-[0_0_15px_#00f3ff]"></div>
+      </header>
 
 
 
@@ -61,28 +55,21 @@
       <div class="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-pink-500/[0.03] rounded-full blur-[120px] pointer-events-none"></div>
 
 
-      <!-- HUD Progress -->
-      <div v-if="currentStep <= 4" class="max-w-4xl mx-auto w-full mb-16 px-4">
-        <div class="flex justify-between mb-3 px-2">
-          <span class="text-[10px] font-black text-cyan-400/60 uppercase tracking-[0.3em]">Protocol Progress</span>
-          <span class="text-[10px] font-mono text-cyan-400/60">{{ currentStep * 25 }}% COMPLETE</span>
+      <!-- Progress Bar (Phase Style) -->
+      <div v-if="currentStep <= 4" class="max-w-4xl mx-auto w-full mb-16 px-6 shrink-0">
+        <div class="flex justify-between mb-4 px-1">
+          <span v-for="i in 4" :key="'label-'+i" 
+                class="text-[11px] font-black tracking-[0.3em] transition-colors duration-500 italic"
+                :class="i <= currentStep ? 'text-cyan-400' : 'text-gray-600'">
+            PHASE_0{{ i }}
+          </span>
         </div>
-        <div class="flex items-center space-x-4">
-          <div
-            v-for="step in 4"
-            :key="step"
-            class="flex-1 h-2 relative overflow-hidden group cursor-help"
-            :class="step <= currentStep ? 'bg-cyan-500/20' : 'bg-white/5'"
-          >
-            <!-- Progress Fill -->
-            <div 
-              class="absolute inset-0 bg-cyan-500 transition-all duration-1000 shadow-[0_0_15px_rgba(6,182,212,0.5)]"
-              :style="{ width: step < currentStep ? '100%' : (step === currentStep ? '100%' : '0%') }"
-            >
-               <div v-if="step === currentStep" class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer"></div>
-            </div>
-            <!-- Marker -->
-            <div class="absolute inset-0 border border-white/10"></div>
+        <div class="grid grid-cols-4 gap-8 h-1">
+          <div v-for="i in 4" :key="'bar-'+i"
+               class="relative h-full transition-all duration-700 rounded-full bg-gray-800/40"
+               :class="i <= currentStep ? 'bg-cyan-500/20' : 'bg-gray-800/40'">
+            <div v-if="i <= currentStep" class="absolute inset-0 bg-cyan-500 rounded-full shadow-[0_0_10px_rgba(0,243,255,0.4)]"></div>
+            <div v-if="i === currentStep" class="absolute -top-1 -right-1 w-3 h-3 bg-cyan-500 rounded-full border border-[#0a0e17] shadow-[0_0_10px_#00f3ff]"></div>
           </div>
         </div>
       </div>
@@ -199,34 +186,42 @@
           </div>
         </div>
 
-        <!-- Input Area HUD -->
-        <div class="bg-white/[0.02] border border-white/10 p-10 hud-box-clip flex flex-col items-stretch relative">
-          <div class="flex items-center justify-between mb-8">
-            <h3 class="text-xl font-black text-white tracking-widest">PSEUDO_COMPILER</h3>
-            <div class="text-[9px] font-mono text-gray-500 flex items-center gap-2">
-              <span class="w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></span> WAITING_FOR_INPUT
+        <!-- Input Area (Monaco Editor Integration) -->
+        <div class="bg-white/[0.02] border border-white/10 p-10 lg:p-12 hud-box-clip flex flex-col items-stretch relative overflow-hidden">
+          <div class="flex items-center justify-between mb-10">
+            <div class="space-y-1">
+              <h3 class="text-2xl font-black text-white tracking-[0.2em] italic uppercase">PSEUDO_COMPILER</h3>
+              <div class="text-[10px] font-mono text-cyan-400/40 uppercase tracking-widest">Logic_Validation_Engine v4.0</div>
+            </div>
+            <div class="text-[10px] font-mono text-gray-500 flex items-center gap-3 bg-white/5 px-4 py-2 rounded-lg border border-white/5">
+              <span class="w-2 h-2 rounded-full bg-yellow-500 animate-pulse shadow-[0_0_8px_#eab308]"></span> 
+              <span class="font-bold tracking-tighter uppercase">WAITING_FOR_INPUT</span>
             </div>
           </div>
           
-          <div class="relative flex-1 flex flex-col">
-            <textarea
-              v-model="pseudoInput"
-              class="flex-1 bg-black/40 text-cyan-100 p-8 font-mono text-sm border-2 border-white/5 focus:border-cyan-500/50 focus:outline-none resize-none leading-relaxed placeholder-gray-700 transition-all custom-scrollbar shadow-inner"
-              placeholder="[SYSTEM]: Input logic sequence here...&#10;> 1. Fetch news data...&#10;> 2. Validate keywords..."
-            ></textarea>
+          <div class="relative flex-1 flex flex-col group/editor min-h-[400px]">
+            <!-- [수정일: 2026-01-31] main 브랜치 스타일인 모나코 에디터로 복구 -->
+            <vue-monaco-editor
+              v-model:value="pseudoInput"
+              theme="vs-dark"
+              language="markdown"
+              :options="editorOptions"
+              class="flex-1"
+            />
             
             <!-- Corner Accents -->
-            <div class="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-cyan-500/30"></div>
-            <div class="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-cyan-500/30"></div>
+            <div class="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-cyan-500/20 pointer-events-none transition-colors"></div>
+            <div class="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-cyan-500/20 pointer-events-none transition-colors"></div>
           </div>
 
           <button
             @click="submitStep2"
-            class="mt-10 group relative transition-all active:scale-[0.98]"
+            class="mt-12 group relative transition-all active:scale-[0.98]"
           >
-            <div class="absolute -inset-1 bg-gradient-to-r from-cyan-600 to-blue-700 rounded-lg blur opacity-25 group-hover:opacity-100 transition duration-1000"></div>
-            <div class="relative w-full py-5 bg-black border border-cyan-500/50 text-white font-black text-lg tracking-widest uppercase hover:bg-cyan-500/10 transition-all hud-button-clip">
-              Submit_Logic_Node
+            <div class="absolute -inset-1 bg-gradient-to-r from-cyan-600/50 to-blue-700/50 rounded-lg blur opacity-50 group-hover:opacity-100 transition duration-500"></div>
+            <div class="relative w-full py-6 bg-black border border-cyan-500/50 text-white font-black text-xl tracking-[0.3em] uppercase hover:bg-cyan-500/10 transition-all hud-button-clip flex items-center justify-center gap-4">
+              <Terminal class="w-6 h-6 text-cyan-400" />
+              SUBMIT_LOGIC_NODE
             </div>
           </button>
         </div>
@@ -575,6 +570,7 @@ import {
 } from 'lucide-vue-next'
 import { useGameStore } from '@/stores/game'
 import { useRouter } from 'vue-router'
+import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
 import Duck from './components/Duck.vue'
 import { aiQuests } from './support/unit1/logic-mirror/data/stages.js'
 
@@ -607,8 +603,32 @@ watch(currentQuest, (newQuest) => {
     pythonInputs.blankA = ''
     pythonInputs.blankB = ''
     currentStep.value = 1
+    // [수정일: 2026-01-31] 퀘스트 변경 시 에디터 초기화
+    pseudoInput.value = ''
   }
 }, { immediate: true })
+
+// [수정일: 2026-01-31] main 브랜치에서 사용하는 모나코 에디터 옵션 추가
+const editorOptions = {
+  minimap: { enabled: false },
+  fontSize: 18,
+  lineHeight: 30,
+  theme: 'vs-dark',
+  lineNumbers: 'on',
+  scrollbar: {
+    vertical: 'visible',
+    horizontal: 'visible',
+    verticalSliderSize: 6,
+    horizontalSliderSize: 6
+  },
+  wordWrap: 'on',
+  padding: { top: 20, bottom: 20 },
+  fontFamily: "'Nanum Gothic Coding', monospace",
+  automaticLayout: true,
+  suggestOnTriggerCharacters: true,
+  folding: true,
+  roundedSelection: true
+}
 
 // [수정일: 2026-01-31] 하드코딩된 옵션 대신 stages.js의 데이터를 사용하므로 기존 배열 제거
 
