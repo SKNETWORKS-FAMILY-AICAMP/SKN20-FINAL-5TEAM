@@ -382,6 +382,91 @@
           </div>
         </div>
 
+        <!-- AI 평가 섹션 -->
+        <div class="ai-evaluation-section">
+          <h3 class="section-title">■ AI 분석 리포트</h3>
+
+          <div v-if="isEvaluatingAI" class="ai-loading">
+            <div class="pulse-loader"></div>
+            <p>AI가 당신의 디버깅 사고를 분석 중입니다...</p>
+          </div>
+
+          <div v-else-if="aiEvaluationResult" class="ai-result">
+            <!-- 사고 방향 통과/탈락 -->
+            <div class="thinking-eval-grid">
+              <div class="eval-card thinking-pass-card">
+                <div class="eval-card-header">
+                  <span class="eval-icon">🎯</span>
+                  <span class="eval-title">사고 방향</span>
+                </div>
+                <div class="eval-card-body">
+                  <span
+                    class="pass-badge"
+                    :class="aiEvaluationResult.thinking_pass ? 'pass' : 'fail'"
+                  >
+                    {{ aiEvaluationResult.thinking_pass ? '✅ 안전' : '🚫 위험' }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- 코드 위험도 -->
+              <div class="eval-card risk-card">
+                <div class="eval-card-header">
+                  <span class="eval-icon">⚠️</span>
+                  <span class="eval-title">코드 위험도</span>
+                </div>
+                <div class="eval-card-body">
+                  <div class="risk-gauge">
+                    <div
+                      class="risk-fill"
+                      :style="{ width: aiEvaluationResult.code_risk + '%' }"
+                      :class="getRiskLevel(aiEvaluationResult.code_risk)"
+                    ></div>
+                  </div>
+                  <span class="risk-value">{{ aiEvaluationResult.code_risk }}/100</span>
+                </div>
+              </div>
+
+              <!-- 사고력 점수 -->
+              <div class="eval-card thinking-score-card">
+                <div class="eval-card-header">
+                  <span class="eval-icon">💡</span>
+                  <span class="eval-title">사고력 점수</span>
+                </div>
+                <div class="eval-card-body">
+                  <span class="thinking-score-value">{{ aiEvaluationResult.thinking_score }}</span>
+                  <span class="thinking-score-max">/100</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 총평 -->
+            <div class="summary-box">
+              <div class="summary-label">📝 총평</div>
+              <p class="summary-text">{{ aiEvaluationResult.총평 }}</p>
+            </div>
+
+            <!-- 단계별 AI 피드백 -->
+            <div class="step-feedbacks">
+              <div class="feedback-title">📋 단계별 AI 피드백</div>
+              <div
+                v-for="step in 3"
+                :key="'feedback-' + step"
+                class="step-feedback-box"
+              >
+                <div class="step-feedback-header">
+                  <span class="step-num">STEP {{ step }}</span>
+                  <span class="step-title">{{ scenarioData.steps[step - 1]?.title }}</span>
+                </div>
+                <div v-if="aiEvaluationResult.step_feedbacks && aiEvaluationResult.step_feedbacks[step]" class="step-feedback-content">
+                  <div class="feedback-label">🤖 AI FEEDBACK</div>
+                  <p class="feedback-text">{{ aiEvaluationResult.step_feedbacks[step] }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- 하단 버튼 -->
         <div class="report-actions">
           <button class="btn-restart" @click="restart">다시 평가 받기</button>
@@ -396,6 +481,7 @@ import { ref, computed, onMounted, onUnmounted, reactive, nextTick } from 'vue';
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
 import { loadPyodide } from 'pyodide';
 import scenarioData from './bughunt-demo-data.json';
+import { evaluateBugHunt } from './services/bugHuntApi';
 
 const phase = ref('START');
 const currentStep = ref(1);
@@ -416,6 +502,9 @@ const terminalRef = ref(null);
 const stepExplanations = reactive({ 1: '', 2: '', 3: '' });
 const explanationInput = ref('');
 
+// 각 단계의 제출된 코드 저장
+const stepCodes = reactive({ 1: '', 2: '', 3: '' });
+
 // 평가 관련
 const startTime = ref(Date.now());
 const totalTime = ref(0);
@@ -424,6 +513,10 @@ const codeRetries = ref(0);
 
 // 최종 평가 결과
 const evaluationResult = ref(null);
+
+// AI 평가 상태
+const isEvaluatingAI = ref(false);
+const aiEvaluationResult = ref(null);
 
 const stepContent = computed(() => scenarioData.steps[currentStep.value - 1]);
 
@@ -602,7 +695,7 @@ const type = (msg) => {
   }, 30);
 };
 
-const handleInteraction = () => {
+const handleInteraction = async () => {
   if (isTyping.value) return;
 
   if (phase.value === 'START') {
@@ -671,6 +764,8 @@ const handleInteraction = () => {
         console.log('Showing evaluation report');
         // 평가 계산
         calculateEvaluation();
+        // AI 평가 실행
+        await showEvaluation();
         phase.value = 'RESULT_REPORT';
         stopBugAnimations();
       }
@@ -938,8 +1033,9 @@ function submitExplanation() {
     return;
   }
 
-  // 현재 스텝의 설명 저장
+  // 현재 스텝의 설명과 코드 저장
   stepExplanations[currentStep.value] = explanationInput.value.trim();
+  stepCodes[currentStep.value] = editorCode.value;
 
   // 성공 애니메이션 표시
   phase.value = 'SUCCESS_SHOW';
@@ -1034,6 +1130,36 @@ function calculateEvaluation() {
       codeRetries: codeRetries.value
     }
   };
+}
+
+// AI 평가 함수
+async function showEvaluation() {
+  isEvaluatingAI.value = true;
+  try {
+    aiEvaluationResult.value = await evaluateBugHunt(
+      scenarioData.scenario.title,
+      scenarioData.steps,
+      stepExplanations,
+      stepCodes,
+      {
+        quizIncorrectCount: 0, // 퀴즈가 없으므로 0
+        codeSubmitFailCount: codeRetries.value,
+        hintCount: hintsUsed.value,
+        totalDebugTime: totalTime.value
+      }
+    );
+  } catch (error) {
+    console.error('❌ AI Evaluation failed:', error);
+  } finally {
+    isEvaluatingAI.value = false;
+  }
+}
+
+// 위험도 레벨 계산
+function getRiskLevel(risk) {
+  if (risk <= 30) return 'low';
+  if (risk <= 60) return 'medium';
+  return 'high';
 }
 
 const restart = () => location.reload();
@@ -2551,6 +2677,230 @@ onUnmounted(() => {
   border-bottom: 2px solid #333;
   color: #999;
   font-size: 13px;
+}
+
+/* AI 평가 섹션 */
+.ai-evaluation-section {
+  margin-top: 30px;
+  padding: 25px 50px;
+  border-top: 2px solid #e0e0e0;
+  background: #fafafa;
+}
+
+.ai-loading {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.pulse-loader {
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 20px;
+  border: 4px solid #e0e0e0;
+  border-top-color: #1976d2;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.ai-loading p {
+  color: #666;
+  font-size: 14px;
+  margin-top: 15px;
+}
+
+.ai-result {
+  margin-top: 20px;
+}
+
+.thinking-eval-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-bottom: 25px;
+}
+
+.eval-card {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+}
+
+.eval-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.eval-icon {
+  font-size: 20px;
+}
+
+.eval-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.eval-card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.pass-badge {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.pass-badge.pass {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 2px solid #4caf50;
+}
+
+.pass-badge.fail {
+  background: #ffebee;
+  color: #c62828;
+  border: 2px solid #f44336;
+}
+
+.risk-gauge {
+  width: 100%;
+  height: 20px;
+  background: #e0e0e0;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+.risk-fill {
+  height: 100%;
+  transition: width 0.5s ease;
+  border-radius: 10px;
+}
+
+.risk-fill.low {
+  background: linear-gradient(90deg, #4caf50, #8bc34a);
+}
+
+.risk-fill.medium {
+  background: linear-gradient(90deg, #ff9800, #ffb74d);
+}
+
+.risk-fill.high {
+  background: linear-gradient(90deg, #f44336, #e57373);
+}
+
+.risk-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #333;
+}
+
+.thinking-score-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1976d2;
+}
+
+.thinking-score-max {
+  font-size: 18px;
+  color: #666;
+}
+
+.summary-box {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 25px;
+}
+
+.summary-label {
+  font-size: 16px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 12px;
+}
+
+.summary-text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #555;
+  margin: 0;
+}
+
+.step-feedbacks {
+  margin-top: 25px;
+}
+
+.feedback-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 15px;
+}
+
+.step-feedback-box {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 15px;
+}
+
+.step-feedback-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.step-feedback-header .step-num {
+  background: #1976d2;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.step-feedback-header .step-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.step-feedback-content {
+  margin-top: 10px;
+}
+
+.feedback-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1976d2;
+  margin-bottom: 8px;
+}
+
+.feedback-text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #555;
+  margin: 0;
+  white-space: pre-line;
 }
 
 /* 하단 액션 버튼 */
