@@ -116,7 +116,8 @@ import NoticeModal from './NoticeModal.vue';
 import LoginModal from './LoginModal.vue';
 import SignUpModal from './SignUpModal.vue';
 import ConstructionModal from './ConstructionModal.vue';
-import PseudoPractice from '../features/practice/Pseudo_practice.vue';
+// [수정일: 2026-01-31] 사용되지 않는 Pseudo_practice.vue 임포트 제거 (pseudoProblem.vue로 통합됨)
+// import PseudoPractice from '../features/practice/Pseudo_practice.vue';
 import LogicMirrorGuidebook from '../features/practice/support/unit1/logic-mirror/LogicMirrorGuidebook.vue';
 
 /**
