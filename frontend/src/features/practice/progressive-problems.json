@@ -1,373 +1,65 @@
 {
   "progressiveProblems": [
-          {
-        "id": "P1",
-        "project_title": "정확도가 비정상적으로 높은 분류 모델",
-        "scenario": "사용자 이탈 예측 모델을 학습했는데 train 정확도가 0.98로 매우 높게 나왔습니다. 하지만 test는 0.65 정도로 낮고, 실제 서비스에 배포했더니 예측이 거의 무작위에 가깝다는 문제가 보고되었습니다. 팀원들과 함께 코드 리뷰를 하며 학습 파이프라인의 버그를 순서대로 찾아가고 있습니다.",
-        "difficulty": 1,
-        "totalSteps": 3,
-        "steps": [
-          {
-            "step": 1,
-            "title": "비정상적으로 높은 검증 성능 (Data Leakage)",
-            "bug_type": "A",
-            "bug_type_name": "Data Leakage",
-            "questions": {
-              "text": "전처리 코드에서 이상한 부분을 발견했습니다:\n\nX_train, X_test, y_train, y_test = train_test_split(X, y, ...)\nscaler = StandardScaler()\nX_train = scaler.fit_transform(X)  \nX_test = scaler.transform(X_test)\n\nTrain 0.98 vs Test 0.65로 차이가 큽니다. 무엇이 문제일까요?",
-              "options": [
-              "scaler를 전체 데이터 X로 fit해서",
-              "train_test_split의 test_size가 너무 작아서",
-              "StandardScaler 대신 MinMaxScaler를 써야 해서",
-              "random_state를 고정하지 않아서"
-            ],
-              "answer": 0
-            },
-            "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\ndef prepare_data(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, random_state=42\n    )\n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X)\n    X_test = scaler.transform(X_test)\n    \n    return X_train, X_test, y_train, y_test",
-            "correct_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\ndef prepare_data(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    \n    return X_train, X_test, y_train, y_test",
-            "hint": "scaler가 전체 데이터 X로 fit하면, X_test의 평균과 표준편차 정보도 함께 학습됩니다. 이게 왜 문제일까요?",
-            "solution_check": {
-              "type": "multi_condition",
-              "required_any": [
-                "fit_transform(X_train)",
-                "fit(X_train)"
-              ],
-              "forbidden": [
-                "fit_transform(X)",
-                "fit(X)"
-              ]
-            },
-            "coaching": "🎯 현업: Data Leakage는 모델이 '너무 잘 나올 때' 의심해야 하는 1순위 버그입니다. 전처리는 반드시 train/test 분할 후에 train으로만 fit하고, test는 transform만 해야 합니다."
-          },
-          {
-            "step": 2,
-            "title": "불안정한 평가 결과 (Imbalanced Sampling)",
-            "bug_type": "B",
-            "bug_type_name": "Sampling Bug",
-            "questions": {
-              "text": "Step 1을 고쳤더니 test 정확도가 0.85로 내려갔습니다.\n\n그런데 현재 split의 test set을 확인해보니 이탈률이 3% 정도입니다. 원래 전체 데이터의 이탈률은 5%인데, test set의 비율이 달라졌습니다.\n\nX_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, random_state=42)\n무엇을 의심해야 할까요?",
-              "options": [
-                "random_state 값이 잘못됨",
-                "test_size를 0.3 이상으로",
-                "train/test의 클래스 비율이 달라서",
-                "shuffle=False로 변경"
-              ],
-              "answer": 2
-            },
-            "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\ndef prepare_data(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    \n    return X_train, X_test, y_train, y_test",
-            "correct_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\ndef prepare_data(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42, stratify=y\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    \n    return X_train, X_test, y_train, y_test",
-            "hint": "불균형 데이터에선 split 후 train/test의 클래스 비율이 달라질 수 있습니다. 이를 강제로 유지하는 옵션이 있습니다.",
-            "solution_check": {
-              "type": "regex",
-              "value": "stratify\\s*=\\s*y\\s*(?=,\\s*\\w|\\))",
-              "flags": ""
-            },
-            "coaching": "🎯 현업: 불균형 데이터(이탈 예측, 사기 탐지 등)에서 stratify 없이 split하면 train/test의 클래스 비율이 달라져 평가가 불안정해집니다. 특히 test에 positive 샘플이 적으면 평가 자체가 무의미해질 수 있습니다."
-          },
-          {
-            "step": 3,
-            "title": "잘못된 평가 데이터 사용 (Train Data Evaluation)",
-            "bug_type": "C",
-            "bug_type_name": "Evaluation Error",
-            "questions": {
-              "text": "Step 1, 2를 고쳤습니다. 이제 모델을 학습하고 평가했습니다:\n\nmodel.fit(X_train, y_train)\ny_pred = model.predict(X_train) \naccuracy = accuracy_score(y_train, y_pred)\nprint(f'정확도: {accuracy}')  # 0.95\n\n그런데 test로 확인하니 0.60이 나옵니다. 무엇이 문제일까요?",
-              "options": [
-                "accuracy_score 대신 f1_score를 써야 함",
-                "train 데이터로 평가해서 성능이 과대평가됨",
-                "predict 대신 predict_proba를 써야 함",
-                "y_train과 y_pred 순서가 바뀜"
-              ],
-              "answer": 1
-            },
-            "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.metrics import accuracy_score\n\ndef train_and_evaluate(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42, stratify=y\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    \n    model = LogisticRegression()\n    model.fit(X_train, y_train)\n    \n    y_pred = model.predict(X_train)\n    accuracy = accuracy_score(y_train, y_pred)\n    \n    return accuracy",
-            "correct_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.metrics import accuracy_score\n\ndef train_and_evaluate(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42, stratify=y\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    \n    model = LogisticRegression()\n    model.fit(X_train, y_train)\n    \n    y_pred = model.predict(X_test)\n    accuracy = accuracy_score(y_test, y_pred)\n    \n    return accuracy",
-            "hint": "학습에 사용한 데이터로 평가하면 모델 성능이 과대평가됩니다. 모델이 학습 중 보지 못한 데이터로 평가해야 합니다.",
-            "solution_check": {
-              "type": "multi_condition",
-              "required_all": [
-                "predict(X_test)",
-                "accuracy_score(y_test"
-              ],
-              "forbidden": [
-                "predict(X_train)",
-                "accuracy_score(y_train, y_pred)"
-              ]
-            },
-            "coaching": "🎯 현업: train 데이터로 평가하면 모델이 '이미 본' 데이터에 대한 성능만 측정되어 과대평가됩니다. 반드시 학습에 사용하지 않은 test 데이터로 평가해야 실제 성능을 알 수 있습니다. 이것이 train/test split을 하는 이유입니다."
-          }
-        ]
-    },
     {
-      "id": "P2",
-      "project_title": "데이터 전처리 파이프라인 기본 방어",
-      "scenario": "사용자 행동 로그로 이탈 예측 모델을 학습하고 있습니다. 전처리 파이프라인이 종종 예외로 터지거나, 학습이 '되는 것처럼' 보이지만 결과가 불안정합니다.",
-      "difficulty": 2,
+      "id": "P-EXAMPLE-001",
+      "project_title": "선형 회귀 모델 학습 오류",
+      "scenario": "간단한 선형 회귀 모델을 구현하던 중 3가지 단계별 오류가 발생했습니다. 차원 불일치부터 손실 함수 선택, 과적합까지 순차적으로 해결해야 합니다.",
+      "difficulty": 1,
       "totalSteps": 3,
       "steps": [
         {
           "step": 1,
-          "title": "결측치 처리 누락 (NaN Handling)",
+          "title": "입력 차원 불일치",
           "bug_type": "A",
-          "bug_type_name": "Null Handling",
-          "questions": {
-            "text": "모델 학습 직전에 'Input contains NaN' 에러가 발생했습니다. 가장 가능성이 높은 원인은?",
-            "options": [
-              "학습 데이터가 너무 커서",
-              "전처리 과정에서 결측치(NaN)가 남아 있어서",
-              "모델이 너무 단순해서",
-              "정규화를 해서"
-            ],
-            "answer": 1
-          },
-          "buggy_code": "import pandas as pd\n\ndef preprocess(df):\n    df = df.copy()\n    df['age'] = df['age'].astype(int)\n    return df",
-          "correct_code": "import pandas as pd\n\ndef preprocess(df):\n    df = df.copy()\n    df['age'] = df['age'].fillna(0).astype(int)\n    return df",
-          "hint": "NaN이 있으면 astype()이 실패합니다. 결측치를 처리하세요.",
+          "bug_type_name": "Initialization Error",
+          "symptom": "모델 실행 시 RuntimeError: mat1 and mat2 shapes cannot be multiplied 발생",
+          "execution_log": "RuntimeError: mat1 and mat2 shapes cannot be multiplied (10x5 and 3x8)",
+          "buggy_code": "import torch\nimport torch.nn as nn\n\nclass LinearModel(nn.Module):\n    def __init__(self, input_dim, output_dim):\n        super().__init__()\n        self.fc1 = nn.Linear(3, 8)  # 잘못된 입력 차원\n        self.fc2 = nn.Linear(8, output_dim)\n    \n    def forward(self, x):\n        x = self.fc1(x)\n        x = self.fc2(x)\n        return x\n\n# 테스트\nmodel = LinearModel(input_dim=5, output_dim=1)\nX = torch.randn(10, 5)  # 배치 10, 피처 5\noutput = model(X)",
+          "correct_code": "import torch\nimport torch.nn as nn\n\nclass LinearModel(nn.Module):\n    def __init__(self, input_dim, output_dim):\n        super().__init__()\n        self.fc1 = nn.Linear(input_dim, 8)  # 올바른 입력 차원\n        self.fc2 = nn.Linear(8, output_dim)\n    \n    def forward(self, x):\n        x = self.fc1(x)\n        x = self.fc2(x)\n        return x\n\n# 테스트\nmodel = LinearModel(input_dim=5, output_dim=1)\nX = torch.randn(10, 5)  # 배치 10, 피처 5\noutput = model(X)",
+          "test_script": "import torch\nX_test = torch.randn(5, 5)\noutput = model(X_test)\nassert output.shape == (5, 1), f'Expected shape (5, 1), got {output.shape}'",
+          "hint": "Linear layer의 입력 차원 크기가 실제 입력 데이터의 피처 수와 일치하는지 확인하세요.",
           "solution_check": {
-            "type": "regex",
-            "value": "(fillna\\(\\s*(0)?\\s*\\)|dropna\\(\\s*\\))",
-            "flags": ""
+            "type": "multi_condition",
+            "required_any": ["nn.Linear(input_dim", "Linear(input_dim"],
+            "forbidden": ["nn.Linear(3"]
           },
-          "coaching": "🎯 현업: 실무 데이터는 항상 결측치를 포함합니다. fillna(0), fillna(평균), fillna(중앙값) 중 도메인에 맞는 전략을 선택하세요."
+          "coaching": "🎯 현업: 레이어 정의 시 하드코딩된 차원 대신 파라미터를 사용하면 유연한 모델 설계가 가능합니다."
         },
         {
           "step": 2,
-          "title": "0으로 나누기 방어 (Zero Division Guard)",
-          "bug_type": "B",
-          "bug_type_name": "Null Guard",
-          "questions": {
-            "text": "사용자별 평균 구매액 계산 시 'division by zero' 에러가 발생했습니다. 어떤 상황일까요?",
-            "options": [
-              "구매액이 너무 커서",
-              "특정 사용자의 구매 횟수(count)가 0이어서",
-              "CSV 인코딩이 깨져서",
-              "데이터가 너무 적어서"
-            ],
-            "answer": 1
-          },
-          "buggy_code": "def avg_spend(total_spend, count):\n    return total_spend / count",
-          "correct_code": "def avg_spend(total_spend, count):\n    if count == 0:\n        return 0\n    return total_spend / count",
-          "hint": "count가 0일 때를 방어해야 합니다.",
+          "title": "회귀 문제에 분류 손실 함수 사용",
+          "bug_type": "C",
+          "bug_type_name": "Activation/Loss Error",
+          "symptom": "학습은 되지만 loss가 음수로 발산하며 예측값이 이상함",
+          "execution_log": "Epoch 1: loss = -5.234\nEpoch 2: loss = -12.891\nEpoch 3: loss = -23.456",
+          "buggy_code": "import torch\nimport torch.nn as nn\nimport torch.optim as optim\n\nclass LinearModel(nn.Module):\n    def __init__(self, input_dim, output_dim):\n        super().__init__()\n        self.fc1 = nn.Linear(input_dim, 8)\n        self.fc2 = nn.Linear(8, output_dim)\n    \n    def forward(self, x):\n        x = self.fc1(x)\n        x = self.fc2(x)\n        return x\n\nmodel = LinearModel(5, 1)\ncriterion = nn.CrossEntropyLoss()  # 회귀에 분류 손실 함수 사용\noptimizer = optim.Adam(model.parameters(), lr=0.01)\n\nX = torch.randn(10, 5)\ny = torch.randn(10, 1)\n\nfor epoch in range(3):\n    output = model(X)\n    loss = criterion(output, y)\n    optimizer.zero_grad()\n    loss.backward()\n    optimizer.step()",
+          "correct_code": "import torch\nimport torch.nn as nn\nimport torch.optim as optim\n\nclass LinearModel(nn.Module):\n    def __init__(self, input_dim, output_dim):\n        super().__init__()\n        self.fc1 = nn.Linear(input_dim, 8)\n        self.fc2 = nn.Linear(8, output_dim)\n    \n    def forward(self, x):\n        x = self.fc1(x)\n        x = self.fc2(x)\n        return x\n\nmodel = LinearModel(5, 1)\ncriterion = nn.MSELoss()  # 회귀에 적합한 손실 함수\noptimizer = optim.Adam(model.parameters(), lr=0.01)\n\nX = torch.randn(10, 5)\ny = torch.randn(10, 1)\n\nfor epoch in range(3):\n    output = model(X)\n    loss = criterion(output, y)\n    optimizer.zero_grad()\n    loss.backward()\n    optimizer.step()",
+          "test_script": "import torch\nloss_value = loss.item()\nassert loss_value >= 0, f'Loss should be non-negative, got {loss_value}'",
+          "hint": "회귀 문제와 분류 문제는 다른 손실 함수(loss function)를 사용합니다. 연속적인 값을 예측하는 경우 어떤 손실 함수가 적합할까요?",
           "solution_check": {
             "type": "multi_condition",
-            "required_all": [
-              "if count == 0"
-            ],
-            "forbidden": []
+            "required_any": ["MSELoss", "L1Loss"],
+            "forbidden": ["CrossEntropyLoss", "NLLLoss"]
           },
-          "coaching": "🎯 현업: 신규 가입자나 비활성 사용자는 count가 0일 수 있습니다. 방어 코드는 선택이 아니라 필수입니다."
+          "coaching": "🎯 현업: 태스크 타입(회귀/분류)에 따라 손실 함수를 선택하는 것은 딥러닝의 기본입니다."
         },
         {
           "step": 3,
-          "title": "원본 데이터 보존 (State Leak)",
-          "bug_type": "C",
-          "bug_type_name": "State Leak",
-          "questions": {
-            "text": "전처리 함수를 호출한 뒤 원본 데이터프레임까지 함께 바뀌었습니다. 왜일까요?",
-            "options": [
-              "메모리가 부족해서",
-              "데이터프레임이 참조로 전달되어 원본이 수정되었기 때문에",
-              "Pandas 버그라서",
-              "전역 변수가 자동 생성되어서"
-            ],
-            "answer": 1
-          },
-          "buggy_code": "def add_feature(df):\n    df['is_vip'] = df['spend'] > 100\n    return df",
-          "correct_code": "def add_feature(df):\n    df = df.copy()\n    df['is_vip'] = df['spend'] > 100\n    return df",
-          "hint": "DataFrame은 참조로 전달되므로 원본이 수정됩니다. 복사본을 만들어 작업하세요.",
+          "title": "과적합 발생 - Dropout 미작동",
+          "bug_type": "D",
+          "bug_type_name": "Overfitting/Regularization",
+          "symptom": "Train loss는 감소하지만 validation loss는 증가",
+          "execution_log": "Epoch 10: Train loss=0.05, Val loss=0.12\nEpoch 20: Train loss=0.01, Val loss=0.25\nEpoch 30: Train loss=0.005, Val loss=0.38",
+          "buggy_code": "import torch\nimport torch.nn as nn\nimport torch.optim as optim\n\nclass LinearModel(nn.Module):\n    def __init__(self, input_dim, output_dim):\n        super().__init__()\n        self.fc1 = nn.Linear(input_dim, 8)\n        self.dropout = nn.Dropout(0.5)\n        self.fc2 = nn.Linear(8, output_dim)\n    \n    def forward(self, x):\n        x = self.fc1(x)\n        x = self.dropout(x)\n        x = self.fc2(x)\n        return x\n\nmodel = LinearModel(5, 1)\ncriterion = nn.MSELoss()\noptimizer = optim.Adam(model.parameters(), lr=0.01)\n\nX_train = torch.randn(10, 5)\ny_train = torch.randn(10, 1)\n\n# 학습\nfor epoch in range(3):\n    output = model(X_train)\n    loss = criterion(output, y_train)\n    optimizer.zero_grad()\n    loss.backward()\n    optimizer.step()\n\n# 평가 (Dropout이 계속 적용됨)\nX_val = torch.randn(5, 5)\ny_val = torch.randn(5, 1)\nval_output = model(X_val)\nval_loss = criterion(val_output, y_val)",
+          "correct_code": "import torch\nimport torch.nn as nn\nimport torch.optim as optim\n\nclass LinearModel(nn.Module):\n    def __init__(self, input_dim, output_dim):\n        super().__init__()\n        self.fc1 = nn.Linear(input_dim, 8)\n        self.dropout = nn.Dropout(0.5)\n        self.fc2 = nn.Linear(8, output_dim)\n    \n    def forward(self, x):\n        x = self.fc1(x)\n        x = self.dropout(x)\n        x = self.fc2(x)\n        return x\n\nmodel = LinearModel(5, 1)\ncriterion = nn.MSELoss()\noptimizer = optim.Adam(model.parameters(), lr=0.01)\n\nX_train = torch.randn(10, 5)\ny_train = torch.randn(10, 1)\n\n# 학습\nmodel.train()  # 학습 모드 설정\nfor epoch in range(3):\n    output = model(X_train)\n    loss = criterion(output, y_train)\n    optimizer.zero_grad()\n    loss.backward()\n    optimizer.step()\n\n# 평가\nmodel.eval()  # 평가 모드 전환\nX_val = torch.randn(5, 5)\ny_val = torch.randn(5, 1)\nwith torch.no_grad():\n    val_output = model(X_val)\n    val_loss = criterion(val_output, y_val)",
+          "test_script": "import torch\nassert model.training == False, 'Model should be in eval mode'\nassert val_output.requires_grad == False, 'Validation should not track gradients'",
+          "hint": "과적합 방지를 위한 드롭아웃 정규화가 학습과 평가 시 다르게 동작해야 합니다. 평가 모드에서는 어떻게 설정해야 할까요?",
           "solution_check": {
             "type": "multi_condition",
-            "required_all": [
-              ".copy()"
-            ],
-            "forbidden": [
-              "inplace=True"
-            ]
-          },
-          "coaching": "🎯 현업: State Leak는 재현 불가능한 버그의 주요 원인입니다. 함수는 입력을 변경하지 않고 새로운 객체를 반환하세요."
-        }
-      ]
-    },
-    {
-      "id": "P3",
-      "project_title": "평가 파이프라인 신뢰성 확보",
-      "scenario": "이탈 예측 모델을 배포하기 전 성능 리포트를 만들었습니다. 그런데 리포트 수치가 과도하게 좋거나, 실행할 때마다 결과가 달라집니다.",
-      "difficulty": 3,
-      "totalSteps": 3,
-      "steps": [
-        {
-          "step": 1,
-          "title": "불균형 데이터 분할 오류 (Stratify 누락)",
-          "bug_type": "A",
-          "bug_type_name": "Sampling Bug",
-          "questions": {
-            "text": "이탈률 5%인 데이터에서 매번 평가 결과가 크게 흔들립니다. 가장 먼저 의심해야 할 것은?",
-            "options": [
-              "모델이 너무 단순해서",
-              "train/test 분할 시 클래스 비율이 깨졌을 가능성",
-              "전처리 시간이 너무 길어서",
-              "특성이 너무 많아서"
-            ],
-            "answer": 1
-          },
-          "buggy_code": "from sklearn.model_selection import train_test_split\n\ndef split(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42\n    )\n    return X_train, X_test, y_train, y_test", 
-          "correct_code": "from sklearn.model_selection import train_test_split\n\ndef split(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42, stratify=y\n    )\n    return X_train, X_test, y_train, y_test",
-          "hint": "데이터가 불균형합니다. train_test_split의 특정 파라미터를 활용해 y 클래스 비율을 유지하세요.",
-          "solution_check": {
-            "type": "regex",
-            "value": "stratify\\s*=\\s*y\\s*(?=,\\s*\\w|\\))",
-            "flags": ""
-          },
-          "coaching": "🎯 현업: 불균형 데이터(사기 탐지, 이탈 예측)에서 stratify 없이 split하면 test에 positive 샘플이 거의 없어 평가가 무의미해집니다."
-        },
-        {
-          "step": 2,
-          "title": "재현성(Seed) 누락",
-          "bug_type": "B",
-          "bug_type_name": "Non-determinism",
-          "questions": {
-            "text": "같은 코드로 학습했는데 실행할 때마다 점수가 다릅니다. 가장 그럴듯한 원인은?",
-            "options": [
-              "CPU 성능이 달라서",
-              "난수 시드가 고정되지 않아서",
-              "데이터가 너무 많아서",
-              "모델이 너무 단순해서"
-            ],
-            "answer": 1
-          },
-          "buggy_code": "import numpy as np\nimport random\n\ndef train(model, X_train, y_train):\n    random.seed(42)\n    model.fit(X_train, y_train)\n    return model",
-          "correct_code": "import numpy as np\nimport random\n\ndef train(model, X_train, y_train):\n    random.seed(42)\n    np.random.seed(42)\n    model.fit(X_train, y_train)\n    return model",
-          "hint": "결과를 재현하려면 Numpy의 난수 시드를 학습 전에 고정하세요.",
-          "solution_check": {
-            "type": "multi_condition",
-            "required_all": [
-              "np.random.seed(",
-              "random.seed("
-            ],
+            "required_any": ["model.eval()", ".eval()"],
             "forbidden": []
           },
-          "coaching": "🎯 현업: 재현 불가능하면 A/B 테스트, 디버깅, 하이퍼파라미터 튜닝이 모두 무의미해집니다. 시드 고정은 필수입니다."
-        },
-        {
-          "step": 3,
-          "title": "불균형 데이터 지표 선택 오류 (Accuracy 함정)",
-          "bug_type": "C",
-          "bug_type_name": "Metric Choice",
-          "questions": {
-            "text": "이탈률 5%인 데이터에서 accuracy 95%가 나왔지만 이탈 고객을 하나도 못 잡습니다. 이유는?",
-            "options": [
-              "accuracy가 불균형 데이터에서 다수 클래스에 편향되어 오해를 만들 수 있어서",
-              "모델이 너무 복잡해서",
-              "데이터가 너무 커서",
-              "전처리를 해서"
-            ],
-            "answer": 0
-          },
-          "buggy_code": "from sklearn.metrics import accuracy_score\n\ndef evaluate(model, X_test, y_test):\n    y_pred = model.predict(X_test)\n    return accuracy_score(y_test, y_pred)",
-          "correct_code": "from sklearn.metrics import f1_score\n\ndef evaluate(model, X_test, y_test):\n    y_pred = model.predict(X_test)\n    return f1_score(y_test, y_pred)",
-          "hint": "불균형 데이터에서는 accuracy 대신 재현율과 정밀도를 모두 고려하는 지표를 사용하세요.",
-          "solution_check": {
-            "type": "multi_condition",
-            "required_all": [],
-            "required_any": [
-              "f1_score"
-            ],
-            "forbidden": [
-              "accuracy_score"
-            ]
-          },
-          "coaching": "🎯 현업: 모든 것을 '유지'로 예측해도 95% accuracy가 나옵니다. F1-score는 recall과 precision과 조화평균으로 불균형 데이터에 적합합니다."
-        }
-      ]
-    },
-    {
-      "id": "P4",
-      "project_title": "배포 전 마지막 함정 제거",
-      "scenario": "모델은 충분히 학습되었고 평가도 통과했습니다. 하지만 배포 직전 점검에서 운영 환경에서만 터지는 문제가 발견되었습니다.",
-      "difficulty": 4,
-      "totalSteps": 3,
-      "steps": [
-        {
-          "step": 1,
-          "title": "학습/서빙 피처 불일치 (Feature Mismatch)",
-          "bug_type": "A",
-          "bug_type_name": "Schema Drift",
-          "questions": {
-            "text": "오프라인에서는 통과했는데 운영에서 'Feature names mismatch' 에러가 발생했습니다. 원인은?",
-            "options": [
-              "모델이 너무 커서",
-              "학습 시 사용한 피처 컬럼과 서빙 입력 컬럼의 순서나 개수가 달라서",
-              "데이터가 너무 적어서",
-              "난수 시드를 고정해서"
-            ],
-            "answer": 1
-          },
-          "buggy_code": "def serve(model, input_df):\n    return model.predict(input_df)",
-          "correct_code": "def serve(model, input_df, feature_cols):\n    X = input_df[feature_cols]\n    return model.predict(X)",
-          "hint": "학습 시 사용한 feature 컬럼 리스트를 저장해두고, 서빙 시 그 컬럼만 선택해서 사용하세요.",
-          "solution_check": {
-            "type": "multi_condition",
-            "required_all": [
-              "input_df[feature_cols]"
-            ],
-            "forbidden": []
-          },
-          "coaching": "🎯 현업: Train-Serve Skew는 ML 시스템 장애의 70% 이상을 차지합니다. Feature 컬럼 리스트를 모델 메타데이터로 저장하세요."
-        },
-        {
-          "step": 2,
-          "title": "새로운 카테고리 처리 누락 (Unseen Category)",
-          "bug_type": "B",
-          "bug_type_name": "Unseen Category",
-          "questions": {
-            "text": "운영 데이터에 학습 때 없던 신규 국가 코드가 들어오면서 에러가 발생했습니다. 어떤 문제일까요?",
-            "options": [
-              "속도가 빨라진다",
-              "인코더가 학습 시 보지 못한 카테고리를 처리하지 못해 에러를 낸다",
-              "메모리가 줄어든다",
-              "정확도가 자동으로 올라간다"
-            ],
-            "answer": 1
-          },
-          "buggy_code": "from sklearn.preprocessing import OneHotEncoder\n\ndef fit_encoder(train_cat):\n    enc = OneHotEncoder()\n    enc.fit(train_cat)\n    return enc",
-          "correct_code": "from sklearn.preprocessing import OneHotEncoder\n\ndef fit_encoder(train_cat):\n    enc = OneHotEncoder(handle_unknown='ignore')\n    enc.fit(train_cat)\n    return enc",
-          "hint": "OneHotEncoder에 handle_unknown='_ _ _ _ _ _' 옵션을 설정하세요.",
-
-          "solution_check": {
-            "type": "multi_condition",
-            "required_all": [
-              "handle_unknown='ignore'"
-            ],
-            "forbidden": []
-          },
-          "coaching": "🎯 현업: 운영 데이터는 항상 학습 데이터보다 다양합니다. 새 상품, 신규 국가 등이 계속 추가되므로 방어 코드가 필수입니다."
-        },
-        {
-          "step": 3,
-          "title": "전처리기/모델 번들 저장 누락",
-          "bug_type": "C",
-          "bug_type_name": "Artifact Drift",
-          "questions": {
-            "text": "모델을 재배포했는데 성능이 갑자기 나빠졌습니다. 모델 코드는 안 바꿨는데 왜일까요?",
-            "options": [
-              "모델이 스스로 변해서",
-              "전처리기가 재학습되어 이전과 다른 기준으로 변환하기 때문에",
-              "CPU가 느려져서",
-              "데이터가 줄어서"
-            ],
-            "answer": 1
-          },
-          "buggy_code": "import joblib\n\ndef save_model(model, scaler, encoder, path):\n    joblib.dump(model, path)\n    return path",
-          "correct_code": "import joblib\n\ndef save_model(model, scaler, encoder, path):\n    bundle = {\n        'model': model,\n        'scaler': scaler,\n        'encoder': encoder\n    }\n    joblib.dump(bundle, path)\n    return path",
-          "hint": "모델뿐 아니라 scaler, encoder도 함께 저장해야 합니다. 딕셔너리로 묶어서 bundle 형태로 만든 후 dump하세요.",
-          "solution_check": {
-            "type": "multi_condition",
-            "required_all": [
-              "'model':",
-              "'scaler':",
-              "'encoder':"
-            ],
-            "forbidden": []
-          },
-          "coaching": "🎯 현업: 모델만 저장하면 전처리 기준이 달라져서 성능이 무너집니다. 모델+전처리기를 하나의 번들로 관리하세요."
+          "coaching": "🎯 현업: 평가 시 model.eval()과 torch.no_grad()를 함께 사용하는 것이 표준 관행입니다."
         }
       ]
     }

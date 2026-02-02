@@ -75,6 +75,14 @@
       </div>
     </transition>
 
+    <!-- 로딩 또는 초기 메뉴 (미션 정보를 불러오는 중일 때) -->
+    <div v-if="currentView === 'menu'" class="loading-view">
+      <div class="loader-content">
+        <div class="pulse-loader"></div>
+        <p>MISSION DATA LOADING...</p>
+      </div>
+    </div>
+
     <!-- Progressive Mission 연습 화면 -->
     <div v-if="currentView === 'progressivePractice'" class="progressive-practice-container">
       <!-- 날아가는 해골 애니메이션 -->
@@ -114,38 +122,7 @@
         </div>
       </transition>
 
-      <!-- 1단계: 객관식 팝업 -->
-      <transition name="fade">
-        <div v-if="showQuizPopup" class="quiz-overlay">
-          <div class="quiz-modal neon-border">
-            <div class="quiz-header">
-              <span class="phase-badge">PHASE 1: ANALYSIS</span>
-              <h3>STEP {{ currentProgressiveStep }} 분석 퀴즈</h3>
-            </div>
-            <div class="quiz-question">
-              <p>{{ getCurrentStepData()?.questions?.text }}</p>
-            </div>
-            <div class="quiz-options">
-              <button
-                v-for="(option, idx) in getCurrentStepData()?.questions?.options"
-                :key="idx"
-                class="quiz-option-btn"
-                :class="{ selected: selectedQuizOption === idx }"
-                @click="selectedQuizOption = idx"
-              >
-                <span class="option-num">{{ idx + 1 }}</span>
-                {{ option }}
-              </button>
-            </div>
-            <div class="quiz-footer">
-              <button class="quiz-submit-btn" @click="submitQuiz" :disabled="selectedQuizOption === null">
-                분석 완료 (디버깅 시작)
-              </button>
-              <p v-if="quizFeedback" class="quiz-feedback" :class="quizFeedbackType">{{ quizFeedback }}</p>
-            </div>
-          </div>
-        </div>
-      </transition>
+      <!-- 조사 페이즈 제거됨: 바로 에디터 화면으로 진입 -->
 
       <!-- 헤더 -->
       <header class="header compact progressive-header">
@@ -181,6 +158,20 @@
           <div class="panel-box scenario-box">
             <div class="panel-title">📋 MISSION BRIEFING</div>
             <p class="scenario-text">{{ currentProgressiveMission?.scenario }}</p>
+          </div>
+
+          <!-- 📟 LIVE TERMINAL (현재 단계의 로그 노출) -->
+          <div class="panel-box log-terminal-box neon-border" v-if="currentProgressivePhase === 'debug'">
+            <div class="panel-title">📟 LIVE TERMINAL</div>
+            <div class="terminal-content">
+              <div class="terminal-header">
+                <span class="dot red"></span>
+                <span class="dot yellow"></span>
+                <span class="dot green"></span>
+                <span class="terminal-title">runtime_error.log</span>
+              </div>
+              <pre class="terminal-body">{{ getCurrentStepData()?.execution_log }}</pre>
+            </div>
           </div>
 
           <div class="side-controls">
@@ -827,6 +818,55 @@
   animation: flyToChat 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
+/* LIVE TERMINAL 스타일 */
+.log-terminal-box {
+  margin-top: 1rem;
+  background: #000 !important;
+  padding: 0 !important;
+  overflow: hidden;
+  border-color: rgba(0, 255, 0, 0.2) !important;
+}
+
+.terminal-header {
+  background: #1a1a1a;
+  padding: 5px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid #333;
+}
+
+.terminal-header .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.dot.red { background: #ff5f56; }
+.dot.yellow { background: #ffbd2e; }
+.dot.green { background: #27c93f; }
+
+.terminal-title {
+  font-size: 0.7rem;
+  color: #888;
+  font-family: monospace;
+  margin-left: 5px;
+}
+
+.terminal-body {
+  padding: 1rem;
+  font-family: 'Fira Code', 'Courier New', monospace;
+  font-size: 0.8rem;
+  color: #0f0;
+  max-height: 250px;
+  overflow-y: auto;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  background: #000;
+}
+
+.terminal-body::-webkit-scrollbar { width: 4px; }
+.terminal-body::-webkit-scrollbar-thumb { background: rgba(0, 255, 0, 0.3); border-radius: 2px; }
+
 @keyframes flyToChat {
   0% {
     opacity: 1;
@@ -840,6 +880,164 @@
     opacity: 0;
     transform: scale(0.3) translate(-60vw, 30vh);
   }
+}
+
+/* 조사(Investigation) 모달 및 단계별 인디케이터 스타일 */
+.investigation-modal {
+  max-width: 800px !important;
+  width: 90%;
+  padding: 2.5rem !important;
+  background: rgba(10, 10, 20, 0.95);
+  box-shadow: 0 0 40px rgba(0, 255, 255, 0.2), inset 0 0 20px rgba(0, 255, 255, 0.1);
+}
+
+.phase-stepper {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 1.5rem;
+  justify-content: center;
+}
+
+.step-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  transition: all 0.3s;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.step-dot.active {
+  background: var(--neon-cyan);
+  box-shadow: 0 0 10px var(--neon-cyan);
+}
+
+.step-dot.current {
+  transform: scale(1.4);
+  background: #fff;
+  border-color: var(--neon-cyan);
+}
+
+.investigation-content {
+  min-height: 300px;
+  margin: 1.5rem 0;
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.symptom-box, .log-box {
+  background: rgba(255, 255, 255, 0.03);
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.symptom-box h4, .log-box h4, .investigation-question p {
+  color: var(--neon-cyan);
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
+.terminal-log {
+  background: #000;
+  padding: 1.2rem;
+  border-radius: 8px;
+  font-family: 'Fira Code', 'Courier New', monospace;
+  font-size: 0.85rem;
+  color: #0f0;
+  overflow-x: auto;
+  border: 1px solid rgba(0, 255, 0, 0.2);
+  line-height: 1.5;
+}
+
+.investigation-textarea {
+  width: 100%;
+  height: 150px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  border-radius: 8px;
+  color: #fff;
+  padding: 1.2rem;
+  font-family: inherit;
+  font-size: 1rem;
+  resize: none;
+  transition: all 0.3s;
+}
+
+.investigation-textarea:focus {
+  outline: none;
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.15);
+}
+
+.answer-hint {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 0.8rem;
+  font-style: italic;
+  text-align: right;
+}
+
+.inv-feedback {
+  margin-bottom: 1.5rem;
+  text-align: center;
+  font-weight: bold;
+  font-size: 1rem;
+  padding: 0.5rem;
+  border-radius: 4px;
+}
+
+.inv-feedback.success { 
+  color: #0f0; 
+  text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+}
+
+.inv-feedback.error { 
+  color: #ff4444; 
+  animation: shake 0.5s;
+  text-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  75% { transform: translateX(8px); }
+}
+
+.loading-view {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-dark);
+}
+
+.loader-content {
+  text-align: center;
+  color: var(--neon-cyan);
+  font-family: 'Orbitron', monospace;
+  letter-spacing: 2px;
+}
+
+.pulse-loader {
+  width: 50px;
+  height: 50px;
+  border: 3px solid var(--neon-cyan);
+  border-radius: 50%;
+  margin: 0 auto 20px;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.8); opacity: 0.5; }
+  50% { transform: scale(1.1); opacity: 1; box-shadow: 0 0 20px var(--neon-cyan); }
+  100% { transform: scale(0.8); opacity: 0.5; }
 }
 </style>
 
@@ -1024,19 +1222,16 @@ function showAchievementUnlock(achievement) {
 // ============================================
 const progressiveProblems = progressiveData.progressiveProblems;
 const currentProgressiveMission = ref(null);
+// Progressive Mission 시스템 핵심 상태
 const currentProgressiveStep = ref(1);
-const currentProgressivePhase = ref('quiz'); // 'quiz', 'debug', 'explain'
+const currentProgressivePhase = ref('debug'); // 'debug', 'explain'
 const progressiveCompletedSteps = ref([]);
 const progressiveStepCodes = ref({ 1: '', 2: '', 3: '' });
 const progressiveHintUsed = ref({ 1: false, 2: false, 3: false });
 const showProgressiveHintPanel = ref(false);
 const justCompletedStep = ref(0);
 
-// 분석 퀴즈 상태
-const showQuizPopup = ref(false);
-const selectedQuizOption = ref(null);
-const quizFeedback = ref('');
-const quizFeedbackType = ref('');
+// 분석 퀴즈/조사 통계 (Penalty 용도)
 const quizCorrectCount = ref(0);
 const quizIncorrectCount = ref(0);
 const codeSubmitFailCount = ref(0);
@@ -1172,8 +1367,8 @@ function startProgressiveMission(mission, index, startAtStep = 1) {
 
   currentView.value = 'progressivePractice';
   
-  // 시작할 스텝의 퀴즈부터 표시
-  showQuizPhase();
+  // 조사 단계 없이 바로 디버깅 시작
+  startDebugPhase();
 
   // 채팅 초기화
   chatMessages.value = [
@@ -1193,37 +1388,55 @@ function startProgressiveMission(mission, index, startAtStep = 1) {
   terminalStatus.value = 'ready';
 }
 
-// 퀴즈 페이즈 시작
-function showQuizPhase() {
-  currentProgressivePhase.value = 'quiz';
-  selectedQuizOption.value = null;
-  quizFeedback.value = '';
-  showQuizPopup.value = true;
+// 조사 페이즈 시작 (객관식 제거 버전)
+function showInvestigationPhase() {
+  currentProgressivePhase.value = 'investigation';
+  investigationStep.value = 0;
+  investigationAnswers.reasoning = '';
+  investigationFeedback.value = '';
+  showInvestigationPopup.value = true;
 }
 
-// 퀴즈 제출
-function submitQuiz() {
+// 조사 단계 진행
+function nextInvestigationStep() {
   const stepData = getCurrentStepData();
-  if (!stepData || !stepData.questions) {
-    console.error('Step data or questions not found');
+  if (!stepData) return;
+
+  // 1단계: 증상 확인 완료 -> 2단계 서술형으로 이동
+  if (investigationStep.value === 0) {
+    investigationStep.value = 1;
     return;
   }
 
-  if (selectedQuizOption.value === stepData.questions.answer) {
-    quizCorrectCount.value++;
-    quizFeedback.value = '정답입니다! 디버깅을 시작하세요.';
-    quizFeedbackType.value = 'success';
+  // 2단계: 서술형 분석 검증 (키워드 매칭)
+  if (investigationStep.value === 1) {
+    const keywords = stepData.investigation.answer_keywords || [];
+    const userAnswer = investigationAnswers.reasoning.toLowerCase();
+    
+    // 최소 2개 이상의 키워드가 포함되어야 함
+    const foundKeywords = keywords.filter(k => userAnswer.includes(k.toLowerCase()));
+    
+    if (foundKeywords.length < 2) {
+      showInvError(`분석이 충분하지 않습니다. 핵심 원인(예: ${keywords[0]})을 포함하여 더 자세히 설명해주세요.`);
+      return;
+    }
 
+    // 조사 완료
+    investigationFeedback.value = '훌륭한 분석입니다! 이제 코드를 수정하여 해결하세요.';
+    investigationFeedbackType.value = 'success';
     scheduleTimeout(() => {
-      showQuizPopup.value = false;
+      showInvestigationPopup.value = false;
       startDebugPhase();
     }, 1000);
-  } else {
-    quizIncorrectCount.value++;
-    quizFeedback.value = '틀렸습니다. 다시 생각해보세요!';
-    quizFeedbackType.value = 'error';
-    scheduleTimeout(() => { quizFeedback.value = ''; }, 2000);
   }
+}
+
+function showInvError(msg) {
+  investigationFeedback.value = msg;
+  investigationFeedbackType.value = 'error';
+  scheduleTimeout(() => { investigationFeedback.value = ''; }, 2000);
+  // 오답 카운트 기록
+  quizIncorrectCount.value++;
 }
 
 // 디버깅 페이즈 시작
@@ -1286,7 +1499,7 @@ function dismissAlertPopup() {
 function moveToNextStep() {
   if (currentProgressiveStep.value < 3) {
     currentProgressiveStep.value++;
-    showQuizPhase();
+    startDebugPhase();
   } else {
     completeMission();
   }
@@ -1809,18 +2022,38 @@ function resetGameData() {
 
 // 라이프사이클
 onMounted(() => {
-  // 맵 모드 체크
+  // 초기 로드 시 맵 모드 체크
+  handleRouteMission();
+});
+
+// URL 변경(missionId 변경) 감지
+watch(() => route.query.missionId, () => {
+  handleRouteMission();
+}, { immediate: false });
+
+// 라우트에서 미션 정보를 읽어와 시작하는 공통 로직
+function handleRouteMission() {
   if (route.query.missionId) {
     const missionId = route.query.missionId;
     const missionIndex = progressiveProblems.findIndex(m => m.id === missionId);
     
     if (missionIndex !== -1) {
       const mission = progressiveProblems[missionIndex];
-      // [수정] 맵에서 미션을 클릭하면 항상 1-1부터 시작하도록 변경하여 순차적 진행 보장
+      // 항상 1-1부터 시작하도록 변경하여 순차적 진행 보장
       startProgressiveMission(mission, missionIndex, 1);
+    } else {
+      console.warn(`Mission ID Not Found: ${missionId}`);
+      // 미션을 못 찾으면 메인으로 이동하거나 첫 번째 미션 시도
+      if (progressiveProblems.length > 0) {
+        startProgressiveMission(progressiveProblems[0], 0, 1);
+      }
     }
+  } else if (progressiveProblems.length > 0 && currentView.value === 'menu') {
+    // missionId가 없는데 메뉴 화면인 경우, 첫 번째 미션을 기본으로 보여주거나 로직 처리
+    // 여기서는 일단 첫번째 미션으로 자동 시작하도록 하여 빈 화면 방지
+    startProgressiveMission(progressiveProblems[0], 0, 1);
   }
-});
+}
 
 onUnmounted(() => {
   clearAllTimeouts();

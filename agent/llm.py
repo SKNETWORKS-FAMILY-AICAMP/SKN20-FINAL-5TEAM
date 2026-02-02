@@ -7,10 +7,12 @@ import os
 import json
 from openai import OpenAI
 
+from dotenv import load_dotenv
+load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-
 def call_gpt(prompt: str, model: str = "gpt-4o-mini") -> str:
+    print(f"  [LLM] Calling {model}...")
     """
     GPT-4.0 mini 호출
 

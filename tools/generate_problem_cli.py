@@ -16,6 +16,7 @@ load_dotenv()
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from agent.agent import run_problem_agent
+from agent.spec import TRACK_SPECS
 from db.repository import save_problem
 
 
@@ -27,8 +28,8 @@ def main():
     parser.add_argument(
         "--track",
         type=str,
-        default="pytorch",
-        help="트랙 이름 (현재: pytorch만 지원)"
+        default="pytorch_mnist",
+        help=f"트랙 ID (지원: {', '.join(TRACK_SPECS.keys())})"
     )
 
     parser.add_argument(
@@ -52,8 +53,9 @@ def main():
 
     args = parser.parse_args()
 
-    if args.track != "pytorch":
-        print(f"[ERROR] 현재는 pytorch 트랙만 지원됩니다.")
+    if args.track not in TRACK_SPECS:
+        print(f"[ERROR] 지원되지 않는 트랙입니다: {args.track}")
+        print(f"        지원 가능한 트랙: {', '.join(TRACK_SPECS.keys())}")
         return
 
     print("\n" + "="*60)
@@ -79,18 +81,33 @@ def main():
 
     try:
         # 문제 생성
-        problem = run_problem_agent(max_retry=args.max_retry)
+        problem = run_problem_agent(track_id=args.track, max_retry=args.max_retry)
 
         print("\n" + "="*60)
         print("  생성 완료!")
         print("="*60)
 
-        # JSON 파일로 저장
+        # JSON 파일로 저장 (누적 저장 지원)
         if args.output:
             output_path = args.output
+            
+            # 기존 파일 읽기
+            final_data = {"progressiveProblems": []}
+            if os.path.exists(output_path):
+                try:
+                    with open(output_path, 'r', encoding='utf-8') as f:
+                        file_content = json.load(f)
+                        if isinstance(file_content, dict) and "progressiveProblems" in file_content:
+                            final_data = file_content
+                except Exception as e:
+                    print(f"[WARN] 기존 파일 로드 실패: {e}. 새로 생성합니다.")
+
+            # 새로운 문제 추가 (ID 중복 체크는 생략)
+            final_data["progressiveProblems"].append(problem)
+
             with open(output_path, 'w', encoding='utf-8') as f:
-                json.dump(problem, f, indent=2, ensure_ascii=False)
-            print(f"\n[FILE] JSON 저장 완료: {output_path}")
+                json.dump(final_data, f, indent=2, ensure_ascii=False)
+            print(f"\n[FILE] JSON 저장 완료: {output_path} (현재 총 {len(final_data['progressiveProblems'])}개 문제)")
         else:
             # 콘솔에 출력 (Windows cp949 인코딩 문제 방지)
             try:

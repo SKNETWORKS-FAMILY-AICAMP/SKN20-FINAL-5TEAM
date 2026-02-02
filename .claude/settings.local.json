@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(if [ -f \"C:\\\\Users\\\\SAMSUNG\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--SKN20-FINAL-5TEAM\\\\tasks\\\\b1a31e5.output\" ])",
+      "Bash(then tail -n 80 \"C:\\\\Users\\\\SAMSUNG\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--SKN20-FINAL-5TEAM\\\\tasks\\\\b1a31e5.output\")",
+      "Bash(else echo \"Output file not found\")",
+      "Bash(fi)",
+      "Bash(if ps aux)",
+      "Bash(then echo \"Still running...\")",
+      "Bash(else echo \"Process completed\")",
+      "Bash(while ps aux)",
+      "Bash(do sleep 10)",
+      "Bash(done)",
+      "Bash(do sleep 15)"
+    ]
+  }
+}
