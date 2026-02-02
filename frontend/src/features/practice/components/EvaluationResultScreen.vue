@@ -68,6 +68,45 @@
 
         <hr class="divider" />
 
+        <!-- 6대 기둥(Pillar) 점수 요약 -->
+        <div v-if="result.pillarScores" class="eval-section pillar-scores-section">
+          <h3>[ 6대 기둥 점수 - Well-Architected Framework ]</h3>
+          <div class="pillar-grid">
+            <div class="pillar-item" :class="getScoreClass(result.pillarScores.costOptimization)">
+              <span class="pillar-emoji">💰</span>
+              <span class="pillar-name">Cost Optimization</span>
+              <span class="pillar-score">{{ result.pillarScores.costOptimization || 0 }}점</span>
+            </div>
+            <div class="pillar-item" :class="getScoreClass(result.pillarScores.operationalExcellence)">
+              <span class="pillar-emoji">🤖</span>
+              <span class="pillar-name">Operational Excellence</span>
+              <span class="pillar-score">{{ result.pillarScores.operationalExcellence || 0 }}점</span>
+            </div>
+            <div class="pillar-item" :class="getScoreClass(result.pillarScores.performanceOptimization)">
+              <span class="pillar-emoji">⚡</span>
+              <span class="pillar-name">Performance</span>
+              <span class="pillar-score">{{ result.pillarScores.performanceOptimization || 0 }}점</span>
+            </div>
+            <div class="pillar-item" :class="getScoreClass(result.pillarScores.reliability)">
+              <span class="pillar-emoji">🏗️</span>
+              <span class="pillar-name">Reliability</span>
+              <span class="pillar-score">{{ result.pillarScores.reliability || 0 }}점</span>
+            </div>
+            <div class="pillar-item" :class="getScoreClass(result.pillarScores.securityPrivacyCompliance)">
+              <span class="pillar-emoji">🔐</span>
+              <span class="pillar-name">Security & Compliance</span>
+              <span class="pillar-score">{{ result.pillarScores.securityPrivacyCompliance || 0 }}점</span>
+            </div>
+            <div class="pillar-item" :class="getScoreClass(result.pillarScores.sustainability)">
+              <span class="pillar-emoji">🌱</span>
+              <span class="pillar-name">Sustainability</span>
+              <span class="pillar-score">{{ result.pillarScores.sustainability || 0 }}점</span>
+            </div>
+          </div>
+        </div>
+
+        <hr class="divider" />
+
         <!-- 하위 에이전트 평가 결과 -->
         <div v-if="result.subAgentResults && result.subAgentResults.length" class="eval-section">
           <h3>[ 전문 분석관 평가 ]</h3>
@@ -854,6 +893,77 @@ export default {
 .btn-retry:active {
   transform: translate(2px, 2px);
   box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.8);
+}
+
+/* 6대 기둥 점수 그리드 */
+.pillar-scores-section {
+  margin: 25px 0;
+}
+
+.pillar-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 15px;
+}
+
+.pillar-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 15px 10px;
+  background: rgba(0, 0, 0, 0.05);
+  border: 3px solid #ddd;
+  transition: all 0.3s ease;
+}
+
+.pillar-item.excellent {
+  border-color: #27ae60;
+  background: rgba(39, 174, 96, 0.08);
+}
+
+.pillar-item.good {
+  border-color: #3498db;
+  background: rgba(52, 152, 219, 0.08);
+}
+
+.pillar-item.needs-improvement {
+  border-color: #f39c12;
+  background: rgba(243, 156, 18, 0.08);
+}
+
+.pillar-item.poor {
+  border-color: #e74c3c;
+  background: rgba(231, 76, 60, 0.08);
+}
+
+.pillar-emoji {
+  font-size: 1.8rem;
+  margin-bottom: 8px;
+}
+
+.pillar-name {
+  font-size: 0.7rem;
+  font-weight: bold;
+  text-align: center;
+  color: #2c3e50;
+  margin-bottom: 8px;
+}
+
+.pillar-score {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.75rem;
+}
+
+.pillar-item.excellent .pillar-score { color: #27ae60; }
+.pillar-item.good .pillar-score { color: #3498db; }
+.pillar-item.needs-improvement .pillar-score { color: #f39c12; }
+.pillar-item.poor .pillar-score { color: #e74c3c; }
+
+@media (max-width: 600px) {
+  .pillar-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 /* 마스터 에이전트 평가 스타일 */

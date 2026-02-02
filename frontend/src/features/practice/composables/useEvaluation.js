@@ -1,6 +1,6 @@
 import { ref } from 'vue';
-// 마스터 에이전트 기반 다중 에이전트 평가 사용
-import { evaluateWithMasterAgent } from '../services/architectureApiMasterAgent';
+// 마스터 에이전트 기반 다중 에이전트 평가 사용 (6대 기둥 + 7단계 프로세스)
+import { evaluateWithMasterAgent, getAvailableSubAgents, getAllQuestionStrategies } from '../services/architectureApiMasterAgent';
 import {
   generateEvaluationQuestion,
   generateArchitectureAnalysisQuestions,
@@ -11,6 +11,18 @@ import {
   generateMockEvaluation
 } from '../utils/architectureUtils';
 
+/**
+ * 평가 Composable
+ *
+ * 7단계 프로세스 (sys-arc.md 기반):
+ * 1. 머메이드 변환: 시각적 정보를 구조화된 데이터로 변환
+ * 2. 상세 설명: 사용자의 설계 '의도' 파악
+ * 3. 질문 및 꼬리질문: 전문 용어를 시나리오로 번역하여 질문
+ * 4. 6대 지표 개별 평가: 독립된 에이전트가 병렬로 평가
+ * 5. 프롬프트 변환: 핵심 원칙 - 질문 전략 형태로 정제
+ * 6. 지표 정보 공통 사용: 질문자와 평가자의 논리적 일관성
+ * 7. 맥락 유지: 고정 맥락 + 유동 맥락 세션 동안 유지
+ */
 export function useEvaluation() {
   // Evaluation State
   const isModalActive = ref(false);
@@ -37,6 +49,18 @@ export function useEvaluation() {
 
   // Chat messages for evaluation context
   const chatMessages = ref([]);
+
+  // NEW: 7단계 프로세스 - 세션 맥락 유지 (7단계)
+  const sessionContext = ref({
+    fixedContext: '', // 고정 맥락: 아키텍처 도형 + 첫 설명
+    dynamicContext: '', // 유동 맥락: Q&A 대화 요약 + 새로운 사실
+    facts: [], // 파악된 사실들
+    clarifiedPoints: [] // 명확해진 설계 의도
+  });
+
+  // NEW: 6대 기둥 정보 (평가지표)
+  const sixPillars = ref(getAvailableSubAgents());
+  const allQuestionStrategies = ref(getAllQuestionStrategies());
 
   async function skipDeepDive() {
     collectedDeepDiveAnswers.value.push({
@@ -156,6 +180,16 @@ export function useEvaluation() {
     return false; // 아직 질문 단계
   }
 
+  /**
+   * 직접 평가 실행 (7단계 프로세스 통합)
+   *
+   * 프로세스:
+   * 1. 머메이드 변환 (architectureContext에 이미 포함)
+   * 2. 상세 설명 (userExplanation에 포함)
+   * 3. 질문 및 꼬리질문 (deepDiveQnA에 포함)
+   * 4. 6대 지표 개별 평가 (병렬 실행)
+   * 5-7. 프롬프트 변환, 지표 공통 사용, 맥락 유지 (architectureApiMasterAgent에서 처리)
+   */
   async function directEvaluate(problem, droppedComponents, connections, mermaidCode) {
     showResultScreen.value = true;
     isEvaluating.value = true;
@@ -167,21 +201,43 @@ export function useEvaluation() {
       mermaidCode
     );
 
+    // 7단계 프로세스: 고정 맥락 설정 (첫 평가 시)
+    if (!sessionContext.value.fixedContext) {
+      sessionContext.value.fixedContext = `아키텍처 구조:\n${architectureContext}\n\n첫 설명:\n${userExplanation.value}`;
+    }
+
     const deepDiveQnA = collectedDeepDiveAnswers.value.map(item => ({
       category: item.category,
       question: item.question,
       answer: item.answer === '(스킵됨)' ? '' : item.answer
     }));
 
+    // 7단계 프로세스: 유동 맥락 업데이트 (Q&A 대화 요약)
+    if (deepDiveQnA.length > 0) {
+      const qaSummary = deepDiveQnA
+        .filter(item => item.answer && item.answer !== '(스킵됨)')
+        .map(item => `[${item.category}] Q: ${item.question}\nA: ${item.answer}`)
+        .join('\n\n');
+      sessionContext.value.dynamicContext = qaSummary;
+    }
+
     try {
-      // 마스터 에이전트 기반 다중 에이전트 평가 사용
+      // 마스터 에이전트 기반 6대 기둥 평가 (7단계 프로세스 적용)
       evaluationResult.value = await evaluateWithMasterAgent(
         problem,
         architectureContext,
         null, // EvaluationModal 질문 없음
-        null, // EvaluationModal 답변 없음
-        deepDiveQnA
+        userExplanation.value, // 사용자 설명 전달
+        deepDiveQnA,
+        sessionContext.value // 7단계: 세션 맥락 전달
       );
+
+      // 맥락 업데이트 (마스터 에이전트 결과에서)
+      if (evaluationResult.value?.masterAgentEvaluation?.contextUpdate) {
+        const update = evaluationResult.value.masterAgentEvaluation.contextUpdate;
+        sessionContext.value.facts.push(...(update.newFacts || []));
+        sessionContext.value.clarifiedPoints.push(...(update.clarifiedPoints || []));
+      }
     } catch (error) {
       console.error('Master Agent Evaluation error:', error);
       evaluationResult.value = generateMockEvaluation(problem, droppedComponents);
@@ -243,6 +299,9 @@ export function useEvaluation() {
     showResultScreen.value = true;
   }
 
+  /**
+   * 평가 실행 (7단계 프로세스 통합)
+   */
   async function evaluate(problem, droppedComponents, connections, mermaidCode) {
     isEvaluating.value = true;
     evaluationResult.value = null;
@@ -253,21 +312,43 @@ export function useEvaluation() {
       mermaidCode
     );
 
+    // 7단계 프로세스: 고정 맥락 설정
+    if (!sessionContext.value.fixedContext) {
+      sessionContext.value.fixedContext = `아키텍처 구조:\n${architectureContext}\n\n첫 설명:\n${userExplanation.value}`;
+    }
+
     const deepDiveQnA = collectedDeepDiveAnswers.value.map(item => ({
       category: item.category,
       question: item.question,
       answer: item.answer === '(스킵됨)' ? '' : item.answer
     }));
 
+    // 7단계 프로세스: 유동 맥락 업데이트
+    if (deepDiveQnA.length > 0) {
+      const qaSummary = deepDiveQnA
+        .filter(item => item.answer && item.answer !== '(스킵됨)')
+        .map(item => `[${item.category}] Q: ${item.question}\nA: ${item.answer}`)
+        .join('\n\n');
+      sessionContext.value.dynamicContext = qaSummary;
+    }
+
     try {
-      // 마스터 에이전트 기반 다중 에이전트 평가 사용
+      // 마스터 에이전트 기반 6대 기둥 평가 (7단계 프로세스 적용)
       evaluationResult.value = await evaluateWithMasterAgent(
         problem,
         architectureContext,
         generatedQuestion.value,
-        userAnswer.value,
-        deepDiveQnA
+        userAnswer.value || userExplanation.value,
+        deepDiveQnA,
+        sessionContext.value // 7단계: 세션 맥락 전달
       );
+
+      // 맥락 업데이트
+      if (evaluationResult.value?.masterAgentEvaluation?.contextUpdate) {
+        const update = evaluationResult.value.masterAgentEvaluation.contextUpdate;
+        sessionContext.value.facts.push(...(update.newFacts || []));
+        sessionContext.value.clarifiedPoints.push(...(update.clarifiedPoints || []));
+      }
     } catch (error) {
       console.error('Master Agent Evaluation error:', error);
       evaluationResult.value = generateMockEvaluation(problem, droppedComponents);
@@ -280,6 +361,9 @@ export function useEvaluation() {
     showResultScreen.value = false;
   }
 
+  /**
+   * 평가 상태 초기화 (7단계 프로세스 맥락 포함)
+   */
   function resetEvaluationState() {
     evaluationResult.value = null;
     deepDiveQuestions.value = [];
@@ -289,6 +373,14 @@ export function useEvaluation() {
     evaluationPhase.value = 'idle';
     userExplanation.value = '';
     explanationAnalysis.value = null;
+
+    // 7단계 프로세스: 세션 맥락 초기화
+    sessionContext.value = {
+      fixedContext: '',
+      dynamicContext: '',
+      facts: [],
+      clarifiedPoints: []
+    };
   }
 
   function isPendingEvaluation() {
@@ -317,13 +409,18 @@ export function useEvaluation() {
     currentQuestionIndex,
     collectedDeepDiveAnswers,
 
-    // NEW: 설명 Phase 상태
+    // 설명 Phase 상태
     evaluationPhase,
     userExplanation,
     explanationAnalysis,
 
     // Chat
     chatMessages,
+
+    // 7단계 프로세스 상태
+    sessionContext,
+    sixPillars,
+    allQuestionStrategies,
 
     // Methods
     skipDeepDive,
@@ -339,7 +436,7 @@ export function useEvaluation() {
     isPendingEvaluation,
     clearPendingEvaluation,
 
-    // NEW: 설명 제출 메서드
+    // 설명 제출 메서드
     submitUserExplanation
   };
 }
