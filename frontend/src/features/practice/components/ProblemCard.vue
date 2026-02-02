@@ -47,7 +47,7 @@
       :disabled="!canEvaluate || isEvaluating"
       @click="$emit('start-evaluation')"
     >
-      {{ isEvaluating ? '심문 준비 중...' : '제출 (SUBMIT)' }}
+      {{ isEvaluating ? 'INITIALIZING...' : 'EXECUTE_EVALUATION' }}
       <span v-if="isEvaluating" class="loading-spinner"></span>
     </button>
 
@@ -96,52 +96,57 @@ export default {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Courier+Prime:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&display=swap');
 
 .case-file-section {
+  --accent-green: #A3FF47;
+  --accent-cyan: #00f3ff;
+  --accent-pink: #ec4899;
+  --terminal-font: 'Fira Code', monospace;
+
   display: flex;
   flex-direction: column;
   gap: 15px;
 }
 
 .case-file-folder {
-  background: #e67e22;
-  padding: 5px;
-  border: 4px solid #000;
-  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.5);
+  background: rgba(163, 255, 71, 0.05);
+  padding: 2px;
+  border: 1px solid rgba(163, 255, 71, 0.3);
 }
 
 .case-paper {
-  background: #f4f3ee; 
-  color: #1a1a1a; 
-  padding: 20px;
-  font-family: var(--typewriter-font); 
-  font-size: 0.85rem; 
-  line-height: 1.4;
-  border: 1px solid #ccc;
-  box-shadow: inset 0 0 20px rgba(0,0,0,0.1);
-  background-image: linear-gradient(#ccc 1px, transparent 1px);
-  background-size: 100% 1.4rem;
+  background: rgba(5, 7, 10, 0.9);
+  color: #ecf0f1;
+  padding: 16px;
+  font-family: var(--terminal-font);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  border: 1px solid rgba(163, 255, 71, 0.1);
 }
 
 .case-header {
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .case-number {
-  background: #000;
-  color: #fff;
-  padding: 3px 8px;
-  font-family: 'Press Start 2P', cursive;
+  background: var(--accent-green);
+  color: #000;
+  padding: 3px 10px;
+  font-family: var(--terminal-font);
   font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 1px;
 }
 
 .case-title {
-  color: #2c3e50;
-  font-size: 0.9rem;
-  margin: 10px 0;
+  color: var(--accent-green);
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin: 12px 0 10px 0;
   padding-bottom: 8px;
-  border-bottom: 2px solid #bdc3c7;
+  border-bottom: 1px solid rgba(163, 255, 71, 0.2);
+  text-shadow: 0 0 8px rgba(163, 255, 71, 0.3);
 }
 
 .case-section {
@@ -150,79 +155,82 @@ export default {
 
 .section-label {
   display: block;
-  color: #1a1a1a;
-  font-size: 0.65rem;
-  margin-bottom: 5px;
-  font-family: 'Press Start 2P', cursive;
+  color: rgba(163, 255, 71, 0.7);
+  font-size: 0.6rem;
+  margin-bottom: 6px;
+  font-family: var(--terminal-font);
+  letter-spacing: 1px;
 }
 
 .case-section p {
   margin: 5px 0;
-  color: #34495e;
+  color: rgba(236, 240, 241, 0.9);
+  font-size: 0.8rem;
 }
 
 .case-section ul {
   margin: 5px 0;
+  padding-left: 16px;
 }
 
 .case-section li {
-  color: #34495e;
+  color: rgba(236, 240, 241, 0.8);
   margin-bottom: 4px;
+  font-size: 0.78rem;
 }
 
 .case-section.missions .section-label {
-  color: #1a1a1a;
+  color: rgba(163, 255, 71, 0.7);
 }
 
 .case-section.constraints .section-label {
-  color: #1a1a1a;
+  color: rgba(163, 255, 71, 0.7);
 }
 
 /* 모드 인디케이터 */
 .mode-indicator {
-  background: rgba(52, 152, 219, 0.2);
-  border: 2px solid #3498db;
-  border-radius: 4px;
+  background: rgba(163, 255, 71, 0.1);
+  border: 1px solid rgba(163, 255, 71, 0.3);
   padding: 10px;
   font-size: 0.65rem;
   text-align: center;
-  color: #3498db;
+  color: var(--accent-green);
   transition: all 0.3s ease;
-  font-family: 'Press Start 2P', cursive;
+  font-family: var(--terminal-font);
 }
 
 .mode-indicator.connection-mode {
-  background: rgba(241, 196, 15, 0.2);
-  border-color: #f1c40f;
-  color: #f1c40f;
+  background: rgba(0, 243, 255, 0.1);
+  border-color: rgba(0, 243, 255, 0.3);
+  color: var(--accent-cyan);
 }
 
 /* 제출 버튼 */
 .submit-btn {
   width: 100%;
-  padding: 15px;
-  background: #e74c3c;
-  border: 4px solid #000;
-  color: #fff;
-  font-family: 'Press Start 2P', cursive;
-  font-size: 0.7rem;
+  padding: 14px;
+  background: var(--accent-green);
+  border: none;
+  color: #000;
+  font-family: var(--terminal-font);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 2px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.5);
 }
 
 .submit-btn:hover:not(:disabled) {
-  transform: translate(-2px, -2px);
-  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 30px rgba(163, 255, 71, 0.5);
+  transform: translateY(-2px);
 }
 
 .submit-btn:active:not(:disabled) {
-  transform: translate(2px, 2px);
-  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+  transform: translateY(0);
 }
 
 .submit-btn:disabled {
@@ -233,8 +241,8 @@ export default {
 .loading-spinner {
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #fff;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  border-top-color: #000;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -245,28 +253,41 @@ export default {
 
 /* Evidence Section */
 .evidence-section {
-  background: rgba(0, 0, 0, 0.8);
-  border: 2px solid #f1c40f;
-  border-radius: 4px;
+  background: rgba(163, 255, 71, 0.05);
+  border: 1px solid rgba(163, 255, 71, 0.3);
   padding: 10px;
 }
 
 .evidence-section .section-label {
-  color: #f1c40f;
+  color: var(--accent-green);
   margin-bottom: 8px;
 }
 
 .code-output {
-  background: #000;
-  color: #f1c40f;
+  background: rgba(0, 0, 0, 0.5);
+  color: var(--accent-green);
   padding: 10px;
-  border-radius: 4px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--terminal-font);
   font-size: 0.7rem;
   overflow-x: auto;
   white-space: pre-wrap;
   word-wrap: break-word;
   max-height: 150px;
   overflow-y: auto;
+}
+
+/* 스크롤바 커스텀 */
+.code-output::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.code-output::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.code-output::-webkit-scrollbar-thumb {
+  background: rgba(163, 255, 71, 0.2);
+  border-radius: 10px;
 }
 </style>

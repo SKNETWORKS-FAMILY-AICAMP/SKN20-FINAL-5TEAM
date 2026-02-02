@@ -22,7 +22,7 @@
       <div class="frame-main">
         <div v-if="isGenerating" class="loading-section">
           <div class="loading-spinner"></div>
-          <p>용의자의 설계도를 분석 중... 꽥!</p>
+          <p>ANALYZING_ARCHITECTURE... 꽥!</p>
         </div>
 
         <template v-else>
@@ -42,7 +42,7 @@
                 <img src="/image/duck_det.png" alt="Detective Duck" />
               </div>
               <div class="det-text">
-                <div class="det-name">DET. DUCK</div>
+                <div class="det-name">CODUCK_AI</div>
                 <!-- <div class="det-category" v-if="category">{{ categoryIcon }} {{ category }}</div> -->
                 <p class="det-question">{{ question }}</p>
               </div>
@@ -143,27 +143,27 @@ export default {
     },
     submitButtonText() {
       if (this.isExplanationPhase) {
-        return '설명 제출';
+        return 'SUBMIT_EXPLANATION';
       }
-      return this.isLastQuestion ? '최종 진술 (평가)' : '진술 완료';
+      return this.isLastQuestion ? 'FINAL_SUBMIT' : 'NEXT_PROTOCOL';
     },
     skipButtonText() {
       if (this.isExplanationPhase) {
-        return '건너뛰기';
+        return 'SKIP';
       }
-      return this.isLastQuestion ? '묵비권 행사 (평가)' : '묵비권 (건너뛰기)';
+      return this.isLastQuestion ? 'SKIP_TO_EVALUATE' : 'SKIP';
     },
     placeholderText() {
       if (this.isExplanationPhase) {
-        return '아키텍처에 대한 설명을 작성해주세요. (최소 50자 권장)';
+        return '아키텍처에 대한 설명을 입력하세요... (최소 50자 권장)';
       }
-      return '진술하세요... (거짓말은 금지! 꽥!)';
+      return '답변을 입력하세요... 꽥!';
     },
     headerTitle() {
       if (this.isExplanationPhase) {
-        return 'ARCHITECTURE EXPLANATION';
+        return 'ARCHITECTURE_ANALYSIS';
       }
-      return 'INTERROGATION IN PROGRESS';
+      return 'SYSTEM_VERIFICATION';
     }
   },
   watch: {
@@ -216,18 +216,25 @@ export default {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Courier+Prime:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&display=swap');
 
 /* =====================
    OVERLAY
 ===================== */
 .modal-overlay {
+  --accent-green: #A3FF47;
+  --accent-cyan: #00f3ff;
+  --accent-pink: #ec4899;
+  --bg-dark: #05070A;
+  --terminal-font: 'Fira Code', monospace;
+
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: radial-gradient(circle at top, #444 0%, #000 60%);
+  background: rgba(5, 7, 10, 0.95);
+  backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -237,12 +244,12 @@ export default {
   transition: all 0.3s ease;
 }
 
-/* CRT Noise */
 .modal-overlay::after {
   content: "";
   position: fixed;
   inset: 0;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  background-image: radial-gradient(rgba(163, 255, 71, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
   pointer-events: none;
 }
 
@@ -258,13 +265,27 @@ export default {
   width: 1100px;
   max-width: 95%;
   max-height: 90vh;
-  background: #111;
-  border: 6px solid #555;
-  box-shadow: 0 0 40px rgba(255, 0, 0, 0.25);
+  background: var(--bg-dark);
+  border: 1px solid rgba(163, 255, 71, 0.3);
+  box-shadow: 0 0 60px rgba(163, 255, 71, 0.15);
   position: relative;
   overflow-y: auto;
-  transform: scale(0.9);
+  transform: scale(0.95);
   transition: transform 0.3s ease;
+}
+
+/* 스크롤바 커스텀 */
+.interrogation-frame::-webkit-scrollbar {
+  width: 4px;
+}
+
+.interrogation-frame::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.interrogation-frame::-webkit-scrollbar-thumb {
+  background: rgba(163, 255, 71, 0.2);
+  border-radius: 10px;
 }
 
 .modal-overlay.active .interrogation-frame {
@@ -275,44 +296,46 @@ export default {
    HEADER
 ===================== */
 .frame-header {
-  padding: 16px 20px;
-  border-bottom: 3px solid #333;
+  padding: 16px 24px;
+  border-bottom: 1px solid rgba(163, 255, 71, 0.2);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #0a0a0a;
+  background: rgba(163, 255, 71, 0.03);
 }
 
 .header-title {
-  font-family: 'Press Start 2P', cursive;
-  font-size: 14px;
-  color: #e74c3c;
-  letter-spacing: 2px;
+  font-family: var(--terminal-font);
+  font-size: 0.85rem;
+  color: var(--accent-green);
+  letter-spacing: 3px;
+  font-weight: 700;
   margin-bottom: 6px;
+  text-shadow: 0 0 10px rgba(163, 255, 71, 0.5);
 }
 
 .header-meta {
-  font-family: 'Courier Prime', monospace;
-  font-size: 12px;
-  color: #aaa;
+  font-family: var(--terminal-font);
+  font-size: 0.75rem;
+  color: rgba(163, 255, 71, 0.6);
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
 .rec {
-  color: #ff3b3b;
+  color: var(--accent-green);
   font-weight: bold;
-  animation: blink 1s infinite;
+  animation: pulse-opacity 1.5s infinite;
 }
 
 .rec::before {
   content: "● ";
 }
 
-@keyframes blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0.3; }
+@keyframes pulse-opacity {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 
 .header-right {
@@ -321,15 +344,16 @@ export default {
 
 .progress-bar {
   width: 100%;
-  height: 8px;
-  background: #333;
-  border: 2px solid #555;
+  height: 6px;
+  background: rgba(163, 255, 71, 0.1);
+  border: 1px solid rgba(163, 255, 71, 0.2);
 }
 
 .progress-fill {
   height: 100%;
-  background: #e74c3c;
+  background: var(--accent-green);
   transition: width 0.3s ease;
+  box-shadow: 0 0 10px rgba(163, 255, 71, 0.5);
 }
 
 /* =====================
@@ -356,8 +380,8 @@ export default {
 .loading-spinner {
   width: 50px;
   height: 50px;
-  border: 4px solid rgba(231, 76, 60, 0.3);
-  border-top-color: #e74c3c;
+  border: 3px solid rgba(163, 255, 71, 0.2);
+  border-top-color: var(--accent-green);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 20px;
@@ -368,17 +392,17 @@ export default {
 }
 
 .loading-section p {
-  color: #e74c3c;
-  font-family: 'Courier Prime', monospace;
-  font-size: 1rem;
+  color: var(--accent-green);
+  font-family: var(--terminal-font);
+  font-size: 0.9rem;
 }
 
 /* =====================
    EVIDENCE (Left)
 ===================== */
 .evidence-section {
-  background: #0b0b0b;
-  border: 3px solid #555;
+  background: rgba(163, 255, 71, 0.03);
+  border: 1px solid rgba(163, 255, 71, 0.2);
   padding: 15px;
   position: relative;
   display: flex;
@@ -386,16 +410,17 @@ export default {
 }
 
 .section-title {
-  font-family: 'Press Start 2P', cursive;
-  font-size: 10px;
-  color: #aaa;
+  font-family: var(--terminal-font);
+  font-size: 0.7rem;
+  color: rgba(163, 255, 71, 0.6);
   margin-bottom: 12px;
+  letter-spacing: 2px;
 }
 
 .diagram-container {
   flex: 1;
   min-height: 220px;
-  border: 2px dashed #444;
+  border: 1px dashed rgba(163, 255, 71, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -404,8 +429,9 @@ export default {
 }
 
 .diagram-placeholder {
-  color: #666;
-  font-family: 'Courier Prime', monospace;
+  color: rgba(163, 255, 71, 0.3);
+  font-family: var(--terminal-font);
+  font-size: 0.8rem;
 }
 
 .diagram-container :deep(svg) {
@@ -415,7 +441,7 @@ export default {
 }
 
 .mermaid-error {
-  color: #e74c3c;
+  color: var(--accent-pink);
   font-size: 0.8rem;
 }
 
@@ -425,15 +451,17 @@ export default {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%) rotate(-12deg);
-  border: 6px solid #c0392b;
-  color: #c0392b;
-  font-family: 'Press Start 2P', cursive;
-  font-size: 16px;
+  border: 2px solid var(--accent-green);
+  color: var(--accent-green);
+  font-family: var(--terminal-font);
+  font-size: 0.9rem;
+  font-weight: 700;
   padding: 12px 20px;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.3s ease;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(5, 7, 10, 0.9);
+  letter-spacing: 2px;
 }
 
 .stamp.stamp-active {
@@ -444,8 +472,8 @@ export default {
    DETECTIVE (Right)
 ===================== */
 .detective-section {
-  background: #0b0b0b;
-  border: 3px solid #555;
+  background: rgba(163, 255, 71, 0.03);
+  border: 1px solid rgba(163, 255, 71, 0.2);
   padding: 15px;
   display: flex;
   flex-direction: column;
@@ -461,13 +489,14 @@ export default {
 .det-avatar {
   width: 70px;
   height: 70px;
-  border: 3px solid #f1c40f;
-  background: #222;
+  border: 2px solid var(--accent-green);
+  background: #000;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   overflow: hidden;
+  box-shadow: 0 0 15px rgba(163, 255, 71, 0.3);
 }
 
 .det-avatar img {
@@ -481,28 +510,31 @@ export default {
 }
 
 .det-name {
-  font-family: 'Press Start 2P', cursive;
-  font-size: 10px;
-  color: #f1c40f;
+  font-family: var(--terminal-font);
+  font-size: 0.7rem;
+  color: var(--accent-green);
   margin-bottom: 6px;
+  letter-spacing: 2px;
+  font-weight: 700;
+  text-shadow: 0 0 8px rgba(163, 255, 71, 0.5);
 }
 
 .det-category {
   display: inline-block;
   padding: 3px 8px;
-  background: rgba(231, 76, 60, 0.2);
-  border: 2px solid #e74c3c;
-  font-family: 'Press Start 2P', cursive;
-  font-size: 8px;
-  color: #e74c3c;
+  background: rgba(163, 255, 71, 0.1);
+  border: 1px solid rgba(163, 255, 71, 0.3);
+  font-family: var(--terminal-font);
+  font-size: 0.6rem;
+  color: var(--accent-green);
   margin-bottom: 8px;
 }
 
 .det-question {
-  font-family: 'Courier Prime', monospace;
-  font-size: 14px;
-  line-height: 1.5;
-  color: #eaeaea;
+  font-family: var(--terminal-font);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: #ecf0f1;
   margin: 0;
 }
 
@@ -515,81 +547,85 @@ export default {
 }
 
 .testimony-label {
-  font-family: 'Press Start 2P', cursive;
-  font-size: 9px;
-  color: #e74c3c;
+  font-family: var(--terminal-font);
+  font-size: 0.65rem;
+  color: var(--accent-green);
+  letter-spacing: 1px;
 }
 
 .testimony-input {
   flex: 1;
   min-height: 80px;
-  background: #000;
-  border: 3px solid #e74c3c;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--accent-green);
   padding: 12px;
-  color: #eaeaea;
-  font-family: 'Courier Prime', monospace;
-  font-size: 14px;
+  color: #ecf0f1;
+  font-family: var(--terminal-font);
+  font-size: 0.85rem;
   resize: none;
-  transition: border-color 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 .testimony-input:focus {
   outline: none;
-  border-color: #e74c3c;
+  box-shadow: 0 0 15px rgba(163, 255, 71, 0.3);
 }
 
 .testimony-input::placeholder {
-  color: rgba(234, 234, 234, 0.4);
+  color: rgba(163, 255, 71, 0.3);
 }
 
 /* 설명 모드 스타일 */
 .testimony-input.explanation-mode {
   min-height: 150px;
-  border-color: #3498db;
+  border-color: var(--accent-cyan);
 }
 
 .testimony-input.explanation-mode:focus {
-  border-color: #2980b9;
+  box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
 }
 
 .btn-explanation {
-  background: #3498db !important;
+  background: var(--accent-cyan) !important;
+  color: #000 !important;
 }
 
 .btn-explanation:hover:not(:disabled) {
-  background: #2980b9 !important;
+  box-shadow: 0 0 20px rgba(0, 243, 255, 0.5) !important;
 }
 
 /* =====================
    FOOTER
 ===================== */
 .frame-footer {
-  border-top: 3px solid #333;
-  padding: 15px 20px;
+  border-top: 1px solid rgba(163, 255, 71, 0.2);
+  padding: 15px 24px;
   display: flex;
   justify-content: flex-end;
   gap: 15px;
-  background: #0a0a0a;
+  background: rgba(163, 255, 71, 0.03);
 }
 
 .btn {
   flex: 1;
   max-width: 250px;
-  padding: 14px 20px;
-  font-family: 'Press Start 2P', cursive;
-  font-size: 1.0rem;
+  padding: 12px 20px;
+  font-family: var(--terminal-font);
+  font-size: 0.75rem;
   cursor: pointer;
-  border: 3px solid #000;
+  border: 1px solid rgba(163, 255, 71, 0.3);
   transition: all 0.2s ease;
+  letter-spacing: 1px;
 }
 
 .btn-submit {
-  background: #f1c40f;
+  background: var(--accent-green);
   color: #000;
+  font-weight: 700;
 }
 
 .btn-submit:hover:not(:disabled) {
-  background: #f39c12;
+  box-shadow: 0 0 25px rgba(163, 255, 71, 0.5);
   transform: translateY(-2px);
 }
 
@@ -599,13 +635,13 @@ export default {
 }
 
 .btn-silent {
-  background: #333;
-  color: #aaa;
+  background: rgba(163, 255, 71, 0.1);
+  color: rgba(163, 255, 71, 0.7);
 }
 
 .btn-silent:hover {
-  background: #444;
-  color: #fff;
+  background: rgba(163, 255, 71, 0.2);
+  color: var(--accent-green);
 }
 
 /* =====================

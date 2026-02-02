@@ -145,11 +145,11 @@ export default {
       // Intro State
       showIntro: true,
       introLines: [
-        "거기 서! 도망갈 생각 마라. 꽥!",
-        "네가 오늘 발생한 대규모 서버 폭파 사건의 가장 유력한 용의자로 지목되었다.",
-        "억울하다고? 그렇다면 취조실로 들어와서 직접 증명해 봐.",
-        "올바른 시스템 아키텍처를 설계해서 네 결백을 입증하는 거다!",
-        "(철창 문이 열린다...)"
+        "[SYSTEM ALERT] 아키텍트님, 마더 서버에 이상 징후가 감지되었습니다. 꽥!",
+        "오염된 AI들이 환각(Hallucination)에 빠져 시스템을 붕괴시키고 있습니다.",
+        "당신만이 이 상황을 복구할 수 있습니다.",
+        "올바른 시스템 아키텍처를 설계하여 데이터 무결성을 확보하세요!",
+        "[PROTOCOL READY] 복구 터미널에 접속합니다..."
       ],
 
       // Problem State
@@ -251,7 +251,7 @@ export default {
     onEnterGame() {
       this.showIntro = false;
       this.showToastMessage(
-        '자, 여기에 앉아. 오른쪽 팔레트에서 컴포넌트를 드래그해서 캔버스에 배치해. 꽥!',
+        '[GUIDE] 팔레트에서 컴포넌트를 드래그하여 캔버스에 배치하세요. 꽥!',
         'guide'
       );
     },
@@ -337,7 +337,7 @@ export default {
 
     // NEW: 사용자 설명 제출 핸들러
     async submitUserExplanation(explanation) {
-      this.showToastMessage('설명을 분석하고 꼬리질문을 생성 중입니다... 꽥!', 'guide');
+      this.showToastMessage('[PROCESSING] 아키텍처 분석 및 질문 생성 중... 꽥!', 'guide');
 
       const allDone = await this.submitUserExplanationComposable(
         explanation,
@@ -357,7 +357,7 @@ export default {
           this.mermaidCode
         );
       } else {
-        this.showToastMessage('좋아, 이제 몇 가지 질문에 답해봐. 꽥!', 'guide');
+        this.showToastMessage('[READY] 검증 질문에 응답해주세요. 꽥!', 'guide');
       }
     },
 
@@ -395,33 +395,27 @@ export default {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Courier+Prime:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&display=swap');
 
-/* === 취조실 테마 변수 === */
+/* === Architect Terminal 2077 테마 변수 === */
 .arch-challenge-container.panic-room-theme {
-  --bg-dark: #0f1115;
-  --bg-metal: #2c3e50;
-  --panel-grey: #1a1a1a;
-  --accent-yellow: #f1c40f;
-  --danger-red: #e74c3c;
-  --neon-blue: #00f3ff;
+  --bg-dark: #05070A;
+  --bg-panel: rgba(163, 255, 71, 0.05);
+  --panel-border: rgba(163, 255, 71, 0.2);
+  --accent-green: #A3FF47;
+  --accent-cyan: #00f3ff;
+  --accent-pink: #ec4899;
   --text-white: #ecf0f1;
-  --border-black: #000;
-  --pixel-font: 'Press Start 2P', cursive;
-  --typewriter-font: 'Courier Prime', monospace;
+  --text-muted: rgba(163, 255, 71, 0.6);
+  --terminal-font: 'Fira Code', monospace;
 
-  font-family: var(--pixel-font);
+  font-family: var(--terminal-font);
   background-color: var(--bg-dark);
-  color: var(--text-white);
+  color: var(--accent-green);
   height: 100vh;
   overflow: hidden;
   position: relative;
   user-select: none;
-  /* CRT 스캔라인 효과 */
-  background-image:
-    linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
-    linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-  background-size: 100% 2px, 6px 100%;
 }
 
 /* === 글로벌 FX 레이어 === */
@@ -431,7 +425,7 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background: radial-gradient(circle, transparent 50%, rgba(0, 0, 0, 0.9) 100%);
+  background: radial-gradient(circle, transparent 40%, rgba(0, 0, 0, 0.7) 100%);
   pointer-events: none;
   z-index: 900;
 }
@@ -442,40 +436,16 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  opacity: 0.03;
-  background-image: repeating-radial-gradient(#000 0 0.0001%, #fff 0 0.0002%);
+  opacity: 0.02;
+  background-image: repeating-radial-gradient(#A3FF47 0 0.0001%, transparent 0 0.0002%);
   pointer-events: none;
   z-index: 899;
 }
 
-/* === 나사 장식 === */
+/* === 나사 장식 (숨김) === */
 .screw {
-  position: fixed;
-  width: 15px;
-  height: 15px;
-  background: #555;
-  border-radius: 50%;
-  border: 2px solid #222;
-  box-shadow: inset 2px 2px 5px rgba(255, 255, 255, 0.2), 2px 2px 5px rgba(0, 0, 0, 0.5);
-  z-index: 950;
-  pointer-events: none;
+  display: none;
 }
-
-.screw::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 10%;
-  width: 80%;
-  height: 2px;
-  background: #111;
-  transform: translateY(-50%) rotate(45deg);
-}
-
-.screw.tl { top: 10px; left: 10px; }
-.screw.tr { top: 10px; right: 10px; }
-.screw.bl { bottom: 10px; left: 10px; }
-.screw.br { bottom: 10px; right: 10px; }
 
 /* === MAIN GAME === */
 .game-container {
@@ -484,13 +454,10 @@ export default {
   height: 100%;
   position: relative;
   z-index: 1;
-  /* 금속 패널 텍스처 */
-  background: #1e272e;
-  background-image:
-    linear-gradient(90deg, transparent 50%, rgba(0, 0, 0, 0.2) 50%),
-    linear-gradient(0deg, transparent 50%, rgba(0, 0, 0, 0.2) 50%);
-  background-size: 50px 50px;
-  box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.8);
+  background: var(--bg-dark);
+  /* 도트 그리드 패턴 */
+  background-image: radial-gradient(rgba(163, 255, 71, 0.08) 1px, transparent 1px);
+  background-size: 40px 40px;
 }
 
 /* === MAIN WORKSPACE === */
@@ -507,43 +474,56 @@ export default {
   flex: 1;
   display: flex;
   overflow: hidden;
-  background: #222;
+  background: transparent;
 }
 
 .toolbox-panel {
-  width: 130px;
-  min-width: 130px;
-  background: var(--bg-metal);
-  border-right: 4px solid #000;
-  padding: 15px;
+  width: 140px;
+  min-width: 140px;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--panel-border);
+  padding: 12px;
   overflow-y: auto;
-  /* 금속 스트라이프 패턴 */
-  background-image: linear-gradient(0deg, #34495e 50%, #2c3e50 50%);
-  background-size: 100% 20px;
-  box-shadow: inset -5px 0 15px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+}
+
+/* 스크롤바 커스텀 */
+.toolbox-panel::-webkit-scrollbar {
+  width: 4px;
+}
+
+.toolbox-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.toolbox-panel::-webkit-scrollbar-thumb {
+  background: rgba(163, 255, 71, 0.2);
+  border-radius: 10px;
+}
+
+.toolbox-panel::-webkit-scrollbar-thumb:hover {
+  background: rgba(163, 255, 71, 0.4);
 }
 
 .canvas-panel {
   flex: 1;
   position: relative;
-  /* 블루프린트 그리드 패턴 */
-  background-color: #2f3542;
+  background-color: rgba(5, 7, 10, 0.8);
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    linear-gradient(rgba(163, 255, 71, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(163, 255, 71, 0.03) 1px, transparent 1px);
   background-size: 40px 40px;
-  box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.8);
 }
 
 .canvas-panel::after {
-  content: "SYSTEM ARCHITECTURE (DRAFT)";
+  content: "SYSTEM_ARCHITECTURE.draft";
   position: absolute;
   bottom: 20px;
   right: 20px;
-  font-family: var(--typewriter-font);
-  font-size: 2rem;
-  color: rgba(255, 255, 255, 0.05);
-  transform: rotate(-5deg);
+  font-family: var(--terminal-font);
+  font-size: 1rem;
+  color: rgba(163, 255, 71, 0.1);
+  letter-spacing: 2px;
   pointer-events: none;
 }
 </style>

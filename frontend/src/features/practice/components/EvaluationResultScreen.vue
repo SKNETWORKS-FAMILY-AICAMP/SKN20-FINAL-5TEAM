@@ -6,7 +6,7 @@
       <!-- Loading State -->
       <div v-if="isLoading" class="loading-state">
         <div class="loading-spinner-xl"></div>
-        <p>판결을 내리는 중... 꽥!</p>
+        <p>GENERATING_REPORT... 꽥!</p>
       </div>
 
       <!-- Result Content -->
@@ -17,11 +17,11 @@
         </div>
 
         <!-- 헤더 -->
-        <h1 class="report-title">CASE CLOSED</h1>
+        <h1 class="report-title">SYSTEM_REPORT</h1>
         <div class="report-meta">
           <p><strong>DATE:</strong> {{ currentDate }}</p>
-          <p><strong>OFFICER:</strong> DET. DUCK</p>
-          <p v-if="problem"><strong>CASE:</strong> {{ problem.title }}</p>
+          <p><strong>OPERATOR:</strong> CODUCK_AI</p>
+          <p v-if="problem"><strong>MISSION:</strong> {{ problem.title }}</p>
         </div>
 
         <hr class="divider" />
@@ -114,7 +114,7 @@
 
         <!-- 종합 평가 -->
         <div class="summary-section">
-          <h3>[ 수사관 소견 ]</h3>
+          <h3>[ SYSTEM_ANALYSIS ]</h3>
           <div class="summary-box">
             <div class="detective-comment">
               <img src="/image/duck_det.png" alt="Detective Duck" class="comment-avatar" />
@@ -126,13 +126,13 @@
         <!-- 강점 & 개선점 -->
         <div class="feedback-grid">
           <div v-if="result.strengths && result.strengths.length" class="feedback-card strengths">
-            <h4>✅ 유리한 증거</h4>
+            <h4>✅ STRENGTHS</h4>
             <ul>
               <li v-for="s in result.strengths" :key="s">{{ s }}</li>
             </ul>
           </div>
           <div v-if="result.weaknesses && result.weaknesses.length" class="feedback-card weaknesses">
-            <h4>⚠️ 불리한 증거</h4>
+            <h4>⚠️ IMPROVEMENTS</h4>
             <ul>
               <li v-for="w in result.weaknesses" :key="w">{{ w }}</li>
             </ul>
@@ -141,7 +141,7 @@
 
         <!-- 제안 사항 -->
         <div v-if="result.suggestions && result.suggestions.length" class="suggestions-section">
-          <h4>💡 수사관 조언</h4>
+          <h4>💡 RECOMMENDATIONS</h4>
           <ul>
             <li v-for="s in result.suggestions" :key="s">{{ s }}</li>
           </ul>
@@ -150,7 +150,7 @@
         <!-- 버튼 -->
         <div class="action-buttons">
           <button class="btn-retry" @click="$emit('retry')">
-            재수사 요청 (RETRY)
+            RETRY_PROTOCOL
           </button>
         </div>
       </div>
@@ -203,24 +203,24 @@ export default {
     },
     verdictStamp() {
       const score = this.result?.score || 0;
-      if (score >= 80) return 'INNOCENT';
-      if (score >= 50) return 'SUSPICIOUS';
-      return 'GUILTY';
+      if (score >= 80) return 'APPROVED';
+      if (score >= 50) return 'REVIEW';
+      return 'REJECTED';
     },
     verdictIcon() {
       const score = this.result?.score || 0;
-      if (score >= 80) return '🎉';
-      if (score >= 50) return '🤔';
-      return '🚨';
+      if (score >= 80) return '✅';
+      if (score >= 50) return '⚠️';
+      return '❌';
     },
     verdictMessage() {
       const score = this.result?.score || 0;
-      if (score >= 80) return 'ㅇㅋ 결백하군. 집으로 보내줄게. 꽥!';
-      if (score >= 50) return '흐음... 좀 의심스러운데 일단 보류다. 꽥!';
-      return '뭐야 이자식! 범인이다! 당장 체포해! 꽥!';
+      if (score >= 80) return '시스템 복구 성공! 아키텍처가 승인되었습니다. 꽥!';
+      if (score >= 50) return '부분적 복구 완료. 추가 검토가 필요합니다. 꽥!';
+      return '시스템 복구 실패. 아키텍처 재설계가 필요합니다. 꽥!';
     },
     detectiveComment() {
-      return this.result?.summary || '수사 기록을 분석한 결과입니다. 꽥!';
+      return this.result?.summary || '시스템 분석 결과입니다. 꽥!';
     },
     // 평가된 기둥만 추출 (questionEvaluations 기반)
     evaluatedPillars() {
@@ -257,18 +257,38 @@ export default {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Courier+Prime:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&display=swap');
 
 .case-closed-screen {
+  --accent-green: #A3FF47;
+  --accent-cyan: #00f3ff;
+  --accent-pink: #ec4899;
+  --bg-dark: #05070A;
+  --terminal-font: 'Fira Code', monospace;
+
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: #1a1a1a;
+  background: var(--bg-dark);
   z-index: 2000;
   overflow-y: auto;
-  font-family: 'Courier Prime', monospace;
+  font-family: var(--terminal-font);
+}
+
+/* 스크롤바 커스텀 */
+.case-closed-screen::-webkit-scrollbar {
+  width: 4px;
+}
+
+.case-closed-screen::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.case-closed-screen::-webkit-scrollbar-thumb {
+  background: rgba(163, 255, 71, 0.2);
+  border-radius: 10px;
 }
 
 .bg-overlay {
@@ -277,13 +297,13 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background: radial-gradient(ellipse at center, rgba(241, 196, 15, 0.1) 0%, transparent 70%);
+  background: radial-gradient(ellipse at center, rgba(163, 255, 71, 0.05) 0%, transparent 70%);
   pointer-events: none;
 }
 
 .result-container {
   position: relative;
-  max-width: 700px;
+  max-width: 750px;
   margin: 0 auto;
   padding: 40px 20px;
 }
@@ -298,10 +318,10 @@ export default {
 }
 
 .loading-spinner-xl {
-  width: 80px;
-  height: 80px;
-  border: 4px solid rgba(241, 196, 15, 0.2);
-  border-top-color: #f1c40f;
+  width: 70px;
+  height: 70px;
+  border: 3px solid rgba(163, 255, 71, 0.2);
+  border-top-color: var(--accent-green);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 30px;
@@ -312,18 +332,18 @@ export default {
 }
 
 .loading-state p {
-  color: #f1c40f;
-  font-family: 'Press Start 2P', cursive;
-  font-size: 0.8rem;
+  color: var(--accent-green);
+  font-family: var(--terminal-font);
+  font-size: 0.85rem;
+  text-shadow: 0 0 10px rgba(163, 255, 71, 0.5);
 }
 
 /* Result Report */
 .result-report {
-  background: #f4f3ee;
-  color: #1a1a1a;
+  background: rgba(163, 255, 71, 0.03);
+  color: #ecf0f1;
   padding: 40px;
-  border: 4px solid black;
-  box-shadow: 20px 20px 0 black;
+  border: 1px solid rgba(163, 255, 71, 0.3);
   position: relative;
 }
 
@@ -332,13 +352,15 @@ export default {
   position: absolute;
   top: 40px;
   right: 30px;
-  font-family: 'Press Start 2P', cursive;
-  font-size: 1.2rem;
+  font-family: var(--terminal-font);
+  font-size: 0.9rem;
+  font-weight: 700;
   padding: 10px 15px;
-  border: 4px solid;
+  border: 2px solid;
   transform: rotate(12deg);
   opacity: 0;
   transition: all 0.3s ease;
+  letter-spacing: 2px;
 }
 
 .stamp-mark.stamped {
@@ -346,22 +368,25 @@ export default {
   transform: rotate(12deg) scale(1);
 }
 
-.stamp-mark.innocent { border-color: #27ae60; color: #27ae60; }
-.stamp-mark.suspicious { border-color: #f39c12; color: #f39c12; }
-.stamp-mark.guilty { border-color: #e74c3c; color: #e74c3c; }
+.stamp-mark.innocent { border-color: var(--accent-green); color: var(--accent-green); box-shadow: 0 0 15px rgba(163, 255, 71, 0.3); }
+.stamp-mark.suspicious { border-color: var(--accent-cyan); color: var(--accent-cyan); box-shadow: 0 0 15px rgba(0, 243, 255, 0.3); }
+.stamp-mark.guilty { border-color: var(--accent-pink); color: var(--accent-pink); box-shadow: 0 0 15px rgba(236, 72, 153, 0.3); }
 
 /* Header */
 .report-title {
-  font-family: 'Press Start 2P', cursive;
+  font-family: var(--terminal-font);
   font-size: 1.5rem;
+  font-weight: 700;
   text-align: center;
   margin-bottom: 20px;
-  color: #1a1a1a;
+  color: var(--accent-green);
+  letter-spacing: 4px;
+  text-shadow: 0 0 20px rgba(163, 255, 71, 0.5);
 }
 
 .report-meta {
-  font-size: 0.9rem;
-  color: #555;
+  font-size: 0.8rem;
+  color: rgba(163, 255, 71, 0.6);
 }
 
 .report-meta p {
@@ -370,15 +395,17 @@ export default {
 
 .divider {
   border: none;
-  border-top: 2px dashed #999;
+  border-top: 1px dashed rgba(163, 255, 71, 0.2);
   margin: 25px 0;
 }
 
 /* Verdict */
 .verdict-section h2 {
-  font-family: 'Press Start 2P', cursive;
-  font-size: 0.9rem;
+  font-family: var(--terminal-font);
+  font-size: 0.8rem;
   margin-bottom: 15px;
+  color: var(--accent-green);
+  letter-spacing: 2px;
 }
 
 .verdict-box {
@@ -386,36 +413,39 @@ export default {
   align-items: center;
   gap: 15px;
   padding: 20px;
-  border: 3px solid;
+  border: 1px solid;
   margin-bottom: 15px;
+  background: rgba(0, 0, 0, 0.3);
 }
 
-.verdict-box.innocent { border-color: #27ae60; background: rgba(39, 174, 96, 0.1); }
-.verdict-box.suspicious { border-color: #f39c12; background: rgba(243, 156, 18, 0.1); }
-.verdict-box.guilty { border-color: #e74c3c; background: rgba(231, 76, 60, 0.1); }
+.verdict-box.innocent { border-color: var(--accent-green); background: rgba(163, 255, 71, 0.05); }
+.verdict-box.suspicious { border-color: var(--accent-cyan); background: rgba(0, 243, 255, 0.05); }
+.verdict-box.guilty { border-color: var(--accent-pink); background: rgba(236, 72, 153, 0.05); }
 
 .verdict-icon { font-size: 2.5rem; }
-.verdict-text { font-size: 1.1rem; font-weight: bold; }
+.verdict-text { font-size: 1rem; font-weight: 500; color: #ecf0f1; }
 
 .score-display { text-align: center; }
 
 .score-value {
-  font-family: 'Press Start 2P', cursive;
+  font-family: var(--terminal-font);
   font-size: 2rem;
+  font-weight: 700;
 }
 
-.score-value.innocent { color: #27ae60; }
-.score-value.suspicious { color: #f39c12; }
-.score-value.guilty { color: #e74c3c; }
+.score-value.innocent { color: var(--accent-green); text-shadow: 0 0 15px rgba(163, 255, 71, 0.5); }
+.score-value.suspicious { color: var(--accent-cyan); text-shadow: 0 0 15px rgba(0, 243, 255, 0.5); }
+.score-value.guilty { color: var(--accent-pink); text-shadow: 0 0 15px rgba(236, 72, 153, 0.5); }
 
-.score-unit { font-size: 1rem; color: #777; }
+.score-unit { font-size: 0.9rem; color: rgba(163, 255, 71, 0.5); }
 
 /* Section */
 .eval-section h3 {
-  font-family: 'Press Start 2P', cursive;
-  font-size: 0.75rem;
+  font-family: var(--terminal-font);
+  font-size: 0.7rem;
   margin-bottom: 15px;
-  color: #333;
+  color: var(--accent-green);
+  letter-spacing: 1px;
 }
 
 /* Pillar Grid */
@@ -430,19 +460,19 @@ export default {
   flex-direction: column;
   align-items: center;
   padding: 15px 10px;
-  border: 2px solid #ddd;
-  background: white;
+  border: 1px solid rgba(163, 255, 71, 0.2);
+  background: rgba(163, 255, 71, 0.03);
   text-align: center;
 }
 
-.pillar-item.excellent { border-color: #27ae60; background: rgba(39, 174, 96, 0.08); }
-.pillar-item.good { border-color: #3498db; background: rgba(52, 152, 219, 0.08); }
+.pillar-item.excellent { border-color: var(--accent-green); background: rgba(163, 255, 71, 0.08); }
+.pillar-item.good { border-color: var(--accent-cyan); background: rgba(0, 243, 255, 0.08); }
 .pillar-item.needs-improvement { border-color: #f39c12; background: rgba(243, 156, 18, 0.08); }
-.pillar-item.poor { border-color: #e74c3c; background: rgba(231, 76, 60, 0.08); }
+.pillar-item.poor { border-color: var(--accent-pink); background: rgba(236, 72, 153, 0.08); }
 
 .pillar-emoji { font-size: 1.5rem; margin-bottom: 6px; }
-.pillar-name { font-size: 0.75rem; font-weight: bold; color: #333; margin-bottom: 4px; }
-.pillar-score { font-family: 'Press Start 2P', cursive; font-size: 0.65rem; }
+.pillar-name { font-size: 0.7rem; font-weight: 500; color: rgba(236, 240, 241, 0.8); margin-bottom: 4px; }
+.pillar-score { font-family: var(--terminal-font); font-size: 0.7rem; font-weight: 700; color: var(--accent-green); }
 
 /* Question Evaluations */
 .question-eval-list {
@@ -452,16 +482,15 @@ export default {
 }
 
 .question-eval-card {
-  background: rgba(255, 255, 255, 0.9);
-  border-left: 5px solid #3498db;
+  background: rgba(163, 255, 71, 0.03);
+  border-left: 3px solid var(--accent-cyan);
   padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.question-eval-card.excellent { border-left-color: #27ae60; }
-.question-eval-card.good { border-left-color: #3498db; }
+.question-eval-card.excellent { border-left-color: var(--accent-green); }
+.question-eval-card.good { border-left-color: var(--accent-cyan); }
 .question-eval-card.needs-improvement { border-left-color: #f39c12; }
-.question-eval-card.poor { border-left-color: #e74c3c; }
+.question-eval-card.poor { border-left-color: var(--accent-pink); }
 
 .question-header {
   display: flex;
@@ -469,32 +498,32 @@ export default {
   align-items: center;
   margin-bottom: 15px;
   padding-bottom: 10px;
-  border-bottom: 1px dashed #ddd;
+  border-bottom: 1px dashed rgba(163, 255, 71, 0.2);
 }
 
 .question-category {
-  background: #34495e;
-  color: white;
+  background: var(--accent-green);
+  color: #000;
   padding: 4px 12px;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  font-weight: bold;
+  font-size: 0.75rem;
+  font-weight: 700;
 }
 
 .question-score {
-  font-family: 'Press Start 2P', cursive;
-  font-size: 0.9rem;
+  font-family: var(--terminal-font);
+  font-size: 0.85rem;
+  font-weight: 700;
 }
 
-.question-score.excellent { color: #27ae60; }
-.question-score.good { color: #3498db; }
+.question-score.excellent { color: var(--accent-green); }
+.question-score.good { color: var(--accent-cyan); }
 .question-score.needs-improvement { color: #f39c12; }
-.question-score.poor { color: #e74c3c; }
+.question-score.poor { color: var(--accent-pink); }
 
 .question-text {
-  font-size: 1rem;
-  font-weight: bold;
-  color: #2c3e50;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #ecf0f1;
   margin: 0 0 15px 0;
   line-height: 1.5;
 }
@@ -507,79 +536,79 @@ export default {
 }
 
 .answer-box {
-  background: #f8f9fa;
+  background: rgba(0, 0, 0, 0.3);
   padding: 15px;
-  border-radius: 8px;
-  border: 1px solid #e9ecef;
+  border: 1px solid rgba(163, 255, 71, 0.1);
 }
 
-.answer-box.user-answer { border-left: 3px solid #9b59b6; }
-.answer-box.model-answer { border-left: 3px solid #27ae60; background: #f0fff4; }
+.answer-box.user-answer { border-left: 3px solid var(--accent-cyan); }
+.answer-box.model-answer { border-left: 3px solid var(--accent-green); }
 
 .answer-label {
-  font-size: 0.8rem;
-  font-weight: bold;
-  color: #555;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgba(163, 255, 71, 0.7);
   margin-bottom: 8px;
 }
 
 .answer-box p {
   margin: 0;
-  font-size: 0.9rem;
-  color: #333;
+  font-size: 0.85rem;
+  color: rgba(236, 240, 241, 0.9);
   line-height: 1.6;
   white-space: pre-wrap;
 }
 
 .feedback-box {
-  background: #fff8e1;
+  background: rgba(163, 255, 71, 0.05);
   padding: 15px;
-  border-radius: 8px;
-  border: 1px solid #ffecb3;
+  border: 1px solid rgba(163, 255, 71, 0.2);
   margin-bottom: 15px;
 }
 
 .feedback-label {
-  font-size: 0.8rem;
-  font-weight: bold;
-  color: #f57c00;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent-green);
   margin-bottom: 8px;
 }
 
 .feedback-box p {
   margin: 0;
-  font-size: 0.9rem;
-  color: #5d4037;
+  font-size: 0.85rem;
+  color: rgba(236, 240, 241, 0.85);
   line-height: 1.5;
 }
 
 .improvements-box {
-  background: #e3f2fd;
+  background: rgba(0, 243, 255, 0.05);
   padding: 15px;
-  border-radius: 8px;
-  border: 1px solid #bbdefb;
+  border: 1px solid rgba(0, 243, 255, 0.2);
 }
 
 .improvements-label {
-  font-size: 0.8rem;
-  font-weight: bold;
-  color: #1565c0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
   margin-bottom: 8px;
 }
 
 .improvements-box ul { margin: 0; padding-left: 20px; }
-.improvements-box li { font-size: 0.85rem; color: #1976d2; margin-bottom: 5px; }
+.improvements-box li { font-size: 0.8rem; color: rgba(236, 240, 241, 0.8); margin-bottom: 5px; }
 
 /* Summary */
 .summary-section h3 {
-  font-family: 'Press Start 2P', cursive;
-  font-size: 0.75rem;
+  font-family: var(--terminal-font);
+  font-size: 0.7rem;
   margin-bottom: 15px;
+  color: var(--accent-green);
+  letter-spacing: 1px;
 }
 
 .summary-box {
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(163, 255, 71, 0.03);
   padding: 20px;
+  border: 1px solid rgba(163, 255, 71, 0.1);
 }
 
 .detective-comment {
@@ -592,15 +621,17 @@ export default {
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  border: 3px solid #f1c40f;
+  border: 2px solid var(--accent-green);
+  box-shadow: 0 0 15px rgba(163, 255, 71, 0.3);
 }
 
 .detective-comment p {
   flex: 1;
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-style: italic;
   margin: 0;
   line-height: 1.6;
+  color: rgba(236, 240, 241, 0.9);
 }
 
 /* Feedback Grid */
@@ -613,45 +644,50 @@ export default {
 
 .feedback-card {
   padding: 15px;
-  border: 2px solid;
+  border: 1px solid;
+  background: rgba(0, 0, 0, 0.2);
 }
 
-.feedback-card.strengths { border-color: #27ae60; background: rgba(39, 174, 96, 0.05); }
-.feedback-card.weaknesses { border-color: #e74c3c; background: rgba(231, 76, 60, 0.05); }
+.feedback-card.strengths { border-color: var(--accent-green); }
+.feedback-card.weaknesses { border-color: var(--accent-pink); }
 
-.feedback-card h4 { margin: 0 0 10px 0; font-size: 0.9rem; }
+.feedback-card h4 { margin: 0 0 10px 0; font-size: 0.8rem; color: var(--accent-green); }
+.feedback-card.weaknesses h4 { color: var(--accent-pink); }
 .feedback-card ul { margin: 0; padding-left: 18px; }
-.feedback-card li { font-size: 0.85rem; margin-bottom: 5px; line-height: 1.4; }
+.feedback-card li { font-size: 0.8rem; margin-bottom: 5px; line-height: 1.4; color: rgba(236, 240, 241, 0.8); }
 
 /* Suggestions */
 .suggestions-section {
-  background: rgba(52, 152, 219, 0.1);
-  border: 2px solid #3498db;
+  background: rgba(0, 243, 255, 0.05);
+  border: 1px solid rgba(0, 243, 255, 0.3);
   padding: 15px;
   margin-bottom: 20px;
 }
 
-.suggestions-section h4 { margin: 0 0 10px 0; font-size: 0.9rem; color: #2980b9; }
+.suggestions-section h4 { margin: 0 0 10px 0; font-size: 0.8rem; color: var(--accent-cyan); }
 .suggestions-section ul { margin: 0; padding-left: 18px; }
-.suggestions-section li { font-size: 0.85rem; color: #2c3e50; margin-bottom: 5px; }
+.suggestions-section li { font-size: 0.8rem; color: rgba(236, 240, 241, 0.8); margin-bottom: 5px; }
 
 /* Button */
 .action-buttons { text-align: center; margin-top: 30px; }
 
 .btn-retry {
-  font-family: 'Press Start 2P', cursive;
-  font-size: 0.7rem;
-  padding: 15px 30px;
-  background: #1a1a1a;
-  color: #f1c40f;
-  border: 3px solid #f1c40f;
+  font-family: var(--terminal-font);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 14px 30px;
+  background: transparent;
+  color: var(--accent-green);
+  border: 1px solid var(--accent-green);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  letter-spacing: 2px;
 }
 
 .btn-retry:hover {
-  background: #f1c40f;
-  color: #1a1a1a;
+  background: var(--accent-green);
+  color: #000;
+  box-shadow: 0 0 25px rgba(163, 255, 71, 0.5);
 }
 
 /* Responsive */
@@ -659,6 +695,6 @@ export default {
   .pillar-grid { grid-template-columns: repeat(2, 1fr); }
   .answer-comparison { grid-template-columns: 1fr; }
   .feedback-grid { grid-template-columns: 1fr; }
-  .stamp-mark { font-size: 1rem; top: 30px; right: 15px; }
+  .stamp-mark { font-size: 0.8rem; top: 30px; right: 15px; }
 }
 </style>

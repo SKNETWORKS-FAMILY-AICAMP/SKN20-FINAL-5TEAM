@@ -126,39 +126,58 @@ export default {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&display=swap');
 
 .palette {
-  background: #34495e;
+  --accent-green: #A3FF47;
+  --bg-panel: rgba(163, 255, 71, 0.05);
+  --panel-border: rgba(163, 255, 71, 0.2);
+  --terminal-font: 'Fira Code', monospace;
+
+  background: transparent;
   padding: 8px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+}
+
+/* 스크롤바 커스텀 */
+.palette::-webkit-scrollbar {
+  width: 4px;
+}
+
+.palette::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.palette::-webkit-scrollbar-thumb {
+  background: rgba(163, 255, 71, 0.2);
+  border-radius: 10px;
 }
 
 .palette h2 {
-  font-family: 'Press Start 2P', cursive;
-  font-size: 0.5rem;
-  color: #f1c40f;
+  font-family: var(--terminal-font);
+  font-size: 0.6rem;
+  color: var(--accent-green);
   margin: 0 0 8px 0;
   text-align: center;
   padding-bottom: 8px;
-  border-bottom: 2px solid #2c3e50;
+  border-bottom: 1px solid var(--panel-border);
+  letter-spacing: 1px;
 }
 
 /* Hint Guide - Compact */
 .hint-guide {
-  background: rgba(241, 196, 15, 0.2);
-  border: 2px solid #f1c40f;
-  border-radius: 4px;
+  background: rgba(163, 255, 71, 0.1);
+  border: 1px solid var(--accent-green);
   padding: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 4px;
-  font-size: 0.5rem;
-  color: #f1c40f;
+  font-size: 0.55rem;
+  color: var(--accent-green);
   animation: hint-fade-in 0.3s ease;
 }
 
@@ -173,27 +192,27 @@ export default {
 
 /* Component Groups - Compact */
 .component-group {
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .component-group h3 {
-  font-family: 'Press Start 2P', cursive;
-  font-size: 0.4rem;
-  color: #95a5a6;
-  margin: 0 0 4px 0;
-  padding: 4px 0;
-  text-align: center;
-  background: #2c3e50;
-  border-radius: 2px;
+  font-family: var(--terminal-font);
+  font-size: 0.5rem;
+  color: rgba(163, 255, 71, 0.5);
+  margin: 0 0 6px 0;
+  padding: 4px 6px;
+  text-align: left;
+  background: rgba(163, 255, 71, 0.05);
+  border-left: 2px solid var(--accent-green);
+  letter-spacing: 1px;
 }
 
-/* Tool Items - Evidence Tag Style */
+/* Tool Items - Terminal Style */
 .component {
-  height: 60px;
-  background: #ecf0f1;
-  border: 2px solid #bdc3c7;
-  border-bottom: 4px solid #95a5a6;
-  color: #2c3e50;
+  height: 52px;
+  background: rgba(163, 255, 71, 0.08);
+  border: 1px solid rgba(163, 255, 71, 0.25);
+  color: var(--accent-green);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -201,48 +220,41 @@ export default {
   margin-bottom: 6px;
   cursor: grab;
   font-size: 0.55rem;
-  font-weight: 600;
-  font-family: 'Press Start 2P', cursive;
-  transition: all 0.15s ease;
+  font-weight: 500;
+  font-family: var(--terminal-font);
+  transition: all 0.2s ease;
   position: relative;
   user-select: none;
 }
 
-/* Tape look on top */
 .component::before {
-  content: '';
-  position: absolute;
-  top: -5px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 30%;
-  height: 8px;
-  background: rgba(0, 0, 0, 0.2);
+  display: none;
 }
 
 .component:active {
   cursor: grabbing;
-  border-bottom-width: 2px;
-  transform: translateY(2px);
+  transform: scale(0.98);
 }
 
 .component:hover {
-  transform: scale(1.05);
+  background: rgba(163, 255, 71, 0.15);
+  border-color: var(--accent-green);
+  box-shadow: 0 0 15px rgba(163, 255, 71, 0.2);
 }
 
 /* Required component hint styles */
 .component.required-hint {
-  border-color: #f1c40f !important;
-  box-shadow: 0 0 10px rgba(241, 196, 15, 0.8);
-  animation: required-glow 1s ease-in-out infinite;
+  border-color: var(--accent-green) !important;
+  box-shadow: 0 0 15px rgba(163, 255, 71, 0.5);
+  animation: required-glow 1.5s ease-in-out infinite;
 }
 
 @keyframes required-glow {
   0%, 100% {
-    box-shadow: 0 0 10px rgba(241, 196, 15, 0.8);
+    box-shadow: 0 0 15px rgba(163, 255, 71, 0.5);
   }
   50% {
-    box-shadow: 0 0 20px rgba(241, 196, 15, 1);
+    box-shadow: 0 0 25px rgba(163, 255, 71, 0.8);
   }
 }
 
@@ -250,19 +262,17 @@ export default {
   position: absolute;
   top: -6px;
   right: -6px;
-  background: #f1c40f;
+  background: var(--accent-green);
   color: #000;
-  font-size: 0.35rem;
-  padding: 2px 4px;
-  border-radius: 2px;
+  font-size: 0.4rem;
+  padding: 2px 5px;
   font-weight: 700;
-  border: 2px solid #000;
   z-index: 1;
 }
 
 /* Dimmed styles for non-required components */
 .component.dimmed {
-  opacity: 0.35;
-  filter: grayscale(70%);
+  opacity: 0.3;
+  filter: grayscale(50%);
 }
 </style>

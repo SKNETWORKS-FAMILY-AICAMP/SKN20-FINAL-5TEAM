@@ -2,7 +2,7 @@
   <div class="workspace-header">
     <div class="header-title">
       <div class="rec-dot"></div>
-      <span>REC | ARCHITECTURE_ROOM</span>
+      <span>LIVE | ARCHITECT_TERMINAL</span>
     </div>
     <div class="header-controls">
       <button
@@ -10,15 +10,15 @@
         :class="{ active: isConnectionMode }"
         @click="$emit('toggle-mode')"
       >
-        {{ isConnectionMode ? '📦 배치 모드' : '🔗 연결 모드' }}
+        {{ isConnectionMode ? 'PLACE_MODE' : 'CONNECT_MODE' }}
       </button>
-      <button class="ctrl-btn danger" @click="$emit('clear-canvas')">🗑️ 초기화</button>
+      <button class="ctrl-btn danger" @click="$emit('clear-canvas')">RESET</button>
       <button
         class="ctrl-btn hint"
         :class="{ active: isHintActive }"
         @click="$emit('toggle-hint')"
       >
-        💡 {{ isHintActive ? '힌트 OFF' : '힌트 ON' }}
+        {{ isHintActive ? 'HINT_OFF' : 'HINT_ON' }}
       </button>
     </div>
   </div>
@@ -42,28 +42,29 @@ export default {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&display=swap');
 
 .workspace-header {
-  --pixel-font: 'Press Start 2P', cursive;
+  --terminal-font: 'Fira Code', monospace;
   --text-white: #ecf0f1;
-  --accent-yellow: #f1c40f;
-  --danger-red: #e74c3c;
+  --accent-green: #A3FF47;
+  --accent-pink: #ec4899;
+  --bg-dark: #05070A;
 
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 20px;
-  background: #2d3436;
-  border-bottom: 4px solid #000;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+  padding: 12px 20px;
+  background: rgba(5, 7, 10, 0.9);
+  border-bottom: 1px solid rgba(163, 255, 71, 0.2);
+  backdrop-filter: blur(10px);
   z-index: 50;
 }
 
 .header-title {
-  font-family: var(--pixel-font);
-  font-size: 0.8rem;
-  color: #aaa;
+  font-family: var(--terminal-font);
+  font-size: 0.75rem;
+  color: rgba(163, 255, 71, 0.6);
   letter-spacing: 2px;
   display: flex;
   align-items: center;
@@ -71,15 +72,17 @@ export default {
 }
 
 .rec-dot {
-  width: 12px;
-  height: 12px;
-  background: red;
+  width: 8px;
+  height: 8px;
+  background: var(--accent-green);
   border-radius: 50%;
-  animation: blink 1s infinite;
+  animation: pulse-glow 1.5s infinite;
+  box-shadow: 0 0 8px var(--accent-green);
 }
 
-@keyframes blink {
-  50% { opacity: 0; }
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--accent-green); }
+  50% { opacity: 0.5; box-shadow: 0 0 4px var(--accent-green); }
 }
 
 .header-controls {
@@ -87,63 +90,58 @@ export default {
   gap: 10px;
 }
 
-/* === 3D 버튼 스타일 === */
+/* === 터미널 버튼 스타일 === */
 .ctrl-btn {
-  font-family: var(--pixel-font);
-  background: #333;
-  color: var(--text-white);
-  border: 2px solid #7f8c8d;
-  border-bottom: 4px solid #7f8c8d;
-  padding: 8px 15px;
+  font-family: var(--terminal-font);
+  background: rgba(163, 255, 71, 0.1);
+  color: var(--accent-green);
+  border: 1px solid rgba(163, 255, 71, 0.3);
+  padding: 8px 16px;
   font-size: 0.7rem;
   cursor: pointer;
   text-transform: uppercase;
-  transition: all 0.1s;
+  letter-spacing: 1px;
+  transition: all 0.2s ease;
 }
 
 .ctrl-btn:hover {
-  background: #444;
-  margin-top: -2px;
-  border-bottom-width: 6px;
-}
-
-.ctrl-btn:active {
-  margin-top: 2px;
-  border-bottom-width: 2px;
+  background: rgba(163, 255, 71, 0.2);
+  box-shadow: 0 0 15px rgba(163, 255, 71, 0.2);
 }
 
 .ctrl-btn.active {
-  background: var(--accent-yellow);
-  color: black;
-  border-color: #f39c12;
-  box-shadow: 0 0 10px var(--accent-yellow);
+  background: var(--accent-green);
+  color: #000;
+  border-color: var(--accent-green);
+  box-shadow: 0 0 20px rgba(163, 255, 71, 0.5);
 }
 
 .ctrl-btn.danger {
-  background: var(--danger-red);
-  border-color: #c0392b;
-  color: white;
+  background: rgba(236, 72, 153, 0.1);
+  border-color: rgba(236, 72, 153, 0.3);
+  color: var(--accent-pink);
 }
 
 .ctrl-btn.danger:hover {
-  background: #c0392b;
+  background: rgba(236, 72, 153, 0.2);
+  box-shadow: 0 0 15px rgba(236, 72, 153, 0.3);
 }
 
 .ctrl-btn.hint {
-  background: #333;
-  border-color: #7f8c8d;
+  background: rgba(163, 255, 71, 0.1);
+  border-color: rgba(163, 255, 71, 0.3);
 }
 
 .ctrl-btn.hint.active {
-  background: var(--accent-yellow);
-  color: black;
-  border-color: #f39c12;
-  box-shadow: 0 0 10px var(--accent-yellow);
-  animation: hint-pulse 1s infinite;
+  background: var(--accent-green);
+  color: #000;
+  border-color: var(--accent-green);
+  box-shadow: 0 0 20px rgba(163, 255, 71, 0.5);
+  animation: hint-pulse 1.5s infinite;
 }
 
 @keyframes hint-pulse {
-  0%, 100% { box-shadow: 0 0 10px rgba(241, 196, 15, 0.5); }
-  50% { box-shadow: 0 0 20px rgba(241, 196, 15, 0.8), 0 0 30px rgba(241, 196, 15, 0.4); }
+  0%, 100% { box-shadow: 0 0 20px rgba(163, 255, 71, 0.5); }
+  50% { box-shadow: 0 0 35px rgba(163, 255, 71, 0.8); }
 }
 </style>
