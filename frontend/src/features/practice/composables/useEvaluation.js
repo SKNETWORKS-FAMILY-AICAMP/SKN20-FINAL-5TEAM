@@ -1,11 +1,7 @@
 import { ref } from 'vue';
 // 마스터 에이전트 기반 다중 에이전트 평가 사용 (6대 기둥 + 7단계 프로세스)
 import { evaluateWithMasterAgent, getAvailableSubAgents, getAllQuestionStrategies } from '../services/architectureApiMasterAgent';
-import {
-  generateEvaluationQuestion,
-  generateArchitectureAnalysisQuestions,
-  generateFollowUpQuestions
-} from '../services/architectureApiFastTest';
+import { generateFollowUpQuestions } from '../services/architectureApiFastTest';
 import {
   buildArchitectureContext,
   generateMockEvaluation
@@ -25,12 +21,8 @@ import {
  */
 export function useEvaluation() {
   // Evaluation State
-  const isModalActive = ref(false);
   const isEvaluating = ref(false);
   const evaluationResult = ref(null);
-  const isGeneratingQuestion = ref(false);
-  const generatedQuestion = ref(null);
-  const userAnswer = ref('');
   const showResultScreen = ref(false);
 
   // Deep Dive State
@@ -246,117 +238,6 @@ export function useEvaluation() {
     }
   }
 
-  async function showEvaluationModal(problem, droppedComponents, connections, mermaidCode) {
-    isModalActive.value = true;
-    isGeneratingQuestion.value = true;
-    generatedQuestion.value = null;
-
-    try {
-      const architectureContext = buildArchitectureContext(
-        droppedComponents,
-        connections,
-        mermaidCode
-      );
-      generatedQuestion.value = await generateEvaluationQuestion(
-        problem,
-        architectureContext
-      );
-    } finally {
-      isGeneratingQuestion.value = false;
-    }
-  }
-
-  async function triggerFinalDeepDiveQuestions(problem, droppedComponents, connections, mermaidCode) {
-    isDeepDiveModalActive.value = true;
-    isGeneratingDeepDive.value = true;
-    currentQuestionIndex.value = 0;
-    collectedDeepDiveAnswers.value = [];
-
-    try {
-      deepDiveQuestions.value = await generateArchitectureAnalysisQuestions(
-        problem,
-        droppedComponents,
-        connections,
-        mermaidCode
-      );
-
-      if (deepDiveQuestions.value.length > 0) {
-        deepDiveQuestion.value = deepDiveQuestions.value[0].question;
-      }
-    } finally {
-      isGeneratingDeepDive.value = false;
-    }
-  }
-
-  function closeModal() {
-    isModalActive.value = false;
-    generatedQuestion.value = null;
-  }
-
-  async function submitEvaluationAnswer(answer) {
-    userAnswer.value = answer;
-    isModalActive.value = false;
-    showResultScreen.value = true;
-  }
-
-  /**
-   * 평가 실행 (7단계 프로세스 통합)
-   */
-  async function evaluate(problem, droppedComponents, connections, mermaidCode) {
-    isEvaluating.value = true;
-    evaluationResult.value = null;
-
-    const architectureContext = buildArchitectureContext(
-      droppedComponents,
-      connections,
-      mermaidCode
-    );
-
-    // 7단계 프로세스: 고정 맥락 설정
-    if (!sessionContext.value.fixedContext) {
-      sessionContext.value.fixedContext = `아키텍처 구조:\n${architectureContext}\n\n첫 설명:\n${userExplanation.value}`;
-    }
-
-    const deepDiveQnA = collectedDeepDiveAnswers.value.map(item => ({
-      category: item.category,
-      question: item.question,
-      answer: item.answer === '(스킵됨)' ? '' : item.answer
-    }));
-
-    // 7단계 프로세스: 유동 맥락 업데이트
-    if (deepDiveQnA.length > 0) {
-      const qaSummary = deepDiveQnA
-        .filter(item => item.answer && item.answer !== '(스킵됨)')
-        .map(item => `[${item.category}] Q: ${item.question}\nA: ${item.answer}`)
-        .join('\n\n');
-      sessionContext.value.dynamicContext = qaSummary;
-    }
-
-    try {
-      // 마스터 에이전트 기반 6대 기둥 평가 (7단계 프로세스 적용)
-      evaluationResult.value = await evaluateWithMasterAgent(
-        problem,
-        architectureContext,
-        generatedQuestion.value,
-        userAnswer.value || userExplanation.value,
-        deepDiveQnA,
-        sessionContext.value // 7단계: 세션 맥락 전달
-      );
-
-      // 맥락 업데이트
-      if (evaluationResult.value?.masterAgentEvaluation?.contextUpdate) {
-        const update = evaluationResult.value.masterAgentEvaluation.contextUpdate;
-        sessionContext.value.facts.push(...(update.newFacts || []));
-        sessionContext.value.clarifiedPoints.push(...(update.clarifiedPoints || []));
-      }
-    } catch (error) {
-      console.error('Master Agent Evaluation error:', error);
-      evaluationResult.value = generateMockEvaluation(problem, droppedComponents);
-    } finally {
-      isEvaluating.value = false;
-    }
-  }
-
   function handleRetry() {
     showResultScreen.value = false;
   }
@@ -393,12 +274,8 @@ export function useEvaluation() {
 
   return {
     // Evaluation State
-    isModalActive,
     isEvaluating,
     evaluationResult,
-    isGeneratingQuestion,
-    generatedQuestion,
-    userAnswer,
     showResultScreen,
 
     // Deep Dive State
@@ -414,9 +291,6 @@ export function useEvaluation() {
     userExplanation,
     explanationAnalysis,
 
-    // Chat
-    chatMessages,
-
     // 7단계 프로세스 상태
     sessionContext,
     sixPillars,
@@ -426,10 +300,6 @@ export function useEvaluation() {
     skipDeepDive,
     submitDeepDiveAnswer,
     openEvaluationModal,
-    showEvaluationModal,
-    closeModal,
-    submitEvaluationAnswer,
-    evaluate,
     directEvaluate,
     handleRetry,
     resetEvaluationState,

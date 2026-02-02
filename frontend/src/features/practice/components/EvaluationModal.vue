@@ -85,18 +85,6 @@ export default {
       answer: ''
     };
   },
-  computed: {
-    formattedConnections() {
-      return this.connections.map(conn => {
-        const from = this.components.find(c => c.id === conn.from);
-        const to = this.components.find(c => c.id === conn.to);
-        if (from && to) {
-          return `${from.text} → ${to.text}`;
-        }
-        return '';
-      }).filter(Boolean);
-    }
-  },
   watch: {
     isActive(newVal) {
       if (newVal) {
