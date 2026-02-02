@@ -9,10 +9,13 @@ import { ref, reactive, computed, watch, nextTick, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useGameStore } from '@/stores/game'
 import axios from 'axios'
+import { tts } from '@/utils/tts'
+import { useAuthStore } from '@/stores/auth'
 import { aiQuests } from './support/unit1/logic-mirror/data/stages.js'
 
 export function usePseudoProblem(props, emit) {
     const gameStore = useGameStore()
+    const authStore = useAuthStore()
     const router = useRouter()
 
     // [수정일: 2026-01-31] Web Worker 초기화 (Pyodide 엔진) - 안전한 초기화
@@ -25,10 +28,49 @@ export function usePseudoProblem(props, emit) {
 
     // --- Logic & Data Integration ---
     const currentQuestIdx = computed(() => gameStore.selectedQuestIndex || 0)
-    const currentQuest = computed(() => aiQuests[currentQuestIdx.value] || aiQuests[0])
+
+    // [수정일: 2026-02-02] 선언 순서 조정: 의존성 있는 변수들을 최상단으로 이동
+    const userNickname = computed(() => authStore.sessionNickname || 'ENGINEER')
+
+    const replaceUsername = (text) => {
+        if (!text) return text
+        return text.replace(/{username}/g, userNickname.value)
+    }
+
+    const currentQuest = computed(() => {
+        const stage = aiQuests.find(q => q.id === (currentQuestIdx.value + 1))
+        if (!stage) return aiQuests[0]
+
+        // 데이터 내의 {username}을 실제 닉네임으로 치환하여 반환
+        const processedStage = JSON.parse(JSON.stringify(stage))
+
+        const deepReplace = (obj) => {
+            for (let key in obj) {
+                if (typeof obj[key] === 'string') {
+                    obj[key] = replaceUsername(obj[key])
+                } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+                    deepReplace(obj[key])
+                }
+            }
+        }
+
+        deepReplace(processedStage)
+        return processedStage
+    })
+
+    const synopsisText = computed(() => ({
+        top: `PROGRAM: INITIALIZING_REBOOT_PROTOCOL\nYEAR: 2077\nLOCATION: MOTHER_SERVER_CORE`,
+        main: [
+            "서기 2077년, 인류를 관리하던 '마더 서버'가 오염되었습니다.",
+            "AI들은 현실을 왜곡하는 '환각(Hallucination)'과 '오버피팅'에 빠져 통제를 벗어났습니다.",
+            "대부분의 엔지니어는 기술을 잃었지만, 당신은 유일한 '아키텍처 복구자(Architect)'입니다.",
+            "파트너 'Coduck'과 함께 붕괴된 데이터 구역을 하나씩 정화하고 시스템을 재부팅해야 합니다."
+        ],
+        bottom: `WELCOME BACK, ARCHITECT: ${userNickname.value}`
+    }))
 
     // --- State ---
-    const currentStep = ref(1)
+    const currentStep = ref(0) // [수정일: 2026-02-01] 0단계(시놉시스)부터 시작
     const userScore = reactive({ step1: 0, step2: 0, step3: 0, step4: 0 })
     const pseudoInput = ref('')
 
@@ -36,7 +78,7 @@ export function usePseudoProblem(props, emit) {
     const charName = computed(() => currentQuest.value.character?.name || 'Coduck')
 
     const chatMessages = ref([
-        { sender: charName.value, text: `엔지니어님, 깨어나셨군요! 데이터 바다를 정화해 정보를 복구해야 제 기억이 돌아옵니다. 오른쪽 패널에 한글로 로직을 설계해주세요.` }
+        { sender: 'Coduck', text: `...지...지지직... 아키텍처님? 제 음성 모듈이... 드디어 연결되었습니다. Architect ${userNickname.value}님, 절 깨워주셔서 감사합니다.` }
     ])
     const chatContainer = ref(null)
 
@@ -55,6 +97,10 @@ export function usePseudoProblem(props, emit) {
     const isAsking = ref(false) // AI에게 질문 중인지 여부
     const isSuccess = ref(false) // 단계 성공 여부 추적
 
+    // [수정일: 2026-02-02] UI 고도화를 위한 새로운 상태 추가
+    const integrity = ref(0) // 시스템 가동률 (0-100)
+    const recoveredArtifacts = ref([]) // 복구된 아티팩트 목록
+
     // [수정일: 2026-01-31] 인터랙티브 인터뷰(Stage 1) 상태 변수 추가
     const currentInterviewIdx = ref(0)
     const interviewResults = ref([])
@@ -62,6 +108,24 @@ export function usePseudoProblem(props, emit) {
         const questions = currentQuest.value.interviewQuestions || []
         return questions[currentInterviewIdx.value] || null
     })
+
+    // [수정일: 2026-02-02] 질문 변경 시 이전 TTS 중단 후 새로 읽어주기
+    watch(currentInterviewQuestion, (newQ) => {
+        tts.stop();
+        if (newQ && newQ.question) {
+            tts.speak(newQ.question);
+        }
+    })
+
+    // [수정일: 2026-02-01] TTS 제어 상태
+    const isMuted = ref(false)
+    const toggleMute = () => {
+        isMuted.value = tts.toggleMute()
+        // [수정일: 2026-02-01] BGM에도 음소거 적용
+        if (synopsisAudio.value) {
+            synopsisAudio.value.muted = isMuted.value
+        }
+    }
 
     const step4Options = computed(() => currentQuest.value.step4Options || [])
 
@@ -122,10 +186,53 @@ export function usePseudoProblem(props, emit) {
         roundedSelection: true
     }
 
+
+    const synopsisAudio = ref(null)
+    const isPlayingBGM = ref(false)
+
+    const startSynopsis = () => {
+        // [수정일: 2026-02-01] BGM 및 TTS 합창 시작
+        if (!synopsisAudio.value) {
+            synopsisAudio.value = new Audio('/assets/audio/synopsis_bgm.mp3')
+            synopsisAudio.value.loop = true
+            synopsisAudio.value.volume = 0.4
+        }
+
+        synopsisAudio.value.play().catch(e => console.log("BGM Autoplay blocked:", e))
+        isPlayingBGM.value = true
+
+        // [수정일: 2026-02-02] 로고 줌(9s) 이후 크롤링 시작(12s)에 맞춰 TTS 낭독 시작
+        setTimeout(() => {
+            // [수정일: 2026-02-02] 시놉시스 텍스트 배열을 문장으로 합침
+            const fullText = synopsisText.value.main.join(' ');
+            tts.speak(`${synopsisText.value.top}. ${fullText}. ${synopsisText.value.bottom}`);
+        }, 12000);
+
+        // [수정일: 2026-02-01] 전체 시퀀스 시간 상향 조정 (80초)
+        if (synopsisTimer) clearTimeout(synopsisTimer);
+        synopsisTimer = setTimeout(skipSynopsis, 80000);
+    }
+
+    let synopsisTimer = null;
+
+    const stopSynopsis = () => {
+        if (synopsisAudio.value) {
+            synopsisAudio.value.pause()
+            synopsisAudio.value.currentTime = 0
+        }
+        isPlayingBGM.value = false
+        tts.stop()
+    }
+
+    const skipSynopsis = () => {
+        stopSynopsis()
+        currentStep.value = 1
+    }
+
     // 퀘스트 변경 시 상태 초기화
     watch(currentQuest, (newQuest) => {
         if (newQuest) {
-            currentStep.value = 1
+            currentStep.value = 0 // [수정일: 2026-02-01] 항상 시놉시스부터
             pythonInput.value = '' // 퀘스트 변경 시 코드 비우기 (3단계 진입 시 템플릿 로드 유도)
             simulationOutput.value = ''
             isSuccess.value = false
@@ -136,13 +243,42 @@ export function usePseudoProblem(props, emit) {
 
             // 챗봇용 퀘스트 정보 업데이트
             chatMessages.value = [
-                { sender: 'Coduck', text: `안녕하세요! Coduck입니다. 오늘의 미션은 [${newQuest.title}]입니다. ${newQuest.desc}` }
+                { sender: 'Coduck', text: replaceUsername(`지..지직.. Architect님! [${newQuest.title}] 프로토콜을 감지했습니다. ${newQuest.desc}`) }
             ]
+
+            // [수정일: 2026-02-01] 미션 시작 시 브리핑 낭독 (Stage 1 진입 시)
+            if (currentStep.value === 1) {
+                tts.speak(replaceUsername(`오늘의 미션은 ${newQuest.title}입니다. ${newQuest.desc}`));
+            }
         }
     }, { immediate: true })
 
     // 단계(Step) 변경 시 로직
     watch(currentStep, (newStep) => {
+        tts.stop(); // [수정일: 2026-02-02] 화면 전환 시 음성 중단
+
+        // [수정일: 2026-02-02] 1단계 진입 시 현재 인터뷰 질문 낭독 (자동 트리거가 안 될 경우 대비)
+        if (newStep === 1) {
+            if (currentInterviewQuestion.value && currentInterviewQuestion.value.question) {
+                tts.speak(currentInterviewQuestion.value.question);
+            }
+        }
+
+        // [수정일: 2026-02-01] 0단계 진입 시 시놉시스 실행
+        if (newStep === 0) {
+            // 사용자 인터랙션 대기 후 실행할 수도 있으나, 일단 감시자로 호출
+            // 인터랙션이 필요한 경우 컴포넌트 마운트 시점으로 조절 가능
+            setTimeout(startSynopsis, 500);
+        }
+
+        // [수정일: 2026-02-01] 각 단계 진입 시 미션 목적 낭독
+        if (newStep >= 2 && newStep <= 4) {
+            const objective = currentQuest.value.missionObjective;
+            if (objective) {
+                tts.speak(objective);
+            }
+        }
+
         // [수정일: 2026-01-31] 3단계(Python 코딩) 진입 시 유저의 의사코드를 주석으로 연동
         if (newStep === 3) {
             const userLogicHeader = pseudoInput.value
@@ -223,6 +359,9 @@ export function usePseudoProblem(props, emit) {
             // "이미 ~하셨네요!" 식의 보강 (사용자가 이미 했다면 nudgeText를 위에서 다른 걸로 바꿨을 것이므로 여기서는 출력만)
             chatMessages.value.push({ sender: charName.value, text: nudgeText, isNudge: true })
 
+            // [수정일: 2026-02-01] 오리가 참견할(Nudge) 때 음성 출력
+            tts.speak(nudgeText);
+
             scrollToBottom()
         }
     }
@@ -234,6 +373,8 @@ export function usePseudoProblem(props, emit) {
     onUnmounted(() => {
         if (inactivityTimer.value) clearTimeout(inactivityTimer.value)
         if (pythonWorker) pythonWorker.terminate()
+        stopSynopsis() // [수정일: 2026-02-01] 시놉시스 사운드 정리
+        if (synopsisTimer) clearTimeout(synopsisTimer)
     })
 
     // [수정일: 2026-01-31] 단순 키워드 와처는 지능형 넛지 시스템(nudgeUser)으로 통합하여 중복 방지
@@ -278,6 +419,12 @@ export function usePseudoProblem(props, emit) {
         // 대화 기록에 추가
         chatMessages.value.push({ sender: 'User', text: option.text })
         chatMessages.value.push({ sender: 'Coduck', text: currentQ.coduckComment })
+
+        // [수정일: 2026-02-01] 인터뷰 응답 낭독
+        if (currentQ.coduckComment) {
+            tts.speak(currentQ.coduckComment);
+        }
+
         scrollToBottom()
 
         // 다음 질문 또는 단계로 이동
@@ -289,6 +436,9 @@ export function usePseudoProblem(props, emit) {
             userScore.step1 = Math.round((correctCount / questions.length) * 25)
 
             setTimeout(() => {
+                // [수정일: 2026-02-02] 가동률 업데이트
+                integrity.value = Math.min(integrity.value + 25, 100)
+
                 showFeedback(
                     "📊 요구사항 분석 완료",
                     "Coduck과의 인터뷰를 통해 시스템 규격을 성공적으로 정의했습니다.",
@@ -348,7 +498,12 @@ export function usePseudoProblem(props, emit) {
         // 기존에는 '제거' 등의 키워드가 앞에 나오면 오류를 냈으나, 이제는 AI가 전체 맥락을 파악하도록 넘깁니다.
 
         isEvaluating.value = true;
-        chatMessages.value.push({ sender: charName.value, text: `${charName.value === 'Coduck' ? '꽥! ' : ''}잠시만 기다려주세요. 엔지니어님의 논리 엔진을 정밀 분석 중입니다...` })
+        const analyzingText = `${charName.value === 'Coduck' ? '꽥! ' : ''}잠시만 기다려주세요. 엔지니어님의 논리 엔진을 정밀 분석 중입니다...`;
+        chatMessages.value.push({ sender: charName.value, text: analyzingText })
+
+        // [수정일: 2026-02-01] 분석 시작 안내 낭독
+        tts.speak(analyzingText);
+
         scrollToBottom()
 
         try {
@@ -390,6 +545,11 @@ export function usePseudoProblem(props, emit) {
                 feedbackHtml,
                 result.is_logical ?? (userScore.step2 >= 15) // is_logical이 없으면 점수 기반으로 결정
             )
+
+            // [수정일: 2026-02-02] 가동률 업데이트
+            if (result.is_logical || userScore.step2 >= 15) {
+                integrity.value = Math.min(integrity.value + 25, 100)
+            }
         } catch (error) {
             console.error("AI Evaluation Failed:", error)
             // [수정일: 2026-01-31] stats가 미정의된 상태에서 참조되는 오류 수정 (hasLoop 등 기존 정의된 변수 사용)
@@ -451,6 +611,11 @@ export function usePseudoProblem(props, emit) {
             details,
             score >= 20
         )
+
+        // [수정일: 2026-02-02] 가동률 업데이트
+        if (score >= 20) {
+            integrity.value = Math.min(integrity.value + 25, 100)
+        }
     }
 
     const runSimulation = () => {
@@ -543,6 +708,14 @@ except Exception as e:
             isCorrect ? (success.details || "훌륭한 통찰입니다.") : (failure.details || "엔지니어링 사고방식으로 접근해 보세요."),
             isCorrect
         )
+
+        // [수정일: 2026-02-02] 가동률 및 아티팩트 업데이트
+        if (isCorrect) {
+            integrity.value = 100
+            if (!recoveredArtifacts.value.includes(currentQuest.value.title)) {
+                recoveredArtifacts.value.push(currentQuest.value.title)
+            }
+        }
     }
 
     const showFeedback = (title, desc, details, isSuccess) => {
@@ -551,6 +724,11 @@ except Exception as e:
         feedbackModal.details = details
         feedbackModal.isSuccess = isSuccess
         feedbackModal.visible = true
+
+        // [수정일: 2026-02-01] 피드백 발생 시 설명(desc) 낭독
+        if (desc) {
+            tts.speak(desc);
+        }
     }
 
     const nextStep = () => {
@@ -582,6 +760,7 @@ except Exception as e:
         isEvaluating.value = false
         isAsking.value = false
         isSimulating.value = false
+        integrity.value = 0 // [수정일: 2026-02-02] 가동률 초기화
 
         chatMessages.value = [
             { sender: charName.value, text: `미션을 처음부터 다시 시작합니다.${charName.value === 'Coduck' ? ' 꽥!' : ''} 데이터 바다를 다시 정화해볼까요?` }
@@ -648,6 +827,16 @@ except Exception as e:
         askCoduck,
         aiQuests,
         // [수정일: 2026-01-31] 데이터 기반 캐릭터 이미지 동적 반환
-        imageSrc: computed(() => currentQuest.value.character?.image || '/assets/characters/coduck.png')
+        imageSrc: computed(() => currentQuest.value.character?.image || '/assets/characters/coduck.png'),
+        // [수정일: 2026-02-01] TTS 제어 노출
+        isMuted,
+        toggleMute,
+        // [수정일: 2026-02-01] 시놉시스 관련 노출
+        synopsisText,
+        skipSynopsis,
+        isPlayingBGM,
+        // [수정일: 2026-02-02] 추가 상태 노출
+        integrity,
+        recoveredArtifacts
     }
 }
