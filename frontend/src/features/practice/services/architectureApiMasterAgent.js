@@ -294,15 +294,35 @@ function buildNfrScores(evaluations) {
 
 /**
  * 평가 결과를 pillarScores 형식으로 변환
+ * Vue 컴포넌트의 키 이름과 일치시킴
  */
 function buildPillarScores(evaluations) {
-  const scores = {};
+  // Vue 컴포넌트에서 사용하는 키 이름으로 매핑
+  const categoryToKey = {
+    '신뢰성': 'reliability',
+    '성능': 'performanceOptimization',
+    '운영': 'operationalExcellence',
+    '비용': 'costOptimization',
+    '보안': 'securityPrivacyCompliance',
+    '지속가능성': 'sustainability'
+  };
+
+  const scores = {
+    reliability: 0,
+    performanceOptimization: 0,
+    operationalExcellence: 0,
+    costOptimization: 0,
+    securityPrivacyCompliance: 0,
+    sustainability: 0
+  };
+
   evaluations.forEach(ev => {
-    const pillar = PILLAR_DATA[ev.category];
-    if (pillar) {
-      scores[pillar.id] = ev.score;
+    const key = categoryToKey[ev.category];
+    if (key) {
+      scores[key] = ev.score;
     }
   });
+
   return scores;
 }
 

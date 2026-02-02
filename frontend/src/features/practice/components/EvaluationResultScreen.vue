@@ -107,6 +107,61 @@
 
         <hr class="divider" />
 
+        <!-- 질문별 평가 결과 (모범답안 포함) - 새로 추가 -->
+        <div v-if="result.questionEvaluations && result.questionEvaluations.length" class="eval-section question-evaluations-section">
+          <h3>[ 질문별 상세 평가 ]</h3>
+          <div class="question-eval-list">
+            <div
+              v-for="(qEval, idx) in result.questionEvaluations"
+              :key="idx"
+              class="question-eval-card"
+              :class="getScoreClass(qEval.score)"
+            >
+              <!-- 질문 헤더 -->
+              <div class="question-header">
+                <span class="question-category">{{ qEval.category }}</span>
+                <span class="question-score" :class="getScoreClass(qEval.score)">{{ qEval.score }}점</span>
+              </div>
+
+              <!-- 질문 내용 -->
+              <div class="question-content">
+                <p class="question-text">❓ {{ qEval.question }}</p>
+              </div>
+
+              <!-- 답변 비교 -->
+              <div class="answer-comparison">
+                <!-- 사용자 답변 -->
+                <div class="answer-box user-answer">
+                  <div class="answer-label">📝 나의 답변</div>
+                  <p>{{ qEval.userAnswer || '(답변 없음)' }}</p>
+                </div>
+
+                <!-- 모범 답안 -->
+                <div class="answer-box model-answer">
+                  <div class="answer-label">✅ 모범 답안</div>
+                  <p>{{ qEval.modelAnswer || '(모범답안 없음)' }}</p>
+                </div>
+              </div>
+
+              <!-- 피드백 -->
+              <div class="feedback-box">
+                <div class="feedback-label">💬 피드백</div>
+                <p>{{ qEval.feedback }}</p>
+              </div>
+
+              <!-- 개선 포인트 -->
+              <div v-if="qEval.improvements && qEval.improvements.length" class="improvements-box">
+                <div class="improvements-label">🔧 개선 포인트</div>
+                <ul>
+                  <li v-for="(imp, i) in qEval.improvements" :key="i">{{ imp }}</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <hr class="divider" />
+
         <!-- 하위 에이전트 평가 결과 -->
         <div v-if="result.subAgentResults && result.subAgentResults.length" class="eval-section">
           <h3>[ 전문 분석관 평가 ]</h3>
@@ -1185,5 +1240,158 @@ export default {
   .agent-eval-grid {
     flex-direction: column;
   }
+
+  .question-eval-card .answer-comparison {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 질문별 평가 (모범답안) 섹션 스타일 */
+.question-evaluations-section {
+  margin-top: 20px;
+}
+
+.question-eval-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.question-eval-card {
+  background: rgba(255, 255, 255, 0.9);
+  border-left: 5px solid #3498db;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.question-eval-card.excellent { border-left-color: #27ae60; }
+.question-eval-card.good { border-left-color: #3498db; }
+.question-eval-card.needs-improvement { border-left-color: #f39c12; }
+.question-eval-card.poor { border-left-color: #e74c3c; }
+
+.question-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed #ddd;
+}
+
+.question-category {
+  background: #34495e;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: bold;
+}
+
+.question-score {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.9rem;
+}
+
+.question-score.excellent { color: #27ae60; }
+.question-score.good { color: #3498db; }
+.question-score.needs-improvement { color: #f39c12; }
+.question-score.poor { color: #e74c3c; }
+
+.question-content {
+  margin-bottom: 15px;
+}
+
+.question-text {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #2c3e50;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.question-eval-card .answer-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.answer-box {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.answer-box.user-answer {
+  border-left: 3px solid #9b59b6;
+}
+
+.answer-box.model-answer {
+  border-left: 3px solid #27ae60;
+  background: #f0fff4;
+}
+
+.answer-label {
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: #555;
+  margin-bottom: 8px;
+}
+
+.answer-box p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #333;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.feedback-box {
+  background: #fff8e1;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #ffecb3;
+  margin-bottom: 15px;
+}
+
+.feedback-label {
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: #f57c00;
+  margin-bottom: 8px;
+}
+
+.feedback-box p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #5d4037;
+  line-height: 1.5;
+}
+
+.improvements-box {
+  background: #e3f2fd;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #bbdefb;
+}
+
+.improvements-label {
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: #1565c0;
+  margin-bottom: 8px;
+}
+
+.improvements-box ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.improvements-box li {
+  font-size: 0.85rem;
+  color: #1976d2;
+  margin-bottom: 5px;
+  line-height: 1.4;
 }
 </style>
