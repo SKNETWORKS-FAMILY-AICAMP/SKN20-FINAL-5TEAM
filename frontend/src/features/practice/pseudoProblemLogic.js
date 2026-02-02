@@ -29,6 +29,46 @@ export function usePseudoProblem(props, emit) {
     // --- Logic & Data Integration ---
     const currentQuestIdx = computed(() => gameStore.selectedQuestIndex || 0)
 
+    // [수정일: 2026-02-02] 선언 순서 조정: 의존성 있는 변수들을 최상단으로 이동
+    const userNickname = computed(() => authStore.sessionNickname || 'ENGINEER')
+
+    const replaceUsername = (text) => {
+        if (!text) return text
+        return text.replace(/{username}/g, userNickname.value)
+    }
+
+    const currentQuest = computed(() => {
+        const stage = aiQuests.find(q => q.id === (currentQuestIdx.value + 1))
+        if (!stage) return aiQuests[0]
+
+        // 데이터 내의 {username}을 실제 닉네임으로 치환하여 반환
+        const processedStage = JSON.parse(JSON.stringify(stage))
+
+        const deepReplace = (obj) => {
+            for (let key in obj) {
+                if (typeof obj[key] === 'string') {
+                    obj[key] = replaceUsername(obj[key])
+                } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+                    deepReplace(obj[key])
+                }
+            }
+        }
+
+        deepReplace(processedStage)
+        return processedStage
+    })
+
+    const synopsisText = computed(() => ({
+        top: `PROGRAM: INITIALIZING_REBOOT_PROTOCOL\nYEAR: 2077\nLOCATION: MOTHER_SERVER_CORE`,
+        main: [
+            "서기 2077년, 인류를 관리하던 '마더 서버'가 오염되었습니다.",
+            "AI들은 현실을 왜곡하는 '환각(Hallucination)'과 '오버피팅'에 빠져 통제를 벗어났습니다.",
+            "대부분의 엔지니어는 기술을 잃었지만, 당신은 유일한 '아키텍처 복구자(Architect)'입니다.",
+            "파트너 'Coduck'과 함께 붕괴된 데이터 구역을 하나씩 정화하고 시스템을 재부팅해야 합니다."
+        ],
+        bottom: `WELCOME BACK, ARCHITECT: ${userNickname.value}`
+    }))
+
     // --- State ---
     const currentStep = ref(0) // [수정일: 2026-02-01] 0단계(시놉시스)부터 시작
     const userScore = reactive({ step1: 0, step2: 0, step3: 0, step4: 0 })
@@ -141,46 +181,6 @@ export function usePseudoProblem(props, emit) {
         roundedSelection: true
     }
 
-    // [수정일: 2026-02-01] 시놉시스(세계관) 데이터 - 사용자 닉네임 반영
-    const userNickname = computed(() => authStore.sessionNickname || 'ENGINEER')
-
-    const synopsisText = computed(() => ({
-        top: `PROGRAM: INITIALIZING_REBOOT_PROTOCOL\nYEAR: 2077\nLOCATION: MOTHER_SERVER_CORE`,
-        main: [
-            "서기 2077년, 인류를 관리하던 '마더 서버'가 오염되었습니다.",
-            "AI들은 현실을 왜곡하는 '환각(Hallucination)'과 '오버피팅'에 빠져 통제를 벗어났습니다.",
-            "대부분의 엔지니어는 기술을 잃었지만, 당신은 유일한 '아키텍처 복구자(Architect)'입니다.",
-            "파트너 'Coduck'과 함께 붕괴된 데이터 구역을 하나씩 정화하고 시스템을 재부팅해야 합니다."
-        ],
-        bottom: `WELCOME BACK, ARCHITECT: ${userNickname.value}`
-    }))
-
-    // [수정일: 2026-02-02] {username} 플레이스홀더를 실제 유저 닉네임으로 치환하는 헬퍼 함수
-    const replaceUsername = (text) => {
-        if (!text) return text
-        return text.replace(/{username}/g, userNickname.value)
-    }
-
-    const currentQuest = computed(() => {
-        const stage = aiQuests.find(q => q.id === (currentQuestIdx.value + 1))
-        if (!stage) return aiQuests[0]
-
-        // 데이터 내의 {username}을 실제 닉네임으로 치환하여 반환
-        const processedStage = JSON.parse(JSON.stringify(stage))
-
-        const deepReplace = (obj) => {
-            for (let key in obj) {
-                if (typeof obj[key] === 'string') {
-                    obj[key] = replaceUsername(obj[key])
-                } else if (typeof obj[key] === 'object' && obj[key] !== null) {
-                    deepReplace(obj[key])
-                }
-            }
-        }
-
-        deepReplace(processedStage)
-        return processedStage
-    })
 
     const synopsisAudio = ref(null)
     const isPlayingBGM = ref(false)
