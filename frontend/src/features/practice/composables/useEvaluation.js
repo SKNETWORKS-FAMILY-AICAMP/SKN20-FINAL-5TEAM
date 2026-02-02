@@ -1,5 +1,5 @@
 import { ref } from 'vue';
-// 마스터 에이전트 기반 다중 에이전트 평가 사용 (6대 기둥 + 7단계 프로세스)
+// 마스터 에이전트 기반 다중 에이전트 평가 사용 (6대 기둥)
 import { evaluateWithMasterAgent, getAvailableSubAgents, getAllQuestionStrategies } from '../services/architectureApiMasterAgent';
 import { generateFollowUpQuestions } from '../services/architectureApiFastTest';
 import {
@@ -10,14 +10,11 @@ import {
 /**
  * 평가 Composable
  *
- * 7단계 프로세스 (sys-arc.md 기반):
- * 1. 머메이드 변환: 시각적 정보를 구조화된 데이터로 변환
- * 2. 상세 설명: 사용자의 설계 '의도' 파악
- * 3. 질문 및 꼬리질문: 전문 용어를 시나리오로 번역하여 질문
- * 4. 6대 지표 개별 평가: 독립된 에이전트가 병렬로 평가
- * 5. 프롬프트 변환: 핵심 원칙 - 질문 전략 형태로 정제
- * 6. 지표 정보 공통 사용: 질문자와 평가자의 논리적 일관성
- * 7. 맥락 유지: 고정 맥락 + 유동 맥락 세션 동안 유지
+ * 프로세스:
+ * 1. 사용자 아키텍처 설명 입력
+ * 2. 고품질 질문 3개 생성 (txt 파일 참고)
+ * 3. 질문에 대한 답변 수집
+ * 4. 6대 기둥 기반 평가 실행
  */
 export function useEvaluation() {
   // Evaluation State
@@ -34,7 +31,7 @@ export function useEvaluation() {
   const collectedDeepDiveAnswers = ref([]);
   const pendingEvaluationAfterDeepDive = ref(false);
 
-  // NEW: 설명 입력 Phase 상태
+  // 설명 입력 Phase 상태
   const evaluationPhase = ref('idle'); // 'idle' | 'explanation' | 'questioning' | 'evaluating'
   const userExplanation = ref('');
   const explanationAnalysis = ref(null);
@@ -42,15 +39,7 @@ export function useEvaluation() {
   // Chat messages for evaluation context
   const chatMessages = ref([]);
 
-  // NEW: 7단계 프로세스 - 세션 맥락 유지 (7단계)
-  const sessionContext = ref({
-    fixedContext: '', // 고정 맥락: 아키텍처 도형 + 첫 설명
-    dynamicContext: '', // 유동 맥락: Q&A 대화 요약 + 새로운 사실
-    facts: [], // 파악된 사실들
-    clarifiedPoints: [] // 명확해진 설계 의도
-  });
-
-  // NEW: 6대 기둥 정보 (평가지표)
+  // 6대 기둥 정보 (평가지표)
   const sixPillars = ref(getAvailableSubAgents());
   const allQuestionStrategies = ref(getAllQuestionStrategies());
 
@@ -71,17 +60,8 @@ export function useEvaluation() {
       collectedDeepDiveAnswers.value.push({
         category: currentQ?.category || '',
         question: deepDiveQuestion.value,
-        answer: answer,
-        pillar: currentQ?.pillar || ''
+        answer: answer
       });
-
-      // 7단계: 유동 맥락 업데이트 (Q&A 대화 요약)
-      const qaSummary = `[${currentQ?.category}] Q: ${deepDiveQuestion.value}\nA: ${answer}`;
-      if (sessionContext.value.dynamicContext) {
-        sessionContext.value.dynamicContext += `\n\n${qaSummary}`;
-      } else {
-        sessionContext.value.dynamicContext = qaSummary;
-      }
 
       chatMessages.value.push({
         role: 'user',
@@ -129,16 +109,12 @@ export function useEvaluation() {
     return { needsDeepDive: false };
   }
 
-  // NEW: 사용자 설명 제출 후 꼬리질문 생성 (7단계 프로세스 적용)
+  /**
+   * 사용자 설명 제출 후 고품질 질문 3개 생성
+   */
   async function submitUserExplanation(explanation, problem, droppedComponents, connections, mermaidCode) {
     userExplanation.value = explanation;
     isGeneratingDeepDive.value = true;
-
-    // 7단계: 고정 맥락 설정 (첫 설명 시)
-    if (!sessionContext.value.fixedContext) {
-      const architectureInfo = `컴포넌트: ${droppedComponents.map(c => c.text).join(', ')}\n연결: ${connections.length}개`;
-      sessionContext.value.fixedContext = `아키텍처:\n${architectureInfo}\n\n첫 설명:\n${explanation}`;
-    }
 
     // 설명을 첫 번째 답변으로 저장
     collectedDeepDiveAnswers.value.push({
@@ -148,24 +124,18 @@ export function useEvaluation() {
     });
 
     try {
-      // 사용자 설명 기반 꼬리질문 생성 (7단계: 맥락 전달)
+      // 고품질 질문 3개 생성 (txt 파일 참고)
       const result = await generateFollowUpQuestions(
         problem,
         droppedComponents,
         connections,
         mermaidCode,
-        explanation,
-        sessionContext.value // 7단계: 세션 맥락 전달
+        explanation
       );
 
       explanationAnalysis.value = result.analysis;
 
-      // 7단계: 새롭게 파악된 사실 저장
-      if (result.newFacts && result.newFacts.length > 0) {
-        sessionContext.value.facts.push(...result.newFacts);
-      }
-
-      // 꼬리질문들 설정
+      // 질문들 설정
       if (result.questions && result.questions.length > 0) {
         deepDiveQuestions.value = result.questions;
         currentQuestionIndex.value = 0;
@@ -179,22 +149,19 @@ export function useEvaluation() {
       }
     } catch (error) {
       console.error('Failed to generate follow-up questions:', error);
-      // 에러 시 상황 기반 기본 질문 사용 (txt 파일 스타일)
+      // 에러 시 기본 질문 사용
       deepDiveQuestions.value = [
         {
           category: '신뢰성',
-          question: '만약 이 시스템의 핵심 서버가 갑자기 다운된다면, 서비스 전체가 멈추나요? 아니면 다른 경로로 우회할 수 있는 구조인가요?',
-          pillar: 'reliability'
+          question: '만약 이 시스템의 핵심 서버가 갑자기 다운된다면, 서비스 전체가 멈추나요? 아니면 다른 경로로 우회할 수 있는 구조인가요?'
         },
         {
-          category: '운영 우수성',
-          question: '서비스에 장애가 났을 때, 관리자가 알기 전에 시스템이 먼저 알려주는 알람 기능이 있나요?',
-          pillar: 'operationalExcellence'
+          category: '성능',
+          question: '갑자기 사용자가 10배로 늘어나는 이벤트 상황이 발생하면, 이 시스템이 자동으로 대응하나요?'
         },
         {
-          category: '성능 최적화',
-          question: '갑자기 사용자가 10배로 늘어나는 이벤트 상황이 발생하면, 이 시스템이 자동으로 대응하나요?',
-          pillar: 'performanceOptimization'
+          category: '운영',
+          question: '서비스에 장애가 났을 때, 관리자가 알기 전에 시스템이 먼저 알려주는 알람 기능이 있나요?'
         }
       ];
       currentQuestionIndex.value = 0;
@@ -208,14 +175,7 @@ export function useEvaluation() {
   }
 
   /**
-   * 직접 평가 실행 (7단계 프로세스 통합)
-   *
-   * 프로세스:
-   * 1. 머메이드 변환 (architectureContext에 이미 포함)
-   * 2. 상세 설명 (userExplanation에 포함)
-   * 3. 질문 및 꼬리질문 (deepDiveQnA에 포함)
-   * 4. 6대 지표 개별 평가 (병렬 실행)
-   * 5-7. 프롬프트 변환, 지표 공통 사용, 맥락 유지 (architectureApiMasterAgent에서 처리)
+   * 직접 평가 실행
    */
   async function directEvaluate(problem, droppedComponents, connections, mermaidCode) {
     showResultScreen.value = true;
@@ -228,43 +188,21 @@ export function useEvaluation() {
       mermaidCode
     );
 
-    // 7단계 프로세스: 고정 맥락 설정 (첫 평가 시)
-    if (!sessionContext.value.fixedContext) {
-      sessionContext.value.fixedContext = `아키텍처 구조:\n${architectureContext}\n\n첫 설명:\n${userExplanation.value}`;
-    }
-
     const deepDiveQnA = collectedDeepDiveAnswers.value.map(item => ({
       category: item.category,
       question: item.question,
       answer: item.answer === '(스킵됨)' ? '' : item.answer
     }));
 
-    // 7단계 프로세스: 유동 맥락 업데이트 (Q&A 대화 요약)
-    if (deepDiveQnA.length > 0) {
-      const qaSummary = deepDiveQnA
-        .filter(item => item.answer && item.answer !== '(스킵됨)')
-        .map(item => `[${item.category}] Q: ${item.question}\nA: ${item.answer}`)
-        .join('\n\n');
-      sessionContext.value.dynamicContext = qaSummary;
-    }
-
     try {
-      // 마스터 에이전트 기반 6대 기둥 평가 (7단계 프로세스 적용)
+      // 마스터 에이전트 기반 6대 기둥 평가
       evaluationResult.value = await evaluateWithMasterAgent(
         problem,
         architectureContext,
         null, // EvaluationModal 질문 없음
         userExplanation.value, // 사용자 설명 전달
-        deepDiveQnA,
-        sessionContext.value // 7단계: 세션 맥락 전달
+        deepDiveQnA
       );
-
-      // 맥락 업데이트 (마스터 에이전트 결과에서)
-      if (evaluationResult.value?.masterAgentEvaluation?.contextUpdate) {
-        const update = evaluationResult.value.masterAgentEvaluation.contextUpdate;
-        sessionContext.value.facts.push(...(update.newFacts || []));
-        sessionContext.value.clarifiedPoints.push(...(update.clarifiedPoints || []));
-      }
     } catch (error) {
       console.error('Master Agent Evaluation error:', error);
       evaluationResult.value = generateMockEvaluation(problem, droppedComponents);
@@ -278,7 +216,7 @@ export function useEvaluation() {
   }
 
   /**
-   * 평가 상태 초기화 (7단계 프로세스 맥락 포함)
+   * 평가 상태 초기화
    */
   function resetEvaluationState() {
     evaluationResult.value = null;
@@ -289,14 +227,6 @@ export function useEvaluation() {
     evaluationPhase.value = 'idle';
     userExplanation.value = '';
     explanationAnalysis.value = null;
-
-    // 7단계 프로세스: 세션 맥락 초기화
-    sessionContext.value = {
-      fixedContext: '',
-      dynamicContext: '',
-      facts: [],
-      clarifiedPoints: []
-    };
   }
 
   function isPendingEvaluation() {
@@ -326,8 +256,7 @@ export function useEvaluation() {
     userExplanation,
     explanationAnalysis,
 
-    // 7단계 프로세스 상태
-    sessionContext,
+    // 6대 기둥 정보
     sixPillars,
     allQuestionStrategies,
 
