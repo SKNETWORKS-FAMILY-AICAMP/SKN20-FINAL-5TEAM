@@ -29,7 +29,7 @@ const getApiKey = () => import.meta.env.VITE_OPENAI_API_KEY;
  */
 async function callOpenAI(prompt, options = {}) {
   const {
-    model = 'gpt-3.5-turbo',
+    model = 'gpt-4o-mini',
     maxTokens = 1500,
     temperature = 0.4,
     systemMessage = null

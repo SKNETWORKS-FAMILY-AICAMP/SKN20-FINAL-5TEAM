@@ -65,16 +65,27 @@ export function useEvaluation() {
   }
 
   async function submitDeepDiveAnswer(answer) {
+    const currentQ = deepDiveQuestions.value[currentQuestionIndex.value];
+
     if (answer) {
       collectedDeepDiveAnswers.value.push({
-        category: deepDiveQuestions.value[currentQuestionIndex.value]?.category || '',
+        category: currentQ?.category || '',
         question: deepDiveQuestion.value,
-        answer: answer
+        answer: answer,
+        pillar: currentQ?.pillar || ''
       });
+
+      // 7단계: 유동 맥락 업데이트 (Q&A 대화 요약)
+      const qaSummary = `[${currentQ?.category}] Q: ${deepDiveQuestion.value}\nA: ${answer}`;
+      if (sessionContext.value.dynamicContext) {
+        sessionContext.value.dynamicContext += `\n\n${qaSummary}`;
+      } else {
+        sessionContext.value.dynamicContext = qaSummary;
+      }
 
       chatMessages.value.push({
         role: 'user',
-        content: `[심화 질문 - ${deepDiveQuestions.value[currentQuestionIndex.value]?.category}] ${deepDiveQuestion.value}\n\n[답변] ${answer}`,
+        content: `[심화 질문 - ${currentQ?.category}] ${deepDiveQuestion.value}\n\n[답변] ${answer}`,
         type: 'answer'
       });
     }
@@ -118,10 +129,16 @@ export function useEvaluation() {
     return { needsDeepDive: false };
   }
 
-  // NEW: 사용자 설명 제출 후 꼬리질문 생성
+  // NEW: 사용자 설명 제출 후 꼬리질문 생성 (7단계 프로세스 적용)
   async function submitUserExplanation(explanation, problem, droppedComponents, connections, mermaidCode) {
     userExplanation.value = explanation;
     isGeneratingDeepDive.value = true;
+
+    // 7단계: 고정 맥락 설정 (첫 설명 시)
+    if (!sessionContext.value.fixedContext) {
+      const architectureInfo = `컴포넌트: ${droppedComponents.map(c => c.text).join(', ')}\n연결: ${connections.length}개`;
+      sessionContext.value.fixedContext = `아키텍처:\n${architectureInfo}\n\n첫 설명:\n${explanation}`;
+    }
 
     // 설명을 첫 번째 답변으로 저장
     collectedDeepDiveAnswers.value.push({
@@ -131,16 +148,22 @@ export function useEvaluation() {
     });
 
     try {
-      // 사용자 설명 기반 꼬리질문 생성
+      // 사용자 설명 기반 꼬리질문 생성 (7단계: 맥락 전달)
       const result = await generateFollowUpQuestions(
         problem,
         droppedComponents,
         connections,
         mermaidCode,
-        explanation
+        explanation,
+        sessionContext.value // 7단계: 세션 맥락 전달
       );
 
       explanationAnalysis.value = result.analysis;
+
+      // 7단계: 새롭게 파악된 사실 저장
+      if (result.newFacts && result.newFacts.length > 0) {
+        sessionContext.value.facts.push(...result.newFacts);
+      }
 
       // 꼬리질문들 설정
       if (result.questions && result.questions.length > 0) {
@@ -156,11 +179,23 @@ export function useEvaluation() {
       }
     } catch (error) {
       console.error('Failed to generate follow-up questions:', error);
-      // 에러 시 기본 질문 사용
+      // 에러 시 상황 기반 기본 질문 사용 (txt 파일 스타일)
       deepDiveQuestions.value = [
-        { category: '설계 의도', question: '이 아키텍처에서 가장 중요하게 고려한 부분은 무엇인가요?' },
-        { category: '확장성', question: '트래픽이 10배로 증가하면 어떤 부분을 수정해야 할까요?' },
-        { category: '장애 대응', question: '주요 컴포넌트 장애 시 어떻게 대응하시겠습니까?' }
+        {
+          category: '신뢰성',
+          question: '만약 이 시스템의 핵심 서버가 갑자기 다운된다면, 서비스 전체가 멈추나요? 아니면 다른 경로로 우회할 수 있는 구조인가요?',
+          pillar: 'reliability'
+        },
+        {
+          category: '운영 우수성',
+          question: '서비스에 장애가 났을 때, 관리자가 알기 전에 시스템이 먼저 알려주는 알람 기능이 있나요?',
+          pillar: 'operationalExcellence'
+        },
+        {
+          category: '성능 최적화',
+          question: '갑자기 사용자가 10배로 늘어나는 이벤트 상황이 발생하면, 이 시스템이 자동으로 대응하나요?',
+          pillar: 'performanceOptimization'
+        }
       ];
       currentQuestionIndex.value = 0;
       deepDiveQuestion.value = deepDiveQuestions.value[0].question;
