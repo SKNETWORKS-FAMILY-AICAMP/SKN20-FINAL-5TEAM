@@ -1,0 +1,68 @@
+{
+  "id": "P1",
+  "project_title": "MNIST 손글씨 분류기",
+  "scenario": "모델 학습 중 에러 발생. 데이터 로딩, 손실 함수, 최적화 과정에서 문제를 해결해야 합니다.",
+  "difficulty": 2,
+  "totalSteps": 3,
+  "steps": [
+    {
+      "step": 1,
+      "title": "입력 데이터 차원 오류",
+      "bug_type": "A",
+      "bug_type_name": "Shape Error",
+      "buggy_code": "def forward(self, x):\n    x = self.conv1(x)\n    x = self.conv2(x)\n    x = self.fc(x)  # 입력 차원이 맞지 않음\n    return x",
+      "correct_code": "def forward(self, x):\n    x = self.conv1(x)\n    x = self.conv2(x)\n    x = x.view(x.size(0), -1)  # 차원 변경\n    x = self.fc(x)\n    return x",
+      "test_script": "model = SimpleNet(); x = torch.randn(1, 1, 28, 28); out = model(x); assert out.shape == (1, 10)",
+      "hint": "입력 데이터의 차원을 맞춰주세요.",
+      "solution_check": {
+        "type": "multi_condition",
+        "required_any": [
+          "x.view("
+        ],
+        "forbidden": []
+      },
+      "coaching": "🎯 현업: 입력 데이터의 차원을 확인하고, 모델의 입력 기대 차원과 일치하도록 데이터를 전처리해야 합니다. 데이터의 배치 차원 및 특성 차원을 조정하여 오류를 해결할 수 있습니다."
+    },
+    {
+      "step": 2,
+      "title": "최적화 단계 오류",
+      "bug_type": "C",
+      "bug_type_name": "Training Loop Error",
+      "buggy_code": "optimizer.step()  # 업데이트가 누락됨",
+      "correct_code": "optimizer.zero_grad()\nloss.backward()\noptimizer.step()",
+      "test_script": "import torch\nimport torch.nn as nn\nimport torch.optim as optim\n\nclass SimpleNet(nn.Module):\n    def __init__(self):\n        super(SimpleNet, self).__init__()\n        self.fc = nn.Linear(28*28, 10)\n\n    def forward(self, x):\n        x = x.view(x.size(0), -1)\n        x = self.fc(x)\n        return x\n\nmodel = SimpleNet()\ncriterion = nn.CrossEntropyLoss()\noptimizer = optim.SGD(model.parameters(), lr=0.01)\n\n# Mock data\ndata = torch.randn(1, 1, 28, 28)\nlabels = torch.tensor([1])\n\n# Forward pass\noutput = model(data)\nloss = criterion(output, labels)\n\n# Backward pass and optimization\noptimizer.zero_grad()\nloss.backward()\noptimizer.step()\nassert loss.item() < 1.0",
+      "hint": "최적화 과정에서 누락된 호출을 추가하세요.",
+      "solution_check": {
+        "type": "multi_condition",
+        "required_any": [
+          "optimizer.zero_grad()"
+        ],
+        "forbidden": [
+          "optimizer.step()  # 업데이트가 누락됨"
+        ]
+      },
+      "coaching": "🎯 현업: 최적화 단계에서 손실(loss) 계산 후에 gradient를 초기화하는 것을 잊지 마세요. 이는 이전 gradient가 누적되어 최적화가 제대로 이루어지지 않는 문제를 방지합니다."
+    },
+    {
+      "step": 3,
+      "title": "평가 모드 누락",
+      "bug_type": "D",
+      "bug_type_name": "Evaluation Error",
+      "buggy_code": "model.train()\noutputs = model(images)\nloss = criterion(outputs, labels)\noptimizer.zero_grad()\nloss.backward()\noptimizer.step()",
+      "correct_code": "model.eval()\nwith torch.no_grad():\n    outputs = model(images)\n    loss = criterion(outputs, labels)\noptimizer.zero_grad()\nloss.backward()\noptimizer.step()",
+      "test_script": "model = SimpleNet(); images = torch.randn(10, 1, 28, 28); labels = torch.randint(0, 10, (10,)); criterion = nn.CrossEntropyLoss(); model.eval(); with torch.no_grad(): outputs = model(images); loss = criterion(outputs, labels); assert loss.item() >= 0",
+      "hint": "평가 모드와 그래디언트 비활성화 필요",
+      "solution_check": {
+        "type": "multi_condition",
+        "required_any": [
+          "model.eval()",
+          "with torch.no_grad()"
+        ],
+        "forbidden": [
+          "model.train()"
+        ]
+      },
+      "coaching": "🎯 현업: 모델을 평가할 때 반드시 `model.eval()` 메서드를 호출하여 드롭아웃 및 배치 정규화를 비활성화해야 합니다. 이를 통해 평가 시 모델의 일관성과 정확성을 보장할 수 있습니다."
+    }
+  ]
+}
