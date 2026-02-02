@@ -1,22 +1,22 @@
 export const aiQuests = [
     {
         id: 1,
-        title: "[복구 가이드] Architect의 귀환",
+        title: "Chapter 1: 각성 (Tutorial Zone)",
         category: "System Reboot",
-        emoji: "🌐",
-        desc: "마더 서버의 오염된 파이프라인(The Great Overfitting)을 진단하고 아키텍처 복구를 준비하세요.",
+        emoji: "💡",
+        desc: "어두운 터미널, 켜지는 모니터... Coduck이 깨어납니다. '아키텍처님! 제 음성 모듈이 연결되었습니다... 지지직... 제 사고 회로가 오염되어 복잡한 연산이 불가능해요. 먼저 제 사고 회로를 고쳐주세요!'",
         rewardXP: 500,
-        subModuleTitle: "BOOT_PROTOCOL",
+        subModuleTitle: "AI 사고법 입문 (BOOT_PROTOCOL)",
         character: { name: "Coduck", image: "/assets/characters/coduck.png" },
         interviewQuestions: [
             {
                 id: "q1",
-                question: "Step 1: 오염 진단 - 붕괴된 시스템을 복구하기 위한 Architect의 첫 번째 프로토콜은 무엇입니까?",
+                question: "Step 1: 사고 회로 복구 - 오염된 시스템을 복구하기 위해 Coduck의 사고를 정화하는 첫 번째 프로토콜은 무엇입니까?",
                 options: [
-                    { text: "시스템의 전체 데이터 흐름(E2E Pipeline)을 정의하고 통찰하기", value: "flow", correct: true },
+                    { text: "Coduck의 4단계 사고법(데이터 분석-논리 설계-코드 구현-최적화) 따르기", value: "flow", correct: true },
                     { text: "아무 데이터나 일단 마더 서버에 업로드하기", value: "code" }
                 ],
-                coduckComment: "역시 유일한 '아키텍처 복구자'답네요! {username}님, 전체 흐름을 잡는 것이 정화의 시작입니다."
+                coduckComment: "역시 유일한 '아키텍처 복구자'답네요! {username}님, 제 사고 회로가 조금씩 돌아오는 것 같아요."
             },
             {
                 id: "q2",
