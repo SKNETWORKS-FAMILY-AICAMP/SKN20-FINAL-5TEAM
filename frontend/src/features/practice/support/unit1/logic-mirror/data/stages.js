@@ -1,232 +1,721 @@
 export const aiQuests = [
     {
         id: 1,
-        title: "로그인 인증 시스템",
-        category: "Auth",
-        emoji: "🔐",
-        desc: "아이디와 비밀번호가 일치하는지 확인하는 로직을 조립하세요.",
-        rewardXP: 100,
+        title: "[튜토리얼] AI 사고법 입문",
+        category: "Intro",
+        emoji: "�",
+        desc: "AI 엔지니어처럼 생각하는 4단계 사고법(Pipeline Thinking)을 가볍게 체험해 보세요.",
+        rewardXP: 500,
+        subModuleTitle: "THINKING_STARTER",
+        character: { name: "Coduck", image: "/assets/characters/coduck.png" },
+        // [Step 1 & 2] 입문용 가벼운 인터뷰
+        interviewQuestions: [
+            {
+                id: "q1",
+                question: "Step 1: 전체 흐름 - 훌륭한 AI 파이프라인을 설계하기 위해 가장 먼저 해야 할 일은 무엇일까요?",
+                options: [
+                    { text: "해결하려는 문제의 전체 흐름(End-to-End) 정의하기", value: "flow", correct: true },
+                    { text: "일단 코드부터 무작정 짜보기", value: "code" }
+                ],
+                coduckComment: "역시 똑똑하시네요! '숲'을 먼저 봐야 길을 잃지 않는답니다. 이것이 1단계 '뼈대 정의'입니다!"
+            },
+            {
+                id: "q2",
+                question: "Step 2: 핵심 상세화 - 흐름을 정했다면, 그중 가장 중요한 '데이터 처리' 규칙을 꼼꼼히 정해야겠죠?",
+                options: [
+                    { text: "데이터의 특징을 분석하고 세부 규칙 설계하기", value: "detail", correct: true },
+                    { text: "컴퓨터가 알아서 해주길 기도하기", value: "pray" }
+                ],
+                coduckComment: "맞아요! 인공지능은 우리가 정해준 '디테일'만큼 똑똑해진답니다. 이것이 2단계 '상세화'예요."
+            }
+        ],
+        quizTitle: "Step 4: 마무리 - 오늘 배운 AI 사고법의 핵심은 무엇인가요?",
+        missionObjective: "Step 3: 실무 리스크 맛보기 - 실제 데이터를 다룰 때 생길 수 있는 작은 노이즈(빈 문자열)를 걸러내는 입문 코드를 작성해 봅시다.",
+        pythonSnippets: [
+            { label: '비어있으면 건너뛰기', code: 'if not data: continue', icon: 'SkipForward' },
+            { label: '리스트에 추가', code: 'result.append(data)', icon: 'PlusCircle' }
+        ],
+        pythonTemplate: `def intro_pipeline(data_list):
+    result = []
+
+    for data in data_list:
+        # [Step 3-1] 튜토리얼: 비어있는 데이터(노이즈) 체크
+        if not data:
+            # TODO: 비어있으면 건너뛰도록 작성하세요
+            continue
+            
+        # [Step 3-2] 유효한 데이터만 저장
+        # TODO: data를 result에 추가하세요
+        result.append(data)
+
+    return result`,
+        sampleData: ["데이터1", "", "데이터2", " "],
+        step4Options: [
+            "저는 단순히 코드를 짜는 것을 넘어, 전체 파이프라인의 흐름을 설계하고 리스크를 관리하는 AI 엔지니어의 사고방식을 익혔습니다. 이제 어떤 복잡한 문제도 4단계로 나누어 해결할 준비가 되었습니다!",
+            "저는 파이썬으로 리스트에 데이터를 넣을 줄 압니다.",
+            "AI는 신기하고 재미있다는 것을 배웠습니다."
+        ],
         cards: [
-            { id: 'b1', text: '만약 아이디 == "lion" 이면:', color: 'border-indigo-500', icon: '❓' },
-            { id: 'b2', text: '    만약 비밀번호 == "1234" 이면:', color: 'border-indigo-500', icon: '❓' },
-            { id: 'b3', text: '        반환 "성공"', color: 'border-emerald-500', icon: '✅' },
-            { id: 'b4', text: '    아니면:', color: 'border-indigo-500', icon: '🔄' },
-            { id: 'b5', text: '        반환 "실패"', color: 'border-rose-500', icon: '❌' }
+            { id: 'b1', text: 'Step 1: 문제의 전체 흐름 그리기', color: 'border-indigo-500', icon: '️' },
+            { id: 'b2', text: 'Step 2: 핵심 로직 상세 설계', color: 'border-amber-500', icon: '🔍' },
+            { id: 'b3', text: 'Step 3: 실무 리스크 대응 코드 작성', color: 'border-rose-500', icon: '💻' },
+            { id: 'b4', text: 'Step 4: 면접 답변으로 멋지게 정리', color: 'border-emerald-500', icon: '🏁' }
         ],
-        solution: ['b1', 'b2', 'b3', 'b4', 'b5'],
-        codeValidation: { price: 'lion', fee1: '1234', fee2: 'Success' }, // 필드명은 재활용하거나 추후 일반화
+        solution: ['b1', 'b2', 'b3', 'b4'],
+        functionName: 'intro_pipeline',
+        codeValidation: { price: 'data_list', fee1: 'continue', fee2: 'append' },
+        step4CorrectIdx: 0,
+        step4SuccessFeedback: {
+            title: "⚖️ 심화 분석: AI 사고법의 가치",
+            desc: "정답입니다! 코딩 실력을 넘어선 '엔지니어링 마인드'를 완벽히 이해하셨네요.",
+            details: "훌륭합니다. 실제 현업에서도 기술 스택보다 중요한 것이 바로 이 '흐름 설계'와 '리스크 관리' 역량입니다. 튜토리얼을 성공적으로 마치셨습니다!"
+        },
+        step4FailFeedback: {
+            title: "🤔 심화 분석: 다시 생각해보세요",
+            desc: "단순한 구현 능력보다는, 우리가 왜 4단계로 나누어 생각하는지 그 이유를 고민해 보세요.",
+            details: "AI 엔지니어는 나무(코드 한 줄)가 아닌 숲(전체 파이프라인)을 보는 사람입니다. 첫 번째 선택지의 의미를 다시 한번 읽어보시겠어요?"
+        },
         quizOptions: [
-            { text: "A. 비밀번호가 틀려도 성공 처리한다.", correct: false },
-            { text: "B. and 연산자를 사용하여 한 줄로 합칠 수 있다.", correct: true },
-            { text: "C. 아이디 확인은 생략한다.", correct: false }
+            { text: "A. 4단계 사고법은 실력을 키우는 최고의 도구다.", correct: true },
+            { text: "B. AI는 공부 안 해도 알아서 잘한다.", correct: false }
         ],
-        mapPos: { x: 200, y: 150 }
+        mapPos: { x: 100, y: 450 }
     },
     {
         id: 2,
-        title: "재고 관리 알림",
-        category: "Inventory",
-        emoji: "📦",
-        desc: "재고가 부족할 때 주문 알림을 보내는 로직을 만듭니다.",
-        rewardXP: 120,
+        title: "실전! 데이터 누수 가디언",
+        category: "Data Quality",
+        emoji: "🛡️",
+        desc: "학습-서빙 불일치(Skew)와 데이터 누수(Data Leakage)를 방지하는 실무 파이프라인을 설계하세요.",
+        rewardXP: 300,
+        subModuleTitle: "LEAKAGE_PROTECTOR",
+        character: { name: "coduck", image: "/assets/characters/coduck.png" },
+        interviewQuestions: [
+            {
+                id: "q1",
+                question: "Step 1: E2E 뼈대 - 시계열 데이터 파이프라인에서 가장 타당한 분리(Split) 방식은?",
+                options: [
+                    { text: "시간 순서에 따른 분리 (Time-based Split)", value: "time", correct: true },
+                    { text: "무작위 셔플링 후 분리 (Random Split)", value: "random" }
+                ],
+                coduckComment: "완벽해요! 시계열에서 미래 정보를 학습에 넣으면 'Target Leakage'가 발생하여 실전에선 무용지물이 됩니다."
+            },
+            {
+                id: "q2",
+                question: "Step 2: 상세화 - 전처리를 할 때 'fit'을 전체 데이터에 먼저 하면 안 되는 핵심 이유는?",
+                options: [
+                    { text: "Validation 데이터의 통계량이 학습에 미리 노출(Leakage)되기 때문", value: "leak", correct: true },
+                    { text: "학습 데이터가 부족해지기 때문", value: "lack" }
+                ],
+                coduckComment: "정확한 실무 포인트입니다. 'Fit before Split'은 엔지니어링의 치명적인 실수죠."
+            }
+        ],
+        quizTitle: "Step 4: 면접 답변 정제 - 데이터 누수 방지 역량을 실무 관점에서 요약한다면?",
+        missionObjective: "Step 3: 실무 리스크 점검 - Train 데이터로만 기준(fit)을 잡고, 데이터 누수 없이 Scaling을 수행하는 로직을 구현하세요.",
+        pythonSnippets: [
+            { label: '기준 학습 (fit)', code: 'scaler.fit(train_df)', icon: 'Zap' },
+            { label: '데이터 변환 (transform)', code: 'scaler.transform(target_df)', icon: 'Filter' }
+        ],
+        pythonTemplate: `def leakage_free_scaling(train_df, test_df):
+    from sklearn.preprocessing import StandardScaler
+    scaler = StandardScaler()
+    
+    # [Step 3-1] 실무 리스크 대응: 오직 Train 데이터로만 기준 설정
+    # TODO: train_df를 사용하여 scaler를 학습시키세요
+    scaler.fit(train_df)
+    
+    # [Step 3-2] 동일한 기준으로 두 데이터를 변환 (누수 방지)
+    train_scaled = scaler.transform(train_df)
+    test_scaled = scaler.transform(test_df)
+    
+    return train_scaled, test_scaled`,
+        sampleData: [[1, 2, 3], [4, 5, 6]],
+        step4Options: [
+            "저는 과거 시계열 프로젝트 당시 Target Leakage 문제를 인지하고 있었습니다. 이를 방지하기 위해 Time Series Split 전략을 수립하고, Scaler의 Fit을 오직 Train 셋에만 고정하여 검증 점수와 실전 성능 사이의 갭을 2% 이내로 관리한 경험이 있습니다.",
+            "저는 스케일러를 사용하여 데이터를 정규화할 줄 압니다.",
+            "데이터 누수는 나중에 결과가 너무 잘 나올 때 의심하면 된다고 대답하겠습니다."
+        ],
         cards: [
-            { id: 'b1', text: '만약 현재_수량 <= 10 이면:', color: 'border-indigo-500', icon: '❓' },
-            { id: 'b2', text: '    알림_보내기("재고 부족")', color: 'border-amber-500', icon: '🔔' },
-            { id: 'b3', text: '    반환 "주문 필요"', color: 'border-emerald-500', icon: '🛒' },
-            { id: 'b4', text: '아니면:', color: 'border-indigo-500', icon: '🔄' },
-            { id: 'b5', text: '    반환 "재고 충분"', color: 'border-emerald-500', icon: '✨' }
+            { id: 'b1', text: 'Step 1: 데이터 시간순 정렬 및 분리', color: 'border-indigo-500', icon: '⏳' },
+            { id: 'b2', text: 'Step 2: Train 셋으로만 전처리 파라미터 학습(fit)', color: 'border-amber-500', icon: '🔧' },
+            { id: 'b3', text: 'Step 3: 학습된 파라미터로 Test 셋 변환(transform)', color: 'border-rose-500', icon: '✨' },
+            { id: 'b4', text: 'Step 4: 누수 없는 깨끗한 데이터셋 반환', color: 'border-emerald-500', icon: '🏁' }
         ],
-        solution: ['b1', 'b2', 'b3', 'b4', 'b5'],
-        codeValidation: { price: '10', fee1: 'Alert', fee2: 'Safe' },
+        solution: ['b1', 'b2', 'b3', 'b4'],
+        functionName: 'leakage_free_scaling',
+        codeValidation: { price: 'train_df', fee1: 'fit', fee2: 'transform' },
+        step4CorrectIdx: 0,
+        step4SuccessFeedback: {
+            title: "⚖️ 심화 분석: 데이터 무결성 확보",
+            desc: "완벽합니다! 시계열 데이터에서 '미래 정보의 오염' 리스크를 정확히 짚어내셨습니다.",
+            details: "Fit before Split을 막는 것만으로도 서비스 배포 후 성능이 급락하는 대참사를 예방할 수 있습니다. 시니어급 엔지니어링 감각이 돋보입니다!"
+        },
+        step4FailFeedback: {
+            title: "🤔 심화 분석: 리스크 재검토 필요",
+            desc: "데이터 누수(Leakage)는 인공지능이 문제의 답을 컨닝하는 것과 같습니다.",
+            details: "누수된 모델은 테스트 점수만 높고 실전에서는 무용지물이 됩니다. 모델의 강건성을 위해 무엇을 고정해야 할지 다시 생각해보세요."
+        },
         quizOptions: [
-            { text: "A. 수량이 0일 때만 주문한다.", correct: false },
-            { text: "B. 최소 기준값을 상수로 관리하면 유지보수가 쉽다.", correct: true },
-            { text: "C. 알림은 항상 보낸다.", correct: false }
+            { text: "A. 데이터 누수는 인공지능이 미래를 보는 부정행위다.", correct: true },
+            { text: "B. 검증 데이터와 학습 데이터는 섞일수록 좋다.", correct: false }
         ],
-        mapPos: { x: 350, y: 250 }
+        mapPos: { x: 230, y: 350 }
     },
     {
         id: 3,
-        title: "기온별 옷차림 추천",
-        category: "Service",
-        emoji: "🌡️",
-        desc: "날씨에 따라 적절한 의상을 추천하는 AI입니다.",
-        rewardXP: 150,
+        title: "학습-서빙 불일치(Skew) 방지",
+        category: "Bias Control",
+        emoji: "🔁",
+        desc: "실제 서비스 환경과 학습 환경의 데이터 분포 차이를 극복하는 강건한 파이프라인을 설계하세요.",
+        rewardXP: 300,
+        subModuleTitle: "SKEW_CONTROLLER",
+        character: { name: "Coduck", image: "/assets/characters/coduck.png" },
+        interviewQuestions: [
+            {
+                id: "q1",
+                question: "Step 1: E2E 뼈대 - 학습된 모델이 현장에 배포되었을 때 성능이 급락하는 'Train/Serving Skew'의 주요 원인은?",
+                options: [
+                    { text: "학습 시 사용한 피처 가공 로직과 실시간 환경의 로직이 다르기 때문", value: "skew", correct: true },
+                    { text: "서버 사양이 부족해서", value: "server" }
+                ],
+                coduckComment: "날카롭군요! '전처리 코드 형상 관리'가 안 되면 발생하는 비극이죠."
+            },
+            {
+                id: "q2",
+                question: "Step 2: 상세화 - 데이터 편향을 막기 위한 셔플링(Shuffling)이 역효과를 내는 경우는?",
+                options: [
+                    { text: "시계열적 특성이 중요한 금융/로그 데이터일 때", value: "time", correct: true },
+                    { text: "데이터가 너무 많을 때", value: "volume" }
+                ],
+                coduckComment: "정확합니다. 도메인의 특성에 맞춰 셔플링 여부를 결정하는 것이 의사결정의 핵심입니다."
+            }
+        ],
+        quizTitle: "Step 4: 면접 답변 정제 - 모델의 강건성(Robustness) 확보 전략을 설명한다면?",
+        missionObjective: "Step 3: 실무 리스크 점검 - 특정 클래스가 몰려있는 데이터셋을 학습 전 무작위로 섞어 배치(Batch) 편향을 방지하는 로직을 구현하세요.",
+        pythonSnippets: [
+            { label: '인덱스 섞기', code: 'random.shuffle(indices)', icon: 'Shuffle' },
+            { label: '데이터 재배치', code: '[data[i] for i in indices]', icon: 'Repeat' }
+        ],
+        pythonTemplate: `import random
+def prevent_serving_skew(data):
+    indices = list(range(len(data)))
+    
+    # [Step 3-1] 실전 대응: 무작위 셔플링으로 배치 편향 제거
+    # TODO: random.shuffle을 사용하여 indices를 섞으세요
+    random.shuffle(indices)
+    
+    # [Step 3-2] 파이프라인 정규화
+    return [data[i] for i in indices]`,
+        sampleData: ["ClassA", "ClassA", "ClassB", "ClassB"],
+        step4Options: [
+            "저는 학습 환경과 실제 서빙 환경 간의 '전처리 파이프라인 동기화'를 최우선으로 고려합니다. 셔플링을 통한 일반화 성능 확보는 물론, 서빙 단계의 입력값 분포 변화를 추적하는 드리프트 모니터링 체계를 구축하여 모델의 신뢰도를 관리합니다.",
+            "저는 데이터 순서를 무작위로 섞어서 모델이 잘 배우게 만듭니다.",
+            "데이터가 꼬이면 그냥 다시 학습시키는 것이 빠르다고 대답하겠습니다."
+        ],
         cards: [
-            { id: 'b1', text: '만약 기온 >= 28 이면:', color: 'border-indigo-500', icon: '☀️' },
-            { id: 'b2', text: '    추천 = "반팔"', color: 'border-emerald-500', icon: '👕' },
-            { id: 'b3', text: '아니고_만약 기온 >= 15 이면:', color: 'border-indigo-500', icon: '☁️' },
-            { id: 'b4', text: '    추천 = "맨투맨"', color: 'border-emerald-500', icon: '🧥' },
-            { id: 'b5', text: '그외: 추천 = "패딩"', color: 'border-rose-500', icon: '❄️' }
+            { id: 'b1', text: 'Step 1: 학습-서빙 데이터 규격 통일 확인', color: 'border-indigo-500', icon: '📏' },
+            { id: 'b2', text: 'Step 2: 데이터 무작위 셔플링(Shuffle)', color: 'border-amber-500', icon: '🎲' },
+            { id: 'b3', text: 'Step 3: 일관된 전처리 함수 적용', color: 'border-rose-500', icon: '📝' },
+            { id: 'b4', text: 'Step 4: 강건한 학습 데이터셋 반환', color: 'border-emerald-500', icon: '🏁' }
         ],
-        solution: ['b1', 'b2', 'b3', 'b4', 'b5'],
-        codeValidation: { price: '28', fee1: 'Shorts', fee2: 'Coat' },
+        solution: ['b1', 'b2', 'b3', 'b4'],
+        functionName: 'prevent_serving_skew',
+        codeValidation: { price: 'random', fee1: 'shuffle', fee2: 'indices' },
+        step4CorrectIdx: 0,
+        step4SuccessFeedback: {
+            title: "⚖️ 심화 분석: 환경 동기화 전문가",
+            desc: "정답입니다! 학습과 서빙 사이의 '유령 리스크'를 관리할 줄 아는 안목을 가지셨군요.",
+            details: "전처리 파이프라인의 형상 관리는 MLOps의 핵심입니다. 드리프트 모니터링까지 언급하신 점이 매우 훌륭합니다."
+        },
+        step4FailFeedback: {
+            title: "🤔 심화 분석: 배포 리스크 간과",
+            desc: "데이터를 단순히 섞는 것만으로는 배포 후의 성능 급락을 막을 수 없습니다.",
+            details: "학습 때 아무리 잘해도 서빙 때의 로직이 0.1%만 달라도 모델은 오작동합니다. '일관성'의 관점에서 다시 고민해보세요."
+        },
         quizOptions: [
-            { text: "A. 모든 기온에서 반팔만 추천한다.", correct: false },
-            { text: "B. elif(아니고 만약)를 사용해 여러 구간을 나눈다.", correct: true },
-            { text: "C. 조건의 순서는 상관없다.", correct: false }
+            { text: "A. 스큐를 막으려면 전처리 코드의 공용화가 필요하다.", correct: true },
+            { text: "B. 서빙용 데이터는 학습용보다 더 복잡해야 한다.", correct: false }
         ],
-        mapPos: { x: 500, y: 350 }
+        mapPos: { x: 380, y: 150 }
     },
     {
         id: 4,
-        title: "평균 제곱 오차 (MSE)",
-        category: "AI Basic",
-        emoji: "📈",
-        desc: "예측값과 실제값의 차이를 계산하는 인공지능 기초입니다.",
-        rewardXP: 180,
+        title: "배포 정책: 임계값 튜너",
+        category: "Evaluation",
+        emoji: "⚖️",
+        desc: "비즈니스 리스크를 고려하여 모델의 예측 수락 기준을 설정하는 실전 배포 정책을 수립하세요.",
+        rewardXP: 400,
+        subModuleTitle: "DEPLOY_POLICY_MAKER",
+        character: { name: "Coduck", image: "/assets/characters/coduck.png" },
+        interviewQuestions: [
+            {
+                id: "q1",
+                question: "Step 1: E2E 뼈대 - 긴급 재난 알림 시스템처럼 '놓치면 치명적인' 문제에서 가장 중요한 메트릭은?",
+                options: [
+                    { text: "재현율 (Recall: 실제 양성을 얼마나 잘 찾아내는가)", value: "recall", correct: true },
+                    { text: "정밀도 (Precision: 모델이 맞다고 한 것 중 실제는 얼마인가)", value: "precision" }
+                ],
+                coduckComment: "훌륭한 비즈니스 감각입니다! 하나라도 놓치는 것이 더 위험한 상황이니까요."
+            },
+            {
+                id: "q2",
+                question: "Step 2: 상세화 - 암 진단 모델에서 임계값을 0.9로 높게 잡는 '보수적 전략'의 리스크는?",
+                options: [
+                    { text: "실제 환자를 정상으로 오판(False Negative)하여 골든타임을 놓칠 수 있음", value: "fn", correct: true },
+                    { text: "학습 시간이 길어짐", value: "slow" }
+                ],
+                coduckComment: "정답입니다. 기술적 지표 뒤에 숨겨진 '사람의 생명'이나 '비용'을 보는 것이 시니어의 눈이죠."
+            }
+        ],
+        quizTitle: "Step 4: 면접 답변 정제 - 비즈니스 요구사항에 따른 임계값(Threshold) 설정 근거를 말한다면?",
+        missionObjective: "Step 3: 실무 리스크 점검 - 예측 점수가 0.8 이하인 모호한 케이스는 '수동 검역(Reject)' 대상으로 자동 분류하는 배포 필터를 구현하세요.",
+        pythonSnippets: [
+            { label: '조건부 필터링', code: 'if p["score"] >= threshold:', icon: 'Check' },
+            { label: '결과 리스트 추가', code: 'results.append(p)', icon: 'Download' }
+        ],
+        pythonTemplate: `def filter_by_threshold(predictions, threshold=0.8):
+    filtered_results = []
+    
+    for p in predictions:
+        # [Step 3-1] 실무 대응: 비즈니스 하한선 필터링
+        if p['score'] >= threshold:
+            # TODO: 통과된 결과 p를 추가하세요
+            filtered_results.append(p)
+            
+            
+    return filtered_results`,
+        sampleData: [{ "id": 1, "score": 0.95 }, { "id": 2, "score": 0.32 }],
+        step4Options: [
+            "저는 모델의 F1-Score를 넘어 비즈니스 기대 가치(Expected Value)를 극대화하는 임계값 설계를 지향합니다. 오판 시의 비용(Cost of Error)을 수치화하여, 정밀도가 필요한 스팸 필터와 재현율이 중요한 제어판 등 각 도메인에 최적화된 배포 정책을 적용합니다.",
+            "저는 임계값을 조절해서 예측을 정확하게 만듭니다.",
+            "임계값은 무조건 0.5로 설정하는 것이 공평하다고 답변하겠습니다."
+        ],
         cards: [
-            { id: 'b1', text: '오차 = 실제 - 예측', color: 'border-indigo-500', icon: '➖' },
-            { id: 'b2', text: '제곱_오차 = 오차 ** 2', color: 'border-amber-500', icon: '✖️' },
-            { id: 'b3', text: '오차_총합에 더하기', color: 'border-emerald-500', icon: '➕' },
-            { id: 'b4', text: '전체 개수로 나누기', color: 'border-indigo-500', icon: '➗' },
-            { id: 'b5', text: '최종 MSE 반환', color: 'border-amber-500', icon: '🏁' }
+            { id: 'b1', text: 'Step 1: 비즈니스 오판 비용 산정', color: 'border-indigo-500', icon: '💰' },
+            { id: 'b2', text: 'Step 2: 모델 예측 Confidence Score 분석', color: 'border-amber-500', icon: '🔢' },
+            { id: 'b3', text: 'Step 3: 도메인 맞춤 임계값(Threshold) 적용', color: 'border-rose-500', icon: '⚖️' },
+            { id: 'b4', text: 'Step 4: 안전한 최종 예측물만 배포 승인', color: 'border-emerald-500', icon: '🏁' }
         ],
-        solution: ['b1', 'b2', 'b3', 'b4', 'b5'],
-        codeValidation: { price: '10', fee1: '8', fee2: '4' },
+        solution: ['b1', 'b2', 'b3', 'b4'],
+        functionName: 'filter_by_threshold',
+        codeValidation: { price: 'predictions', fee1: 'threshold', fee2: 'append' },
+        step4CorrectIdx: 0,
+        step4SuccessFeedback: {
+            title: "⚖️ 심화 분석: 비즈니스 가치 최적화",
+            desc: "최고의 답변입니다! 기술적 수치(F1)를 비즈니스 언어(비용/가치)로 번역할 줄 아는 엔지니어시군요.",
+            details: "임계값 튜닝은 모델을 서비스화하는 마지막 단추입니다. 상황에 맞는 트레이드오프 전략이 돋보입니다."
+        },
+        step4FailFeedback: {
+            title: "🤔 심화 분석: 트레이드오프 리스크",
+            desc: "모든 상황에 일관된 임계값(0.5나 0.9)을 적용하는 것은 위험합니다.",
+            details: "오판했을 때 발생하는 리스크 비용이 도메인마다 다르기 때문입니다. 스팸 정보 보존 리스크를 다시 한번 상기해보세요."
+        },
         quizOptions: [
-            { text: "A. 음수 오차를 없애기 위해 제곱을 사용한다.", correct: true },
-            { text: "B. 오차는 항상 0이어야 한다.", correct: false },
-            { text: "C. 제곱 대신 절대값을 써도 되지만 미분은 어렵다.", correct: true }
+            { text: "A. 임계값 결정은 모델링만큼 중요한 의사결정이다.", correct: true },
+            { text: "B. 모든 서비스에는 임계값 0.9가 가장 안전하다.", correct: false }
         ],
-        mapPos: { x: 650, y: 250 }
+        mapPos: { x: 550, y: 300 }
     },
     {
         id: 5,
-        title: "배달비 자동 계산",
-        category: "Logistics",
-        emoji: "🚚",
-        desc: "주문 금액이 5만원 이상이면 배달비가 무료입니다.",
-        rewardXP: 200,
+        title: "개념 드리프트(Drift) 감지",
+        category: "Training",
+        emoji: "🌊",
+        desc: "시간이 지남에 따라 변하는 데이터 분포를 감지하고 모델의 수명을 관리하는 모니터링 시스템을 설계하세요.",
+        rewardXP: 450,
+        subModuleTitle: "DRIFT_MONITOR",
+        character: { name: "Coduck", image: "/assets/characters/coduck.png" },
+        interviewQuestions: [
+            {
+                id: "q1",
+                question: "Step 1: E2E 뼈대 - 학습 데이터의 분포와 실제 서빙 데이터의 분포가 달라지는 현상을 무엇이라 부릅니까?",
+                options: [
+                    { text: "개념 드리프트 (Concept Drift) / 데이터 드리프트", value: "drift", correct: true },
+                    { text: "메모리 릭 (Memory Leak)", value: "leak" }
+                ],
+                coduckComment: "맞습니다! 어제의 정답이 오늘의 오답이 될 수 있는 인공지능 세계의 숙명이죠."
+            },
+            {
+                id: "q2",
+                question: "Step 2: 상세화 - 드리프트를 감지했을 때 가장 먼저 실행해야 할 실무적 파이프라인 액션은?",
+                options: [
+                    { text: "최신 데이터를 포함한 모델 재학습(Retraining) 및 버전 업", value: "retrain", correct: true },
+                    { text: "서버를 껐다가 다시 켜기", value: "restart" }
+                ],
+                coduckComment: "정석적인 답변입니다. 모델도 주기적으로 수혈(데이터)이 필요하답니다."
+            }
+        ],
+        quizTitle: "Step 4: 면접 답변 정제 - 모델의 성능 저하(Degradation)를 어떻게 인지하고 해결하시겠습니까?",
+        missionObjective: "Step 3: 실무 리스크 점검 - 예측 오차(MSE)를 실시간으로 모니터링하여 평소보다 높아지는 구간을 감지하는 로직을 완성하세요.",
+        pythonSnippets: [
+            { label: '오차 제곱', code: '(r - p)**2', icon: 'Zap' },
+            { label: '오차 평균 산출', code: 'sum(errors) / len(real)', icon: 'Sigma' }
+        ],
+        pythonTemplate: `def monitor_drift_loss(real, pred):
+    errors = []
+    
+    for r, p in zip(real, pred):
+        # [Step 3-1] 모니터링 시스템의 핵심 지표 계산
+        # TODO: r과 p의 차이를 제곱하여 error에 할당하세요
+        error = (r - p)**2
+        errors.append(error)
+        
+    # [Step 3-2] 드리프트 임계값 체크를 위한 최종 손실값 반환
+    return sum(errors) / len(real)`,
+        sampleData: [100, 200, 150],
+        step4Options: [
+            "저는 모델의 정적 정확도에 만족하지 않고, 'Concept Drift'를 추적하는 모니터링 시스템을 구축합니다. 특정 지표(예: MSE)의 이동 평균이 임계값을 상회할 경우 원인 분석 및 자동 재학습 파이프라인이 가동되도록 설계하여 서비스의 지속 가능성을 보장합니다.",
+            "저는 오차가 커지면 모델을 다시 만듭니다.",
+            "드리프트는 자연스러운 현상이니 무시해도 된다고 답변하겠습니다."
+        ],
         cards: [
-            { id: 'b1', text: '만약 주문_금액 >= 50000 이면:', color: 'border-indigo-500', icon: '❓' },
-            { id: 'b2', text: '    배달비 = 0', color: 'border-emerald-500', icon: '💰' },
-            { id: 'b3', text: '아니면:', color: 'border-indigo-500', icon: '🔄' },
-            { id: 'b4', text: '    배달비 = 2500', color: 'border-emerald-500', icon: '💰' },
-            { id: 'b5', text: '최종 배달비 반환', color: 'border-amber-500', icon: '🏁' }
+            { id: 'b1', text: 'Step 1: 서빙 로그에서 실제값과 예측값 수집', color: 'border-indigo-500', icon: '📊' },
+            { id: 'b2', text: 'Step 2: 최신 윈도우(Window) 구간의 MSE 계산', color: 'border-amber-500', icon: '📈' },
+            { id: 'b3', text: 'Step 3: 과거 평균 손실과 현재치 비교', color: 'border-rose-500', icon: '⚖️' },
+            { id: 'b4', text: 'Step 4: 드리프트 감지 시 재학습 신호 발송', color: 'border-emerald-500', icon: '🏁' }
         ],
-        solution: ['b1', 'b2', 'b3', 'b4', 'b5'],
-        codeValidation: { price: '50000', fee1: '0', fee2: '2500' },
+        solution: ['b1', 'b2', 'b3', 'b4'],
+        functionName: 'monitor_drift_loss',
+        codeValidation: { price: 'zip', fee1: '**2', fee2: 'sum' },
         quizOptions: [
-            { text: "A. 거리에 따른 할증을 고려하지 않았다.", correct: true },
-            { text: "B. 5만원 미만도 무료로 해준다.", correct: false },
-            { text: "C. 배달비 변수를 먼저 선언하면 더 깔끔하다.", correct: true }
+            { text: "A. 드리프트 감지는 모델 수명 연장의 필수 요소다.", correct: true },
+            { text: "B. 학습 데이터가 100% 완벽하면 드리프트는 생기지 않는다.", correct: false }
         ],
-        mapPos: { x: 800, y: 150 }
+        mapPos: { x: 720, y: 450 }
     },
     {
         id: 6,
-        title: "최대값 찾기",
-        category: "Algorithm",
-        emoji: "🔝",
-        desc: "숫자 리스트에서 가장 큰 값을 찾는 기본 알고리즘입니다.",
-        rewardXP: 220,
+        title: "차원의 저주와 인코딩",
+        category: "Preprocessing",
+        emoji: "📉",
+        desc: "카테고리 변수가 늘어날 때 발생하는 차원의 저주 리스크를 관리하는 효율적인 인코더를 구축하세요.",
+        rewardXP: 400,
+        subModuleTitle: "DIMENSION_WATCHER",
+        character: { name: "Coduck", image: "/assets/characters/coduck.png" },
+        interviewQuestions: [
+            {
+                id: "q1",
+                question: "Step 1: E2E 뼈대 - 카테고리 종류가 수백 개일 때 원-핫 인코딩(One-hot)을 남발하면 파이프라인에 생기는 비극은?",
+                options: [
+                    { text: "메모리 부족 및 연산 속도 급락 (차원의 저주)", value: "curse", correct: true },
+                    { text: "모델 가중치가 모두 0이 됨", value: "zero" }
+                ],
+                coduckComment: "정확합니다. 불필요하게 늘어난 0(Sparse)이 모델을 멍청하게 만들 수 있죠."
+            },
+            {
+                id: "q2",
+                question: "Step 2: 상세화 - 수백 개의 카테고리를 숫자로 안전하게 바꾸기 위해 실무에서 고려하는 대안은?",
+                options: [
+                    { text: "차원을 축소하여 정보를 집약하는 임베딩(Embedding) 기법", value: "embed", correct: true },
+                    { text: "모두 무시하고 삭제하기", value: "delete" }
+                ],
+                coduckComment: "훌륭해요. 복잡도를 제어하면서도 정보를 유지하는 것이 실력입니다."
+            }
+        ],
+        quizTitle: "Step 4: 면접 답변 정제 - 대규모 카테고리 데이터 처리 전략을 말한다면?",
+        missionObjective: "Step 3: 실무 리스크 점검 - 존재하지 않는 새로운 카테고리가 입력될 경우 예외 처리([0, 0])를 수행하는 강건한 인코더를 작성하세요.",
+        pythonSnippets: [
+            { label: '안전한 값 조회', code: 'mapping.get(category, [0, 0])', icon: 'Download' },
+            { label: '매핑 정의', code: '{"A": [1, 0], "B": [0, 1]}', icon: 'Database' }
+        ],
+        pythonTemplate: `def robust_encode(category):
+    # [Step 3-1] 예외 상황까지 고려한 전략적 맵
+    mapping = {
+        "NLP": [1, 0],
+        "Vision": [0, 1]
+    }
+    
+    # [Step 3-2] 실무 리스크 대응: 처음 보는 값은 예외 처리
+    # TODO: mapping.get을 사용하여 category에 대한 벡터를 반환하세요
+    return mapping.get(category, [0, 0])`,
+        sampleData: ["NLP", "Unknown"],
+        step4Options: [
+            "저는 카테고리의 농도와 데이터 스케일을 종합적으로 판단합니다. 카테고리 수가 적을 땐 원-핫 인코딩의 명확성을 활용하고, '차원의 저주' 위험이 크면 임베딩이나 해싱(Hashing) 기법을 도입하여 연산 효율과 정보 보전의 균형을 맞춥니다.",
+            "저는 get 메서드로 에러가 안 나게 코딩합니다.",
+            "카테고리가 너무 많으면 그냥 중요한 10개만 남기고 나머지는 버립니다."
+        ],
         cards: [
-            { id: 'b1', text: '최댓값 = 목록[0]', color: 'border-indigo-500', icon: '0️⃣' },
-            { id: 'b2', text: '반복: 목록의 단일_값에 대해:', color: 'border-indigo-500', icon: '🔁' },
-            { id: 'b3', text: '    만약 단일_값 > 최댓값 이면:', color: 'border-amber-500', icon: '❓' },
-            { id: 'b4', text: '        최댓값 = 단일_값', color: 'border-emerald-500', icon: '✅' },
-            { id: 'b5', text: '최종 최댓값 반환', color: 'border-amber-500', icon: '🏁' }
+            { id: 'b1', text: 'Step 1: 전체 유니크 카테고리 수 분석', color: 'border-indigo-500', icon: '📑' },
+            { id: 'b2', text: 'Step 2: 차원의 저주 발생 리스크 평가', color: 'border-amber-500', icon: '⚠️' },
+            { id: 'b3', text: 'Step 3: 적정 인코딩 방식(One-hot/Embed) 선택', color: 'border-rose-500', icon: '🎯' },
+            { id: 'b4', text: 'Step 4: 효율적인 수치화 데이터셋 생성', color: 'border-emerald-500', icon: '🏁' }
         ],
-        solution: ['b1', 'b2', 'b3', 'b4', 'b5'],
-        codeValidation: { price: 'lists', fee1: 'compare', fee2: 'max' },
+        solution: ['b1', 'b2', 'b3', 'b4'],
+        functionName: 'robust_encode',
+        codeValidation: { price: 'mapping', fee1: 'get', fee2: 'NLP' },
         quizOptions: [
-            { text: "A. 처음 값을 최댓값으로 가정하고 시작한다.", correct: true },
-            { text: "B. 모든 정렬 알고리즘은 최댓값을 찾는다.", correct: false },
-            { text: "C. 빈 리스트일 경우 에러가 날 수 있다.", correct: true }
+            { text: "A. 원-핫 인코딩은 범주 간의 서열을 만들지 않는다.", correct: true },
+            { text: "B. 카테고리가 많을수록 0이 많아지는 희소 행렬이 생긴다.", correct: true }
         ],
-        mapPos: { x: 700, y: 450 }
+        mapPos: { x: 880, y: 320 }
     },
     {
         id: 7,
-        title: "연속 출석 체크",
-        category: "Service",
-        emoji: "📅",
-        desc: "하루라도 빠지면 초기화되는 스트릭 시스템을 만듭니다.",
-        rewardXP: 250,
+        title: "불확실성(Uncertainty) 관리",
+        category: "Inference",
+        emoji: "🎲",
+        desc: "모델이 '모르는 것'을 인정하게 만드는 신뢰할 수 있는 의사결정 파이프라인을 구축하세요.",
+        rewardXP: 350,
+        subModuleTitle: "FINAL_DECISION_ENGINE",
+        character: { name: "Coduck", image: "/assets/characters/coduck.png" },
+        interviewQuestions: [
+            {
+                id: "q1",
+                question: "Step 1: E2E 뼈대 - 확률 [0.35, 0.3, 0.35]처럼 모델이 갈팡질팡할 때 '자동 배포'를 강행하면 생기는 실무 리스크는?",
+                options: [
+                    { text: "오판 확률이 매우 높아져 서비스 신뢰도 붕괴", value: "fail", correct: true },
+                    { text: "모델 용량이 커짐", value: "size" }
+                ],
+                coduckComment: "빙고! 이때는 '모름'이라고 인정하고 사람에게 검토를 맡기는 것이 진짜 실력이죠."
+            },
+            {
+                id: "q2",
+                question: "Step 2: 상세화 - 1등 확률만 뽑는 것보다, 2등과의 차이(Margin)를 계산해야 하는 이유는?",
+                options: [
+                    { text: "모델이 얼마나 압도적으로 확신하는지 측정하기 위해", value: "margin", correct: true },
+                    { text: "수학을 좋아하는 면접관에게 잘 보이려고", value: "show" }
+                ],
+                coduckComment: "정확합니다. 압도적인 1위가 아니면 의사결정을 유보하는 전략이 필요하죠."
+            }
+        ],
+        quizTitle: "Step 4: 면접 답변 정제 - 인공지능의 의사결정 리스크를 어떻게 제어하시겠습니까?",
+        missionObjective: "Step 3: 실무 리스크 점검 - 최댓값의 위치를 정확히 추출하여 최종 레이블을 확정하는 결정 엔진의 기본 로직을 구현하세요.",
+        pythonSnippets: [
+            { label: '최대값 검색', code: 'max(probs)', icon: 'ArrowUp' },
+            { label: '최종 위치 반환', code: 'probs.index(max_val)', icon: 'Target' }
+        ],
+        pythonTemplate: `def get_final_prediction(probs):
+    # [Step 3-1] 실무 대응: 가장 신뢰도 높은 후보 선정
+    max_val = max(probs)
+    
+    # [Step 3-2] 파이프라인 최종 답변 확정
+    # TODO: probs.index를 사용하여 max_val의 위치를 반환하세요
+    return probs.index(max_val)`,
+        sampleData: [0.05, 0.9, 0.05],
+        step4Options: [
+            "저는 모델의 예측 결과에 '신뢰 점수(Confidence Score)'를 병행 표기하는 아키텍처를 선호합니다. 확률적 모호함이 발생할 경우 'Human-in-the-loop' 프로세스로 유도하여 시스템 전체의 안전성을 담보하는 협업 파이프라인을 구축합니다.",
+            "저는 max 함수를 써서 가장 큰 점수를 고를 수 있습니다.",
+            "인공지능은 어차피 틀릴 수도 있으니 다 맞다고 믿어주겠습니다."
+        ],
         cards: [
-            { id: 'b1', text: '만약 오늘_방문 == 참 이면:', color: 'border-indigo-500', icon: '✅' },
-            { id: 'b2', text: '    연속_일수 += 1', color: 'border-emerald-500', icon: '🔥' },
-            { id: 'b3', text: '아니면:', color: 'border-indigo-500', icon: '❌' },
-            { id: 'b4', text: '    연속_일수 = 0', color: 'border-rose-500', icon: '❄️' },
-            { id: 'b5', text: '연속_일수 반환', color: 'border-amber-500', icon: '🏁' }
+            { id: 'b1', text: 'Step 1: 최종 소프트맥스 확률 데이터 수집', color: 'border-indigo-500', icon: '📊' },
+            { id: 'b2', text: 'Step 2: 상위 후보 간의 격차(Entropy) 분석', color: 'border-amber-500', icon: '🔍' },
+            { id: 'b3', text: 'Step 3: 확신도 기준 미달 시 수동 검토 분류', color: 'border-rose-500', icon: '🧑‍💻' },
+            { id: 'b4', text: 'Step 4: 기준 통과 항목에 한해 Argmax 정답 반환', color: 'border-emerald-500', icon: '🏁' }
         ],
-        solution: ['b1', 'b2', 'b3', 'b4', 'b5'],
-        codeValidation: { price: 'True', fee1: 'streak+1', fee2: '0' },
+        solution: ['b1', 'b2', 'b3', 'b4'],
+        functionName: 'get_final_prediction',
+        codeValidation: { price: 'max', fee1: 'probs', fee2: 'index' },
         quizOptions: [
-            { text: "A. 방문하지 않아도 일수를 늘린다.", correct: false },
-            { text: "B. '그외(else)' 섹션이 초기화의 핵심이다.", correct: true },
-            { text: "C. 데이터베이스 저장 로직이 추가로 필요하다.", correct: true }
+            { text: "A. Argmax는 다중 클래스 분류의 입을 완성한다.", correct: true },
+            { text: "B. 모든 확률의 합이 1보다 크면 오버피팅된 것이다.", correct: false }
         ],
-        mapPos: { x: 550, y: 550 }
+        mapPos: { x: 750, y: 150 }
     },
     {
         id: 8,
-        title: "스마트 점등 제어",
-        category: "IoT",
-        emoji: "💡",
-        desc: "주변 밝기에 따라 전등을 자동으로 켜고 끕니다.",
-        rewardXP: 280,
+        title: "자원 최적화: 얼리 스토핑",
+        category: "Optimization",
+        emoji: "⏹️",
+        desc: "학습 효율과 모델 수명 사이의 균형을 맞추는 저전력/고효율 가드레일 로직을 설계하세요.",
+        rewardXP: 500,
+        subModuleTitle: "EARLY_STOP_PROTECTOR",
+        character: { name: "Coduck", image: "/assets/characters/coduck.png" },
+        interviewQuestions: [
+            {
+                id: "q1",
+                question: "Step 1: E2E 뼈대 - 학습 세션이 너무 길어져 그래픽 카드(GPU) 자원이 낭비되고 비용이 폭증할 때 필요한 시스템은?",
+                options: [
+                    { text: "개선 없을 시 자동 종료하는 얼리 스토핑 (Early Stopping)", value: "stop", correct: true },
+                    { text: "컴퓨터 전원 강제로 끄기", value: "power" }
+                ],
+                coduckComment: "합리적이네요. 에너지와 비용을 아끼는 것도 훌륭한 엔지니어링의 일환입니다."
+            },
+            {
+                id: "q2",
+                question: "Step 2: 상세화 - 얼리 스토핑 기준 손실값이 0.1, 0.11, 0.12처럼 조금씩 '오를 때' 바로 멈추지 않고 좀 더 기다려야 하는 이유는?",
+                options: [
+                    { text: "모델이 로컬 미니마(Local Minima)를 벗어날 기회를 주기 위해 (인내심)", value: "local", correct: true },
+                    { text: "내가 코딩을 덜 하고 싶어서", value: "lazy" }
+                ],
+                coduckComment: "맞습니다. 일시적인 정체를 넘어 진정한 '수렴'인지 판단할 시간을 줘야 하죠."
+            }
+        ],
+        quizTitle: "Step 4: 면접 답변 정제 - 대규모 모델 학습 시 자원 관리와 오버피팅 대응 전략은?",
+        missionObjective: "Step 3: 실무 리스크 점검 - 손실값 개선이 없는 에포크가 3회(Patience) 지속되면 학습 중단 신호(True)를 보내는 감시 모듈을 완성하세요.",
+        pythonSnippets: [
+            { label: '실패 카운트 증가', code: 'no_improve_count += 1', icon: 'Plus' },
+            { label: '중단 여부 체크', code: 'if no_improve_count >= patience:', icon: 'Stop' }
+        ],
+        pythonTemplate: `def check_early_stopping(loss_history, patience=3):
+    best_loss = float('inf')
+    no_improve_count = 0
+    
+    for loss in loss_history:
+        if loss < best_loss:
+            best_loss = loss
+            no_improve_count = 0
+        else:
+            # [Step 3-1] 실무 대응: 정체 구간 카운트 개시
+            # TODO: no_improve_count를 1 증가시키세요
+            no_improve_count += 1
+            
+        # [Step 3-2] 파이프라인 중단 신호 조건
+        if no_improve_count >= patience:
+            return True
+            
+    return False`,
+        sampleData: [0.5, 0.4, 0.41, 0.42, 0.43],
+        step4Options: [
+            "저는 학습 모델이 스스로 학습 종료 시점을 결정하도록 'Early Stopping'과 'Callback' 구조를 설계합니다. 이를 통해 오버피팅을 방지할 뿐만 아니라, 클라우드 컴퓨팅 비용을 약 20% 절감하는 실무적인 가치를 창출합니다.",
+            "저는 숫자를 세는 변수를 써서 3이 되면 멈추게 합니다.",
+            "학습은 무조건 끝까지 해서 가장 좋은 결과만 남기는 게 최선이라고 답변하겠습니다."
+        ],
         cards: [
-            { id: 'b1', text: '만약 조도_센서 < 100 이면:', color: 'border-indigo-500', icon: '🌑' },
-            { id: 'b2', text: '    전등.상태 = "ON"', color: 'border-emerald-500', icon: '💡' },
-            { id: 'b3', text: '아니고_만약 조도_센서 > 500 이면:', color: 'border-indigo-500', icon: '☀️' },
-            { id: 'b4', text: '    전등.상태 = "OFF"', color: 'border-rose-500', icon: '🌑' },
-            { id: 'b5', text: '상태 메시지 반환', color: 'border-amber-500', icon: '🏁' }
+            { id: 'b1', text: 'Step 1: 매 에포크마다 검증 손실(Val Loss) 기록', color: 'border-indigo-500', icon: '📝' },
+            { id: 'b2', text: 'Step 2: 이전 최저치와의 성능 향상 폭 비교', color: 'border-amber-500', icon: '⚖️' },
+            { id: 'b3', text: 'Step 3: 정체 구간 누적 및 인내 한계점(Patience) 체크', color: 'border-rose-500', icon: '⏳' },
+            { id: 'b4', text: 'Step 4: 최적 시점에서 학습 중단 및 모델 덤프', color: 'border-emerald-500', icon: '🏁' }
         ],
-        solution: ['b1', 'b2', 'b3', 'b4', 'b5'],
-        codeValidation: { price: '100', fee1: 'ON', fee2: 'OFF' },
+        solution: ['b1', 'b2', 'b3', 'b4'],
+        functionName: 'check_early_stopping',
+        codeValidation: { price: 'loss', fee1: 'count', fee2: 'patience' },
         quizOptions: [
-            { text: "A. 100~500 사이일 때는 이전 상태를 유지한다.", correct: true },
-            { text: "B. 센서 값이 600이면 등이 켜진다.", correct: false },
-            { text: "C. 센서 오차를 줄이기 위해 평균값을 쓸 수 있다.", correct: true }
+            { text: "A. 얼리 스토핑은 규제화(Regularization) 기법 중 하나다.", correct: true },
+            { text: "B. 손실 함수가 0이 될 때까지 돌리는 게 기본이다.", correct: false }
         ],
-        mapPos: { x: 400, y: 650 }
+        mapPos: { x: 550, y: 480 }
     },
     {
         id: 9,
-        title: "비밀번호 안전성",
-        category: "Security",
-        emoji: "🛡️",
-        desc: "길이가 너무 짧은 비밀번호를 거르는 보안 로직입니다.",
-        rewardXP: 300,
+        title: "강화학습: 동적 최적화",
+        category: "Reinforcement Learning",
+        emoji: "🕹️",
+        desc: "주변 환경과 상호작용하며 스스로 정답을 찾아가는 RL 에이전트의 모험과 활용의 법칙을 설계하세요.",
+        rewardXP: 600,
+        subModuleTitle: "RL_EXPLORATION_UNIT",
+        character: { name: "Coduck", image: "/assets/characters/coduck.png" },
+        interviewQuestions: [
+            {
+                id: "q1",
+                question: "Step 1: E2E 뼈대 - 정해진 라벨 없이 로봇이 행동하고 '보상(Reward)'을 받는 파이프라인을 무엇이라 합니까?",
+                options: [
+                    { text: "강화 학습 (Reinforcement Learning)", value: "rl", correct: true },
+                    { text: "지도 학습 (Supervised Learning)", value: "supervised" }
+                ],
+                coduckComment: "훌륭한 정의입니다. 스스로 시행착오를 겪으며 성장하는 엔진이죠."
+            },
+            {
+                id: "q2",
+                question: "Step 2: 상세화 - 에이전트가 항상 '최선'이라고 판단한 길로만 가지 않고 가끔 랜덤한 길을 가야 하는 이유는?",
+                options: [
+                    { text: "현재 모르는 더 큰 보석(Global Optimum)이 숨어있을 수 있기 때문에", value: "explore", correct: true },
+                    { text: "인공지능도 가끔은 쉬고 싶기 때문", value: "rest" }
+                ],
+                coduckComment: "멋집니다! 이 '탐험' 없이는 영원히 지역적인 최선(Local Optima)에 갇히게 됩니다."
+            }
+        ],
+        quizTitle: "Step 4: 면접 답변 정제 - 불확실한 환경에서 최적의 전략을 찾아가는 과정을 STAR로 말한다면?",
+        missionObjective: "Step 3: 실무 리스크 점검 - 에이전트가 매너리즘에 빠지지 않도록 epsilon 확률에 따라 무작위로 모험을 떠나는 로직을 완성하세요.",
+        pythonSnippets: [
+            { label: '탐험 (무작위)', code: 'random.randint(0, n-1)', icon: 'Compass' },
+            { label: '활용 (최적)', code: 'q_values.index(max(q_values))', icon: 'Target' }
+        ],
+        pythonTemplate: `import random
+def choose_smart_action(epsilon, q_values):
+    # [Step 3-1] 실무 대응: 확률적 모험(Exploration) 가동
+    if random.random() < epsilon:
+        # TODO: 리스트 q_values 길이 내에서 랜덤 행동 인덱스 반환
+        return random.randint(0, len(q_values)-1)
+        
+    # [Step 3-2] 축적된 지식 기반 활용(Exploitation)
+    return q_values.index(max(q_values))`,
+        sampleData: [0.1, 0.7, 0.2],
+        step4Options: [
+            "저는 변화하는 환경 속에서 최적의 결정을 도출하기 위해 'Exploration vs Exploitation'의 균형을 중시합니다. 학습 초반엔 탐험 범위를 넓히는 엡실론-그리디 전략을 통해 잠재적 기회를 발견하고, 점진적으로 지식 우위의 결정을 내려 파이프라인의 수익률을 20% 개선했습니다.",
+            "저는 랜덤 기능을 써서 모델이 모험하게 만들 수 있습니다.",
+            "모험은 초보자만 하는 것이니 학습 후반엔 무조건 최적의 길로만 가라고 답변하겠습니다."
+        ],
         cards: [
-            { id: 'b1', text: '길이 = 문자열_길이(비번)', color: 'border-indigo-500', icon: '📏' },
-            { id: 'b2', text: '만약 길이 < 8 이면:', color: 'border-indigo-500', icon: '❓' },
-            { id: 'b3', text: '    반환 "위험(Security Low)"', color: 'border-rose-500', icon: '🚨' },
-            { id: 'b4', text: '아니면:', color: 'border-indigo-500', icon: '🔄' },
-            { id: 'b5', text: '    반환 "안전(Security High)"', color: 'border-emerald-500', icon: '✅' }
+            { id: 'b1', text: 'Step 1: 주변 환경(State) 관찰 및 수집', color: 'border-indigo-500', icon: '👀' },
+            { id: 'b2', text: 'Step 2: 보상 지형도를 그리는 Q-Network 학습', color: 'border-amber-500', icon: '🗺️' },
+            { id: 'b3', text: 'Step 3: 엡실론 확률 기반 모험(Explore) 결정', color: 'border-rose-500', icon: '🌀' },
+            { id: 'b4', text: 'Step 4: 행동 실행 및 보상 피드백 루프 순환', color: 'border-emerald-500', icon: '🏁' }
         ],
-        solution: ['b1', 'b2', 'b3', 'b4', 'b5'],
-        codeValidation: { price: '8', fee1: 'Low', fee2: 'High' },
+        solution: ['b1', 'b2', 'b3', 'b4'],
+        functionName: 'choose_smart_action',
+        codeValidation: { price: 'random', fee1: 'epsilon', fee2: 'index' },
         quizOptions: [
-            { text: "A. 길이만 체크하는 것은 충분하지 않다.", correct: true },
-            { text: "B. 특수문자 포함 여부도 체크하면 더 좋다.", correct: true },
-            { text: "C. 짧은 비밀번호가 더 기억하기 쉽고 안전하다.", correct: false }
+            { text: "A. RL은 경험을 통해 직접 정책을 학습한다.", correct: true },
+            { text: "B. 강화학습은 항상 정답 데이터셋이 필요하다.", correct: false }
         ],
-        mapPos: { x: 250, y: 550 }
+        mapPos: { x: 350, y: 620 }
     },
     {
         id: 10,
-        title: "비속어 필터링",
+        title: "개인정보(PII) 정화 토크나이저",
         category: "NLP",
-        emoji: "🚫",
-        desc: "채팅창의 깨끗한 환경을 위해 비속어를 마스킹합니다.",
-        rewardXP: 500,
+        emoji: "🔒",
+        desc: "실습 데이터를 안전하게 전처리하고 핵심 토큰만 추출하는 고성능 텍스트 파이프라인을 완성하세요.",
+        rewardXP: 400,
+        subModuleTitle: "SECURE_TEXT_PURIFIER",
+        character: { name: "Coduck", image: "/assets/characters/coduck.png" },
+        interviewQuestions: [
+            {
+                id: "q1",
+                question: "Step 1: E2E 뼈대 - 언어 모델 학습 전, 이메일이나 전화번호 같은 기밀 정보를 처리하는 필수 전처리 단계는?",
+                options: [
+                    { text: "개인정보 식별 및 마스킹 (De-identification)", value: "masking", correct: true },
+                    { text: "크게 읽고 암기하기", value: "read" }
+                ],
+                coduckComment: "훌륭한 보안 의식입니다! 신뢰할 수 있는 데이터 수집이 모델의 토대니까요."
+            },
+            {
+                id: "q2",
+                question: "Step 2: 상세화 - 정규표현식으로 기호를 지울 때 '공백'만 남기고 소문자로 통일하는 이유는?",
+                options: [
+                    { text: "Apple, apple, APPLE!? 을 하나의 동일한 의미 단위로 묶기 위해", value: "normalize", correct: true },
+                    { text: "소문자가 더 귀여워서", value: "cute" }
+                ],
+                coduckComment: "정확합니다. 의미적 정규화를 통해 모델의 어휘집(Vocabulary) 효율을 극대화하는 것이죠."
+            }
+        ],
+        quizTitle: "Step 4: 면접 답변 정제 - 자연어 처리 파이프라인의 데이터 보안과 품질 관리 경험을 말한다면?",
+        missionObjective: "Step 3: 실무 리스크 점검 - 정규식을 사용하여 특수문자 노이즈를 제거하고 유효한 단어 토큰만 추출하는 정화 필터를 구현하세요.",
+        pythonSnippets: [
+            { label: '정규식 필터', code: 're.sub(r"[^\\w\\s]", "", text)', icon: 'Scissors' },
+            { label: '공백 제거 및 토큰화', code: 'text.lower().split()', icon: 'Filter' }
+        ],
+        pythonTemplate: `import re
+def secure_tokenize(text):
+    # [Step 3-1] 서비스 노이즈 및 특수기호 일괄 소거
+    # TODO: re.sub를 사용하여 text에서 기호를 빈 문자열로 바꾸세요
+    text = re.sub(r'[^\w\s]', '', text)
+    
+    # [Step 3-2] 언어적 정규화(소문자화)
+    tokens = text.lower().split()
+    
+    # [Step 3-3] 최종 무결성 토큰 리스트 반환
+    return [t for t in tokens if t.strip()]`,
+        sampleData: ["Secure AI! 2026...", "Sensitive Info? No!"],
+        step4Options: [
+            "저는 텍스트 전처리 단계에서 정규표현식을 활용해 데이터 무결성을 확보합니다. 특히 개인정보(PII) 노출 리스크를 원천 차단하는 마스킹 전략을 최우선으로 하며, 정규화된 토큰 추출을 통해 모델의 수렴 속도를 인덱싱 기준 15% 단축시킨 경험이 있습니다.",
+            "저는 소문자로 바꾸고 기호를 지우는 코드를 잘 짭니다.",
+            "데이터가 지저분하면 모델이 잘 못 배우니까 무조건 깨끗하게 닦는다고 대답하겠습니다."
+        ],
         cards: [
-            { id: 'b1', text: '반복: 금지어_목록의 단어에 대해:', color: 'border-indigo-500', icon: '🔁' },
-            { id: 'b2', text: '    만약 메시지에 단어가 포함되면:', color: 'border-amber-500', icon: '❗' },
-            { id: 'b3', text: '        단어를 "***"로 치환한다', color: 'border-rose-500', icon: '🫧' },
-            { id: 'b4', text: '반복 종료', color: 'border-indigo-500', icon: '🏁' },
-            { id: 'b5', text: '정화된 메시지 반환', color: 'border-emerald-500', icon: '✨' }
+            { id: 'b1', text: 'Step 1: 법적 가이드라인에 따른 PII 식별', color: 'border-indigo-500', icon: '📝' },
+            { id: 'b2', text: 'Step 2: 정규식 기반 기호 및 기밀 정보 소거', color: 'border-amber-500', icon: '🧹' },
+            { id: 'b3', text: 'Step 3: 유효 단어별 토큰화 및 어휘집 매핑', color: 'border-rose-500', icon: '✂️' },
+            { id: 'b4', text: 'Step 4: 보안이 강화된 학습용 코퍼스 배포', color: 'border-emerald-500', icon: '🏁' }
         ],
-        solution: ['b1', 'b2', 'b3', 'b4', 'b5'],
-        codeValidation: { price: 'words', fee1: 'replace', fee2: 'clean_msg' },
+        solution: ['b1', 'b2', 'b3', 'b4'],
+        functionName: 'secure_tokenize',
+        codeValidation: { price: 're', fee1: 'sub', fee2: 'lower' },
         quizOptions: [
-            { text: "A. 모든 단어를 지워버린다.", correct: false },
-            { text: "B. 반복문을 통해 금지어 리스트를 순회한다.", correct: true },
-            { text: "C. 대소문자를 구분하지 않도록 소문자로 바꾸면 더 좋다.", correct: true }
+            { text: "A. NLP 전처리는 모델의 언어 이해력을 결정한다.", correct: true },
+            { text: "B. 특수문자가 많을수록 감성 분석이 무조건 쉬워진다.", correct: false }
         ],
-        mapPos: { x: 100, y: 450 }
+        mapPos: { x: 150, y: 530 }
     }
 ];

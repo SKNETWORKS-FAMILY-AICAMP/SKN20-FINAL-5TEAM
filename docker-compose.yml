@@ -24,7 +24,7 @@ services:
       - 8.8.8.8
       - 8.8.4.4
     env_file:
-      - .env
+      - ./.env # 2026-01-26 수정: 루트 .env 사용 명시
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings
       - DB_NAME=${DB_NAME}
@@ -49,6 +49,12 @@ services:
     tty: true
     env_file:
       - .env
+    shm_size: '4gb'
+    privileged: true
+    environment:
+      - VITE_API_Target=http://backend:8000
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
 
 volumes:
   postgres_data:

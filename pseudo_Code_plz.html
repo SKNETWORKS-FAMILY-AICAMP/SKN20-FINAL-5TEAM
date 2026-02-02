@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lion의 코딩 클래스 - 오리와 함께</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap');
+
+        body {
+            font-family: 'Nanum Gothic', sans-serif;
+            background-color: #f0f9ff;
+        }
+
+        .block-item {
+            cursor: grab;
+            transition: transform 0.2s;
+            position: relative;
+        }
+
+        .block-item:active {
+            cursor: grabbing;
+            transform: scale(0.95);
+        }
+
+        .block-item:hover .remove-hint {
+            opacity: 1;
+        }
+
+        .remove-hint {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 10px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .duck-bubble {
+            position: relative;
+            background: #ffffff;
+            border: 3px solid #fbbf24;
+            border-radius: 20px;
+            padding: 15px;
+        }
+
+        .duck-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -20px;
+            left: 20px;
+            border-width: 20px 20px 0 0;
+            border-style: solid;
+            border-color: #fbbf24 transparent transparent transparent;
+        }
+
+        .stage-container {
+            min-height: 400px;
+        }
+
+        .drop-zone {
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            min-height: 100px;
+        }
+
+        .drop-item {
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+
+        .drop-item:hover {
+            border-color: #ef4444;
+            background-color: #fee2e2 !important;
+            color: #ef4444;
+        }
+    </style>
+</head>
+
+<body class="p-4 md:p-8">
+
+    <div class="max-w-4xl mx-auto bg-white rounded-3xl shadow-2xl overflow-hidden border-4 border-blue-100">
+        <!-- Header -->
+        <div class="bg-blue-500 p-6 text-white flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold">Step <span id="stage-num">1</span>: <span id="stage-title">한글 블록
+                        맞추기</span></h1>
+                <p class="text-blue-100 text-sm">데이터 분석 전문가 Lion과 함께하는 로직 설계</p>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="bg-blue-600 px-4 py-2 rounded-full font-bold">점수: <span id="score">0</span></div>
+            </div>
+        </div>
+
+        <div class="flex flex-col md:flex-row h-full">
+            <!-- Left: Duck & Chat Area -->
+            <div class="w-full md:w-1/3 bg-yellow-50 p-6 border-r border-gray-100 flex flex-col items-center">
+                <div class="mb-4 transform hover:scale-110 transition-transform">
+                    <!-- Cute Duck SVG -->
+                    <svg width="120" height="120" viewBox="0 0 200 200">
+                        <circle cx="100" cy="100" r="80" fill="#fbbf24" />
+                        <circle cx="70" cy="80" r="10" fill="black" />
+                        <circle cx="130" cy="80" r="10" fill="black" />
+                        <path d="M100 110 Q120 140 140 110" stroke="black" stroke-width="5" fill="none" />
+                        <ellipse cx="100" cy="115" rx="30" ry="20" fill="#f97316" />
+                    </svg>
+                </div>
+                <div class="duck-bubble shadow-sm w-full mb-4">
+                    <p id="duck-msg" class="text-gray-800 font-bold leading-relaxed">안녕! 나는 코딩 오리야! 오늘 나랑 같이 사각형을 그리는
+                        로직을 만들어볼까?</p>
+                </div>
+                <div id="hint-area" class="text-xs text-blue-600 italic text-center">
+                    (잘못 놓은 블록은 클릭해서 지울 수 있어!)
+                </div>
+            </div>
+
+            <!-- Right: Interactive Area -->
+            <div class="w-full md:w-2/3 p-6 stage-container">
+
+                <!-- Stage 1: Puzzle -->
+                <div id="stage-1" class="stage-content space-y-6">
+                    <div class="flex justify-between items-end">
+                        <div class="text-lg font-bold text-gray-700">문제: 오리가 '정사각형'을 그리게 블록을 배치해줘!</div>
+                        <button onclick="clearDropZone()"
+                            class="text-xs bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded text-gray-600">전체 삭제</button>
+                    </div>
+                    <div class="flex gap-4">
+                        <div class="w-1/2">
+                            <p class="text-sm font-bold text-gray-500 mb-2">블록 목록 (드래그하세요)</p>
+                            <div id="blocks-source" class="space-y-2">
+                                <div draggable="true" ondragstart="drag(event)" id="b1"
+                                    class="block-item bg-blue-500 text-white p-3 rounded-lg text-sm shadow">10만큼 움직이기
+                                </div>
+                                <div draggable="true" ondragstart="drag(event)" id="b2"
+                                    class="block-item bg-blue-500 text-white p-3 rounded-lg text-sm shadow">90도 방향 보기
+                                </div>
+                                <div draggable="true" ondragstart="drag(event)" id="b3"
+                                    class="block-item bg-orange-500 text-white p-3 rounded-lg text-sm shadow">4번 반복하기
+                                </div>
+                                <div draggable="true" ondragstart="drag(event)" id="b4"
+                                    class="block-item bg-blue-500 text-white p-3 rounded-lg text-sm shadow">90도 돌기</div>
+                            </div>
+                        </div>
+                        <div class="w-1/2">
+                            <p class="text-sm font-bold text-gray-500 mb-2">조립 영역 (클릭하면 삭제)</p>
+                            <div id="drop-zone-1" ondrop="drop(event)" ondragover="allowDrop(event)"
+                                class="drop-zone p-4 space-y-2 bg-slate-50 min-h-[250px]">
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="checkStage1()"
+                        class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl transition-colors shadow-lg">로직
+                        검증하기</button>
+                </div>
+
+                <!-- Stage 2: Coding -->
+                <div id="stage-2" class="stage-content hidden space-y-6">
+                    <div class="text-lg font-bold mb-2 text-gray-700">문제: 앞서 만든 로직을 실제 코드로 완성해봐! (파이썬 스타일)</div>
+                    <div
+                        class="bg-gray-800 rounded-xl p-6 text-emerald-400 font-mono text-lg leading-loose shadow-inner">
+                        <div><span class="text-pink-400">for</span> i <span class="text-pink-400">in</span> range(<input
+                                id="blank-1" type="text"
+                                class="bg-gray-700 border-b-2 border-emerald-400 w-12 text-center outline-none focus:bg-gray-600"
+                                placeholder="?">):</div>
+                        <div class="pl-8">duck.move(<input id="blank-2" type="text"
+                                class="bg-gray-700 border-b-2 border-emerald-400 w-12 text-center outline-none focus:bg-gray-600"
+                                placeholder="?">)</div>
+                        <div class="pl-8">duck.turn(<input id="blank-3" type="text"
+                                class="bg-gray-700 border-b-2 border-emerald-400 w-12 text-center outline-none focus:bg-gray-600"
+                                placeholder="?">)</div>
+                    </div>
+                    <button onclick="checkStage2()"
+                        class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl transition-colors shadow-lg">코드
+                        컴파일하기</button>
+                </div>
+
+                <!-- Stage 3: Verification -->
+                <div id="stage-3" class="stage-content hidden space-y-6 text-center">
+                    <div class="text-lg font-bold mb-2 text-gray-700">최종 설계 검증</div>
+                    <div class="bg-blue-50 p-6 rounded-2xl border-2 border-blue-200">
+                        <p class="text-gray-700 mb-4 font-bold">"이 코드가 삼각형을 그리게 하려면 무엇을 수정해야 할까?"</p>
+                        <div class="grid grid-cols-1 gap-3">
+                            <button onclick="verify(false)"
+                                class="p-4 bg-white border-2 border-gray-200 rounded-xl hover:border-blue-400 text-left transition-all">A.
+                                반복 횟수를 3으로 줄이고 각도를 90도로 유지한다.</button>
+                            <button onclick="verify(true)"
+                                class="p-4 bg-white border-2 border-gray-200 rounded-xl hover:border-blue-400 text-left transition-all font-medium">B.
+                                반복 횟수를 3으로 줄이고 각도를 120도로 바꾼다.</button>
+                            <button onclick="verify(false)"
+                                class="p-4 bg-white border-2 border-gray-200 rounded-xl hover:border-blue-400 text-left transition-all">C.
+                                움직이는 거리를 3만큼 줄인다.</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Success Screen -->
+                <div id="stage-success" class="stage-content hidden text-center space-y-6">
+                    <div class="text-6xl mb-4">🎊</div>
+                    <h2 class="text-3xl font-black text-gray-800">축하합니다!</h2>
+                    <p class="text-gray-600 font-bold text-xl">Lion님, 당신은 이제 훌륭한 로직 설계자입니다!</p>
+                    <button onclick="location.reload()"
+                        class="bg-blue-500 hover:bg-blue-600 text-white px-8 py-3 rounded-full font-bold shadow-lg transition-transform active:scale-95">다시
+                        시작하기</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentScore = 0;
+        let duckMsg = document.getElementById('duck-msg');
+
+        // Drag and Drop Logic
+        function allowDrop(ev) { ev.preventDefault(); }
+        function drag(ev) { ev.dataTransfer.setData("text", ev.target.id); }
+        function drop(ev) {
+            ev.preventDefault();
+            var data = ev.dataTransfer.getData("text");
+            var originalNode = document.getElementById(data);
+            var nodeCopy = originalNode.cloneNode(true);
+
+            nodeCopy.id = "new_" + Math.random();
+            nodeCopy.classList.add("mb-2", "drop-item");
+
+            // Add Remove capability
+            nodeCopy.innerHTML += '<span class="remove-hint">삭제</span>';
+            nodeCopy.onclick = function () {
+                this.remove();
+                updateDuckMessage("지웠구나! 다시 신중하게 블록을 골라보자.");
+            };
+
+            ev.target.appendChild(nodeCopy);
+            updateDuckMessage("오! 블록을 하나 옮겼네? 잘못 놓았다면 클릭해서 지울 수 있어!");
+        }
+
+        function clearDropZone() {
+            document.getElementById('drop-zone-1').innerHTML = '';
+            updateDuckMessage("깨끗하게 비웠어! 처음부터 다시 차근차근 해보자.");
+        }
+
+        function updateDuckMessage(msg) {
+            duckMsg.innerText = msg;
+        }
+
+        function checkStage1() {
+            const dropZone = document.getElementById('drop-zone-1');
+            const items = dropZone.children;
+
+            if (items.length >= 3 &&
+                items[0].innerText.includes("반복") &&
+                items[1].innerText.includes("움직이기") &&
+                items[2].innerText.includes("돌기")) {
+                currentScore += 30;
+                document.getElementById('score').innerText = currentScore;
+                updateDuckMessage("완벽해! 4번 반복하면서 앞으로 가고 90도를 돌면 사각형이 완성되지! 이제 실제 코드로 도전해볼까?");
+                setTimeout(goToStage2, 2000);
+            } else if (items.length === 0) {
+                updateDuckMessage("블록이 하나도 없네? 왼쪽에서 블록을 끌어다 놓아줘!");
+            } else {
+                updateDuckMessage("음... 순서가 조금 어색한 것 같아. '반복' 안에 '움직이기'와 '돌기'가 순서대로 있어야 해. 클릭해서 다시 배치해봐!");
+            }
+        }
+
+        function goToStage2() {
+            document.getElementById('stage-1').classList.add('hidden');
+            document.getElementById('stage-2').classList.remove('hidden');
+            document.getElementById('stage-num').innerText = "2";
+            document.getElementById('stage-title').innerText = "일반 코드 빈칸 넣기";
+            updateDuckMessage("이제 파이썬 코드를 완성해보자! 사각형을 그리려면 숫자가 어떻게 들어가야 할까?");
+        }
+
+        function checkStage2() {
+            const b1 = document.getElementById('blank-1').value;
+            const b2 = document.getElementById('blank-2').value;
+            const b3 = document.getElementById('blank-3').value;
+
+            if (b1 == "4" && b2 == "10" && b3 == "90") {
+                currentScore += 40;
+                document.getElementById('score').innerText = currentScore;
+                updateDuckMessage("천재인데? 문법도 완벽하게 이해했어! 이제 마지막 관문으로 가자.");
+                setTimeout(goToStage3, 2000);
+            } else {
+                updateDuckMessage("앗, 숫자를 다시 확인해봐! 사각형은 4번 반복, 10만큼 이동, 90도 회전이야.");
+            }
+        }
+
+        function goToStage3() {
+            document.getElementById('stage-2').classList.add('hidden');
+            document.getElementById('stage-3').classList.remove('hidden');
+            document.getElementById('stage-num').innerText = "3";
+            document.getElementById('stage-title').innerText = "설계 및 검증";
+            updateDuckMessage("코딩의 꽃은 '응용'이야! 삼각형을 그리려면 어떤 변화가 필요할지 맞춰봐.");
+        }
+
+        function verify(isCorrect) {
+            if (isCorrect) {
+                currentScore += 30;
+                document.getElementById('score').innerText = currentScore;
+                updateDuckMessage("대단해! 외각의 합은 360도여야 하니까 360/3=120도를 회전해야 해!");
+                setTimeout(() => {
+                    document.getElementById('stage-3').classList.add('hidden');
+                    document.getElementById('stage-success').classList.remove('hidden');
+                    document.getElementById('stage-title').innerText = "학습 완료";
+                }, 1500);
+            } else {
+                updateDuckMessage("아쉬워! 삼각형은 각도가 90도보다 더 많이 꺾여야 해. 힌트는 360 나누기 3!");
+            }
+        }
+    </script>
+</body>
+
+</html>

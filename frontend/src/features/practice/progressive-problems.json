@@ -1,102 +1,100 @@
 {
   "progressiveProblems": [
-    {
-      "id": "P1",
-      "project_title": "정확도가 비정상적으로 높은 분류 모델",
-      "scenario": "사용자 이탈 여부를 예측하는 분류 모델을 만들고 있습니다. 학습은 정상적으로 완료되었고 정확도도 높게 나오지만, 실제 서비스에서는 예측이 거의 무작위에 가깝다는 문제가 보고되었습니다.",
-      "difficulty": 1,
-      "totalSteps": 3,
-      "steps": [
-        {
-          "step": 1,
-          "title": "Train/Test 데이터 누수 (Data Leakage)",
-          "bug_type": "A",
-          "bug_type_name": "Data Leakage",
-          "questions": {
-            "text": "모델 정확도가 0.98로 매우 높게 나오는데 실제 성능이 낮다면, 가장 먼저 의심해야 할 원인은?",
-            "options": [
-              "모델 구조가 너무 단순해서",
-              "테스트 데이터 정보가 학습 과정에 포함되었을 가능성",
-              "학습 횟수(epoch)가 너무 적어서",
-              "데이터 양이 부족해서"
+          {
+        "id": "P1",
+        "project_title": "정확도가 비정상적으로 높은 분류 모델",
+        "scenario": "사용자 이탈 예측 모델을 학습했는데 train 정확도가 0.98로 매우 높게 나왔습니다. 하지만 test는 0.65 정도로 낮고, 실제 서비스에 배포했더니 예측이 거의 무작위에 가깝다는 문제가 보고되었습니다. 팀원들과 함께 코드 리뷰를 하며 학습 파이프라인의 버그를 순서대로 찾아가고 있습니다.",
+        "difficulty": 1,
+        "totalSteps": 3,
+        "steps": [
+          {
+            "step": 1,
+            "title": "비정상적으로 높은 검증 성능 (Data Leakage)",
+            "bug_type": "A",
+            "bug_type_name": "Data Leakage",
+            "questions": {
+              "text": "전처리 코드에서 이상한 부분을 발견했습니다:\n\nX_train, X_test, y_train, y_test = train_test_split(X, y, ...)\nscaler = StandardScaler()\nX_train = scaler.fit_transform(X)  \nX_test = scaler.transform(X_test)\n\nTrain 0.98 vs Test 0.65로 차이가 큽니다. 무엇이 문제일까요?",
+              "options": [
+              "scaler를 전체 데이터 X로 fit해서",
+              "train_test_split의 test_size가 너무 작아서",
+              "StandardScaler 대신 MinMaxScaler를 써야 해서",
+              "random_state를 고정하지 않아서"
             ],
-            "answer": 1
+              "answer": 0
+            },
+            "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\ndef prepare_data(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, random_state=42\n    )\n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X)\n    X_test = scaler.transform(X_test)\n    \n    return X_train, X_test, y_train, y_test",
+            "correct_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\ndef prepare_data(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    \n    return X_train, X_test, y_train, y_test",
+            "hint": "scaler가 전체 데이터 X로 fit하면, X_test의 평균과 표준편차 정보도 함께 학습됩니다. 이게 왜 문제일까요?",
+            "solution_check": {
+              "type": "multi_condition",
+              "required_any": [
+                "fit_transform(X_train)",
+                "fit(X_train)"
+              ],
+              "forbidden": [
+                "fit_transform(X)",
+                "fit(X)"
+              ]
+            },
+            "coaching": "🎯 현업: Data Leakage는 모델이 '너무 잘 나올 때' 의심해야 하는 1순위 버그입니다. 전처리는 반드시 train/test 분할 후에 train으로만 fit하고, test는 transform만 해야 합니다."
           },
-          "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\ndef prepare_data(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X)\n    X_test = scaler.transform(X_test)\n    return X_train, X_test, y_train, y_test",
-          "correct_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\ndef prepare_data(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    return X_train, X_test, y_train, y_test",
-          "hint": "scaler.fit_transform(X)를 전체 데이터로 하면 test 정보가 학습에 포함됩니다.",
-          "solution_check": {
-            "type": "multi_condition",
-            "required_all": [
-              "fit_transform(X_train)"
-            ],
-            "forbidden": [
-              "fit_transform(X)"
-            ]
+          {
+            "step": 2,
+            "title": "불안정한 평가 결과 (Imbalanced Sampling)",
+            "bug_type": "B",
+            "bug_type_name": "Sampling Bug",
+            "questions": {
+              "text": "Step 1을 고쳤더니 test 정확도가 0.85로 내려갔습니다.\n\n그런데 현재 split의 test set을 확인해보니 이탈률이 3% 정도입니다. 원래 전체 데이터의 이탈률은 5%인데, test set의 비율이 달라졌습니다.\n\nX_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, random_state=42)\n무엇을 의심해야 할까요?",
+              "options": [
+                "random_state 값이 잘못됨",
+                "test_size를 0.3 이상으로",
+                "train/test의 클래스 비율이 달라서",
+                "shuffle=False로 변경"
+              ],
+              "answer": 2
+            },
+            "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\ndef prepare_data(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    \n    return X_train, X_test, y_train, y_test",
+            "correct_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\ndef prepare_data(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42, stratify=y\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    \n    return X_train, X_test, y_train, y_test",
+            "hint": "불균형 데이터에선 split 후 train/test의 클래스 비율이 달라질 수 있습니다. 이를 강제로 유지하는 옵션이 있습니다.",
+            "solution_check": {
+              "type": "regex",
+              "value": "stratify\\s*=\\s*y\\s*(?=,\\s*\\w|\\))",
+              "flags": ""
+            },
+            "coaching": "🎯 현업: 불균형 데이터(이탈 예측, 사기 탐지 등)에서 stratify 없이 split하면 train/test의 클래스 비율이 달라져 평가가 불안정해집니다. 특히 test에 positive 샘플이 적으면 평가 자체가 무의미해질 수 있습니다."
           },
-          "coaching": "🎯 현업: Data Leakage는 모델이 '너무 잘 나올 때' 의심해야 하는 1순위 버그입니다. 전처리는 반드시 train/test 분할 후에 해야 합니다."
-        },
-        {
-          "step": 2,
-          "title": "평가 지표 계산 대상 오류",
-          "bug_type": "B",
-          "bug_type_name": "Metric Misuse",
-          "questions": {
-            "text": "accuracy가 1.0으로 나와 신뢰하기 어렵습니다. 가장 가능성이 높은 이유는?",
-            "options": [
-              "정확도는 분류 문제에 적합하지 않아서",
-              "모델이 너무 복잡해서",
-              "예측값을 자기 자신과 비교했기 때문에",
-              "난수 시드를 고정하지 않았기 때문에"
-            ],
-            "answer": 2
-          },
-          "buggy_code": "from sklearn.metrics import accuracy_score\n\ndef evaluate(model, X_test, y_test, y_pred):\n    accuracy = accuracy_score(y_pred, y_pred)\n    return accuracy",
-          "correct_code": "from sklearn.metrics import accuracy_score\n\ndef evaluate(model, X_test, y_test, y_pred):\n    accuracy = accuracy_score(y_test, y_pred)\n    return accuracy",
-          "hint": "accuracy_score는 '정답'과 '예측'을 비교해야 합니다. 같은 값끼리 비교하면 항상 1.0이 나옵니다.",
-          "solution_check": {
-            "type": "multi_condition",
-            "required_all": [
-              "accuracy_score(y_test, y_pred)"
-            ],
-            "forbidden": [
-              "accuracy_score(y_pred, y_pred)",
-              "accuracy_score(y_train"
-            ]
-          },
-          "coaching": "🎯 현업: 평가 지표는 항상 '정답 vs 예측'을 비교합니다. 같은 값끼리 비교하는 실수는 초보자가 가장 많이 하는 실수입니다."
-        },
-        {
-          "step": 3,
-          "title": "라벨 인코딩 재사용 오류",
-          "bug_type": "C",
-          "bug_type_name": "Encoding Drift",
-          "questions": {
-            "text": "라벨 인코딩을 train/test에 각각 따로 fit하면 어떤 문제가 생길까요?",
-            "options": [
-              "train과 test의 라벨 숫자 의미가 달라질 수 있다",
-              "학습 속도가 느려진다",
-              "메모리 사용량이 증가한다",
-              "모델 구조가 자동으로 변경된다"
-            ],
-            "answer": 0
-          },
-          "buggy_code": "from sklearn.preprocessing import LabelEncoder\n\ndef encode_labels(y_train, y_test):\n    le = LabelEncoder()\n    y_train = le.fit_transform(y_train)\n    y_test = le.fit_transform(y_test)\n    return y_train, y_test",
-          "correct_code": "from sklearn.preprocessing import LabelEncoder\n\ndef encode_labels(y_train, y_test):\n    le = LabelEncoder()\n    y_train = le.fit_transform(y_train)\n    y_test = le.transform(y_test)\n    return y_train, y_test",
-          "hint": "인코딩 기준은 train으로만 만들고, test에는 그 기준을 적용해야 합니다.",
-          "solution_check": {
-            "type": "multi_condition",
-            "required_all": [
-              "y_test = le.transform(y_test)"
-            ],
-            "forbidden": [
-              "fit_transform(y_test)",
-              "fit(y_test)"
-            ]
-          },
-          "coaching": "🎯 현업: 인코딩 기준이 달라지면 모델은 완전히 다른 의미의 숫자를 학습/평가하게 됩니다. 전처리 객체는 항상 저장해서 재사용하세요."
-        }
-      ]
+          {
+            "step": 3,
+            "title": "잘못된 평가 데이터 사용 (Train Data Evaluation)",
+            "bug_type": "C",
+            "bug_type_name": "Evaluation Error",
+            "questions": {
+              "text": "Step 1, 2를 고쳤습니다. 이제 모델을 학습하고 평가했습니다:\n\nmodel.fit(X_train, y_train)\ny_pred = model.predict(X_train) \naccuracy = accuracy_score(y_train, y_pred)\nprint(f'정확도: {accuracy}')  # 0.95\n\n그런데 test로 확인하니 0.60이 나옵니다. 무엇이 문제일까요?",
+              "options": [
+                "accuracy_score 대신 f1_score를 써야 함",
+                "train 데이터로 평가해서 성능이 과대평가됨",
+                "predict 대신 predict_proba를 써야 함",
+                "y_train과 y_pred 순서가 바뀜"
+              ],
+              "answer": 1
+            },
+            "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.metrics import accuracy_score\n\ndef train_and_evaluate(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42, stratify=y\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    \n    model = LogisticRegression()\n    model.fit(X_train, y_train)\n    \n    y_pred = model.predict(X_train)\n    accuracy = accuracy_score(y_train, y_pred)\n    \n    return accuracy",
+            "correct_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.metrics import accuracy_score\n\ndef train_and_evaluate(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42, stratify=y\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    \n    model = LogisticRegression()\n    model.fit(X_train, y_train)\n    \n    y_pred = model.predict(X_test)\n    accuracy = accuracy_score(y_test, y_pred)\n    \n    return accuracy",
+            "hint": "학습에 사용한 데이터로 평가하면 모델 성능이 과대평가됩니다. 모델이 학습 중 보지 못한 데이터로 평가해야 합니다.",
+            "solution_check": {
+              "type": "multi_condition",
+              "required_all": [
+                "predict(X_test)",
+                "accuracy_score(y_test"
+              ],
+              "forbidden": [
+                "predict(X_train)",
+                "accuracy_score(y_train, y_pred)"
+              ]
+            },
+            "coaching": "🎯 현업: train 데이터로 평가하면 모델이 '이미 본' 데이터에 대한 성능만 측정되어 과대평가됩니다. 반드시 학습에 사용하지 않은 test 데이터로 평가해야 실제 성능을 알 수 있습니다. 이것이 train/test split을 하는 이유입니다."
+          }
+        ]
     },
     {
       "id": "P2",
