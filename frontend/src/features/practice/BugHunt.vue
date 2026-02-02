@@ -114,38 +114,6 @@
         </div>
       </transition>
 
-      <!-- 1단계: 객관식 팝업 -->
-      <transition name="fade">
-        <div v-if="showQuizPopup" class="quiz-overlay">
-          <div class="quiz-modal neon-border">
-            <div class="quiz-header">
-              <span class="phase-badge">PHASE 1: ANALYSIS</span>
-              <h3>STEP {{ currentProgressiveStep }} 분석 퀴즈</h3>
-            </div>
-            <div class="quiz-question">
-              <p>{{ getCurrentStepData()?.questions?.text }}</p>
-            </div>
-            <div class="quiz-options">
-              <button
-                v-for="(option, idx) in getCurrentStepData()?.questions?.options"
-                :key="idx"
-                class="quiz-option-btn"
-                :class="{ selected: selectedQuizOption === idx }"
-                @click="selectedQuizOption = idx"
-              >
-                <span class="option-num">{{ idx + 1 }}</span>
-                {{ option }}
-              </button>
-            </div>
-            <div class="quiz-footer">
-              <button class="quiz-submit-btn" @click="submitQuiz" :disabled="selectedQuizOption === null">
-                분석 완료 (디버깅 시작)
-              </button>
-              <p v-if="quizFeedback" class="quiz-feedback" :class="quizFeedbackType">{{ quizFeedback }}</p>
-            </div>
-          </div>
-        </div>
-      </transition>
 
       <!-- 헤더 -->
       <header class="header compact progressive-header">
@@ -391,11 +359,7 @@
                 <span class="label">FINAL SCORE</span>
                 <span class="value">{{ progressiveMissionScore }}</span>
               </div>
-              <div class="penalty-stats" v-if="(quizIncorrectCount || codeSubmitFailCount || Object.values(progressiveHintUsed).filter(v => v).length)">
-                 <div class="penalty-item">
-                   <span class="p-label">WRONG QUIZ ({{ quizIncorrectCount }})</span>
-                   <span class="p-value">-{{ quizIncorrectCount * 2 }}</span>
-                 </div>
+              <div class="penalty-stats" v-if="(codeSubmitFailCount || Object.values(progressiveHintUsed).filter(v => v).length)">
                  <div class="penalty-item">
                    <span class="p-label">CODE RETRY ({{ codeSubmitFailCount }})</span>
                    <span class="p-value">-{{ codeSubmitFailCount * 2 }}</span>
@@ -409,13 +373,6 @@
           </div>
 
           <div class="stats-grid">
-            <div class="stat-box">
-              <div class="stat-icon">🎓</div>
-              <div class="stat-details">
-                <span class="label">QUIZ ACCURACY</span>
-                <span class="value text-cyan">{{ quizCorrectCount }}/3</span>
-              </div>
-            </div>
             <div class="stat-box">
               <div class="stat-icon">⏱️</div>
               <div class="stat-details">
@@ -1032,13 +989,7 @@ const progressiveHintUsed = ref({ 1: false, 2: false, 3: false });
 const showProgressiveHintPanel = ref(false);
 const justCompletedStep = ref(0);
 
-// 분석 퀴즈 상태
-const showQuizPopup = ref(false);
-const selectedQuizOption = ref(null);
-const quizFeedback = ref('');
-const quizFeedbackType = ref('');
-const quizCorrectCount = ref(0);
-const quizIncorrectCount = ref(0);
+// 코드 제출 상태
 const codeSubmitFailCount = ref(0);
 
 // 설명 및 평가 데이터
@@ -1164,16 +1115,14 @@ function startProgressiveMission(mission, index, startAtStep = 1) {
   stepExplanations[1] = '';
   stepExplanations[2] = '';
   stepExplanations[3] = '';
-  quizCorrectCount.value = 0;
-  quizIncorrectCount.value = 0;
   codeSubmitFailCount.value = 0;
   totalDebugTime.value = 0;
   evaluationStats.perfectClears = 0;
 
   currentView.value = 'progressivePractice';
-  
-  // 시작할 스텝의 퀴즈부터 표시
-  showQuizPhase();
+
+  // 바로 디버깅 페이즈 시작
+  startDebugPhase();
 
   // 채팅 초기화
   chatMessages.value = [
@@ -1191,39 +1140,6 @@ function startProgressiveMission(mission, index, startAtStep = 1) {
     { prompt: '>', text: `Total Errors: 3 | Current: Step ${startAtStep}`, type: 'warning' }
   ];
   terminalStatus.value = 'ready';
-}
-
-// 퀴즈 페이즈 시작
-function showQuizPhase() {
-  currentProgressivePhase.value = 'quiz';
-  selectedQuizOption.value = null;
-  quizFeedback.value = '';
-  showQuizPopup.value = true;
-}
-
-// 퀴즈 제출
-function submitQuiz() {
-  const stepData = getCurrentStepData();
-  if (!stepData || !stepData.questions) {
-    console.error('Step data or questions not found');
-    return;
-  }
-
-  if (selectedQuizOption.value === stepData.questions.answer) {
-    quizCorrectCount.value++;
-    quizFeedback.value = '정답입니다! 디버깅을 시작하세요.';
-    quizFeedbackType.value = 'success';
-
-    scheduleTimeout(() => {
-      showQuizPopup.value = false;
-      startDebugPhase();
-    }, 1000);
-  } else {
-    quizIncorrectCount.value++;
-    quizFeedback.value = '틀렸습니다. 다시 생각해보세요!';
-    quizFeedbackType.value = 'error';
-    scheduleTimeout(() => { quizFeedback.value = ''; }, 2000);
-  }
 }
 
 // 디버깅 페이즈 시작
@@ -1286,7 +1202,7 @@ function dismissAlertPopup() {
 function moveToNextStep() {
   if (currentProgressiveStep.value < 3) {
     currentProgressiveStep.value++;
-    showQuizPhase();
+    startDebugPhase();
   } else {
     completeMission();
   }
@@ -1348,7 +1264,6 @@ async function showEvaluation() {
         stepExplanations,
         progressiveStepCodes.value,
         {
-          quizIncorrectCount: quizIncorrectCount.value,
           codeSubmitFailCount: codeSubmitFailCount.value,
           hintCount: Object.values(progressiveHintUsed.value).filter(v => v).length,
           totalDebugTime: totalDebugTime.value
@@ -1597,7 +1512,7 @@ function completeMission() {
   // 보상 계산 (감점 로직 적용)
   const baseScore = 100;
   const hintCount = Object.values(progressiveHintUsed.value).filter(v => v).length;
-  const penalty = (quizIncorrectCount.value * 2) + (codeSubmitFailCount.value * 2) + (hintCount * 1);
+  const penalty = (codeSubmitFailCount.value * 2) + (hintCount * 1);
   
   progressiveMissionXP.value = 100;
   progressiveMissionScore.value = Math.max(0, baseScore - penalty);
