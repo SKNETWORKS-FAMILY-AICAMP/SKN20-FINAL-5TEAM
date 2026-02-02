@@ -196,70 +196,77 @@
                 </div>
 
                 <!-- STAGE 2: Architect Workspace (Code Logic Synthesis) -->
-                <div v-if="currentStep === 2" class="flex-1 flex overflow-hidden animate-fade-in relative">
-                    <!-- Vertical Split Workspace -->
-                    <div class="w-[35%] flex flex-col bg-black/40 border-r border-white/5 relative z-10">
-                        <div class="h-10 border-b border-white/5 flex items-center px-8 gap-3">
-                            <div class="w-2 h-2 rounded-full bg-cyan-500 shadow-[0_0_10px_#06b6d4]"></div>
-                            <span class="text-[9px] font-black opacity-30 uppercase tracking-widest">Logic_Directive</span>
-                        </div>
-                        <div class="flex-1 p-10 space-y-10 overflow-y-auto custom-scrollbar">
+                <!-- [2026-02-02] Phase 1과 구성을 완전히 통일 (grid-cols-2) -->
+                <div v-if="currentStep === 2" class="flex-1 grid grid-cols-2 bg-black overflow-hidden animate-fade-in relative transition-all duration-700">
+                    <!-- Left column: Mission Objective and Metadata -->
+                    <div class="p-8 flex flex-col items-center justify-center gap-5 overflow-y-auto custom-scrollbar relative">
+                        <div class="w-full max-w-[320px] space-y-8">
                             <div class="space-y-4">
-                                <h3 class="text-2xl font-black italic terminal-text">{{ currentQuest.briefingTitle || 'MISSION_BRIEFING' }}</h3>
-                                <p class="text-sm leading-relaxed text-[#A3FF47]/70 italic">{{ currentQuest.briefingText }}</p>
-                            </div>
-                            <div class="space-y-6">
                                 <div class="flex items-center gap-3">
-                                    <div class="h-px flex-1 bg-white/5"></div>
-                                    <span class="text-[8px] font-black opacity-20 uppercase tracking-[0.5em]">Primary_Nodes</span>
+                                  <div class="h-4 w-1 bg-[#A3FF47]"></div>
+                                  <h3 class="text-xs font-black tracking-[0.4em] uppercase">Mission Objective</h3>
                                 </div>
-                                <div class="grid grid-cols-1 gap-4">
-                                    <div v-for="obj in currentQuest.objectives" :key="obj" 
-                                         class="p-5 border border-white/5 bg-white/[0.02] rounded-xl flex items-start gap-4 group hover:bg-[#A3FF47]/5 transition-all">
-                                        <div class="w-6 h-6 rounded border border-[#A3FF47]/40 flex items-center justify-center text-[10px] font-black group-hover:bg-[#A3FF47] group-hover:text-black transition-all">✓</div>
-                                        <span class="text-xs font-bold text-white/60 group-hover:text-white">{{ obj }}</span>
-                                    </div>
+                                <p class="text-xl font-black italic terminal-glow underline decoration-[#A3FF47]/30">{{ currentQuest.briefingTitle || 'MISSION_BRIEFING' }}</p>
+                                <div class="p-6 bg-[#A3FF47]/5 border-l-2 border-[#A3FF47] text-sm leading-relaxed italic text-slate-300 space-y-3">
+                                  <p>{{ currentQuest.briefingText }}</p>
+                                  <div class="pt-2 border-t border-[#A3FF47]/20">
+                                    <span class="text-[9px] font-black uppercase tracking-[0.3em] opacity-40 italic">System_Directive: 의사코드(Pseudocode)로 작성하십시오</span>
+                                  </div>
+                                </div>
+                            </div>
+
+                            <div class="space-y-6">
+                                <div v-for="(obj, i) in currentQuest.objectives" :key="i" class="flex items-start gap-4 p-4 bg-white/5 border border-white/5 hover:border-[#A3FF47]/30 transition-all group">
+                                    <span class="text-[10px] font-mono text-[#A3FF47]/30 mt-1">0{{ i + 1 }}</span>
+                                    <p class="text-[11px] font-bold text-slate-400 group-hover:text-white transition-colors uppercase tracking-wider italic leading-relaxed">{{ obj }}</p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Main Compiler HUD -->
-                    <div class="flex-1 flex flex-col bg-black/20">
-                        <div class="h-12 border-b border-white/5 flex items-center justify-between px-10 bg-black/40">
-                            <div class="flex items-center gap-4">
-                                <Terminal class="w-4 h-4 text-[#A3FF47]/60" />
-                                <span class="text-[10px] font-black tracking-[0.4em] uppercase italic">LOGIC_SYNTHESIZER.architect</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <div v-for="i in 3" :key="'dot2-'+i" class="w-1 h-1 bg-[#A3FF47]/30 rounded-full"></div>
-                                <span class="text-[8px] font-black opacity-20 ml-2">VERSION_4.0_STABLE</span>
-                            </div>
-                        </div>
-                        
-                        <div class="flex-1 p-10 relative">
+                    <!-- Right column: Architect Terminal with Monaco Editor -->
+                    <div class="bg-black/40 p-10 px-14 flex flex-col items-start justify-center gap-8 border-l border-[#A3FF47]/10 relative overflow-hidden">
+                        <div class="w-full h-full flex flex-col">
+                          <div class="flex items-center justify-between mb-4 opacity-50">
+                              <div class="flex items-center gap-3">
+                                  <Terminal class="w-4 h-4" />
+                                  <span class="text-[10px] font-black uppercase tracking-[0.5em]">LOGIC_SYNTHESIZER_v4.0</span>
+                              </div>
+                              <div class="flex items-center gap-4">
+                                  <div class="flex gap-1">
+                                      <div v-for="i in 3" :key="i" class="w-1 h-1 bg-[#A3FF47] rounded-full animate-pulse"></div>
+                                  </div>
+                                  <span class="text-[8px] font-mono">ENCRYPTED_SIGNAL</span>
+                              </div>
+                          </div>
+                          
+                          <div class="flex-1 relative">
                             <VueMonacoEditor
-                                v-model:value="pseudoInput"
-                                theme="vs-dark"
-                                language="markdown"
-                                :options="editorOptions"
-                                class="h-full"
+                              v-model:value="pseudoInput"
+                              theme="vs-dark"
+                              language="markdown"
+                              :options="editorOptions"
+                              class="h-full"
                             />
-                        </div>
+                            <!-- Decorative Corner -->
+                            <div class="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-[#A3FF47]/20 pointer-events-none"></div>
+                          </div>
 
-                        <div class="p-10 border-t border-white/5 bg-black/60 flex justify-end gap-6 shrink-0">
+                          <div class="mt-8 flex gap-6 shrink-0">
                             <button @click="askCoduck" :disabled="isAsking" class="px-8 py-4 border border-[#A3FF47]/20 text-[#A3FF47] font-black uppercase text-[10px] tracking-widest hover:bg-[#A3FF47]/10 transition-all flex items-center gap-3 group relative overflow-hidden">
                                 <Cpu class="w-4 h-4 group-hover:rotate-12 transition-transform" /> {{ isAsking ? 'ANALYZING...' : 'Consult_Coduck' }}
                             </button>
-                            <button @click="submitStep2" class="px-14 py-4 bg-[#A3FF47] text-black font-black uppercase text-[10px] tracking-[0.2em] shadow-[0_0_30px_rgba(163,255,71,0.3)] hover:shadow-[0_0_50px_rgba(163,255,71,0.5)] transition-all active:scale-95">Commit_Architect_Logic</button>
+                            <button @click="submitStep2" class="flex-1 py-4 bg-[#A3FF47] text-black font-black uppercase text-[10px] tracking-[0.4em] shadow-[0_0_30px_rgba(163,255,71,0.3)] hover:shadow-[0_0_50px_rgba(163,255,71,0.5)] transition-all active:scale-95">Commit_Architect_Logic</button>
+                          </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- STAGE 3: Python Build (Project Core Uplink) -->
-                <div v-if="currentStep === 3" class="flex-1 flex overflow-hidden animate-fade-in relative text-[#A3FF47]">
-                    <!-- Main Code Uplink HUD -->
-                    <div class="flex-1 flex flex-col bg-black/10 border-r border-white/5">
+                <!-- [2026-02-02] Phase 1과 구성을 완전히 통일 (grid-cols-2) -->
+                <div v-if="currentStep === 3" class="flex-1 grid grid-cols-2 overflow-hidden bg-black animate-fade-in relative text-[#A3FF47]">
+                    <!-- Left column: Python Code Editor -->
+                    <div class="flex-1 flex flex-col overflow-hidden relative border-r border-white/5">
                         <div class="h-12 border-b border-white/5 flex items-center justify-between px-10 bg-black/40">
                             <div class="flex items-center gap-4">
                                 <CodeIcon class="w-4 h-4 text-[#A3FF47]/60" />
@@ -267,7 +274,7 @@
                             </div>
                             <div class="flex items-center gap-3">
                                 <div class="w-2 h-2 rounded-full bg-[#A3FF47] animate-ping"></div>
-                                <span class="text-[8px] font-black opacity-30">ENCRYPTED_SIGNAL_STABLE</span>
+                                <span class="text-[8px] font-black opacity-30 uppercase">ENCRYPTED_SIGNAL</span>
                             </div>
                         </div>
                         
@@ -276,11 +283,9 @@
                                 v-model:value="pythonInput"
                                 theme="vs-dark"
                                 language="python"
-                                :options="editorOptions"
+                                :options="{ ...editorOptions, fontSize: 13 }"
                                 class="h-full"
                             />
-                            <!-- Precision Overlay -->
-                            <div class="absolute top-10 right-10 w-24 h-24 border border-[#A3FF47]/5 pointer-events-none"></div>
                         </div>
 
                         <div class="p-10 border-t border-white/5 bg-black/60 flex justify-end gap-6 shrink-0">
@@ -289,26 +294,24 @@
                         </div>
                     </div>
 
-                    <!-- Simulation & Snippets HUD -->
-                    <div class="w-1/3 bg-black/40 flex flex-col gap-10 overflow-hidden">
-                        <!-- Terminal Output -->
-                        <div class="flex-1 flex flex-col min-h-0 p-10 pb-0">
-                            <div class="flex items-center justify-between mb-6">
-                                <h3 class="text-[10px] font-black tracking-[0.4em] uppercase italic opacity-30">Uplink_Telemetry_Log</h3>
-                                <Terminal class="w-4 h-4 opacity-10" />
-                            </div>
-                            <div class="flex-1 bg-black/80 border border-white/5 rounded-2xl p-8 font-mono text-xs overflow-y-auto custom-scrollbar leading-relaxed">
-                                <div v-html="simulationOutput || 'WAITING_FOR_SIGNAL_EXECUTION...'" class="opacity-80"></div>
-                            </div>
+                    <!-- Right column: Simulation Output -->
+                    <div class="bg-black/40 flex flex-col gap-6 overflow-hidden p-10 px-14 border-l border-[#A3FF47]/10">
+                        <div class="flex items-center justify-between shrink-0">
+                          <div class="flex items-center gap-4">
+                              <Terminal class="w-4 h-4 text-[#A3FF47]/60" />
+                              <h3 class="text-[10px] font-black tracking-[0.5em] uppercase italic opacity-50">Simulation_Telemetry</h3>
+                          </div>
+                          <span class="text-[8px] font-mono opacity-20 italic">REALTIME_DATA_FLOW</span>
                         </div>
-
-                        <!-- Data Snippets Layer -->
-                        <div class="p-10 pt-0 space-y-6 shrink-0">
-                            <div class="h-px bg-white/5"></div>
+                        <div class="flex-1 bg-black/80 border border-white/5 p-8 font-mono text-xs overflow-y-auto custom-scrollbar leading-relaxed">
+                            <div v-html="simulationOutput || 'WAITING_FOR_SIGNAL_EXECUTION...'" class="opacity-80"></div>
+                        </div>
+                        <div class="space-y-4">
+                            <h4 class="text-[9px] font-black uppercase tracking-[0.4em] opacity-30 italic">Available_Code_Shards</h4>
                             <div class="grid grid-cols-1 gap-3">
                                 <button v-for="snippet in currentQuest.codeSnippets" :key="snippet.label"
                                     @click="insertSnippet(snippet.code)"
-                                    class="p-4 border border-[#A3FF47]/10 bg-white/[0.02] hover:bg-[#A3FF47]/10 transition-all text-left group flex items-center justify-between"
+                                    class="p-4 border border-[#A3FF47]/10 bg-white/[0.02] hover:bg-[#A3FF47]/10 transition-all text-left flex items-center justify-between group"
                                 >
                                     <span class="text-[9px] font-black opacity-30 group-hover:opacity-100 uppercase tracking-widest">{{ snippet.label }}</span>
                                     <Plus class="w-3 h-3 opacity-10 group-hover:opacity-100" />
@@ -319,29 +322,47 @@
                 </div>
 
                 <!-- STAGE 4: Deep Analysis Hub (Tactical Briefing Grid) -->
-                <div v-if="currentStep === 4" class="flex-1 flex flex-col animate-scale-up relative text-[#A3FF47]">
-                    <div class="flex-1 flex flex-col items-center justify-center p-12 space-y-16">
-                        <!-- Scenario HUD -->
-                        <div class="w-full max-w-5xl flex flex-col items-center space-y-10 text-center px-12 py-16 border border-white/5 bg-black/40 relative">
-                            <!-- Tactical Accents -->
-                            <div class="absolute top-0 inset-x-20 h-px bg-gradient-to-r from-transparent via-[#A3FF47]/40 to-transparent"></div>
-                            <span class="text-[10px] font-black text-[#A3FF47]/30 tracking-[1em] uppercase">SYSTEM_DIVE_SCENARIO</span>
-                            <h2 class="text-4xl lg:text-5xl font-black italic terminal-text leading-tight uppercase tracking-tighter px-20">"{{ currentQuest.quizTitle || currentQuest.step4Title }}"</h2>
-                            <p class="text-xl opacity-70 leading-relaxed font-bold italic max-w-3xl">{{ currentQuest.step4Desc }}</p>
+                <!-- [2026-02-02] Phase 1과 구성을 완전히 통일 (grid-cols-2) -->
+                <div v-if="currentStep === 4" class="flex-1 grid grid-cols-2 bg-black overflow-hidden relative animate-scale-up text-[#A3FF47]">
+                    <!-- Left column: Question and supporting text -->
+                    <div class="p-8 flex flex-col items-center justify-center gap-12 overflow-y-auto custom-scrollbar relative bg-black">
+                      <div class="w-[320px] space-y-8">
+                        <div class="space-y-6 text-center">
+                          <h3 class="text-pink-500 font-black text-xs uppercase tracking-[0.5em] animate-pulse">Final System Clearance</h3>
+                          <p class="text-2xl font-black text-white italic leading-tight uppercase terminal-glow underline decoration-[#A3FF47]/50">{{ currentQuest.quizTitle || currentQuest.step4Title }}</p>
                         </div>
+                        <div class="p-10 border-l-4 border-[#A3FF47] bg-white/5 space-y-6 relative overflow-hidden">
+                          <div class="absolute top-0 right-0 p-4 opacity-5">
+                            <Shield class="w-20 h-20" />
+                          </div>
+                          <p class="text-[13px] font-bold text-slate-300 italic leading-relaxed relative z-10">
+                            {{ currentQuest.step4Desc }}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
 
-                        <!-- Analysis Response Grid -->
-                        <div class="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <button v-for="(opt, i) in step4Options" :key="i" @click="handleStep4Submit(i)"
-                                class="p-10 border border-[#A3FF47]/20 bg-black/60 hover:bg-[#A3FF47]/10 hover:border-[#A3FF47] transition-all text-left group relative overflow-hidden">
-                                <div class="absolute top-0 left-0 w-1 h-full bg-[#A3FF47] scale-y-0 group-hover:scale-y-100 transition-transform duration-500"></div>
-                                <div class="flex justify-between items-start mb-6">
-                                    <span class="text-[9px] font-black text-[#A3FF47]/30 tracking-[0.5em] uppercase">RESPONSE_PATH::0{{ i+1 }}</span>
-                                    <span class="text-[8px] font-black text-[#A3FF47]/20 group-hover:text-[#A3FF47] animate-pulse">ANALYZING...</span>
-                                </div>
-                                <span class="text-xl font-black leading-tight group-hover:text-white transition-colors">{{ opt.text || opt }}</span>
+                    <!-- Right column: Tactical Response Grid -->
+                    <div class="bg-black/40 p-10 px-14 flex flex-col items-start justify-center gap-8 border-l border-[#A3FF47]/10 relative overflow-hidden">
+                       <div class="w-full max-w-[440px] space-y-8">
+                         <div class="flex items-center gap-3 opacity-50">
+                            <div class="w-1.5 h-1.5 bg-pink-500"></div>
+                            <span class="text-[9px] font-black uppercase tracking-[0.4em]">FINAL_ARCHITECT_VERIFICATION</span>
+                         </div>
+                         
+                         <div class="flex flex-col gap-8 w-full">
+                            <button
+                              v-for="(opt, i) in step4Options"
+                              :key="i"
+                              @click="handleStep4Submit(i)"
+                              class="group relative p-6 border-2 border-white/5 bg-black/40 hover:border-[#A3FF47] hover:bg-[#A3FF47]/5 transition-all text-left active:scale-95 w-full flex gap-6"
+                            >
+                              <span class="text-xl font-black text-[#A3FF47]/20 group-hover:text-[#A3FF47] transition-colors font-mono">0{{ i+1 }}</span>
+                              <span class="text-[13px] font-bold text-white/70 group-hover:text-white leading-relaxed">{{ opt.text || opt }}</span>
+                              <div class="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-white/5 group-hover:border-[#A3FF47]"></div>
                             </button>
-                        </div>
+                         </div>
+                       </div>
                     </div>
                 </div>
 
