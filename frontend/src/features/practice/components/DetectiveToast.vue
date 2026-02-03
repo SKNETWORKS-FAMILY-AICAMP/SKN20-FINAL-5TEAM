@@ -40,14 +40,19 @@ export default {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
 
-/* === DETECTIVE TOAST MESSAGE (Terminal 2077 스타일) === */
+/* === DETECTIVE TOAST MESSAGE (Among Us 스타일) === */
 .detective-toast {
-  --accent-green: #A3FF47;
-  --accent-cyan: #00f3ff;
-  --accent-pink: #ec4899;
-  --terminal-font: 'Fira Code', monospace;
+  --bg-panel: #1c2128;
+  --bg-card: #252c35;
+  --border-color: #373e47;
+  --cyan: #38ffdd;
+  --yellow: #f5f557;
+  --green: #4dff77;
+  --blue: #4d7fff;
+  --white: #d3d4d4;
+  --white-dim: #8b949e;
 
   position: fixed;
   bottom: 20px;
@@ -55,52 +60,49 @@ export default {
   transform: translateX(-50%);
   width: 80%;
   max-width: 700px;
-  min-height: 100px;
+  min-height: 90px;
   display: flex;
   gap: 20px;
-  background: rgba(5, 7, 10, 0.95);
-  border: 1px solid rgba(163, 255, 71, 0.3);
-  backdrop-filter: blur(10px);
+  background: var(--bg-panel);
+  border: 3px solid var(--border-color);
+  border-radius: 16px;
   padding: 20px;
   z-index: 100;
   cursor: pointer;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
 }
 
 /* Toast Type Variations */
 .detective-toast.guide {
-  border-color: var(--accent-green);
-  box-shadow: 0 0 30px rgba(163, 255, 71, 0.15);
+  border-color: var(--cyan);
 }
 
 .detective-toast.connect {
-  border-color: var(--accent-cyan);
-  box-shadow: 0 0 30px rgba(0, 243, 255, 0.2);
+  border-color: var(--blue);
 }
 
 .detective-toast.place {
-  border-color: var(--accent-green);
-  box-shadow: 0 0 30px rgba(163, 255, 71, 0.2);
+  border-color: var(--green);
 }
 
 .detective-toast.hint {
-  border-color: var(--accent-green);
-  box-shadow: 0 0 30px rgba(163, 255, 71, 0.2);
+  border-color: var(--yellow);
   animation: hint-toast-pulse 1.5s infinite;
 }
 
 @keyframes hint-toast-pulse {
-  0%, 100% { box-shadow: 0 0 30px rgba(163, 255, 71, 0.2); }
-  50% { box-shadow: 0 0 50px rgba(163, 255, 71, 0.4); }
+  0%, 100% { box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); }
+  50% { box-shadow: 0 10px 40px rgba(245, 245, 87, 0.3); }
 }
 
 .toast-duck {
-  width: 70px;
-  height: 70px;
-  border: 2px solid var(--accent-green);
-  background: #000;
+  width: 60px;
+  height: 60px;
+  border: 3px solid var(--cyan);
+  border-radius: 50%;
+  background: #0d1117;
   flex-shrink: 0;
   overflow: hidden;
-  box-shadow: 0 0 15px rgba(163, 255, 71, 0.3);
 }
 
 .toast-duck img {
@@ -118,34 +120,32 @@ export default {
 
 .toast-message {
   margin: 0;
-  color: var(--accent-green);
-  font-family: var(--terminal-font);
-  font-size: 0.95rem;
+  color: var(--white);
+  font-family: 'Nunito', sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
   line-height: 1.6;
-  text-shadow: 0 0 8px rgba(163, 255, 71, 0.4);
 }
 
 .detective-toast.connect .toast-message {
-  color: var(--accent-cyan);
-  text-shadow: 0 0 8px rgba(0, 243, 255, 0.4);
+  color: var(--blue);
 }
 
 .detective-toast.place .toast-message {
-  color: var(--accent-green);
-  text-shadow: 0 0 8px rgba(163, 255, 71, 0.4);
+  color: var(--green);
 }
 
 .detective-toast.hint .toast-message {
-  color: var(--accent-green);
-  text-shadow: 0 0 8px rgba(163, 255, 71, 0.4);
+  color: var(--yellow);
 }
 
 .toast-dismiss {
-  color: rgba(163, 255, 71, 0.4);
-  font-size: 0.65rem;
-  font-family: var(--terminal-font);
+  color: var(--white-dim);
+  font-size: 0.7rem;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
   text-align: right;
-  border-top: 1px dashed rgba(163, 255, 71, 0.2);
+  border-top: 2px solid var(--border-color);
   padding-top: 10px;
   letter-spacing: 1px;
 }

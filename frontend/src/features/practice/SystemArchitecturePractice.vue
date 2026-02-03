@@ -1,8 +1,9 @@
 <template>
-  <div class="arch-challenge-container panic-room-theme">
-    <!-- 글로벌 FX 레이어 -->
-    <div class="vignette"></div>
-    <div class="noise"></div>
+  <div class="arch-challenge-container among-theme">
+    <!-- 별 배경 -->
+    <div class="space-bg">
+      <div class="stars"></div>
+    </div>
 
     <!-- 인트로 씬 (비주얼 노벨 스타일) -->
     <IntroScene
@@ -22,12 +23,6 @@
 
     <!-- 메인 게임 화면 -->
     <template v-else>
-      <!-- 나사 장식 -->
-      <div class="screw tl"></div>
-      <div class="screw tr"></div>
-      <div class="screw bl"></div>
-      <div class="screw br"></div>
-
       <div class="game-container">
         <!-- 케이스 파일 패널 (좌측 사이드바) -->
         <CaseFilePanel
@@ -224,12 +219,15 @@ export default {
       startOnLoad: false,
       theme: 'dark',
       themeVariables: {
-        primaryColor: '#f1c40f',
-        primaryTextColor: '#1a1a1a',
-        primaryBorderColor: '#f1c40f',
-        lineColor: '#f1c40f',
-        secondaryColor: '#e74c3c',
-        tertiaryColor: '#3498db'
+        primaryColor: '#38ffdd',
+        primaryTextColor: '#1c2128',
+        primaryBorderColor: '#38ffdd',
+        lineColor: '#38ffdd',
+        secondaryColor: '#c51111',
+        tertiaryColor: '#132ed2',
+        background: '#1c2128',
+        mainBkg: '#252c35',
+        textColor: '#d3d4d4'
       },
       securityLevel: 'loose'
     });
@@ -395,56 +393,69 @@ export default {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
 
-/* === Architect Terminal 2077 테마 변수 === */
-.arch-challenge-container.panic-room-theme {
-  --bg-dark: #05070A;
-  --bg-panel: rgba(163, 255, 71, 0.05);
-  --panel-border: rgba(163, 255, 71, 0.2);
-  --accent-green: #A3FF47;
-  --accent-cyan: #00f3ff;
-  --accent-pink: #ec4899;
-  --text-white: #ecf0f1;
-  --text-muted: rgba(163, 255, 71, 0.6);
-  --terminal-font: 'Fira Code', monospace;
+/* === Among Us 테마 변수 === */
+.arch-challenge-container.among-theme {
+  --bg-space: #0d1117;
+  --bg-panel: #1c2128;
+  --bg-card: #252c35;
+  --border-color: #373e47;
 
-  font-family: var(--terminal-font);
-  background-color: var(--bg-dark);
-  color: var(--accent-green);
+  --red: #c51111;
+  --red-light: #ff4d4d;
+  --blue: #132ed2;
+  --blue-light: #4d7fff;
+  --green: #11802d;
+  --green-light: #4dff77;
+  --yellow: #f5f557;
+  --cyan: #38ffdd;
+  --white: #d3d4d4;
+  --white-dim: #8b949e;
+
+  font-family: 'Nunito', sans-serif;
+  background-color: var(--bg-space);
+  color: var(--white);
   height: 100vh;
   overflow: hidden;
   position: relative;
   user-select: none;
 }
 
-/* === 글로벌 FX 레이어 === */
-.vignette {
+/* === 별 배경 === */
+.space-bg {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: radial-gradient(circle, transparent 40%, rgba(0, 0, 0, 0.7) 100%);
   pointer-events: none;
-  z-index: 900;
+  z-index: 0;
 }
 
-.noise {
-  position: fixed;
-  top: 0;
-  left: 0;
+.stars {
   width: 100%;
   height: 100%;
-  opacity: 0.02;
-  background-image: repeating-radial-gradient(#A3FF47 0 0.0001%, transparent 0 0.0002%);
-  pointer-events: none;
-  z-index: 899;
+  background-image:
+    radial-gradient(2px 2px at 100px 50px, white, transparent),
+    radial-gradient(2px 2px at 200px 150px, white, transparent),
+    radial-gradient(1px 1px at 300px 250px, white, transparent),
+    radial-gradient(2px 2px at 400px 100px, white, transparent),
+    radial-gradient(1px 1px at 500px 300px, white, transparent),
+    radial-gradient(2px 2px at 50px 200px, white, transparent),
+    radial-gradient(1px 1px at 150px 350px, white, transparent),
+    radial-gradient(2px 2px at 250px 50px, white, transparent),
+    radial-gradient(1px 1px at 350px 200px, white, transparent),
+    radial-gradient(2px 2px at 450px 350px, white, transparent),
+    radial-gradient(1px 1px at 550px 150px, white, transparent),
+    radial-gradient(2px 2px at 600px 250px, white, transparent);
+  background-size: 650px 400px;
+  animation: starFloat 60s linear infinite;
 }
 
-/* === 나사 장식 (숨김) === */
-.screw {
-  display: none;
+@keyframes starFloat {
+  from { background-position: 0 0; }
+  to { background-position: 650px 400px; }
 }
 
 /* === MAIN GAME === */
@@ -454,10 +465,7 @@ export default {
   height: 100%;
   position: relative;
   z-index: 1;
-  background: var(--bg-dark);
-  /* 도트 그리드 패턴 */
-  background-image: radial-gradient(rgba(163, 255, 71, 0.08) 1px, transparent 1px);
-  background-size: 40px 40px;
+  background: transparent;
 }
 
 /* === MAIN WORKSPACE === */
@@ -478,51 +486,50 @@ export default {
 }
 
 .toolbox-panel {
-  width: 140px;
-  min-width: 140px;
+  width: 150px;
+  min-width: 150px;
   background: var(--bg-panel);
-  border-right: 1px solid var(--panel-border);
+  border-right: 3px solid var(--border-color);
   padding: 12px;
   overflow-y: auto;
-  backdrop-filter: blur(10px);
 }
 
 /* 스크롤바 커스텀 */
 .toolbox-panel::-webkit-scrollbar {
-  width: 4px;
+  width: 6px;
 }
 
 .toolbox-panel::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--bg-space);
 }
 
 .toolbox-panel::-webkit-scrollbar-thumb {
-  background: rgba(163, 255, 71, 0.2);
+  background: var(--border-color);
   border-radius: 10px;
 }
 
 .toolbox-panel::-webkit-scrollbar-thumb:hover {
-  background: rgba(163, 255, 71, 0.4);
+  background: var(--cyan);
 }
 
 .canvas-panel {
   flex: 1;
   position: relative;
-  background-color: rgba(5, 7, 10, 0.8);
+  background-color: rgba(13, 17, 23, 0.9);
   background-image:
-    linear-gradient(rgba(163, 255, 71, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(163, 255, 71, 0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
+    radial-gradient(rgba(56, 255, 221, 0.03) 1px, transparent 1px);
+  background-size: 30px 30px;
 }
 
 .canvas-panel::after {
-  content: "SYSTEM_ARCHITECTURE.draft";
+  content: "ARCHITECTURE WORKSPACE";
   position: absolute;
   bottom: 20px;
   right: 20px;
-  font-family: var(--terminal-font);
-  font-size: 1rem;
-  color: rgba(163, 255, 71, 0.1);
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: rgba(56, 255, 221, 0.15);
   letter-spacing: 2px;
   pointer-events: none;
 }

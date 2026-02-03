@@ -59,21 +59,20 @@ export default {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
 
 .case-file-panel {
-  --bg-panel: rgba(163, 255, 71, 0.05);
-  --panel-border: rgba(163, 255, 71, 0.2);
-  --accent-green: #A3FF47;
-  --accent-cyan: #00f3ff;
-  --text-white: #ecf0f1;
-  --terminal-font: 'Fira Code', monospace;
+  --bg-panel: #1c2128;
+  --bg-card: #252c35;
+  --border-color: #373e47;
+  --cyan: #38ffdd;
+  --yellow: #f5f557;
+  --white: #d3d4d4;
 
   width: 320px;
   min-width: 320px;
   background: var(--bg-panel);
-  border-right: 1px solid var(--panel-border);
-  backdrop-filter: blur(10px);
+  border-right: 3px solid var(--border-color);
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -84,23 +83,24 @@ export default {
 
 /* 스크롤바 커스텀 */
 .case-file-panel::-webkit-scrollbar {
-  width: 4px;
+  width: 6px;
 }
 
 .case-file-panel::-webkit-scrollbar-track {
-  background: transparent;
+  background: #0d1117;
 }
 
 .case-file-panel::-webkit-scrollbar-thumb {
-  background: rgba(163, 255, 71, 0.2);
+  background: var(--border-color);
   border-radius: 10px;
 }
 
 .detective-profile {
   text-align: center;
   padding: 15px;
-  background: rgba(163, 255, 71, 0.03);
-  border: 1px solid var(--panel-border);
+  background: var(--bg-card);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
 }
 
 .profile-pic {
@@ -109,44 +109,44 @@ export default {
 }
 
 .detective-avatar {
-  width: 60px;
-  height: 60px;
-  border: 2px solid var(--accent-green);
+  width: 70px;
+  height: 70px;
+  border: 3px solid var(--cyan);
   border-radius: 50%;
   object-fit: contain;
-  background: #000;
-  box-shadow: 0 0 15px rgba(163, 255, 71, 0.3);
+  background: #0d1117;
 }
 
 .detective-name {
-  color: var(--accent-green);
-  margin: 10px 0 0 0;
-  font-family: var(--terminal-font);
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 2px;
-  text-shadow: 0 0 8px rgba(163, 255, 71, 0.5);
+  color: var(--cyan);
+  margin: 12px 0 0 0;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 1px;
 }
 
 /* === 케이스 파일 폴더 === */
 .case-file-folder {
   padding: 4px;
-  border: 1px solid var(--panel-border);
-  background: rgba(163, 255, 71, 0.02);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-card);
   position: relative;
 }
 
 .case-file-folder::after {
-  content: 'CLASSIFIED';
+  content: 'MISSION';
   position: absolute;
   top: -10px;
-  right: 10px;
-  background: var(--accent-green);
-  color: #000;
-  font-size: 0.55rem;
-  padding: 3px 8px;
-  font-family: var(--terminal-font);
-  font-weight: 700;
+  right: 15px;
+  background: var(--yellow);
+  color: #1c2128;
+  font-size: 0.65rem;
+  padding: 4px 10px;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
   letter-spacing: 1px;
+  border-radius: 4px;
 }
 </style>

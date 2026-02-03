@@ -126,13 +126,17 @@ export default {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
 
 .palette {
-  --accent-green: #A3FF47;
-  --bg-panel: rgba(163, 255, 71, 0.05);
-  --panel-border: rgba(163, 255, 71, 0.2);
-  --terminal-font: 'Fira Code', monospace;
+  --bg-panel: #1c2128;
+  --bg-card: #252c35;
+  --border-color: #373e47;
+  --cyan: #38ffdd;
+  --yellow: #f5f557;
+  --green: #4dff77;
+  --white: #d3d4d4;
+  --white-dim: #8b949e;
 
   background: transparent;
   padding: 8px;
@@ -144,40 +148,43 @@ export default {
 
 /* 스크롤바 커스텀 */
 .palette::-webkit-scrollbar {
-  width: 4px;
+  width: 6px;
 }
 
 .palette::-webkit-scrollbar-track {
-  background: transparent;
+  background: #0d1117;
 }
 
 .palette::-webkit-scrollbar-thumb {
-  background: rgba(163, 255, 71, 0.2);
+  background: var(--border-color);
   border-radius: 10px;
 }
 
 .palette h2 {
-  font-family: var(--terminal-font);
-  font-size: 0.6rem;
-  color: var(--accent-green);
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--cyan);
   margin: 0 0 8px 0;
   text-align: center;
   padding-bottom: 8px;
-  border-bottom: 1px solid var(--panel-border);
+  border-bottom: 2px solid var(--border-color);
   letter-spacing: 1px;
 }
 
 /* Hint Guide - Compact */
 .hint-guide {
-  background: rgba(163, 255, 71, 0.1);
-  border: 1px solid var(--accent-green);
+  background: rgba(245, 245, 87, 0.1);
+  border: 2px solid var(--yellow);
+  border-radius: 8px;
   padding: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 4px;
-  font-size: 0.55rem;
-  color: var(--accent-green);
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--yellow);
   animation: hint-fade-in 0.3s ease;
 }
 
@@ -192,36 +199,39 @@ export default {
 
 /* Component Groups - Compact */
 .component-group {
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
 .component-group h3 {
-  font-family: var(--terminal-font);
-  font-size: 0.5rem;
-  color: rgba(163, 255, 71, 0.5);
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--white-dim);
   margin: 0 0 6px 0;
-  padding: 4px 6px;
+  padding: 6px 8px;
   text-align: left;
-  background: rgba(163, 255, 71, 0.05);
-  border-left: 2px solid var(--accent-green);
+  background: var(--bg-card);
+  border-left: 3px solid var(--cyan);
+  border-radius: 0 6px 6px 0;
   letter-spacing: 1px;
 }
 
-/* Tool Items - Terminal Style */
+/* Tool Items - Among Us Style */
 .component {
-  height: 52px;
-  background: rgba(163, 255, 71, 0.08);
-  border: 1px solid rgba(163, 255, 71, 0.25);
-  color: var(--accent-green);
+  height: 50px;
+  background: var(--bg-card);
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--white);
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
   margin-bottom: 6px;
   cursor: grab;
-  font-size: 0.55rem;
-  font-weight: 500;
-  font-family: var(--terminal-font);
+  font-size: 0.6rem;
+  font-weight: 700;
+  font-family: 'Nunito', sans-serif;
   transition: all 0.2s ease;
   position: relative;
   user-select: none;
@@ -233,46 +243,47 @@ export default {
 
 .component:active {
   cursor: grabbing;
-  transform: scale(0.98);
+  transform: scale(0.96);
 }
 
 .component:hover {
-  background: rgba(163, 255, 71, 0.15);
-  border-color: var(--accent-green);
-  box-shadow: 0 0 15px rgba(163, 255, 71, 0.2);
+  border-color: var(--cyan);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(56, 255, 221, 0.2);
 }
 
 /* Required component hint styles */
 .component.required-hint {
-  border-color: var(--accent-green) !important;
-  box-shadow: 0 0 15px rgba(163, 255, 71, 0.5);
+  border-color: var(--yellow) !important;
+  background: rgba(245, 245, 87, 0.1);
   animation: required-glow 1.5s ease-in-out infinite;
 }
 
 @keyframes required-glow {
   0%, 100% {
-    box-shadow: 0 0 15px rgba(163, 255, 71, 0.5);
+    box-shadow: 0 0 10px rgba(245, 245, 87, 0.3);
   }
   50% {
-    box-shadow: 0 0 25px rgba(163, 255, 71, 0.8);
+    box-shadow: 0 0 20px rgba(245, 245, 87, 0.6);
   }
 }
 
 .required-badge {
   position: absolute;
-  top: -6px;
-  right: -6px;
-  background: var(--accent-green);
-  color: #000;
-  font-size: 0.4rem;
-  padding: 2px 5px;
-  font-weight: 700;
+  top: -8px;
+  right: -8px;
+  background: var(--yellow);
+  color: #1c2128;
+  font-size: 0.5rem;
+  padding: 3px 6px;
+  font-weight: 800;
+  border-radius: 4px;
   z-index: 1;
 }
 
 /* Dimmed styles for non-required components */
 .component.dimmed {
-  opacity: 0.3;
-  filter: grayscale(50%);
+  opacity: 0.35;
+  filter: grayscale(30%);
 }
 </style>
