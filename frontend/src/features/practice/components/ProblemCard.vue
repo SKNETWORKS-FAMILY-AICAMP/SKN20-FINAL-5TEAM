@@ -96,13 +96,17 @@ export default {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
 
 .case-file-section {
-  --accent-green: #A3FF47;
-  --accent-cyan: #00f3ff;
-  --accent-pink: #ec4899;
-  --terminal-font: 'Fira Code', monospace;
+  --nebula-purple: #6b5ce7;
+  --nebula-blue: #4fc3f7;
+  --nebula-pink: #f06292;
+  --text-primary: #e8eaed;
+  --text-secondary: rgba(232, 234, 237, 0.7);
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --space-deep: #0a0a1a;
 
   display: flex;
   flex-direction: column;
@@ -110,19 +114,22 @@ export default {
 }
 
 .case-file-folder {
-  background: rgba(163, 255, 71, 0.05);
+  background: var(--glass-bg);
   padding: 2px;
-  border: 1px solid rgba(163, 255, 71, 0.3);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
 }
 
 .case-paper {
-  background: rgba(5, 7, 10, 0.9);
-  color: #ecf0f1;
+  background: rgba(10, 10, 26, 0.8);
+  color: var(--text-primary);
   padding: 16px;
-  font-family: var(--terminal-font);
-  font-size: 0.8rem;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.85rem;
   line-height: 1.5;
-  border: 1px solid rgba(163, 255, 71, 0.1);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  backdrop-filter: blur(10px);
 }
 
 .case-header {
@@ -130,23 +137,26 @@ export default {
 }
 
 .case-number {
-  background: var(--accent-green);
-  color: #000;
-  padding: 3px 10px;
-  font-family: var(--terminal-font);
-  font-size: 0.6rem;
+  background: linear-gradient(135deg, #6b5ce7, #4fc3f7);
+  color: white;
+  padding: 3px 12px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.55rem;
   font-weight: 700;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
+  border-radius: 20px;
 }
 
 .case-title {
-  color: var(--accent-green);
-  font-size: 0.85rem;
+  color: var(--nebula-blue);
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.8rem;
   font-weight: 700;
   margin: 12px 0 10px 0;
   padding-bottom: 8px;
-  border-bottom: 1px solid rgba(163, 255, 71, 0.2);
-  text-shadow: 0 0 8px rgba(163, 255, 71, 0.3);
+  border-bottom: 1px solid rgba(79, 195, 247, 0.2);
+  text-shadow: 0 0 10px rgba(79, 195, 247, 0.3);
+  letter-spacing: 1px;
 }
 
 .case-section {
@@ -155,17 +165,18 @@ export default {
 
 .section-label {
   display: block;
-  color: rgba(163, 255, 71, 0.7);
+  color: var(--nebula-purple);
   font-size: 0.6rem;
   margin-bottom: 6px;
-  font-family: var(--terminal-font);
-  letter-spacing: 1px;
+  font-family: 'Orbitron', sans-serif;
+  letter-spacing: 2px;
 }
 
 .case-section p {
   margin: 5px 0;
-  color: rgba(236, 240, 241, 0.9);
-  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-family: 'Rajdhani', sans-serif;
 }
 
 .case-section ul {
@@ -174,59 +185,63 @@ export default {
 }
 
 .case-section li {
-  color: rgba(236, 240, 241, 0.8);
+  color: var(--text-secondary);
   margin-bottom: 4px;
-  font-size: 0.78rem;
+  font-size: 0.82rem;
+  font-family: 'Rajdhani', sans-serif;
 }
 
 .case-section.missions .section-label {
-  color: rgba(163, 255, 71, 0.7);
+  color: var(--nebula-blue);
 }
 
 .case-section.constraints .section-label {
-  color: rgba(163, 255, 71, 0.7);
+  color: var(--nebula-pink);
 }
 
 /* 모드 인디케이터 */
 .mode-indicator {
-  background: rgba(163, 255, 71, 0.1);
-  border: 1px solid rgba(163, 255, 71, 0.3);
+  background: rgba(107, 92, 231, 0.1);
+  border: 1px solid rgba(107, 92, 231, 0.3);
+  border-radius: 12px;
   padding: 10px;
   font-size: 0.65rem;
   text-align: center;
-  color: var(--accent-green);
+  color: var(--nebula-purple);
   transition: all 0.3s ease;
-  font-family: var(--terminal-font);
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
 }
 
 .mode-indicator.connection-mode {
-  background: rgba(0, 243, 255, 0.1);
-  border-color: rgba(0, 243, 255, 0.3);
-  color: var(--accent-cyan);
+  background: rgba(79, 195, 247, 0.1);
+  border-color: rgba(79, 195, 247, 0.3);
+  color: var(--nebula-blue);
 }
 
 /* 제출 버튼 */
 .submit-btn {
   width: 100%;
-  padding: 14px;
-  background: var(--accent-green);
+  padding: 16px;
+  background: linear-gradient(135deg, #6b5ce7, #4fc3f7);
   border: none;
-  color: #000;
-  font-family: var(--terminal-font);
-  font-size: 0.75rem;
+  color: white;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 2px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
+  border-radius: 30px;
 }
 
 .submit-btn:hover:not(:disabled) {
-  box-shadow: 0 0 30px rgba(163, 255, 71, 0.5);
-  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(107, 92, 231, 0.4);
+  transform: translateY(-3px);
 }
 
 .submit-btn:active:not(:disabled) {
@@ -234,15 +249,16 @@ export default {
 }
 
 .submit-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
+  filter: grayscale(0.3);
 }
 
 .loading-spinner {
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(0, 0, 0, 0.2);
-  border-top-color: #000;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -253,27 +269,31 @@ export default {
 
 /* Evidence Section */
 .evidence-section {
-  background: rgba(163, 255, 71, 0.05);
-  border: 1px solid rgba(163, 255, 71, 0.3);
-  padding: 10px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 12px;
+  backdrop-filter: blur(10px);
 }
 
 .evidence-section .section-label {
-  color: var(--accent-green);
+  color: var(--nebula-purple);
   margin-bottom: 8px;
 }
 
 .code-output {
-  background: rgba(0, 0, 0, 0.5);
-  color: var(--accent-green);
+  background: rgba(10, 10, 26, 0.8);
+  color: var(--nebula-blue);
   padding: 10px;
-  font-family: var(--terminal-font);
-  font-size: 0.7rem;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.75rem;
   overflow-x: auto;
   white-space: pre-wrap;
   word-wrap: break-word;
   max-height: 150px;
   overflow-y: auto;
+  border-radius: 8px;
+  border: 1px solid var(--glass-border);
 }
 
 /* 스크롤바 커스텀 */
@@ -287,7 +307,7 @@ export default {
 }
 
 .code-output::-webkit-scrollbar-thumb {
-  background: rgba(163, 255, 71, 0.2);
+  background: rgba(107, 92, 231, 0.3);
   border-radius: 10px;
 }
 </style>

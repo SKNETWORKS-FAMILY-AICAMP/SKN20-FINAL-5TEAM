@@ -42,33 +42,35 @@ export default {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
 
 .workspace-header {
-  --bg-panel: #1c2128;
-  --bg-card: #252c35;
-  --border-color: #373e47;
-  --red: #c51111;
-  --green: #11802d;
-  --yellow: #f5f557;
-  --cyan: #38ffdd;
-  --white: #d3d4d4;
+  --space-deep: #0a0a1a;
+  --space-dark: #12122a;
+  --nebula-purple: #6b5ce7;
+  --nebula-blue: #4fc3f7;
+  --nebula-pink: #f06292;
+  --text-primary: #e8eaed;
+  --text-secondary: rgba(232, 234, 237, 0.7);
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
 
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 12px 20px;
-  background: var(--bg-panel);
-  border-bottom: 3px solid var(--border-color);
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--glass-border);
   z-index: 50;
 }
 
 .header-title {
-  font-family: 'Nunito', sans-serif;
-  font-size: 0.85rem;
-  font-weight: 800;
-  color: var(--white);
-  letter-spacing: 1px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--nebula-blue);
+  letter-spacing: 2px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -77,14 +79,15 @@ export default {
 .rec-dot {
   width: 10px;
   height: 10px;
-  background: var(--red);
+  background: var(--nebula-pink);
   border-radius: 50%;
   animation: pulse-glow 1.5s infinite;
+  box-shadow: 0 0 8px rgba(240, 98, 146, 0.6);
 }
 
 @keyframes pulse-glow {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  0%, 100% { opacity: 1; box-shadow: 0 0 8px rgba(240, 98, 146, 0.6); }
+  50% { opacity: 0.4; box-shadow: 0 0 16px rgba(240, 98, 146, 0.9); }
 }
 
 .header-controls {
@@ -92,58 +95,62 @@ export default {
   gap: 10px;
 }
 
-/* === 어몽어스 버튼 스타일 === */
+/* === Space Mission 버튼 스타일 === */
 .ctrl-btn {
-  font-family: 'Nunito', sans-serif;
-  background: var(--bg-card);
-  color: var(--white);
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
-  padding: 8px 16px;
-  font-size: 0.75rem;
+  font-family: 'Orbitron', sans-serif;
+  background: var(--glass-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--glass-border);
+  border-radius: 30px;
+  padding: 8px 18px;
+  font-size: 0.65rem;
   font-weight: 700;
   cursor: pointer;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  transition: all 0.2s ease;
+  letter-spacing: 2px;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(5px);
 }
 
 .ctrl-btn:hover {
-  border-color: var(--cyan);
+  border-color: var(--nebula-purple);
   transform: translateY(-2px);
+  box-shadow: 0 0 20px rgba(107, 92, 231, 0.3);
 }
 
 .ctrl-btn.active {
-  background: var(--cyan);
-  color: #1c2128;
-  border-color: var(--cyan);
+  background: linear-gradient(135deg, #6b5ce7, #4fc3f7);
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 0 20px rgba(107, 92, 231, 0.4);
 }
 
 .ctrl-btn.danger {
-  background: var(--bg-card);
-  border-color: var(--red);
-  color: var(--red);
+  background: var(--glass-bg);
+  border-color: rgba(240, 98, 146, 0.4);
+  color: var(--nebula-pink);
 }
 
 .ctrl-btn.danger:hover {
-  background: var(--red);
-  color: white;
+  background: rgba(240, 98, 146, 0.15);
+  border-color: var(--nebula-pink);
+  box-shadow: 0 0 20px rgba(240, 98, 146, 0.3);
 }
 
 .ctrl-btn.hint {
-  border-color: var(--yellow);
-  color: var(--yellow);
+  border-color: rgba(79, 195, 247, 0.4);
+  color: var(--nebula-blue);
 }
 
 .ctrl-btn.hint.active {
-  background: var(--yellow);
-  color: #1c2128;
-  border-color: var(--yellow);
+  background: linear-gradient(135deg, #4fc3f7, #6b5ce7);
+  color: white;
+  border-color: transparent;
   animation: hint-pulse 1.5s infinite;
 }
 
 @keyframes hint-pulse {
-  0%, 100% { box-shadow: 0 0 10px rgba(245, 245, 87, 0.5); }
-  50% { box-shadow: 0 0 20px rgba(245, 245, 87, 0.8); }
+  0%, 100% { box-shadow: 0 0 15px rgba(79, 195, 247, 0.4); }
+  50% { box-shadow: 0 0 30px rgba(79, 195, 247, 0.7); }
 }
 </style>

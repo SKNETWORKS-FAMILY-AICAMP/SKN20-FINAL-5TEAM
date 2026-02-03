@@ -219,15 +219,15 @@ export default {
       startOnLoad: false,
       theme: 'dark',
       themeVariables: {
-        primaryColor: '#38ffdd',
-        primaryTextColor: '#1c2128',
-        primaryBorderColor: '#38ffdd',
-        lineColor: '#38ffdd',
-        secondaryColor: '#c51111',
-        tertiaryColor: '#132ed2',
-        background: '#1c2128',
-        mainBkg: '#252c35',
-        textColor: '#d3d4d4'
+        primaryColor: '#6b5ce7',
+        primaryTextColor: '#e8eaed',
+        primaryBorderColor: '#6b5ce7',
+        lineColor: '#4fc3f7',
+        secondaryColor: '#f06292',
+        tertiaryColor: '#4fc3f7',
+        background: '#12122a',
+        mainBkg: 'rgba(255, 255, 255, 0.05)',
+        textColor: '#e8eaed'
       },
       securityLevel: 'loose'
     });
@@ -393,36 +393,34 @@ export default {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
 
-/* === Among Us 테마 변수 === */
+/* === Space Mission Report 테마 변수 === */
 .arch-challenge-container.among-theme {
-  --bg-space: #0d1117;
-  --bg-panel: #1c2128;
-  --bg-card: #252c35;
-  --border-color: #373e47;
+  --space-deep: #0a0a1a;
+  --space-dark: #12122a;
 
-  --red: #c51111;
-  --red-light: #ff4d4d;
-  --blue: #132ed2;
-  --blue-light: #4d7fff;
-  --green: #11802d;
-  --green-light: #4dff77;
-  --yellow: #f5f557;
-  --cyan: #38ffdd;
-  --white: #d3d4d4;
-  --white-dim: #8b949e;
+  --nebula-purple: #6b5ce7;
+  --nebula-blue: #4fc3f7;
+  --nebula-pink: #f06292;
+  --star-white: #ffffff;
 
-  font-family: 'Nunito', sans-serif;
-  background-color: var(--bg-space);
-  color: var(--white);
+  --text-primary: #e8eaed;
+  --text-secondary: rgba(232, 234, 237, 0.7);
+
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
+
+  font-family: 'Rajdhani', sans-serif;
+  background: linear-gradient(135deg, var(--space-deep) 0%, var(--space-dark) 50%, #1a1a3a 100%);
+  color: var(--text-primary);
   height: 100vh;
   overflow: hidden;
   position: relative;
   user-select: none;
 }
 
-/* === 별 배경 === */
+/* === 별 배경 (다층 효과) === */
 .space-bg {
   position: fixed;
   top: 0;
@@ -433,29 +431,108 @@ export default {
   z-index: 0;
 }
 
+/* 별 레이어 1 - 작은 별 */
 .stars {
   width: 100%;
   height: 100%;
   background-image:
-    radial-gradient(2px 2px at 100px 50px, white, transparent),
-    radial-gradient(2px 2px at 200px 150px, white, transparent),
-    radial-gradient(1px 1px at 300px 250px, white, transparent),
-    radial-gradient(2px 2px at 400px 100px, white, transparent),
-    radial-gradient(1px 1px at 500px 300px, white, transparent),
-    radial-gradient(2px 2px at 50px 200px, white, transparent),
-    radial-gradient(1px 1px at 150px 350px, white, transparent),
-    radial-gradient(2px 2px at 250px 50px, white, transparent),
-    radial-gradient(1px 1px at 350px 200px, white, transparent),
-    radial-gradient(2px 2px at 450px 350px, white, transparent),
-    radial-gradient(1px 1px at 550px 150px, white, transparent),
-    radial-gradient(2px 2px at 600px 250px, white, transparent);
+    radial-gradient(1px 1px at 100px 50px, rgba(255,255,255,0.8), transparent),
+    radial-gradient(1px 1px at 200px 150px, rgba(255,255,255,0.6), transparent),
+    radial-gradient(1px 1px at 300px 250px, rgba(255,255,255,0.7), transparent),
+    radial-gradient(1px 1px at 400px 100px, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1px 1px at 500px 300px, rgba(255,255,255,0.8), transparent),
+    radial-gradient(1px 1px at 50px 200px, rgba(255,255,255,0.6), transparent),
+    radial-gradient(1px 1px at 150px 350px, rgba(255,255,255,0.7), transparent),
+    radial-gradient(1px 1px at 250px 50px, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1px 1px at 350px 200px, rgba(255,255,255,0.8), transparent),
+    radial-gradient(1px 1px at 450px 350px, rgba(255,255,255,0.6), transparent),
+    radial-gradient(1px 1px at 550px 150px, rgba(255,255,255,0.7), transparent),
+    radial-gradient(1px 1px at 600px 250px, rgba(255,255,255,0.5), transparent);
   background-size: 650px 400px;
-  animation: starFloat 60s linear infinite;
+  animation: starFloat 50s linear infinite;
+  opacity: 0.5;
+}
+
+/* 별 레이어 2 - 중간 별 */
+.stars::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image:
+    radial-gradient(2px 2px at 80px 120px, rgba(255,255,255,0.5), transparent),
+    radial-gradient(2px 2px at 320px 80px, rgba(255,255,255,0.4), transparent),
+    radial-gradient(2px 2px at 180px 280px, rgba(255,255,255,0.5), transparent),
+    radial-gradient(2px 2px at 520px 200px, rgba(255,255,255,0.3), transparent),
+    radial-gradient(2px 2px at 420px 320px, rgba(255,255,255,0.5), transparent),
+    radial-gradient(2px 2px at 620px 50px, rgba(255,255,255,0.4), transparent);
+  background-size: 700px 400px;
+  animation: starFloat2 100s linear infinite;
+  opacity: 0.3;
+}
+
+/* 별 레이어 3 - 큰 별 */
+.stars::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image:
+    radial-gradient(3px 3px at 150px 180px, rgba(255,255,255,0.3), transparent),
+    radial-gradient(3px 3px at 480px 90px, rgba(255,255,255,0.2), transparent),
+    radial-gradient(3px 3px at 350px 350px, rgba(255,255,255,0.3), transparent);
+  background-size: 750px 450px;
+  animation: starFloat3 150s linear infinite;
+  opacity: 0.2;
+}
+
+/* 성운(Nebula) 오버레이 */
+.space-bg::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(ellipse at 20% 80%, rgba(107, 92, 231, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(79, 195, 247, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(240, 98, 146, 0.05) 0%, transparent 70%);
+  pointer-events: none;
 }
 
 @keyframes starFloat {
   from { background-position: 0 0; }
   to { background-position: 650px 400px; }
+}
+
+@keyframes starFloat2 {
+  from { background-position: 0 0; }
+  to { background-position: -700px 400px; }
+}
+
+@keyframes starFloat3 {
+  from { background-position: 0 0; }
+  to { background-position: 750px -450px; }
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(107, 92, 231, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(107, 92, 231, 0.6); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
 }
 
 /* === MAIN GAME === */
@@ -488,8 +565,9 @@ export default {
 .toolbox-panel {
   width: 150px;
   min-width: 150px;
-  background: var(--bg-panel);
-  border-right: 3px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.05);
+  border-right: 1px solid var(--glass-border);
+  backdrop-filter: blur(10px);
   padding: 12px;
   overflow-y: auto;
 }
@@ -500,24 +578,24 @@ export default {
 }
 
 .toolbox-panel::-webkit-scrollbar-track {
-  background: var(--bg-space);
+  background: var(--space-deep);
 }
 
 .toolbox-panel::-webkit-scrollbar-thumb {
-  background: var(--border-color);
+  background: rgba(107, 92, 231, 0.4);
   border-radius: 10px;
 }
 
 .toolbox-panel::-webkit-scrollbar-thumb:hover {
-  background: var(--cyan);
+  background: var(--nebula-purple);
 }
 
 .canvas-panel {
   flex: 1;
   position: relative;
-  background-color: rgba(13, 17, 23, 0.9);
+  background-color: rgba(10, 10, 26, 0.85);
   background-image:
-    radial-gradient(rgba(56, 255, 221, 0.03) 1px, transparent 1px);
+    radial-gradient(rgba(107, 92, 231, 0.04) 1px, transparent 1px);
   background-size: 30px 30px;
 }
 
@@ -526,11 +604,11 @@ export default {
   position: absolute;
   bottom: 20px;
   right: 20px;
-  font-family: 'Nunito', sans-serif;
-  font-size: 0.9rem;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.7rem;
   font-weight: 700;
-  color: rgba(56, 255, 221, 0.15);
-  letter-spacing: 2px;
+  color: rgba(107, 92, 231, 0.15);
+  letter-spacing: 3px;
   pointer-events: none;
 }
 </style>

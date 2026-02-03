@@ -59,20 +59,24 @@ export default {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
 
 .case-file-panel {
-  --bg-panel: #1c2128;
-  --bg-card: #252c35;
-  --border-color: #373e47;
-  --cyan: #38ffdd;
-  --yellow: #f5f557;
-  --white: #d3d4d4;
+  --space-deep: #0a0a1a;
+  --space-dark: #12122a;
+  --nebula-purple: #6b5ce7;
+  --nebula-blue: #4fc3f7;
+  --nebula-pink: #f06292;
+  --text-primary: #e8eaed;
+  --text-secondary: rgba(232, 234, 237, 0.7);
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
 
   width: 320px;
   min-width: 320px;
-  background: var(--bg-panel);
-  border-right: 3px solid var(--border-color);
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  border-right: 1px solid var(--glass-border);
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -87,20 +91,21 @@ export default {
 }
 
 .case-file-panel::-webkit-scrollbar-track {
-  background: #0d1117;
+  background: var(--space-deep);
 }
 
 .case-file-panel::-webkit-scrollbar-thumb {
-  background: var(--border-color);
+  background: rgba(107, 92, 231, 0.4);
   border-radius: 10px;
 }
 
 .detective-profile {
   text-align: center;
   padding: 15px;
-  background: var(--bg-card);
-  border: 2px solid var(--border-color);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: 12px;
+  backdrop-filter: blur(10px);
 }
 
 .profile-pic {
@@ -111,27 +116,29 @@ export default {
 .detective-avatar {
   width: 70px;
   height: 70px;
-  border: 3px solid var(--cyan);
+  border: 2px solid var(--nebula-purple);
   border-radius: 50%;
   object-fit: contain;
-  background: #0d1117;
+  background: var(--space-deep);
+  box-shadow: 0 0 15px rgba(107, 92, 231, 0.3);
 }
 
 .detective-name {
-  color: var(--cyan);
+  color: var(--nebula-blue);
   margin: 12px 0 0 0;
-  font-family: 'Nunito', sans-serif;
-  font-size: 0.85rem;
-  font-weight: 800;
-  letter-spacing: 1px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 2px;
 }
 
 /* === 케이스 파일 폴더 === */
 .case-file-folder {
   padding: 4px;
-  border: 2px solid var(--border-color);
+  border: 1px solid var(--glass-border);
   border-radius: 12px;
-  background: var(--bg-card);
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
   position: relative;
 }
 
@@ -140,13 +147,14 @@ export default {
   position: absolute;
   top: -10px;
   right: 15px;
-  background: var(--yellow);
-  color: #1c2128;
-  font-size: 0.65rem;
-  padding: 4px 10px;
-  font-family: 'Nunito', sans-serif;
-  font-weight: 800;
-  letter-spacing: 1px;
-  border-radius: 4px;
+  background: linear-gradient(135deg, #6b5ce7, #4fc3f7);
+  color: white;
+  font-size: 0.6rem;
+  padding: 4px 12px;
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700;
+  letter-spacing: 2px;
+  border-radius: 20px;
+  box-shadow: 0 0 12px rgba(107, 92, 231, 0.4);
 }
 </style>

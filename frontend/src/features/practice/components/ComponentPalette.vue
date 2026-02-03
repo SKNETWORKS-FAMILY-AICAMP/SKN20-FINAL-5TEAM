@@ -126,17 +126,17 @@ export default {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
 
 .palette {
-  --bg-panel: #1c2128;
-  --bg-card: #252c35;
-  --border-color: #373e47;
-  --cyan: #38ffdd;
-  --yellow: #f5f557;
-  --green: #4dff77;
-  --white: #d3d4d4;
-  --white-dim: #8b949e;
+  --space-deep: #0a0a1a;
+  --nebula-purple: #6b5ce7;
+  --nebula-blue: #4fc3f7;
+  --nebula-pink: #f06292;
+  --text-primary: #e8eaed;
+  --text-secondary: rgba(232, 234, 237, 0.7);
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
 
   background: transparent;
   padding: 8px;
@@ -152,39 +152,40 @@ export default {
 }
 
 .palette::-webkit-scrollbar-track {
-  background: #0d1117;
+  background: var(--space-deep);
 }
 
 .palette::-webkit-scrollbar-thumb {
-  background: var(--border-color);
+  background: rgba(107, 92, 231, 0.4);
   border-radius: 10px;
 }
 
 .palette h2 {
-  font-family: 'Nunito', sans-serif;
-  font-size: 0.7rem;
-  font-weight: 800;
-  color: var(--cyan);
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--nebula-blue);
   margin: 0 0 8px 0;
   text-align: center;
   padding-bottom: 8px;
-  border-bottom: 2px solid var(--border-color);
-  letter-spacing: 1px;
+  border-bottom: 1px solid var(--glass-border);
+  letter-spacing: 2px;
 }
 
 /* Hint Guide - Compact */
 .hint-guide {
-  background: rgba(245, 245, 87, 0.1);
-  border: 2px solid var(--yellow);
-  border-radius: 8px;
+  background: rgba(79, 195, 247, 0.1);
+  border: 1px solid rgba(79, 195, 247, 0.3);
+  border-radius: 12px;
   padding: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 4px;
   font-size: 0.6rem;
-  font-weight: 700;
-  color: var(--yellow);
+  font-weight: 600;
+  color: var(--nebula-blue);
+  font-family: 'Rajdhani', sans-serif;
   animation: hint-fade-in 0.3s ease;
 }
 
@@ -203,38 +204,39 @@ export default {
 }
 
 .component-group h3 {
-  font-family: 'Nunito', sans-serif;
-  font-size: 0.6rem;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.5rem;
   font-weight: 700;
-  color: var(--white-dim);
+  color: var(--text-secondary);
   margin: 0 0 6px 0;
   padding: 6px 8px;
   text-align: left;
-  background: var(--bg-card);
-  border-left: 3px solid var(--cyan);
+  background: var(--glass-bg);
+  border-left: 2px solid var(--nebula-purple);
   border-radius: 0 6px 6px 0;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
-/* Tool Items - Among Us Style */
+/* Tool Items - Space Mission Style */
 .component {
   height: 50px;
-  background: var(--bg-card);
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
-  color: var(--white);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
   margin-bottom: 6px;
   cursor: grab;
-  font-size: 0.6rem;
-  font-weight: 700;
-  font-family: 'Nunito', sans-serif;
-  transition: all 0.2s ease;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: 'Rajdhani', sans-serif;
+  transition: all 0.3s ease;
   position: relative;
   user-select: none;
+  backdrop-filter: blur(5px);
 }
 
 .component::before {
@@ -247,24 +249,25 @@ export default {
 }
 
 .component:hover {
-  border-color: var(--cyan);
+  border-color: var(--nebula-purple);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(56, 255, 221, 0.2);
+  box-shadow: 0 4px 15px rgba(107, 92, 231, 0.3);
+  background: rgba(107, 92, 231, 0.1);
 }
 
 /* Required component hint styles */
 .component.required-hint {
-  border-color: var(--yellow) !important;
-  background: rgba(245, 245, 87, 0.1);
+  border-color: var(--nebula-blue) !important;
+  background: rgba(79, 195, 247, 0.1);
   animation: required-glow 1.5s ease-in-out infinite;
 }
 
 @keyframes required-glow {
   0%, 100% {
-    box-shadow: 0 0 10px rgba(245, 245, 87, 0.3);
+    box-shadow: 0 0 10px rgba(79, 195, 247, 0.3);
   }
   50% {
-    box-shadow: 0 0 20px rgba(245, 245, 87, 0.6);
+    box-shadow: 0 0 25px rgba(79, 195, 247, 0.6);
   }
 }
 
@@ -272,18 +275,20 @@ export default {
   position: absolute;
   top: -8px;
   right: -8px;
-  background: var(--yellow);
-  color: #1c2128;
+  background: linear-gradient(135deg, #6b5ce7, #4fc3f7);
+  color: white;
   font-size: 0.5rem;
-  padding: 3px 6px;
-  font-weight: 800;
-  border-radius: 4px;
+  padding: 3px 8px;
+  font-weight: 700;
+  font-family: 'Orbitron', sans-serif;
+  border-radius: 20px;
   z-index: 1;
+  letter-spacing: 1px;
 }
 
 /* Dimmed styles for non-required components */
 .component.dimmed {
-  opacity: 0.35;
+  opacity: 0.3;
   filter: grayscale(30%);
 }
 </style>
