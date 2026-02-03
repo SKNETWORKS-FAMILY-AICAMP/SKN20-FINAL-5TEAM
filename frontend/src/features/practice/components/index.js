@@ -13,3 +13,4 @@ export { default as DetectiveToast } from './DetectiveToast.vue';
 export { default as GameHeader } from './GameHeader.vue';
 export { default as IntroScene } from './IntroScene.vue';
 export { default as CaseFilePanel } from './CaseFilePanel.vue';
+export { default as TutorialOverlay } from './TutorialOverlay.vue';

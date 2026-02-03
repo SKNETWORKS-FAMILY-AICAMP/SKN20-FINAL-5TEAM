@@ -79,6 +79,13 @@
         </div>
       </div>
 
+      <!-- 튜토리얼 오버레이 -->
+      <TutorialOverlay
+        v-if="showTutorial"
+        @complete="onTutorialComplete"
+        @skip="onTutorialComplete"
+      />
+
       <!-- 오리 형사 토스트 메시지 -->
       <DetectiveToast
         :show="showToast"
@@ -116,6 +123,7 @@ import DetectiveToast from './components/DetectiveToast.vue';
 import GameHeader from './components/GameHeader.vue';
 import IntroScene from './components/IntroScene.vue';
 import CaseFilePanel from './components/CaseFilePanel.vue';
+import TutorialOverlay from './components/TutorialOverlay.vue';
 
 // Composables
 import { useToast } from './composables/useToast';
@@ -137,12 +145,14 @@ export default {
     DetectiveToast,
     GameHeader,
     IntroScene,
-    CaseFilePanel
+    CaseFilePanel,
+    TutorialOverlay
   },
   data() {
     return {
       // Intro State
       showIntro: true,
+      showTutorial: false,
       introLines: [
         "[SYSTEM ALERT] 아키텍트님, 마더 서버에 이상 징후가 감지되었습니다. 꽥!",
         "오염된 AI들이 환각(Hallucination)에 빠져 시스템을 붕괴시키고 있습니다.",
@@ -251,6 +261,21 @@ export default {
     // === Enter Game ===
     onEnterGame() {
       this.showIntro = false;
+      if (!localStorage.getItem('arch-tutorial-done')) {
+        this.$nextTick(() => {
+          this.showTutorial = true;
+        });
+      } else {
+        this.showToastMessage(
+          '[GUIDE] 팔레트에서 컴포넌트를 드래그하여 캔버스에 배치하세요. 꽥!',
+          'guide'
+        );
+      }
+    },
+
+    onTutorialComplete() {
+      this.showTutorial = false;
+      localStorage.setItem('arch-tutorial-done', 'true');
       this.showToastMessage(
         '[GUIDE] 팔레트에서 컴포넌트를 드래그하여 캔버스에 배치하세요. 꽥!',
         'guide'
