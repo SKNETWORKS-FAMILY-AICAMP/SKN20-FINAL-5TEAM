@@ -88,8 +88,8 @@ export default {
   computed: {
     modeIndicatorText() {
       return this.isConnectionMode
-        ? '⚡ 연결 모드 - 컴포넌트를 클릭하여 연결'
-        : '📦 배치 모드 - 컴포넌트를 드래그하여 배치';
+        ? '연결 모드 - 컴포넌트를 클릭하여 연결'
+        : '배치 모드 - 컴포넌트를 드래그하여 배치';
     }
   }
 };
@@ -181,7 +181,6 @@ export default {
 
 .case-section ul {
   margin: 5px 0;
-  padding-left: 16px;
 }
 
 .case-section li {

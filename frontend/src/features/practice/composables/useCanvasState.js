@@ -17,12 +17,12 @@ export function useCanvasState() {
     if (showToastFn) {
       if (isConnectionMode.value) {
         showToastFn(
-          '🔗 연결 모드! 컴포넌트를 클릭해서 연결해. 두 개를 순서대로 클릭하면 화살표가 생겨. 꽥!',
+          '연결 모드! 컴포넌트를 클릭해서 연결해. 두 개를 순서대로 클릭하면 화살표가 생겨. 꽥!',
           'connect'
         );
       } else {
         showToastFn(
-          '📦 배치 모드! 오른쪽 팔레트에서 컴포넌트를 드래그해서 캔버스에 놓아. 꽥!',
+          '배치 모드! 오른쪽 팔레트에서 컴포넌트를 드래그해서 캔버스에 놓아. 꽥!',
           'place'
         );
       }

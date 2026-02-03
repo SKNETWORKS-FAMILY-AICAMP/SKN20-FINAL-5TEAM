@@ -10,7 +10,7 @@
         :class="{ active: isConnectionMode }"
         @click="$emit('toggle-mode')"
       >
-        {{ isConnectionMode ? 'PLACE_MODE' : 'CONNECT_MODE' }}
+        {{ isConnectionMode ? 'CONNECT_MODE' : 'PLACE_MODE'  }}
       </button>
       <button class="ctrl-btn danger" @click="$emit('clear-canvas')">RESET</button>
       <button

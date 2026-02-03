@@ -8,7 +8,7 @@
           :class="{ active: isConnectionMode }"
           @click="toggleMode"
         >
-          {{ isConnectionMode ? '🎯 배치 모드' : '🔗 연결 모드' }}
+          {{ isConnectionMode ? '배치 모드' : '연결 모드' }}
         </button>
         <button class="btn btn-clear" @click="clearCanvas">🗑️ 초기화</button>
       </div>
