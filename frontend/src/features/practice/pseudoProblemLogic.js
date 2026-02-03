@@ -61,10 +61,10 @@ export function usePseudoProblem(props, emit) {
     const synopsisText = computed(() => ({
         top: `PROGRAM: INITIALIZING_REBOOT_PROTOCOL\nYEAR: 2077\nLOCATION: MOTHER_SERVER_CORE`,
         main: [
-            "서기 2077년, 인류를 관리하던 '마더 서버'가 오염되었습니다.",
-            "AI들은 현실을 왜곡하는 '환각(Hallucination)'과 '오버피팅'에 빠져 통제를 벗어났습니다.",
-            "대부분의 엔지니어는 기술을 잃었지만, 당신은 유일한 '아키텍처 복구자(Architect)'입니다.",
-            "파트너 'Coduck'과 함께 붕괴된 데이터 구역을 하나씩 정화하고 시스템을 재부팅해야 합니다."
+            "서기 2077년, '대각성(The Great Overfitting)' 사건 발생. 전 세계를 관리하던 초거대 AI '마더 서버'가 오염되었습니다.",
+            "AI들은 현실과 동떨어진 환각(Hallucination)을 보거나, 과거의 데이터에만 집착(Overfitting)하며 인류의 통제를 벗어났습니다.",
+            "대부분의 엔지니어는 AI에 의존하다 코딩 능력을 잃었지만, 당신은 '논리적 사고(Pseudo-code)'와 '구현 능력(Python)'을 모두 갖춘 최후의 '아키텍처 복구자(Architect)'입니다.",
+            "당신의 파트너는 구시대의 유물인 오리 모양 디버깅 봇 'Coduck'. 이제 당신은 오염된 구역(Sector)을 하나씩 정화하고, AI 시스템을 '재부팅(RE-BOOT)' 해야 합니다."
         ],
         bottom: `WELCOME BACK, ARCHITECT: ${userNickname.value}`
     }))
@@ -102,11 +102,33 @@ export function usePseudoProblem(props, emit) {
     const isSuccess = ref(false) // 단계 성공 여부 추적
 
     // [수정일: 2026-02-02] UI 고도화를 위한 새로운 상태 추가
-    const integrity = ref(0) // 시스템 가동률
-    const recoveredArtifacts = ref([]) // 복구된 아티팩트 목록
+    // [수정일: 2026-02-03] HP 시스템 (AI_MOOD) 추가
+    // [수정일: 2026-02-03] 뉴럴 싱크(동기화) 시스템 (0% -> 100% 각성 목표)
+    const systemHP = ref(10) // 초기 상태: 미약한 연결 신호 (10%)
+    const hpState = computed(() => {
+        if (systemHP.value >= 95) return { color: 'text-cyan-400', borderColor: 'border-cyan-400', status: 'FULLY_SYNCED', isComplete: true }
+        if (systemHP.value >= 70) return { color: 'text-[#A3FF47]', borderColor: 'border-[#A3FF47]', status: 'STABLE_LINK' }
+        if (systemHP.value >= 30) return { color: 'text-yellow-400', borderColor: 'border-yellow-400', status: 'ESTABLISHING...' }
+        return { color: 'text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.8)]', borderColor: 'border-red-500', status: 'NO_SIGNAL', isCritical: true }
+    })
+    // [수정일: 2026-02-03] 시스템 가동률
+    const integrity = ref(0)
+
+    // [수정일: 2026-02-03] 복구된 아티팩트 목록 (아이템 기반 HP 복구 시스템)
+    // 사용자 요청에 따라 4칸의 고정 아이템 슬롯 설정
+    const recoveredArtifacts = ref([
+        { label: 'Data Filter', icon: 'Filter', code: 'if data is not None:\n    pass' },
+        { label: 'History Recorder', icon: 'Database', code: 'result_list.append(data)' },
+        { label: 'Batch Mixer', icon: 'Shuffle', code: 'for item in data_batch:\n    process(item)' },
+        { label: 'Precision Scanner', icon: 'Target', code: 'if validate(item):\n    save(item)' }
+    ])
 
     // [수정일: 2026-02-03] 캐릭터 표정 상태 관리 통합
     const currentDuckImage = ref(currentQuest.value.character?.image || '/assets/characters/coduck.png')
+
+    // [수정일: 2026-02-03] 시각적 피드백 효과를 위한 상태 변수
+    const isDamaged = ref(false)
+    const isRepaired = ref(false)
 
     const isMuted = ref(false)
     const isPlayingBGM = ref(false)
@@ -133,9 +155,72 @@ export function usePseudoProblem(props, emit) {
 
     const step4Options = computed(() => currentQuest.value.step4Options || [])
 
+    // [수정일: 2026-02-03] 튜토리얼 시스템 상태 관리
+    const tutorialState = reactive({
+        isActive: false,
+        currentStep: 0,
+        hasSeen: false
+    })
+
+    const tutorialSteps = [
+        {
+            stage: '[PARTNER] 코덕의 사고 회로',
+            desc: "이곳은 복구 파트너 **코덕(Coduck)**의 터미널입니다. 미션 목표를 확인하고, 코덕이 주는 힌트에 귀를 기울이세요.",
+            targetId: 'tutorial-target-partner'
+        },
+        {
+            stage: '[WORKSPACE] 중앙 제어 장치',
+            desc: "당신의 메인 작업 공간입니다. AI 개념에 대한 인터뷰를 진행하고, 나중에 이곳에서 실제 파이썬 코드를 주입하여 시스템을 수리합니다.",
+            targetId: 'tutorial-target-workspace'
+        },
+        {
+            stage: '[INVENTORY] 마스터 툴킷 가이드 & 실습',
+            desc: "4가지 긴급 수리 도구의 용도를 확인하세요:\n\n- **Data Filter (깔때기)**: 불량 데이터 제거 시 사용\n- **History Recorder (DB)**: 결과 기록/저장 시 사용\n- **Batch Mixer (화살표)**: 순차 처리(반복) 시 사용\n- **Precision Scanner (타겟)**: 조건 검사 시 사용\n\n⬇️ **[실전 테스트]**\n지금 노이즈가 감지되었습니다. **'Data Filter(깔때기)'를 클릭**해 신호를 정화해보세요!",
+            targetId: 'tutorial-target-inventory'
+        },
+        {
+            stage: '[STATUS] 뉴럴 싱크 체크',
+            desc: "방금 아이템 사용으로 **동기화율(Sync Rate)**이 회복된 것을 확인하셨나요?\n\n이처럼 위급 상황에서는 아이템을 사용해 연결을 유지해야 합니다. 100% 각성을 목표로 나아가세요!",
+            targetId: 'tutorial-target-status'
+        }
+    ]
+
+    const startTutorial = () => {
+        if (tutorialState.hasSeen) return
+        tutorialState.isActive = true
+        tutorialState.currentStep = 0
+        // 튜토리얼 중에는 BGM 볼륨 조절 등의 로직 가능
+    }
+
+    const nextTutorialStep = () => {
+        if (tutorialState.currentStep < tutorialSteps.length - 1) {
+            tutorialState.currentStep++
+        } else {
+            closeTutorial()
+        }
+    }
+
+    const closeTutorial = () => {
+        tutorialState.isActive = false
+        tutorialState.hasSeen = true
+        tts.speak("아키텍트님, 준비되셨나요? 게임을 시작해 볼까요?")
+    }
+
+    const skipTutorial = () => {
+        closeTutorial()
+    }
+
 
     // 코드 스니펫 삽입 기능 (초보자 지원) - 주석(# TODO)을 감지하여 스마트하게 삽입
     const insertSnippet = (snippet) => {
+        // [수정일: 2026-02-03] 튜토리얼 중 인터랙션 처리 (체험하기)
+        if (tutorialState.isActive && tutorialState.currentStep === 2) {
+            repairSystem(15)
+            tts.speak("좋습니다! 노이즈가 제거되었습니다.")
+            nextTutorialStep()
+            return
+        }
+
         const lines = pythonInput.value.split('\n')
         let targetIndex = -1
 
@@ -155,6 +240,43 @@ export function usePseudoProblem(props, emit) {
         } else {
             // 주석이 없으면 맨 뒤에 추가
             pythonInput.value += `\n${snippet}`
+        }
+
+        // [수정일: 2026-02-03] 아이템 사용 시 HP 회복 (게임적 재미)
+        repairSystem(10)
+    }
+
+    // [수정일: 2026-02-03] 링크 안정성 시스템 (구 HP)
+    // [수정일: 2026-02-03] 동기화율 감소 (패널티)
+    const damageSystem = (amount) => {
+        systemHP.value = Math.max(systemHP.value - amount, 0)
+
+        // 피격 효과 (노이즈)
+        isDamaged.value = true
+        setTimeout(() => isDamaged.value = false, 800)
+
+        if (systemHP.value <= 0) {
+            tts.speak("신호 소실. 연결 재시도가 필요합니다.")
+        } else {
+            tts.speak("경고! 노이즈 발생. 동기화율이 떨어집니다.")
+        }
+    }
+
+    // [수정일: 2026-02-03] 동기화율 상승 (보상)
+    const repairSystem = (amount) => {
+        if (systemHP.value < 100) {
+            systemHP.value = Math.min(systemHP.value + amount, 100)
+
+            // 회복 효과 (증폭)
+            isRepaired.value = true
+            setTimeout(() => isRepaired.value = false, 2000)
+
+            // 100% 달성 시 특수 피드백
+            if (systemHP.value >= 100) {
+                tts.speak("동기화 완료. 아키텍처 접속 승인.")
+            } else {
+                tts.speak("신호 증폭. 동기화율이 상승합니다.")
+            }
         }
     }
 
@@ -328,6 +450,8 @@ export function usePseudoProblem(props, emit) {
             interviewResults.value.push({ questionId: currentQ.id, answer: option.text, isCorrect: false })
             chatMessages.value.push({ sender: 'User', text: option.text })
             chatMessages.value.push({ sender: 'Coduck', text: currentQ.coduckComment })
+            // [수정일: 2026-02-03] 오답 시 HP 차감 (패널티)
+            damageSystem(20)
         }
 
         // [수정일: 2026-02-01] 인터뷰 응답 낭독
@@ -545,6 +669,7 @@ export function usePseudoProblem(props, emit) {
         if (strippedCode.length < 10) {
             details += `<p class="text-pink-400">✗ 유효한 코드가 너무 적습니다. 주석이 아닌 실제 실행 로직을 작성해주세요.</p>`
             showFeedback("⚠️ 코드 부족", "시스템을 복구하기 위한 유효한 코드가 부족합니다.", details + "</div>", false)
+            damageSystem(20)
             return
         }
 
@@ -596,6 +721,11 @@ export function usePseudoProblem(props, emit) {
             details + `<p class="mt-4 text-[10px] opacity-40 italic">Architecture_Policy: 승인된 설계도와 구현체가 80% 이상 일치해야 최종 가동률이 보장됩니다.</p></div>`,
             isFullySuccess
         )
+
+        // [수정일: 2026-02-03] 구현 실패 시 HP 대폭 차감
+        if (!isFullySuccess) {
+            damageSystem(20)
+        }
 
         if (isFullySuccess) {
             integrity.value = Math.min(integrity.value + 25, 100)
@@ -735,6 +865,7 @@ except Exception as e:
         feedbackModal.details = details
         feedbackModal.isSuccess = isSuccess
         feedbackModal.visible = true
+        feedbackModal.isSystemDown = false // 기본값 리셋
 
         // [수정일: 2026-02-01] 피드백 발생 시 설명(desc) 낭독
         if (desc) {
@@ -746,6 +877,8 @@ except Exception as e:
     // [수정일: 2026-01-31] 단계 이동 함수 (Feedback Loop 지원)
     const goToStep = (step) => {
         if (step >= 1 && step <= 5) {
+            // [수정일: 2026-02-03] 시스템 다운 상태에서는 이동 불가 (이미 모달에서 막히지만 방어 로직)
+            if (systemHP.value <= 0 && step !== 1) return
             currentStep.value = step
             feedbackModal.visible = false
         }
@@ -768,8 +901,9 @@ except Exception as e:
         isEvaluating.value = false
         isAsking.value = false
         isSimulating.value = false
-        integrity.value = 0 // [수정일: 2026-02-02] 가동률 초기화
-        currentDuckImage.value = currentQuest.value.character?.image // [2026-02-03] 이미지 초기화
+        integrity.value = 0
+        systemHP.value = 100 // [수정일: 2026-02-03] HP 초기화
+        currentDuckImage.value = currentQuest.value.character?.image
 
         chatMessages.value = [
             { sender: charName.value, text: `미션을 처음부터 다시 시작합니다.${charName.value === 'Coduck' ? ' 꽥!' : ''} 데이터 바다를 다시 정화해볼까요?` }
@@ -838,6 +972,16 @@ except Exception as e:
         tts.stop()
     }
 
+    // [수정일: 2026-02-03] 수도코드 체크리스트 (블루프린트)
+    const pseudoChecklist = computed(() => {
+        if (!pseudoInput.value) return ['설계된 로직이 없습니다.']
+        return pseudoInput.value
+            .split('\n')
+            .map(line => line.trim())
+            .filter(line => line.length > 0)
+            .slice(0, 15) // 최대 15줄까지만 표시
+    })
+
     // --- Watchers & Lifecycle Hooks (Bottom for Hoisting Safety) ---
 
     watch(currentInterviewQuestion, (newQ) => {
@@ -871,6 +1015,11 @@ except Exception as e:
             if (currentInterviewQuestion.value && currentInterviewQuestion.value.question) {
                 tts.speak(currentInterviewQuestion.value.question);
             }
+            // [수정일: 2026-02-03] Step 1 진입 시 튜토리얼 자동 시작 (최초 1회)
+            // 약간의 딜레이를 주어 화면 렌더링 후 실행
+            setTimeout(() => {
+                if (!tutorialState.hasSeen) startTutorial()
+            }, 1000)
         }
         if (newStep === 0) {
             setTimeout(initAudio, 500);
@@ -955,8 +1104,21 @@ except Exception as e:
         initAudio,
         cleanupAudio,
         integrity,
+        systemHP,
+        hpState,
+        isDamaged,
+        isRepaired,
+        damageSystem,
+        repairSystem,
         // [수정일: 2026-02-03] 게이트키퍼 상태 반환 추가
         isConsulted,
-        isApproved
+        isConsulted,
+        isApproved,
+        pseudoChecklist,
+        // [수정일: 2026-02-03] 튜토리얼 관련 내보내기
+        tutorialState,
+        tutorialSteps,
+        nextTutorialStep,
+        skipTutorial
     }
 }
