@@ -1,100 +1,100 @@
 {
   "progressiveProblems": [
-          {
-        "id": "P1",
-        "project_title": "정확도가 비정상적으로 높은 분류 모델",
-        "scenario": "사용자 이탈 예측 모델을 학습했는데 train 정확도가 0.98로 매우 높게 나왔습니다. 하지만 test는 0.65 정도로 낮고, 실제 서비스에 배포했더니 예측이 거의 무작위에 가깝다는 문제가 보고되었습니다. 팀원들과 함께 코드 리뷰를 하며 학습 파이프라인의 버그를 순서대로 찾아가고 있습니다.",
-        "difficulty": 1,
-        "totalSteps": 3,
-        "steps": [
-          {
-            "step": 1,
-            "title": "비정상적으로 높은 검증 성능 (Data Leakage)",
-            "bug_type": "A",
-            "bug_type_name": "Data Leakage",
-            "questions": {
-              "text": "전처리 코드에서 이상한 부분을 발견했습니다:\n\nX_train, X_test, y_train, y_test = train_test_split(X, y, ...)\nscaler = StandardScaler()\nX_train = scaler.fit_transform(X)  \nX_test = scaler.transform(X_test)\n\nTrain 0.98 vs Test 0.65로 차이가 큽니다. 무엇이 문제일까요?",
-              "options": [
+    {
+      "id": "P1",
+      "project_title": "정화가 시급한 오염된 데이터 섹터",
+      "scenario": "마더 서버의 특정 섹터에서 정확도가 비정상적으로 높게 보고되고 있습니다. 이는 전형적인 '데이터 오염(Hallucination)' 증상입니다. {username}님, 파트너 Coduck과 함께 오염된 파이프라인의 버그를 순서대로 찾아 정화해야 합니다.",
+      "difficulty": 1,
+      "totalSteps": 3,
+      "steps": [
+        {
+          "step": 1,
+          "title": "비정상적으로 높은 검증 성능 (Data Leakage)",
+          "bug_type": "A",
+          "bug_type_name": "Data Leakage",
+          "questions": {
+            "text": "전처리 코드에서 이상한 부분을 발견했습니다:\n\nX_train, X_test, y_train, y_test = train_test_split(X, y, ...)\nscaler = StandardScaler()\nX_train = scaler.fit_transform(X)  \nX_test = scaler.transform(X_test)\n\nTrain 0.98 vs Test 0.65로 차이가 큽니다. 무엇이 문제일까요?",
+            "options": [
               "scaler를 전체 데이터 X로 fit해서",
               "train_test_split의 test_size가 너무 작아서",
               "StandardScaler 대신 MinMaxScaler를 써야 해서",
               "random_state를 고정하지 않아서"
             ],
-              "answer": 0
-            },
-            "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\ndef prepare_data(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, random_state=42\n    )\n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X)\n    X_test = scaler.transform(X_test)\n    \n    return X_train, X_test, y_train, y_test",
-            "correct_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\ndef prepare_data(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    \n    return X_train, X_test, y_train, y_test",
-            "hint": "scaler가 전체 데이터 X로 fit하면, X_test의 평균과 표준편차 정보도 함께 학습됩니다. 이게 왜 문제일까요?",
-            "solution_check": {
-              "type": "multi_condition",
-              "required_any": [
-                "fit_transform(X_train)",
-                "fit(X_train)"
-              ],
-              "forbidden": [
-                "fit_transform(X)",
-                "fit(X)"
-              ]
-            },
-            "coaching": "🎯 현업: Data Leakage는 모델이 '너무 잘 나올 때' 의심해야 하는 1순위 버그입니다. 전처리는 반드시 train/test 분할 후에 train으로만 fit하고, test는 transform만 해야 합니다."
+            "answer": 0
           },
-          {
-            "step": 2,
-            "title": "불안정한 평가 결과 (Imbalanced Sampling)",
-            "bug_type": "B",
-            "bug_type_name": "Sampling Bug",
-            "questions": {
-              "text": "Step 1을 고쳤더니 test 정확도가 0.85로 내려갔습니다.\n\n그런데 현재 split의 test set을 확인해보니 이탈률이 3% 정도입니다. 원래 전체 데이터의 이탈률은 5%인데, test set의 비율이 달라졌습니다.\n\nX_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, random_state=42)\n무엇을 의심해야 할까요?",
-              "options": [
-                "random_state 값이 잘못됨",
-                "test_size를 0.3 이상으로",
-                "train/test의 클래스 비율이 달라서",
-                "shuffle=False로 변경"
-              ],
-              "answer": 2
-            },
-            "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\ndef prepare_data(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    \n    return X_train, X_test, y_train, y_test",
-            "correct_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\ndef prepare_data(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42, stratify=y\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    \n    return X_train, X_test, y_train, y_test",
-            "hint": "불균형 데이터에선 split 후 train/test의 클래스 비율이 달라질 수 있습니다. 이를 강제로 유지하는 옵션이 있습니다.",
-            "solution_check": {
-              "type": "regex",
-              "value": "stratify\\s*=\\s*y\\s*(?=,\\s*\\w|\\))",
-              "flags": ""
-            },
-            "coaching": "🎯 현업: 불균형 데이터(이탈 예측, 사기 탐지 등)에서 stratify 없이 split하면 train/test의 클래스 비율이 달라져 평가가 불안정해집니다. 특히 test에 positive 샘플이 적으면 평가 자체가 무의미해질 수 있습니다."
+          "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\ndef prepare_data(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, random_state=42\n    )\n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X)\n    X_test = scaler.transform(X_test)\n    \n    return X_train, X_test, y_train, y_test",
+          "correct_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\ndef prepare_data(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    \n    return X_train, X_test, y_train, y_test",
+          "hint": "scaler가 전체 데이터 X로 fit하면, X_test의 평균과 표준편차 정보도 함께 학습됩니다. 이게 왜 문제일까요?",
+          "solution_check": {
+            "type": "multi_condition",
+            "required_any": [
+              "fit_transform(X_train)",
+              "fit(X_train)"
+            ],
+            "forbidden": [
+              "fit_transform(X)",
+              "fit(X)"
+            ]
           },
-          {
-            "step": 3,
-            "title": "잘못된 평가 데이터 사용 (Train Data Evaluation)",
-            "bug_type": "C",
-            "bug_type_name": "Evaluation Error",
-            "questions": {
-              "text": "Step 1, 2를 고쳤습니다. 이제 모델을 학습하고 평가했습니다:\n\nmodel.fit(X_train, y_train)\ny_pred = model.predict(X_train) \naccuracy = accuracy_score(y_train, y_pred)\nprint(f'정확도: {accuracy}')  # 0.95\n\n그런데 test로 확인하니 0.60이 나옵니다. 무엇이 문제일까요?",
-              "options": [
-                "accuracy_score 대신 f1_score를 써야 함",
-                "train 데이터로 평가해서 성능이 과대평가됨",
-                "predict 대신 predict_proba를 써야 함",
-                "y_train과 y_pred 순서가 바뀜"
-              ],
-              "answer": 1
-            },
-            "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.metrics import accuracy_score\n\ndef train_and_evaluate(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42, stratify=y\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    \n    model = LogisticRegression()\n    model.fit(X_train, y_train)\n    \n    y_pred = model.predict(X_train)\n    accuracy = accuracy_score(y_train, y_pred)\n    \n    return accuracy",
-            "correct_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.metrics import accuracy_score\n\ndef train_and_evaluate(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42, stratify=y\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    \n    model = LogisticRegression()\n    model.fit(X_train, y_train)\n    \n    y_pred = model.predict(X_test)\n    accuracy = accuracy_score(y_test, y_pred)\n    \n    return accuracy",
-            "hint": "학습에 사용한 데이터로 평가하면 모델 성능이 과대평가됩니다. 모델이 학습 중 보지 못한 데이터로 평가해야 합니다.",
-            "solution_check": {
-              "type": "multi_condition",
-              "required_all": [
-                "predict(X_test)",
-                "accuracy_score(y_test"
-              ],
-              "forbidden": [
-                "predict(X_train)",
-                "accuracy_score(y_train, y_pred)"
-              ]
-            },
-            "coaching": "🎯 현업: train 데이터로 평가하면 모델이 '이미 본' 데이터에 대한 성능만 측정되어 과대평가됩니다. 반드시 학습에 사용하지 않은 test 데이터로 평가해야 실제 성능을 알 수 있습니다. 이것이 train/test split을 하는 이유입니다."
-          }
-        ]
+          "coaching": "🎯 현업: Data Leakage는 모델이 '너무 잘 나올 때' 의심해야 하는 1순위 버그입니다. 전처리는 반드시 train/test 분할 후에 train으로만 fit하고, test는 transform만 해야 합니다."
+        },
+        {
+          "step": 2,
+          "title": "불안정한 평가 결과 (Imbalanced Sampling)",
+          "bug_type": "B",
+          "bug_type_name": "Sampling Bug",
+          "questions": {
+            "text": "Step 1을 고쳤더니 test 정확도가 0.85로 내려갔습니다.\n\n그런데 현재 split의 test set을 확인해보니 이탈률이 3% 정도입니다. 원래 전체 데이터의 이탈률은 5%인데, test set의 비율이 달라졌습니다.\n\nX_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, random_state=42)\n무엇을 의심해야 할까요?",
+            "options": [
+              "random_state 값이 잘못됨",
+              "test_size를 0.3 이상으로",
+              "train/test의 클래스 비율이 달라서",
+              "shuffle=False로 변경"
+            ],
+            "answer": 2
+          },
+          "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\ndef prepare_data(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    \n    return X_train, X_test, y_train, y_test",
+          "correct_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\ndef prepare_data(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42, stratify=y\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    \n    return X_train, X_test, y_train, y_test",
+          "hint": "불균형 데이터에선 split 후 train/test의 클래스 비율이 달라질 수 있습니다. 이를 강제로 유지하는 옵션이 있습니다.",
+          "solution_check": {
+            "type": "regex",
+            "value": "stratify\\s*=\\s*y\\s*(?=,\\s*\\w|\\))",
+            "flags": ""
+          },
+          "coaching": "🎯 현업: 불균형 데이터(이탈 예측, 사기 탐지 등)에서 stratify 없이 split하면 train/test의 클래스 비율이 달라져 평가가 불안정해집니다. 특히 test에 positive 샘플이 적으면 평가 자체가 무의미해질 수 있습니다."
+        },
+        {
+          "step": 3,
+          "title": "잘못된 평가 데이터 사용 (Train Data Evaluation)",
+          "bug_type": "C",
+          "bug_type_name": "Evaluation Error",
+          "questions": {
+            "text": "Step 1, 2를 고쳤습니다. 이제 모델을 학습하고 평가했습니다:\n\nmodel.fit(X_train, y_train)\ny_pred = model.predict(X_train) \naccuracy = accuracy_score(y_train, y_pred)\nprint(f'정확도: {accuracy}')  # 0.95\n\n그런데 test로 확인하니 0.60이 나옵니다. 무엇이 문제일까요?",
+            "options": [
+              "accuracy_score 대신 f1_score를 써야 함",
+              "train 데이터로 평가해서 성능이 과대평가됨",
+              "predict 대신 predict_proba를 써야 함",
+              "y_train과 y_pred 순서가 바뀜"
+            ],
+            "answer": 1
+          },
+          "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.metrics import accuracy_score\n\ndef train_and_evaluate(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42, stratify=y\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    \n    model = LogisticRegression()\n    model.fit(X_train, y_train)\n    \n    y_pred = model.predict(X_train)\n    accuracy = accuracy_score(y_train, y_pred)\n    \n    return accuracy",
+          "correct_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.metrics import accuracy_score\n\ndef train_and_evaluate(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42, stratify=y\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    \n    model = LogisticRegression()\n    model.fit(X_train, y_train)\n    \n    y_pred = model.predict(X_test)\n    accuracy = accuracy_score(y_test, y_pred)\n    \n    return accuracy",
+          "hint": "학습에 사용한 데이터로 평가하면 모델 성능이 과대평가됩니다. 모델이 학습 중 보지 못한 데이터로 평가해야 합니다.",
+          "solution_check": {
+            "type": "multi_condition",
+            "required_all": [
+              "predict(X_test)",
+              "accuracy_score(y_test"
+            ],
+            "forbidden": [
+              "predict(X_train)",
+              "accuracy_score(y_train, y_pred)"
+            ]
+          },
+          "coaching": "🎯 현업: train 데이터로 평가하면 모델이 '이미 본' 데이터에 대한 성능만 측정되어 과대평가됩니다. 반드시 학습에 사용하지 않은 test 데이터로 평가해야 실제 성능을 알 수 있습니다. 이것이 train/test split을 하는 이유입니다."
+        }
+      ]
     },
     {
       "id": "P2",
@@ -208,7 +208,7 @@
             ],
             "answer": 1
           },
-          "buggy_code": "from sklearn.model_selection import train_test_split\n\ndef split(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42\n    )\n    return X_train, X_test, y_train, y_test", 
+          "buggy_code": "from sklearn.model_selection import train_test_split\n\ndef split(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42\n    )\n    return X_train, X_test, y_train, y_test",
           "correct_code": "from sklearn.model_selection import train_test_split\n\ndef split(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42, stratify=y\n    )\n    return X_train, X_test, y_train, y_test",
           "hint": "데이터가 불균형합니다. train_test_split의 특정 파라미터를 활용해 y 클래스 비율을 유지하세요.",
           "solution_check": {
@@ -330,7 +330,6 @@
           "buggy_code": "from sklearn.preprocessing import OneHotEncoder\n\ndef fit_encoder(train_cat):\n    enc = OneHotEncoder()\n    enc.fit(train_cat)\n    return enc",
           "correct_code": "from sklearn.preprocessing import OneHotEncoder\n\ndef fit_encoder(train_cat):\n    enc = OneHotEncoder(handle_unknown='ignore')\n    enc.fit(train_cat)\n    return enc",
           "hint": "OneHotEncoder에 handle_unknown='_ _ _ _ _ _' 옵션을 설정하세요.",
-
           "solution_check": {
             "type": "multi_condition",
             "required_all": [
