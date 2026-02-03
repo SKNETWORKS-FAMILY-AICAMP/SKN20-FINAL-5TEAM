@@ -213,7 +213,7 @@ export default {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background: rgba(5, 5, 20, 0.75);
+  background: rgba(5, 5, 20, 0.05);
   animation: overlayFadeIn 0.3s ease;
 }
 
