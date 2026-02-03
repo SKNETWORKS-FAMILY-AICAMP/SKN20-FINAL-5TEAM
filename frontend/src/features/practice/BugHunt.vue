@@ -152,6 +152,51 @@
                 <span class="clue-title">CLUES & LOGS</span>
               </div>
               <div class="clue-content" ref="clueContentRef">
+                <!-- 걷는 오리 SVG (로그창에 배치) -->
+                <div class="walking-duck-in-log" :style="walkingDuckLogStyle">
+                  <svg width="60" height="60" viewBox="0 0 60 60" class="duck-walking-svg">
+                    <!-- 오리 몸통 -->
+                    <ellipse cx="30" cy="38" rx="18" ry="14" fill="#FFD700" stroke="#FFA500" stroke-width="2"/>
+                    <!-- 오리 머리 -->
+                    <circle cx="30" cy="22" r="11" fill="#FFD700" stroke="#FFA500" stroke-width="2"/>
+                    <!-- 부리 -->
+                    <ellipse cx="38" cy="22" rx="6" ry="4" fill="#FF8C00"/>
+                    <!-- 눈 (깜빡임) -->
+                    <circle cx="33" cy="19" r="2.5" fill="#000">
+                      <animate attributeName="ry"
+                               dur="3s"
+                               repeatCount="indefinite"
+                               values="2.5;0.5;2.5;2.5;2.5;2.5"/>
+                    </circle>
+                    <circle cx="33.5" cy="18.5" r="1" fill="#fff"/>
+                    <!-- 날개 (걷기 모션) -->
+                    <ellipse cx="18" cy="36" rx="8" ry="12" fill="#FFA500" class="wing-walk">
+                      <animateTransform attributeName="transform"
+                                        type="rotate"
+                                        from="0 18 36"
+                                        to="10 18 36"
+                                        dur="0.4s"
+                                        repeatCount="indefinite"
+                                        direction="alternate"/>
+                    </ellipse>
+                    <!-- 발 (걷기 모션) -->
+                    <ellipse cx="25" cy="50" rx="4" ry="2" fill="#FF6600" class="foot-left">
+                      <animate attributeName="cy"
+                               dur="0.4s"
+                               repeatCount="indefinite"
+                               values="50;48;50"
+                               direction="alternate"/>
+                    </ellipse>
+                    <ellipse cx="35" cy="50" rx="4" ry="2" fill="#FF6600" class="foot-right">
+                      <animate attributeName="cy"
+                               dur="0.4s"
+                               repeatCount="indefinite"
+                               values="48;50;48"
+                               direction="alternate"/>
+                    </ellipse>
+                  </svg>
+                </div>
+
                 <div
                   v-for="(clue, idx) in clueMessages"
                   :key="idx"
@@ -243,50 +288,6 @@
             </div>
           </div>
 
-          <!-- 걷는 오리 SVG (항상 표시) -->
-          <div class="walking-duck" :style="walkingDuckStyle">
-            <svg width="80" height="80" viewBox="0 0 60 60" class="duck-walking-svg">
-              <!-- 오리 몸통 -->
-              <ellipse cx="30" cy="38" rx="18" ry="14" fill="#FFD700" stroke="#FFA500" stroke-width="2"/>
-              <!-- 오리 머리 -->
-              <circle cx="30" cy="22" r="11" fill="#FFD700" stroke="#FFA500" stroke-width="2"/>
-              <!-- 부리 -->
-              <ellipse cx="38" cy="22" rx="6" ry="4" fill="#FF8C00"/>
-              <!-- 눈 (깜빡임) -->
-              <circle cx="33" cy="19" r="2.5" fill="#000">
-                <animate attributeName="ry"
-                         dur="3s"
-                         repeatCount="indefinite"
-                         values="2.5;0.5;2.5;2.5;2.5;2.5"/>
-              </circle>
-              <circle cx="33.5" cy="18.5" r="1" fill="#fff"/>
-              <!-- 날개 (걷기 모션) -->
-              <ellipse cx="18" cy="36" rx="8" ry="12" fill="#FFA500" class="wing-walk">
-                <animateTransform attributeName="transform"
-                                  type="rotate"
-                                  from="0 18 36"
-                                  to="10 18 36"
-                                  dur="0.4s"
-                                  repeatCount="indefinite"
-                                  direction="alternate"/>
-              </ellipse>
-              <!-- 발 (걷기 모션) -->
-              <ellipse cx="25" cy="50" rx="4" ry="2" fill="#FF6600" class="foot-left">
-                <animate attributeName="cy"
-                         dur="0.4s"
-                         repeatCount="indefinite"
-                         values="50;48;50"
-                         direction="alternate"/>
-              </ellipse>
-              <ellipse cx="35" cy="50" rx="4" ry="2" fill="#FF6600" class="foot-right">
-                <animate attributeName="cy"
-                         dur="0.4s"
-                         repeatCount="indefinite"
-                         values="48;50;48"
-                         direction="alternate"/>
-              </ellipse>
-            </svg>
-          </div>
 
           <!-- 오리가 날아가는 이펙트 SVG (포물선 + 회전) -->
           <div v-if="showBullet" class="bullet duck-flying cinematic" :style="bulletStyle">
@@ -1438,18 +1439,46 @@ function checkProgressiveSolution() {
   const check = stepData.solution_check;
   const code = progressiveStepCodes.value[currentProgressiveStep.value];
 
+  // 디버깅 로그
+  console.log('=== Solution Check Debug ===');
+  console.log('Step:', currentProgressiveStep.value);
+  console.log('Check Type:', check.type);
+  console.log('Code:', code);
+  console.log('Required All:', check.required_all);
+  console.log('Required Any:', check.required_any);
+  console.log('Forbidden:', check.forbidden);
+
   switch (check.type) {
     case 'multi_condition':
       // required_all: 모든 조건이 코드에 포함되어야 함 (AND)
-      const hasAllRequired = check.required_all?.every(req => code.includes(req)) ?? true;
+      const hasAllRequired = check.required_all?.every(req => {
+        const found = code.includes(req);
+        console.log(`  Required "${req}": ${found}`);
+        return found;
+      }) ?? true;
 
       // required_any: 조건 중 하나라도 코드에 포함되어야 함 (OR)
       const hasAnyRequired = check.required_any?.length > 0
-        ? check.required_any.some(req => code.includes(req))
+        ? check.required_any.some(req => {
+            const found = code.includes(req);
+            console.log(`  Any Required "${req}": ${found}`);
+            return found;
+          })
         : true;
 
       // forbidden: 금지된 패턴이 코드에 없어야 함
-      const hasNoForbidden = check.forbidden?.every(forbidden => !code.includes(forbidden)) ?? true;
+      const hasNoForbidden = check.forbidden?.every(forbidden => {
+        const notFound = !code.includes(forbidden);
+        console.log(`  Forbidden "${forbidden}": ${notFound ? 'OK (not found)' : 'FAIL (found)'}`);
+        return notFound;
+      }) ?? true;
+
+      console.log('Results:');
+      console.log('  hasAllRequired:', hasAllRequired);
+      console.log('  hasAnyRequired:', hasAnyRequired);
+      console.log('  hasNoForbidden:', hasNoForbidden);
+      console.log('  Final Result:', hasAllRequired && hasAnyRequired && hasNoForbidden);
+      console.log('========================');
 
       return hasAllRequired && hasAnyRequired && hasNoForbidden;
 
@@ -1641,7 +1670,7 @@ let duckAnimationId = null;
 const isRunning = ref(false);
 
 // 오리/이펙트 상태
-const walkingDuckPosition = reactive({ left: '10%', top: '85%' });
+const walkingDuckLogPosition = reactive({ bottom: '20px', left: '20px' });
 const showBullet = ref(false);
 const bulletPosition = ref({ x: 0, y: 0 });
 const showHitEffect = ref(false);
@@ -1650,9 +1679,9 @@ const hitEffectPosition = ref({ x: 0, y: 0 });
 const missEffectPosition = ref({ x: 0, y: 0 });
 const hitEffectText = ref('SQUASH!');
 
-const walkingDuckStyle = computed(() => ({
-  left: walkingDuckPosition.left,
-  top: walkingDuckPosition.top
+const walkingDuckLogStyle = computed(() => ({
+  bottom: walkingDuckLogPosition.bottom,
+  left: walkingDuckLogPosition.left
 }));
 
 const bulletStyle = computed(() => ({
@@ -1700,22 +1729,17 @@ function animateBug(step) {
   bugAnimationIds[step] = requestAnimationFrame(() => animateBug(step));
 }
 
-// 오리 걷기 애니메이션
+// 오리 걷기 애니메이션 (로그창에서)
 function animateDuck() {
   const time = Date.now() / 1000;
 
-  // 오리도 바닥에서 좌우로 걷기
-  const movementRadiusX = 25; // 오리는 지렁이보다 작은 범위
-  const centerX = 15; // 왼쪽에서 시작
+  // 로그창 하단에서 좌우로 걷기
+  const movementRange = 30; // 좌우 이동 범위
+  const centerX = 20; // 기본 위치
 
-  const baseY = 83; // 바닥 위치 (지렁이보다 약간 위)
-  const verticalBob = 2; // 걷는 동안 약간 상하 움직임
+  const x = centerX + Math.sin(time * 0.3) * movementRange;
 
-  const x = centerX + Math.sin(time * 0.4) * movementRadiusX;
-  const y = baseY + Math.sin(time * 2) * verticalBob; // 빠른 상하 움직임 (걷는 느낌)
-
-  walkingDuckPosition.left = `${x}%`;
-  walkingDuckPosition.top = `${y}%`;
+  walkingDuckLogPosition.left = `${x}px`;
 
   duckAnimationId = requestAnimationFrame(animateDuck);
 }
@@ -1748,16 +1772,19 @@ function stopBugAnimations() {
 
 // 오리가 지렁이를 잡으러 가는 애니메이션
 function shootBug(targetStep, isHit) {
-  if (!editorFrameRef.value) return;
+  if (!editorFrameRef.value || !clueContentRef.value) return;
 
   const frame = editorFrameRef.value;
-  const rect = frame.getBoundingClientRect();
+  const frameRect = frame.getBoundingClientRect();
 
-  // 오리의 현재 위치에서 출발 (백분율을 픽셀로 변환)
-  const duckLeft = parseFloat(walkingDuckPosition.left);
-  const duckTop = parseFloat(walkingDuckPosition.top);
-  const startX = (duckLeft / 100) * rect.width;
-  const startY = (duckTop / 100) * rect.height;
+  // 로그창에 있는 오리의 절대 위치 계산
+  const logRect = clueContentRef.value.getBoundingClientRect();
+  const duckX = logRect.left + parseFloat(walkingDuckLogPosition.left);
+  const duckY = logRect.bottom - 40; // 오리 높이 고려
+
+  // 에디터 프레임 기준으로 변환
+  const startX = duckX - frameRect.left;
+  const startY = duckY - frameRect.top;
 
   // 버그 위치 계산 (이펙트가 버그 위치에서 발현되도록)
   const bugLeft = parseFloat(bugPositions[targetStep].left);
@@ -1964,6 +1991,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
+  position: relative;
 }
 
 .clue-item {
@@ -2037,5 +2065,62 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
+  padding: 0 !important;
+  background: rgba(10, 10, 15, 0.85);
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* 코드 섹션 여백 제거 */
+:deep(.code-sections) {
+  padding: 0 !important;
+  margin: 0 !important;
+  height: 100%;
+}
+
+:deep(.code-section-wrapper) {
+  height: 100%;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+:deep(.code-section) {
+  height: 100%;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+:deep(.editor-body) {
+  flex: 1;
+  height: 100%;
+  overflow: hidden;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+:deep(.code-editor-wrapper) {
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* 지렁이는 코드 영역에만 */
+:deep(.bugs-container) {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* 로그창에 있는 오리 */
+.walking-duck-in-log {
+  position: absolute;
+  z-index: 100;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
 </style>
