@@ -97,7 +97,6 @@
         :category="deepDiveQuestions[currentQuestionIndex]?.category || ''"
         :mermaid-code="mermaidCode"
         :phase="evaluationPhase"
-        @skip="skipDeepDive"
         @submit="submitDeepDiveAnswer"
         @submit-explanation="submitUserExplanation"
       />
@@ -200,7 +199,6 @@ export default {
       deepDiveQuestion: evaluation.deepDiveQuestion,
       deepDiveQuestions: evaluation.deepDiveQuestions,
       currentQuestionIndex: evaluation.currentQuestionIndex,
-      skipDeepDiveComposable: evaluation.skipDeepDive,
       submitDeepDiveAnswerComposable: evaluation.submitDeepDiveAnswer,
       openEvaluationModalComposable: evaluation.openEvaluationModal,
       directEvaluateComposable: evaluation.directEvaluate,
@@ -315,27 +313,6 @@ export default {
         this.showToastMessage,
         this.currentProblem?.expectedComponents
       );
-    },
-
-    // === Deep Dive ===
-    async skipDeepDive() {
-      // 설명 Phase에서 skip하면 기본 질문으로 진행
-      if (this.evaluationPhase === 'explanation') {
-        await this.submitUserExplanation('(설명 생략)');
-        return;
-      }
-
-      const allDone = await this.skipDeepDiveComposable();
-      if (allDone && this.isPendingEvaluation()) {
-        this.clearPendingEvaluation();
-        // EvaluationModal 없이 바로 평가 진행
-        await this.directEvaluateComposable(
-          this.currentProblem,
-          this.droppedComponents,
-          this.connections,
-          this.mermaidCode
-        );
-      }
     },
 
     // NEW: 사용자 설명 제출 핸들러

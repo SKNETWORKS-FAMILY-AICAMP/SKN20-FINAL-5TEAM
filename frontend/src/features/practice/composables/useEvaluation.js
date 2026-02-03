@@ -43,16 +43,6 @@ export function useEvaluation() {
   const sixPillars = ref(getAvailableSubAgents());
   const allQuestionStrategies = ref(getAllQuestionStrategies());
 
-  async function skipDeepDive() {
-    collectedDeepDiveAnswers.value.push({
-      category: deepDiveQuestions.value[currentQuestionIndex.value]?.category || '',
-      question: deepDiveQuestion.value,
-      answer: '(스킵됨)'
-    });
-
-    return moveToNextQuestion();
-  }
-
   async function submitDeepDiveAnswer(answer) {
     const currentQ = deepDiveQuestions.value[currentQuestionIndex.value];
 
@@ -191,7 +181,7 @@ export function useEvaluation() {
     const deepDiveQnA = collectedDeepDiveAnswers.value.map(item => ({
       category: item.category,
       question: item.question,
-      answer: item.answer === '(스킵됨)' ? '' : item.answer
+      answer: item.answer
     }));
 
     try {
@@ -261,7 +251,6 @@ export function useEvaluation() {
     allQuestionStrategies,
 
     // Methods
-    skipDeepDive,
     submitDeepDiveAnswer,
     openEvaluationModal,
     directEvaluate,

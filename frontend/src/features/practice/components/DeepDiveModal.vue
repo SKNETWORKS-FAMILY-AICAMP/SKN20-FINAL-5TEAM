@@ -72,14 +72,11 @@
 
       <!-- 푸터 -->
       <div class="frame-footer">
-        <button class="btn btn-silent" @click="$emit('skip')">
-          {{ skipButtonText }}
-        </button>
         <button
           class="btn btn-submit"
           :class="{ 'btn-explanation': isExplanationPhase }"
           @click="submitAnswer"
-          :disabled="isGenerating || (isExplanationPhase && answer.trim().length < 10)"
+          :disabled="isGenerating || !answer.trim()"
         >
           {{ submitButtonText }}
         </button>
@@ -128,7 +125,7 @@ export default {
       default: 'questioning'
     }
   },
-  emits: ['skip', 'submit', 'submit-explanation'],
+  emits: ['submit', 'submit-explanation'],
   data() {
     return {
       answer: ''
@@ -151,12 +148,6 @@ export default {
         return 'SUBMIT_EXPLANATION';
       }
       return this.isLastQuestion ? 'FINAL_SUBMIT' : 'NEXT_PROTOCOL';
-    },
-    skipButtonText() {
-      if (this.isExplanationPhase) {
-        return 'SKIP';
-      }
-      return this.isLastQuestion ? 'SKIP_TO_EVALUATE' : 'SKIP';
     },
     placeholderText() {
       if (this.isExplanationPhase) {
@@ -718,17 +709,6 @@ export default {
   cursor: not-allowed;
 }
 
-.btn-silent {
-  background: var(--glass-bg);
-  color: var(--text-secondary);
-  border: 1px solid var(--glass-border);
-}
-
-.btn-silent:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--text-primary);
-  border-color: rgba(107, 92, 231, 0.4);
-}
 
 /* =====================
    RESPONSIVE
