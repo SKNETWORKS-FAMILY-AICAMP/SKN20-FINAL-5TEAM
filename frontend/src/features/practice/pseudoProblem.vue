@@ -1,5 +1,5 @@
 <template>
-  <div v-if="isOpen" class="min-h-screen w-full flex flex-col relative overflow-hidden boot-screen glitch-bg bg-[#05070A] text-[#A3FF47]">
+  <div class="min-h-screen w-full flex flex-col relative overflow-hidden boot-screen glitch-bg bg-[#05070A] text-[#A3FF47]">
 
     <!-- 0. 시놉시스 레이어 (Star Wars Cinematic) -->
     <div v-if="currentStep === 0" class="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center overflow-hidden select-none">
@@ -68,7 +68,7 @@
         <div class="h-8 w-px bg-[#A3FF47]/20 hidden sm:block"></div>
         <div class="hidden lg:flex items-center gap-6 text-sm font-bold tracking-widest">
           <span class="flex items-center gap-2 opacity-50">
-            <Wifi class="w-5 h-5" /> SECTOR: TUTORIAL_ZONE
+            <Wifi class="w-5 h-5" /> SECTOR: {{ currentQuest.category }}
           </span>
           <span class="flex items-center gap-2 text-cyan-400 animate-pulse">
             <Activity class="w-5 h-5" /> VOICE_LINK_SYNCED
@@ -109,8 +109,8 @@
           <div class="p-4 flex items-center justify-center border-b md:border-b-0 md:border-r border-[#A3FF47]/10">
             <div class="w-full max-w-[320px] flex items-center justify-between">
               <div>
-                <h2 class="text-base md:text-lg font-black italic tracking-tighter uppercase terminal-glow">{{ questData.title }}</h2>
-                <p class="text-[8px] opacity-60 uppercase tracking-[0.3em] font-bold">Protocol: {{ questData.subModuleTitle }}</p>
+                <h2 class="text-base md:text-lg font-black italic tracking-tighter uppercase terminal-glow">{{ currentQuest.title }}</h2>
+                <p class="text-[8px] opacity-60 uppercase tracking-[0.3em] font-bold">Protocol: {{ currentQuest.subModuleTitle }}</p>
               </div>
               <div class="p-1.5 bg-[#A3FF47]/10 rounded border border-[#A3FF47]/30 opacity-40">
                 <Terminal class="w-3.5 h-3.5" />
@@ -143,7 +143,7 @@
               <div class="w-full max-w-[320px] flex flex-col gap-5">
                 <!-- Coduck 캐릭터 이미지 영역 -->
                 <div class="w-full aspect-square rounded-sm border-2 border-[#A3FF47] p-2.5 relative bg-black shadow-[0_0_60px_rgba(163,255,71,0.1)] overflow-hidden">
-                    <img :src="currentDuckImage" alt="Coduck" class="w-full h-full object-cover grayscale brightness-75 group-hover:grayscale-0 group-hover:brightness-100 transition-all duration-1000" />
+                    <img :src="imageSrc" alt="Coduck" class="w-full h-full object-cover grayscale brightness-75 group-hover:grayscale-0 group-hover:brightness-100 transition-all duration-1000" />
                     <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                     <!-- 텍스트 주사선 효과 -->
                     <div class="absolute inset-0 scanline pointer-events-none opacity-20"></div>
@@ -165,18 +165,18 @@
                    <div class="w-1.5 h-1.5 bg-[#A3FF47]"></div>
                    <span class="text-[9px] font-black uppercase tracking-[0.4em]">INQUIRY_PROTOCOL_v2.0</span>
                 </div>
-                <h3 class="text-xl md:text-2xl font-black italic text-[#A3FF47] leading-tight terminal-glow">
-                  [{{ interviewIdx + 1 }}/{{ questData.interviewQuestions.length }}] {{ questData.interviewQuestions[interviewIdx].question }}
+                <h3 class="text-2xl md:text-4xl font-black italic text-[#A3FF47] leading-tight terminal-glow">
+                  [{{ currentInterviewIdx + 1 }}/{{ currentQuest.interviewQuestions.length }}] {{ currentInterviewQuestion?.question }}
                 </h3>
               </div>
 
               <!-- 2026-02-02: 문제(답변 버튼) 간의 가독성 유지 -->
-              <div class="w-full max-w-[420px] flex flex-col gap-10">
+              <div class="w-full max-w-[500px] flex flex-col gap-8">
               <button
-                v-for="(opt, i) in questData.interviewQuestions[interviewIdx].options"
+                v-for="(opt, i) in currentQuest.interviewQuestions[currentInterviewIdx]?.options"
                 :key="i"
-                @click="handleInterview(opt)"
-                class="group relative p-4 border-2 border-[#A3FF47]/20 bg-black hover:border-[#A3FF47] hover:bg-[#A3FF47]/5 transition-all text-left active:scale-95 w-full"
+                @click="handleStep1Submit(opt)"
+                class="group relative p-6 border-2 border-[#A3FF47]/20 bg-black hover:border-[#A3FF47] hover:bg-[#A3FF47]/5 transition-all text-left active:scale-95 w-full"
               >
                 <!-- 장식용 코너 -->
                 <div class="absolute top-0 right-0 w-2.5 h-2.5 border-t-2 border-r-2 border-[#A3FF47]/30 group-hover:border-[#A3FF47]"></div>
@@ -186,7 +186,7 @@
                   <span class="text-[8px] font-black uppercase tracking-[0.2em]">REPAIR_SEQUENCE_0{{ i+1 }}</span>
                   <Zap class="w-2 h-2 text-[#A3FF47]" />
                 </div>
-                <span class="text-lg font-black tracking-tight leading-snug text-white group-hover:text-[#A3FF47] transition-colors">{{ opt.text }}</span>
+                <span class="text-xl md:text-2xl font-black tracking-tight leading-snug text-white group-hover:text-[#A3FF47] transition-colors">{{ opt.text }}</span>
               </button>
               </div>
             </div>
@@ -196,27 +196,69 @@
           <!-- [2026-02-02] 모바일 대응 그리드 시스템 적용 -->
           <div v-else-if="currentStep === 2" class="flex-1 grid grid-cols-1 lg:grid-cols-2 bg-black overflow-hidden relative">
             <!-- [2026-02-02] Phase 1과 구성을 완전히 통일 (p-8, items-center, justify-center) -->
-            <div class="p-4 md:p-8 flex flex-col items-center justify-center gap-5 overflow-y-auto custom-scrollbar relative border-b lg:border-b-0 border-[#A3FF47]/10">
-              <div class="w-full max-w-[320px] space-y-6 md:space-y-8">
-                <div class="flex items-center gap-3">
-                  <div class="h-4 w-1 bg-[#A3FF47]"></div>
-                  <h3 class="text-xs font-black tracking-[0.4em] uppercase">Mission Objective</h3>
-                </div>
-                <p class="text-lg md:text-xl font-black italic terminal-glow underline decoration-[#A3FF47]/30 text-center lg:text-left">{{ questData.missionObjective }}</p>
-                <div class="p-4 md:p-6 bg-[#A3FF47]/5 border-l-2 border-[#A3FF47] text-xs md:text-sm leading-relaxed italic text-slate-300 space-y-3">
-                  <p>"Coduck의 기본 기능을 활성화하기 위해, 데이터 리스트를 순회하며 유효한 패킷(정상 데이터)만 필터링하는 아키텍처 논리를 설계하십시오."</p>
-                  <div class="pt-2 border-t border-[#A3FF47]/20">
-                    <p class="text-[10px] md:text-[11px] font-black text-[#A3FF47] not-italic uppercase tracking-widest flex items-center gap-2">
-                       <MessageSquare class="w-3 h-3" /> System_Directive: 의사코드 작성
-                    </p>
+            <div class="p-0 flex flex-col border-b lg:border-b-0 border-[#A3FF47]/10 h-[500px] lg:h-full overflow-hidden shrink-0">
+              <!-- 상단: Mission Objective (Scrollable) -->
+              <div class="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-8 space-y-6">
+                <div class="w-full max-w-[600px] mx-auto lg:translate-x-12 space-y-6 md:space-y-8 flex flex-col items-center">
+                  <div class="flex items-center justify-center gap-3">
+                    <div class="h-5 w-1 bg-[#A3FF47]"></div>
+                    <h3 class="text-xs font-black tracking-[0.5em] uppercase text-[#A3FF47]/50">Mission Objective</h3>
+                  </div>
+                  <p class="text-xl md:text-2xl font-black italic terminal-glow underline decoration-[#A3FF47]/30 text-center leading-tight text-[#A3FF47]">{{ currentQuest.missionObjective }}</p>
+                  <div class="p-5 md:p-8 bg-[#A3FF47]/5 border-l-4 border-[#A3FF47] text-xs md:text-sm leading-relaxed italic text-slate-300 space-y-4 text-center">
+                    <p class="text-base md:text-lg">"Coduck의 기본 기능을 활성화하기 위해, 데이터 리스트를 순회하며 유효한 패킷(정상 데이터)만 필터링하는 아키텍처 논리를 설계하십시오."</p>
+                    <div class="pt-3 border-t border-[#A3FF47]/20 flex justify-center">
+                      <p class="text-[10px] md:text-xs font-black text-[#A3FF47] not-italic uppercase tracking-widest flex items-center gap-2">
+                         <MessageSquare class="w-3.5 h-3.5" /> System_Directive: 의사코드 작성
+                      </p>
+                    </div>
                   </div>
                 </div>
-                <div class="hidden md:block space-y-4">
-                  <h4 class="text-[10px] font-bold opacity-30 uppercase tracking-widest">Metadata Tags</h4>
-                  <div class="flex flex-wrap gap-2 text-[9px] font-bold uppercase">
-                    <span class="px-2 py-1 bg-white/5 border border-white/10 rounded">Iteration</span>
-                    <span class="px-2 py-1 bg-white/5 border border-white/10 rounded">Validation</span>
-                    <span class="px-2 py-1 bg-white/5 border border-white/10 rounded">Cleaning</span>
+              </div>
+
+              <!-- 하단: [수정일: 2026-02-03] AI Architecture Consultant HUD (왼쪽으로 이동 & 고정 높이) -->
+              <div class="h-[350px] lg:h-2/5 flex flex-col bg-black/60 border-t border-[#A3FF47]/10 relative shrink-0">
+                <div class="h-10 border-b border-[#A3FF47]/20 flex items-center px-4 justify-between bg-[#A3FF47]/5">
+                  <div class="flex items-center gap-2">
+                    <Brain class="w-3.5 h-3.5 text-[#A3FF47] animate-pulse" />
+                    <span class="text-[9px] font-black uppercase tracking-widest text-[#A3FF47]">AI Architecture Consultant</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                     <span v-if="isApproved" class="text-[8px] font-black text-[#A3FF47] animate-pulse uppercase">● Approved</span>
+                     <span v-else class="text-[8px] font-black text-pink-500 uppercase">○ Pending_Approval</span>
+                  </div>
+                </div>
+                
+                <div ref="chatContainer" class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                  <div v-for="(msg, idx) in chatMessages" :key="idx" 
+                    class="flex flex-col gap-1.5"
+                    :class="msg.sender === 'User' ? 'items-end' : 'items-start'"
+                  >
+                    <span class="text-[8px] font-black opacity-30 uppercase tracking-tighter">{{ msg.sender }}</span>
+                    <div :class="[
+                      'max-w-[85%] px-3 py-2 text-[11px] font-bold leading-relaxed',
+                      msg.sender === 'User' 
+                        ? 'bg-[#A3FF47]/10 text-[#A3FF47] border-r-2 border-[#A3FF47]' 
+                        : 'bg-white/5 text-slate-300 border-l-2 border-white/20'
+                    ]">
+                      {{ msg.text }}
+                    </div>
+                  </div>
+                  <div v-if="isAsking" class="flex items-center gap-2 text-[#A3FF47]">
+                     <span class="animate-bounce">●</span><span class="animate-bounce delay-75">●</span><span class="animate-bounce delay-150">●</span>
+                  </div>
+                </div>
+
+                <div class="p-4 border-t border-[#A3FF47]/10 bg-black/40 flex items-center gap-3">
+                  <button 
+                    @click="askCoduck"
+                    :disabled="isAsking || pseudoInput.length < 5"
+                    class="flex-1 py-3 bg-[#A3FF47]/10 border border-[#A3FF47]/30 text-[#A3FF47] text-[10px] font-black uppercase tracking-widest hover:bg-[#A3FF47]/20 transition-all disabled:opacity-30"
+                  >
+                    {{ isAsking ? 'Consulting...' : 'Request_Logic_Audit' }}
+                  </button>
+                  <div class="w-10 h-10 border border-[#A3FF47]/20 flex items-center justify-center p-2">
+                      <MessageSquare class="w-4 h-4 opacity-30" />
                   </div>
                 </div>
               </div>
@@ -236,8 +278,18 @@
                     class="h-full"
                   />
                 </div>
-                <div class="p-4 md:p-8 border-t border-[#A3FF47]/10 flex justify-end shrink-0">
-                  <button @click="submitPseudo" class="w-full md:w-auto px-12 py-4 bg-[#A3FF47] text-black font-black uppercase text-xs hover:shadow-[0_0_30px_#A3FF47] transition-all active:scale-95 border-2 border-black">Analyze Logic Engine</button>
+
+                <div class="p-4 md:p-6 border-t border-[#A3FF47]/20 flex justify-end shrink-0 bg-black/80">
+                  <button 
+                    @click="submitStep2" 
+                    :disabled="!isApproved"
+                    class="w-full md:w-auto px-12 py-4 font-black uppercase text-xs transition-all active:scale-95 border-2"
+                    :class="isApproved 
+                      ? 'bg-[#A3FF47] text-black border-black hover:shadow-[0_0_30px_#A3FF47]' 
+                      : 'bg-black text-[#A3FF47]/30 border-[#A3FF47]/10 cursor-not-allowed opacity-50'"
+                  >
+                    Analyze Logic Engine
+                  </button>
                 </div>
               </div>
             </div>
@@ -255,9 +307,9 @@
                 </div>
                 <div class="flex gap-2">
                   <button
-                    v-for="(s, i) in questData.pythonSnippets"
+                    v-for="(s, i) in currentQuest.pythonSnippets"
                     :key="i"
-                    @click="pythonInput += '\n' + s.code"
+                    @click="insertSnippet(s.code)"
                     class="text-[9px] font-bold border border-[#A3FF47]/30 px-3 py-1 rounded-sm hover:bg-[#A3FF47]/20 transition-all uppercase"
                   >{{ s.label }}</button>
                 </div>
@@ -281,13 +333,30 @@
 
             <!-- Simulation & Result HUD (Phase 1 비율에 맞춰 조절) -->
             <div class="bg-black/40 flex flex-col gap-4 md:gap-6 overflow-hidden p-6 md:p-10 lg:px-14 border-l-0 lg:border-l border-[#A3FF47]/10">
-               <div class="flex items-center justify-between mb-2 md:mb-4 border-b border-[#A3FF47]/10 pb-4">
-                 <h3 class="text-[10px] font-black opacity-30 uppercase tracking-[0.5em] italic">Simulation_Terminal</h3>
-                 <Terminal class="w-4 h-4 text-[#A3FF47]/20" />
+               <!-- [수정일: 2026-02-03] Fixed Architecture Guide 패널 추가 -->
+               <div class="flex-1 flex flex-col gap-4 min-h-0">
+                 <div class="flex items-center justify-between border-b border-[#A3FF47]/10 pb-4">
+                   <div class="flex items-center gap-2">
+                     <Shield class="w-4 h-4 text-[#A3FF47]" />
+                     <h3 class="text-[10px] font-black opacity-30 uppercase tracking-[0.5em] italic">Fixed_Architecture_Guide</h3>
+                   </div>
+                 </div>
+                 <div class="flex-1 bg-[#A3FF47]/5 border border-[#A3FF47]/20 rounded p-4 font-mono text-[11px] overflow-y-auto custom-scrollbar leading-relaxed text-[#A3FF47]/80 italic">
+                    <pre class="whitespace-pre-wrap">{{ pseudoInput }}</pre>
+                 </div>
                </div>
-               <div class="flex-1 bg-black/80 border border-[#A3FF47]/20 rounded p-4 md:p-8 font-mono text-xs overflow-y-auto custom-scrollbar leading-relaxed text-cyan-400 min-h-[150px]">
-                  <div v-if="isSimulating" class="animate-pulse text-xs md:text-sm">RUNNING SYNC SIMULATION... [PLEASE WAIT]</div>
-                  <div v-else class="whitespace-pre-wrap text-xs md:text-sm">{{ simulationOutput || 'READY FOR DATA UPLINK...' }}</div>
+
+               <div class="h-px bg-[#A3FF47]/10"></div>
+
+               <div class="flex-1 flex flex-col gap-4 min-h-0">
+                 <div class="flex items-center justify-between border-b border-[#A3FF47]/10 pb-4">
+                   <h3 class="text-[10px] font-black opacity-30 uppercase tracking-[0.5em] italic">Simulation_Terminal</h3>
+                   <Terminal class="w-4 h-4 text-[#A3FF47]/20" />
+                 </div>
+                 <div class="flex-1 bg-black/80 border border-[#A3FF47]/20 rounded p-4 md:p-8 font-mono text-xs overflow-y-auto custom-scrollbar leading-relaxed text-cyan-400">
+                    <div v-if="isSimulating" class="animate-pulse text-xs md:text-sm">RUNNING SYNC SIMULATION... [PLEASE WAIT]</div>
+                    <div v-else class="whitespace-pre-wrap text-xs md:text-sm">{{ simulationOutput || 'READY FOR DATA UPLINK...' }}</div>
+                 </div>
                </div>
             </div>
           </div>
@@ -324,9 +393,9 @@
                  
                  <div class="flex flex-col gap-4 md:gap-8 w-full">
                     <button
-                      v-for="(opt, i) in questData.step4Options"
-                      :key="i"
-                      @click="handleDeepDive(i)"
+                    v-for="(opt, i) in step4Options"
+                    :key="i"
+                    @click="handleStep4Submit(i)"
                       class="group relative p-4 md:p-6 border-2 border-white/5 bg-black/40 hover:border-[#A3FF47] hover:bg-[#A3FF47]/5 transition-all text-left active:scale-95 w-full flex gap-4 md:gap-6"
                     >
                       <!-- [2026-02-02] 반응형 폰트 크기 적용 -->
@@ -351,7 +420,7 @@
             <h2 class="orbitron-font text-3xl md:text-5xl lg:text-7xl font-black italic tracking-tighter uppercase mb-4 terminal-glow text-center">SECTOR: REBOOTED</h2>
             <div class="h-1 md:h-2 w-48 md:w-96 bg-[#A3FF47] mb-8 md:mb-12 shadow-[0_0_30px_#A3FF47]"></div>
             <p class="text-lg md:text-2xl text-slate-300 max-w-2xl text-center leading-relaxed mb-10 md:mb-16 font-bold italic">
-              "축하합니다, {{ userNickname }}님. 튜토리얼 구역의 정화가 완료되었습니다. Coduck이 다시 세상을 올바르게 보기 시작했습니다."
+              "축하합니다, {{ userNickname }}님. [{{ currentQuest.title }}] 구역의 정화가 완료되었습니다. Coduck이 다시 세상을 올바르게 보기 시작했습니다."
             </p>
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 w-full max-w-5xl">
               <div v-for="(v, k) in userScore" :key="k" class="p-4 md:p-8 bg-black/60 border-2 border-[#A3FF47]/30 text-center rounded-sm hover:border-[#A3FF47] transition-all">
@@ -417,29 +486,30 @@
 
     <!-- 피드백 모달 (2077 테크니컬 디자인) -->
     <!-- [2026-02-02] 모바일 대응 모달 너비 및 패딩 조절 -->
-    <div v-if="feedback.visible" class="fixed inset-0 z-[200] bg-black/95 backdrop-blur-md flex items-center justify-center p-4 md:p-8 transition-all duration-300">
-      <div class="max-w-2xl w-full p-8 md:p-16 border-2 bg-[#020406] relative shadow-[0_0_100px_rgba(0,0,0,1)] animate-scale-up" :class="feedback.isSuccess ? 'border-[#A3FF47] shadow-[#A3FF47]/10' : 'border-pink-600 shadow-pink-600/10'">
+    <div v-if="feedbackModal.visible" class="fixed inset-0 z-[200] bg-black/95 backdrop-blur-md flex items-center justify-center p-4 md:p-8 transition-all duration-300">
+      <div class="max-w-2xl w-full p-8 md:p-16 border-2 bg-[#020406] relative shadow-[0_0_100px_rgba(0,0,0,1)] animate-scale-up" :class="feedbackModal.isSuccess ? 'border-[#A3FF47] shadow-[#A3FF47]/10' : 'border-pink-600 shadow-pink-600/10'">
         <div class="absolute top-0 right-0 p-4 md:p-6 opacity-10">
           <div class="flex gap-2">
             <div v-for="i in 5" :key="i" class="w-1 h-1 bg-white"></div>
           </div>
         </div>
         <div class="flex items-center gap-4 md:gap-8 mb-6 md:mb-10">
-          <div :class="feedback.isSuccess ? 'bg-[#A3FF47]/10 border-[#A3FF47]' : 'bg-pink-600/10 border-pink-600'" class="p-3 md:p-5 border-2 rounded-sm shadow-lg">
-            <CheckCircle v-if="feedback.isSuccess" class="w-10 h-10 md:w-14 md:h-14 text-[#A3FF47]" />
+          <div :class="feedbackModal.isSuccess ? 'bg-[#A3FF47]/10 border-[#A3FF47]' : 'bg-pink-600/10 border-pink-600'" class="p-3 md:p-5 border-2 rounded-sm shadow-lg">
+            <CheckCircle v-if="feedbackModal.isSuccess" class="w-10 h-10 md:w-14 md:h-14 text-[#A3FF47]" />
             <AlertTriangle v-else class="w-10 h-10 md:w-14 md:h-14 text-pink-500" />
           </div>
           <div>
-            <h3 class="text-2xl md:text-4xl font-black italic tracking-tighter uppercase terminal-text mb-2">{{ feedback.title }}</h3>
-            <p class="text-[8px] md:text-[10px] opacity-40 uppercase tracking-[0.5em] font-bold">{{ feedback.isSuccess ? 'ACCESS_GRANTED' : 'ACCESS_DENIED' }}</p>
+            <h3 class="text-2xl md:text-4xl font-black italic tracking-tighter uppercase terminal-text mb-2">{{ feedbackModal.title }}</h3>
+            <p class="text-[8px] md:text-[10px] opacity-40 uppercase tracking-[0.5em] font-bold">{{ feedbackModal.isSuccess ? 'ACCESS_GRANTED' : 'ACCESS_DENIED' }}</p>
           </div>
         </div>
         <p class="text-base md:text-xl font-bold text-slate-200 leading-relaxed mb-8 md:mb-12 italic border-l-4 md:border-l-8 pl-4 md:pl-8 border-white/10">
-          {{ feedback.desc }}
+          {{ feedbackModal.desc }}
         </p>
+        <div v-if="feedbackModal.details" class="mb-8 p-4 bg-black/40 border border-[#A3FF47]/20 text-xs text-white/70 overflow-y-auto max-h-[200px] custom-scrollbar" v-html="feedbackModal.details"></div>
         <div class="flex flex-col md:flex-row justify-end gap-4 md:gap-6">
-          <button v-if="!feedback.isSuccess" @click="feedback.visible = false" class="px-8 md:px-10 py-3 md:py-4 font-black uppercase text-[10px] md:text-xs tracking-widest btn-neon text-white">RE-TRY SEQUENCE</button>
-          <button @click="nextStep" class="px-10 md:px-12 py-4 md:py-5 font-black uppercase text-[10px] md:text-xs tracking-widest transition-all active:scale-95 shadow-2xl" :class="feedback.isSuccess ? 'bg-[#A3FF47] text-black hover:brightness-110' : 'hidden'">
+          <button v-if="!feedbackModal.isSuccess" @click="feedbackModal.visible = false" class="px-8 md:px-10 py-3 md:py-4 font-black uppercase text-[10px] md:text-xs tracking-widest btn-neon text-white">RE-TRY SEQUENCE</button>
+          <button @click="nextStep" class="px-10 md:px-12 py-4 md:py-5 font-black uppercase text-[10px] md:text-xs tracking-widest transition-all active:scale-95 shadow-2xl" :class="feedbackModal.isSuccess ? 'bg-[#A3FF47] text-black hover:brightness-110' : 'hidden'">
             EXECUTE NEXT PHASE >>
           </button>
         </div>
@@ -456,218 +526,98 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue'
-import { useAuthStore } from '@/stores/auth'
-import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
+/**
+ * [수정일: 2026-02-03]
+ * [수정내용:
+ * 1. 하드코딩된 questData 제거 및 stages.js 데이터 단일화
+ * 2. 모든 상태(ref, reactive)와 비즈니스 로직을 pseudoProblemLogic.js(usePseudoProblem)로 이관
+ * 3. 컴포넌트는 UI 렌더링과 composable 호출에만 집중하도록 리팩토링]
+ */
+import { ref, reactive, onMounted, watch, onUnmounted, nextTick, computed } from 'vue'
 import {
-  Terminal, Cpu, Activity, Wifi, Volume2, VolumeX, X,
-  MessageSquare, Mic, Zap, Database, Lock, Shield,
-  ShieldAlert, Award, CheckCircle, AlertTriangle
+  X, Send, Layout, Cpu, Database, Binary, Shield, 
+  ChevronRight, RefreshCw, BarChart3, HelpCircle, 
+  Terminal, Play, CheckCircle2, AlertCircle, 
+  ChevronLeft, ArrowRight, Code, MessageSquare, 
+  Zap, Brain, Lock, Volume2, VolumeX, SkipForward,
+  PlayCircle, MoreHorizontal, Info, ShieldAlert, Award, CheckCircle, AlertTriangle,
+  Wifi, Activity
 } from 'lucide-vue-next'
+import { useAuthStore } from '@/stores/auth'
+import { usePseudoProblem } from './pseudoProblemLogic'
+import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
+
 
 const props = defineProps({
-  isOpen: { type: Boolean, default: true }
+  isOpen: Boolean
 })
 
 const emit = defineEmits(['close'])
 
 const authStore = useAuthStore()
-const userNickname = computed(() => authStore.sessionNickname || 'UM_JUN_SIK')
+const userNickname = computed(() => authStore.sessionNickname || 'ENGINEER')
 
-const questData = {
-  id: 1,
-  title: "Chapter 1: 각성 (Awakening)",
-  category: "System Reboot",
-  desc: "어두운 터미널, 켜지는 모니터... Coduck이 깨어납니다.",
-  subModuleTitle: "BOOT_CORE_PROTOCOL_v1.0",
-  character: {
-    name: "Coduck",
-    image: "/assets/characters/coduck.png"
-  },
-  interviewQuestions: [
-    {
-      id: "q1",
-      question: "Coduck의 사고 기능을 정상화하기 위해 가장 먼저 확보해야 할 '엔지니어링 사고법'은 무엇입니까?",
-      options: [
-        { text: "Coduck의 4단계 사고법 (데이터 분석-논리 설계-코드 구현-최적화) 따르기", correct: true },
-        { text: "마더 서버에 무작위 코드를 지속적으로 주입하여 응답 대기하기", correct: false }
-      ]
-    },
-    {
-      id: "q2",
-      question: "Coduck의 '음성 모듈'에서 발생하는 잡음(Hallucination)을 제거하기 위한 가장 효과적인 정화 전략은?",
-      options: [
-        { text: "데이터의 특징을 세부적으로 분석하여 명확한 필터링 규칙 설계하기", correct: true },
-        { text: "AI가 스스로 환각에서 깨어날 때까지 시스템을 방치하기", correct: false }
-      ]
-    }
-  ],
-  missionObjective: "Coduck의 논리 연산 장치(Logic Unit)를 정화하여 데이터 노이즈를 스스로 제거하게 만드십시오.",
-  pythonSnippets: [
-    { label: '데이터 체크', code: 'if not data: continue' },
-    { label: '아카이브 저장', code: 'result.append(data)' }
-  ],
-  pythonTemplate: `def system_restore_pipeline(data_list):
-    result = []
+// [수정일: 2026-02-03] 모든 로직과 상태를 Composable에서 가져옴
+const {
+  currentQuest,
+  currentStep,
+  userScore,
+  pseudoInput,
+  pythonInput,
+  chatMessages,
+  chatContainer,
+  blocks,
+  selectedBlock,
+  simulationOutput,
+  simulationContainer,
+  isSimulating,
+  isEvaluating,
+  isAsking,
+  currentInterviewIdx,
+  currentInterviewQuestion,
+  interviewResults,
+  step4Options,
+  feedbackModal,
+  editorOptions,
+  finalReviewText,
+  handleStep1Submit,
+  submitStep2,
+  selectBlock,
+  runSimulation,
+  handleStep4Submit,
+  nextStep,
+  goToStep,
+  reloadApp,
+  goToNextQuest,
+  insertSnippet,
+  askCoduck,
+  aiQuests,
+  currentQuestIdx,
+  imageSrc,
+  currentDuckImage,
+  isMuted,
+  toggleMute,
+  synopsisText,
+  skipSynopsis,
+  isPlayingBGM,
+  initAudio,
+  cleanupAudio,
+  integrity,
+  recoveredArtifacts,
+  // [수정일: 2026-02-03] 게이트키퍼 필수 상태 비구조화 할당
+  isConsulted,
+  isApproved
+} = usePseudoProblem(props, emit)
 
-    for data in data_list:
-        # [Step 3-1] 오염된 패킷(노이즈) 식별
-        if not data:
-            # TODO: 데이터가 오염되었으면 건너뛰도록 작성하세요
-            continue
-
-        # [Step 3-2] 정화된 데이터만 결과 저장소에 전송
-        # TODO: data를 result에 추가하세요
-        result.append(data)
-
-    return result`,
-  step4Options: [
-    "저는 단순히 코드를 수선하는 테크니션을 넘어, 붕괴된 시스템 전체의 무결성을 설계하고 제어하는 '아키텍처 복구자'로서의 통찰을 증명했습니다.",
-    "저는 파이썬의 기본적인 문법을 활용하여 리스트 조작이 가능합니다.",
-    "마더 서버는 충분한 시간이 지나면 저절로 정상화될 것입니다."
-  ],
-  step4CorrectIdx: 0
-}
-
-const currentStep = ref(0) // [2026-02-02] 시놉시스(Step 0)부터 시작하도록 수정
-const integrity = ref(0)
-const isMuted = ref(false)
-const interviewIdx = ref(0)
-const pseudoInput = ref('')
-const pythonInput = ref(questData.pythonTemplate)
-const simulationOutput = ref('')
-const isSimulating = ref(false)
-const currentDuckImage = ref(questData.character.image) // [2026-02-02] 캐릭터 기분(이미지) 상태 추가
-const userScore = reactive({ CONCEPT: 0, LOGIC: 0, CODE: 0, ARCH: 0 })
-const feedback = reactive({ visible: false, title: '', desc: '', isSuccess: true })
-const isPlayingBGM = ref(false)
-const synopsisAudio = ref(null)
-
-const editorOptions = {
-  automaticLayout: true,
-  formatOnLine: true,
-  fontSize: 15,
-  fontFamily: "'Fira Code', monospace",
-  minimap: { enabled: false },
-  lineNumbers: 'on',
-  scrollbar: { vertical: 'hidden', horizontal: 'hidden' },
-  scrollBeyondLastLine: false,
-  padding: { top: 20, bottom: 20 },
-  renderLineHighlight: 'all',
-  theme: 'vs-dark'
-}
-
-const toggleMute = () => {
-  isMuted.value = !isMuted.value
-}
-
-const handleInterview = (option) => {
-  if (option.correct) {
-    integrity.value += 10
-    if (interviewIdx.value < questData.interviewQuestions.length - 1) {
-      interviewIdx.value++
-    } else {
-      userScore.CONCEPT = 25
-      integrity.value = 25
-      currentDuckImage.value = questData.character.image // [2026-02-02] 성공 시 기본 이미지로 복구
-      showFeedback("📊 사고 회로 보정 완료", "Coduck of the Nanobanana의 음성 모듈과 사고 기저 레이어가 아키텍처님의 논리에 반응하며 안정을 되찾았습니다.", true)
-    }
-  } else {
-    currentDuckImage.value = '/assets/characters/coduck_sad.png' // [2026-02-02] 오답 시 '나노바나나' Coduck 슬픈 표정 적용
-    showFeedback("🔧 보정 실패", "논리적 불일치로 인해 Coduck의 시스템이 충돌했습니다. 다시 시도하십시오.", false)
-  }
-}
-
-const submitPseudo = () => {
-  if (pseudoInput.value.length < 10) {
-    showFeedback("⚠️ 설계 미달", "의사코드가 너무 짧습니다. 시스템을 복구하기엔 논리적 근거가 부족합니다.", false)
-    return
-  }
-  userScore.LOGIC = 25
-  integrity.value = 50
-  showFeedback("💡 논리 아키텍처 승인", "입력하신 의사코드가 정화 알고리즘으로 채택되었습니다. 이제 실제 코드로 변환하여 주입하십시오.", true)
-}
-
-const runSimulation = () => {
-  isSimulating.value = true
-  simulationOutput.value = "<span class='text-cyan-400 animate-pulse'>[SYSTEM] INITIALIZING RESTORE_ENV...</span><br/>"
-
-  setTimeout(() => {
-    simulationOutput.value += "> Scanning Sector: REBOOT... [OK]<br/>"
-    simulationOutput.value += "> Testing system_restore_pipeline with test_set...<br/>"
-    simulationOutput.value += "> Packet Clean-up Rate: 100%<br/>"
-    simulationOutput.value += "<span class='text-[#A3FF47] font-black'>[COMPLETE] PROTOCOL_EXECUTION_SUCCESSFUL.</span>"
-    isSimulating.value = false
-    userScore.CODE = 25
-    integrity.value = 75
-    showFeedback("🐍 코드 주입 성공", "작성하신 Python 모듈이 Coduck의 연산 장치에 성공적으로 이식되었습니다. 시스템 무결성이 75%까지 상승했습니다.", true)
-  }, 2500)
-}
-
-const handleDeepDive = (idx) => {
-  if (idx === questData.step4CorrectIdx) {
-    userScore.ARCH = 25
-    integrity.value = 100
-    showFeedback("🔐 마더 서버 권한 회복", `완벽합니다! ${userNickname.value}님, 당신은 단순한 개발자가 아닌 진정한 '아키텍처'임을 증명했습니다. 튜토리얼 섹션이 완전히 정화되었습니다.`, true)
-  } else {
-    showFeedback("⚠️ 리부트 거부", "결정적인 가치 정의 오류로 인해 최종 승인이 반려되었습니다. 본질을 다시 생각해보십시오.", false)
-  }
-}
-
-const showFeedback = (title, desc, isSuccess) => {
-  feedback.title = title
-  feedback.desc = desc
-  feedback.isSuccess = isSuccess
-  feedback.visible = true
-}
-
-const nextStep = () => {
-  feedback.visible = false
-  currentDuckImage.value = questData.character.image // [2026-02-02] 단계 전환 시 표정 초기화
-  if (currentStep.value < 5) currentStep.value++
-}
-
-const skipSynopsis = () => {
-  currentStep.value = 1
-  if (synopsisAudio.value) {
-    synopsisAudio.value.pause()
-    isPlayingBGM.value = false
-  }
-}
-
-const reloadApp = () => {
-  currentStep.value = 1
-  integrity.value = 0
-  interviewIdx.value = 0
-  pseudoInput.value = ''
-  pythonInput.value = questData.pythonTemplate
-  simulationOutput.value = ''
-  userScore.CONCEPT = 0
-  userScore.LOGIC = 0
-  userScore.CODE = 0
-  userScore.ARCH = 0
-  currentDuckImage.value = questData.character.image // [2026-02-02] 초기화 시 이미지 복구
-  feedback.visible = false
-}
-
+// [수정일: 2026-02-03] 컴포넌트 마운트/언마운트 시 오디오 관리만 수행
 onMounted(() => {
-  // [2026-02-02] 시놉시스 BGM 초기화
-  synopsisAudio.value = new Audio('/assets/audio/synopsis_bgm.mp3')
-  synopsisAudio.value.loop = true
-  
   if (currentStep.value === 0) {
-    synopsisAudio.value.play().then(() => {
-      isPlayingBGM.value = true
-    }).catch(err => console.log('BGM Autoplay blocked:', err))
+    initAudio()
   }
 })
 
-// [2026-02-02] 단계 변경 감지하여 BGM 종료
-watch(currentStep, (newStep) => {
-  if (newStep !== 0 && synopsisAudio.value) {
-    synopsisAudio.value.pause()
-    isPlayingBGM.value = false
-  }
+onUnmounted(() => {
+  cleanupAudio()
 })
 </script>
 

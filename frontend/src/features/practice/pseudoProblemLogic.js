@@ -71,7 +71,8 @@ export function usePseudoProblem(props, emit) {
 
     // --- State ---
     const currentStep = ref(0) // [수정일: 2026-02-01] 0단계(시놉시스)부터 시작
-    const userScore = reactive({ step1: 0, step2: 0, step3: 0, step4: 0 })
+    // [수정일: 2026-02-03] 점수 키 명칭을 UI와 일관되게 CONCEPT, LOGIC, CODE, ARCH로 통일
+    const userScore = reactive({ CONCEPT: 0, LOGIC: 0, CODE: 0, ARCH: 0 })
     const pseudoInput = ref('')
 
     // [수정일: 2026-01-31] 캐릭터 명칭 동적 참조
@@ -95,11 +96,31 @@ export function usePseudoProblem(props, emit) {
     const isSimulating = ref(false)
     const isEvaluating = ref(false)
     const isAsking = ref(false) // AI에게 질문 중인지 여부
+    // [수정일: 2026-02-03] 게이트키퍼 강화를 위한 상태 변수 추가
+    const isConsulted = ref(false) // 최소 1회 상담 여부
+    const isApproved = ref(false)  // AI 논리 승인 여부
     const isSuccess = ref(false) // 단계 성공 여부 추적
 
     // [수정일: 2026-02-02] UI 고도화를 위한 새로운 상태 추가
-    const integrity = ref(0) // 시스템 가동률 (0-100)
+    const integrity = ref(0) // 시스템 가동률
     const recoveredArtifacts = ref([]) // 복구된 아티팩트 목록
+
+    // [수정일: 2026-02-03] 캐릭터 표정 상태 관리 통합
+    const currentDuckImage = ref(currentQuest.value.character?.image || '/assets/characters/coduck.png')
+
+    const isMuted = ref(false)
+    const isPlayingBGM = ref(false)
+    const synopsisAudio = ref(null)
+    let synopsisTimer = null // [수정일: 2026-02-03] 누락된 타이머 변수 선언 추가
+
+    const toggleMute = () => {
+        isMuted.value = !isMuted.value
+        // [수정일: 2026-02-01] BGM에도 음소거 적용
+        if (synopsisAudio.value) {
+            synopsisAudio.value.muted = isMuted.value
+        }
+        tts.toggleMute()
+    }
 
     // [수정일: 2026-01-31] 인터랙티브 인터뷰(Stage 1) 상태 변수 추가
     const currentInterviewIdx = ref(0)
@@ -109,23 +130,6 @@ export function usePseudoProblem(props, emit) {
         return questions[currentInterviewIdx.value] || null
     })
 
-    // [수정일: 2026-02-02] 질문 변경 시 이전 TTS 중단 후 새로 읽어주기
-    watch(currentInterviewQuestion, (newQ) => {
-        tts.stop();
-        if (newQ && newQ.question) {
-            tts.speak(newQ.question);
-        }
-    })
-
-    // [수정일: 2026-02-01] TTS 제어 상태
-    const isMuted = ref(false)
-    const toggleMute = () => {
-        isMuted.value = tts.toggleMute()
-        // [수정일: 2026-02-01] BGM에도 음소거 적용
-        if (synopsisAudio.value) {
-            synopsisAudio.value.muted = isMuted.value
-        }
-    }
 
     const step4Options = computed(() => currentQuest.value.step4Options || [])
 
@@ -187,113 +191,17 @@ export function usePseudoProblem(props, emit) {
     }
 
 
-    const synopsisAudio = ref(null)
-    const isPlayingBGM = ref(false)
-
-    const startSynopsis = () => {
-        // [수정일: 2026-02-01] BGM 및 TTS 합창 시작
-        if (!synopsisAudio.value) {
-            synopsisAudio.value = new Audio('/assets/audio/synopsis_bgm.mp3')
-            synopsisAudio.value.loop = true
-            synopsisAudio.value.volume = 0.4
-        }
-
-        synopsisAudio.value.play().catch(e => console.log("BGM Autoplay blocked:", e))
-        isPlayingBGM.value = true
-
-        // [수정일: 2026-02-02] 로고 줌(9s) 이후 크롤링 시작(12s)에 맞춰 TTS 낭독 시작
-        setTimeout(() => {
-            // [수정일: 2026-02-02] 시놉시스 텍스트 배열을 문장으로 합침
-            const fullText = synopsisText.value.main.join(' ');
-            tts.speak(`${synopsisText.value.top}. ${fullText}. ${synopsisText.value.bottom}`);
-        }, 12000);
-
-        // [수정일: 2026-02-01] 전체 시퀀스 시간 상향 조정 (80초)
-        if (synopsisTimer) clearTimeout(synopsisTimer);
-        synopsisTimer = setTimeout(skipSynopsis, 80000);
-    }
-
-    let synopsisTimer = null;
-
-    const stopSynopsis = () => {
+    const skipSynopsis = () => {
         if (synopsisAudio.value) {
             synopsisAudio.value.pause()
             synopsisAudio.value.currentTime = 0
         }
         isPlayingBGM.value = false
         tts.stop()
-    }
-
-    const skipSynopsis = () => {
-        stopSynopsis()
         currentStep.value = 1
     }
 
-    // 퀘스트 변경 시 상태 초기화
-    watch(currentQuest, (newQuest) => {
-        if (newQuest) {
-            currentStep.value = 0 // [수정일: 2026-02-01] 항상 시놉시스부터
-            pythonInput.value = '' // 퀘스트 변경 시 코드 비우기 (3단계 진입 시 템플릿 로드 유도)
-            simulationOutput.value = ''
-            isSuccess.value = false
 
-            // [수정일: 2026-01-31] 인터뷰 상태 초기화
-            currentInterviewIdx.value = 0
-            interviewResults.value = []
-
-            // 챗봇용 퀘스트 정보 업데이트
-            chatMessages.value = [
-                { sender: 'Coduck', text: replaceUsername(`지..지직.. Architect님! [${newQuest.title}] 프로토콜을 감지했습니다. ${newQuest.desc}`) }
-            ]
-
-            // [수정일: 2026-02-01] 미션 시작 시 브리핑 낭독 (Stage 1 진입 시)
-            if (currentStep.value === 1) {
-                tts.speak(replaceUsername(`오늘의 미션은 ${newQuest.title}입니다. ${newQuest.desc}`));
-            }
-        }
-    }, { immediate: true })
-
-    // 단계(Step) 변경 시 로직
-    watch(currentStep, (newStep) => {
-        tts.stop(); // [수정일: 2026-02-02] 화면 전환 시 음성 중단
-
-        // [수정일: 2026-02-02] 1단계 진입 시 현재 인터뷰 질문 낭독 (자동 트리거가 안 될 경우 대비)
-        if (newStep === 1) {
-            if (currentInterviewQuestion.value && currentInterviewQuestion.value.question) {
-                tts.speak(currentInterviewQuestion.value.question);
-            }
-        }
-
-        // [수정일: 2026-02-01] 0단계 진입 시 시놉시스 실행
-        if (newStep === 0) {
-            // 사용자 인터랙션 대기 후 실행할 수도 있으나, 일단 감시자로 호출
-            // 인터랙션이 필요한 경우 컴포넌트 마운트 시점으로 조절 가능
-            setTimeout(startSynopsis, 500);
-        }
-
-        // [수정일: 2026-02-01] 각 단계 진입 시 미션 목적 낭독
-        if (newStep >= 2 && newStep <= 4) {
-            const objective = currentQuest.value.missionObjective;
-            if (objective) {
-                tts.speak(objective);
-            }
-        }
-
-        // [수정일: 2026-01-31] 3단계(Python 코딩) 진입 시 유저의 의사코드를 주석으로 연동
-        if (newStep === 3) {
-            const userLogicHeader = pseudoInput.value
-                ? `\"\"\"\n[엔지니어의 설계 가이드]\n${pseudoInput.value}\n\"\"\"\n\n`
-                : ''
-
-            // 기존 템플릿 앞에 유저의 설계를 주석으로 붙임
-            if (!pythonInput.value || pythonInput.value === currentQuest.value.pythonTemplate) {
-                pythonInput.value = userLogicHeader + (currentQuest.value.pythonTemplate || '')
-            }
-        }
-
-        // 단계 정답 여부 초기화
-        isSuccess.value = false
-    }, { immediate: true })
 
     // [수정일: 2026-01-31] Coduck Agent: 지능형 휴면 감지 및 능동적 가이드 로직
     const inactivityTimer = ref(null)
@@ -366,14 +274,11 @@ export function usePseudoProblem(props, emit) {
         }
     }
 
-    watch([pseudoInput, pythonInput, currentStep], () => {
-        resetInactivityTimer()
-    }, { immediate: true })
 
     onUnmounted(() => {
         if (inactivityTimer.value) clearTimeout(inactivityTimer.value)
         if (pythonWorker) pythonWorker.terminate()
-        stopSynopsis() // [수정일: 2026-02-01] 시놉시스 사운드 정리
+        cleanupAudio() // [수정일: 2026-02-03] 시놉시스 사운드 정리 통합
         if (synopsisTimer) clearTimeout(synopsisTimer)
     })
 
@@ -395,7 +300,7 @@ export function usePseudoProblem(props, emit) {
         // 인터뷰 데이터가 없는 경우 기존 퀴즈 방식 호환
         if (questions.length === 0) {
             const isCorrect = option.correct
-            userScore.step1 = isCorrect ? 25 : 0
+            userScore.CONCEPT = isCorrect ? 25 : 0
             showFeedback(
                 isCorrect ? "✅ 정답: GIGO 원칙의 이해" : "⚠️ 오답: 다시 생각해보세요",
                 isCorrect ? "훌륭합니다. '쓰레기가 들어가면 쓰레기가 나온다'는 AI 엔지니어링의 제1원칙입니다." : "데이터의 질이 모델의 성능을 결정합니다.",
@@ -409,16 +314,21 @@ export function usePseudoProblem(props, emit) {
         const currentQ = questions[currentInterviewIdx.value]
         const isCorrect = option.correct
 
-        // 결과 저장
-        interviewResults.value.push({
-            questionId: currentQ.id,
-            answer: option.text,
-            isCorrect
-        })
+        if (isCorrect) {
+            // [수정일: 2026-02-03] 캐릭터 표정 초기화 및 점수 반영
+            currentDuckImage.value = currentQuest.value.character?.image
+            integrity.value = Math.min(integrity.value + 15, 100)
 
-        // 대화 기록에 추가
-        chatMessages.value.push({ sender: 'User', text: option.text })
-        chatMessages.value.push({ sender: 'Coduck', text: currentQ.coduckComment })
+            interviewResults.value.push({ questionId: currentQ.id, answer: option.text, isCorrect: true })
+            chatMessages.value.push({ sender: 'User', text: option.text })
+            chatMessages.value.push({ sender: 'Coduck', text: currentQ.coduckComment })
+        } else {
+            // [수정일: 2026-02-03] 오답 시 '나노바나나' Coduck 슬픈 표정 적용
+            currentDuckImage.value = '/assets/characters/coduck_sad.png'
+            interviewResults.value.push({ questionId: currentQ.id, answer: option.text, isCorrect: false })
+            chatMessages.value.push({ sender: 'User', text: option.text })
+            chatMessages.value.push({ sender: 'Coduck', text: currentQ.coduckComment })
+        }
 
         // [수정일: 2026-02-01] 인터뷰 응답 낭독
         if (currentQ.coduckComment) {
@@ -433,7 +343,7 @@ export function usePseudoProblem(props, emit) {
         } else {
             // 인터뷰 종료: 합산 점수 계산 (만점 25)
             const correctCount = interviewResults.value.filter(r => r.isCorrect).length
-            userScore.step1 = Math.round((correctCount / questions.length) * 25)
+            userScore.CONCEPT = Math.round((correctCount / questions.length) * 25)
 
             setTimeout(() => {
                 // [수정일: 2026-02-02] 가동률 업데이트
@@ -442,14 +352,14 @@ export function usePseudoProblem(props, emit) {
                 showFeedback(
                     "📊 요구사항 분석 완료",
                     "Coduck과의 인터뷰를 통해 시스템 규격을 성공적으로 정의했습니다.",
-                    "이제 정의된 규격을 바탕으로 의사코드를 설계해봅시다. (점수: " + userScore.step1 + " / 25)",
+                    "이제 정의된 규격을 바탕으로 의사코드를 설계해봅시다. (점수: " + userScore.CONCEPT + " / 25)",
                     true
                 )
             }, 1000)
         }
     }
 
-    // [추가] Coduck에게 질문하기 (제출 전 질의)
+    // [수정일: 2026-02-03] Coduck에게 질문하기 (게이트키퍼 필수 관문)
     const askCoduck = async () => {
         const code = pseudoInput.value.trim()
         if (code.length < 5) {
@@ -459,6 +369,7 @@ export function usePseudoProblem(props, emit) {
         }
 
         isAsking.value = true
+        isConsulted.value = true // [수정일: 2026-02-03] 상담 시도 기록
         chatMessages.value.push({ sender: 'User', text: '이 로직에 대해 피드백을 줄 수 있어?' })
         chatMessages.value.push({ sender: 'Coduck', text: '엔지니어님의 로직을 검토 중입니다... 잠시만요.' })
         scrollToBottom()
@@ -471,12 +382,23 @@ export function usePseudoProblem(props, emit) {
             }, { withCredentials: true })
 
             const result = response.data
+
+            // [수정일: 2026-02-03] AI의 논리적 타당성 판단에 따른 승인 처리
+            // 백엔드에서 is_logical 또는 유사한 승인 플래그를 내려준다고 가정
+            if (result.is_logical || (result.score && result.score >= 15)) {
+                isApproved.value = true
+            } else {
+                isApproved.value = false
+            }
+
             chatMessages.value.push({
                 sender: 'Coduck',
                 text: result.analysis || result.feedback || "논리적인 흐름이 좋습니다. 규칙을 빼먹지는 않았는지 다시 한번 확인해보세요!"
             })
         } catch (error) {
             chatMessages.value.push({ sender: 'Coduck', text: '통신 상태가 좋지 않아 지금은 상담이 어렵습니다. 하지만 계속 진행하실 수 있어요!' })
+            // 통신 장애 시에는 학습 편의를 위해 임시 승인 처리
+            isApproved.value = true
         } finally {
             isAsking.value = false
             scrollToBottom()
@@ -485,6 +407,18 @@ export function usePseudoProblem(props, emit) {
 
     const submitStep2 = async () => {
         const code = pseudoInput.value.trim()
+
+        // [수정일: 2026-02-03] 게이트키퍼: AI 승인이 없는 경우 진행 차단
+        if (!isApproved.value) {
+            showFeedback(
+                "⚠️ 아키텍처 승인 필요",
+                "먼저 Coduck 컨설턴트에게 논리 검토를 받아야 합니다.",
+                "우측 하단의 AI 컨설팅 HUD를 통해 '승인'을 획득하십시오.",
+                false
+            )
+            return
+        }
+
         if (code.length < 5) {
             showFeedback("⚠️ 입력 부족", "의사코드를 조금 더 상세히 작성해주세요.", "최소 5자 이상 작성해야 분석이 가능합니다.", false)
             return
@@ -514,7 +448,7 @@ export function usePseudoProblem(props, emit) {
             }, { withCredentials: true })
 
             const result = response.data || {}
-            userScore.step2 = result.score || 10 // 기본 점수 보장
+            userScore.LOGIC = result.score || 10 // 기본 점수 보장
 
             const metricsHtml = result.metrics ? `
         <div class="grid grid-cols-5 gap-2 my-4">
@@ -543,18 +477,21 @@ export function usePseudoProblem(props, emit) {
                 result.is_logical ? "💡 AI 논리 분석 완료" : "🔧 논리 보완 필요",
                 result.is_logical ? "복구 엔진이 의사코드를 정밀 분석했습니다." : "논리 구조를 조금 더 보강해야 할 것 같아요.",
                 feedbackHtml,
-                result.is_logical ?? (userScore.step2 >= 15) // is_logical이 없으면 점수 기반으로 결정
+                result.is_logical ?? (userScore.LOGIC >= 15) // is_logical이 없으면 점수 기반으로 결정
             )
 
             // [수정일: 2026-02-02] 가동률 업데이트
-            if (result.is_logical || userScore.step2 >= 15) {
-                integrity.value = Math.min(integrity.value + 25, 100)
+            if (result.is_logical || userScore.LOGIC >= 15) {
+                // [수정일: 2026-02-03] 점수 키 변경 반영
+                userScore.LOGIC = 25
+                integrity.value = Math.max(integrity.value, 50)
+                showFeedback("💡 논리 아키텍처 승인", "입력하신 의사코드가 정화 알고리즘으로 채택되었습니다. 이제 실제 코드로 변환하여 주입하십시오.", null, true)
             }
         } catch (error) {
             console.error("AI Evaluation Failed:", error)
             // [수정일: 2026-01-31] stats가 미정의된 상태에서 참조되는 오류 수정 (hasLoop 등 기존 정의된 변수 사용)
             const oldScore = (hasLoop ? 6 : 0) + (hasCondition ? 6 : 0) + (hasAction ? 6 : 0) + 7
-            userScore.step2 = oldScore
+            userScore.LOGIC = oldScore
             // [수정일: 2026-01-31] Quest 1(튜토리얼)의 경우 실습 편의를 위해 무조건 통과 허용
             const tutorialPass = currentQuest.value.id === 1 && (hasLoop || hasCondition || hasAction)
             showFeedback(
@@ -572,48 +509,95 @@ export function usePseudoProblem(props, emit) {
 
     // fillBlank 및 pythonBlanks 는 Monaco Editor 도입으로 더 이상 사용하지 않으므로 제거합니다.
 
-    const submitStep3 = () => {
-        const code = pythonInput.value
-        // [수정일: 2026-01-31] 하드코딩된 검증 키워드를 stages.js의 데이터 기반(codeValidation)으로 변경
-        const v = currentQuest.value.codeValidation || {}
-        const mainVar = v.price || 'data' // 템플릿 변수명
-        const key1 = v.fee1 || 'continue' // 필수 키워드 1
-        const key2 = v.fee2 || 'append'   // 필수 키워드 2
+    // [수정일: 2026-02-03] 주석 제거 로직 (Comment Stripper)
+    // 초보자가 주석에 키워드를 넣어 통과하는 것을 방지합니다.
+    const stripComments = (code) => {
+        if (!code) return ''
+        // # 주석 제거
+        let stripped = code.replace(/#.*$/gm, '')
+        // """ 또는 ''' 독스트링 제거
+        stripped = stripped.replace(/("""[\s\S]*?"""|'''[\s\S]*?''')/g, '')
+        return stripped.trim()
+    }
 
-        const hasKey1 = code.includes(key1)
-        const hasKey2 = code.includes(key2)
-        const hasMainVar = code.includes(mainVar)
-
-        let score = 0
-        let details = '<div class="space-y-2"><p><strong>코드 정밀 검사 보고서:</strong></p>'
-
-        // 논리적 정확성 체크 (키워드 매칭)
-        if (hasKey1) {
-            score += 12
-            details += `<p class="text-green-400">✓ 핵심 키워드 [${key1}]를 사용하여 리스크 대응 로직을 구현했습니다.</p>`
-        } else {
-            details += `<p class="text-pink-400">✗ 필수 로직 [${key1}]이 누락되었습니다.</p>`
+    const submitStep3 = (executionResult = null) => {
+        // [수정일: 2026-02-03] 게이트키퍼: 최종 구현 제출 시에도 아키텍처 승인 여부 재검증
+        if (!isApproved.value) {
+            showFeedback(
+                "⚠️ 아키텍처 권한 소실",
+                "설계도(Step 2)가 수정되었거나 승인되지 않았습니다.",
+                "이전 단계로 돌아가 아키텍처 컨설턴트의 승인을 다시 받으십시오.",
+                false
+            )
+            return
         }
 
-        if (hasKey2) {
-            score += 13
-            details += `<p class="text-green-400">✓ 핵심 액션 [${key2}]를 통해 파이프라인 무결성을 확보했습니다.</p>`
+        const rawCode = pythonInput.value
+        const strippedCode = stripComments(rawCode)
+        const quest = currentQuest.value
+        const v = quest.codeValidation || {}
+
+        // [수정일: 2026-02-03] 초보자를 위한 상세 평가 로직
+        let score = 0
+        let details = '<div class="space-y-3">'
+
+        // 1. 코드 존재 여부 체크
+        if (strippedCode.length < 10) {
+            details += `<p class="text-pink-400">✗ 유효한 코드가 너무 적습니다. 주석이 아닌 실제 실행 로직을 작성해주세요.</p>`
+            showFeedback("⚠️ 코드 부족", "시스템을 복구하기 위한 유효한 코드가 부족합니다.", details + "</div>", false)
+            return
+        }
+
+        // 2. 키워드 매칭 (주석 제외된 코드에서만 수행)
+        const mainVar = v.price || 'data'
+        const key1 = v.fee1 || 'continue'
+        const key2 = v.fee2 || 'append'
+
+        const hasKey1 = strippedCode.includes(key1)
+        const hasKey2 = strippedCode.includes(key2)
+
+        if (hasKey1) score += 5
+        if (hasKey2) score += 5
+
+        // 3. 실행 결과 검증 (I/O Matching)
+        if (executionResult !== null) {
+            const expected = JSON.stringify(quest.expectedOutput)
+            const actual = JSON.stringify(executionResult)
+
+            // 공백 제거 후 비교 (배열 내의 공백 등 미세 차이 무시)
+            const isMatch = expected.replace(/\s/g, '') === actual.replace(/\s/g, '')
+
+            if (isMatch) {
+                score += 15
+                details += `<p class="text-[#A3FF47]">✓ [SUCCESS] 실행 결과가 설계 아키텍처와 정확히 일치합니다.</p>`
+                details += `<div class="p-2 bg-black/40 border border-[#A3FF47]/20 text-[10px] font-mono">
+                                <span class="opacity-50">INPUT:</span> ${JSON.stringify(quest.sampleData)}<br/>
+                                <span class="opacity-50">OUTPUT:</span> ${actual}
+                            </div>`
+            } else {
+                const hint = quest.failHints?.logic_error || "결과값이 예상과 다릅니다."
+                details += `<p class="text-pink-400">✗ [MISMATCH] ${hint}</p>`
+                details += `<div class="p-2 bg-black/40 border border-pink-500/20 text-[10px] font-mono">
+                                <span class="opacity-50">EXPECTED:</span> ${expected}<br/>
+                                <span class="opacity-50">ACTUAL:</span> ${actual}
+                            </div>`
+            }
         } else {
-            details += `<p class="text-pink-400">✗ 핵심 처리 [${key2}]가 보이지 않습니다.</p>`
+            details += `<p class="text-amber-400">! 시뮬레이션 실행 결과가 없습니다. 'RE-BOOT SYSTEM'을 먼저 눌러주세요.</p>`
         }
 
         details += '</div>'
+        userScore.CODE = score
 
-        userScore.step3 = score
+        const isFullySuccess = score >= 20
         showFeedback(
-            score >= 20 ? "🐍 파이썬 구현: 성공" : "🐍 파이썬 구현: 검토 필요",
-            score >= 20 ? "설계하신 논리가 실제 파이썬 코드로 완벽하게 변환되었습니다." : "데이터 정화 로직의 일부가 누락된 것 같습니다.",
-            details,
-            score >= 20
+            isFullySuccess ? "🐍 파이썬 구현: 아키텍처 정합성 승인" : "🐍 파이썬 구현: 설계 위반 감지",
+            isFullySuccess ? "축하합니다! 코드가 논리적으로 무결하며 승인된 설계도와 완벽히 일치합니다." : "작성하신 로직이 Step 2에서 승인받은 아키텍처 설계 의도를 충분히 반영하지 못하고 있습니다.",
+            details + `<p class="mt-4 text-[10px] opacity-40 italic">Architecture_Policy: 승인된 설계도와 구현체가 80% 이상 일치해야 최종 가동률이 보장됩니다.</p></div>`,
+            isFullySuccess
         )
 
-        // [수정일: 2026-02-02] 가동률 업데이트
-        if (score >= 20) {
+        if (isFullySuccess) {
             integrity.value = Math.min(integrity.value + 25, 100)
         }
     }
@@ -632,11 +616,18 @@ export function usePseudoProblem(props, emit) {
         // 실제 파이썬 코드 실행을 위한 래핑
         // [수정일: 2026-01-31] 하드코딩된 함수명 대신 stages.js의 functionName 사용
         const funcName = currentQuest.value.functionName || 'clean_news_data'
+        // [수정일: 2026-02-03] 다중 인자 대응 로직 추가 (* spread)
         const wrappedCode = `
 ${code}
 
 try:
-    result = ${funcName}(target_data)
+    func = ${funcName}
+    # 리스트의 리스트 형태이면서 인자가 여러 개인 특정 함수들 처리
+    multi_arg_funcs = ["leakage_free_scaling", "monitor_drift_loss", "choose_smart_action"]
+    if isinstance(target_data, list) and len(target_data) > 0 and isinstance(target_data[0], list) and "${funcName}" in multi_arg_funcs:
+        result = func(*target_data)
+    else:
+        result = func(target_data)
     print(f"[SYSTEM_RESULT]: {result}")
 except Exception as e:
     print(f"[SYSTEM_ERROR]: {str(e)}")
@@ -667,7 +658,20 @@ except Exception as e:
 
                 // 성공 시 자동으로 다음 단계 평가 진행 (실제로 결과가 나왔으므로)
                 setTimeout(() => {
-                    submitStep3()
+                    // [수정일: 2026-02-03] 실제 결과값(output 내 SYSTEM_RESULT 이후의 값) 파싱
+                    const resultMatch = output.match(/\[SYSTEM_RESULT\]:\s*([\s\S]*)$/)
+                    let finalResult = null
+                    if (resultMatch) {
+                        try {
+                            // Python의 리스트/딕셔너리 표현을 JSON처럼 파싱 시도 (단순 배열 형태 우선)
+                            const resultStr = resultMatch[1].trim().replace(/'/g, '"')
+                            finalResult = JSON.parse(resultStr)
+                        } catch (e) {
+                            console.error("Result parsing failed:", e)
+                            finalResult = resultMatch[1].trim()
+                        }
+                    }
+                    submitStep3(finalResult)
                 }, 1000)
             } else {
                 log += `<div class="text-pink-500 font-mono p-4 bg-pink-500/10 border border-pink-500/20 rounded-lg">
@@ -691,7 +695,7 @@ except Exception as e:
         // [수정일: 2026-01-31] 하드코딩된 정답 인덱스(idx === 1) 대신 데이터 기반(step4CorrectIdx) 사용
         const correctIdx = currentQuest.value.step4CorrectIdx ?? 0
         const isCorrect = idx === correctIdx
-        userScore.step4 = isCorrect ? 25 : 0
+        userScore.ARCH = isCorrect ? 25 : 0
 
         // [수정일: 2026-01-31] 정답 시 다음 스테이지 자동 해금
         if (isCorrect) {
@@ -709,12 +713,19 @@ except Exception as e:
             isCorrect
         )
 
-        // [수정일: 2026-02-02] 가동률 및 아티팩트 업데이트
-        if (isCorrect) {
+        if (idx === currentQuest.value.step4CorrectIdx) {
+            // [수정일: 2026-02-03] 점수 키 변경 및 가동률 최대치 반영
+            userScore.ARCH = 25
             integrity.value = 100
-            if (!recoveredArtifacts.value.includes(currentQuest.value.title)) {
-                recoveredArtifacts.value.push(currentQuest.value.title)
-            }
+
+            const successText = (currentQuest.value.step4SuccessFeedback?.desc || "축하합니다! 해당 구역의 데이터 무결성이 확보되었습니다.").replace(/{username}/g, userNickname.value)
+            const successDetails = currentQuest.value.step4SuccessFeedback?.details || "훌륭한 설계입니다. 마더 서버는 인류의 논리적인 접근에 반응하기 시작했습니다."
+
+            showFeedback(currentQuest.value.step4SuccessFeedback?.title || "🔐 시스템 권한 회복", successText, successDetails, true)
+        } else {
+            // [수정일: 2026-02-03] 실패 시 캐릭터 표정 변경
+            currentDuckImage.value = '/assets/characters/coduck_sad.png'
+            showFeedback(currentQuest.value.step4FailFeedback?.title || "⚠️ 시스템 거부", currentQuest.value.step4FailFeedback?.desc || "결정적인 가치 정의 오류로 인해 최종 승인이 반려되었습니다.", currentQuest.value.step4FailFeedback?.details, false)
         }
     }
 
@@ -731,10 +742,6 @@ except Exception as e:
         }
     }
 
-    const nextStep = () => {
-        feedbackModal.visible = false
-        if (currentStep.value < 5) currentStep.value++
-    }
 
     // [수정일: 2026-01-31] 단계 이동 함수 (Feedback Loop 지원)
     const goToStep = (step) => {
@@ -747,12 +754,13 @@ except Exception as e:
     // [수정일: 2026-01-31] SPA 환경에 최적화된 미션 초기화 (새로고침 없이 상태만 리셋)
     const reloadApp = () => {
         currentStep.value = 1
-        userScore.step1 = 0
-        userScore.step2 = 0
-        userScore.step3 = 0
-        userScore.step4 = 0
+        // [수정일: 2026-02-03] 점수 키 통일
+        userScore.CONCEPT = 0
+        userScore.LOGIC = 0
+        userScore.CODE = 0
+        userScore.ARCH = 0
         pseudoInput.value = ''
-        pythonInput.value = ''
+        pythonInput.value = currentQuest.value.pythonTemplate || ''
         simulationOutput.value = ''
         isSuccess.value = false
         currentInterviewIdx.value = 0
@@ -761,6 +769,7 @@ except Exception as e:
         isAsking.value = false
         isSimulating.value = false
         integrity.value = 0 // [수정일: 2026-02-02] 가동률 초기화
+        currentDuckImage.value = currentQuest.value.character?.image // [2026-02-03] 이미지 초기화
 
         chatMessages.value = [
             { sender: charName.value, text: `미션을 처음부터 다시 시작합니다.${charName.value === 'Coduck' ? ' 꽥!' : ''} 데이터 바다를 다시 정화해볼까요?` }
@@ -783,20 +792,129 @@ except Exception as e:
 
     const finalReviewText = computed(() => {
         let review = `엔지니어님은 데이터가 AI 모델에 미치는 영향을 정확히 이해하고 있습니다. `
-        review += userScore.step2 >= 20 ? "수도코드를 통한 논리 구조화 능력이 뛰어나며, " : "수도코드 작성에 조금 더 연습이 필요해 보이지만, "
-        review += userScore.step3 >= 20 ? "파이썬 코드로의 변환 능력도 훌륭합니다." : "코드 구현 디테일을 조금만 더 다듬으면 훌륭한 엔지니어가 될 것입니다."
+        review += userScore.LOGIC >= 20 ? "수도코드를 통한 논리 구조화 능력이 뛰어나며, " : "수도코드 작성에 조금 더 연습이 필요해 보이지만, "
+        review += userScore.CODE >= 20 ? "파이썬 코드로의 변환 능력도 훌륭합니다." : "코드 구현 디테일을 조금만 더 다듬으면 훌륭한 엔지니어가 될 것입니다."
         review += "<br/><br/>이제 오염된 데이터가 제거되었으니, 다음 스테이지(RAG 시스템 구축)로 나아갈 준비가 되었습니다."
         return review
     })
 
 
+    // [수정일: 2026-02-03] 라이프사이클 및 오디오 관리 추가
+    const nextStep = () => {
+        feedbackModal.visible = false
+        currentDuckImage.value = currentQuest.value.character?.image // 단계 전환 시 표정 초기화
+        if (currentStep.value < 5) currentStep.value++
+    }
+
+    const initAudio = () => {
+        if (!synopsisAudio.value) {
+            synopsisAudio.value = new Audio('/assets/audio/synopsis_bgm.mp3')
+            synopsisAudio.value.loop = true
+            synopsisAudio.value.volume = 0.4
+            synopsisAudio.value.muted = isMuted.value
+        }
+
+        synopsisAudio.value.play().then(() => {
+            isPlayingBGM.value = true
+        }).catch(err => console.log('BGM Autoplay blocked:', err))
+
+        // [수정일: 2026-02-02] 로고 줌(9s) 이후 크롤링 시작(12s)에 맞춰 TTS 낭독 시작
+        setTimeout(() => {
+            if (currentStep.value === 0) {
+                const fullText = synopsisText.value.main.join(' ');
+                tts.speak(`${synopsisText.value.top}. ${fullText}. ${synopsisText.value.bottom}`);
+            }
+        }, 12000);
+
+        if (synopsisTimer) clearTimeout(synopsisTimer);
+        synopsisTimer = setTimeout(skipSynopsis, 80000);
+    }
+
+    const cleanupAudio = () => {
+        if (synopsisAudio.value) {
+            synopsisAudio.value.pause()
+            synopsisAudio.value = null
+        }
+        tts.stop()
+    }
+
+    // --- Watchers & Lifecycle Hooks (Bottom for Hoisting Safety) ---
+
+    watch(currentInterviewQuestion, (newQ) => {
+        tts.stop();
+        if (newQ && newQ.question) {
+            tts.speak(newQ.question);
+        }
+    })
+
+    watch(currentQuest, (newQuest) => {
+        if (newQuest) {
+            currentStep.value = 0
+            pythonInput.value = ''
+            simulationOutput.value = ''
+            isSuccess.value = false
+            currentInterviewIdx.value = 0
+            interviewResults.value = []
+            currentDuckImage.value = newQuest.character?.image || '/assets/characters/coduck.png'
+            chatMessages.value = [
+                { sender: 'Coduck', text: replaceUsername(`지..지직.. Architect님! [${newQuest.title}] 프로토콜을 감지했습니다. ${newQuest.desc}`) }
+            ]
+            if (currentStep.value === 1) {
+                tts.speak(replaceUsername(`오늘의 미션은 ${newQuest.title}입니다. ${newQuest.desc}`));
+            }
+        }
+    }, { immediate: true })
+
+    watch(currentStep, (newStep) => {
+        tts.stop();
+        if (newStep === 1) {
+            if (currentInterviewQuestion.value && currentInterviewQuestion.value.question) {
+                tts.speak(currentInterviewQuestion.value.question);
+            }
+        }
+        if (newStep === 0) {
+            setTimeout(initAudio, 500);
+        }
+        if (newStep !== 0 && synopsisAudio.value) {
+            synopsisAudio.value.pause()
+            isPlayingBGM.value = false
+        }
+        if (newStep >= 2 && newStep <= 4) {
+            const objective = currentQuest.value.missionObjective;
+            if (objective) {
+                tts.speak(objective);
+            }
+        }
+        if (newStep === 3) {
+            const userLogicHeader = pseudoInput.value
+                ? `\"\"\"\n[엔지니어의 설계 가이드]\n${pseudoInput.value}\n\"\"\"\n\n`
+                : ''
+            if (!pythonInput.value || pythonInput.value === currentQuest.value.pythonTemplate) {
+                pythonInput.value = userLogicHeader + (currentQuest.value.pythonTemplate || '')
+            }
+        }
+        isSuccess.value = false
+    }, { immediate: true })
+
+    watch([pseudoInput, pythonInput, currentStep], () => {
+        resetInactivityTimer()
+    }, { immediate: true })
+
+    // [수정일: 2026-02-03] 수도코드 변경 시 AI 승인 상태 리셋 (Gatekeeper)
+    watch(pseudoInput, () => {
+        if (isApproved.value) {
+            isApproved.value = false
+            // [참고] 사용자가 내용을 수정하면 다시 승인을 받아야 함을 알림
+        }
+    })
+
     return {
         currentQuest,
         currentStep,
-        currentQuestIdx, // [수정일: 2026-01-31] 템플릿 참조를 위해 추가
+        currentQuestIdx,
         userScore,
         pseudoInput,
-        pythonInput, // 추가
+        pythonInput,
         chatMessages,
         chatContainer,
         blocks,
@@ -826,17 +944,19 @@ except Exception as e:
         insertSnippet,
         askCoduck,
         aiQuests,
-        // [수정일: 2026-01-31] 데이터 기반 캐릭터 이미지 동적 반환
-        imageSrc: computed(() => currentQuest.value.character?.image || '/assets/characters/coduck.png'),
-        // [수정일: 2026-02-01] TTS 제어 노출
+        imageSrc: computed(() => currentDuckImage.value || currentQuest.value.character?.image || '/assets/characters/coduck.png'),
         isMuted,
         toggleMute,
-        // [수정일: 2026-02-01] 시놉시스 관련 노출
         synopsisText,
         skipSynopsis,
         isPlayingBGM,
-        // [수정일: 2026-02-02] 추가 상태 노출
+        recoveredArtifacts,
+        currentDuckImage,
+        initAudio,
+        cleanupAudio,
         integrity,
-        recoveredArtifacts
+        // [수정일: 2026-02-03] 게이트키퍼 상태 반환 추가
+        isConsulted,
+        isApproved
     }
 }

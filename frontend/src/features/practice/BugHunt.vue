@@ -24,21 +24,6 @@
       </div>
     </transition>
 
-    <!-- 버그 수정 알림 팝업 (중앙 → 대화창 애니메이션) -->
-    <div
-      v-if="showAlertPopup"
-      class="alert-popup-overlay"
-      @click="dismissAlertPopup"
-    >
-      <div
-        class="alert-popup-content"
-        :class="[alertPopupPhase]"
-      >
-        <div class="alert-popup-icon">⚠️</div>
-        <div class="alert-popup-message">{{ alertPopupMessage }}</div>
-        <div class="alert-popup-hint">화면을 터치하면 닫힙니다</div>
-      </div>
-    </div>
 
     <!-- 스탯 패널 -->
     <transition name="fade">
@@ -159,51 +144,21 @@
             <p class="scenario-text">{{ currentProgressiveMission?.scenario }}</p>
           </div>
 
-          <div class="side-controls">
-            <template v-if="currentProgressivePhase === 'debug'">
-            </template>
-            
-            <!-- PHASE 3: EXPLAIN은 팝업으로 표시됨 -->
-            <!-- CHAT INTERFACE -->
-            <!-- CHAT INTERFACE -->
-            <div
-              class="chat-interface neon-border"
-              :class="{ 'mission-log-active': currentProgressivePhase === 'explain' }"
-              ref="chatInterfaceRef"
-            >
-              <div class="chat-header">
-                <span class="chat-icon">💬</span>
-                <span class="chat-title">MISSION LOG</span>
-              </div>
-              <div class="chat-messages" ref="chatMessagesRef">
-                <div 
-                  v-for="(msg, idx) in chatMessages" 
-                  :key="idx" 
-                  class="chat-message"
-                  :class="[msg.role, { 'new-message': msg.isNew }]"
-                >
-                  <div class="message-avatar" v-if="msg.role === 'system'">🤖</div>
-                  <div class="message-content" :class="{ 'flash-bubble': msg.isNew && msg.role === 'system' }">
-                    {{ msg.text }}
-                  </div>
-                  <div class="message-avatar" v-if="msg.role === 'user'">👤</div>
-                </div>
-              </div>
-              <div class="chat-input-area">
-                <input 
-                  v-model="chatInput" 
-                  @keyup.enter="handleChatSubmit"
-                  placeholder="Type your message..."
-                  :disabled="currentProgressivePhase !== 'explain'"
-                  class="chat-input-box"
-                />
-                <button 
-                  class="chat-send-btn" 
-                  @click="handleChatSubmit"
-                  :disabled="!chatInput.trim() || currentProgressivePhase !== 'explain'"
-                >
-                  SEND
-                </button>
+          <!-- 단서창 (문제 관련 로그/힌트 표시) -->
+          <div class="clue-panel neon-border">
+            <div class="clue-header">
+              <span class="clue-icon">🔍</span>
+              <span class="clue-title">CLUES & LOGS</span>
+            </div>
+            <div class="clue-content" ref="clueContentRef">
+              <div
+                v-for="(clue, idx) in clueMessages"
+                :key="idx"
+                class="clue-item"
+                :class="{ 'new-clue': clue.isNew }"
+              >
+                <span class="clue-badge">{{ clue.type }}</span>
+                <span class="clue-text">{{ clue.text }}</span>
               </div>
             </div>
           </div>
@@ -411,58 +366,78 @@
           </div>
 
           <div class="editor-body" ref="editorBodyRef">
-            <!-- 전체 코드를 3개 섹션으로 표시 -->
+            <!-- 현재 스텝만 표시 -->
             <div class="code-sections">
               <div
                 v-for="step in 3"
+                v-show="Number(step) === Number(currentProgressiveStep)"
                 :key="'section-' + step"
                 ref="sectionRefs"
-                class="code-section"
-                :class="{
-                  locked: Number(step) > Number(currentProgressiveStep) && !progressiveCompletedSteps.includes(Number(step)),
-                  active: Number(step) === Number(currentProgressiveStep),
-                  completed: progressiveCompletedSteps.includes(Number(step))
-                }"
+                class="code-section-wrapper"
               >
-                <div class="section-header">
-                  <span class="section-label">
-                    <span class="step-num">{{ step }}</span>
-                    {{ getStepData(step)?.title }}
-                  </span>
-                  <span class="section-status">
-                    <span v-if="progressiveCompletedSteps.includes(step)" class="status-fixed">✅ FIXED</span>
-                    <span v-else-if="step === currentProgressiveStep" class="status-current">🔧 CURRENT</span>
-                    <span v-else class="status-locked">🔒 LOCKED</span>
-                  </span>
-                </div>
-
-                <!-- 잠긴 섹션 -->
-                <div v-if="Number(step) > Number(currentProgressiveStep) && !progressiveCompletedSteps.includes(Number(step))" class="locked-overlay">
-                  <div class="lock-content">
-                    <span class="lock-icon">🔒</span>
-                    <span class="lock-text">Step {{ Number(step) - 1 }} 완료 필요</span>
+                <!-- 디버깅 페이즈: 코드 에디터 표시 -->
+                <div v-if="currentProgressivePhase === 'debug' && !progressiveCompletedSteps.includes(Number(step))" class="code-section active">
+                  <div class="section-header">
+                    <span class="section-label">
+                      <span class="step-num">{{ step }}</span>
+                      {{ getStepData(step)?.title }}
+                    </span>
+                    <span class="section-status">
+                      <span class="status-current">🔧 CURRENT</span>
+                    </span>
                   </div>
-                  <pre class="blurred-code">{{ getStepData(step)?.buggy_code || 'Loading code...' }}</pre>
-                </div>
 
-                <!-- 편집 가능한 섹션 (현재 스텝) -->
-                <div v-else-if="Number(step) === Number(currentProgressiveStep)" class="code-editor-wrapper active-wrapper monaco-active-wrapper">
-                  <vue-monaco-editor
-                    v-model:value="progressiveStepCodes[Number(step)]"
-                    theme="vs-dark"
-                    language="python"
-                    :options="editorOptions"
-                    @mount="handleEditorMount"
-                    class="bughunt-monaco-editor"
-                  />
-                </div>
-
-                <!-- 완료된 섹션 -->
-                <div v-else class="code-editor-wrapper completed-wrapper">
-                  <div class="line-numbers">
-                    <div v-for="n in getLineCount(progressiveStepCodes[Number(step)])" :key="n" class="line-num">{{ n }}</div>
+                  <!-- 편집 가능한 섹션 (현재 스텝) -->
+                  <div class="code-editor-wrapper active-wrapper monaco-active-wrapper">
+                    <vue-monaco-editor
+                      v-model:value="progressiveStepCodes[Number(step)]"
+                      theme="vs-dark"
+                      language="python"
+                      :options="editorOptions"
+                      @mount="handleEditorMount"
+                      class="bughunt-monaco-editor"
+                    />
                   </div>
-                  <pre class="section-code readonly game-code">{{ progressiveStepCodes[Number(step)] || 'Code not found' }}</pre>
+                </div>
+
+                <!-- 설명 페이즈: 셔터 + 설명 입력창 -->
+                <div v-else-if="currentProgressivePhase === 'explain'" class="code-section explaining">
+                  <!-- 셔터 애니메이션 -->
+                  <div class="shutter-curtain" :class="{ 'shutter-down': currentProgressivePhase === 'explain' }">
+                    <div class="shutter-bar" v-for="n in 8" :key="n" :style="{ animationDelay: (n * 0.05) + 's' }"></div>
+                  </div>
+
+                  <!-- 설명 입력창 (셔터 뒤에 표시) -->
+                  <div class="explanation-section">
+                    <div class="explanation-header">
+                      <div class="success-icon">🎯</div>
+                      <h3>Bug {{ currentProgressiveStep }} Fixed!</h3>
+                      <p class="success-subtitle">{{ getCurrentStepData()?.title }}</p>
+                    </div>
+                    <div class="explanation-body">
+                      <label class="explanation-label">
+                        <span class="label-icon">💭</span>
+                        어떤 전략으로 이 버그를 해결했나요?
+                      </label>
+                      <textarea
+                        v-model="chatInput"
+                        @keydown.ctrl.enter="handleChatSubmit"
+                        placeholder="버그 해결 전략을 작성해주세요...&#10;&#10;• 어떤 문제를 발견했나요?&#10;• 왜 이렇게 수정했나요?&#10;• 어떤 효과가 있나요?"
+                        class="explanation-textarea"
+                        rows="6"
+                      ></textarea>
+                      <div class="explanation-hint">💡 Ctrl + Enter로 빠르게 제출</div>
+                    </div>
+                    <div class="explanation-footer">
+                      <button
+                        class="submit-explanation-btn"
+                        @click="handleChatSubmit"
+                        :disabled="!chatInput.trim()"
+                      >
+                        📝 전략 제출하기
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1136,9 +1111,9 @@ const codeSubmitFailCount = ref(0);
 
 // 설명 및 평가 데이터
 const stepExplanations = reactive({ 1: '', 2: '', 3: '' });
-const chatMessages = ref([]);
+const clueMessages = ref([]); // 단서 메시지 (로그, 힌트 등)
 const chatInput = ref('');
-const chatMessagesRef = ref(null);
+const clueContentRef = ref(null);
 const hasNewMessage = ref(false);
 
 const stepStartTime = ref(null);
@@ -1266,9 +1241,11 @@ function startProgressiveMission(mission, index, startAtStep = 1) {
   // 바로 디버깅 페이즈 시작
   startDebugPhase();
 
-  // 채팅 초기화
-  chatMessages.value = [
-    { role: 'system', text: '💀 버그 발견! 사냥을 시작하세요!', isNew: false }
+  // 단서 초기화
+  clueMessages.value = [
+    { type: 'INFO', text: `프로젝트 "${mission.project_title}" 로드 완료`, isNew: false },
+    { type: 'WARN', text: `발견된 버그: 3개 | 현재: Step ${startAtStep}`, isNew: false },
+    { type: 'HINT', text: getCurrentStepData()?.hint || '코드를 주의깊게 살펴보세요...', isNew: false }
   ];
 
   // 버그 애니메이션 시작
@@ -1295,49 +1272,36 @@ function startDebugPhase() {
   });
 }
 
-// 채팅 메시지 추가 헬퍼
-function addChatMessage(role, text) {
-  const isSystem = role === 'system';
-  
-  chatMessages.value.push({ 
-    role, 
-    text, 
-    isNew: true 
+// 단서 메시지 추가 헬퍼
+function addClue(type, text) {
+  clueMessages.value.push({
+    type, // 'INFO', 'WARN', 'ERROR', 'SUCCESS', 'HINT'
+    text,
+    isNew: true
   });
-  
-  if (isSystem) {
-    hasNewMessage.value = true;
-    scheduleTimeout(() => { hasNewMessage.value = false; }, 500);
-  }
 
   // DOM 업데이트 후 스크롤
   nextTick(() => {
-    scrollToBottom();
+    scrollClues();
   });
-}
 
-// 중앙 팝업 표시 후 대화창으로 날아가는 애니메이션
-function showAlertWithAnimation(message) {
-  alertPopupMessage.value = message;
-  alertPopupPhase.value = 'shake';
-  showAlertPopup.value = true;
-}
-
-// 팝업 닫기 (터치)
-function dismissAlertPopup() {
-  if (!showAlertPopup.value || alertPopupPhase.value === 'fly') return;
-
-  // 날아가는 애니메이션 시작
-  alertPopupPhase.value = 'fly';
-
-  // 0.8초 후 팝업 숨기고 대화창에 메시지 추가
+  // 짧은 시간 후 isNew 제거
   scheduleTimeout(() => {
-    showAlertPopup.value = false;
-    const message = alertPopupMessage.value;
-    alertPopupPhase.value = '';
-    alertPopupMessage.value = '';
-    addChatMessage('system', `⚠️ ${message}`);
-  }, 800);
+    const lastClue = clueMessages.value[clueMessages.value.length - 1];
+    if (lastClue) lastClue.isNew = false;
+  }, 1000);
+}
+
+// 단서창 스크롤
+function scrollClues() {
+  if (clueContentRef.value) {
+    scheduleTimeout(() => {
+      clueContentRef.value.scrollTo({
+        top: clueContentRef.value.scrollHeight,
+        behavior: 'smooth'
+      });
+    }, 50);
+  }
 }
 
 // 다음 문제로 이동 (설명 완료 후)
@@ -1350,45 +1314,35 @@ function moveToNextStep() {
   }
 }
 
-// 채팅 메시지 스크롤
-function scrollToBottom() {
-  if (chatMessagesRef.value) {
-    // 부드러운 스크롤을 위해 약간의 딜레이 보장 및 smooth behavior
-    scheduleTimeout(() => {
-      chatMessagesRef.value.scrollTo({
-        top: chatMessagesRef.value.scrollHeight,
-        behavior: 'smooth'
-      });
-    }, 50);
-  }
-}
-
 // 채팅 제출 (설명 처리)
 function handleChatSubmit() {
   if (!chatInput.value.trim() || currentProgressivePhase.value !== 'explain') return;
 
   const userText = chatInput.value.trim();
-  
-  // 사용자 메시지 추가
-  addChatMessage('user', userText);
-  chatInput.value = '';
 
   // 설명 저장
   stepExplanations[currentProgressiveStep.value] = userText;
 
+  // 전략 기록 로그
+  addClue('SUCCESS', `Step ${currentProgressiveStep.value} 전략이 기록되었습니다.`);
+
+  chatInput.value = '';
+
   // 시스템 응답 및 다음 단계 진행
   scheduleTimeout(() => {
-    addChatMessage('system', '설명이 기록되었습니다. 훌륭합니다! 데이터가 처리되는 동안 잠시만 기다려주세요...');
-    
-    scheduleTimeout(() => {
-      if (currentProgressiveStep.value < 3) {
-        addChatMessage('system', `STEP ${currentProgressiveStep.value} 완료. 다음 보안 레벨로 접근합니다.`);
+    if (currentProgressiveStep.value < 3) {
+      addClue('INFO', `Step ${currentProgressiveStep.value} 완료! 다음 버그로 이동합니다.`);
+      scheduleTimeout(() => {
         moveToNextStep();
-      } else {
-        addChatMessage('system', '모든 미션이 완료되었습니다! 최종 리포트를 생성합니다.');
+        addClue('WARN', `Step ${currentProgressiveStep.value} 분석 중...`);
+        addClue('HINT', getCurrentStepData()?.hint || '코드를 주의깊게 살펴보세요.');
+      }, 800);
+    } else {
+      addClue('SUCCESS', '모든 버그 제거 완료! 최종 평가 리포트를 생성합니다.');
+      scheduleTimeout(() => {
         completeMission();
-      }
-    }, 1500);
+      }, 1500);
+    }
   }, 500);
 }
 
@@ -1449,11 +1403,7 @@ function resetCurrentStep() {
   const stepData = getCurrentStepData();
   if (stepData) {
     progressiveStepCodes.value[currentProgressiveStep.value] = stepData.buggy_code;
-    terminalOutput.value.push({
-      prompt: '>',
-      text: `Step ${currentProgressiveStep.value} code reset.`,
-      type: 'info'
-    });
+    addClue('WARN', `코드가 초기화되었습니다.`);
   }
 }
 
@@ -1462,11 +1412,7 @@ function showProgressiveHint() {
   // 첫 사용 시에만 기록 (점수 계산용)
   if (!progressiveHintUsed.value[currentProgressiveStep.value]) {
     progressiveHintUsed.value[currentProgressiveStep.value] = true;
-    terminalOutput.value.push({
-      prompt: '!',
-      text: 'Hint accessed.',
-      type: 'warning'
-    });
+    addClue('HINT', `힌트: ${getCurrentStepData()?.hint || '코드를 주의깊게 살펴보세요.'}`);
   }
   // 힌트 패널 토글 (열려있으면 닫고, 닫혀있으면 열기)
   showProgressiveHintPanel.value = !showProgressiveHintPanel.value;
@@ -1562,11 +1508,9 @@ function submitProgressiveStep() {
   if (currentProgressiveStep.value > 3) return;
 
   isRunning.value = true;
-  terminalOutput.value.push({
-    prompt: '$',
-    text: 'Running tests...',
-    type: 'command'
-  });
+
+  // 검증 시작 로그
+  addClue('INFO', `코드 검증 중...`);
 
   scheduleTimeout(() => {
     const passed = checkProgressiveSolution();
@@ -1595,39 +1539,30 @@ function submitProgressiveStep() {
           evaluationStats.perfectClears++;
         }
 
-        terminalStatus.value = 'success';
-        terminalOutput.value.push({
-          prompt: '✓',
-          text: `Bug ${currentProgressiveStep.value} eliminated! (${duration}s)`,
-          type: 'success'
-        });
-
         // 성공 시 힌트 창 닫기
         showProgressiveHintPanel.value = false;
+
+        // 성공 로그
+        addClue('SUCCESS', `테스트 통과! (${duration}초)`);
+        addClue('SUCCESS', `${getCurrentStepData()?.title} - 버그 제거 완료`);
 
         // 해골이 버그 위치로 날아가는 애니메이션 - 1초 딜레이 후 표시
         scheduleTimeout(() => {
           animateSkullToBug(currentProgressiveStep.value);
 
           scheduleTimeout(() => {
-            // 3단계: 설명 페이즈로 전환 (채팅으로)
+            // 3단계: 설명 페이즈로 전환
             currentProgressivePhase.value = 'explain';
-
-            // 중앙 팝업 표시 후 대화창으로 날아가는 애니메이션
-            const message = `ALERT: Bug ${currentProgressiveStep.value} Neutralized!\n\n${getCurrentStepData()?.title}\n\n버그를 해결하셨군요. 어떤 전략을 사용했는지 기록(Log)을 남겨주세요.`;
-            showAlertWithAnimation(message);
           }, 1200);
         }, 1000);
 
       } else {
         // 실패
         codeSubmitFailCount.value++;
-        terminalStatus.value = 'error';
-        terminalOutput.value.push({
-          prompt: '✗',
-          text: 'MISS! Bug still alive. Try again!',
-          type: 'error'
-        });
+
+        // 실패 로그
+        addClue('ERROR', `테스트 실패! 코드를 다시 확인해주세요.`);
+        addClue('HINT', getCurrentStepData()?.hint || '힌트를 확인해보세요.');
       }
       isRunning.value = false;
     }, 500);

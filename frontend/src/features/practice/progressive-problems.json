@@ -1,98 +1,113 @@
 {
   "progressiveProblems": [
     {
-      "id": "P5",
-      "project_title": "정화가 시급한 오염된 데이터 섹터",
-      "scenario": "마더 서버의 특정 섹터에서 정확도가 비정상적으로 높게 보고되고 있습니다. 이는 전형적인 '데이터 오염(Hallucination)' 증상입니다. {username}님, 파트너 Coduck과 함께 오염된 파이프라인의 버그를 순서대로 찾아 정화해야 합니다.",
-      "difficulty": 1,
+      "id": "P1",
+      "project_title": "AI 엔지니어링 핵심 디버깅",
+      "scenario": "AI 모델 개발 파이프라인에서 발생하는 실제 에러들을 해결하며 엔지니어링 역량을 키웁니다.",
+      "difficulty": 2,
       "totalSteps": 3,
       "steps": [
         {
           "step": 1,
-          "title": "비정상적으로 높은 검증 성능 (Data Leakage)",
-          "bug_type": "A",
-          "bug_type_name": "Data Leakage",
-          "questions": {
-            "text": "전처리 코드에서 이상한 부분을 발견했습니다:\n\nX_train, X_test, y_train, y_test = train_test_split(X, y, ...)\nscaler = StandardScaler()\nX_train = scaler.fit_transform(X)  \nX_test = scaler.transform(X_test)\n\nTrain 0.98 vs Test 0.65로 차이가 큽니다. 무엇이 문제일까요?",
-            "options": [
-              "scaler를 전체 데이터 X로 fit해서",
-              "train_test_split의 test_size가 너무 작아서",
-              "StandardScaler 대신 MinMaxScaler를 써야 해서",
-              "random_state를 고정하지 않아서"
-            ],
-            "answer": 0
-          },
-          "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\ndef prepare_data(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, random_state=42\n    )\n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X)\n    X_test = scaler.transform(X_test)\n    \n    return X_train, X_test, y_train, y_test",
-          "correct_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\ndef prepare_data(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    \n    return X_train, X_test, y_train, y_test",
-          "hint": "scaler가 전체 데이터 X로 fit하면, X_test의 평균과 표준편차 정보도 함께 학습됩니다. 이게 왜 문제일까요?",
-          "solution_check": {
-            "type": "multi_condition",
-            "required_any": [
-              "fit_transform(X_train)",
-              "fit(X_train)"
-            ],
-            "forbidden": [
-              "fit_transform(X)",
-              "fit(X)"
-            ]
-          },
-          "coaching": "🎯 현업: Data Leakage는 모델이 '너무 잘 나올 때' 의심해야 하는 1순위 버그입니다. 전처리는 반드시 train/test 분할 후에 train으로만 fit하고, test는 transform만 해야 합니다."
-        },
-        {
-          "step": 2,
-          "title": "불안정한 평가 결과 (Imbalanced Sampling)",
-          "bug_type": "B",
-          "bug_type_name": "Sampling Bug",
-          "questions": {
-            "text": "Step 1을 고쳤더니 test 정확도가 0.85로 내려갔습니다.\n\n그런데 현재 split의 test set을 확인해보니 이탈률이 3% 정도입니다. 원래 전체 데이터의 이탈률은 5%인데, test set의 비율이 달라졌습니다.\n\nX_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, random_state=42)\n무엇을 의심해야 할까요?",
-            "options": [
-              "random_state 값이 잘못됨",
-              "test_size를 0.3 이상으로",
-              "train/test의 클래스 비율이 달라서",
-              "shuffle=False로 변경"
-            ],
-            "answer": 2
-          },
-          "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\ndef prepare_data(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    \n    return X_train, X_test, y_train, y_test",
-          "correct_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\ndef prepare_data(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42, stratify=y\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    \n    return X_train, X_test, y_train, y_test",
-          "hint": "불균형 데이터에선 split 후 train/test의 클래스 비율이 달라질 수 있습니다. 이를 강제로 유지하는 옵션이 있습니다.",
-          "solution_check": {
-            "type": "regex",
-            "value": "stratify\\s*=\\s*y\\s*(?=,\\s*\\w|\\))",
-            "flags": ""
-          },
-          "coaching": "🎯 현업: 불균형 데이터(이탈 예측, 사기 탐지 등)에서 stratify 없이 split하면 train/test의 클래스 비율이 달라져 평가가 불안정해집니다. 특히 test에 positive 샘플이 적으면 평가 자체가 무의미해질 수 있습니다."
-        },
-        {
-          "step": 3,
-          "title": "잘못된 평가 데이터 사용 (Train Data Evaluation)",
-          "bug_type": "C",
-          "bug_type_name": "Evaluation Error",
-          "questions": {
-            "text": "Step 1, 2를 고쳤습니다. 이제 모델을 학습하고 평가했습니다:\n\nmodel.fit(X_train, y_train)\ny_pred = model.predict(X_train) \naccuracy = accuracy_score(y_train, y_pred)\nprint(f'정확도: {accuracy}')  # 0.95\n\n그런데 test로 확인하니 0.60이 나옵니다. 무엇이 문제일까요?",
-            "options": [
-              "accuracy_score 대신 f1_score를 써야 함",
-              "train 데이터로 평가해서 성능이 과대평가됨",
-              "predict 대신 predict_proba를 써야 함",
-              "y_train과 y_pred 순서가 바뀜"
-            ],
-            "answer": 1
-          },
-          "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.metrics import accuracy_score\n\ndef train_and_evaluate(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42, stratify=y\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    \n    model = LogisticRegression()\n    model.fit(X_train, y_train)\n    \n    y_pred = model.predict(X_train)\n    accuracy = accuracy_score(y_train, y_pred)\n    \n    return accuracy",
-          "correct_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.metrics import accuracy_score\n\ndef train_and_evaluate(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42, stratify=y\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    \n    model = LogisticRegression()\n    model.fit(X_train, y_train)\n    \n    y_pred = model.predict(X_test)\n    accuracy = accuracy_score(y_test, y_pred)\n    \n    return accuracy",
-          "hint": "학습에 사용한 데이터로 평가하면 모델 성능이 과대평가됩니다. 모델이 학습 중 보지 못한 데이터로 평가해야 합니다.",
+          "title": "학습은 되는데 성능이 안 오르지? (Numerical Stability)",
+          "file_name": "model_train.py",
+          "description": "이진 분류 모델이 에러 없이 학습되지만 accuracy가 0.5 근처에서 고정되는 현상입니다.\n\n**상황:**\n- 데이터: 10차원 입력, 10,000개 샘플, 클래스 비율 50:50\n- Loss: 0.693(ln2) 근처에서 시작 → 0.690 → 0.688 (미세 감소 후 정체)\n- Accuracy: 0.48 ~ 0.52 사이 진동, 100 epoch 이후에도 동일\n- 에러 메시지 없음\n\n**핵심 질문:** 왜 Loss가 ln(2) ≈ 0.693에서 시작할까요? 이 숫자가 의미하는 바는?",
+          "objectives": [
+            "Sigmoid + BCELoss 조합의 수치적 불안정성 이해",
+            "Gradient Saturation 현상과 원인 파악",
+            "Logits 기반 손실 함수(BCEWithLogitsLoss)의 수치 안정성 원리 이해"
+          ],
+          "buggy_code": "import torch\nimport torch.nn as nn\n\nclass Model(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.fc = nn.Linear(10, 1)\n        self.sigmoid = nn.Sigmoid()\n\n    def forward(self, x):\n        return self.sigmoid(self.fc(x))\n\nmodel = Model()\ncriterion = nn.BCELoss()\noptimizer = torch.optim.SGD(model.parameters(), lr=0.01)\n\n# Training loop\nfor epoch in range(100):\n    pred = model(X_train)\n    loss = criterion(pred, y_train)\n    optimizer.zero_grad()\n    loss.backward()\n    optimizer.step()\n    print(f\"Epoch {epoch}: Loss {loss.item():.4f}\")",
+          "correct_code": "import torch\nimport torch.nn as nn\n\nclass Model(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.fc = nn.Linear(10, 1)\n        # Sigmoid 제거: Logits을 직접 출력\n\n    def forward(self, x):\n        return self.fc(x)\n\nmodel = Model()\n# Sigmoid + BCELoss를 내부적으로 결합하여 수치 안정성 확보\ncriterion = nn.BCEWithLogitsLoss()\noptimizer = torch.optim.Adam(model.parameters(), lr=0.001)\n\n# Training loop\nfor epoch in range(100):\n    logits = model(X_train)\n    loss = criterion(logits, y_train)\n    optimizer.zero_grad()\n    loss.backward()\n    optimizer.step()\n    print(f\"Epoch {epoch}: Loss {loss.item():.4f}\")",
+          "hints": [
+            "Loss 0.693은 -log(0.5)입니다. 모델이 모든 샘플에 대해 '반반 찍기'를 하고 있다는 뜻이죠.",
+            "Sigmoid 출력이 0이나 1에 가까워지면 BCELoss 내부의 log(p) 또는 log(1-p)가 -∞로 발산합니다.",
+            "BCEWithLogitsLoss는 내부적으로 log(1 + exp(-z)) 형태(LogSumExp trick)를 사용해 수치 안정성을 확보합니다."
+          ],
+          "error_log": "Epoch 1: Loss 0.6931, Acc 0.50\nEpoch 10: Loss 0.6928, Acc 0.51\nEpoch 50: Loss 0.6925, Acc 0.49\nEpoch 100: Loss 0.6924, Acc 0.50\n[결과] 100 epoch 후에도 random guess 수준",
+          "success_log": "Epoch 1: Loss 0.6801, Acc 0.62\nEpoch 10: Loss 0.4502, Acc 0.85\nEpoch 50: Loss 0.1803, Acc 0.94\nEpoch 100: Loss 0.0892, Acc 0.97\n[결과] 정상적인 학습 곡선",
           "solution_check": {
             "type": "multi_condition",
             "required_all": [
-              "predict(X_test)",
-              "accuracy_score(y_test"
+              "BCEWithLogitsLoss"
             ],
             "forbidden": [
-              "predict(X_train)",
-              "accuracy_score(y_train, y_pred)"
+              "BCELoss",
+              "self.sigmoid"
             ]
           },
-          "coaching": "🎯 현업: train 데이터로 평가하면 모델이 '이미 본' 데이터에 대한 성능만 측정되어 과대평가됩니다. 반드시 학습에 사용하지 않은 test 데이터로 평가해야 실제 성능을 알 수 있습니다. 이것이 train/test split을 하는 이유입니다."
+          "error_info": {
+            "type": "Model Design Error (Gradient Saturation)",
+            "description": "Sigmoid 출력이 0 또는 1에 가까워지면 두 가지 문제가 발생합니다:\n1. BCELoss 내부 log(p), log(1-p) 계산에서 수치적 불안정 (log(0) → -∞)\n2. Sigmoid의 미분값이 0에 가까워져 gradient가 소실 (Saturation)\n\n이로 인해 모델이 초기 random guess 상태에서 벗어나지 못합니다.",
+            "suggestion": "Logits을 직접 입력받는 `BCEWithLogitsLoss`를 사용하세요. 이 함수는 내부적으로 수치적으로 안정적인 계산을 수행합니다."
+          }
+        },
+        {
+          "step": 2,
+          "title": "실험은 성공, 배포는 실패 (Pipeline Consistency)",
+          "file_name": "pipeline.py",
+          "description": "Validation에서는 성능이 매우 좋았으나, 실제 서비스 배포 후 예측값이 한쪽 클래스로 쏠립니다.\n\n**측정된 수치:**\n- Train Accuracy: 0.94\n- Validation Accuracy: 0.91 (좋아 보임)\n- Production Accuracy: 0.58 (망함)\n- Production 예측 분포: Class 1로 82% 쏠림\n\n**데이터 특성:**\n- Feature 20개, 각 feature의 scale이 0.001 ~ 10,000으로 다양\n- Train 50,000건, Validation 10,000건\n\n**핵심 질문:** Validation도 잘 나왔는데 왜 Production에서만 망할까요?",
+          "objectives": [
+            "Train/Val/Serving 파이프라인 일관성의 중요성 이해",
+            "Scaler 객체의 상태(state) 관리 원리 파악",
+            "sklearn Pipeline을 통한 구조적 해결 방법 습득"
+          ],
+          "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.linear_model import LogisticRegression\nimport joblib\n\nscaler = StandardScaler()\n\n# === 학습 단계 ===\nX_train_scaled = scaler.fit_transform(X_train)  # μ_train, σ_train 저장\nmodel = LogisticRegression()\nmodel.fit(X_train_scaled, y_train)\n\n# === 검증 단계 ===\nX_val_scaled = scaler.fit_transform(X_val)  # ⚠️ μ_val, σ_val로 덮어쓰기!\nval_score = model.score(X_val_scaled, y_val)\nprint(f\"Validation Score: {val_score}\")\n\n# 저장\njoblib.dump(scaler, 'scaler.pkl')  # μ_val, σ_val이 저장됨\njoblib.dump(model, 'model.pkl')\n\n# === 서빙 단계 ===\nscaler = joblib.load('scaler.pkl')\nmodel = joblib.load('model.pkl')\nX_input_scaled = scaler.transform(X_input)  # μ_val 기준으로 변환\npred = model.predict(X_input_scaled)",
+          "correct_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.pipeline import Pipeline\nimport joblib\n\n# === 방법 1: transform만 사용 ===\nscaler = StandardScaler()\nX_train_scaled = scaler.fit_transform(X_train)\nmodel = LogisticRegression()\nmodel.fit(X_train_scaled, y_train)\n\n# Validation: transform만! (fit 하지 않음)\nX_val_scaled = scaler.transform(X_val)\nval_score = model.score(X_val_scaled, y_val)\nprint(f\"Validation Score: {val_score}\")\n\n# === 방법 2 (권장): Pipeline 사용 ===\npipeline = Pipeline([\n    ('scaler', StandardScaler()),\n    ('model', LogisticRegression())\n])\npipeline.fit(X_train, y_train)\nval_score = pipeline.score(X_val, y_val)\n\njoblib.dump(pipeline, 'pipeline.pkl')\n\n# 서빙: 단일 객체로 일관성 보장\npipeline = joblib.load('pipeline.pkl')\npred = pipeline.predict(X_input)",
+          "hints": [
+            "fit_transform()은 두 가지 일을 합니다: (1) 데이터로부터 mean, std 계산(fit), (2) 변환(transform). Validation에서 fit을 다시 하면?",
+            "분포 불일치 시각화:\n  Train  → fit_transform → μ_A, σ_A 저장 → Model 학습\n  Val    → fit_transform → μ_B, σ_B로 덮어쓰기!\n  Live   → transform     → μ_B 기준 변환 → Model(μ_A 기준)과 불일치",
+            "sklearn의 Pipeline을 사용하면 preprocessing과 model이 하나로 묶여 이런 실수를 구조적으로 방지할 수 있습니다."
+          ],
+          "error_log": "=== 학습/검증 단계 ===\nTrain Accuracy: 0.94\nValidation Accuracy: 0.91 ✓ (좋아 보임)\n\n=== 배포 후 ===\nProduction Accuracy: 0.58 ✗\nPrediction Distribution: {0: 0.18, 1: 0.82}\n[경고] 예측이 Class 1로 심하게 편향됨",
+          "success_log": "=== 학습/검증 단계 ===\nTrain Accuracy: 0.94\nValidation Accuracy: 0.89 ✓\n\n=== 배포 후 ===\nProduction Accuracy: 0.87 ✓\nPrediction Distribution: {0: 0.73, 1: 0.27}\n[정상] Train/Val/Prod 일관된 성능",
+          "solution_check": {
+            "type": "multi_condition",
+            "required_any": [
+              "scaler.transform(X_val)",
+              "Pipeline"
+            ],
+            "forbidden": [
+              "fit_transform(X_val)"
+            ]
+          },
+          "error_info": {
+            "type": "Pipeline Consistency Error (Train-Serving Skew)",
+            "description": "검증 데이터에 fit_transform()을 사용하면 scaler의 내부 상태(mean_, std_)가 validation 데이터 기준으로 덮어쓰여집니다.\n\n결과적으로:\n- Model: X_train의 분포(μ_A, σ_A)를 기준으로 학습됨\n- Serving: X_val의 분포(μ_B, σ_B)를 기준으로 입력 변환\n- 입력 분포 불일치로 decision boundary가 어긋남\n\nValidation이 잘 나온 이유: X_val도 자체 기준으로 정규화되어 mean≈0, std≈1 형태가 되므로 '우연히' 동작하는 것처럼 보임.",
+            "suggestion": "Validation 및 Serving 데이터는 반드시 Training 데이터로 fit된 scaler를 사용해 transform()만 해야 합니다. sklearn.pipeline.Pipeline 사용을 권장합니다."
+          }
+        },
+        {
+          "step": 3,
+          "title": "지표는 완벽, 사업은 폭망 (Problem Definition)",
+          "file_name": "feature_engineering.py",
+          "description": "AUC 0.91, Accuracy 0.88로 모델 성능은 완벽해 보입니다. 하지만 이 모델로 마케팅 캠페인을 집행했더니 전환율이 오히려 떨어지고, 충성 고객 불만만 늘었습니다.\n\n**오프라인 지표:**\n- AUC: 0.91, Accuracy: 0.88, Precision: 0.85\n\n**비즈니스 결과:**\n- 캠페인 전 전환율: 12%\n- 캠페인 후 전환율: 7% (↓)\n- 고객 불만 접수: 증가\n\n**모델 목적:** 이탈 가능성 높은 고객 예측 → 할인 쿠폰 발송\n\n**핵심 질문:** 모델이 학습한 것은 '이탈할 사람'일까요, '쿠폰을 받은 사람'일까요?",
+          "objectives": [
+            "Action Contamination(개입 오염) 개념 이해",
+            "예측(Prediction)과 인과(Causation)의 차이 구분",
+            "Leaky Feature 탐지 및 제거"
+          ],
+          "buggy_code": "# 이탈 예측 모델용 피처 정의\nfeatures = [\n    'monthly_payment',        # 월 요금\n    'usage_time',             # 사용 시간\n    'customer_service_call',  # 고객 센터 상담 이력\n    'retention_coupon_used',  # 해지 방어 쿠폰 사용 여부\n    'cancel_request_flag'     # 해지 상담 신청 여부\n]\n\n# 학습 데이터\n# - 과거 30일 행동 로그\n# - 라벨: 향후 30일 내 이탈 여부\n\nmodel.fit(X[features], y)\nprint(f\"AUC: {roc_auc_score(y_val, model.predict_proba(X_val)[:, 1])}\")",
+          "correct_code": "# 이탈 예측 모델용 피처 정의\n# 원칙: 예측 시점에 알 수 있고, 우리 개입과 무관한 정보만 사용\nfeatures = [\n    'monthly_payment',        # 월 요금\n    'usage_time',             # 사용 시간\n    'customer_service_call',  # 고객 센터 상담 이력\n    # 'retention_coupon_used', # ✗ 제거: 우리가 예측 후 수행할 액션 (Action Contamination)\n    # 'cancel_request_flag'    # ✗ 제거: 이미 이탈 의사 확정된 지표 (Leaky Feature)\n]\n\n# 주의: AUC가 낮아지더라도 이것이 실제 비즈니스 임팩트를 낼 수 있는 모델입니다.\nmodel.fit(X[features], y)\nprint(f\"AUC: {roc_auc_score(y_val, model.predict_proba(X_val)[:, 1])}\")\n\n# 더 나은 접근: Uplift Modeling\n# 목표를 '이탈 예측'이 아닌 '개입 효과 예측'으로 재정의\n# τ(x) = P(이탈|쿠폰 없음) - P(이탈|쿠폰 있음)",
+          "hints": [
+            "retention_coupon_used가 피처에 있다면, 모델은 '쿠폰을 받으면 안 떠난다'는 상관관계만 학습합니다. 하지만 우리가 알고 싶은 건 '누구에게 쿠폰을 줘야 효과가 있는가'입니다.",
+            "cancel_request_flag가 1인 고객은 이미 이탈 의사를 밝힌 것입니다. 이걸 예측할 필요가 있을까요?",
+            "이 문제의 본질:\n  - 모델이 예측하는 것: P(이탈 | features)\n  - 비즈니스가 원하는 것: P(이탈 | 쿠폰 없음) - P(이탈 | 쿠폰 있음)\n  이 둘은 완전히 다른 질문입니다."
+          ],
+          "error_log": "=== 오프라인 평가 ===\nAUC: 0.91 ✓\nAccuracy: 0.88 ✓\n\n=== 캠페인 결과 ===\n쿠폰 발송 대상: 상위 20% 이탈 예측 고객\n전환율: 7% (기존 12% 대비 하락)\n고객 피드백: \"왜 갑자기 쿠폰이 오죠? 해지할 생각 없었는데...\"\n\n[분석] 모델이 '이미 쿠폰 받은 사람'을 예측함",
+          "success_log": "=== 오프라인 평가 ===\nAUC: 0.75 (낮아짐, 하지만 정상)\nAccuracy: 0.72\n\n=== 캠페인 결과 ===\n쿠폰 발송 대상: Uplift 상위 20% 고객\n전환율: 18% (기존 12% 대비 상승)\n비용 효율: 40% 개선\n\n[성공] 개입 효과가 높은 고객에게만 타겟팅",
+          "solution_check": {
+            "type": "multi_condition",
+            "forbidden": [
+              "retention_coupon_used",
+              "cancel_request_flag"
+            ]
+          },
+          "error_info": {
+            "type": "Problem Definition Error (Action Contamination & Data Leakage)",
+            "description": "두 가지 문제가 있습니다:\n\n1. **Action Contamination (개입 오염)**\n   retention_coupon_used는 '우리의 개입(Action)'입니다. 이걸 피처로 쓰면 모델은 인과관계가 아닌 상관관계만 학습합니다.\n   - 학습: \"쿠폰 쓴 사람 = 안 떠남\" (상관관계)\n   - 실제: \"쿠폰 때문에 안 떠남\" vs \"원래 안 떠날 사람\" 구분 불가\n\n2. **Leaky Feature (미래 정보 누수)**\n   cancel_request_flag는 이미 이탈 의사가 확정된 시점의 정보입니다. 예측 시점에는 알 수 없는 미래 정보입니다.\n\n**근본 원인:** 예측(Prediction) 문제와 인과(Causal) 문제를 혼동함.\n- 모델이 답하는 질문: \"이 고객이 이탈할까?\"\n- 비즈니스가 원하는 질문: \"이 고객에게 쿠폰을 주면 이탈을 막을 수 있을까?\"",
+            "suggestion": "1. 예측 시점에 알 수 없거나, 예측 결과로 발생하는 액션 관련 피처는 제거하세요.\n2. 더 나은 접근: 문제를 'Uplift Modeling'으로 재정의하세요. 개입 효과(Treatment Effect)를 직접 모델링하면 '쿠폰이 효과 있는 고객'을 찾을 수 있습니다."
+          }
         }
       ]
     },
@@ -371,108 +386,98 @@
       ]
     },
     {
-      "id": "P1",
-      "project_title": "AI 엔지니어링 핵심 디버깅",
-      "scenario": "AI 모델 개발 파이프라인에서 발생하는 실제 에러들을 해결하며 엔지니어링 역량을 키웁니다.",
-      "difficulty": 2,
+      "id": "P5",
+      "project_title": "정화가 시급한 오염된 데이터 섹터",
+      "scenario": "마더 서버의 특정 섹터에서 정확도가 비정상적으로 높게 보고되고 있습니다. 이는 전형적인 '데이터 오염(Hallucination)' 증상입니다. {username}님, 파트너 Coduck과 함께 오염된 파이프라인의 버그를 순서대로 찾아 정화해야 합니다.",
+      "difficulty": 1,
       "totalSteps": 3,
       "steps": [
         {
           "step": 1,
-          "title": "데이터 배치 병합 오류 (Batch Stacking)",
-          "file_name": "dataset.py",
-          "description": "이미지 데이터셋을 학습에 사용하기 위해 미니 배치(Mini-batch)로 묶는 과정입니다. 다양한 해상도의 원본 이미지들이 수집되었고, 이를 하나의 텐서로 합쳐야 합니다.\n\n현재 `create_batch` 함수는 단순히 이미지들을 리스트에 모은 후 `torch.stack`으로 변환하려고 합니다. 하지만 데이터 로더를 실행하면 에러가 발생합니다.\n\n**목표:**\n1. 입력된 이미지들의 크기가 서로 다를 수 있음을 인지합니다.\n2. 모든 이미지를 학습 모델의 입력 크기인 `(224, 224)`해상도로 통일합니다.\n3. 전처리된 이미지들을 하나의 배치 텐서 `(B, C, H, W)` 형태로 반환합니다.",
-          "objectives": [
-            "가변 크기 데이터 처리 전략 수립",
-            "Torchvision Transforms 활용",
-            "Tensor Shape 디버깅"
-          ],
-          "buggy_code": "import torch\nimport numpy as np\n\ndef create_batch(images):\n    \"\"\"\n    이미지 리스트를 받아 배치를 생성하는 함수\n    images: list of numpy arrays (H, W, C)\n    \"\"\"\n    tensor_images = []\n    \n    for img in images:\n        # numpy array를 tensor로 변환\n        tensor_img = torch.from_numpy(img).permute(2, 0, 1).float()\n        tensor_images.append(tensor_img)\n    \n    # 리스트를 하나의 배치 텐서로 변환\n    return torch.stack(tensor_images)",
-          "correct_code": "import torch\nimport numpy as np\nfrom torchvision import transforms\n\ndef create_batch(images):\n    \"\"\"\n    이미지 리스트를 받아 배치를 생성하는 함수\n    images: list of numpy arrays (H, W, C)\n    \"\"\"\n    processed_images = []\n    resize = transforms.Resize((224, 224))\n    \n    for img in images:\n        # numpy -> tensor [C, H, W]\n        tensor_img = torch.from_numpy(img).permute(2, 0, 1).float()\n        \n        # Resize 적용\n        resized_img = resize(tensor_img)\n        processed_images.append(resized_img)\n        \n    return torch.stack(processed_images)",
-          "hints": [
-            "에러 로그의 'sizes of tensors must match' 메시지에 주목하세요.",
-            "딥러닝 모델은 고정된 입력 크기를 요구합니다.",
-            "torchvision.transforms 라이브러리를 사용하여 이미지 크기를 변경할 수 있습니다."
-          ],
-          "error_log": "Traceback (most recent call last):\n  File \"dataset.py\", line 14, in create_batch\n    return torch.stack(tensor_images)\nRuntimeError: stack expects each tensor to be equal size, but got [3, 224, 224] at entry 0 and [3, 500, 300] at entry 1",
-          "success_log": "[INFO] Batch processing started...\n[INFO] Image 0 original shape: (224, 224, 3)\n[INFO] Image 1 original shape: (500, 300, 3)\n[INFO] Resizing images to (224, 224)...\n[SUCCESS] Batch created successfully. Output tensor shape: torch.Size([32, 3, 224, 224])",
+          "title": "비정상적으로 높은 검증 성능 (Data Leakage)",
+          "bug_type": "A",
+          "bug_type_name": "Data Leakage",
+          "questions": {
+            "text": "전처리 코드에서 이상한 부분을 발견했습니다:\n\nX_train, X_test, y_train, y_test = train_test_split(X, y, ...)\nscaler = StandardScaler()\nX_train = scaler.fit_transform(X)  \nX_test = scaler.transform(X_test)\n\nTrain 0.98 vs Test 0.65로 차이가 큽니다. 무엇이 문제일까요?",
+            "options": [
+              "scaler를 전체 데이터 X로 fit해서",
+              "train_test_split의 test_size가 너무 작아서",
+              "StandardScaler 대신 MinMaxScaler를 써야 해서",
+              "random_state를 고정하지 않아서"
+            ],
+            "answer": 0
+          },
+          "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\ndef prepare_data(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, random_state=42\n    )\n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X)\n    X_test = scaler.transform(X_test)\n    \n    return X_train, X_test, y_train, y_test",
+          "correct_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\ndef prepare_data(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    \n    return X_train, X_test, y_train, y_test",
+          "hint": "scaler가 전체 데이터 X로 fit하면, X_test의 평균과 표준편차 정보도 함께 학습됩니다. 이게 왜 문제일까요?",
           "solution_check": {
             "type": "multi_condition",
             "required_any": [
-              "Resize",
-              "resize"
+              "fit_transform(X_train)",
+              "fit(X_train)"
             ],
-            "required_all": [
-              "stack"
+            "forbidden": [
+              "fit_transform(X)",
+              "fit(X)"
             ]
           },
-          "error_info": {
-            "type": "RuntimeError (Shape Mismatch)",
-            "description": "서로 다른 차원(Resolution)을 가진 텐서들은 하나로 쌓을(Stack) 수 없습니다.",
-            "suggestion": "모든 입력 이미지를 transforms.Resize 등을 사용하여 동일한 크기로 맞춘 후 stack 하세요."
-          }
+          "coaching": "🎯 현업: Data Leakage는 모델이 '너무 잘 나올 때' 의심해야 하는 1순위 버그입니다. 전처리는 반드시 train/test 분할 후에 train으로만 fit하고, test는 transform만 해야 합니다."
         },
         {
           "step": 2,
-          "title": "연산 장치 불일치 (Device Mismatch)",
-          "file_name": "inference.py",
-          "description": "학습된 모델을 사용하여 고성능 추론(Inference)을 수행하려고 합니다. 서버에는 CUDA를 지원하는 GPU가 장착되어 있어, 모델을 GPU로 로드했습니다.\n\n하지만 추론 함수를 실행하자마자 런타임 에러가 발생합니다. PyTorch의 텐서 연산 규칙을 고려하여 코드를 수정하세요.\n\n**목표:**\n1. GPU(cuda)와 CPU 텐서 간의 연산 제약 사항을 이해합니다.\n2. 입력 데이터도 모델과 동일한 연산 장치로 이동시킵니다.\n3. 추론 결과를 다시 CPU로 가져오는지, 혹은 그대로 반환하는지 결정합니다 (일반적으로 결과는 CPU로 반환하거나 그대로 둡니다).",
-          "objectives": [
-            "PyTorch Device 관리 전략",
-            "Tensor.to() 메서드 활용",
-            "이종 장치 간 연산 에러 디버깅"
-          ],
-          "buggy_code": "import torch\nimport torch.nn as nn\n\ndef run_inference(model, inputs):\n    # GPU 사용 가능 여부 확인\n    device = torch.device(\"cuda\" if torch.cuda.is_available() else \"cpu\")\n    print(f\"Processing on: {device}\")\n    \n    # 모델을 해당 장치로 이동\n    model = model.to(device)\n    model.eval()\n    \n    with torch.no_grad():\n        # 모델 추론 수행\n        output = model(inputs)\n        \n    return output",
-          "correct_code": "import torch\nimport torch.nn as nn\n\ndef run_inference(model, inputs):\n    device = torch.device(\"cuda\" if torch.cuda.is_available() else \"cpu\")\n    print(f\"Processing on: {device}\")\n    \n    model = model.to(device)\n    \n    # 입력 데이터도 동일한 device로 이동\n    inputs = inputs.to(device)\n    \n    model.eval()\n    \n    with torch.no_grad():\n        output = model(inputs)\n        \n    return output",
-          "hints": [
-            "로그의 'Expected all tensors to be on the same device' 메시지가 핵심입니다.",
-            "모델이 GPU에 있다면, 그 모델에 들어가는 입력(Input) 텐서도 어디에 있어야 할까요?",
-            "inputs 변수에 .to(device)를 적용해보세요."
-          ],
-          "error_log": "Processing on: cuda:0\nTraceback (most recent call last):\n  File \"inference.py\", line 13, in run_inference\n    output = model(inputs)\n  File \"/usr/local/lib/python3.8/dist-packages/torch/nn/modules/module.py\", line 1501, in _call_impl\n    return forward_call(*args, **kwargs)\nRuntimeError: Expected all tensors to be on the same device, but found at least two devices, cuda:0 and cpu!",
-          "success_log": "Processing on: cuda:0\n[INFO] Model loaded on cuda:0\n[INFO] Input tensor moved to cuda:0\n[SUCCESS] Inference completed successfully. Output shape: torch.Size([1, 1000])",
-          "solution_check": {
-            "type": "multi_condition",
-            "required_all": [
-              "inputs.to(device)"
-            ]
+          "title": "불안정한 평가 결과 (Imbalanced Sampling)",
+          "bug_type": "B",
+          "bug_type_name": "Sampling Bug",
+          "questions": {
+            "text": "Step 1을 고쳤더니 test 정확도가 0.85로 내려갔습니다.\n\n그런데 현재 split의 test set을 확인해보니 이탈률이 3% 정도입니다. 원래 전체 데이터의 이탈률은 5%인데, test set의 비율이 달라졌습니다.\n\nX_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, random_state=42)\n무엇을 의심해야 할까요?",
+            "options": [
+              "random_state 값이 잘못됨",
+              "test_size를 0.3 이상으로",
+              "train/test의 클래스 비율이 달라서",
+              "shuffle=False로 변경"
+            ],
+            "answer": 2
           },
-          "error_info": {
-            "type": "RuntimeError (Device Mismatch)",
-            "description": "이종 장치(GPU 모델 + CPU 데이터) 간에는 직접적인 텐서 연산이 불가능합니다.",
-            "suggestion": "모델과 입력 데이터가 모두 같은 장치(ex: cuda:0)에 존재하도록 inputs.to(device)를 호출하세요."
-          }
+          "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\ndef prepare_data(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    \n    return X_train, X_test, y_train, y_test",
+          "correct_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\ndef prepare_data(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42, stratify=y\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    \n    return X_train, X_test, y_train, y_test",
+          "hint": "불균형 데이터에선 split 후 train/test의 클래스 비율이 달라질 수 있습니다. 이를 강제로 유지하는 옵션이 있습니다.",
+          "solution_check": {
+            "type": "regex",
+            "value": "stratify\\s*=\\s*y\\s*(?=,\\s*\\w|\\))",
+            "flags": ""
+          },
+          "coaching": "🎯 현업: 불균형 데이터(이탈 예측, 사기 탐지 등)에서 stratify 없이 split하면 train/test의 클래스 비율이 달라져 평가가 불안정해집니다. 특히 test에 positive 샘플이 적으면 평가 자체가 무의미해질 수 있습니다."
         },
         {
           "step": 3,
-          "title": "그래디언트 소실/폭발 (Gradient Accumulation)",
-          "file_name": "trainer.py",
-          "description": "모델 학습 루프(Training Loop)를 구현했습니다. 그런데 학습을 진행할수록 Loss 값이 줄어들기는커녕 비정상적으로 커지거나(Exploding), 전혀 학습이 되지 않는 현상이 발생합니다.\n\n로그를 분석해보니, 그래디언트(Gradient) 값이 스텝마다 계속 누적되고 있는 것으로 보입니다. PyTorch의 기본적인 학습 메커니즘을 생각하며 코드를 수정하세요.\n\n**목표:**\n1. PyTorch의 `backward()` 동작 방식을 이해합니다 (기본적으로 그래디언트를 더함).\n2. 매 학습 스텝마다 그래디언트를 초기화해아 하는 이유를 파악합니다.\n3. `optimizer.zero_grad()`를 적절한 위치에 배치합니다.",
-          "objectives": [
-            "Training Loop의 정석적인 구조 숙지",
-            "Optimizer의 역할과 zero_grad 이해",
-            "학습 불안정성 디버깅"
-          ],
-          "buggy_code": "import torch\n\ndef train_step(model, inputs, targets, optimizer, criterion):\n    model.train()\n    \n    # 1. Forward Pass: 예측값 계산\n    outputs = model(inputs)\n    loss = criterion(outputs, targets)\n    \n    # 2. Backward Pass: 그래디언트 계산\n    loss.backward()\n    \n    # 3. Optimizer Step: 가중치 업데이트\n    optimizer.step()\n    \n    return loss.item()",
-          "correct_code": "import torch\n\ndef train_step(model, inputs, targets, optimizer, criterion):\n    model.train()\n    \n    # 0. Gradient 초기화 (필수)\n    # 새로운 배치의 그래디언트를 계산하기 전에 이전 값을 비워줌\n    optimizer.zero_grad()\n    \n    # 1. Forward Pass\n    outputs = model(inputs)\n    loss = criterion(outputs, targets)\n    \n    # 2. Backward Pass\n    loss.backward()\n    \n    # 3. Optimizer Step\n    optimizer.step()\n    \n    return loss.item()",
-          "hints": [
-            "PyTorch에서는 loss.backward()를 호출할 때마다 그래디언트가 기존 값에 '더해집니다(Accumulate)'.",
-            "이전 배치의 그래디언트가 현재 배치의 업데이트에 영향을 주면 안 됩니다.",
-            "가중치를 업데이트(step)하기 전, 혹은 역전파(backward)를 시작하기 전에 무엇을 해야 할까요?"
-          ],
-          "error_log": "[Epoch 1] Step 1 - Loss: 2.302\n[Epoch 1] Step 2 - Loss: 45.120 (Warning: Loss Increased!)\n[Epoch 1] Step 3 - Loss: 912.441 (Error: Loss Exploding)\n[DEBUG] Gradient Norm Check:\n - Step 1: 0.5\n - Step 2: 12.8 (Suspiciously High)\n - Step 3: 154.2 (Exploding)",
-          "success_log": "[Epoch 1] Step 1 - Loss: 2.302\n[Epoch 1] Step 2 - Loss: 2.150\n[Epoch 1] Step 3 - Loss: 1.980\n[SUCCESS] Loss is decreasing steadily.\n[DEBUG] Gradient Norm is stable (around 0.5 ~ 0.8).",
+          "title": "잘못된 평가 데이터 사용 (Train Data Evaluation)",
+          "bug_type": "C",
+          "bug_type_name": "Evaluation Error",
+          "questions": {
+            "text": "Step 1, 2를 고쳤습니다. 이제 모델을 학습하고 평가했습니다:\n\nmodel.fit(X_train, y_train)\ny_pred = model.predict(X_train) \naccuracy = accuracy_score(y_train, y_pred)\nprint(f'정확도: {accuracy}')  # 0.95\n\n그런데 test로 확인하니 0.60이 나옵니다. 무엇이 문제일까요?",
+            "options": [
+              "accuracy_score 대신 f1_score를 써야 함",
+              "train 데이터로 평가해서 성능이 과대평가됨",
+              "predict 대신 predict_proba를 써야 함",
+              "y_train과 y_pred 순서가 바뀜"
+            ],
+            "answer": 1
+          },
+          "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.metrics import accuracy_score\n\ndef train_and_evaluate(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42, stratify=y\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    \n    model = LogisticRegression()\n    model.fit(X_train, y_train)\n    \n    y_pred = model.predict(X_train)\n    accuracy = accuracy_score(y_train, y_pred)\n    \n    return accuracy",
+          "correct_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.metrics import accuracy_score\n\ndef train_and_evaluate(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42, stratify=y\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    \n    model = LogisticRegression()\n    model.fit(X_train, y_train)\n    \n    y_pred = model.predict(X_test)\n    accuracy = accuracy_score(y_test, y_pred)\n    \n    return accuracy",
+          "hint": "학습에 사용한 데이터로 평가하면 모델 성능이 과대평가됩니다. 모델이 학습 중 보지 못한 데이터로 평가해야 합니다.",
           "solution_check": {
             "type": "multi_condition",
             "required_all": [
-              "zero_grad()"
+              "predict(X_test)",
+              "accuracy_score(y_test"
+            ],
+            "forbidden": [
+              "predict(X_train)",
+              "accuracy_score(y_train, y_pred)"
             ]
           },
-          "error_info": {
-            "type": "Logic Error (Gradient Accumulation)",
-            "description": "zero_grad()를 호출하지 않으면 이전 스텝의 그래디언트가 계속 누적되어, 가중치 업데이트가 엉망이 됩니다.",
-            "suggestion": "매 학습 스텝의 시작 부분(또는 backward 전)에 optimizer.zero_grad()를 반드시 호출하세요."
-          }
+          "coaching": "🎯 현업: train 데이터로 평가하면 모델이 '이미 본' 데이터에 대한 성능만 측정되어 과대평가됩니다. 반드시 학습에 사용하지 않은 test 데이터로 평가해야 실제 성능을 알 수 있습니다. 이것이 train/test split을 하는 이유입니다."
         }
       ]
     }
