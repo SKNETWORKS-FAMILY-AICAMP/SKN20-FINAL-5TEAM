@@ -1,5 +1,11 @@
 <template>
   <div class="modal-overlay" :class="{ active: isActive }">
+    <!-- Star layers -->
+    <div class="stars"></div>
+    <div class="stars2"></div>
+    <div class="stars3"></div>
+    <div class="nebula-overlay"></div>
+
     <div class="interrogation-frame">
       <!-- 헤더 -->
       <div class="frame-header">
@@ -21,8 +27,11 @@
       <!-- 메인 -->
       <div class="frame-main">
         <div v-if="isGenerating" class="loading-section">
-          <div class="loading-spinner"></div>
-          <p>ANALYZING_ARCHITECTURE... 꽥!</p>
+          <div class="loading-orbit">
+            <div class="orbit-ring"></div>
+            <div class="orbit-core"></div>
+          </div>
+          <p>ANALYZING_ARCHITECTURE...</p>
         </div>
 
         <template v-else>
@@ -43,7 +52,6 @@
               </div>
               <div class="det-text">
                 <div class="det-name">CODUCK_AI</div>
-                <!-- <div class="det-category" v-if="category">{{ categoryIcon }} {{ category }}</div> -->
                 <p class="det-question">{{ question }}</p>
               </div>
             </div>
@@ -58,9 +66,6 @@
                 :placeholder="placeholderText"
               ></textarea>
             </div>
-
-            <!-- 스탬프 -->
-            <!-- <div class="verdict-stamp">UNDER INVESTIGATION</div> -->
           </div>
         </template>
       </div>
@@ -157,7 +162,7 @@ export default {
       if (this.isExplanationPhase) {
         return '아키텍처에 대한 설명을 입력하세요... (최소 50자 권장)';
       }
-      return '답변을 입력하세요... 꽥!';
+      return '답변을 입력하세요...';
     },
     headerTitle() {
       if (this.isExplanationPhase) {
@@ -216,46 +221,109 @@ export default {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;700&display=swap');
+
+/* =====================
+   CSS VARIABLES
+===================== */
+.modal-overlay {
+  --space-deep: #0a0a1a;
+  --space-dark: #12122a;
+  --nebula-purple: #6b5ce7;
+  --nebula-blue: #4fc3f7;
+  --nebula-pink: #f06292;
+  --star-white: #ffffff;
+  --text-primary: #e8eaed;
+  --text-secondary: rgba(232, 234, 237, 0.7);
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
+}
 
 /* =====================
    OVERLAY
 ===================== */
 .modal-overlay {
-  --accent-green: #A3FF47;
-  --accent-cyan: #00f3ff;
-  --accent-pink: #ec4899;
-  --bg-dark: #05070A;
-  --terminal-font: 'Fira Code', monospace;
-
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(5, 7, 10, 0.95);
-  backdrop-filter: blur(10px);
+  background: linear-gradient(135deg, var(--space-deep) 0%, var(--space-dark) 50%, #1a1a3a 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2000;
   opacity: 0;
   visibility: hidden;
-  transition: all 0.3s ease;
-}
-
-.modal-overlay::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background-image: radial-gradient(rgba(163, 255, 71, 0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
-  pointer-events: none;
+  transition: all 0.4s ease;
+  overflow: hidden;
 }
 
 .modal-overlay.active {
   opacity: 1;
   visibility: visible;
+}
+
+/* =====================
+   STAR LAYERS
+===================== */
+.stars, .stars2, .stars3 {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.stars {
+  background-image: radial-gradient(1px 1px at 20px 30px, rgba(255,255,255,0.5) 50%, transparent 50%),
+    radial-gradient(1px 1px at 40px 70px, rgba(255,255,255,0.4) 50%, transparent 50%),
+    radial-gradient(1px 1px at 50px 160px, rgba(255,255,255,0.5) 50%, transparent 50%),
+    radial-gradient(1px 1px at 90px 40px, rgba(255,255,255,0.4) 50%, transparent 50%),
+    radial-gradient(1px 1px at 130px 80px, rgba(255,255,255,0.5) 50%, transparent 50%),
+    radial-gradient(1px 1px at 160px 120px, rgba(255,255,255,0.3) 50%, transparent 50%);
+  background-size: 200px 200px;
+  animation: twinkle 50s linear infinite;
+  opacity: 0.5;
+}
+
+.stars2 {
+  background-image: radial-gradient(2px 2px at 100px 50px, rgba(255,255,255,0.3) 50%, transparent 50%),
+    radial-gradient(2px 2px at 200px 150px, rgba(255,255,255,0.2) 50%, transparent 50%),
+    radial-gradient(2px 2px at 300px 250px, rgba(255,255,255,0.3) 50%, transparent 50%);
+  background-size: 400px 400px;
+  animation: twinkle 100s linear infinite;
+  opacity: 0.3;
+}
+
+.stars3 {
+  background-image: radial-gradient(3px 3px at 150px 100px, rgba(255,255,255,0.2) 50%, transparent 50%),
+    radial-gradient(3px 3px at 350px 300px, rgba(255,255,255,0.15) 50%, transparent 50%);
+  background-size: 600px 600px;
+  animation: twinkle 150s linear infinite;
+  opacity: 0.2;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; transform: translateY(0); }
+  50% { opacity: 0.8; transform: translateY(-5px); }
+}
+
+/* =====================
+   NEBULA OVERLAY
+===================== */
+.nebula-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(ellipse at 20% 80%, rgba(107, 92, 231, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(79, 195, 247, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(240, 98, 146, 0.05) 0%, transparent 70%);
+  pointer-events: none;
 }
 
 /* =====================
@@ -265,13 +333,19 @@ export default {
   width: 1100px;
   max-width: 95%;
   max-height: 90vh;
-  background: var(--bg-dark);
-  border: 1px solid rgba(163, 255, 71, 0.3);
-  box-shadow: 0 0 60px rgba(163, 255, 71, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  backdrop-filter: blur(20px);
+  box-shadow:
+    0 0 40px rgba(107, 92, 231, 0.2),
+    0 0 80px rgba(107, 92, 231, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
   position: relative;
   overflow-y: auto;
   transform: scale(0.95);
-  transition: transform 0.3s ease;
+  transition: transform 0.4s ease;
+  z-index: 1;
 }
 
 /* 스크롤바 커스텀 */
@@ -284,7 +358,7 @@ export default {
 }
 
 .interrogation-frame::-webkit-scrollbar-thumb {
-  background: rgba(163, 255, 71, 0.2);
+  background: rgba(107, 92, 231, 0.3);
   border-radius: 10px;
 }
 
@@ -297,34 +371,34 @@ export default {
 ===================== */
 .frame-header {
   padding: 16px 24px;
-  border-bottom: 1px solid rgba(163, 255, 71, 0.2);
+  border-bottom: 1px solid var(--glass-border);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: rgba(163, 255, 71, 0.03);
+  background: rgba(107, 92, 231, 0.08);
 }
 
 .header-title {
-  font-family: var(--terminal-font);
+  font-family: 'Orbitron', sans-serif;
   font-size: 0.85rem;
-  color: var(--accent-green);
+  color: var(--nebula-blue);
   letter-spacing: 3px;
   font-weight: 700;
   margin-bottom: 6px;
-  text-shadow: 0 0 10px rgba(163, 255, 71, 0.5);
+  text-shadow: 0 0 15px rgba(79, 195, 247, 0.5);
 }
 
 .header-meta {
-  font-family: var(--terminal-font);
-  font-size: 0.75rem;
-  color: rgba(163, 255, 71, 0.6);
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
 .rec {
-  color: var(--accent-green);
+  color: var(--nebula-pink);
   font-weight: bold;
   animation: pulse-opacity 1.5s infinite;
 }
@@ -345,15 +419,18 @@ export default {
 .progress-bar {
   width: 100%;
   height: 6px;
-  background: rgba(163, 255, 71, 0.1);
-  border: 1px solid rgba(163, 255, 71, 0.2);
+  background: rgba(107, 92, 231, 0.15);
+  border: 1px solid rgba(107, 92, 231, 0.3);
+  border-radius: 3px;
+  overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  background: var(--accent-green);
+  background: linear-gradient(90deg, var(--nebula-purple), var(--nebula-blue));
   transition: width 0.3s ease;
-  box-shadow: 0 0 10px rgba(163, 255, 71, 0.5);
+  box-shadow: 0 0 10px rgba(79, 195, 247, 0.5);
+  border-radius: 3px;
 }
 
 /* =====================
@@ -377,42 +454,72 @@ export default {
   padding: 60px;
 }
 
-.loading-spinner {
-  width: 50px;
-  height: 50px;
-  border: 3px solid rgba(163, 255, 71, 0.2);
-  border-top-color: var(--accent-green);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 20px;
+.loading-orbit {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  margin-bottom: 24px;
 }
 
-@keyframes spin {
+.orbit-ring {
+  position: absolute;
+  inset: 0;
+  border: 3px solid rgba(107, 92, 231, 0.2);
+  border-top-color: var(--nebula-blue);
+  border-right-color: var(--nebula-purple);
+  border-radius: 50%;
+  animation: orbit 1.2s linear infinite;
+}
+
+.orbit-core {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  background: linear-gradient(135deg, var(--nebula-purple), var(--nebula-blue));
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 20px rgba(107, 92, 231, 0.6);
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes orbit {
+  from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
 
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 15px rgba(107, 92, 231, 0.4); }
+  50% { box-shadow: 0 0 30px rgba(79, 195, 247, 0.7); }
+}
+
 .loading-section p {
-  color: var(--accent-green);
-  font-family: var(--terminal-font);
-  font-size: 0.9rem;
+  color: var(--nebula-blue);
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.8rem;
+  letter-spacing: 2px;
+  text-shadow: 0 0 10px rgba(79, 195, 247, 0.4);
 }
 
 /* =====================
    EVIDENCE (Left)
 ===================== */
 .evidence-section {
-  background: rgba(163, 255, 71, 0.03);
-  border: 1px solid rgba(163, 255, 71, 0.2);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
   padding: 15px;
   position: relative;
   display: flex;
   flex-direction: column;
+  backdrop-filter: blur(10px);
 }
 
 .section-title {
-  font-family: var(--terminal-font);
+  font-family: 'Orbitron', sans-serif;
   font-size: 0.7rem;
-  color: rgba(163, 255, 71, 0.6);
+  color: var(--text-secondary);
   margin-bottom: 12px;
   letter-spacing: 2px;
 }
@@ -420,18 +527,19 @@ export default {
 .diagram-container {
   flex: 1;
   min-height: 220px;
-  border: 1px dashed rgba(163, 255, 71, 0.2);
+  border: 1px dashed rgba(107, 92, 231, 0.25);
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.2);
   padding: 10px;
 }
 
 .diagram-placeholder {
-  color: rgba(163, 255, 71, 0.3);
-  font-family: var(--terminal-font);
-  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.9rem;
 }
 
 .diagram-container :deep(svg) {
@@ -441,43 +549,23 @@ export default {
 }
 
 .mermaid-error {
-  color: var(--accent-pink);
-  font-size: 0.8rem;
-}
-
-/* Stamp */
-.stamp {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%) rotate(-12deg);
-  border: 2px solid var(--accent-green);
-  color: var(--accent-green);
-  font-family: var(--terminal-font);
-  font-size: 0.9rem;
-  font-weight: 700;
-  padding: 12px 20px;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
-  background: rgba(5, 7, 10, 0.9);
-  letter-spacing: 2px;
-}
-
-.stamp.stamp-active {
-  opacity: 0.85;
+  color: var(--nebula-pink);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.85rem;
 }
 
 /* =====================
    DETECTIVE (Right)
 ===================== */
 .detective-section {
-  background: rgba(163, 255, 71, 0.03);
-  border: 1px solid rgba(163, 255, 71, 0.2);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
   padding: 15px;
   display: flex;
   flex-direction: column;
   gap: 15px;
+  backdrop-filter: blur(10px);
 }
 
 .det-card {
@@ -489,14 +577,15 @@ export default {
 .det-avatar {
   width: 70px;
   height: 70px;
-  border: 2px solid var(--accent-green);
-  background: #000;
+  border: 2px solid var(--nebula-purple);
+  border-radius: 50%;
+  background: rgba(107, 92, 231, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   overflow: hidden;
-  box-shadow: 0 0 15px rgba(163, 255, 71, 0.3);
+  box-shadow: 0 0 20px rgba(107, 92, 231, 0.3);
 }
 
 .det-avatar img {
@@ -510,31 +599,20 @@ export default {
 }
 
 .det-name {
-  font-family: var(--terminal-font);
+  font-family: 'Orbitron', sans-serif;
   font-size: 0.7rem;
-  color: var(--accent-green);
+  color: var(--nebula-blue);
   margin-bottom: 6px;
   letter-spacing: 2px;
   font-weight: 700;
-  text-shadow: 0 0 8px rgba(163, 255, 71, 0.5);
-}
-
-.det-category {
-  display: inline-block;
-  padding: 3px 8px;
-  background: rgba(163, 255, 71, 0.1);
-  border: 1px solid rgba(163, 255, 71, 0.3);
-  font-family: var(--terminal-font);
-  font-size: 0.6rem;
-  color: var(--accent-green);
-  margin-bottom: 8px;
+  text-shadow: 0 0 8px rgba(79, 195, 247, 0.5);
 }
 
 .det-question {
-  font-family: var(--terminal-font);
-  font-size: 0.85rem;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.95rem;
   line-height: 1.6;
-  color: #ecf0f1;
+  color: var(--text-primary);
   margin: 0;
 }
 
@@ -547,86 +625,92 @@ export default {
 }
 
 .testimony-label {
-  font-family: var(--terminal-font);
+  font-family: 'Orbitron', sans-serif;
   font-size: 0.65rem;
-  color: var(--accent-green);
-  letter-spacing: 1px;
+  color: var(--nebula-purple);
+  letter-spacing: 2px;
 }
 
 .testimony-input {
   flex: 1;
   min-height: 80px;
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid var(--accent-green);
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(107, 92, 231, 0.3);
+  border-radius: 12px;
   padding: 12px;
-  color: #ecf0f1;
-  font-family: var(--terminal-font);
-  font-size: 0.85rem;
+  color: var(--text-primary);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.95rem;
   resize: none;
   transition: all 0.3s ease;
 }
 
 .testimony-input:focus {
   outline: none;
-  box-shadow: 0 0 15px rgba(163, 255, 71, 0.3);
+  border-color: var(--nebula-purple);
+  box-shadow: 0 0 20px rgba(107, 92, 231, 0.3);
 }
 
 .testimony-input::placeholder {
-  color: rgba(163, 255, 71, 0.3);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
 }
 
 /* 설명 모드 스타일 */
 .testimony-input.explanation-mode {
   min-height: 150px;
-  border-color: var(--accent-cyan);
+  border-color: rgba(79, 195, 247, 0.4);
 }
 
 .testimony-input.explanation-mode:focus {
-  box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+  border-color: var(--nebula-blue);
+  box-shadow: 0 0 20px rgba(79, 195, 247, 0.3);
 }
 
 .btn-explanation {
-  background: var(--accent-cyan) !important;
-  color: #000 !important;
+  background: linear-gradient(135deg, var(--nebula-blue), #81d4fa) !important;
+  color: var(--space-deep) !important;
 }
 
 .btn-explanation:hover:not(:disabled) {
-  box-shadow: 0 0 20px rgba(0, 243, 255, 0.5) !important;
+  box-shadow: 0 10px 30px rgba(79, 195, 247, 0.4) !important;
 }
 
 /* =====================
    FOOTER
 ===================== */
 .frame-footer {
-  border-top: 1px solid rgba(163, 255, 71, 0.2);
+  border-top: 1px solid var(--glass-border);
   padding: 15px 24px;
   display: flex;
   justify-content: flex-end;
   gap: 15px;
-  background: rgba(163, 255, 71, 0.03);
+  background: rgba(107, 92, 231, 0.05);
 }
 
 .btn {
   flex: 1;
   max-width: 250px;
-  padding: 12px 20px;
-  font-family: var(--terminal-font);
+  padding: 14px 28px;
+  font-family: 'Orbitron', sans-serif;
   font-size: 0.75rem;
   cursor: pointer;
-  border: 1px solid rgba(163, 255, 71, 0.3);
-  transition: all 0.2s ease;
-  letter-spacing: 1px;
+  border: 1px solid rgba(107, 92, 231, 0.3);
+  border-radius: 30px;
+  transition: all 0.3s ease;
+  letter-spacing: 2px;
 }
 
 .btn-submit {
-  background: var(--accent-green);
-  color: #000;
+  background: linear-gradient(135deg, var(--nebula-purple), var(--nebula-blue));
+  color: #fff;
   font-weight: 700;
+  border: none;
 }
 
 .btn-submit:hover:not(:disabled) {
-  box-shadow: 0 0 25px rgba(163, 255, 71, 0.5);
-  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(107, 92, 231, 0.4);
+  transform: translateY(-3px);
 }
 
 .btn-submit:disabled {
@@ -635,13 +719,15 @@ export default {
 }
 
 .btn-silent {
-  background: rgba(163, 255, 71, 0.1);
-  color: rgba(163, 255, 71, 0.7);
+  background: var(--glass-bg);
+  color: var(--text-secondary);
+  border: 1px solid var(--glass-border);
 }
 
 .btn-silent:hover {
-  background: rgba(163, 255, 71, 0.2);
-  color: var(--accent-green);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  border-color: rgba(107, 92, 231, 0.4);
 }
 
 /* =====================
@@ -654,6 +740,35 @@ export default {
 
   .evidence-section {
     min-height: 200px;
+  }
+
+  .header-title {
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+  }
+}
+
+@media (max-width: 600px) {
+  .interrogation-frame {
+    max-width: 98%;
+  }
+
+  .frame-header {
+    padding: 12px 16px;
+  }
+
+  .frame-main {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .frame-footer {
+    padding: 12px 16px;
+  }
+
+  .btn {
+    padding: 10px 16px;
+    font-size: 0.65rem;
   }
 }
 </style>
