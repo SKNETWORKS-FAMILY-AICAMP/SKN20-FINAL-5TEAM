@@ -288,45 +288,22 @@
             </div>
           </div>
 
+          <!-- [2026-02-03] 메인 화면 걷는 오리 PNG 교체 (비행 중에는 대기 중인 주체가 보이지 않도록 v-if="!showBullet" 추가) -->
+          <div v-if="!showBullet" class="walking-duck" :style="walkingDuckStyle">
+            <!-- [2026-02-03] 에셋 임포트 방식으로 안정적인 이미지 로딩 보장 -->
+            <img v-if="isEating" :src="duckEating" class="duck-walking-img eating-motion" alt="Eating Duck">
+            <img v-else-if="isSad" :src="duckSad" class="duck-walking-img sad-motion" alt="Sad Duck">
+            <img v-else :src="duckIdle" class="duck-walking-img" alt="Walking Duck Bird">
+          </div>
 
-          <!-- 오리가 날아가는 이펙트 SVG (포물선 + 회전) -->
+          <!-- [2026-02-03] 오리가 날아가서 도착 지점에서 지렁이를 먹는 동작을 보여주기 위해 이미지 전환 로직 추가 -->
           <div v-if="showBullet" class="bullet duck-flying cinematic" :style="bulletStyle">
-            <svg width="70" height="70" viewBox="0 0 70 70" class="duck-flying-svg">
-              <!-- 오리 몸통 -->
-              <ellipse cx="35" cy="40" rx="20" ry="15" fill="#FFD700" stroke="#FFA500" stroke-width="2"/>
-              <!-- 오리 머리 -->
-              <circle cx="35" cy="22" r="12" fill="#FFD700" stroke="#FFA500" stroke-width="2"/>
-              <!-- 부리 (날아가는 중) -->
-              <ellipse cx="44" cy="22" rx="7" ry="4" fill="#FF8C00"/>
-              <!-- 눈 (집중) -->
-              <ellipse cx="38" cy="19" rx="3" ry="2" fill="#000"/>
-              <circle cx="38.5" cy="18.5" r="1" fill="#fff"/>
-              <!-- 왼쪽 날개 (활짝 펼침) -->
-              <ellipse cx="18" cy="38" rx="10" ry="18" fill="#FFA500" class="wing-left">
-                <animateTransform attributeName="transform"
-                                  type="rotate"
-                                  from="-30 18 38"
-                                  to="20 18 38"
-                                  dur="0.2s"
-                                  repeatCount="indefinite"
-                                  direction="alternate"/>
-              </ellipse>
-              <!-- 오른쪽 날개 -->
-              <ellipse cx="52" cy="38" rx="10" ry="18" fill="#FFA500" class="wing-right">
-                <animateTransform attributeName="transform"
-                                  type="rotate"
-                                  from="30 52 38"
-                                  to="-20 52 38"
-                                  dur="0.2s"
-                                  repeatCount="indefinite"
-                                  direction="alternate"/>
-              </ellipse>
-              <!-- 발 -->
-              <ellipse cx="30" cy="52" rx="4" ry="2" fill="#FF6600"/>
-              <ellipse cx="40" cy="52" rx="4" ry="2" fill="#FF6600"/>
-            </svg>
-            <!-- 속도선 효과 -->
-            <div class="speed-lines">
+            <img :src="isEating ? duckEating : (isSad ? duckSad : duckFlying)" 
+                 class="duck-flying-img" 
+                 :class="{ 'eating-at-target': isEating, 'sad-at-target': isSad }"
+                 alt="Flying/Eating/Sad Duck">
+            <!-- 속도선 효과 (비행 중에만 표시) -->
+            <div v-if="!isEating" class="speed-lines">
               <span v-for="n in 5" :key="n" class="speed-line"></span>
             </div>
           </div>
@@ -922,6 +899,12 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted, watch, shallowRef, nextTick } from 'vue';
+// [2026-02-03] 이미지 경로 문제를 근본적으로 해결하기 위해 Vite 에셋 파이프라인(Import) 도입
+import duckIdle from '@/assets/image/duck_idle_change.png';
+import duckEating from '@/assets/image/duck_eating.png';
+import duckFlying from '@/assets/image/duck_flying.png';
+import duckSad from '@/assets/image/duck_sad.png';
+import unitDuck from '@/assets/image/unit_duck.png';
 import { useRoute, useRouter } from 'vue-router';
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
 import progressiveData from './progressive-problems.json';
@@ -1083,6 +1066,11 @@ const levelUpInfo = ref({ oldLevel: 0, newLevel: 0, title: '' });
 const showAchievementPopup = ref(false);
 const newAchievement = ref(null);
 const showStatsPanel = ref(false);
+
+// [2026-02-03] 오리 캐릭터의 상태(평상시/먹기)를 제어하기 위한 반응형 변수 추가
+const isEating = ref(false);
+const isSad = ref(false);
+const headerEatingStep = ref(null);
 
 function showLevelUpEffect(oldLevel, newLevel, title) {
   levelUpInfo.value = { oldLevel, newLevel, title };
@@ -1549,6 +1537,7 @@ function submitProgressiveStep() {
   if (currentProgressiveStep.value > 3) return;
 
   isRunning.value = true;
+  isSad.value = false; // 새로운 제출 시 슬픈 상태 초기화
 
   scheduleTimeout(() => {
     const passed = checkProgressiveSolution();
@@ -1673,6 +1662,8 @@ const isRunning = ref(false);
 const walkingDuckLogPosition = reactive({ bottom: '20px', left: '20px' });
 const showBullet = ref(false);
 const bulletPosition = ref({ x: 0, y: 0 });
+// [2026-02-03] 오리가 날아가는 방향을 바라보도록 회전값을 관리하는 변수 추가
+const bulletRotation = ref(0);
 const showHitEffect = ref(false);
 const showMissEffect = ref(false);
 const hitEffectPosition = ref({ x: 0, y: 0 });
@@ -1686,7 +1677,9 @@ const walkingDuckLogStyle = computed(() => ({
 
 const bulletStyle = computed(() => ({
   left: `${bulletPosition.value.x}px`,
-  top: `${bulletPosition.value.y}px`
+  top: `${bulletPosition.value.y}px`,
+  // [2026-02-03] 실시간 궤적에 따른 회전값 적용
+  transform: `translate(-50%, -50%) rotate(${bulletRotation.value}deg)`
 }));
 
 const hitEffectStyle = computed(() => ({
@@ -1801,7 +1794,7 @@ function shootBug(targetStep, isHit) {
 
   function startDuckFlight() {
 
-    const duration = 300;
+    const duration = 500;
     const startTime = performance.now();
 
     function animateBullet(currentTime) {
@@ -1816,25 +1809,60 @@ function shootBug(targetStep, isHit) {
       bulletPosition.value.x = startX + (targetX - startX) * easeProgress;
       bulletPosition.value.y = startY + (targetY - startY) * easeProgress - parabola;
 
+      // [2026-02-03] 날아가는 방향(궤적의 기울기)에 맞춰 이미지 회전 계산
+      const dx = targetX - startX;
+      // 포물선 궤적의 1차 미분값을 활용해 현재 진행 방향의 기울기 산출
+      const dy_dp = (targetY - startY) - 4 * arcHeight * (1 - 2 * progress);
+      const angle = Math.atan2(dy_dp, dx) * (180 / Math.PI);
+      bulletRotation.value = angle;
+
       if (progress < 1) {
         requestAnimationFrame(animateBullet);
       } else {
-        showBullet.value = false;
+        // [2026-02-03] 도착 시 회전값 초기화 (정면을 보고 먹기 위해)
+        bulletRotation.value = 0;
 
         // 화면 흔들림 효과
         isShaking.value = true;
-        scheduleTimeout(() => { isShaking.value = false; }, 500);
+        
+        // [2026-02-03] 버그 타격 시 오리 이미지(메인 및 헤더)를 먹기 상태로 전환
+        if (isHit) {
+          isEating.value = true;
+          headerEatingStep.value = targetStep;
+          
+          // [2026-02-03] 정답일 경우 지렁이를 잡아먹는 시간을 800ms로 연장하여 가시성 확보
+          scheduleTimeout(() => {
+            showBullet.value = false; // 먹기 완료 후 비행 오브젝트 제거
+            isShaking.value = false;
+            
+            // [2026-02-03] 비행체가 사라진 후에도 바닥 오리가 잠시 더 냠냠거리는 여운을 남김 (500ms 추가)
+            scheduleTimeout(() => {
+              isEating.value = false;
+              headerEatingStep.value = null;
+            }, 500);
+          }, 800);
+        } else {
+          // 오답일 경우 타겟 위치에서 슬픈 상태 활성화
+          isSad.value = true;
+          
+          // 1.5초 후 비행 오브젝트 제거 및 상태 해제 (타겟 지점에서 머물기)
+          scheduleTimeout(() => {
+            showBullet.value = false;
+            isSad.value = false;
+            isShaking.value = false;
+          }, 1500);
+        }
 
         if (isHit) {
-        hitEffectPosition.value = { x: targetX, y: targetY };
-        hitEffectText.value = ['YUMMY!', 'DELICIOUS!', 'NOM NOM!', 'TASTY!'][Math.floor(Math.random() * 4)];
-        showHitEffect.value = true;
+          hitEffectPosition.value = { x: targetX, y: targetY };
+          hitEffectText.value = ['YUMMY!', 'DELICIOUS!', 'NOM NOM!', 'TASTY!'][Math.floor(Math.random() * 4)];
+          showHitEffect.value = true;
 
-        // 해당 버그 애니메이션 중지
-        if (bugAnimationIds[targetStep]) {
-          cancelAnimationFrame(bugAnimationIds[targetStep]);
-          bugAnimationIds[targetStep] = null;
-        }
+          // 해당 버그 애니메이션 중지
+          if (bugAnimationIds[targetStep]) {
+            cancelAnimationFrame(bugAnimationIds[targetStep]);
+            bugAnimationIds[targetStep] = null;
+          }
 
           scheduleTimeout(() => { showHitEffect.value = false; }, 1500);
         } else {
