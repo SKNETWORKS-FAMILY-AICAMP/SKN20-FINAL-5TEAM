@@ -138,27 +138,29 @@
 
       <div class="progressive-main-layout">
         <!-- 좌측: 미션 브리핑 -->
-        <aside class="mission-briefing-panel">
-          <div class="panel-box scenario-box">
-            <div class="panel-title">📋 MISSION BRIEFING</div>
-            <p class="scenario-text">{{ currentProgressiveMission?.scenario }}</p>
-          </div>
-
-          <!-- 단서창 (문제 관련 로그/힌트 표시) -->
-          <div class="clue-panel neon-border">
-            <div class="clue-header">
-              <span class="clue-icon">🔍</span>
-              <span class="clue-title">CLUES & LOGS</span>
+        <aside class="left-panel-wrapper">
+          <div class="left-panel-body">
+            <div class="panel-box scenario-box">
+              <div class="panel-title">📋 MISSION BRIEFING</div>
+              <p class="scenario-text">{{ currentProgressiveMission?.scenario }}</p>
             </div>
-            <div class="clue-content" ref="clueContentRef">
-              <div
-                v-for="(clue, idx) in clueMessages"
-                :key="idx"
-                class="clue-item"
-                :class="{ 'new-clue': clue.isNew }"
-              >
-                <span class="clue-badge">{{ clue.type }}</span>
-                <span class="clue-text">{{ clue.text }}</span>
+
+            <!-- 단서창 (문제 관련 로그/힌트 표시) -->
+            <div class="clue-panel neon-border">
+              <div class="clue-header">
+                <span class="clue-icon">🔍</span>
+                <span class="clue-title">CLUES & LOGS</span>
+              </div>
+              <div class="clue-content" ref="clueContentRef">
+                <div
+                  v-for="(clue, idx) in clueMessages"
+                  :key="idx"
+                  class="clue-item"
+                  :class="{ 'new-clue': clue.isNew }"
+                >
+                  <span class="clue-badge">{{ clue.type }}</span>
+                  <span class="clue-text">{{ clue.text }}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -1242,11 +1244,17 @@ function startProgressiveMission(mission, index, startAtStep = 1) {
   startDebugPhase();
 
   // 단서 초기화
-  clueMessages.value = [
-    { type: 'INFO', text: `프로젝트 "${mission.project_title}" 로드 완료`, isNew: false },
-    { type: 'WARN', text: `발견된 버그: 3개 | 현재: Step ${startAtStep}`, isNew: false },
-    { type: 'HINT', text: getCurrentStepData()?.hint || '코드를 주의깊게 살펴보세요...', isNew: false }
-  ];
+  const stepData = getCurrentStepData();
+  clueMessages.value = [];
+
+  // 에러 로그만 표시
+  if (stepData?.error_log) {
+    clueMessages.value.push({
+      type: 'ERROR',
+      text: stepData.error_log,
+      isNew: false
+    });
+  }
 
   // 버그 애니메이션 시작
   scheduleTimeout(() => {
@@ -1331,19 +1339,25 @@ function handleChatSubmit() {
   // 시스템 응답 및 다음 단계 진행
   scheduleTimeout(() => {
     if (currentProgressiveStep.value < 3) {
-      addClue('INFO', `Step ${currentProgressiveStep.value} 완료! 다음 버그로 이동합니다.`);
       scheduleTimeout(() => {
         moveToNextStep();
-        addClue('WARN', `Step ${currentProgressiveStep.value} 분석 중...`);
-        addClue('HINT', getCurrentStepData()?.hint || '코드를 주의깊게 살펴보세요.');
-      }, 800);
+
+        // 다음 단계 에러 로그만 표시
+        const stepData = getCurrentStepData();
+        if (stepData?.error_log) {
+          clueMessages.value = [{
+            type: 'ERROR',
+            text: stepData.error_log,
+            isNew: true
+          }];
+        }
+      }, 500);
     } else {
-      addClue('SUCCESS', '모든 버그 제거 완료! 최종 평가 리포트를 생성합니다.');
       scheduleTimeout(() => {
         completeMission();
       }, 1500);
     }
-  }, 500);
+  }, 300);
 }
 
 // 평가 화면 보기
@@ -1403,7 +1417,6 @@ function resetCurrentStep() {
   const stepData = getCurrentStepData();
   if (stepData) {
     progressiveStepCodes.value[currentProgressiveStep.value] = stepData.buggy_code;
-    addClue('WARN', `코드가 초기화되었습니다.`);
   }
 }
 
@@ -1412,7 +1425,6 @@ function showProgressiveHint() {
   // 첫 사용 시에만 기록 (점수 계산용)
   if (!progressiveHintUsed.value[currentProgressiveStep.value]) {
     progressiveHintUsed.value[currentProgressiveStep.value] = true;
-    addClue('HINT', `힌트: ${getCurrentStepData()?.hint || '코드를 주의깊게 살펴보세요.'}`);
   }
   // 힌트 패널 토글 (열려있으면 닫고, 닫혀있으면 열기)
   showProgressiveHintPanel.value = !showProgressiveHintPanel.value;
@@ -1509,9 +1521,6 @@ function submitProgressiveStep() {
 
   isRunning.value = true;
 
-  // 검증 시작 로그
-  addClue('INFO', `코드 검증 중...`);
-
   scheduleTimeout(() => {
     const passed = checkProgressiveSolution();
 
@@ -1542,10 +1551,6 @@ function submitProgressiveStep() {
         // 성공 시 힌트 창 닫기
         showProgressiveHintPanel.value = false;
 
-        // 성공 로그
-        addClue('SUCCESS', `테스트 통과! (${duration}초)`);
-        addClue('SUCCESS', `${getCurrentStepData()?.title} - 버그 제거 완료`);
-
         // 해골이 버그 위치로 날아가는 애니메이션 - 1초 딜레이 후 표시
         scheduleTimeout(() => {
           animateSkullToBug(currentProgressiveStep.value);
@@ -1557,12 +1562,8 @@ function submitProgressiveStep() {
         }, 1000);
 
       } else {
-        // 실패
+        // 실패 - 아무 로그도 추가하지 않음 (기존 에러 로그 유지)
         codeSubmitFailCount.value++;
-
-        // 실패 로그
-        addClue('ERROR', `테스트 실패! 코드를 다시 확인해주세요.`);
-        addClue('HINT', getCurrentStepData()?.hint || '힌트를 확인해보세요.');
       }
       isRunning.value = false;
     }, 500);
@@ -1869,3 +1870,172 @@ onUnmounted(() => {
 
 
 <style scoped src="./BugHunt.css"></style>
+
+<style scoped>
+/* ============================================ */
+/* [NEW] Custom Layout Styles for Progressive Mission */
+/* ============================================ */
+
+/* Force Compact Header */
+:deep(.header.compact) {
+  padding: 10px 20px !important;
+  min-height: 60px;
+}
+
+.progressive-main-layout {
+  display: grid;
+  grid-template-columns: 1fr 2fr; /* 1:2 Split */
+  gap: 1rem; /* Reduced gap */
+  height: calc(100vh - 90px) !important; /* Adjusted for smaller header */
+  padding: 0.5rem 1.5rem 1.5rem 1.5rem; /* Reduced top padding */
+  box-sizing: border-box;
+}
+
+.left-panel-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.left-panel-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: rgba(10, 10, 15, 0.85); /* Dark unified body background */
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.panel-box.scenario-box {
+  height: 35%; /* Fixed reduced height */
+  flex: none; /* Do not grow */
+  background: transparent;
+  border: none;
+  padding: 1.5rem;
+  overflow-y: auto;
+  border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+}
+
+.panel-title {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: var(--neon-cyan);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.scenario-text {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #e0f7fa;
+  white-space: pre-wrap;
+}
+
+.clue-panel {
+  flex: 1; /* Take all remaining space (Expanded Log Window) */
+  min-height: 200px;
+  background: rgba(0, 0, 0, 0.4); /* Slightly darker/transparent */
+  border-top: 1px solid rgba(0, 255, 255, 0.2);
+  display: flex;
+  flex-direction: column;
+}
+
+.clue-header {
+  padding: 0.6rem 1rem; /* Compact header */
+  background: rgba(0, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #fff;
+  font-weight: bold;
+}
+
+.clue-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.clue-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  font-size: 0.9rem;
+  padding: 0.8rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  animation: slideIn 0.3s ease-out;
+  border-left: 3px solid transparent;
+}
+
+.clue-badge {
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  background: #333;
+  width: fit-content;
+  letter-spacing: 0.5px;
+}
+
+.clue-text {
+  flex: 1;
+  line-height: 1.6;
+  color: #e0e0e0;
+  white-space: pre-wrap;
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+  font-size: 0.85rem;
+}
+
+/* ERROR 타입 특별 스타일 */
+.clue-item:has(.clue-badge:contains('ERROR')) {
+  background: rgba(244, 67, 54, 0.08);
+  border-left-color: #f44336;
+  padding: 1rem;
+}
+
+.clue-item:has(.clue-badge:contains('ERROR')) .clue-text {
+  color: #ffcdd2;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.8rem;
+  border-radius: 4px;
+  border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+/* Clue Types */
+.clue-item:has(.clue-badge:contains('INFO')) .clue-badge { background: #2196f3; color: white; }
+.clue-item:has(.clue-badge:contains('INFO')) { border-left-color: #2196f3; }
+
+.clue-item:has(.clue-badge:contains('WARN')) .clue-badge { background: #ff9800; color: black; }
+.clue-item:has(.clue-badge:contains('WARN')) { border-left-color: #ff9800; }
+
+.clue-item:has(.clue-badge:contains('ERROR')) .clue-badge { background: #f44336; color: white; }
+
+.clue-item:has(.clue-badge:contains('SUCCESS')) .clue-badge { background: #4caf50; color: white; }
+.clue-item:has(.clue-badge:contains('SUCCESS')) { border-left-color: #4caf50; }
+
+.clue-item:has(.clue-badge:contains('HINT')) .clue-badge { background: #9c27b0; color: white; }
+.clue-item:has(.clue-badge:contains('HINT')) { border-left-color: #9c27b0; }
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Ensure right panel frame matches style */
+.full-code-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+</style>

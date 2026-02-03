@@ -587,13 +587,22 @@
 }
 
 /* 미션 브리핑 패널 */
-.mission-briefing-panel {
+.mission-briefing-panel,
+.left-panel-wrapper {
   display: flex;
   flex-direction: column;
   gap: 15px;
   overflow: hidden;
   min-height: 0;
   max-height: 100%;
+}
+
+.left-panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  flex: 1;
+  overflow: hidden;
 }
 
 .panel-box {
@@ -603,19 +612,27 @@
   padding: 20px;
 }
 
+.scenario-box {
+  /* editor-header와 높이 맞추기 */
+  padding: 12px 20px;
+  display: flex;
+  flex-direction: column;
+}
+
 .panel-title {
   font-family: 'Orbitron', monospace;
   font-size: 0.85rem;
   color: var(--neon-cyan);
-  margin-bottom: 15px;
+  margin-bottom: 10px;
   padding-left: 12px;
   border-left: 3px solid var(--neon-cyan);
 }
 
 .scenario-text {
   color: #ffffff;
-  line-height: 1.6;
-  font-size: 1.1rem;
+  line-height: 1.5;
+  font-size: 0.95rem;
+  margin: 0;
 }
 
 .current-target-box {
@@ -2950,15 +2967,15 @@
 
 /* 단서창 스타일 */
 .clue-panel {
-  margin-top: 20px;
+  margin-top: 0;
   background: rgba(10, 10, 15, 0.8);
   border: 1px solid rgba(0, 243, 255, 0.3);
   border-radius: 8px;
   overflow: hidden;
-  min-height: 250px;
-  max-height: 350px;
+  flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 .clue-header {
