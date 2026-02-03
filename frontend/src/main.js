@@ -19,6 +19,7 @@ import SystemArchitecturePractice from './features/practice/SystemArchitecturePr
 import BugHunt from './features/practice/BugHunt.vue'
 import VibeCodeCleanUp from './features/practice/VibeCodeCleanUp.vue'
 import OpsPractice from './features/practice/OpsPractice.vue'
+import ProgressiveProblems from './features/practice/ProgressiveProblems.vue'
 // [수정일: 2026-01-31] 사용하지 않는 구버전/비활성 컴포넌트 임포트 주석 처리
 // import AiDetectivePractice from './features/practice/AiDetectivePractice.vue'
 // import PseudoForest from './features/practice/PseudoForest.vue'
@@ -56,6 +57,11 @@ const routes = [
     path: '/practice/ops-practice',
     name: 'OpsPractice',
     component: OpsPractice
+  },
+  {
+    path: '/practice/progressive-problems',
+    name: 'ProgressiveProblems',
+    component: ProgressiveProblems
   },
   /* [수정일: 2026-01-31] 비활성 라우트 주석 처리
   {

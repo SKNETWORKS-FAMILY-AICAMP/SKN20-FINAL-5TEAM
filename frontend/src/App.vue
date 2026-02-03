@@ -177,7 +177,8 @@ const isPracticePage = computed(() => {
     'SystemArchitecturePractice', 
     'BugHunt', 
     'VibeCodeCleanUp', 
-    'OpsPractice'
+    'OpsPractice',
+    'ProgressiveProblems'
   ];
   return practiceRoutes.includes(route?.name);
 });

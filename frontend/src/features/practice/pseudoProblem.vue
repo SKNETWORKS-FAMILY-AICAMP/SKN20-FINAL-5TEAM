@@ -15,7 +15,7 @@
       </video>
       
       <!-- Perspective Container -->
-      <div class="relative w-full max-w-4xl h-full flex flex-col items-center text-center perspective-container py-20">
+      <div class="relative w-full max-w-4xl h-full flex flex-col items-center text-center perspective-container py-10 md:py-20">
         <!-- Prelude Text (Blue Fade) -->
         <div class="prelude-text animate-fade-out" :style="{ animationDelay: '1s' }">
           PROGRAM: INITIALIZING_REBOOT_PROTOCOL<br/>
@@ -57,16 +57,16 @@
     </div>
 
     <!-- OS 상단 헤더 -->
-    <nav class="h-16 border-b border-[#A3FF47]/20 bg-black/90 backdrop-blur-xl px-8 flex items-center z-50 shrink-0">
-      <div class="flex items-center gap-8">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 bg-[#A3FF47] rounded-sm flex items-center justify-center shadow-[0_0_15px_#A3FF47]">
-            <Cpu class="text-black w-6 h-6" />
+    <nav class="h-16 border-b border-[#A3FF47]/20 bg-black/90 backdrop-blur-xl px-4 md:px-8 flex items-center z-50 shrink-0">
+      <div class="flex items-center gap-4 md:gap-8 overflow-x-auto no-scrollbar">
+        <div class="flex items-center gap-3 shrink-0">
+          <div class="w-8 h-8 md:w-10 md:h-10 bg-[#A3FF47] rounded-sm flex items-center justify-center shadow-[0_0_15px_#A3FF47]">
+            <Cpu class="text-black w-5 h-5 md:w-6 md:h-6" />
           </div>
-          <span class="orbitron-font text-2xl font-black tracking-widest uppercase italic terminal-glow">Architect OS v1.0</span>
+          <span class="orbitron-font text-lg md:text-2xl font-black tracking-widest uppercase italic terminal-glow">Architect OS</span>
         </div>
-        <div class="h-8 w-px bg-[#A3FF47]/20"></div>
-        <div class="flex items-center gap-6 text-sm font-bold tracking-widest">
+        <div class="h-8 w-px bg-[#A3FF47]/20 hidden sm:block"></div>
+        <div class="hidden lg:flex items-center gap-6 text-sm font-bold tracking-widest">
           <span class="flex items-center gap-2 opacity-50">
             <Wifi class="w-5 h-5" /> SECTOR: TUTORIAL_ZONE
           </span>
@@ -74,17 +74,17 @@
             <Activity class="w-5 h-5" /> VOICE_LINK_SYNCED
           </span>
         </div>
-        <div class="h-8 w-px bg-[#A3FF47]/20"></div>
-        <div class="flex items-center gap-3 bg-[#A3FF47]/10 px-5 py-2 rounded-sm border border-[#A3FF47]/30">
-          <span class="text-xs opacity-50">ARCHITECT:</span>
-          <span class="text-sm font-black tracking-tighter">{{ userNickname }}</span>
+        <div class="h-8 w-px bg-[#A3FF47]/20 hidden sm:block"></div>
+        <div class="flex items-center gap-3 bg-[#A3FF47]/10 px-3 md:px-5 py-2 rounded-sm border border-[#A3FF47]/30 shrink-0">
+          <span class="text-[10px] md:text-xs opacity-50 uppercase">User:</span>
+          <span class="text-xs md:text-sm font-black tracking-tighter">{{ userNickname }}</span>
         </div>
-        <button @click="toggleMute" class="p-2 btn-neon rounded-full">
-          <VolumeX v-if="isMuted" class="text-red-500 w-6 h-6" />
-          <Volume2 v-else class="w-6 h-6" />
+        <button @click="toggleMute" class="p-1.5 md:p-2 btn-neon rounded-full shrink-0">
+          <VolumeX v-if="isMuted" class="text-red-500 w-5 h-5 md:w-6 md:h-6" />
+          <Volume2 v-else class="w-5 h-5 md:w-6 md:h-6" />
         </button>
-        <button @click="$emit('close')" class="p-2 btn-neon rounded-full">
-          <X class="text-red-500 w-6 h-6" />
+        <button @click="$emit('close')" class="p-1.5 md:p-2 btn-neon rounded-full shrink-0">
+          <X class="text-red-500 w-5 h-5 md:w-6 md:h-6" />
         </button>
       </div>
     </nav>
@@ -101,14 +101,15 @@
     </div>
 
     <!-- 메인 터미널 영역 -->
-    <main class="flex-1 flex overflow-hidden relative" :class="currentStep > 0 ? 'ml-24' : ''">
+    <!-- [2026-02-02] 해상도에 따라 사이드바 여백 조절 -->
+    <main class="flex-1 flex overflow-hidden relative" :class="currentStep > 0 ? 'ml-24 lg:ml-24' : ''">
       <div class="flex-1 flex flex-col min-w-0 relative">
         <!-- 상단 미션 브리핑 바 -->
-        <div class="border-b border-[#A3FF47]/10 grid grid-cols-2 bg-[#A3FF47]/5 shrink-0">
-          <div class="p-4 flex items-center justify-center border-r border-[#A3FF47]/10">
-            <div class="w-[320px] flex items-center justify-between">
+        <div class="border-b border-[#A3FF47]/10 flex flex-col md:grid md:grid-cols-2 bg-[#A3FF47]/5 shrink-0">
+          <div class="p-4 flex items-center justify-center border-b md:border-b-0 md:border-r border-[#A3FF47]/10">
+            <div class="w-full max-w-[320px] flex items-center justify-between">
               <div>
-                <h2 class="text-lg font-black italic tracking-tighter uppercase terminal-glow">{{ questData.title }}</h2>
+                <h2 class="text-base md:text-lg font-black italic tracking-tighter uppercase terminal-glow">{{ questData.title }}</h2>
                 <p class="text-[8px] opacity-60 uppercase tracking-[0.3em] font-bold">Protocol: {{ questData.subModuleTitle }}</p>
               </div>
               <div class="p-1.5 bg-[#A3FF47]/10 rounded border border-[#A3FF47]/30 opacity-40">
@@ -131,14 +132,15 @@
 
         <div class="flex-1 flex overflow-hidden">
           <!-- Step 1: Coduck 각성 및 사고 회로 복구 인터뷰 -->
-          <div v-if="currentStep === 1" class="flex-1 grid grid-cols-2 bg-black overflow-hidden group">
+          <!-- [2026-02-02] 모바일 대응을 위해 grid-cols-1에서 lg:grid-cols-2로 변경 -->
+          <div v-if="currentStep === 1" class="flex-1 grid grid-cols-1 lg:grid-cols-2 bg-black overflow-hidden group">
             <!--
               왼쪽 영역: 이미지 및 텍스트
               [수정사항]
               - pl-24 제거 (이미 상위 div에서 ml-24로 전체 콘텐츠 영역을 띄웠으므로 중복 제거)
             -->
-            <div class="p-8 flex flex-col items-center justify-center gap-5 overflow-y-auto custom-scrollbar relative">
-              <div class="w-[320px] flex flex-col gap-5">
+            <div class="p-4 md:p-8 flex flex-col items-center justify-center gap-5 overflow-y-auto custom-scrollbar relative border-b lg:border-b-0 border-[#A3FF47]/10">
+              <div class="w-full max-w-[320px] flex flex-col gap-5">
                 <!-- Coduck 캐릭터 이미지 영역 -->
                 <div class="w-full aspect-square rounded-sm border-2 border-[#A3FF47] p-2.5 relative bg-black shadow-[0_0_60px_rgba(163,255,71,0.1)] overflow-hidden">
                     <img :src="currentDuckImage" alt="Coduck" class="w-full h-full object-cover grayscale brightness-75 group-hover:grayscale-0 group-hover:brightness-100 transition-all duration-1000" />
@@ -156,14 +158,14 @@
               </div>
             </div>
 
-            <div class="bg-black/40 p-10 px-14 flex flex-col items-start justify-center gap-12 border-l border-[#A3FF47]/10 relative overflow-hidden">
-              <!-- [2026-02-02] 문제(질문) 폰트 확대 및 최상단 배치 -->
+            <div class="bg-black/40 p-6 md:p-10 lg:px-14 flex flex-col items-start justify-center gap-8 md:gap-12 border-l-0 lg:border-l border-[#A3FF47]/10 relative overflow-hidden">
+              <!-- [2026-02-02] 문제(질문) 폰트 확대 및 최상단 배치 (반응형 폰트 적용) -->
               <div class="w-full space-y-4">
                 <div class="flex items-center gap-3 opacity-50">
                    <div class="w-1.5 h-1.5 bg-[#A3FF47]"></div>
                    <span class="text-[9px] font-black uppercase tracking-[0.4em]">INQUIRY_PROTOCOL_v2.0</span>
                 </div>
-                <h3 class="text-2xl font-black italic text-[#A3FF47] leading-tight terminal-glow">
+                <h3 class="text-xl md:text-2xl font-black italic text-[#A3FF47] leading-tight terminal-glow">
                   [{{ interviewIdx + 1 }}/{{ questData.interviewQuestions.length }}] {{ questData.interviewQuestions[interviewIdx].question }}
                 </h3>
               </div>
@@ -191,24 +193,25 @@
           </div>
 
           <!-- Step 2: 수도코드 설계 (Logic Restoration) -->
-          <div v-else-if="currentStep === 2" class="flex-1 grid grid-cols-2 bg-black overflow-hidden relative">
+          <!-- [2026-02-02] 모바일 대응 그리드 시스템 적용 -->
+          <div v-else-if="currentStep === 2" class="flex-1 grid grid-cols-1 lg:grid-cols-2 bg-black overflow-hidden relative">
             <!-- [2026-02-02] Phase 1과 구성을 완전히 통일 (p-8, items-center, justify-center) -->
-            <div class="p-8 flex flex-col items-center justify-center gap-5 overflow-y-auto custom-scrollbar relative">
-              <div class="w-[320px] space-y-8">
+            <div class="p-4 md:p-8 flex flex-col items-center justify-center gap-5 overflow-y-auto custom-scrollbar relative border-b lg:border-b-0 border-[#A3FF47]/10">
+              <div class="w-full max-w-[320px] space-y-6 md:space-y-8">
                 <div class="flex items-center gap-3">
                   <div class="h-4 w-1 bg-[#A3FF47]"></div>
                   <h3 class="text-xs font-black tracking-[0.4em] uppercase">Mission Objective</h3>
                 </div>
-                <p class="text-xl font-black italic terminal-glow underline decoration-[#A3FF47]/30">{{ questData.missionObjective }}</p>
-                <div class="p-6 bg-[#A3FF47]/5 border-l-2 border-[#A3FF47] text-sm leading-relaxed italic text-slate-300 space-y-3">
+                <p class="text-lg md:text-xl font-black italic terminal-glow underline decoration-[#A3FF47]/30 text-center lg:text-left">{{ questData.missionObjective }}</p>
+                <div class="p-4 md:p-6 bg-[#A3FF47]/5 border-l-2 border-[#A3FF47] text-xs md:text-sm leading-relaxed italic text-slate-300 space-y-3">
                   <p>"Coduck의 기본 기능을 활성화하기 위해, 데이터 리스트를 순회하며 유효한 패킷(정상 데이터)만 필터링하는 아키텍처 논리를 설계하십시오."</p>
                   <div class="pt-2 border-t border-[#A3FF47]/20">
-                    <p class="text-[11px] font-black text-[#A3FF47] not-italic uppercase tracking-widest flex items-center gap-2">
-                       <MessageSquare class="w-3 h-3" /> System_Directive: 의사코드(Pseudocode)로 작성하십시오
+                    <p class="text-[10px] md:text-[11px] font-black text-[#A3FF47] not-italic uppercase tracking-widest flex items-center gap-2">
+                       <MessageSquare class="w-3 h-3" /> System_Directive: 의사코드 작성
                     </p>
                   </div>
                 </div>
-                <div class="space-y-4">
+                <div class="hidden md:block space-y-4">
                   <h4 class="text-[10px] font-bold opacity-30 uppercase tracking-widest">Metadata Tags</h4>
                   <div class="flex flex-wrap gap-2 text-[9px] font-bold uppercase">
                     <span class="px-2 py-1 bg-white/5 border border-white/10 rounded">Iteration</span>
@@ -218,7 +221,7 @@
                 </div>
               </div>
             </div>
-            <div class="bg-black/40 p-10 px-14 flex flex-col items-start justify-center gap-8 border-l border-[#A3FF47]/10 relative overflow-hidden">
+            <div class="bg-black/40 p-0 lg:p-0 flex flex-col items-start justify-center border-l-0 lg:border-l border-[#A3FF47]/10 relative overflow-hidden h-[400px] lg:h-full">
               <div class="w-full h-full flex flex-col">
                 <div class="h-12 border-b border-[#A3FF47]/10 flex items-center px-6 gap-3 text-[10px] font-bold bg-black/40 shrink-0">
                   <Terminal class="w-4 h-4 opacity-50" />
@@ -233,17 +236,18 @@
                     class="h-full"
                   />
                 </div>
-                <div class="p-8 border-t border-[#A3FF47]/10 flex justify-end shrink-0">
-                  <button @click="submitPseudo" class="px-12 py-4 bg-[#A3FF47] text-black font-black uppercase text-xs hover:shadow-[0_0_30px_#A3FF47] transition-all active:scale-95 border-2 border-black">Analyze Logic Engine</button>
+                <div class="p-4 md:p-8 border-t border-[#A3FF47]/10 flex justify-end shrink-0">
+                  <button @click="submitPseudo" class="w-full md:w-auto px-12 py-4 bg-[#A3FF47] text-black font-black uppercase text-xs hover:shadow-[0_0_30px_#A3FF47] transition-all active:scale-95 border-2 border-black">Analyze Logic Engine</button>
                 </div>
               </div>
             </div>
           </div>
 
           <!-- Step 3: 파이썬 구현 (Code Pulse) -->
-          <div v-else-if="currentStep === 3" class="flex-1 grid grid-cols-2 overflow-hidden bg-black">
+          <!-- [2026-02-02] 모바일 대응 그리드 시스템 적용 -->
+          <div v-else-if="currentStep === 3" class="flex-1 grid grid-cols-1 lg:grid-cols-2 overflow-hidden bg-black">
             <!-- [2026-02-02] Phase 1과 구성을 통일 -->
-            <div class="flex-1 flex flex-col overflow-hidden relative">
+            <div class="flex-1 flex flex-col overflow-hidden relative border-b lg:border-b-0 lg:border-r border-[#A3FF47]/10 h-[400px] lg:h-full">
               <div class="h-12 border-b border-[#A3FF47]/10 flex items-center px-6 justify-between bg-black/60 shrink-0">
                 <div class="flex items-center gap-3">
                   <span class="w-2 h-2 rounded-full bg-[#A3FF47] animate-ping"></span>
@@ -267,68 +271,69 @@
                   class="h-full"
                 />
               </div>
-              <div class="p-8 border-t border-[#A3FF47]/10 flex justify-end gap-6 shrink-0 bg-black/40">
-                <button @click="currentStep = 2" class="px-8 py-4 border border-[#A3FF47]/20 text-[#A3FF47]/40 font-black uppercase text-[10px] tracking-widest hover:bg-[#A3FF47]/5 transition-all">Back_to_Logic</button>
-                <button @click="runSimulation" :disabled="isSimulating" class="px-14 py-4 bg-[#A3FF47] text-black font-black uppercase text-xs tracking-widest shadow-[0_0_30px_#A3FF47] transition-all border-2 border-black">
+              <div class="p-4 md:p-8 border-t border-[#A3FF47]/10 flex flex-col md:flex-row justify-end gap-3 md:gap-6 shrink-0 bg-black/40">
+                <button @click="currentStep = 2" class="px-8 py-3 md:py-4 border border-[#A3FF47]/20 text-[#A3FF47]/40 font-black uppercase text-[10px] tracking-widest hover:bg-[#A3FF47]/5 transition-all">Back_to_Logic</button>
+                <button @click="runSimulation" :disabled="isSimulating" class="px-10 md:px-14 py-3 md:py-4 bg-[#A3FF47] text-black font-black uppercase text-xs tracking-widest shadow-[0_0_30px_#A3FF47] transition-all border-2 border-black">
                   {{ isSimulating ? 'DEPLOYING...' : 'RE-BOOT SYSTEM' }}
                 </button>
               </div>
             </div>
 
             <!-- Simulation & Result HUD (Phase 1 비율에 맞춰 조절) -->
-            <div class="bg-black/40 flex flex-col gap-6 overflow-hidden p-10 px-14 border-l border-[#A3FF47]/10">
-               <div class="flex items-center justify-between mb-4 border-b border-[#A3FF47]/10 pb-4">
+            <div class="bg-black/40 flex flex-col gap-4 md:gap-6 overflow-hidden p-6 md:p-10 lg:px-14 border-l-0 lg:border-l border-[#A3FF47]/10">
+               <div class="flex items-center justify-between mb-2 md:mb-4 border-b border-[#A3FF47]/10 pb-4">
                  <h3 class="text-[10px] font-black opacity-30 uppercase tracking-[0.5em] italic">Simulation_Terminal</h3>
                  <Terminal class="w-4 h-4 text-[#A3FF47]/20" />
                </div>
-               <div class="flex-1 bg-black/80 border border-[#A3FF47]/20 rounded p-8 font-mono text-xs overflow-y-auto custom-scrollbar leading-relaxed text-cyan-400">
-                  <div v-if="isSimulating" class="animate-pulse text-sm">RUNNING SYNC SIMULATION... [PLEASE WAIT]</div>
-                  <div v-else class="whitespace-pre-wrap text-sm">{{ simulationOutput || 'READY FOR DATA UPLINK...' }}</div>
+               <div class="flex-1 bg-black/80 border border-[#A3FF47]/20 rounded p-4 md:p-8 font-mono text-xs overflow-y-auto custom-scrollbar leading-relaxed text-cyan-400 min-h-[150px]">
+                  <div v-if="isSimulating" class="animate-pulse text-xs md:text-sm">RUNNING SYNC SIMULATION... [PLEASE WAIT]</div>
+                  <div v-else class="whitespace-pre-wrap text-xs md:text-sm">{{ simulationOutput || 'READY FOR DATA UPLINK...' }}</div>
                </div>
             </div>
           </div>
 
           <!-- Step 4: 심화 분석 (Architecture Review) -->
-          <div v-else-if="currentStep === 4" class="flex-1 grid grid-cols-2 bg-black overflow-hidden relative">
+          <!-- [2026-02-02] 모바일 대응 그리드 시스템 적용 -->
+          <div v-else-if="currentStep === 4" class="flex-1 grid grid-cols-1 lg:grid-cols-2 bg-black overflow-hidden relative">
             <!-- [2026-02-02] Phase 1과 구성을 완전히 통일 (p-8, items-center, justify-center) -->
-            <div class="p-8 flex flex-col items-center justify-center gap-12 overflow-y-auto custom-scrollbar relative bg-black">
-              <div class="w-[320px] space-y-8">
-                <div class="space-y-6 text-center">
-                  <h3 class="text-pink-500 font-black text-xs uppercase tracking-[0.5em] animate-pulse">Final System Clearance</h3>
-                  <!-- [2026-02-02] 폰트 크기 축소: text-4xl -> text-2xl -->
-                  <p class="text-2xl font-black text-white italic leading-tight uppercase terminal-glow underline decoration-[#A3FF47]/50">오늘 수행한 각성 프로토콜의 <br/>핵심 가치는 무엇입니까?</p>
+            <div class="p-6 md:p-8 flex flex-col items-center justify-center gap-8 md:gap-12 overflow-y-auto custom-scrollbar relative bg-black border-b lg:border-b-0 border-[#A3FF47]/10">
+              <div class="w-full max-w-[320px] space-y-6 md:space-y-8">
+                <div class="space-y-4 md:space-y-6 text-center">
+                  <h3 class="text-pink-500 font-black text-[10px] md:text-xs uppercase tracking-[0.5em] animate-pulse">Final System Clearance</h3>
+                  <!-- [2026-02-02] 반응형 폰트 크기 적용 -->
+                  <p class="text-xl md:text-2xl font-black text-white italic leading-tight uppercase terminal-glow underline decoration-[#A3FF47]/50">오늘 수행한 각성 프로토콜의 <br/>핵심 가치는 무엇입니까?</p>
                 </div>
-                <div class="p-10 border-l-4 border-[#A3FF47] bg-white/5 space-y-6 relative overflow-hidden">
+                <div class="p-6 md:p-10 border-l-4 border-[#A3FF47] bg-white/5 space-y-4 md:space-y-6 relative overflow-hidden">
                   <div class="absolute top-0 right-0 p-4 opacity-5">
-                    <Shield class="w-20 h-20" />
+                    <Shield class="w-16 h-16 md:w-20 md:h-20" />
                   </div>
-                  <!-- [2026-02-02] 폰트 크기 축소: text-xl -> text-[13px] -->
-                  <p class="text-[13px] font-bold text-slate-300 italic leading-relaxed relative z-10">
+                  <!-- [2026-02-02] 반응형 폰트 크기 적용 -->
+                  <p class="text-[12px] md:text-[13px] font-bold text-slate-300 italic leading-relaxed relative z-10">
                     "Architect는 단순히 버그를 고치는 사람이 아닙니다. 무너진 인공지능 세계의 기초 설계도를 다시 그리는 사람임을 잊지 마십시오."
                   </p>
                 </div>
               </div>
             </div>
 
-            <div class="bg-black/40 p-10 px-14 flex flex-col items-start justify-center gap-8 border-l border-[#A3FF47]/10 relative overflow-hidden">
-               <div class="w-full max-w-[440px] space-y-8">
+            <div class="bg-black/40 p-6 md:p-10 lg:px-14 flex flex-col items-start justify-center gap-8 border-l-0 lg:border-l border-[#A3FF47]/10 relative overflow-hidden">
+               <div class="w-full max-w-[440px] space-y-6 md:space-y-8">
                  <div class="flex items-center gap-3 opacity-50">
                     <div class="w-1.5 h-1.5 bg-pink-500"></div>
                     <span class="text-[9px] font-black uppercase tracking-[0.4em]">FINAL_ARCHITECT_VERIFICATION</span>
                  </div>
                  
-                 <div class="flex flex-col gap-8 w-full">
+                 <div class="flex flex-col gap-4 md:gap-8 w-full">
                     <button
                       v-for="(opt, i) in questData.step4Options"
                       :key="i"
                       @click="handleDeepDive(i)"
-                      class="group relative p-6 border-2 border-white/5 bg-black/40 hover:border-[#A3FF47] hover:bg-[#A3FF47]/5 transition-all text-left active:scale-95 w-full flex gap-6"
+                      class="group relative p-4 md:p-6 border-2 border-white/5 bg-black/40 hover:border-[#A3FF47] hover:bg-[#A3FF47]/5 transition-all text-left active:scale-95 w-full flex gap-4 md:gap-6"
                     >
-                      <!-- [2026-02-02] 폰트 크기 축소: text-2xl -> text-xl -->
-                      <span class="text-xl font-black text-[#A3FF47]/20 group-hover:text-[#A3FF47] transition-colors font-mono">0{{ i+1 }}</span>
-                      <!-- [2026-02-02] 폰트 크기 축소: text-lg -> text-[13px] -->
-                      <span class="text-[13px] font-bold text-white/70 group-hover:text-white leading-relaxed">{{ opt }}</span>
-                      <div class="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-white/5 group-hover:border-[#A3FF47]"></div>
+                      <!-- [2026-02-02] 반응형 폰트 크기 적용 -->
+                      <span class="text-lg md:text-xl font-black text-[#A3FF47]/20 group-hover:text-[#A3FF47] transition-colors font-mono">0{{ i+1 }}</span>
+                      <!-- [2026-02-02] 반응형 폰트 크기 적용 -->
+                      <span class="text-[12px] md:text-[13px] font-bold text-white/70 group-hover:text-white leading-relaxed">{{ opt }}</span>
+                      <div class="absolute bottom-0 right-0 w-3 h-3 md:w-4 md:h-4 border-b-2 border-r-2 border-white/5 group-hover:border-[#A3FF47]"></div>
                     </button>
                  </div>
                </div>
@@ -336,42 +341,45 @@
           </div>
 
           <!-- Step 5: 최종 각성 리포트 (Re-Booted) -->
-          <div v-else-if="currentStep === 5" class="flex-1 flex flex-col items-center justify-center p-20 bg-gradient-to-t from-[#A3FF47]/10 to-transparent overflow-y-auto custom-scrollbar relative">
+          <!-- [2026-02-02] 패딩 및 콘텐츠 크기 반응형 조절 -->
+          <div v-else-if="currentStep === 5" class="flex-1 flex flex-col items-center justify-center p-6 md:p-12 lg:p-20 bg-gradient-to-t from-[#A3FF47]/10 to-transparent overflow-y-auto custom-scrollbar relative">
             <div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: url('https://www.transparenttextures.com/patterns/carbon-fibre.png');"></div>
-            <div class="relative mb-16">
+            <div class="relative mb-8 md:mb-16 scale-75 md:scale-100">
               <div class="absolute -inset-16 bg-[#A3FF47]/20 blur-[100px] animate-pulse"></div>
-              <Award class="w-64 h-64 text-[#A3FF47] drop-shadow-[0_0_50px_rgba(163,255,71,0.8)] relative z-10" />
+              <Award class="w-48 h-48 md:w-64 md:h-64 text-[#A3FF47] drop-shadow-[0_0_50px_rgba(163,255,71,0.8)] relative z-10" />
             </div>
-            <h2 class="orbitron-font text-7xl font-black italic tracking-tighter uppercase mb-4 terminal-glow text-center">SECTOR: REBOOTED</h2>
-            <div class="h-2 w-96 bg-[#A3FF47] mb-12 shadow-[0_0_30px_#A3FF47]"></div>
-            <p class="text-2xl text-slate-300 max-w-2xl text-center leading-relaxed mb-16 font-bold italic">
+            <h2 class="orbitron-font text-3xl md:text-5xl lg:text-7xl font-black italic tracking-tighter uppercase mb-4 terminal-glow text-center">SECTOR: REBOOTED</h2>
+            <div class="h-1 md:h-2 w-48 md:w-96 bg-[#A3FF47] mb-8 md:mb-12 shadow-[0_0_30px_#A3FF47]"></div>
+            <p class="text-lg md:text-2xl text-slate-300 max-w-2xl text-center leading-relaxed mb-10 md:mb-16 font-bold italic">
               "축하합니다, {{ userNickname }}님. 튜토리얼 구역의 정화가 완료되었습니다. Coduck이 다시 세상을 올바르게 보기 시작했습니다."
             </p>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-5xl">
-              <div v-for="(v, k) in userScore" :key="k" class="p-8 bg-black/60 border-2 border-[#A3FF47]/30 text-center rounded-sm hover:border-[#A3FF47] transition-all">
-                <div class="text-xs opacity-50 uppercase font-black mb-3 tracking-widest">{{ k }}_ENGINE</div>
-                <div class="text-5xl font-black text-[#A3FF47] tracking-tighter">{{ v }}</div>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 w-full max-w-5xl">
+              <div v-for="(v, k) in userScore" :key="k" class="p-4 md:p-8 bg-black/60 border-2 border-[#A3FF47]/30 text-center rounded-sm hover:border-[#A3FF47] transition-all">
+                <div class="text-[8px] md:text-xs opacity-50 uppercase font-black mb-2 md:mb-3 tracking-widest">{{ k }}_ENGINE</div>
+                <div class="text-3xl md:text-5xl font-black text-[#A3FF47] tracking-tighter">{{ v }}</div>
               </div>
             </div>
-            <button @click="reloadApp" class="mt-20 px-20 py-6 border-2 border-[#A3FF47] text-[#A3FF47] font-black uppercase text-sm hover:bg-[#A3FF47] hover:text-black transition-all tracking-[0.5em] active:scale-95 shadow-2xl relative z-10">Return to Hub Command</button>
+            <button @click="reloadApp" class="mt-10 md:mt-20 px-10 md:px-20 py-4 md:py-6 border-2 border-[#A3FF47] text-[#A3FF47] font-black uppercase text-xs md:text-sm hover:bg-[#A3FF47] hover:text-black transition-all tracking-[0.5em] active:scale-95 shadow-2xl relative z-10">Return to Hub Command</button>
           </div>
 
           <!-- 우측 사이드바: 아카이브 & 상태 (2077 스타일) -->
-          <div class="w-80 border-l border-[#A3FF47]/10 flex flex-col p-8 space-y-10 bg-black/60 shrink-0">
+          <!-- [2026-02-02] 큰 화면에서만 표시되거나 좁은 너비 대응 -->
+          <div class="hidden xl:flex w-72 border-l border-[#A3FF47]/10 flex-col p-6 space-y-8 bg-black/60 shrink-0">
             <div>
-              <div class="flex items-center justify-between mb-6">
+              <div class="flex items-center justify-between mb-4">
                 <h3 class="text-[10px] font-black opacity-30 uppercase tracking-[0.4em] italic">Recovered Artifacts</h3>
                 <Database class="w-4 h-4 opacity-20" />
               </div>
-              <div class="grid grid-cols-2 gap-4">
+              <div class="grid grid-cols-2 gap-3">
                 <div v-for="i in 4" :key="i" class="aspect-square rounded-sm border-2 border-white/5 flex items-center justify-center bg-white/5 overflow-hidden group shadow-inner relative transition-all duration-700">
-                  <Database v-if="integrity >= 100 && i === 1" class="text-[#A3FF47] w-8 h-8 animate-pulse" />
-                  <Lock v-else class="w-6 h-6 opacity-10" />
+                  <Database v-if="integrity >= 100 && i === 1" class="text-[#A3FF47] w-6 h-6 animate-pulse" />
+                  <Lock v-else class="w-5 h-5 opacity-10" />
                   <div v-if="integrity >= 100 && i === 1" class="absolute inset-0 bg-[#A3FF47]/10 animate-ping"></div>
-                  <div class="absolute bottom-1 right-1 text-[8px] opacity-10">0x{{(i*256).toString(16)}}</div>
+                  <div class="absolute bottom-1 right-1 text-[7px] opacity-10">0x{{(i*256).toString(16)}}</div>
                 </div>
               </div>
             </div>
+
 
             <div class="h-px bg-gradient-to-r from-transparent via-[#A3FF47]/20 to-transparent"></div>
 
@@ -408,29 +416,30 @@
     </main>
 
     <!-- 피드백 모달 (2077 테크니컬 디자인) -->
-    <div v-if="feedback.visible" class="fixed inset-0 z-[200] bg-black/95 backdrop-blur-md flex items-center justify-center p-8 transition-all duration-300">
-      <div class="max-w-2xl w-full p-16 border-2 bg-[#020406] relative shadow-[0_0_100px_rgba(0,0,0,1)] animate-scale-up" :class="feedback.isSuccess ? 'border-[#A3FF47] shadow-[#A3FF47]/10' : 'border-pink-600 shadow-pink-600/10'">
-        <div class="absolute top-0 right-0 p-6 opacity-10">
+    <!-- [2026-02-02] 모바일 대응 모달 너비 및 패딩 조절 -->
+    <div v-if="feedback.visible" class="fixed inset-0 z-[200] bg-black/95 backdrop-blur-md flex items-center justify-center p-4 md:p-8 transition-all duration-300">
+      <div class="max-w-2xl w-full p-8 md:p-16 border-2 bg-[#020406] relative shadow-[0_0_100px_rgba(0,0,0,1)] animate-scale-up" :class="feedback.isSuccess ? 'border-[#A3FF47] shadow-[#A3FF47]/10' : 'border-pink-600 shadow-pink-600/10'">
+        <div class="absolute top-0 right-0 p-4 md:p-6 opacity-10">
           <div class="flex gap-2">
             <div v-for="i in 5" :key="i" class="w-1 h-1 bg-white"></div>
           </div>
         </div>
-        <div class="flex items-center gap-8 mb-10">
-          <div :class="feedback.isSuccess ? 'bg-[#A3FF47]/10 border-[#A3FF47]' : 'bg-pink-600/10 border-pink-600'" class="p-5 border-2 rounded-sm shadow-lg">
-            <CheckCircle v-if="feedback.isSuccess" class="w-14 h-14 text-[#A3FF47]" />
-            <AlertTriangle v-else class="w-14 h-14 text-pink-500" />
+        <div class="flex items-center gap-4 md:gap-8 mb-6 md:mb-10">
+          <div :class="feedback.isSuccess ? 'bg-[#A3FF47]/10 border-[#A3FF47]' : 'bg-pink-600/10 border-pink-600'" class="p-3 md:p-5 border-2 rounded-sm shadow-lg">
+            <CheckCircle v-if="feedback.isSuccess" class="w-10 h-10 md:w-14 md:h-14 text-[#A3FF47]" />
+            <AlertTriangle v-else class="w-10 h-10 md:w-14 md:h-14 text-pink-500" />
           </div>
           <div>
-            <h3 class="text-4xl font-black italic tracking-tighter uppercase terminal-text mb-2">{{ feedback.title }}</h3>
-            <p class="text-[10px] opacity-40 uppercase tracking-[0.5em] font-bold">{{ feedback.isSuccess ? 'ACCESS_GRANTED' : 'ACCESS_DENIED' }}</p>
+            <h3 class="text-2xl md:text-4xl font-black italic tracking-tighter uppercase terminal-text mb-2">{{ feedback.title }}</h3>
+            <p class="text-[8px] md:text-[10px] opacity-40 uppercase tracking-[0.5em] font-bold">{{ feedback.isSuccess ? 'ACCESS_GRANTED' : 'ACCESS_DENIED' }}</p>
           </div>
         </div>
-        <p class="text-xl font-bold text-slate-200 leading-relaxed mb-12 italic border-l-8 pl-8 border-white/10">
+        <p class="text-base md:text-xl font-bold text-slate-200 leading-relaxed mb-8 md:mb-12 italic border-l-4 md:border-l-8 pl-4 md:pl-8 border-white/10">
           {{ feedback.desc }}
         </p>
-        <div class="flex justify-end gap-6">
-          <button v-if="!feedback.isSuccess" @click="feedback.visible = false" class="px-10 py-4 font-black uppercase text-xs tracking-widest btn-neon text-white">RE-TRY SEQUENCE</button>
-          <button @click="nextStep" class="px-12 py-5 font-black uppercase text-xs tracking-widest transition-all active:scale-95 shadow-2xl" :class="feedback.isSuccess ? 'bg-[#A3FF47] text-black hover:brightness-110' : 'hidden'">
+        <div class="flex flex-col md:flex-row justify-end gap-4 md:gap-6">
+          <button v-if="!feedback.isSuccess" @click="feedback.visible = false" class="px-8 md:px-10 py-3 md:py-4 font-black uppercase text-[10px] md:text-xs tracking-widest btn-neon text-white">RE-TRY SEQUENCE</button>
+          <button @click="nextStep" class="px-10 md:px-12 py-4 md:py-5 font-black uppercase text-[10px] md:text-xs tracking-widest transition-all active:scale-95 shadow-2xl" :class="feedback.isSuccess ? 'bg-[#A3FF47] text-black hover:brightness-110' : 'hidden'">
             EXECUTE NEXT PHASE >>
           </button>
         </div>
@@ -708,19 +717,20 @@ body {
   text-align: center;
   transform-origin: 50% 0%;
 }
+/* [2026-02-02] 반응형 폰트 크기 및 레이아웃 조절 */
 .crawl-title {
   font-family: 'Orbitron', sans-serif;
-  font-size: 4.5rem;
+  font-size: clamp(2rem, 8vw, 4.5rem);
   font-weight: 900;
-  margin-bottom: 3rem;
+  margin-bottom: 2rem;
   text-transform: uppercase;
   letter-spacing: -0.05em;
 }
 .crawl-body {
-  font-size: 1.875rem;
+  font-size: clamp(1rem, 4vw, 1.875rem);
   font-weight: 700;
   line-height: 1.5;
-  padding: 0 4rem;
+  padding: 0 2rem;
   text-align: justify;
   font-style: italic;
 }
@@ -760,8 +770,9 @@ body {
 
 .crawl-container { position: relative; width: 100%; height: 100%; }
 .crawl-content { position: absolute; top: 100%; width: 100%; transform-origin: 50% 100%; transform: rotateX(25deg); opacity: 1; }
-.crawl-title { font-size: 72px; font-weight: 900; color: #A3FF47; text-align: center; margin-bottom: 60px; letter-spacing: 0.1em; text-transform: uppercase; font-family: 'Fira Code', monospace; }
-.crawl-body { font-size: 28px; font-weight: 700; color: #A3FF47; text-align: justify; line-height: 1.6; padding: 0 15%; font-family: 'Fira Code', monospace; }
+/* [2026-02-02] 반응형 폰트 크기 적용 */
+.crawl-title { font-size: clamp(32px, 8vw, 72px); font-weight: 900; color: #A3FF47; text-align: center; margin-bottom: 40px; letter-spacing: 0.1em; text-transform: uppercase; font-family: 'Fira Code', monospace; }
+.crawl-body { font-size: clamp(16px, 3vw, 28px); font-weight: 700; color: #A3FF47; text-align: justify; line-height: 1.6; padding: 0 10%; font-family: 'Fira Code', monospace; }
 
 /* Terminal Glow */
 .terminal-glow {

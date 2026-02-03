@@ -1074,18 +1074,106 @@
   100% { transform: translateY(-10px); opacity: 0; }
 }
 
-/* 총알 */
+/* SVG 지렁이 애니메이션 */
+.worm-svg {
+  filter: drop-shadow(0 2px 4px rgba(233, 30, 99, 0.4));
+  animation: wormWiggle 2s ease-in-out infinite;
+}
+
+@keyframes wormWiggle {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  25% { transform: translateX(-3px) rotate(-5deg); }
+  50% { transform: translateX(3px) rotate(0deg); }
+  75% { transform: translateX(-3px) rotate(5deg); }
+}
+
+.worm-body {
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
+}
+
+/* SVG 걷는 오리 */
+.walking-duck {
+  position: absolute;
+  z-index: 55;
+  pointer-events: none;
+  transition: left 0.3s ease-out, top 0.1s ease-out;
+}
+
+.duck-walking-svg {
+  filter: drop-shadow(0 4px 8px rgba(255, 215, 0, 0.5));
+  animation: duckWaddle 0.8s ease-in-out infinite;
+}
+
+@keyframes duckWaddle {
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
+}
+
+/* SVG 오리 날아가기 */
 .bullet {
   position: absolute;
   z-index: 60;
   pointer-events: none;
-  font-size: 2rem;
-  animation: bulletSpin 0.1s linear infinite;
 }
 
-@keyframes bulletSpin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+.duck-flying {
+  animation: duckRotate 0.3s linear infinite;
+}
+
+.duck-flying-svg {
+  filter: drop-shadow(0 6px 12px rgba(255, 215, 0, 0.6));
+  animation: duckTilt 0.3s ease-in-out infinite alternate;
+}
+
+@keyframes duckRotate {
+  0% { transform: rotate(-5deg); }
+  50% { transform: rotate(5deg); }
+  100% { transform: rotate(-5deg); }
+}
+
+@keyframes duckTilt {
+  from { transform: rotate(-10deg) scale(1); }
+  to { transform: rotate(10deg) scale(1.05); }
+}
+
+/* 속도선 효과 */
+.speed-lines {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.speed-line {
+  position: absolute;
+  width: 40px;
+  height: 3px;
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,215,0,0.8) 50%, rgba(255,255,255,0) 100%);
+  left: -50px;
+  animation: speedLine 0.3s linear infinite;
+  opacity: 0.7;
+}
+
+.speed-line:nth-child(1) { top: 20%; animation-delay: 0s; }
+.speed-line:nth-child(2) { top: 35%; animation-delay: 0.05s; }
+.speed-line:nth-child(3) { top: 50%; animation-delay: 0.1s; }
+.speed-line:nth-child(4) { top: 65%; animation-delay: 0.15s; }
+.speed-line:nth-child(5) { top: 80%; animation-delay: 0.2s; }
+
+@keyframes speedLine {
+  from {
+    transform: translateX(0) scaleX(1);
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.8;
+  }
+  to {
+    transform: translateX(-80px) scaleX(0.5);
+    opacity: 0;
+  }
 }
 
 /* 명중 이펙트 */

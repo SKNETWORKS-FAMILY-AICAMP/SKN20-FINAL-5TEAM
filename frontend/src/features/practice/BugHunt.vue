@@ -77,9 +77,9 @@
 
     <!-- Progressive Mission 연습 화면 -->
     <div v-if="currentView === 'progressivePractice'" class="progressive-practice-container">
-      <!-- 날아가는 해골 애니메이션 -->
+      <!-- 날아가는 먹은 지렁이 애니메이션 -->
       <div v-if="showFlyingSkull" class="flying-skull" :style="flyingSkullStyle">
-        💀
+        🪱💫
       </div>
 
 
@@ -93,11 +93,11 @@
             <div class="complete-project">{{ currentProgressiveMission?.project_title }}</div>
             <div class="all-bugs-dead">
               <span class="dead-bug-row">
-                <span class="dead-bug">☠️</span>
-                <span class="dead-bug">☠️</span>
-                <span class="dead-bug">☠️</span>
+                <span class="dead-bug">🦆</span>
+                <span class="dead-bug">🪱</span>
+                <span class="dead-bug">🦆</span>
               </span>
-              <span class="all-dead-text">ALL BUGS EXTERMINATED!</span>
+              <span class="all-dead-text">ALL WORMS EATEN!</span>
             </div>
             <div class="mission-rewards">
               <div class="reward-item">
@@ -130,14 +130,22 @@
               class="bug-status-item"
               :class="{ dead: progressiveCompletedSteps.includes(step), active: step === currentProgressiveStep }"
             >
-              <span class="bug-icon">{{ progressiveCompletedSteps.includes(step) ? '☠️' : getBugEmoji(getStepData(step)?.bug_type) }}</span>
+              <span class="bug-icon" v-if="progressiveCompletedSteps.includes(step)">✅</span>
+              <svg v-else width="24" height="24" viewBox="0 0 40 20" class="bug-icon-svg">
+                <path d="M5,10 Q10,7 15,10 Q20,13 25,10 Q30,7 35,10"
+                      stroke="#FFB6C1"
+                      stroke-width="5"
+                      stroke-linecap="round"
+                      fill="none"/>
+                <circle cx="35" cy="10" r="2.5" fill="#FFB6C1"/>
+              </svg>
               <span class="bug-label">{{ getStepData(step)?.bug_type }}</span>
             </div>
           </div>
         </div>
         <div class="header-right">
           <div class="remaining-bugs">
-            🐛 {{ 3 - progressiveCompletedSteps.length }} bugs left
+            🪱 {{ 3 - progressiveCompletedSteps.length }} worms left
           </div>
           <button class="back-btn" @click="confirmExit">EXIT</button>
         </div>
@@ -203,7 +211,7 @@
 
         <!-- 중앙: 전체 코드 에디터 (3단계 모두 표시) -->
         <main class="full-code-editor" ref="editorFrameRef">
-          <!-- 3마리 벌레 애니메이션 -->
+          <!-- 3마리 지렁이 SVG 애니메이션 -->
           <div class="bugs-container">
             <div
               v-for="step in 3"
@@ -219,16 +227,150 @@
               :style="bugPositions[step]"
               @click="onBugClick(step)"
             >
-              <span class="bug-emoji">{{ progressiveCompletedSteps.includes(step) ? '💀' : getBugEmoji(getStepData(step)?.bug_type) }}</span>
-              <div class="eating-effect" v-if="!progressiveCompletedSteps.includes(step)">
-                <span v-for="n in 3" :key="n" class="bite-mark">×</span>
-              </div>
+              <!-- 지렁이 SVG (더 리얼하게) -->
+              <svg v-if="!progressiveCompletedSteps.includes(step)"
+                   width="60" height="60" viewBox="0 0 80 40"
+                   class="worm-svg">
+                <!-- 지렁이 몸통 (세그먼트화된 구조) -->
+                <defs>
+                  <linearGradient id="wormGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#FFE4E1;stop-opacity:1" />
+                    <stop offset="50%" style="stop-color:#FFB6C1;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#FFC0CB;stop-opacity:1" />
+                  </linearGradient>
+                </defs>
+
+                <!-- 메인 몸통 -->
+                <path class="worm-body-main"
+                      d="M10,20 Q20,15 30,20 Q40,25 50,20 Q60,15 70,20"
+                      stroke="url(#wormGradient)"
+                      stroke-width="10"
+                      stroke-linecap="round"
+                      fill="none">
+                  <animate attributeName="d"
+                           dur="2s"
+                           repeatCount="indefinite"
+                           values="M10,20 Q20,15 30,20 Q40,25 50,20 Q60,15 70,20;
+                                   M10,20 Q20,25 30,20 Q40,15 50,20 Q60,25 70,20;
+                                   M10,20 Q20,15 30,20 Q40,25 50,20 Q60,15 70,20"/>
+                </path>
+
+                <!-- 세그먼트 링 -->
+                <ellipse cx="18" cy="20" rx="2" ry="4" fill="#FFB6C1" opacity="0.8">
+                  <animate attributeName="cy" dur="2s" repeatCount="indefinite"
+                           values="20;17;20;23;20"/>
+                </ellipse>
+                <ellipse cx="30" cy="20" rx="2" ry="4" fill="#FFB6C1" opacity="0.8">
+                  <animate attributeName="cy" dur="2s" repeatCount="indefinite"
+                           values="20;23;20;17;20"/>
+                </ellipse>
+                <ellipse cx="42" cy="20" rx="2" ry="4" fill="#FFB6C1" opacity="0.8">
+                  <animate attributeName="cy" dur="2s" repeatCount="indefinite"
+                           values="20;17;20;23;20"/>
+                </ellipse>
+                <ellipse cx="54" cy="20" rx="2" ry="4" fill="#FFB6C1" opacity="0.8">
+                  <animate attributeName="cy" dur="2s" repeatCount="indefinite"
+                           values="20;23;20;17;20"/>
+                </ellipse>
+
+                <!-- 머리 부분 -->
+                <circle cx="70" cy="20" r="5" fill="#FFB6C1"/>
+                <!-- 눈 (작게) -->
+                <circle cx="68" cy="18" r="1.5" fill="#000">
+                  <animate attributeName="r"
+                           dur="3s"
+                           repeatCount="indefinite"
+                           values="1.5;0.3;1.5;1.5;1.5"/>
+                </circle>
+              </svg>
             </div>
           </div>
 
-          <!-- 저격 이펙트 -->
-          <div v-if="showBullet" class="bullet" :style="bulletStyle">
-            <span class="bullet-trail">💥</span>
+          <!-- 걷는 오리 SVG (항상 표시) -->
+          <div class="walking-duck" :style="walkingDuckStyle">
+            <svg width="80" height="80" viewBox="0 0 60 60" class="duck-walking-svg">
+              <!-- 오리 몸통 -->
+              <ellipse cx="30" cy="38" rx="18" ry="14" fill="#FFD700" stroke="#FFA500" stroke-width="2"/>
+              <!-- 오리 머리 -->
+              <circle cx="30" cy="22" r="11" fill="#FFD700" stroke="#FFA500" stroke-width="2"/>
+              <!-- 부리 -->
+              <ellipse cx="38" cy="22" rx="6" ry="4" fill="#FF8C00"/>
+              <!-- 눈 (깜빡임) -->
+              <circle cx="33" cy="19" r="2.5" fill="#000">
+                <animate attributeName="ry"
+                         dur="3s"
+                         repeatCount="indefinite"
+                         values="2.5;0.5;2.5;2.5;2.5;2.5"/>
+              </circle>
+              <circle cx="33.5" cy="18.5" r="1" fill="#fff"/>
+              <!-- 날개 (걷기 모션) -->
+              <ellipse cx="18" cy="36" rx="8" ry="12" fill="#FFA500" class="wing-walk">
+                <animateTransform attributeName="transform"
+                                  type="rotate"
+                                  from="0 18 36"
+                                  to="10 18 36"
+                                  dur="0.4s"
+                                  repeatCount="indefinite"
+                                  direction="alternate"/>
+              </ellipse>
+              <!-- 발 (걷기 모션) -->
+              <ellipse cx="25" cy="50" rx="4" ry="2" fill="#FF6600" class="foot-left">
+                <animate attributeName="cy"
+                         dur="0.4s"
+                         repeatCount="indefinite"
+                         values="50;48;50"
+                         direction="alternate"/>
+              </ellipse>
+              <ellipse cx="35" cy="50" rx="4" ry="2" fill="#FF6600" class="foot-right">
+                <animate attributeName="cy"
+                         dur="0.4s"
+                         repeatCount="indefinite"
+                         values="48;50;48"
+                         direction="alternate"/>
+              </ellipse>
+            </svg>
+          </div>
+
+          <!-- 오리가 날아가는 이펙트 SVG (포물선 + 회전) -->
+          <div v-if="showBullet" class="bullet duck-flying cinematic" :style="bulletStyle">
+            <svg width="70" height="70" viewBox="0 0 70 70" class="duck-flying-svg">
+              <!-- 오리 몸통 -->
+              <ellipse cx="35" cy="40" rx="20" ry="15" fill="#FFD700" stroke="#FFA500" stroke-width="2"/>
+              <!-- 오리 머리 -->
+              <circle cx="35" cy="22" r="12" fill="#FFD700" stroke="#FFA500" stroke-width="2"/>
+              <!-- 부리 (날아가는 중) -->
+              <ellipse cx="44" cy="22" rx="7" ry="4" fill="#FF8C00"/>
+              <!-- 눈 (집중) -->
+              <ellipse cx="38" cy="19" rx="3" ry="2" fill="#000"/>
+              <circle cx="38.5" cy="18.5" r="1" fill="#fff"/>
+              <!-- 왼쪽 날개 (활짝 펼침) -->
+              <ellipse cx="18" cy="38" rx="10" ry="18" fill="#FFA500" class="wing-left">
+                <animateTransform attributeName="transform"
+                                  type="rotate"
+                                  from="-30 18 38"
+                                  to="20 18 38"
+                                  dur="0.2s"
+                                  repeatCount="indefinite"
+                                  direction="alternate"/>
+              </ellipse>
+              <!-- 오른쪽 날개 -->
+              <ellipse cx="52" cy="38" rx="10" ry="18" fill="#FFA500" class="wing-right">
+                <animateTransform attributeName="transform"
+                                  type="rotate"
+                                  from="30 52 38"
+                                  to="-20 52 38"
+                                  dur="0.2s"
+                                  repeatCount="indefinite"
+                                  direction="alternate"/>
+              </ellipse>
+              <!-- 발 -->
+              <ellipse cx="30" cy="52" rx="4" ry="2" fill="#FF6600"/>
+              <ellipse cx="40" cy="52" rx="4" ry="2" fill="#FF6600"/>
+            </svg>
+            <!-- 속도선 효과 -->
+            <div class="speed-lines">
+              <span v-for="n in 5" :key="n" class="speed-line"></span>
+            </div>
           </div>
 
           <transition name="explode">
@@ -243,7 +385,7 @@
           <!-- MISS 이펙트 -->
           <transition name="miss">
             <div v-if="showMissEffect" class="miss-effect" :style="missEffectStyle">
-              <span class="miss-text">MISS!</span>
+              <span class="miss-text">MISSED! 😢</span>
             </div>
           </transition>
 
@@ -1080,10 +1222,10 @@ function getCurrentStepData() {
   return getStepData(currentProgressiveStep.value);
 }
 
-// 버그 타입별 이모지
+// 버그 타입별 이모지 (지렁이로 변경)
 function getBugEmoji(bugType) {
-  const emojis = { 'A': '🐛', 'B': '🐝', 'C': '🦗' };
-  return emojis[bugType] || '🐛';
+  const emojis = { 'A': '🪱', 'B': '🪱', 'C': '🪱' };
+  return emojis[bugType] || '🪱';
 }
 
 // 라인 수 계산
@@ -1557,11 +1699,13 @@ const bugPositions = reactive({
 
 // 버그 애니메이션 ID
 let bugAnimationIds = { 1: null, 2: null, 3: null };
+let duckAnimationId = null;
 
 // 버그 상태
 const isRunning = ref(false);
 
-// 총알/이펙트 상태
+// 오리/이펙트 상태
+const walkingDuckPosition = reactive({ left: '10%', top: '85%' });
 const showBullet = ref(false);
 const bulletPosition = ref({ x: 0, y: 0 });
 const showHitEffect = ref(false);
@@ -1569,6 +1713,11 @@ const showMissEffect = ref(false);
 const hitEffectPosition = ref({ x: 0, y: 0 });
 const missEffectPosition = ref({ x: 0, y: 0 });
 const hitEffectText = ref('SQUASH!');
+
+const walkingDuckStyle = computed(() => ({
+  left: walkingDuckPosition.left,
+  top: walkingDuckPosition.top
+}));
 
 const bulletStyle = computed(() => ({
   left: `${bulletPosition.value.x}px`,
@@ -1590,21 +1739,22 @@ const flyingSkullStyle = computed(() => ({
   top: `${flyingSkullPosition.y}%`
 }));
 
-// 버그 움직임 애니메이션 (전체 화면 이동으로 수정)
+// 지렁이 움직임 애니메이션 (바닥에서 기어다니도록 수정)
 function animateBug(step) {
   if (progressiveCompletedSteps.value.includes(step)) return;
 
   const time = Date.now() / 1000;
-  
-  // 전체 화면을 부드럽게 돌아다니도록 노이즈 섞인 움직임 구현
-  // baseX, baseY를 시간에 따라 크게 변하게 함
-  const movementRadiusX = 35; // 35% radius
-  const movementRadiusY = 35; 
-  const centerX = 50;
-  const centerY = 50;
 
-  const x = centerX + Math.sin(time * 0.5 + step * 10) * movementRadiusX + Math.cos(time * 0.3) * 5;
-  const y = centerY + Math.cos(time * 0.4 + step * 7) * movementRadiusY + Math.sin(time * 0.6) * 5;
+  // 바닥(하단 영역)에서만 좌우로 기어다니도록 설정
+  const movementRadiusX = 40; // 좌우 이동 범위
+  const centerX = 50;
+
+  // Y축은 바닥(80-95% 사이)에서만 약간 움직임
+  const baseY = 85; // 기본 바닥 위치
+  const verticalWiggle = 5; // 약간의 상하 움직임
+
+  const x = centerX + Math.sin(time * 0.3 + step * 10) * movementRadiusX + Math.cos(time * 0.5) * 8;
+  const y = baseY + Math.sin(time * 0.8 + step * 5) * verticalWiggle;
 
   bugPositions[step] = {
     left: `${x}%`,
@@ -1614,6 +1764,26 @@ function animateBug(step) {
   bugAnimationIds[step] = requestAnimationFrame(() => animateBug(step));
 }
 
+// 오리 걷기 애니메이션
+function animateDuck() {
+  const time = Date.now() / 1000;
+
+  // 오리도 바닥에서 좌우로 걷기
+  const movementRadiusX = 25; // 오리는 지렁이보다 작은 범위
+  const centerX = 15; // 왼쪽에서 시작
+
+  const baseY = 83; // 바닥 위치 (지렁이보다 약간 위)
+  const verticalBob = 2; // 걷는 동안 약간 상하 움직임
+
+  const x = centerX + Math.sin(time * 0.4) * movementRadiusX;
+  const y = baseY + Math.sin(time * 2) * verticalBob; // 빠른 상하 움직임 (걷는 느낌)
+
+  walkingDuckPosition.left = `${x}%`;
+  walkingDuckPosition.top = `${y}%`;
+
+  duckAnimationId = requestAnimationFrame(animateDuck);
+}
+
 // 버그 애니메이션 시작
 function startBugAnimations() {
   for (let step = 1; step <= 3; step++) {
@@ -1621,6 +1791,8 @@ function startBugAnimations() {
       animateBug(step);
     }
   }
+  // 오리도 함께 시작
+  animateDuck();
 }
 
 // 버그 애니메이션 중지
@@ -1631,52 +1803,68 @@ function stopBugAnimations() {
       bugAnimationIds[step] = null;
     }
   }
+  // 오리 애니메이션도 중지
+  if (duckAnimationId) {
+    cancelAnimationFrame(duckAnimationId);
+    duckAnimationId = null;
+  }
 }
 
-// 저격 애니메이션
+// 오리가 지렁이를 잡으러 가는 애니메이션
 function shootBug(targetStep, isHit) {
   if (!editorFrameRef.value) return;
 
   const frame = editorFrameRef.value;
   const rect = frame.getBoundingClientRect();
 
-  const startX = 50;
-  const startY = rect.height - 50;
+  // 오리의 현재 위치에서 출발 (백분율을 픽셀로 변환)
+  const duckLeft = parseFloat(walkingDuckPosition.left);
+  const duckTop = parseFloat(walkingDuckPosition.top);
+  const startX = (duckLeft / 100) * rect.width;
+  const startY = (duckTop / 100) * rect.height;
 
   // 버그 위치 계산 (이펙트가 버그 위치에서 발현되도록)
   const bugLeft = parseFloat(bugPositions[targetStep].left);
   const bugTop = parseFloat(bugPositions[targetStep].top);
-  
+
   // 에디터 프레임 기준 좌표로 변환
   const targetX = (bugLeft / 100) * rect.width;
   const targetY = (bugTop / 100) * rect.height;
 
+  // 오리 날아가기 시작
   bulletPosition.value = { x: startX, y: startY };
   showBullet.value = true;
+  startDuckFlight();
 
-  const duration = 300;
-  const startTime = performance.now();
+  function startDuckFlight() {
 
-  function animateBullet(currentTime) {
-    const elapsed = currentTime - startTime;
-    const progress = Math.min(elapsed / duration, 1);
-    const easeProgress = 1 - Math.pow(1 - progress, 3);
+    const duration = 300;
+    const startTime = performance.now();
 
-    bulletPosition.value.x = startX + (targetX - startX) * easeProgress;
-    bulletPosition.value.y = startY + (targetY - startY) * easeProgress;
+    function animateBullet(currentTime) {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const easeProgress = 1 - Math.pow(1 - progress, 3);
 
-    if (progress < 1) {
-      requestAnimationFrame(animateBullet);
-    } else {
-      showBullet.value = false;
-      
-      // 화면 흔들림 효과
-      isShaking.value = true;
-      scheduleTimeout(() => { isShaking.value = false; }, 500);
+      // 포물선 궤적 계산 (더 자연스러운 날아가기)
+      const arcHeight = 50; // 포물선 높이
+      const parabola = 4 * arcHeight * progress * (1 - progress);
 
-      if (isHit) {
+      bulletPosition.value.x = startX + (targetX - startX) * easeProgress;
+      bulletPosition.value.y = startY + (targetY - startY) * easeProgress - parabola;
+
+      if (progress < 1) {
+        requestAnimationFrame(animateBullet);
+      } else {
+        showBullet.value = false;
+
+        // 화면 흔들림 효과
+        isShaking.value = true;
+        scheduleTimeout(() => { isShaking.value = false; }, 500);
+
+        if (isHit) {
         hitEffectPosition.value = { x: targetX, y: targetY };
-        hitEffectText.value = ['SQUASH!', 'GOTCHA!', 'ELIMINATED!'][Math.floor(Math.random() * 3)];
+        hitEffectText.value = ['YUMMY!', 'DELICIOUS!', 'NOM NOM!', 'TASTY!'][Math.floor(Math.random() * 4)];
         showHitEffect.value = true;
 
         // 해당 버그 애니메이션 중지
@@ -1685,16 +1873,17 @@ function shootBug(targetStep, isHit) {
           bugAnimationIds[targetStep] = null;
         }
 
-        scheduleTimeout(() => { showHitEffect.value = false; }, 1500);
-      } else {
-        missEffectPosition.value = { x: targetX + 30, y: targetY - 20 };
-        showMissEffect.value = true;
-        scheduleTimeout(() => { showMissEffect.value = false; }, 1000);
+          scheduleTimeout(() => { showHitEffect.value = false; }, 1500);
+        } else {
+          missEffectPosition.value = { x: targetX + 30, y: targetY - 20 };
+          showMissEffect.value = true;
+          scheduleTimeout(() => { showMissEffect.value = false; }, 1000);
+        }
       }
     }
-  }
 
-  requestAnimationFrame(animateBullet);
+    requestAnimationFrame(animateBullet);
+  }
 }
 
 // 상태 관리
