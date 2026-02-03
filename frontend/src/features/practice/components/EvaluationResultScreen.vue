@@ -930,14 +930,6 @@ export default {
   color: var(--text-primary);
 }
 
-/* Feedback Grid */
-.feedback-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px;
-  margin: 25px 0;
-}
-
 .feedback-card {
   padding: 20px;
   border-radius: 12px;

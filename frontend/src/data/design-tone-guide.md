@@ -263,7 +263,6 @@ font-family: 'Rajdhani', sans-serif;
 /* Mobile */
 @media (max-width: 600px) {
   .pillar-grid { grid-template-columns: repeat(2, 1fr); }
-  .feedback-grid { grid-template-columns: 1fr; }
   .stamp-mark { font-size: 0.7rem; }
   .report-title { font-size: 1.4rem; }
   .result-report { padding: 25px; }

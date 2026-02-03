@@ -52,10 +52,10 @@
     </button>
 
     <!-- Generated Code (Optional) -->
-    <div class="evidence-section" v-if="mermaidCode && mermaidCode.includes('comp_')">
+    <!-- <div class="evidence-section" v-if="mermaidCode && mermaidCode.includes('comp_')">
       <strong class="section-label">[EVIDENCE]</strong>
       <div class="code-output">{{ mermaidCode }}</div>
-    </div>
+    </div> -->
   </div>
 </template>
 
@@ -268,7 +268,7 @@ export default {
 }
 
 /* Evidence Section */
-.evidence-section {
+/* .evidence-section {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   border-radius: 12px;
@@ -279,7 +279,7 @@ export default {
 .evidence-section .section-label {
   color: var(--nebula-purple);
   margin-bottom: 8px;
-}
+} */
 
 .code-output {
   background: rgba(10, 10, 26, 0.8);
