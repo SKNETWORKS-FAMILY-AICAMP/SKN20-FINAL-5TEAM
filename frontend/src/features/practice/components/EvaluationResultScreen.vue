@@ -44,68 +44,66 @@
         <!-- 평가된 기둥 점수 (동적) -->
         <div v-if="evaluatedPillars.length" class="eval-section pillar-scores-section">
           <h3>[ 평가 영역별 점수 ]</h3>
+          <div class="pillar-hint-box">
+            <span class="hint-icon">👆</span>
+            <span class="hint-text">각 카드를 클릭하면 상세 해설을 확인할 수 있습니다</span>
+          </div>
           <div class="pillar-grid">
             <div
-              v-for="pillar in evaluatedPillars"
+              v-for="(pillar, idx) in evaluatedPillars"
               :key="pillar.category"
-              class="pillar-item"
+              class="pillar-item clickable"
               :class="getScoreClass(pillar.score)"
+              @click="openDetailModal(idx)"
             >
               <span class="pillar-emoji">{{ pillar.emoji }}</span>
               <span class="pillar-name">{{ pillar.category }}</span>
               <span class="pillar-score">{{ pillar.score }}점</span>
+              <span class="detail-hint">🔍 상세 해설 보기</span>
             </div>
           </div>
         </div>
 
-        <hr class="divider" />
+        <!-- 상세 해설 모달 -->
+        <div v-if="showDetailModal && selectedEvaluation" class="modal-overlay" @click.self="closeDetailModal">
+          <div class="detail-modal" :class="getScoreClass(selectedEvaluation.score)">
+            <button class="modal-close" @click="closeDetailModal">&times;</button>
 
-        <!-- 질문별 평가 결과 (모범답안 포함) -->
-        <div v-if="result.questionEvaluations && result.questionEvaluations.length" class="eval-section question-evaluations-section">
-          <h3>[ 질문별 상세 평가 ]</h3>
-          <div class="question-eval-list">
-            <div
-              v-for="(qEval, idx) in result.questionEvaluations"
-              :key="idx"
-              class="question-eval-card"
-              :class="getScoreClass(qEval.score)"
-            >
-              <!-- 질문 헤더 -->
-              <div class="question-header">
-                <span class="question-category">{{ qEval.category }}</span>
-                <span class="question-score" :class="getScoreClass(qEval.score)">{{ qEval.score }}점</span>
-              </div>
+            <!-- 모달 헤더 -->
+            <div class="modal-header">
+              <span class="modal-category">{{ selectedEvaluation.category }}</span>
+              <span class="modal-score" :class="getScoreClass(selectedEvaluation.score)">{{ selectedEvaluation.score }}점</span>
+            </div>
 
-              <!-- 질문 내용 -->
-              <div class="question-content">
-                <p class="question-text">❓ {{ qEval.question }}</p>
-              </div>
+            <!-- 질문 내용 -->
+            <div class="modal-section">
+              <p class="modal-question">❓ {{ selectedEvaluation.question }}</p>
+            </div>
 
-              <!-- 답변 비교 -->
-              <div class="answer-comparison">
-                <div class="answer-box user-answer">
-                  <div class="answer-label">📝 나의 답변</div>
-                  <p>{{ qEval.userAnswer || '(답변 없음)' }}</p>
-                </div>
-                <div class="answer-box model-answer">
-                  <div class="answer-label">✅ 모범 답안</div>
-                  <p>{{ qEval.modelAnswer || '(모범답안 없음)' }}</p>
-                </div>
+            <!-- 답변 비교 -->
+            <div class="modal-answers">
+              <div class="modal-answer-box user-answer">
+                <div class="answer-label">📝 나의 답변</div>
+                <p>{{ selectedEvaluation.userAnswer || '(답변 없음)' }}</p>
               </div>
+              <div class="modal-answer-box model-answer">
+                <div class="answer-label">✅ 모범 답안</div>
+                <p>{{ selectedEvaluation.modelAnswer || '(모범답안 없음)' }}</p>
+              </div>
+            </div>
 
-              <!-- 피드백 -->
-              <div class="feedback-box">
-                <div class="feedback-label">💬 피드백</div>
-                <p>{{ qEval.feedback }}</p>
-              </div>
+            <!-- 피드백 -->
+            <div class="modal-feedback">
+              <div class="feedback-label">💬 피드백</div>
+              <p>{{ selectedEvaluation.feedback }}</p>
+            </div>
 
-              <!-- 개선 포인트 -->
-              <div v-if="qEval.improvements && qEval.improvements.length" class="improvements-box">
-                <div class="improvements-label">🔧 개선 포인트</div>
-                <ul>
-                  <li v-for="(imp, i) in qEval.improvements" :key="i">{{ imp }}</li>
-                </ul>
-              </div>
+            <!-- 개선 포인트 -->
+            <div v-if="selectedEvaluation.improvements && selectedEvaluation.improvements.length" class="modal-improvements">
+              <div class="improvements-label">🔧 개선 포인트</div>
+              <ul>
+                <li v-for="(imp, i) in selectedEvaluation.improvements" :key="i">{{ imp }}</li>
+              </ul>
             </div>
           </div>
         </div>
@@ -188,7 +186,9 @@ export default {
   emits: ['retry'],
   data() {
     return {
-      showStamp: false
+      showStamp: false,
+      showDetailModal: false,
+      selectedEvaluationIndex: null
     };
   },
   computed: {
@@ -230,6 +230,11 @@ export default {
         score: qEval.score,
         emoji: CATEGORY_EMOJI[qEval.category] || '📊'
       }));
+    },
+    // 선택된 평가 항목
+    selectedEvaluation() {
+      if (this.selectedEvaluationIndex === null || !this.result?.questionEvaluations) return null;
+      return this.result.questionEvaluations[this.selectedEvaluationIndex];
     }
   },
   watch: {
@@ -251,6 +256,16 @@ export default {
       if (score >= 60) return 'good';
       if (score >= 40) return 'needs-improvement';
       return 'poor';
+    },
+    openDetailModal(index) {
+      this.selectedEvaluationIndex = index;
+      this.showDetailModal = true;
+      document.body.style.overflow = 'hidden';
+    },
+    closeDetailModal() {
+      this.showDetailModal = false;
+      this.selectedEvaluationIndex = null;
+      document.body.style.overflow = '';
     }
   }
 };
@@ -473,6 +488,195 @@ export default {
 .pillar-emoji { font-size: 1.5rem; margin-bottom: 6px; }
 .pillar-name { font-size: 0.7rem; font-weight: 500; color: rgba(236, 240, 241, 0.8); margin-bottom: 4px; }
 .pillar-score { font-family: var(--terminal-font); font-size: 0.7rem; font-weight: 700; color: var(--accent-green); }
+
+.pillar-hint-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(0, 243, 255, 0.08);
+  border: 1px dashed rgba(0, 243, 255, 0.3);
+  padding: 8px 12px;
+  margin-bottom: 15px;
+}
+
+.hint-icon { font-size: 0.9rem; }
+.hint-text { font-size: 0.7rem; color: var(--accent-cyan); }
+
+.pillar-item.clickable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pillar-item.clickable:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 20px rgba(163, 255, 71, 0.2);
+}
+
+
+.detail-hint {
+  font-size: 0.65rem;
+  color: var(--accent-cyan);
+  margin-top: 8px;
+  padding: 4px 8px;
+  background: rgba(0, 243, 255, 0.1);
+  border: 1px solid rgba(0, 243, 255, 0.3);
+  transition: all 0.2s ease;
+}
+
+.pillar-item.clickable:hover .detail-hint {
+  background: rgba(0, 243, 255, 0.2);
+  border-color: var(--accent-cyan);
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(5, 7, 10, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.detail-modal {
+  background: rgba(10, 15, 20, 0.98);
+  border: 1px solid rgba(163, 255, 71, 0.3);
+  max-width: 600px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 30px;
+  position: relative;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.detail-modal.excellent { border-color: var(--accent-green); box-shadow: 0 0 30px rgba(163, 255, 71, 0.2); }
+.detail-modal.good { border-color: var(--accent-cyan); box-shadow: 0 0 30px rgba(0, 243, 255, 0.2); }
+.detail-modal.needs-improvement { border-color: #f39c12; box-shadow: 0 0 30px rgba(243, 156, 18, 0.2); }
+.detail-modal.poor { border-color: var(--accent-pink); box-shadow: 0 0 30px rgba(236, 72, 153, 0.2); }
+
+.detail-modal::-webkit-scrollbar { width: 4px; }
+.detail-modal::-webkit-scrollbar-thumb { background: rgba(163, 255, 71, 0.3); border-radius: 10px; }
+
+.modal-close {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: none;
+  border: none;
+  color: rgba(163, 255, 71, 0.6);
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.modal-close:hover { color: var(--accent-green); }
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px dashed rgba(163, 255, 71, 0.2);
+}
+
+.modal-category {
+  background: var(--accent-green);
+  color: #000;
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.modal-score {
+  font-family: var(--terminal-font);
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.modal-score.excellent { color: var(--accent-green); }
+.modal-score.good { color: var(--accent-cyan); }
+.modal-score.needs-improvement { color: #f39c12; }
+.modal-score.poor { color: var(--accent-pink); }
+
+.modal-section { margin-bottom: 20px; }
+
+.modal-question {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #ecf0f1;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.modal-answers {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.modal-answer-box {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 15px;
+  border: 1px solid rgba(163, 255, 71, 0.1);
+}
+
+.modal-answer-box.user-answer { border-left: 3px solid var(--accent-cyan); }
+.modal-answer-box.model-answer { border-left: 3px solid var(--accent-green); }
+
+.modal-answer-box p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: rgba(236, 240, 241, 0.9);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.modal-feedback {
+  background: rgba(163, 255, 71, 0.05);
+  padding: 15px;
+  border: 1px solid rgba(163, 255, 71, 0.2);
+  margin-bottom: 15px;
+}
+
+.modal-feedback p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: rgba(236, 240, 241, 0.85);
+  line-height: 1.6;
+}
+
+.modal-improvements {
+  background: rgba(0, 243, 255, 0.05);
+  padding: 15px;
+  border: 1px solid rgba(0, 243, 255, 0.2);
+}
+
+.modal-improvements ul { margin: 0; padding-left: 20px; }
+.modal-improvements li { font-size: 0.8rem; color: rgba(236, 240, 241, 0.8); margin-bottom: 5px; line-height: 1.5; }
+
+@media (max-width: 600px) {
+  .modal-answers { grid-template-columns: 1fr; }
+}
 
 /* Question Evaluations */
 .question-eval-list {
