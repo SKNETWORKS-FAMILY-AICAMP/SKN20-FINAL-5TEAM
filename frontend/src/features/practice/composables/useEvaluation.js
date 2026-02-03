@@ -178,11 +178,15 @@ export function useEvaluation() {
       mermaidCode
     );
 
-    const deepDiveQnA = collectedDeepDiveAnswers.value.map(item => ({
-      category: item.category,
-      question: item.question,
-      answer: item.answer
-    }));
+    // 설명 항목 제외, 질문 답변만 추출 (정확히 3개)
+    const deepDiveQnA = collectedDeepDiveAnswers.value
+      .filter(item => item.category !== '아키텍처 설명')
+      .slice(0, 3)
+      .map(item => ({
+        category: item.category,
+        question: item.question,
+        answer: item.answer
+      }));
 
     try {
       // 마스터 에이전트 기반 6대 기둥 평가

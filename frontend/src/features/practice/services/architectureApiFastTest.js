@@ -229,7 +229,7 @@ ${principlesText}
       const parsed = JSON.parse(jsonMatch[0]);
       return {
         analysis: parsed.gaps_analysis || {},
-        questions: parsed.questions || []
+        questions: (parsed.questions || []).slice(0, 3)
       };
     }
     throw new Error('Invalid JSON');

@@ -118,7 +118,7 @@ export async function evaluateWithMasterAgent(
   // Q&A 정리
   const qnaArray = Array.isArray(deepDiveQnA) ? deepDiveQnA : [];
   const qnaText = qnaArray
-    .filter(item => item.answer && item.answer !== '(스킵됨)')
+    .filter(item => item.answer)
     .map((item, idx) => `
 ### 질문 ${idx + 1} [${item.category}]
 **질문**: ${item.question}
@@ -200,6 +200,7 @@ ${relevantPrinciples || '(원칙 없음)'}
 - 사용자가 배울 수 있도록 상세하게
 
 ### 3. 최종 점수
+- **반드시 정확히 3개** 영역만 평가 (evaluations 배열 길이 = 3)
 - 3개 영역 점수의 평균 (각 33.3%)
 
 ---
@@ -239,6 +240,9 @@ ${relevantPrinciples || '(원칙 없음)'}
       const endTime = Date.now();
       console.log(`✅ 평가 완료 (${((endTime - startTime) / 1000).toFixed(1)}s)`);
 
+      // 정확히 3개만 유지
+      const evaluations = (result.evaluations || []).slice(0, 3);
+
       // 결과 포맷팅
       return {
         score: result.overallScore,
@@ -249,12 +253,12 @@ ${relevantPrinciples || '(원칙 없음)'}
         weaknesses: result.weaknesses || [],
         suggestions: result.recommendations || [],
 
-        // 질문별 평가 (모범답안 포함)
-        questionEvaluations: result.evaluations || [],
+        // 질문별 평가 (모범답안 포함) - 3개 고정
+        questionEvaluations: evaluations,
 
         // 기존 호환용
-        nfrScores: buildNfrScores(result.evaluations || []),
-        pillarScores: buildPillarScores(result.evaluations || [])
+        nfrScores: buildNfrScores(evaluations),
+        pillarScores: buildPillarScores(evaluations)
       };
     }
     throw new Error('Invalid JSON');

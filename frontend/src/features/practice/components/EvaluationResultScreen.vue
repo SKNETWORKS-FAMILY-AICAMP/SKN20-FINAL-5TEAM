@@ -57,61 +57,57 @@
 
         <div class="divider"></div>
 
-        <!-- 평가된 기둥 점수 -->
+        <!-- 평가된 기둥 점수 (아코디언) -->
         <div v-if="evaluatedPillars.length" class="eval-section">
           <h3 class="section-title">EVALUATION AREAS</h3>
-          <p class="hint-text">각 카드를 클릭하면 상세 해설을 확인할 수 있습니다</p>
-          <div class="pillar-grid">
+          <p class="hint-text">각 영역을 클릭하면 상세 해설을 확인할 수 있습니다</p>
+          <div class="accordion-list">
             <div
               v-for="(pillar, idx) in evaluatedPillars"
               :key="pillar.category"
-              class="pillar-card"
-              :class="getScoreClass(pillar.score)"
-              @click="openDetailModal(idx)"
+              class="accordion-item"
+              :class="[getScoreClass(pillar.score), { expanded: expandedIndex === idx }]"
             >
-              <div class="pillar-glow"></div>
-              <span class="pillar-name">{{ pillar.category }}</span>
-              <span class="pillar-score">{{ pillar.score }}</span>
-              <span class="pillar-hint">VIEW DETAILS</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 상세 해설 모달 -->
-        <div v-if="showDetailModal && selectedEvaluation" class="modal-overlay" @click.self="closeDetailModal">
-          <div class="detail-modal" :class="getScoreClass(selectedEvaluation.score)">
-            <button class="modal-close" @click="closeDetailModal">&times;</button>
-
-            <div class="modal-header">
-              <span class="modal-category">{{ selectedEvaluation.category }}</span>
-              <span class="modal-score">{{ selectedEvaluation.score }}점</span>
-            </div>
-
-            <div class="modal-section">
-              <p class="modal-question">{{ selectedEvaluation.question }}</p>
-            </div>
-
-            <div class="modal-answers">
-              <div class="modal-answer-box user-answer">
-                <div class="answer-label">MY ANSWER</div>
-                <p>{{ selectedEvaluation.userAnswer || '(답변 없음)' }}</p>
+              <!-- 아코디언 헤더 -->
+              <div class="accordion-header" @click="toggleAccordion(idx)">
+                <div class="accordion-header-left">
+                  <span class="accordion-category">{{ pillar.category }}</span>
+                </div>
+                <div class="accordion-header-right">
+                  <span class="accordion-score">{{ pillar.score }}</span>
+                  <span class="accordion-arrow" :class="{ rotated: expandedIndex === idx }">&#9662;</span>
+                </div>
               </div>
-              <div class="modal-answer-box model-answer">
-                <div class="answer-label">MODEL ANSWER</div>
-                <p>{{ selectedEvaluation.modelAnswer || '(모범답안 없음)' }}</p>
+
+              <!-- 아코디언 본문 -->
+              <div class="accordion-body" v-if="expandedIndex === idx && result.questionEvaluations[idx]">
+                <div class="accordion-question">
+                  <p>{{ result.questionEvaluations[idx].question }}</p>
+                </div>
+
+                <div class="accordion-answers">
+                  <div class="accordion-answer-box user-answer">
+                    <div class="answer-label">MY ANSWER</div>
+                    <p>{{ result.questionEvaluations[idx].userAnswer || '(답변 없음)' }}</p>
+                  </div>
+                  <div class="accordion-answer-box model-answer">
+                    <div class="answer-label">MODEL ANSWER</div>
+                    <p>{{ result.questionEvaluations[idx].modelAnswer || '(모범답안 없음)' }}</p>
+                  </div>
+                </div>
+
+                <div class="accordion-feedback">
+                  <div class="feedback-label">FEEDBACK</div>
+                  <p>{{ result.questionEvaluations[idx].feedback }}</p>
+                </div>
+
+                <div v-if="result.questionEvaluations[idx].improvements && result.questionEvaluations[idx].improvements.length" class="accordion-improvements">
+                  <div class="improvements-label">IMPROVEMENTS</div>
+                  <ul>
+                    <li v-for="(imp, i) in result.questionEvaluations[idx].improvements" :key="i">{{ imp }}</li>
+                  </ul>
+                </div>
               </div>
-            </div>
-
-            <div class="modal-feedback">
-              <div class="feedback-label">FEEDBACK</div>
-              <p>{{ selectedEvaluation.feedback }}</p>
-            </div>
-
-            <div v-if="selectedEvaluation.improvements && selectedEvaluation.improvements.length" class="modal-improvements">
-              <div class="improvements-label">IMPROVEMENTS</div>
-              <ul>
-                <li v-for="(imp, i) in selectedEvaluation.improvements" :key="i">{{ imp }}</li>
-              </ul>
             </div>
           </div>
         </div>
@@ -186,8 +182,7 @@ export default {
   data() {
     return {
       showStamp: false,
-      showDetailModal: false,
-      selectedEvaluationIndex: null
+      expandedIndex: null
     };
   },
   computed: {
@@ -227,10 +222,6 @@ export default {
         score: qEval.score
       }));
     },
-    selectedEvaluation() {
-      if (this.selectedEvaluationIndex === null || !this.result?.questionEvaluations) return null;
-      return this.result.questionEvaluations[this.selectedEvaluationIndex];
-    }
   },
   watch: {
     result: {
@@ -252,15 +243,8 @@ export default {
       if (score >= 40) return 'moderate';
       return 'poor';
     },
-    openDetailModal(index) {
-      this.selectedEvaluationIndex = index;
-      this.showDetailModal = true;
-      document.body.style.overflow = 'hidden';
-    },
-    closeDetailModal() {
-      this.showDetailModal = false;
-      this.selectedEvaluationIndex = null;
-      document.body.style.overflow = '';
+    toggleAccordion(index) {
+      this.expandedIndex = this.expandedIndex === index ? null : index;
     }
   }
 };
@@ -627,7 +611,7 @@ export default {
   color: var(--text-primary);
 }
 
-/* Pillar Grid */
+/* Accordion */
 .hint-text {
   text-align: center;
   font-size: 0.8rem;
@@ -635,268 +619,183 @@ export default {
   margin-bottom: 20px;
 }
 
-.pillar-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 15px;
-}
-
-.pillar-card {
-  position: relative;
+.accordion-list {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 20px 15px;
+  gap: 12px;
+}
+
+.accordion-item {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.3s ease;
   overflow: hidden;
+  transition: all 0.3s ease;
 }
 
-.pillar-glow {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.pillar-card.excellent .pillar-glow { background: linear-gradient(90deg, transparent, var(--nebula-blue), transparent); }
-.pillar-card.good .pillar-glow { background: linear-gradient(90deg, transparent, var(--nebula-purple), transparent); }
-.pillar-card.moderate .pillar-glow { background: linear-gradient(90deg, transparent, #ffc107, transparent); }
-.pillar-card.poor .pillar-glow { background: linear-gradient(90deg, transparent, var(--nebula-pink), transparent); }
-
-.pillar-card:hover {
-  transform: translateY(-5px);
+.accordion-item.expanded {
   border-color: rgba(255, 255, 255, 0.2);
 }
 
-.pillar-card:hover .pillar-glow {
-  opacity: 1;
-}
+.accordion-item.excellent.expanded { box-shadow: 0 0 25px rgba(79, 195, 247, 0.15); border-color: rgba(79, 195, 247, 0.3); }
+.accordion-item.good.expanded { box-shadow: 0 0 25px rgba(107, 92, 231, 0.15); border-color: rgba(107, 92, 231, 0.3); }
+.accordion-item.moderate.expanded { box-shadow: 0 0 25px rgba(255, 193, 7, 0.15); border-color: rgba(255, 193, 7, 0.3); }
+.accordion-item.poor.expanded { box-shadow: 0 0 25px rgba(240, 98, 146, 0.15); border-color: rgba(240, 98, 146, 0.3); }
 
-.pillar-card.excellent:hover { box-shadow: 0 10px 30px rgba(79, 195, 247, 0.2); }
-.pillar-card.good:hover { box-shadow: 0 10px 30px rgba(107, 92, 231, 0.2); }
-.pillar-card.moderate:hover { box-shadow: 0 10px 30px rgba(255, 193, 7, 0.2); }
-.pillar-card.poor:hover { box-shadow: 0 10px 30px rgba(240, 98, 146, 0.2); }
-
-.pillar-name {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  margin-bottom: 10px;
-}
-
-.pillar-score {
-  font-family: 'Orbitron', sans-serif;
-  font-size: 1.5rem;
-  font-weight: 700;
-}
-
-.pillar-card.excellent .pillar-score { color: var(--nebula-blue); }
-.pillar-card.good .pillar-score { color: var(--nebula-purple); }
-.pillar-card.moderate .pillar-score { color: #ffc107; }
-.pillar-card.poor .pillar-score { color: var(--nebula-pink); }
-
-.pillar-hint {
-  font-family: 'Orbitron', sans-serif;
-  font-size: 0.6rem;
-  color: var(--text-secondary);
-  margin-top: 10px;
-  letter-spacing: 1px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.pillar-card:hover .pillar-hint { opacity: 1; }
-
-/* Modal */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(10, 10, 26, 0.95);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 3000;
-  padding: 20px;
-  animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.detail-modal {
-  background: var(--space-dark);
-  border: 1px solid var(--glass-border);
-  border-radius: 16px;
-  max-width: 600px;
-  width: 100%;
-  max-height: 80vh;
-  overflow-y: auto;
-  padding: 30px;
-  position: relative;
-  animation: slideUp 0.3s ease;
-}
-
-@keyframes slideUp {
-  from { transform: translateY(30px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-.detail-modal.excellent { border-color: rgba(79, 195, 247, 0.3); box-shadow: 0 0 40px rgba(79, 195, 247, 0.15); }
-.detail-modal.good { border-color: rgba(107, 92, 231, 0.3); box-shadow: 0 0 40px rgba(107, 92, 231, 0.15); }
-.detail-modal.moderate { border-color: rgba(255, 193, 7, 0.3); box-shadow: 0 0 40px rgba(255, 193, 7, 0.15); }
-.detail-modal.poor { border-color: rgba(240, 98, 146, 0.3); box-shadow: 0 0 40px rgba(240, 98, 146, 0.15); }
-
-.detail-modal::-webkit-scrollbar { width: 4px; }
-.detail-modal::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, var(--nebula-purple), var(--nebula-blue));
-  border-radius: 10px;
-}
-
-.modal-close {
-  position: absolute;
-  top: 15px;
-  right: 15px;
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  font-size: 1.5rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-}
-
-.modal-close:hover {
-  color: var(--text-primary);
-  background: var(--glass-bg);
-}
-
-.modal-header {
+.accordion-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 25px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid var(--glass-border);
+  padding: 18px 20px;
+  cursor: pointer;
+  transition: background 0.2s ease;
 }
 
-.modal-category {
+.accordion-header:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.accordion-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.accordion-category {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.accordion-header-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.accordion-score {
   font-family: 'Orbitron', sans-serif;
-  font-size: 0.85rem;
+  font-size: 1.3rem;
   font-weight: 700;
-  padding: 6px 16px;
-  border-radius: 20px;
-  background: linear-gradient(135deg, var(--nebula-purple), var(--nebula-blue));
-  color: white;
 }
 
-.modal-score {
-  font-family: 'Orbitron', sans-serif;
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: var(--nebula-blue);
+.accordion-item.excellent .accordion-score { color: var(--nebula-blue); }
+.accordion-item.good .accordion-score { color: var(--nebula-purple); }
+.accordion-item.moderate .accordion-score { color: #ffc107; }
+.accordion-item.poor .accordion-score { color: var(--nebula-pink); }
+
+.accordion-arrow {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  transition: transform 0.3s ease;
+  display: inline-block;
 }
 
-.modal-section { margin-bottom: 20px; }
+.accordion-arrow.rotated {
+  transform: rotate(180deg);
+}
 
-.modal-question {
-  font-size: 1rem;
+/* Accordion Body */
+.accordion-body {
+  padding: 0 20px 20px;
+  border-top: 1px solid var(--glass-border);
+  animation: accordionOpen 0.3s ease;
+}
+
+@keyframes accordionOpen {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.accordion-question {
+  padding: 15px 0;
+}
+
+.accordion-question p {
+  margin: 0;
+  font-size: 0.95rem;
   font-weight: 500;
   color: var(--text-primary);
   line-height: 1.6;
-  margin: 0;
 }
 
-.modal-answers {
+.accordion-answers {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 15px;
-  margin-bottom: 20px;
+  gap: 12px;
+  margin-bottom: 15px;
 }
 
-.modal-answer-box {
-  background: var(--glass-bg);
-  padding: 15px;
+.accordion-answer-box {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 14px;
   border-radius: 10px;
   border: 1px solid var(--glass-border);
 }
 
-.modal-answer-box.user-answer { border-left: 3px solid var(--nebula-purple); }
-.modal-answer-box.model-answer { border-left: 3px solid var(--nebula-blue); }
+.accordion-answer-box.user-answer { border-left: 3px solid var(--nebula-purple); }
+.accordion-answer-box.model-answer { border-left: 3px solid var(--nebula-blue); }
 
 .answer-label {
   font-family: 'Orbitron', sans-serif;
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 700;
   color: var(--text-secondary);
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   letter-spacing: 1px;
 }
 
-.modal-answer-box p {
+.accordion-answer-box p {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: var(--text-primary);
   line-height: 1.6;
   white-space: pre-wrap;
 }
 
-.modal-feedback {
+.accordion-feedback {
   background: rgba(107, 92, 231, 0.1);
-  padding: 15px;
+  padding: 14px;
   border-radius: 10px;
   border: 1px solid rgba(107, 92, 231, 0.2);
-  margin-bottom: 15px;
+  margin-bottom: 12px;
 }
 
 .feedback-label, .improvements-label {
   font-family: 'Orbitron', sans-serif;
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 700;
   color: var(--nebula-purple);
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   letter-spacing: 1px;
 }
 
-.modal-feedback p {
+.accordion-feedback p {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: var(--text-primary);
   line-height: 1.6;
 }
 
-.modal-improvements {
+.accordion-improvements {
   background: rgba(79, 195, 247, 0.1);
-  padding: 15px;
+  padding: 14px;
   border-radius: 10px;
   border: 1px solid rgba(79, 195, 247, 0.2);
 }
 
 .improvements-label { color: var(--nebula-blue); }
 
-.modal-improvements ul { margin: 0; padding-left: 20px; }
-.modal-improvements li {
+.accordion-improvements ul { margin: 0; padding-left: 20px; }
+.accordion-improvements li {
   font-size: 0.85rem;
   color: var(--text-primary);
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   line-height: 1.5;
 }
 
 @media (max-width: 600px) {
-  .modal-answers { grid-template-columns: 1fr; }
+  .accordion-answers { grid-template-columns: 1fr; }
 }
 
 /* Summary */
@@ -1031,7 +930,6 @@ export default {
 
 /* Responsive */
 @media (max-width: 600px) {
-  .pillar-grid { grid-template-columns: repeat(2, 1fr); }
   .feedback-grid { grid-template-columns: 1fr; }
   .stamp-mark { font-size: 0.7rem; top: 20px; right: 20px; padding: 6px 12px; }
   .report-title { font-size: 1.4rem; }
