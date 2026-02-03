@@ -35,20 +35,28 @@ export const aiQuests = [
             { label: '데이터 복구', code: 'result.append(data)', icon: 'PlusCircle' }
         ],
         pythonTemplate: `def system_restore_pipeline(data_list):
+    # [수정일: 2026-02-03] 초보자를 위한 가이드 주석 보강
+    # 데이터 파이프라인의 무결성을 위해 오염된 노이즈를 먼저 걸러내는 것이 아키텍처의 핵심입니다.
     result = []
 
     for data in data_list:
         # [Step 3-1] 노이즈(오염된 데이터) 체크
+        # TODO: 데이터가 비어있거나('') None인 경우 건너뛰도록 작성하세요
         if not data:
-            # TODO: 데이터가 오염되었으면 건너뛰도록 작성하세요
             continue
             
         # [Step 3-2] 정화된 데이터만 아카이브에 저장
-        # TODO: data를 result에 추가하세요
+        # TODO: data를 result에 추가하세요 (append 사용)
         result.append(data)
 
     return result`,
         sampleData: ["Data_01", "", "Data_02", " "],
+        expectedOutput: ["Data_01", "Data_02", " "],
+        failHints: {
+            empty_code: "코드가 비어있습니다. 데이터를 순회하는 for문부터 시작해보세요.",
+            logic_error: "결과 데이터의 개수가 맞지 않습니다. 오염된 데이터('', None)를 정확히 건너뛰었는지 확인하세요.",
+            syntax_error: "파이썬 문법 에러가 발생했습니다. 들여쓰기(Indentation)와 콜론(:)을 확인해주세요."
+        },
         step4Options: [
             "저는 단순히 코드를 수선하는 엔지니어를 넘어, 붕괴된 시스템의 전체 파이프라인을 설계하고 리스크를 제어하는 '아키텍처 복구자'로서의 통찰을 발휘했습니다. 이제 어떤 데이터 오염 사건도 해결할 준비가 되었습니다!",
             "저는 파이썬으로 리스트를 다룰 줄 압니다.",
@@ -116,11 +124,14 @@ export const aiQuests = [
             { label: '보안 변환 (Transform)', code: 'scaler.transform(target_df)', icon: 'Filter' }
         ],
         pythonTemplate: `def leakage_free_scaling(train_df, test_df):
+    # [수정일: 2026-02-03] 초보자를 위한 가이드 주석 보강
+    # 'Target Leakage'는 미래의 정보를 학습에 사용하는 실수입니다. 
+    # 반드시 학습 데이터(train)로만 기준을 세워야 함을 기억하세요.
     from sklearn.preprocessing import StandardScaler
     scaler = StandardScaler()
     
     # [Step 3-1] 오직 Train 데이터로만 전처리 기준 설정 (누수 방지)
-    # TODO: train_df를 사용하여 scaler를 학습시키세요
+    # TODO: train_df를 사용하여 scaler를 학습(fit)시키세요
     scaler.fit(train_df)
     
     # [Step 3-2] 동일한 보안 기준을 두 데이터셋에 적용
@@ -129,6 +140,11 @@ export const aiQuests = [
     
     return train_scaled, test_scaled`,
         sampleData: [[1, 2, 3], [4, 5, 6]],
+        expectedOutput: [[-1.224744871391589, 0.0, 1.224744871391589], [2.449489742783178, 3.674234614174767, 4.898979485566356]],
+        failHints: {
+            logic_error: "누수 방지에 실패했습니다. scaler.fit()의 인자가 train_df인지 확인하세요.",
+            incomplete: "transform() 과정이 누락되었습니다. 학습된 기준으로 데이터를 변환해야 합니다."
+        },
         step4Options: [
             "저는 시계열 데이터 복구 프로젝트에서 Target Leakage의 위험을 인지했습니다. 이를 위해 Time Series Split 전략을 수립하고, Scaler의 기준을 오직 과거 데이터에 고정함으로써 실전 환경에서의 복구 정확도를 98% 이상 유지했습니다.",
             "저는 스케일러를 사용하여 데이터를 정화할 줄 압니다.",
@@ -206,6 +222,11 @@ def prevent_serving_skew(data):
     # [Step 3-2] 파이프라인 정규화
     return [data[i] for i in indices]`,
         sampleData: ["ClassA", "ClassA", "ClassB", "ClassB"],
+        expectedOutput: ["ClassA", "ClassA", "ClassB", "ClassB"], // 셔플링 결과는 집합으로 검증하거나 길이를 체크함 (현재는 단순 비교 로직이므로 정적 데이터 우선)
+        failHints: {
+            logic_error: "순서가 섞이지 않았거나 데이터가 유실되었습니다. random.shuffle()을 호출했는지 확인하세요.",
+            invalid: "리스트 반환 형식이 올바르지 않습니다."
+        },
         step4Options: [
             "저는 학습 환경과 실제 서빙 환경 간의 '전처리 파이프라인 동기화'를 최우선으로 고려합니다. 셔플링을 통한 일반화 성능 확보는 물론, 서빙 단계의 입력값 분포 변화를 추적하는 드리프트 모니터링 체계를 구축하여 모델의 신뢰도를 관리합니다.",
             "저는 데이터 순서를 무작위로 섞어서 모델이 잘 배우게 만듭니다.",
@@ -284,6 +305,11 @@ def prevent_serving_skew(data):
             
     return filtered_results`,
         sampleData: [{ "id": 1, "score": 0.95 }, { "id": 2, "score": 0.32 }],
+        expectedOutput: [{ "id": 1, "score": 0.95 }],
+        failHints: {
+            logic_error: "필터링이 제대로 되지 않았습니다. score >= threshold 조건을 확인하세요.",
+            empty: "결과가 비어있습니다. append 로직을 확인하세요."
+        },
         step4Options: [
             "저는 모델의 F1-Score를 넘어 비즈니스 기대 가치(Expected Value)를 극대화하는 임계값 설계를 지향합니다. 오판 시의 비용(Cost of Error)을 수치화하여, 정밀도가 필요한 스팸 필터와 재현율이 중요한 제어판 등 각 도메인에 최적화된 배포 정책을 적용합니다.",
             "저는 임계값을 조절해서 예측을 정확하게 만듭니다.",
@@ -361,7 +387,12 @@ def prevent_serving_skew(data):
         
     # [Step 3-2] 드리프트 임계값 체크를 위한 최종 손실값 반환
     return sum(errors) / len(real)`,
-        sampleData: [100, 200, 150],
+        sampleData: [[100, 200, 150], [90, 210, 140]],
+        expectedOutput: 100.0,
+        failHints: {
+            logic_error: "오차 계산 방식이 틀렸습니다. (실제-예측)**2 의 평균을 구해야 합니다.",
+            math_error: "나누기(/)를 할 때 데이터의 전체 개수(len)로 나누었는지 확인하세요."
+        },
         step4Options: [
             "저는 모델의 정적 정확도에 만족하지 않고, 'Concept Drift'를 추적하는 모니터링 시스템을 구축합니다. 특정 지표(예: MSE)의 이동 평균이 임계값을 상회할 경우 원인 분석 및 자동 재학습 파이프라인이 가동되도록 설계하여 서비스의 지속 가능성을 보장합니다.",
             "저는 오차가 커지면 모델을 다시 만듭니다.",
@@ -427,7 +458,12 @@ def prevent_serving_skew(data):
     # [Step 3-2] 실무 리스크 대응: 처음 보는 값은 예외 처리
     # TODO: mapping.get을 사용하여 category에 대한 벡터를 반환하세요
     return mapping.get(category, [0, 0])`,
-        sampleData: ["NLP", "Unknown"],
+        sampleData: "NLP",
+        expectedOutput: [1, 0],
+        failHints: {
+            logic_error: "매핑 결과가 틀렸습니다. mapping.get() 로직을 확인하세요.",
+            unknown: "정의되지 않은 값에 대한 기본값([0, 0]) 처리가 되어있는지 확인하세요."
+        },
         step4Options: [
             "저는 카테고리의 농도와 데이터 스케일을 종합적으로 판단합니다. 카테고리 수가 적을 땐 원-핫 인코딩의 명확성을 활용하고, '차원의 저주' 위험이 크면 임베딩이나 해싱(Hashing) 기법을 도입하여 연산 효율과 정보 보전의 균형을 맞춥니다.",
             "저는 get 메서드로 에러가 안 나게 코딩합니다.",
@@ -491,6 +527,10 @@ def prevent_serving_skew(data):
     # TODO: probs.index를 사용하여 max_val의 위치를 반환하세요
     return probs.index(max_val)`,
         sampleData: [0.05, 0.9, 0.05],
+        expectedOutput: 1,
+        failHints: {
+            logic_error: "가장 높은 확률의 인덱스를 찾지 못했습니다. probs.index(max_val)를 확인하세요."
+        },
         step4Options: [
             "저는 모델의 예측 결과에 '신뢰 점수(Confidence Score)'를 병행 표기하는 아키텍처를 선호합니다. 확률적 모호함이 발생할 경우 'Human-in-the-loop' 프로세스로 유도하여 시스템 전체의 안전성을 담보하는 협업 파이프라인을 구축합니다.",
             "저는 max 함수를 써서 가장 큰 점수를 고를 수 있습니다.",
@@ -565,6 +605,10 @@ def prevent_serving_skew(data):
             
     return False`,
         sampleData: [0.5, 0.4, 0.41, 0.42, 0.43],
+        expectedOutput: true,
+        failHints: {
+            logic_error: "조기 종료 조건이 발동되지 않았습니다. patience 범위를 확인하세요."
+        },
         step4Options: [
             "저는 학습 모델이 스스로 학습 종료 시점을 결정하도록 'Early Stopping'과 'Callback' 구조를 설계합니다. 이를 통해 오버피팅을 방지할 뿐만 아니라, 클라우드 컴퓨팅 비용을 약 20% 절감하는 실무적인 가치를 창출합니다.",
             "저는 숫자를 세는 변수를 써서 3이 되면 멈추게 합니다.",
@@ -629,7 +673,12 @@ def choose_smart_action(epsilon, q_values):
         
     # [Step 3-2] 축적된 지식 기반 활용(Exploitation)
     return q_values.index(max(q_values))`,
-        sampleData: [0.1, 0.7, 0.2],
+        sampleData: [[0.0, [0.1, 0.7, 0.2]], [1.0, [0.1, 0.7, 0.2]]], // epsilon=0.0(활용), epsilon=1.0(탐험)
+        expectedOutput: 1, // epsilon=0.0 일 때의 결과 (q_values[1]이 최대)
+        // 실제로는 무작위성이 있어 검증이 어렵지만, epsilon=0일 때를 기준으로 테스트
+        failHints: {
+            logic_error: "조건부 탐험(Exploration) 로직이 부정확합니다."
+        },
         step4Options: [
             "저는 변화하는 환경 속에서 최적의 결정을 도출하기 위해 'Exploration vs Exploitation'의 균형을 중시합니다. 학습 초반엔 탐험 범위를 넓히는 엡실론-그리디 전략을 통해 잠재적 기회를 발견하고, 점진적으로 지식 우위의 결정을 내려 파이프라인의 수익률을 20% 개선했습니다.",
             "저는 랜덤 기능을 써서 모델이 모험하게 만들 수 있습니다.",
@@ -696,7 +745,11 @@ def secure_tokenize(text):
     
     # [Step 3-3] 최종 무결성 토큰 리스트 반환
     return [t for t in tokens if t.strip()]`,
-        sampleData: ["Secure AI! 2026...", "Sensitive Info? No!"],
+        sampleData: "Secure AI! 2026...",
+        expectedOutput: ["secure", "ai", "2026"],
+        failHints: {
+            logic_error: "토큰화 결과가 예상과 다릅니다. 정규식과 lower().split()을 확인하세요."
+        },
         step4Options: [
             "저는 텍스트 전처리 단계에서 정규표현식을 활용해 데이터 무결성을 확보합니다. 특히 개인정보(PII) 노출 리스크를 원천 차단하는 마스킹 전략을 최우선으로 하며, 정규화된 토큰 추출을 통해 모델의 수렴 속도를 인덱싱 기준 15% 단축시킨 경험이 있습니다.",
             "저는 소문자로 바꾸고 기호를 지우는 코드를 잘 짭니다.",

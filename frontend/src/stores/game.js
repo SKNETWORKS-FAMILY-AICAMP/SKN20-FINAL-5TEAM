@@ -74,13 +74,23 @@ export const useGameStore = defineStore('game', {
 
                 // [데이터 매핑 로직] DB 필드값을 UI 카드 컴포넌트의 props 형식에 맞게 변환하여 chapters 배열 구성
                 this.chapters = response.data.map((item, idx) => {
-                    const problems = this.mapDetailsToProblems(item, idx + 1);
-                    const isDebugPractice = item.title === 'Debug Practice';
+                    // [수정일: 2026-02-03] 백엔드 명칭이 다르더라도 프론트엔드 표준 명칭으로 정규화
+                    let normalizedTitle = item.title;
+                    const lowerTitle = (item.title || '').toLowerCase().replace(/\s+/g, '');
+
+                    if (lowerTitle.includes('pseudo')) normalizedTitle = 'Pseudo Practice';
+                    else if (lowerTitle.includes('debug')) normalizedTitle = 'Debug Practice';
+                    else if (lowerTitle.includes('system')) normalizedTitle = 'System Practice';
+                    else if (lowerTitle.includes('ops')) normalizedTitle = 'Ops Practice';
+                    else if (lowerTitle.includes('agent')) normalizedTitle = 'Agent Practice';
+
+                    const problems = this.mapDetailsToProblems({ ...item, title: normalizedTitle }, idx + 1);
+                    const isDebugPractice = normalizedTitle === 'Debug Practice';
 
                     return {
                         id: item.id,            // 고유 ID
                         db_id: item.id,         // DB 연동 확인용 ID
-                        name: item.title,       // 화면 표시 제목
+                        name: normalizedTitle,  // 화면 표시 제목 (표준화됨)
                         unitTitle: item.title,  // 상세 모달 제목용
                         description: item.subtitle, // 카드 하단 부제
                         participant_count: item.participant_count, // 훈련 참여자 수
@@ -143,7 +153,7 @@ export const useGameStore = defineStore('game', {
          * - 그 외의 유닛들은 백엔드 DB의 PracticeDetail 정보를 기반으로 동적으로 구성됩니다.
          */
         mapDetailsToProblems(unit, unitNum) {
-            // [수정일: 2026-01-31] 필드명 유연성 확보 및 대소문자/공백 무시 비교
+            // [수정일: 2026-02-03] 명칭 정규화: 'pseudo'가 포함되면 Pseudo Practice로 간주
             const rawTitle = unit.name || unit.title || '';
             const unitTitle = rawTitle.toLowerCase().replace(/\s+/g, '');
 
