@@ -1,51 +1,95 @@
 /**
- * Architecture Practice API Service (Enhanced Version)
- * 질문별 모범 답안 비교, 파트별 점수 근거 명시, 종합 평가 로직 포함
+ * Architecture Practice API Service
+ *
+ * 사용자의 아키텍처 + 설명을 분석하여 부족한 부분을 파악하고,
+ * 해당 영역에 맞는 고품질 질문 3개를 생성
+ *
+ * txt 파일에서 [핵심 분석 원칙] 섹션만 파싱하여 사용
  */
 
 import architectureProblems from '@/data/architecture.json';
 
+// 6대 기둥 txt 파일 import (Vite ?raw 쿼리 사용)
+import reliabilityTxt from '@/data/신뢰성.txt?raw';
+import performanceTxt from '@/data/최적화.txt?raw';
+import operationalTxt from '@/data/운영유용성.txt?raw';
+import costTxt from '@/data/비용.txt?raw';
+import securityTxt from '@/data/보안.txt?raw';
+import sustainabilityTxt from '@/data/지속가능성.txt?raw';
+
 const getApiKey = () => import.meta.env.VITE_OPENAI_API_KEY;
 
 /**
- * OpenAI API 호출 기본 함수
+ * txt 파일에서 [핵심 분석 원칙] 섹션만 추출
+ * - 질문 예시는 제외 (LLM이 복사하는 것 방지)
+ * - 원칙만 제공하여 맞춤형 질문 생성 유도
+ */
+function extractPrinciples(txtContent) {
+  // [핵심 분석 원칙 으로 시작해서 다음 ### 까지 추출
+  const match = txtContent.match(/### \[핵심 분석 원칙[^\]]*\]\s*([\s\S]*?)(?=### \[|$)/);
+  if (match) {
+    return match[1].trim();
+  }
+  return '';
+}
+
+/**
+ * 6대 기둥 (txt 파일에서 핵심 원칙 추출)
+ */
+const PILLAR_DATA = {
+  reliability: {
+    name: '신뢰성 (Reliability)',
+    principles: extractPrinciples(reliabilityTxt)
+  },
+  performance: {
+    name: '성능 최적화 (Performance)',
+    principles: extractPrinciples(performanceTxt)
+  },
+  operational: {
+    name: '운영 우수성 (Operational Excellence)',
+    principles: extractPrinciples(operationalTxt)
+  },
+  cost: {
+    name: '비용 최적화 (Cost)',
+    principles: extractPrinciples(costTxt)
+  },
+  security: {
+    name: '보안 (Security)',
+    principles: extractPrinciples(securityTxt)
+  },
+  sustainability: {
+    name: '지속 가능성 (Sustainability)',
+    principles: extractPrinciples(sustainabilityTxt)
+  }
+};
+
+/**
+ * OpenAI API 호출
  */
 async function callOpenAI(prompt, options = {}) {
   const {
-    model = 'gpt-3.5-turbo',
+    model = 'gpt-4o-mini',
     maxTokens = 1500,
-    temperature = 0.4,
-    systemMessage = null
+    temperature = 0.7
   } = options;
 
-  const messages = [];
-  if (systemMessage) {
-    messages.push({ role: 'system', content: systemMessage });
-  }
-  messages.push({ role: 'user', content: prompt });
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getApiKey()}`
+    },
+    body: JSON.stringify({
+      model,
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: maxTokens,
+      temperature
+    })
+  });
 
-  try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getApiKey()}`
-      },
-      body: JSON.stringify({
-        model,
-        messages,
-        max_tokens: maxTokens,
-        temperature
-      })
-    });
-
-    if (!response.ok) throw new Error(`API Error: ${response.status}`);
-    const data = await response.json();
-    return data.choices[0].message.content.trim();
-  } catch (error) {
-    console.error('OpenAI Call Error:', error);
-    throw error;
-  }
+  if (!response.ok) throw new Error(`API Error: ${response.status}`);
+  const data = await response.json();
+  return data.choices[0].message.content.trim();
 }
 
 /**
@@ -56,34 +100,10 @@ export async function fetchProblems() {
 }
 
 /**
- * 심층 질문 생성 (레거시 - 단일 연결용)
+ * 사용자 설명 + 아키텍처 분석 → 부족한 부분 파악 → 맞춤형 질문 3개 생성
  */
-export async function generateDeepDiveQuestion(problem, fromComp, toComp) {
-  const scenario = problem?.scenario || '';
-  const missions = problem?.missions?.join('\n') || '';
-
-  const prompt = `당신은 시스템 아키텍처 면접관입니다.
-
-문제: ${problem?.title || '시스템 아키텍처 설계'}
-시나리오: ${scenario}
-미션: ${missions}
-
-학생이 "${fromComp.text}"와 "${toComp.text}"를 연결했습니다.
-이 연결에 대해 깊이 있는 면접 질문 1개를 생성해주세요.
-질문만 출력하세요.`;
-
-  try {
-    return await callOpenAI(prompt, { maxTokens: 200 });
-  } catch (error) {
-    console.error('Deep dive question error:', error);
-    return `${fromComp.text}와 ${toComp.text}의 연결에서 예상되는 데이터 흐름과 잠재적인 병목 현상에 대해 설명해주세요.`;
-  }
-}
-
-/**
- * 아키텍처 분석 기반 심층 질문 3개 생성
- */
-export async function generateArchitectureAnalysisQuestions(problem, components, connections, mermaidCode) {
+export async function generateFollowUpQuestions(problem, components, connections, mermaidCode, userExplanation) {
+  // 컴포넌트/연결 정보 정리
   const componentList = components.map(c => `- ${c.text} (타입: ${c.type})`).join('\n');
   const connectionList = connections.map(conn => {
     const from = components.find(c => c.id === conn.from);
@@ -91,361 +111,152 @@ export async function generateArchitectureAnalysisQuestions(problem, components,
     return from && to ? `- ${from.text} → ${to.text}` : null;
   }).filter(Boolean).join('\n');
 
+  // 문제 정보
   const scenario = problem?.scenario || '';
-  const rubricNfr = problem?.rubricNonFunctional || problem?.rubric_non_functional || [];
-  const nfrTopics = rubricNfr.map(r => `${r.category}: ${r.question_intent}`).join('\n') || '없음';
+  const constraints = problem?.constraints || [];
+  const missions = problem?.missions || [];
 
-  const prompt = `당신은 시스템 아키텍처 면접관입니다.
-학생이 설계한 아키텍처를 분석하고, 심층적인 면접 질문 3개를 생성해주세요.
+  // 6대 기둥 원칙 텍스트 생성 (txt 파일에서 추출한 내용)
+  const principlesText = Object.entries(PILLAR_DATA)
+    .filter(([_, pillar]) => pillar.principles) // 원칙이 있는 것만
+    .map(([key, pillar]) => `
+### ${pillar.name}
+${pillar.principles}
+`).join('\n---\n');
 
-## 문제 정보
-- 제목: ${problem?.title || '시스템 아키텍처 설계'}
-- 시나리오: ${scenario}
+  const prompt = `당신은 **시니어 클라우드 솔루션 아키텍트**입니다.
 
-### 평가 기준 (이 관점에서 질문할 것):
-${nfrTopics}
+## 당신의 임무
+1. 지원자의 **아키텍처 다이어그램**과 **설명**을 분석
+2. **부족하거나 언급되지 않은 영역** 3가지를 파악
+3. 각 부족한 영역에 대해 **구체적이고 상황 기반의 질문** 1개씩 생성
 
-## 학생의 아키텍처 설계
-### 컴포넌트 (${components.length}개):
-${componentList || '없음'}
+---
 
-### 연결 관계 (${connections.length}개):
-${connectionList || '없음'}
+## 📋 문제 상황
 
-## 질문 생성 기준
-1. **설계 의도**: 왜 이런 구조를 선택했는지
-2. **확장성/성능**: 트래픽 증가, 병목 현상, 캐싱 전략
-3. **장애 대응**: 장애 시 시스템 동작, 복구 전략
+### 시나리오
+${scenario || '시스템 아키텍처 설계'}
 
-## 출력 형식 (JSON만):
+### 미션
+${missions.length > 0 ? missions.map((m, i) => `${i + 1}. ${m}`).join('\n') : '없음'}
+
+### 제약조건
+${constraints.length > 0 ? constraints.map((c, i) => `${i + 1}. ${c}`).join('\n') : '없음'}
+
+---
+
+## 🏗️ 지원자의 아키텍처
+
+### 배치된 컴포넌트 (${components.length}개)
+${componentList || '(없음)'}
+
+### 연결 관계 (${connections.length}개)
+${connectionList || '(없음)'}
+
+### Mermaid 다이어그램
+\`\`\`mermaid
+${mermaidCode || 'graph LR'}
+\`\`\`
+
+---
+
+## 💬 지원자의 설명
+"${userExplanation || '(설명 없음)'}"
+
+---
+
+## 📚 6대 기둥 분석 원칙 (부족한 부분 판단 기준)
+
+${principlesText}
+
+---
+
+## 📝 질문 생성 규칙
+
+### 1. 부족한 부분 파악 방법
+- 지원자의 설명에서 **언급하지 않은** 중요한 관점 찾기
+- 아키텍처에서 **누락된 컴포넌트나 연결** 찾기
+- 문제의 제약조건/미션과 **맞지 않는** 부분 찾기
+
+### 2. 질문 생성 원칙
+- **상황 기반**: "~한 상황이 발생하면" 형태로 질문
+- **구체적**: 이 시나리오의 특정 컴포넌트/상황을 언급
+- **개방형**: Yes/No가 아닌 설계 의도를 설명하게 유도
+- **배치된 컴포넌트만 언급** (없는 컴포넌트 질문 금지)
+
+### 3. 피해야 할 것
+- 일반적인 교과서적 질문
+- 지원자가 이미 설명한 내용 재질문
+- 전문 용어 나열식 질문
+
+---
+
+## 출력 형식 (JSON만)
+
 {
+  "gaps_analysis": {
+    "mentioned": ["지원자가 설명에서 언급한 관점들"],
+    "missing": ["부족하거나 언급되지 않은 관점 3가지"]
+  },
   "questions": [
-    {"category": "설계 의도", "question": "질문"},
-    {"category": "확장성/성능", "question": "질문"},
-    {"category": "장애 대응", "question": "질문"}
+    {
+      "category": "부족한 영역 (예: 신뢰성, 성능, 운영 등)",
+      "gap": "이 질문으로 확인하려는 부족한 부분",
+      "question": "상황 기반의 구체적인 질문"
+    },
+    {
+      "category": "부족한 영역",
+      "gap": "이 질문으로 확인하려는 부족한 부분",
+      "question": "상황 기반의 구체적인 질문"
+    },
+    {
+      "category": "부족한 영역",
+      "gap": "이 질문으로 확인하려는 부족한 부분",
+      "question": "상황 기반의 구체적인 질문"
+    }
   ]
 }`;
 
   try {
-    const response = await callOpenAI(prompt, { maxTokens: 600, temperature: 0.7 });
+    const response = await callOpenAI(prompt, {
+      maxTokens: 1200,
+      temperature: 0.7
+    });
+
     const jsonMatch = response.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
-      return parsed.questions || [];
+      return {
+        analysis: parsed.gaps_analysis || {},
+        questions: (parsed.questions || []).slice(0, 3)
+      };
     }
     throw new Error('Invalid JSON');
   } catch (error) {
-    console.error('Architecture analysis questions error:', error);
-    return [
-      { category: '설계 의도', question: `${problem?.title || '이 시스템'}에서 현재 설계한 아키텍처의 핵심 컴포넌트와 그 선택 이유를 설명해주세요.` },
-      { category: '확장성/성능', question: '트래픽이 10배로 증가할 경우, 가장 먼저 병목이 발생할 곳은 어디이며 어떻게 대응하시겠습니까?' },
-      { category: '장애 대응', question: '주요 컴포넌트 중 하나가 장애가 발생했을 때, 시스템은 어떻게 동작하며 복구 전략은 무엇인가요?' }
-    ];
-  }
-}
+    console.error('질문 생성 실패:', error);
 
-/**
- * 평가 모달용 질문 생성
- */
-export async function generateEvaluationQuestion(problem, architectureContext) {
-  const scenario = problem?.scenario || '';
-  const missions = problem?.missions?.join(', ') || '';
-  const rubricNfr = problem?.rubricNonFunctional || problem?.rubric_non_functional || [];
-  const nfrHints = rubricNfr.map(r => `${r.category}: ${r.question_intent}`).join('\n') || '';
-
-  const prompt = `당신은 시스템 아키텍처 면접관입니다.
-
-문제: ${problem?.title || '시스템 아키텍처 설계'}
-시나리오: ${scenario}
-미션: ${missions}
-
-평가 힌트:
-${nfrHints}
-
-학생의 아키텍처:
-${architectureContext}
-
-이 아키텍처에 대해 심층적인 면접 질문 1개를 생성하세요.
-트레이드오프, 확장성, 장애 대응 등에 대해 질문하세요.
-질문만 출력하세요.`;
-
-  try {
-    return await callOpenAI(prompt, { maxTokens: 300 });
-  } catch (error) {
-    console.error('Question generation error:', error);
-    return problem?.followUpQuestion || '설계하신 아키텍처에서 가장 중요한 트레이드오프는 무엇인가요?';
-  }
-}
-
-/**
- * 아키텍처 평가 실행 (개선된 버전)
- * - 질문별 모범 답안 비교
- * - 파트별 점수 근거 명시
- * - 50(설계)/50(면접) 평가 로직
- * @param {Object} problem - 문제 데이터
- * @param {string} architectureContext - 아키텍처 컨텍스트
- * @param {string} generatedQuestion - 생성된 최종 질문
- * @param {string} userAnswer - 사용자의 최종 답변
- * @param {Array} deepDiveQnA - 심화 질문/답변 배열 [{category, question, answer}]
- */
-export async function evaluateArchitecture(problem, architectureContext, generatedQuestion, userAnswer, deepDiveQnA) {
-  // 기준 데이터 추출
-  const keyComponents = problem?.keyComponents || [];
-  const keyComponentsText = keyComponents.length > 0
-    ? keyComponents.map(c => `- ${c.name} (타입: ${c.type})`).join('\n')
-    : '- 명시된 핵심 컴포넌트 없음';
-
-  const scenario = problem?.scenario || '';
-  const missions = problem?.missions || [];
-  const missionsText = missions.length > 0 ? missions.map(m => `- ${m}`).join('\n') : '- 없음';
-
-  const requiredFlows = problem?.requiredFlows || [];
-  const flowsText = requiredFlows.length > 0
-    ? requiredFlows.map(f => `- ${f.from} → ${f.to}: ${f.reason}`).join('\n')
-    : '- 없음';
-
-  const rubricNfr = problem?.rubricNonFunctional || problem?.rubric_non_functional || [];
-  const nfrText = rubricNfr.length > 0
-    ? rubricNfr.map(r => `- [${r.category}] 의도: ${r.question_intent}\n  모범답안: ${r.model_answer}`).join('\n')
-    : '- 없음';
-
-  // 심화 질문/답변 배열 처리
-  const deepDiveArray = Array.isArray(deepDiveQnA) ? deepDiveQnA : [];
-  const deepDiveQnAText = deepDiveArray.length > 0
-    ? deepDiveArray.map((item, idx) =>
-        `[질문 ${idx + 1} - ${item.category || '일반'}]\nQ: ${item.question}\nA: ${item.answer || '(답변 없음)'}`
-      ).join('\n\n')
-    : '(심화 질문에 답변하지 않음)';
-
-  // 각 질문을 JSON 형태로 정리 (LLM이 분석하기 쉽게)
-  const deepDiveQuestionsJson = deepDiveArray.map((item, idx) => ({
-    index: idx + 1,
-    category: item.category || '일반',
-    question: item.question,
-    userAnswer: item.answer || ''
-  }));
-
-  // 답변 길이 체크
-  const answerLength = (userAnswer || '').length;
-  const totalDeepDiveLength = deepDiveArray.reduce((sum, item) => sum + (item.answer || '').length, 0);
-  const answeredCount = deepDiveArray.filter(item => item.answer && item.answer.length > 0).length;
-
-  const prompt = `당신은 시스템 아키텍처 전문 평가관입니다.
-학생이 제출한 [아키텍처 다이어그램]과 [면접 답변]을 바탕으로 **엄격하게** 채점하세요.
-
-[절대 채점 규칙 - 매우 중요]
-- 모범 답안(SA_test / rubric)에 비해 요구사항이나 항목을 적게 작성했다는 이유만으로는 감점하지 마십시오.
-- 핵심 컴포넌트와 필수 데이터 흐름을 충족했다면, 답변이 간결하더라도 기본 점수를 부여해야 합니다.
-- 감점은 오직 다음 경우에만 적용합니다:
-  1) 필수 컴포넌트 또는 필수 흐름의 실제 누락
-  2) 아키텍처가 요구사항을 충족할 수 없을 정도의 구조적 오류
-  3) 논리적 모순 또는 잘못된 기술적 이해
-- 추가로 작성한 요소(확장 컴포넌트, 추가 NFR, 운영 전략 등)는 선택 사항이며,
-  논리적으로 타당하면 가점, 설명이 빈약하거나 잘못되면 감점하십시오.
-
-## 1. 평가 기준 (출처: 문제 정의서)
-
-이 평가는 “얼마나 많이 썼는가”가 아니라
-“핵심을 이해하고 논리적으로 설명했는가”를 평가합니다.
-
-
-### 문제 정보
-- 제목: ${problem?.title || '시스템 아키텍처 설계'}
-- 시나리오: ${scenario}
-- 미션: ${missionsText}
-
-### 필수 컴포넌트 (Architecture Score 기준):
-${keyComponentsText}
-
-### 필수 데이터 흐름:
-${flowsText}
-
-### 비기능적 요구사항 & 모범 답안 (Interview Score 기준):
-${nfrText}
-
-## 2. 학생 제출 자료
-
-### 아키텍처 설계:
-${architectureContext}
-
-### 최종 질문: ${generatedQuestion || '없음'}
-### 학생의 최종 답변: ${userAnswer || '(답변 없음)'}
-### 최종 답변 길이: ${answerLength}자
-
-### 심화 질문 및 답변 (${deepDiveArray.length}개 중 ${answeredCount}개 답변):
-${deepDiveQnAText}
-
-### 심화 질문 데이터 (JSON):
-${JSON.stringify(deepDiveQuestionsJson, null, 2)}
-
-### 심화 답변 총 길이: ${totalDeepDiveLength}자
-
-## 3. 채점 규칙 (매우 엄격하게!)
-
-### Architecture Score (50점 만점)
-- 필수 컴포넌트 충족도: 25점
-- 필수 데이터 흐름의 논리적 정합성: 25점
-
-※ 감점 규칙
-- 필수 컴포넌트가 실제로 누락된 경우에만 컴포넌트당 -5점
-- 필수 데이터 흐름이 요구사항을 충족하지 못할 정도로 잘못된 경우에만 -5점
-- 단순한 생략, 간결한 표현, 범위 축소는 누락으로 간주하지 않습니다.
-
-### Interview Score (50점 만점)
-- **답변이 없거나 의미 없는 수준**: 최대 10점
-- **답변이 짧지만 개념적으로 타당함 (30~100자)**: 최대 30점
-- **핵심 개념은 맞으나 설명이 부족함**: 30~40점
-- **구체적 설명 + 기술 용어 일부 포함**: 40~45점
-- **구체적 설명 + 트레이드오프 명시**: 45~50점
-
-※ 기술 용어는 이해를 보조하는 수단이며, 필수 조건은 아닙니다.
-※ 모범 답안과 표현이 다르더라도 개념적으로 일치하면 정답으로 인정합니다.
-
-
-### 모범 답안과 비교 (중요!)
-위 '비기능적 요구사항'의 모범답안과 학생 답변을 비교하여:
-- 일치하는 키워드/개념이 있으면 명시
-- 누락된 핵심 개념이 있으면 감점 사유로 명시
-- 모범 답안은 참고 기준(reference)이며, 정답 템플릿이 아닙니다.
-- 표현, 구조, 용어가 다르더라도 핵심 개념이 일치하면 정답으로 간주합니다.
-- 모범 답안에 없는 합리적인 추가 설명은 가점 요소가 될 수 있습니다.
-
-
-
-
-### 최종 점수 계산
-totalScore = architectureScore + interviewScore (100점 만점)
-
-## 4. 출력 형식 (JSON만 출력!)
-**중요: questionAnalysis에는 위에서 제공된 모든 심화 질문(${deepDiveArray.length}개)에 대해 각각 분석을 포함해야 합니다.**
-
-{
-  "totalScore": 0,
-  "grade": "excellent(80+)" | "good(60-79)" | "needs-improvement(40-59)" | "poor(0-39)",
-  "summary": "총평 2-3문장 (강점과 약점 명확히)",
-
-  "architectureEvaluation": {
-    "score": 0,
-    "details": [
-      {"item": "필수 컴포넌트", "score": 0, "basis": "포함된 것과 누락된 것"},
-      {"item": "연결 흐름", "score": 0, "basis": "논리적 연결 여부"}
-    ],
-    "missingComponents": ["누락된 컴포넌트"],
-    "incorrectFlows": ["잘못된 연결"]
-  },
-
-  "interviewEvaluation": {
-    "score": 0,
-    "answerAnalysis": {
-      "length": ${answerLength + totalDeepDiveLength},
-      "hasKeyTerms": true/false,
-      "keyTermsFound": ["발견된 기술 용어"],
-      "keyTermsMissing": ["누락된 핵심 키워드"]
-    },
-    "questionAnalysis": [
-      {
-        "question": "실제 질문 내용을 여기에 복사",
-        "category": "질문 카테고리",
-        "userAnswer": "학생이 작성한 답변 (없으면 빈 문자열)",
-        "modelAnswer": "이 질문에 대한 모범 답안",
-        "matchStatus": "match/partial/mismatch",
-        "deductionReason": "감점 사유 (있으면)",
-        "score": 0,
-        "feedback": "이 답변에 대한 피드백"
-      }
-    ]
-  },
-
-  "strengths": ["구체적 강점1", "강점2"],
-  "weaknesses": ["구체적 약점1"],
-  "suggestions": ["학습 제안1", "제안2"]
-}`;
-
-  try {
-    const response = await callOpenAI(prompt, { maxTokens: 2000, temperature: 0.3 });
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const result = JSON.parse(jsonMatch[0]);
-      // 기존 호환성을 위해 score 필드도 추가
-      result.score = result.totalScore;
-      return result;
-    }
-    throw new Error('Invalid JSON response');
-  } catch (error) {
-    console.error('Evaluation error:', error);
-    // Fallback 응답 - 질문 정보 포함
-    const fallbackQuestionAnalysis = deepDiveArray.map(item => ({
-      question: item.question,
-      category: item.category || '일반',
-      userAnswer: item.answer || '',
-      modelAnswer: '평가 오류로 모범 답안을 불러올 수 없습니다.',
-      matchStatus: 'mismatch',
-      deductionReason: '평가 오류',
-      score: 0,
-      feedback: '다시 시도해주세요.'
-    }));
-
+    // Fallback
+    const mainComponent = components[0]?.text || '메인 서버';
     return {
-      totalScore: 30,
-      score: 30,
-      grade: 'poor',
-      summary: '평가 중 오류가 발생했습니다. 다시 시도해주세요.',
-      architectureEvaluation: { score: 15, details: [], missingComponents: [], incorrectFlows: [] },
-      interviewEvaluation: {
-        score: 15,
-        answerAnalysis: { length: answerLength + totalDeepDiveLength, hasKeyTerms: false, keyTermsFound: [], keyTermsMissing: [] },
-        questionAnalysis: fallbackQuestionAnalysis
-      },
-      strengths: [],
-      weaknesses: ['평가 오류'],
-      suggestions: ['다시 시도해주세요']
+      analysis: { mentioned: [], missing: ['분석 실패'] },
+      questions: [
+        {
+          category: '신뢰성',
+          gap: '장애 대응',
+          question: `${mainComponent}가 갑자기 다운된다면, 사용자들은 어떤 경험을 하게 되나요? 서비스가 완전히 중단되나요?`
+        },
+        {
+          category: '성능',
+          gap: '확장성',
+          question: `동시 사용자가 평소의 10배로 급증하면, 이 아키텍처가 자동으로 처리량을 늘릴 수 있나요?`
+        },
+        {
+          category: '운영',
+          gap: '모니터링',
+          question: `시스템에 문제가 생겼을 때, 운영팀이 사용자보다 먼저 알 수 있는 방법이 있나요?`
+        }
+      ]
     };
-  }
-}
-
-/**
- * 채팅 메시지 전송
- */
-export async function sendChatMessage(chatContext, chatHistory, userMessage) {
-  const systemPrompt = `당신은 시스템 아키텍처 면접관입니다.
-학생이 주어진 문제의 요구사항에 대해 질문하면 답변해주세요.
-
-**규칙:**
-1. 직접적인 정답이나 완성된 아키텍처는 알려주지 마세요.
-2. 힌트와 고려사항을 제공하되, 학생이 스스로 생각하도록 유도하세요.
-3. 답변은 3-5문장으로 간결하게.
-
-**현재 문제:**
-${chatContext}
-
-한국어로 답변하세요.`;
-
-  const messages = [
-    { role: 'system', content: systemPrompt },
-    ...chatHistory.map(msg => ({ role: msg.role, content: msg.content })),
-    { role: 'user', content: userMessage }
-  ];
-
-  try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getApiKey()}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
-        messages,
-        max_tokens: 500,
-        temperature: 0.7
-      })
-    });
-
-    if (!response.ok) throw new Error(`API Error: ${response.status}`);
-    const data = await response.json();
-    return data.choices[0].message.content;
-  } catch (error) {
-    console.error('Chat error:', error);
-    throw error;
   }
 }

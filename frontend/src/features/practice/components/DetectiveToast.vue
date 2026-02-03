@@ -11,7 +11,7 @@
       </div>
       <div class="toast-content">
         <p class="toast-message">{{ message }}</p>
-        <span class="toast-dismiss">클릭하여 닫기</span>
+        <span class="toast-dismiss">CLICK_TO_DISMISS</span>
       </div>
     </div>
   </transition>
@@ -40,14 +40,19 @@ export default {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Courier+Prime:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
 
-/* === DETECTIVE TOAST MESSAGE (심문 패널 스타일) === */
+/* === DETECTIVE TOAST MESSAGE (Among Us 스타일) === */
 .detective-toast {
-  --accent-yellow: #f1c40f;
-  --neon-blue: #00f3ff;
-  --pixel-font: 'Press Start 2P', cursive;
-  --typewriter-font: 'Courier Prime', monospace;
+  --bg-panel: #1c2128;
+  --bg-card: #252c35;
+  --border-color: #373e47;
+  --cyan: #38ffdd;
+  --yellow: #f5f557;
+  --green: #4dff77;
+  --blue: #4d7fff;
+  --white: #d3d4d4;
+  --white-dim: #8b949e;
 
   position: fixed;
   bottom: 20px;
@@ -55,53 +60,49 @@ export default {
   transform: translateX(-50%);
   width: 80%;
   max-width: 700px;
-  min-height: 120px;
+  min-height: 90px;
   display: flex;
   gap: 20px;
-  background: rgba(0, 0, 0, 0.9);
-  border: 1px solid #444;
+  background: var(--bg-panel);
+  border: 3px solid var(--border-color);
+  border-radius: 16px;
   padding: 20px;
   z-index: 100;
   cursor: pointer;
-  box-shadow: 0 10px 50px rgba(0, 0, 0, 1);
-  /* 테이프 데코 패턴 */
-  background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255, 255, 0, 0.05) 10px, rgba(255, 255, 0, 0.05) 20px);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
 }
 
 /* Toast Type Variations */
 .detective-toast.guide {
-  border-color: var(--accent-yellow);
+  border-color: var(--cyan);
 }
 
 .detective-toast.connect {
-  border-color: var(--neon-blue);
-  box-shadow: 0 10px 50px rgba(0, 0, 0, 1), 0 0 20px rgba(0, 243, 255, 0.2);
+  border-color: var(--blue);
 }
 
 .detective-toast.place {
-  border-color: #2ecc71;
-  box-shadow: 0 10px 50px rgba(0, 0, 0, 1), 0 0 20px rgba(46, 204, 113, 0.2);
+  border-color: var(--green);
 }
 
 .detective-toast.hint {
-  border-color: #e67e22;
-  box-shadow: 0 10px 50px rgba(0, 0, 0, 1), 0 0 20px rgba(230, 126, 34, 0.2);
-  animation: hint-toast-pulse 1s infinite;
+  border-color: var(--yellow);
+  animation: hint-toast-pulse 1.5s infinite;
 }
 
 @keyframes hint-toast-pulse {
-  0%, 100% { box-shadow: 0 10px 50px rgba(0, 0, 0, 1), 0 0 20px rgba(230, 126, 34, 0.2); }
-  50% { box-shadow: 0 10px 50px rgba(0, 0, 0, 1), 0 0 35px rgba(230, 126, 34, 0.4); }
+  0%, 100% { box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); }
+  50% { box-shadow: 0 10px 40px rgba(245, 245, 87, 0.3); }
 }
 
 .toast-duck {
-  width: 80px;
-  height: 80px;
-  border: 2px solid #fff;
-  background: #000;
+  width: 60px;
+  height: 60px;
+  border: 3px solid var(--cyan);
+  border-radius: 50%;
+  background: #0d1117;
   flex-shrink: 0;
   overflow: hidden;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
 }
 
 .toast-duck img {
@@ -119,50 +120,49 @@ export default {
 
 .toast-message {
   margin: 0;
-  color: var(--accent-yellow);
-  font-family: var(--typewriter-font);
-  font-size: 1.1rem;
-  line-height: 1.5;
-  text-shadow: 0 0 5px rgba(241, 196, 15, 0.3);
+  color: var(--white);
+  font-family: 'Nunito', sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.6;
 }
 
 .detective-toast.connect .toast-message {
-  color: var(--neon-blue);
-  text-shadow: 0 0 5px rgba(0, 243, 255, 0.3);
+  color: var(--blue);
 }
 
 .detective-toast.place .toast-message {
-  color: #2ecc71;
-  text-shadow: 0 0 5px rgba(46, 204, 113, 0.3);
+  color: var(--green);
 }
 
 .detective-toast.hint .toast-message {
-  color: #e67e22;
-  text-shadow: 0 0 5px rgba(230, 126, 34, 0.3);
+  color: var(--yellow);
 }
 
 .toast-dismiss {
-  color: #7f8c8d;
-  font-size: 0.6rem;
-  font-family: var(--pixel-font);
+  color: var(--white-dim);
+  font-size: 0.7rem;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
   text-align: right;
-  border-top: 1px dashed #555;
+  border-top: 2px solid var(--border-color);
   padding-top: 10px;
+  letter-spacing: 1px;
 }
 
 /* Toast Slide Animation */
 .toast-slide-enter-active {
-  animation: toast-in 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+  animation: toast-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .toast-slide-leave-active {
-  animation: toast-out 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+  animation: toast-out 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes toast-in {
   0% {
     opacity: 0;
-    transform: translateX(-50%) translateY(150%);
+    transform: translateX(-50%) translateY(100%);
   }
   100% {
     opacity: 1;
@@ -177,7 +177,7 @@ export default {
   }
   100% {
     opacity: 0;
-    transform: translateX(-50%) translateY(150%);
+    transform: translateX(-50%) translateY(100%);
   }
 }
 </style>

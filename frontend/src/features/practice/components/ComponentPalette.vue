@@ -126,39 +126,66 @@ export default {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
 
 .palette {
-  background: #34495e;
+  --space-deep: #0a0a1a;
+  --nebula-purple: #6b5ce7;
+  --nebula-blue: #4fc3f7;
+  --nebula-pink: #f06292;
+  --text-primary: #e8eaed;
+  --text-secondary: rgba(232, 234, 237, 0.7);
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
+
+  background: transparent;
   padding: 8px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+}
+
+/* 스크롤바 커스텀 */
+.palette::-webkit-scrollbar {
+  width: 6px;
+}
+
+.palette::-webkit-scrollbar-track {
+  background: var(--space-deep);
+}
+
+.palette::-webkit-scrollbar-thumb {
+  background: rgba(107, 92, 231, 0.4);
+  border-radius: 10px;
 }
 
 .palette h2 {
-  font-family: 'Press Start 2P', cursive;
-  font-size: 0.5rem;
-  color: #f1c40f;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--nebula-blue);
   margin: 0 0 8px 0;
   text-align: center;
   padding-bottom: 8px;
-  border-bottom: 2px solid #2c3e50;
+  border-bottom: 1px solid var(--glass-border);
+  letter-spacing: 2px;
 }
 
 /* Hint Guide - Compact */
 .hint-guide {
-  background: rgba(241, 196, 15, 0.2);
-  border: 2px solid #f1c40f;
-  border-radius: 4px;
+  background: rgba(79, 195, 247, 0.1);
+  border: 1px solid rgba(79, 195, 247, 0.3);
+  border-radius: 12px;
   padding: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 4px;
-  font-size: 0.5rem;
-  color: #f1c40f;
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--nebula-blue);
+  font-family: 'Rajdhani', sans-serif;
   animation: hint-fade-in 0.3s ease;
 }
 
@@ -173,96 +200,95 @@ export default {
 
 /* Component Groups - Compact */
 .component-group {
-  margin-bottom: 4px;
+  margin-bottom: 8px;
 }
 
 .component-group h3 {
-  font-family: 'Press Start 2P', cursive;
-  font-size: 0.4rem;
-  color: #95a5a6;
-  margin: 0 0 4px 0;
-  padding: 4px 0;
-  text-align: center;
-  background: #2c3e50;
-  border-radius: 2px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.5rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin: 0 0 6px 0;
+  padding: 6px 8px;
+  text-align: left;
+  background: var(--glass-bg);
+  border-left: 2px solid var(--nebula-purple);
+  border-radius: 0 6px 6px 0;
+  letter-spacing: 2px;
 }
 
-/* Tool Items - Evidence Tag Style */
+/* Tool Items - Space Mission Style */
 .component {
-  height: 60px;
-  background: #ecf0f1;
-  border: 2px solid #bdc3c7;
-  border-bottom: 4px solid #95a5a6;
-  color: #2c3e50;
+  height: 50px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
   margin-bottom: 6px;
   cursor: grab;
-  font-size: 0.55rem;
+  font-size: 0.9rem;
   font-weight: 600;
-  font-family: 'Press Start 2P', cursive;
-  transition: all 0.15s ease;
+  font-family: 'Rajdhani', sans-serif;
+  transition: all 0.3s ease;
   position: relative;
   user-select: none;
+  backdrop-filter: blur(5px);
 }
 
-/* Tape look on top */
 .component::before {
-  content: '';
-  position: absolute;
-  top: -5px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 30%;
-  height: 8px;
-  background: rgba(0, 0, 0, 0.2);
+  display: none;
 }
 
 .component:active {
   cursor: grabbing;
-  border-bottom-width: 2px;
-  transform: translateY(2px);
+  transform: scale(0.96);
 }
 
 .component:hover {
-  transform: scale(1.05);
+  border-color: var(--nebula-purple);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(107, 92, 231, 0.3);
+  background: rgba(107, 92, 231, 0.1);
 }
 
 /* Required component hint styles */
 .component.required-hint {
-  border-color: #f1c40f !important;
-  box-shadow: 0 0 10px rgba(241, 196, 15, 0.8);
-  animation: required-glow 1s ease-in-out infinite;
+  border-color: var(--nebula-blue) !important;
+  background: rgba(79, 195, 247, 0.1);
+  animation: required-glow 1.5s ease-in-out infinite;
 }
 
 @keyframes required-glow {
   0%, 100% {
-    box-shadow: 0 0 10px rgba(241, 196, 15, 0.8);
+    box-shadow: 0 0 10px rgba(79, 195, 247, 0.3);
   }
   50% {
-    box-shadow: 0 0 20px rgba(241, 196, 15, 1);
+    box-shadow: 0 0 25px rgba(79, 195, 247, 0.6);
   }
 }
 
 .required-badge {
   position: absolute;
-  top: -6px;
-  right: -6px;
-  background: #f1c40f;
-  color: #000;
-  font-size: 0.35rem;
-  padding: 2px 4px;
-  border-radius: 2px;
+  top: -8px;
+  right: -8px;
+  background: linear-gradient(135deg, #6b5ce7, #4fc3f7);
+  color: white;
+  font-size: 0.5rem;
+  padding: 3px 8px;
   font-weight: 700;
-  border: 2px solid #000;
+  font-family: 'Orbitron', sans-serif;
+  border-radius: 20px;
   z-index: 1;
+  letter-spacing: 1px;
 }
 
 /* Dimmed styles for non-required components */
 .component.dimmed {
-  opacity: 0.35;
-  filter: grayscale(70%);
+  opacity: 0.3;
+  filter: grayscale(30%);
 }
 </style>

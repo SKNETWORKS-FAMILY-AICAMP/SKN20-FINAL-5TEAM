@@ -8,13 +8,13 @@
 
     <div class="intro-dialog-box" v-if="!showStartBtn">
       <div class="intro-dialog-inner">
-        <div class="speaker-name">DET. DUCK</div>
+        <div class="speaker-name">CODUCK_AI</div>
         <div class="intro-text">{{ displayedIntroText }}</div>
         <div class="next-indicator">▼ Click to continue</div>
       </div>
     </div>
     <button v-if="showStartBtn" class="start-btn" @click.stop="handleEnterGame">
-      <span>취조실 입장 (ENTER)</span>
+      <span>INITIALIZE_PROTOCOL</span>
     </button>
 
   </div>
@@ -30,11 +30,11 @@ export default {
     introLines: {
       type: Array,
       default: () => [
-        "거기 서! 도망갈 생각 마라. 꽥!",
-        "네가 오늘 발생한 대규모 서버 폭파 사건의 가장 유력한 용의자로 지목되었다.",
-        "억울하다고? 그렇다면 취조실로 들어와서 직접 증명해 봐.",
-        "올바른 시스템 아키텍처를 설계해서 네 결백을 입증하는 거다!",
-        "(철창 문이 열린다...)"
+        "[SYSTEM ALERT] 아키텍트님, 마더 서버에 이상 징후가 감지되었습니다. 꽥!",
+        "오염된 AI들이 환각(Hallucination)에 빠져 시스템을 붕괴시키고 있습니다.",
+        "당신만이 이 상황을 복구할 수 있습니다.",
+        "올바른 시스템 아키텍처를 설계하여 데이터 무결성을 확보하세요!",
+        "[PROTOCOL READY] 복구 터미널에 접속합니다..."
       ]
     }
   },
@@ -85,19 +85,22 @@ export default {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Courier+Prime:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
 
-/* === INTRO SCENE (sa_panic_room.html 스타일) === */
+/* === INTRO SCENE (Among Us 스타일) === */
 .scene-intro {
-  --accent-yellow: #f1c40f;
-  --danger-red: #e74c3c;
-  --text-white: #ecf0f1;
-  --pixel-font: 'Press Start 2P', cursive;
-  --typewriter-font: 'Courier Prime', monospace;
+  --bg-space: #0d1117;
+  --bg-panel: #1c2128;
+  --bg-card: #252c35;
+  --border-color: #373e47;
+  --red: #c51111;
+  --cyan: #38ffdd;
+  --yellow: #f5f557;
+  --white: #d3d4d4;
 
   width: 100%;
   height: 100%;
-  background: #111;
+  background: var(--bg-space);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -109,22 +112,21 @@ export default {
 /* 스포트라이트 효과 */
 .spotlight {
   position: absolute;
-  top: -100px;
+  top: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 600px;
+  width: 800px;
   height: 100%;
-  background: radial-gradient(ellipse at top, rgba(255, 255, 255, 0.15) 0%, transparent 70%);
+  background: radial-gradient(ellipse at top, rgba(56, 255, 221, 0.08) 0%, transparent 60%);
   pointer-events: none;
   z-index: 1;
 }
 
 /* 오리 형사 (거대 사이즈) */
 .intro-duck {
-  width: 400px;
-  height: 400px;
+  width: 300px;
+  height: 300px;
   z-index: 2;
-  filter: drop-shadow(0 0 20px rgba(0, 0, 0, 0.5));
   transform: translateY(50px);
   transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
@@ -137,6 +139,7 @@ export default {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  filter: drop-shadow(0 0 30px rgba(56, 255, 221, 0.3));
 }
 
 /* 인트로 대화창 (하단 고정) */
@@ -144,13 +147,13 @@ export default {
   position: absolute;
   bottom: 40px;
   width: 90%;
-  height: 200px;
-  background: rgba(0, 0, 0, 0.9);
-  border: 4px solid white;
-  border-radius: 10px;
-  padding: 30px;
+  max-width: 800px;
+  background: var(--bg-panel);
+  border: 4px solid var(--border-color);
+  border-radius: 16px;
+  padding: 25px 30px;
   z-index: 10;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 1);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
 }
 
 .intro-dialog-inner {
@@ -161,32 +164,36 @@ export default {
 }
 
 .speaker-name {
-  color: var(--accent-yellow);
-  font-family: var(--pixel-font);
-  font-size: 1.2rem;
+  color: var(--cyan);
+  font-family: 'Nunito', sans-serif;
+  font-size: 1rem;
+  font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 2px;
 }
 
 .intro-text {
-  font-family: var(--typewriter-font);
-  font-size: 1.5rem;
-  line-height: 1.6;
-  color: white;
+  font-family: 'Nunito', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 600;
+  line-height: 1.8;
+  color: var(--white);
   flex: 1;
 }
 
 .next-indicator {
   align-self: flex-end;
-  color: var(--accent-yellow);
-  font-family: var(--pixel-font);
+  color: var(--yellow);
+  font-family: 'Nunito', sans-serif;
   font-size: 0.8rem;
-  animation: bounce 1s infinite;
+  font-weight: 700;
+  letter-spacing: 1px;
+  animation: pulse-opacity 1.5s ease-in-out infinite;
 }
 
-@keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
+@keyframes pulse-opacity {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
 }
 
 /* 시작 버튼 (인트로 끝날 때 등장) */
@@ -195,25 +202,29 @@ export default {
   top: 83%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: var(--danger-red);
+  background: var(--red);
   color: white;
-  border: 4px solid white;
-  padding: 20px 40px;
-  font-family: var(--pixel-font);
-  font-size: 1.5rem;
+  border: none;
+  border-radius: 12px;
+  padding: 18px 40px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
   cursor: pointer;
   z-index: 20;
-  box-shadow: 10px 10px 0 black;
-  animation: sway 2s ease-in-out infinite;
-}
-
-@keyframes sway {
-  0%, 100% { transform: translate(-50%, -50%) translateX(-10px); }
-  50% { transform: translate(-50%, -50%) translateX(10px); }
+  box-shadow: 0 6px 0 #8b0000;
+  transition: all 0.2s ease;
 }
 
 .start-btn:hover {
-  animation: none;
   transform: translate(-50%, -55%);
+  box-shadow: 0 8px 0 #8b0000;
+}
+
+.start-btn:active {
+  transform: translate(-50%, -48%);
+  box-shadow: 0 3px 0 #8b0000;
 }
 </style>

@@ -12,7 +12,7 @@ const getApiKey = () => import.meta.env.VITE_OPENAI_API_KEY;
  */
 async function callOpenAI(prompt, options = {}) {
   const {
-    model = 'gpt-3.5-turbo',
+    model = 'gpt-4o-mini',
     maxTokens = 500,
     temperature = 0.7,
     systemMessage = null
@@ -335,7 +335,7 @@ ${chatContext}
       'Authorization': `Bearer ${getApiKey()}`
     },
     body: JSON.stringify({
-      model: 'gpt-3.5-turbo',
+      model: 'gpt-4o-mini',
       messages,
       max_tokens: 500,
       temperature: 0.7
