@@ -174,7 +174,7 @@
                    <div class="w-1.5 h-1.5 bg-[#A3FF47]"></div>
                    <span class="text-[9px] font-black uppercase tracking-[0.4em]">INQUIRY_PROTOCOL_v2.0</span>
                 </div>
-                <h3 class="text-2xl md:text-4xl font-black italic text-[#A3FF47] leading-tight terminal-glow">
+                <h3 class="text-xl md:text-3xl font-black italic text-[#A3FF47] leading-tight terminal-glow">
                   [{{ currentInterviewIdx + 1 }}/{{ currentQuest.interviewQuestions.length }}] {{ currentInterviewQuestion?.question }}
                 </h3>
               </div>
@@ -195,7 +195,7 @@
                   <span class="text-[8px] font-black uppercase tracking-[0.2em]">REPAIR_SEQUENCE_0{{ i+1 }}</span>
                   <Zap class="w-2 h-2 text-[#A3FF47]" />
                 </div>
-                <span class="text-xl md:text-2xl font-black tracking-tight leading-snug text-white group-hover:text-[#A3FF47] transition-colors">{{ opt.text }}</span>
+                <span class="text-lg md:text-xl font-black tracking-tight leading-snug text-white group-hover:text-[#A3FF47] transition-colors">{{ opt.text }}</span>
               </button>
               </div>
             </div>
@@ -205,6 +205,7 @@
           <!-- [2026-02-03] 사이드바 공간 확보를 위해 xl 브레이크포인트 사용 -->
           <div v-else-if="currentStep === 2" class="flex-1 grid grid-cols-1 xl:grid-cols-2 bg-black overflow-hidden relative">
             <!-- [2026-02-02] Phase 1과 구성을 완전히 통일 (p-8, items-center, justify-center) -->
+<<<<<<< HEAD
             <div class="p-0 flex flex-col border-b xl:border-b-0 border-[#A3FF47]/10 h-[500px] xl:h-full overflow-hidden shrink-0">
               <!-- 상단: Mission Objective (Scrollable) -->
               <div class="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-8 space-y-6">
@@ -212,22 +213,38 @@
                   <div class="flex items-center justify-center gap-3">
                     <div class="h-5 w-1 bg-[#A3FF47]"></div>
                     <h3 class="text-xs font-black tracking-[0.5em] uppercase text-[#A3FF47]/50">Mission Objective</h3>
+=======
+            <div class="p-0 flex flex-col border-b lg:border-b-0 border-[#A3FF47]/10 h-[500px] lg:h-full overflow-hidden shrink-0 lg:pl-36">
+              <!-- 상단: Mission Objective (Compact Left-Aligned) -->
+              <div class="flex-1 overflow-y-auto custom-scrollbar p-6 flex flex-col justify-start space-y-6">
+                <div class="w-full max-w-[750px] space-y-4 md:space-y-6 flex flex-col items-start">
+                  <div class="flex items-center gap-2">
+                    <div class="h-4 w-1 bg-[#A3FF47]"></div>
+                    <h3 class="text-[9px] font-black tracking-[0.4em] uppercase text-[#A3FF47]/50">Mission Objective</h3>
+>>>>>>> e25189dbcdec085ce075d12a775dc4465d758dac
                   </div>
-                  <p class="text-xl md:text-2xl font-black italic terminal-glow underline decoration-[#A3FF47]/30 text-center leading-tight text-[#A3FF47]">{{ currentQuest.missionObjective }}</p>
-                  <div class="p-5 md:p-8 bg-[#A3FF47]/5 border-l-4 border-[#A3FF47] text-xs md:text-sm leading-relaxed italic text-slate-300 space-y-4 text-center">
-                    <p class="text-base md:text-lg">"Coduck의 기본 기능을 활성화하기 위해, 데이터 리스트를 순회하며 유효한 패킷(정상 데이터)만 필터링하는 아키텍처 논리를 설계하십시오."</p>
-                    <div class="pt-3 border-t border-[#A3FF47]/20 flex justify-center">
-                      <p class="text-[10px] md:text-xs font-black text-[#A3FF47] not-italic uppercase tracking-widest flex items-center gap-2">
-                         <MessageSquare class="w-3.5 h-3.5" /> System_Directive: 의사코드 작성
+                  <p class="text-base md:text-lg font-black italic terminal-glow border-l-2 border-[#A3FF47] pl-4 leading-snug text-[#A3FF47] whitespace-pre-wrap">{{ currentQuest.missionObjective }}</p>
+                  <div class="p-4 md:p-5 bg-[#A3FF47]/5 border-l-4 border-[#A3FF47]/30 text-[10px] md:text-xs leading-relaxed italic text-slate-300 space-y-3 text-left w-full">
+                    <p class="text-xs md:text-sm whitespace-pre-wrap">"Coduck의 기본 기능을 활성화하기 위해, 데이터 리스트를 순회하며 유효한 패킷(정상 데이터)만
+필터링하는 아키텍처 논리를 설계하십시오."</p>
+                    <div class="pt-3 border-t border-[#A3FF47]/20 flex justify-start">
+                      <p class="text-[8px] md:text-[9px] font-black text-[#A3FF47] not-italic uppercase tracking-widest flex items-center gap-2">
+                         <MessageSquare class="w-3 h-3" /> System_Directive: 의사코드 작성
                       </p>
                     </div>
                   </div>
                 </div>
               </div>
 
+<<<<<<< HEAD
               <!-- 하단: [수정일: 2026-02-03] AI Architecture Consultant HUD (왼쪽으로 이동 & 고정 높이) -->
               <div class="h-[350px] xl:h-2/5 flex flex-col bg-black/60 border-t border-[#A3FF47]/10 relative shrink-0">
                 <div class="h-10 border-b border-[#A3FF47]/20 flex items-center px-4 justify-between bg-[#A3FF47]/5">
+=======
+              <!-- 하단: [수정일: 2026-02-03] AI Architecture Consultant HUD (영격 극대화 & 오프셋 최적화) -->
+              <div class="h-[500px] lg:h-[70%] flex flex-col bg-black/60 border-t border-[#A3FF47]/10 relative shrink-0">
+                <div class="h-12 border-b border-[#A3FF47]/20 flex items-center px-4 justify-between bg-[#A3FF47]/5 w-full max-w-[650px]">
+>>>>>>> e25189dbcdec085ce075d12a775dc4465d758dac
                   <div class="flex items-center gap-2">
                     <Brain class="w-3.5 h-3.5 text-[#A3FF47] animate-pulse" />
                     <span class="text-[9px] font-black uppercase tracking-widest text-[#A3FF47]">AI Architecture Consultant</span>
@@ -241,7 +258,7 @@
                   </div>
                 </div>
                 
-                <div ref="chatContainer" class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                <div ref="chatContainer" class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar w-full max-w-[650px]">
                   <div v-for="(msg, idx) in chatMessages" :key="idx" 
                     class="flex flex-col gap-1.5"
                     :class="msg.sender === 'User' ? 'items-end' : 'items-start'"
@@ -261,7 +278,7 @@
                   </div>
                 </div>
 
-                <div class="p-4 border-t border-[#A3FF47]/10 bg-black/40 flex items-center gap-3">
+                <div class="p-4 border-t border-[#A3FF47]/10 bg-black/40 flex items-center gap-3 w-full max-w-[650px]">
                   <button 
                     @click="askCoduck"
                     :disabled="isAsking || pseudoInput.length < 5"
@@ -277,9 +294,9 @@
             </div>
             <div class="bg-black/40 p-0 lg:p-0 flex flex-col items-start justify-center border-l-0 xl:border-l border-[#A3FF47]/10 relative overflow-hidden h-[400px] xl:h-full">
               <div class="w-full h-full flex flex-col">
-                <div class="h-12 border-b border-[#A3FF47]/10 flex items-center px-6 gap-3 text-[10px] font-bold bg-black/40 shrink-0">
-                  <Terminal class="w-4 h-4 opacity-50" />
-                  <span class="opacity-50">ARCHITECT_TERMINAL:</span> LOGIC_RESTORE_v1.pseudo
+                <div class="h-20 border-b border-[#A3FF47]/10 flex items-center px-10 gap-4 text-xs font-black bg-black/40 shrink-0">
+                  <Terminal class="w-5 h-5 opacity-50 text-[#A3FF47]" />
+                  <span class="opacity-50 tracking-widest text-[#A3FF47]">ARCHITECT_TERMINAL:</span> LOGIC_RESTORE_v1.pseudo
                 </div>
                 <div class="flex-1 relative">
                   <VueMonacoEditor
@@ -291,7 +308,7 @@
                   />
                 </div>
 
-                <div class="p-4 md:p-6 border-t border-[#A3FF47]/20 flex justify-end shrink-0 bg-black/80">
+                <div class="p-10 md:p-16 border-t border-[#A3FF47]/20 flex justify-end shrink-0 bg-black/80">
                   <button 
                     @click="submitStep2" 
                     :disabled="!isApproved"
@@ -535,11 +552,11 @@
             <AlertTriangle v-else class="w-10 h-10 md:w-14 md:h-14 text-pink-500" />
           </div>
           <div>
-            <h3 class="text-2xl md:text-4xl font-black italic tracking-tighter uppercase terminal-text mb-2">{{ feedbackModal.title }}</h3>
+            <h3 class="text-xl md:text-3xl font-black italic tracking-tighter uppercase terminal-text mb-2">{{ feedbackModal.title }}</h3>
             <p class="text-[8px] md:text-[10px] opacity-40 uppercase tracking-[0.5em] font-bold">{{ feedbackModal.isSuccess ? 'ACCESS_GRANTED' : 'ACCESS_DENIED' }}</p>
           </div>
         </div>
-        <p class="text-base md:text-xl font-bold text-slate-200 leading-relaxed mb-8 md:mb-12 italic border-l-4 md:border-l-8 pl-4 md:pl-8 border-white/10">
+        <p class="text-sm md:text-lg font-bold text-slate-200 leading-relaxed mb-8 md:mb-12 italic border-l-4 md:border-l-8 pl-4 md:pl-8 border-white/10">
           {{ feedbackModal.desc }}
         </p>
         <div v-if="feedbackModal.details" class="mb-8 p-4 bg-black/40 border border-[#A3FF47]/20 text-xs text-white/70 overflow-y-auto max-h-[200px] custom-scrollbar" v-html="feedbackModal.details"></div>

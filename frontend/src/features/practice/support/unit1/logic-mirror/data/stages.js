@@ -29,7 +29,7 @@ export const aiQuests = [
             }
         ],
         quizTitle: "Step 4: 재부팅 승인 - 오늘 수행한 복구 프로토콜의 핵심 가치는?",
-        missionObjective: "Step 3: 데이터 정화 - 시스템 복구 도중 발견된 작은 데이터 노이즈(빈 문자열)를 제거하여 파이프라인의 무결성을 확보하세요.",
+        missionObjective: "Step 3: 데이터 정화 - 시스템 복구 도중 발견된 작은 데이터 노이즈\n(빈 문자열)를 제거하여 파이프라인의 무결성을 확보하세요.",
         pythonSnippets: [
             { label: '노이즈 스킵', code: 'if not data: continue', icon: 'SkipForward' },
             { label: '데이터 복구', code: 'result.append(data)', icon: 'PlusCircle' }
