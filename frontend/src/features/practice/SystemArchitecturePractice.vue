@@ -1,9 +1,14 @@
 <template>
   <div class="arch-challenge-container among-theme">
     <!-- 별 배경 -->
-    <div class="space-bg">
+    <div class="stars-container">
       <div class="stars"></div>
+      <div class="stars2"></div>
+      <div class="stars3"></div>
     </div>
+
+    <!-- 성운 오버레이 -->
+    <div class="nebula-overlay"></div>
 
     <!-- 인트로 씬 (비주얼 노벨 스타일) -->
     <IntroScene
@@ -420,109 +425,89 @@ export default {
   user-select: none;
 }
 
-/* === 별 배경 (다층 효과) === */
-.space-bg {
+/* === 별 배경 애니메이션 === */
+.stars-container {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
   pointer-events: none;
+  overflow: hidden;
   z-index: 0;
 }
 
-/* 별 레이어 1 - 작은 별 */
+.stars, .stars2, .stars3 {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+}
+
 .stars {
-  width: 100%;
-  height: 100%;
   background-image:
-    radial-gradient(1px 1px at 100px 50px, rgba(255,255,255,0.8), transparent),
-    radial-gradient(1px 1px at 200px 150px, rgba(255,255,255,0.6), transparent),
-    radial-gradient(1px 1px at 300px 250px, rgba(255,255,255,0.7), transparent),
-    radial-gradient(1px 1px at 400px 100px, rgba(255,255,255,0.5), transparent),
-    radial-gradient(1px 1px at 500px 300px, rgba(255,255,255,0.8), transparent),
-    radial-gradient(1px 1px at 50px 200px, rgba(255,255,255,0.6), transparent),
-    radial-gradient(1px 1px at 150px 350px, rgba(255,255,255,0.7), transparent),
-    radial-gradient(1px 1px at 250px 50px, rgba(255,255,255,0.5), transparent),
-    radial-gradient(1px 1px at 350px 200px, rgba(255,255,255,0.8), transparent),
-    radial-gradient(1px 1px at 450px 350px, rgba(255,255,255,0.6), transparent),
-    radial-gradient(1px 1px at 550px 150px, rgba(255,255,255,0.7), transparent),
-    radial-gradient(1px 1px at 600px 250px, rgba(255,255,255,0.5), transparent);
-  background-size: 650px 400px;
-  animation: starFloat 50s linear infinite;
-  opacity: 0.5;
+    radial-gradient(2px 2px at 20px 30px, var(--star-white), transparent),
+    radial-gradient(2px 2px at 40px 70px, rgba(255,255,255,0.8), transparent),
+    radial-gradient(1px 1px at 90px 40px, var(--star-white), transparent),
+    radial-gradient(2px 2px at 160px 120px, rgba(255,255,255,0.9), transparent),
+    radial-gradient(1px 1px at 230px 80px, var(--star-white), transparent),
+    radial-gradient(2px 2px at 300px 150px, rgba(255,255,255,0.7), transparent),
+    radial-gradient(1px 1px at 350px 200px, var(--star-white), transparent),
+    radial-gradient(2px 2px at 420px 50px, rgba(255,255,255,0.8), transparent),
+    radial-gradient(1px 1px at 500px 180px, var(--star-white), transparent),
+    radial-gradient(2px 2px at 580px 100px, rgba(255,255,255,0.9), transparent);
+  background-size: 600px 300px;
+  animation: twinkle 4s ease-in-out infinite;
 }
 
-/* 별 레이어 2 - 중간 별 */
-.stars::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+.stars2 {
   background-image:
-    radial-gradient(2px 2px at 80px 120px, rgba(255,255,255,0.5), transparent),
-    radial-gradient(2px 2px at 320px 80px, rgba(255,255,255,0.4), transparent),
-    radial-gradient(2px 2px at 180px 280px, rgba(255,255,255,0.5), transparent),
-    radial-gradient(2px 2px at 520px 200px, rgba(255,255,255,0.3), transparent),
-    radial-gradient(2px 2px at 420px 320px, rgba(255,255,255,0.5), transparent),
-    radial-gradient(2px 2px at 620px 50px, rgba(255,255,255,0.4), transparent);
-  background-size: 700px 400px;
-  animation: starFloat2 100s linear infinite;
-  opacity: 0.3;
+    radial-gradient(1px 1px at 100px 150px, var(--nebula-blue), transparent),
+    radial-gradient(2px 2px at 200px 250px, rgba(79, 195, 247, 0.6), transparent),
+    radial-gradient(1px 1px at 350px 100px, var(--nebula-blue), transparent),
+    radial-gradient(2px 2px at 450px 300px, rgba(79, 195, 247, 0.7), transparent),
+    radial-gradient(1px 1px at 550px 200px, var(--nebula-blue), transparent);
+  background-size: 600px 400px;
+  animation: twinkle 6s ease-in-out infinite 1s;
 }
 
-/* 별 레이어 3 - 큰 별 */
-.stars::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+.stars3 {
   background-image:
-    radial-gradient(3px 3px at 150px 180px, rgba(255,255,255,0.3), transparent),
-    radial-gradient(3px 3px at 480px 90px, rgba(255,255,255,0.2), transparent),
-    radial-gradient(3px 3px at 350px 350px, rgba(255,255,255,0.3), transparent);
-  background-size: 750px 450px;
-  animation: starFloat3 150s linear infinite;
-  opacity: 0.2;
+    radial-gradient(1px 1px at 50px 200px, var(--nebula-purple), transparent),
+    radial-gradient(2px 2px at 150px 50px, rgba(107, 92, 231, 0.6), transparent),
+    radial-gradient(1px 1px at 280px 180px, var(--nebula-purple), transparent),
+    radial-gradient(2px 2px at 400px 120px, rgba(107, 92, 231, 0.7), transparent),
+    radial-gradient(1px 1px at 520px 280px, var(--nebula-purple), transparent);
+  background-size: 600px 400px;
+  animation: twinkle 5s ease-in-out infinite 2s;
 }
 
-/* 성운(Nebula) 오버레이 */
-.space-bg::after {
-  content: '';
-  position: absolute;
+@keyframes twinkle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* 성운 오버레이 */
+.nebula-overlay {
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
   background:
-    radial-gradient(ellipse at 20% 80%, rgba(107, 92, 231, 0.15) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 20%, rgba(79, 195, 247, 0.1) 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 50%, rgba(240, 98, 146, 0.05) 0%, transparent 70%);
+    radial-gradient(ellipse at 20% 20%, rgba(107, 92, 231, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(240, 98, 146, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(79, 195, 247, 0.08) 0%, transparent 60%);
   pointer-events: none;
+  animation: nebulaPulse 10s ease-in-out infinite;
+  z-index: 0;
 }
 
-@keyframes starFloat {
-  from { background-position: 0 0; }
-  to { background-position: 650px 400px; }
-}
-
-@keyframes starFloat2 {
-  from { background-position: 0 0; }
-  to { background-position: -700px 400px; }
-}
-
-@keyframes starFloat3 {
-  from { background-position: 0 0; }
-  to { background-position: 750px -450px; }
-}
-
-@keyframes twinkle {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 1; }
+@keyframes nebulaPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
 
 @keyframes pulse-glow {
