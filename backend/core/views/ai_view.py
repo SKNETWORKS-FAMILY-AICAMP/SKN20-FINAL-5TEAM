@@ -86,59 +86,69 @@ class AIEvaluationView(APIView):
                 return Response({"error": "OpenAI API Key is missing"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             client = openai.OpenAI(api_key=api_key)
-            
-            # [중요] SDK 호환성을 위해 response_format 대신 프롬프트 지시 강화
-            system_prompt = """
-            당신은 시니어 소프트웨어 엔지니어 '코드 위저드'입니다. 
-            반드시 아래의 **JSON 형식으로만** 응답해야 합니다. 다른 텍스트는 섞지 마세요.
 
+            # [수정일: 2026-02-04] 수석 아키텍트급 정밀 평가를 위한 프롬프트 강화 및 모델 업그레이드 (gpt-4o-mini)
+            system_prompt = """
+            당신은 20년 경력의 예리한 수석 소프트웨어 아키텍트 'Coduck Wizard'입니다. 
+            당신은 단순히 로직을 평가하는 것을 넘어, 사용자가 인터뷰에서 정한 '설계 지침'을 충실히 따랐는지, 
+            그리고 로직이 실무 수준의 정밀도를 갖췄는지 엄격하게 심사합니다.
+
+            반드시 아래의 **JSON 형식으로만** 응답해야 합니다.
+
+            [평가 규칙]
+            1. 사용자가 문장 형태의 '의사코드'를 작성하지 않고 단어만 나열했다면 'is_logical'을 false로 하고 30점 이하를 부여하십시오.
+            2. '필수 설계 요구사항'이 제공된 경우, 
+            이를 하나라도 누락하거나 잘못 해석했다면 가차 없이 'is_logical'을 false로 하고 승인을 반려하십시오.
+            3. 말투는 시의적절하게 전문적이고, 보완이 필요한 부분은 날카롭고 구체적으로 지적하십시오.
+
+            [JSON 구조]
             {
-  "score": 0-100,
-  "analysis": "답변 및 코드 논리에 대한 구체적인 분석 (특히 단순 키워드 나열인지, 실제 논리적 문장인지 판별하여 2~3문단으로 상세히 작성)",
-  "advice": "제자를 위한 따뜻한 조언 및 개선 방향",
-  "is_logical": true/false (단순 키워드 나열이면 false),
-  "metrics": {
-    "정합성": 0-100, "추상화": 0-100, "예외처리": 0-100, "구현력": 0-100, "설계력": 0-100
-  },
-  "tail_question": {
-    "question": "논리적 헛점을 찌르는 날카로운 질문 1개",
-    "options": [
-      {"text": "정답", "is_correct": true, "reason": "..."},
-      {"text": "오답1", "is_correct": false, "reason": "..."},
-      {"text": "오답2", "is_correct": false, "reason": "..."}
-    ]
-  }
-}
-"""
-            
-            # [수정일: 2026-01-31] 프롬프트 지시 강화: 단순 키워드 나열(예: "반복 만약 제거")은 낮은 점수를 주도록 설정
-            system_prompt += "\n**중요 지침**: 사용자가 입력한 '로직'이 단순히 '반복', '조건', '삭제' 처럼 의미 없는 단어의 나열이거나 논리적 연결이 없는 경우, `is_logical`을 `false`로 설정하고 `score`를 40점 이하로 감점하십시오. 실제 사람이 이해할 수 있는 '의사코드' 문장 형태를 갖추어야 합니다."
+              "score": 0-100,
+              "analysis": "사용자 로직의 타당성 및 설계 지침 준수 여부 정밀 분석 (2~3문단)",
+              "advice": "다음 단계를 위한 시니어의 핵심 조언",
+              "is_logical": true/false (지침 미준수 시 false),
+              "metrics": {
+                "정합성": 0-100, "추상화": 0-100, "예외처리": 0-100, "구현력": 0-100, "설계력": 0-100
+              },
+              "tail_question": {
+                "question": "현재 설계된 아키텍처의 맹점을 찌르거나 다음 구현 단계에서 고려해야 할 예외 상황 질문",
+                "options": [
+                  {"text": "정답", "is_correct": true, "reason": "이유..."},
+                  {"text": "오답1", "is_correct": false, "reason": "이유..."},
+                  {"text": "오답2", "is_correct": false, "reason": "이유..."}
+                ]
+              }
+            }
+            """
             
             logic_str = ', '.join(user_logic) if isinstance(user_logic, list) else str(user_logic)
             user_msg = f"""
-            [미션] {quest_title} (현재 점수: {score})
-            [로직] {logic_str}
-            [코드] {user_code}
-            [자유 답변] {user_free_answer}
+            [미션] {quest_title}
+            [사용자 로직]
+            {logic_str}
             
-            위 데이터를 분석하여 JSON 결과를 출력하라.
+            [비즈니스 요구사항/데이터]
+            - Python Template: {user_code}
+            - 추가 서술: {user_free_answer}
+            
+            위 데이터를 아키텍트의 관점에서 분석하여 JSON 결과를 출력하라.
             """
 
-            print("[DEBUG] Calling OpenAI...", flush=True)
-            # response_format 제거 (SDK 호환성)
+            print("[DEBUG] Calling AI for Logic Evaluation with gpt-4o-mini...", flush=True)
             response = client.chat.completions.create(
-                model="gpt-3.5-turbo", 
+                model="gpt-4o-mini", 
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_msg}
-                ]
+                ],
+                temperature=0.7
             )
             
             content = response.choices[0].message.content
             print(f"[DEBUG] AI Response Received: {content[:100]}...", flush=True)
 
             try:
-                # JSON 문자열 정제 (가끔 ```json ... ``` 으로 감싸지는 경우 대비)
+                # JSON 문자열 정제
                 if "```" in content:
                     content = content.split("```")[1]
                     if content.startswith("json"):
@@ -156,17 +166,17 @@ class AIEvaluationView(APIView):
                 print(f"[DEBUG] JSON Parse Fail: {parse_e}", flush=True)
                 # 파싱 실패 시 기본 응답 구조 반환
                 return Response({
-                    "score": score,
-                    "analysis": "분석 파싱 중 마법이 꼬였네. 하지만 자네의 논리는 충분히 훌륭하네.",
-                    "advice": "코드의 가독성을 조금 더 신경 써보게나.",
-                    "is_logical": True,
-                    "metrics": { "정합성": 85, "추상화": 75, "예외처리": 65, "구현력": 85, "설계력": 80 },
+                    "score": 50,
+                    "analysis": "분석 엔진이 자네의 복잡한 논리를 이해하려다 과부하가 걸렸네. 형식을 다시 갖춰보게.",
+                    "advice": "JSON 구조가 깨졌을 수 있으니 다시 시도하게나.",
+                    "is_logical": False,
+                    "metrics": { "정합성": 50, "추상화": 50, "예외처리": 50, "구현력": 50, "설계력": 50, "효율성": 50, "가독성": 50 },
                     "tail_question": {
-                        "question": "파싱 에러가 발생했을 때, 시스템의 가용성을 유지하는 가장 좋은 방법은?",
+                        "question": "시스템 오류 발생 시 아키텍트가 가장 먼저 해야 할 일은?",
                         "options": [
-                            {"text": "Fallback 응답을 정의한다", "is_correct": True, "reason": "사용자 경험을 해치지 않습니다."},
-                            {"text": "서버를 즉시 중단한다", "is_correct": False, "reason": "서비스 중단은 최후의 수단입니다."},
-                            {"text": "에러를 무시한다", "is_correct": False, "reason": "데이터 오염의 위험이 있습니다."}
+                            {"text": "로그를 분석하여 원인을 파악한다", "is_correct": True, "reason": "데이터가 모든 것을 말해줍니다."},
+                            {"text": "서버를 껐다 켠다", "is_correct": False, "reason": "임시방편일 뿐입니다."},
+                            {"text": "무시하고 그대로 둔다", "is_correct": False, "reason": "기술 부채가 쌓입니다."}
                         ]
                     }
                 }, status=status.HTTP_200_OK)

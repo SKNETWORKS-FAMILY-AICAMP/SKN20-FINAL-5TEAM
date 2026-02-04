@@ -1,5 +1,14 @@
 <template>
-  <div class="min-h-screen w-full flex flex-col relative overflow-hidden boot-screen glitch-bg bg-[#05070A] text-[#A3FF47]">
+  <div class="min-h-screen w-full flex flex-col relative overflow-hidden boot-screen glitch-bg bg-[#05070A] text-[#A3FF47]" :class="{'shake-effect': isDamaged, 'damage-flash': isDamaged}">
+
+    <!-- [수정일: 2026-02-03] REPAIR EFFECT OVERLAY -->
+    <div v-if="isRepaired" class="fixed inset-0 z-[60] pointer-events-none flex items-center justify-center bg-[#A3FF47]/10 animate-fade-in-out">
+        <div class="text-center relative">
+             <h1 class="text-6xl md:text-8xl font-black italic text-[#A3FF47] tracking-tighter drop-shadow-[0_0_30px_rgba(163,255,71,0.8)] scale-up-center">SYSTEM REPAIRED</h1>
+             <div class="h-1 w-full bg-[#A3FF47] mt-4 animate-width-expand"></div>
+             <p class="text-xl md:text-2xl mt-4 font-mono text-[#A3FF47]/80 tracking-[0.5em] uppercase">Architecture Integrity Restored</p>
+        </div>
+    </div>
 
     <!-- 0. 시놉시스 레이어 (Star Wars Cinematic) -->
     <div v-if="currentStep === 0" class="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center overflow-hidden select-none">
@@ -90,9 +99,13 @@
     </nav>
 
     <!-- Phase 사이드바 (왼쪽 고정) -->
-    <div v-if="currentStep > 0" class="fixed left-0 top-16 bottom-0 w-24 border-r border-[#A3FF47]/10 flex flex-col items-center py-10 gap-8 bg-black/90 z-10 shrink-0">
+    <!-- Phase 사이드바 (왼쪽 고정: 평소에는 숨김, 마우스 오버 시 확장) -->
+    <div v-if="currentStep > 0" class="fixed left-0 top-16 bottom-0 w-3 hover:w-24 border-r border-[#A3FF47]/10 flex flex-col items-center py-10 gap-8 bg-black/90 z-20 shrink-0 transition-all duration-300 overflow-hidden group">
+      <!-- 힌트 바 (평소에 보이는 부분) -->
+      <div class="absolute left-0 top-0 bottom-0 w-1 bg-[#A3FF47]/20 group-hover:bg-[#A3FF47] transition-colors"></div>
+      
       <div v-for="i in 4" :key="i"
-        class="w-20 h-20 rounded-sm flex flex-col items-center justify-center transition-all duration-500"
+        class="w-20 h-20 rounded-sm flex flex-col items-center justify-center transition-all duration-500 shrink-0 opacity-0 group-hover:opacity-100 translate-x-[-20px] group-hover:translate-x-0"
         :class="currentStep === i ? 'bg-[#A3FF47] text-black shadow-[0_0_30px_#A3FF47]' : 'border border-[#A3FF47]/30 text-[#A3FF47]/40 bg-black/80'"
       >
         <span class="text-[9px] font-black leading-none mb-1 opacity-60">PHASE</span>
@@ -101,8 +114,8 @@
     </div>
 
     <!-- 메인 터미널 영역 -->
-    <!-- [2026-02-02] 해상도에 따라 사이드바 여백 조절 -->
-    <main class="flex-1 flex overflow-hidden relative" :class="currentStep > 0 ? 'ml-24 lg:ml-24' : ''">
+    <!-- [2026-02-02] 해상도에 따라 사이드바 여백 조절 (사이드바 숨김으로 인한 여백 축소) -->
+    <main class="flex-1 flex overflow-hidden relative" :class="currentStep > 0 ? 'ml-4' : ''">
       <div class="flex-1 flex flex-col min-w-0 relative">
         <!-- 상단 미션 브리핑 바 -->
         <div class="border-b border-[#A3FF47]/10 flex flex-col md:grid md:grid-cols-2 bg-[#A3FF47]/5 shrink-0">
@@ -132,14 +145,14 @@
 
         <div class="flex-1 flex overflow-hidden">
           <!-- Step 1: Coduck 각성 및 사고 회로 복구 인터뷰 -->
-          <!-- [2026-02-02] 모바일 대응을 위해 grid-cols-1에서 lg:grid-cols-2로 변경 -->
-          <div v-if="currentStep === 1" class="flex-1 grid grid-cols-1 lg:grid-cols-2 bg-black overflow-hidden group">
+          <!-- [2026-02-03] 모바일/태블릿(lg)까지는 스택형(1열), 데스크탑(xl)부터 2열 그리드 (사이드바 공간 확보) -->
+          <div v-if="currentStep === 1" class="flex-1 grid grid-cols-1 xl:grid-cols-2 bg-black overflow-hidden group">
             <!--
               왼쪽 영역: 이미지 및 텍스트
               [수정사항]
               - pl-24 제거 (이미 상위 div에서 ml-24로 전체 콘텐츠 영역을 띄웠으므로 중복 제거)
             -->
-            <div class="p-4 md:p-8 flex flex-col items-center justify-center gap-5 overflow-y-auto custom-scrollbar relative border-b lg:border-b-0 border-[#A3FF47]/10">
+            <div id="tutorial-target-partner" class="p-4 md:p-8 flex flex-col items-center justify-center gap-5 overflow-y-auto custom-scrollbar relative border-b lg:border-b-0 border-[#A3FF47]/10">
               <div class="w-full max-w-[320px] flex flex-col gap-5">
                 <!-- Coduck 캐릭터 이미지 영역 -->
                 <div class="w-full aspect-square rounded-sm border-2 border-[#A3FF47] p-2.5 relative bg-black shadow-[0_0_60px_rgba(163,255,71,0.1)] overflow-hidden">
@@ -158,14 +171,14 @@
               </div>
             </div>
 
-            <div class="bg-black/40 p-6 md:p-10 lg:px-14 flex flex-col items-start justify-center gap-8 md:gap-12 border-l-0 lg:border-l border-[#A3FF47]/10 relative overflow-hidden">
+            <div id="tutorial-target-workspace" class="bg-black/40 p-6 md:p-10 lg:px-14 flex flex-col items-start justify-center gap-8 md:gap-12 border-l-0 xl:border-l border-[#A3FF47]/10 relative overflow-hidden">
               <!-- [2026-02-02] 문제(질문) 폰트 확대 및 최상단 배치 (반응형 폰트 적용) -->
               <div class="w-full space-y-4">
                 <div class="flex items-center gap-3 opacity-50">
                    <div class="w-1.5 h-1.5 bg-[#A3FF47]"></div>
                    <span class="text-[9px] font-black uppercase tracking-[0.4em]">INQUIRY_PROTOCOL_v2.0</span>
                 </div>
-                <h3 class="text-2xl md:text-4xl font-black italic text-[#A3FF47] leading-tight terminal-glow">
+                <h3 class="text-xl md:text-3xl font-black italic text-[#A3FF47] leading-tight terminal-glow">
                   [{{ currentInterviewIdx + 1 }}/{{ currentQuest.interviewQuestions.length }}] {{ currentInterviewQuestion?.question }}
                 </h3>
               </div>
@@ -186,60 +199,88 @@
                   <span class="text-[8px] font-black uppercase tracking-[0.2em]">REPAIR_SEQUENCE_0{{ i+1 }}</span>
                   <Zap class="w-2 h-2 text-[#A3FF47]" />
                 </div>
-                <span class="text-xl md:text-2xl font-black tracking-tight leading-snug text-white group-hover:text-[#A3FF47] transition-colors">{{ opt.text }}</span>
+                <span class="text-lg md:text-xl font-black tracking-tight leading-snug text-white group-hover:text-[#A3FF47] transition-colors">{{ opt.text }}</span>
               </button>
               </div>
             </div>
           </div>
 
           <!-- Step 2: 수도코드 설계 (Logic Restoration) -->
-          <!-- [2026-02-02] 모바일 대응 그리드 시스템 적용 -->
-          <div v-else-if="currentStep === 2" class="flex-1 grid grid-cols-1 lg:grid-cols-2 bg-black overflow-hidden relative">
+          <!-- [2026-02-04] 레이아웃 비율 조정: 왼쪽(미션/HUD) 6 vs 오른쪽(터미널) 4 (xl:grid-cols-10 기반) -->
+          <div v-else-if="currentStep === 2" class="flex-1 grid grid-cols-1 xl:grid-cols-10 bg-black overflow-hidden relative">
             <!-- [2026-02-02] Phase 1과 구성을 완전히 통일 (p-8, items-center, justify-center) -->
-            <div class="p-0 flex flex-col border-b lg:border-b-0 border-[#A3FF47]/10 h-[500px] lg:h-full overflow-hidden shrink-0">
-              <!-- 상단: Mission Objective (Scrollable) -->
-              <div class="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-8 space-y-6">
-                <div class="w-full max-w-[600px] mx-auto lg:translate-x-12 space-y-6 md:space-y-8 flex flex-col items-center">
-                  <div class="flex items-center justify-center gap-3">
-                    <div class="h-5 w-1 bg-[#A3FF47]"></div>
-                    <h3 class="text-xs font-black tracking-[0.5em] uppercase text-[#A3FF47]/50">Mission Objective</h3>
+            <!-- [수정일: 2026-02-04] 왼쪽 영역 비중 확대 (60%) -->
+            <div class="p-0 flex flex-col border-b lg:border-b-0 border-[#A3FF47]/10 h-[500px] lg:h-full overflow-hidden shrink-0 xl:col-span-6">
+
+              <!-- 상단: Mission Objective (Compact Left-Aligned) -->
+              <!-- 상단: Mission Objective (높이 30% 배정 및 스크롤 허용) -->
+              <div class="basis-[40%] lg:basis-[30%] grow shrink min-h-0 overflow-y-auto custom-scrollbar p-4 flex flex-col items-center justify-start space-y-6">
+                <div class="w-full max-w-[850px] space-y-4 md:space-y-6 flex flex-col items-start">
+                  <div class="flex items-center gap-2">
+                    <div class="h-4 w-1 bg-[#A3FF47]"></div>
+                    <h3 class="text-[9px] font-black tracking-[0.4em] uppercase text-[#A3FF47]/50">Mission Objective</h3>
                   </div>
-                  <p class="text-xl md:text-2xl font-black italic terminal-glow underline decoration-[#A3FF47]/30 text-center leading-tight text-[#A3FF47]">{{ currentQuest.missionObjective }}</p>
-                  <div class="p-5 md:p-8 bg-[#A3FF47]/5 border-l-4 border-[#A3FF47] text-xs md:text-sm leading-relaxed italic text-slate-300 space-y-4 text-center">
-                    <p class="text-base md:text-lg">"Coduck의 기본 기능을 활성화하기 위해, 데이터 리스트를 순회하며 유효한 패킷(정상 데이터)만 필터링하는 아키텍처 논리를 설계하십시오."</p>
-                    <div class="pt-3 border-t border-[#A3FF47]/20 flex justify-center">
-                      <p class="text-[10px] md:text-xs font-black text-[#A3FF47] not-italic uppercase tracking-widest flex items-center gap-2">
-                         <MessageSquare class="w-3.5 h-3.5" /> System_Directive: 의사코드 작성
+                  <p class="text-base md:text-xl font-black italic terminal-glow border-l-4 border-[#A3FF47] px-6 py-2 leading-relaxed text-[#A3FF47] whitespace-pre-wrap">{{ currentQuest.missionObjective }}</p>
+                  <div class="p-6 md:p-8 bg-[#A3FF47]/5 border-l-4 border-[#A3FF47]/30 text-sm md:text-base leading-relaxed italic text-slate-300 space-y-4 text-left w-full">
+                    <p class="text-sm md:text-base whitespace-pre-wrap">"Coduck의 기본 기능을 활성화하기 위해, 데이터 리스트를 순회하며 유효한 패킷(정상 데이터)만
+
+필터링하는 아키텍처 논리를 설계하십시오."</p>
+                    <div class="pt-4 border-t border-[#A3FF47]/20 flex justify-start">
+                      <p class="text-[10px] md:text-[12px] font-black text-[#A3FF47] not-italic uppercase tracking-widest flex items-center gap-2">
+                         <MessageSquare class="w-3 h-3" /> System_Directive: 의사코드 작성
                       </p>
+                    </div>
+                  </div>
+
+                  <!-- [수정일: 2026-02-04] 필수 설계 지침 폰트 확대 -->
+                  <div v-if="currentQuest.id > 1 && activeRequirements.length > 0" class="w-full space-y-4 animate-fade-in-up">
+                    <div class="flex items-center gap-2">
+                      <div class="h-5 w-1.5 bg-pink-500 shadow-[0_0_15px_#ec4899]"></div>
+                      <h3 class="text-[11px] font-black tracking-[0.4em] uppercase text-pink-500">Mandatory Design Requirements</h3>
+                    </div>
+                    <div class="p-5 bg-pink-500/5 border border-pink-500/20 rounded-sm space-y-4">
+                      <div v-for="(req, idx) in activeRequirements" :key="idx" class="flex items-start gap-4">
+                        <div class="mt-1.5 w-2 h-2 bg-pink-500 rotate-45 shrink-0 shadow-[0_0_8px_#ec4899]"></div>
+                        <p class="text-[14px] font-bold text-white leading-relaxed">{{ req }}</p>
+                      </div>
+                      <div class="pt-3 mt-3 border-t border-pink-500/10">
+                        <p class="text-[10px] font-black text-pink-500/60 uppercase tracking-widest italic animate-pulse">
+                          * 위 지침을 준수하지 않을 경우 아키텍처 승인이 반려될 수 있습니다.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <!-- 하단: [수정일: 2026-02-03] AI Architecture Consultant HUD (왼쪽으로 이동 & 고정 높이) -->
-              <div class="h-[350px] lg:h-2/5 flex flex-col bg-black/60 border-t border-[#A3FF47]/10 relative shrink-0">
-                <div class="h-10 border-b border-[#A3FF47]/20 flex items-center px-4 justify-between bg-[#A3FF47]/5">
-                  <div class="flex items-center gap-2">
-                    <Brain class="w-3.5 h-3.5 text-[#A3FF47] animate-pulse" />
-                    <span class="text-[9px] font-black uppercase tracking-widest text-[#A3FF47]">AI Architecture Consultant</span>
+              <!-- 하단: [수정일: 2026-02-04] AI HUD (높이 70%Basis 고정하여 절대 확장 방지) -->
+              <div class="basis-[60%] lg:basis-[70%] max-h-[60%] lg:max-h-[70%] flex flex-col items-center bg-black/60 border-t border-[#A3FF47]/10 relative shrink-0 overflow-hidden">
+                <div class="h-12 border-b border-[#A3FF47]/20 flex items-center px-4 justify-between bg-[#A3FF47]/5 w-full max-w-[850px] shrink-0">
+                  <div class="flex items-center gap-3">
+                    <Brain class="w-4 h-4 text-[#A3FF47] animate-pulse" />
+                    <span class="text-[12px] font-black uppercase tracking-widest text-[#A3FF47]">AI Architecture Consultant</span>
                   </div>
-                  <div class="flex items-center gap-2">
-                     <span v-if="isApproved" class="text-[8px] font-black text-[#A3FF47] animate-pulse uppercase">● Approved</span>
-                     <span v-else class="text-[8px] font-black text-pink-500 uppercase">○ Pending_Approval</span>
+                  <div class="flex items-center gap-3">
+                     <div v-if="isApproved" class="flex items-center gap-2 px-4 py-1.5 bg-[#A3FF47] text-black rounded-sm shadow-[0_0_20px_#A3FF47]">
+                        <CheckCircle class="w-3.5 h-3.5" />
+                        <span class="text-[11px] font-black uppercase tracking-widest">APPROVED</span>
+                     </div>
+                     <span v-else class="text-[10px] font-black text-pink-500 uppercase animate-pulse">○ Awaiting_Approval</span>
                   </div>
                 </div>
                 
-                <div ref="chatContainer" class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                <div ref="chatContainer" class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar w-full max-w-[850px]">
                   <div v-for="(msg, idx) in chatMessages" :key="idx" 
                     class="flex flex-col gap-1.5"
                     :class="msg.sender === 'User' ? 'items-end' : 'items-start'"
                   >
-                    <span class="text-[8px] font-black opacity-30 uppercase tracking-tighter">{{ msg.sender }}</span>
+                    <span class="text-[10px] font-black opacity-30 uppercase tracking-tighter">{{ msg.sender }}</span>
                     <div :class="[
-                      'max-w-[85%] px-3 py-2 text-[11px] font-bold leading-relaxed',
+                      'max-w-[90%] px-4 py-3 text-[13px] md:text-[14px] font-bold leading-relaxed',
+
                       msg.sender === 'User' 
                         ? 'bg-[#A3FF47]/10 text-[#A3FF47] border-r-2 border-[#A3FF47]' 
-                        : 'bg-white/5 text-slate-300 border-l-2 border-white/20'
+                        : 'bg-white/5 text-slate-100 border-l-2 border-white/20'
                     ]">
                       {{ msg.text }}
                     </div>
@@ -249,11 +290,11 @@
                   </div>
                 </div>
 
-                <div class="p-4 border-t border-[#A3FF47]/10 bg-black/40 flex items-center gap-3">
+                <div class="p-4 border-t border-[#A3FF47]/10 bg-black/40 flex items-center gap-3 w-full max-w-[850px]">
                   <button 
                     @click="askCoduck"
                     :disabled="isAsking || pseudoInput.length < 5"
-                    class="flex-1 py-3 bg-[#A3FF47]/10 border border-[#A3FF47]/30 text-[#A3FF47] text-[10px] font-black uppercase tracking-widest hover:bg-[#A3FF47]/20 transition-all disabled:opacity-30"
+                    class="flex-1 py-4 bg-[#A3FF47]/10 border border-[#A3FF47]/30 text-[#A3FF47] text-[12px] font-black uppercase tracking-widest hover:bg-[#A3FF47]/20 transition-all disabled:opacity-30"
                   >
                     {{ isAsking ? 'Consulting...' : 'Request_Logic_Audit' }}
                   </button>
@@ -263,11 +304,12 @@
                 </div>
               </div>
             </div>
-            <div class="bg-black/40 p-0 lg:p-0 flex flex-col items-start justify-center border-l-0 lg:border-l border-[#A3FF47]/10 relative overflow-hidden h-[400px] lg:h-full">
+            <!-- [수정일: 2026-02-04] 오른쪽 터미널 영역 비중 축소 (40%) -->
+            <div class="bg-black/40 p-0 lg:p-0 flex flex-col items-start justify-center border-l-0 xl:border-l border-[#A3FF47]/10 relative overflow-hidden h-[400px] xl:h-full xl:col-span-4">
               <div class="w-full h-full flex flex-col">
-                <div class="h-12 border-b border-[#A3FF47]/10 flex items-center px-6 gap-3 text-[10px] font-bold bg-black/40 shrink-0">
-                  <Terminal class="w-4 h-4 opacity-50" />
-                  <span class="opacity-50">ARCHITECT_TERMINAL:</span> LOGIC_RESTORE_v1.pseudo
+                <div class="h-20 border-b border-[#A3FF47]/10 flex items-center px-10 gap-4 text-xs font-black bg-black/40 shrink-0">
+                  <Terminal class="w-5 h-5 opacity-50 text-[#A3FF47]" />
+                  <span class="opacity-50 tracking-widest text-[#A3FF47]">ARCHITECT_TERMINAL:</span> LOGIC_RESTORE_v1.pseudo
                 </div>
                 <div class="flex-1 relative">
                   <VueMonacoEditor
@@ -279,16 +321,17 @@
                   />
                 </div>
 
-                <div class="p-4 md:p-6 border-t border-[#A3FF47]/20 flex justify-end shrink-0 bg-black/80">
+                <div class="p-10 md:p-16 border-t border-[#A3FF47]/20 flex justify-end shrink-0 bg-black/80">
                   <button 
                     @click="submitStep2" 
                     :disabled="!isApproved"
-                    class="w-full md:w-auto px-12 py-4 font-black uppercase text-xs transition-all active:scale-95 border-2"
+                    class="w-full md:w-auto px-12 py-4 font-black uppercase text-xs transition-all active:scale-95 border-2 relative overflow-hidden group"
                     :class="isApproved 
-                      ? 'bg-[#A3FF47] text-black border-black hover:shadow-[0_0_30px_#A3FF47]' 
+                      ? 'bg-[#A3FF47] text-black border-black hover:shadow-[0_0_50px_#A3FF47] scale-105' 
                       : 'bg-black text-[#A3FF47]/30 border-[#A3FF47]/10 cursor-not-allowed opacity-50'"
                   >
-                    Analyze Logic Engine
+                    <div v-if="isApproved" class="absolute inset-0 bg-white/20 animate-pulse pointer-events-none"></div>
+                    {{ isApproved ? 'LOGIC VERIFIED - PROCEED TO SIMULATION >>' : 'Analyze Logic Engine' }}
                   </button>
                 </div>
               </div>
@@ -296,10 +339,10 @@
           </div>
 
           <!-- Step 3: 파이썬 구현 (Code Pulse) -->
-          <!-- [2026-02-02] 모바일 대응 그리드 시스템 적용 -->
-          <div v-else-if="currentStep === 3" class="flex-1 grid grid-cols-1 lg:grid-cols-2 overflow-hidden bg-black">
+          <!-- [2026-02-03] 사이드바 공간 확보를 위해 xl 브레이크포인트 사용 -->
+          <div v-else-if="currentStep === 3" class="flex-1 grid grid-cols-1 xl:grid-cols-2 overflow-hidden bg-black">
             <!-- [2026-02-02] Phase 1과 구성을 통일 -->
-            <div class="flex-1 flex flex-col overflow-hidden relative border-b lg:border-b-0 lg:border-r border-[#A3FF47]/10 h-[400px] lg:h-full">
+            <div class="flex-1 flex flex-col overflow-hidden relative border-b xl:border-b-0 xl:border-r border-[#A3FF47]/10 h-[400px] xl:h-full">
               <div class="h-12 border-b border-[#A3FF47]/10 flex items-center px-6 justify-between bg-black/60 shrink-0">
                 <div class="flex items-center gap-3">
                   <span class="w-2 h-2 rounded-full bg-[#A3FF47] animate-ping"></span>
@@ -332,28 +375,13 @@
             </div>
 
             <!-- Simulation & Result HUD (Phase 1 비율에 맞춰 조절) -->
-            <div class="bg-black/40 flex flex-col gap-4 md:gap-6 overflow-hidden p-6 md:p-10 lg:px-14 border-l-0 lg:border-l border-[#A3FF47]/10">
-               <!-- [수정일: 2026-02-03] Fixed Architecture Guide 패널 추가 -->
-               <div class="flex-1 flex flex-col gap-4 min-h-0">
-                 <div class="flex items-center justify-between border-b border-[#A3FF47]/10 pb-4">
-                   <div class="flex items-center gap-2">
-                     <Shield class="w-4 h-4 text-[#A3FF47]" />
-                     <h3 class="text-[10px] font-black opacity-30 uppercase tracking-[0.5em] italic">Fixed_Architecture_Guide</h3>
-                   </div>
-                 </div>
-                 <div class="flex-1 bg-[#A3FF47]/5 border border-[#A3FF47]/20 rounded p-4 font-mono text-[11px] overflow-y-auto custom-scrollbar leading-relaxed text-[#A3FF47]/80 italic">
-                    <pre class="whitespace-pre-wrap">{{ pseudoInput }}</pre>
-                 </div>
-               </div>
-
-               <div class="h-px bg-[#A3FF47]/10"></div>
-
+            <div class="bg-black/40 flex flex-col gap-4 md:gap-6 overflow-hidden p-6 md:p-10 lg:px-14 border-l-0 xl:border-l border-[#A3FF47]/10">
                <div class="flex-1 flex flex-col gap-4 min-h-0">
                  <div class="flex items-center justify-between border-b border-[#A3FF47]/10 pb-4">
                    <h3 class="text-[10px] font-black opacity-30 uppercase tracking-[0.5em] italic">Simulation_Terminal</h3>
                    <Terminal class="w-4 h-4 text-[#A3FF47]/20" />
                  </div>
-                 <div class="flex-1 bg-black/80 border border-[#A3FF47]/20 rounded p-4 md:p-8 font-mono text-xs overflow-y-auto custom-scrollbar leading-relaxed text-cyan-400">
+                 <div ref="simulationContainer" class="flex-1 bg-black/80 border border-[#A3FF47]/20 rounded p-4 md:p-8 font-mono text-xs overflow-y-auto custom-scrollbar leading-relaxed text-cyan-400 h-full min-h-[500px]">
                     <div v-if="isSimulating" class="animate-pulse text-xs md:text-sm">RUNNING SYNC SIMULATION... [PLEASE WAIT]</div>
                     <div v-else class="whitespace-pre-wrap text-xs md:text-sm">{{ simulationOutput || 'READY FOR DATA UPLINK...' }}</div>
                  </div>
@@ -362,10 +390,10 @@
           </div>
 
           <!-- Step 4: 심화 분석 (Architecture Review) -->
-          <!-- [2026-02-02] 모바일 대응 그리드 시스템 적용 -->
-          <div v-else-if="currentStep === 4" class="flex-1 grid grid-cols-1 lg:grid-cols-2 bg-black overflow-hidden relative">
+          <!-- [2026-02-03] 사이드바 공간 확보를 위해 xl 브레이크포인트 사용 -->
+          <div v-else-if="currentStep === 4" class="flex-1 grid grid-cols-1 xl:grid-cols-2 bg-black overflow-hidden relative">
             <!-- [2026-02-02] Phase 1과 구성을 완전히 통일 (p-8, items-center, justify-center) -->
-            <div class="p-6 md:p-8 flex flex-col items-center justify-center gap-8 md:gap-12 overflow-y-auto custom-scrollbar relative bg-black border-b lg:border-b-0 border-[#A3FF47]/10">
+            <div class="p-6 md:p-8 flex flex-col items-center justify-center gap-8 md:gap-12 overflow-y-auto custom-scrollbar relative bg-black border-b xl:border-b-0 border-[#A3FF47]/10">
               <div class="w-full max-w-[320px] space-y-6 md:space-y-8">
                 <div class="space-y-4 md:space-y-6 text-center">
                   <h3 class="text-pink-500 font-black text-[10px] md:text-xs uppercase tracking-[0.5em] animate-pulse">Final System Clearance</h3>
@@ -384,7 +412,7 @@
               </div>
             </div>
 
-            <div class="bg-black/40 p-6 md:p-10 lg:px-14 flex flex-col items-start justify-center gap-8 border-l-0 lg:border-l border-[#A3FF47]/10 relative overflow-hidden">
+            <div class="bg-black/40 p-6 md:p-10 lg:px-14 flex flex-col items-start justify-center gap-8 border-l-0 xl:border-l border-[#A3FF47]/10 relative overflow-hidden">
                <div class="w-full max-w-[440px] space-y-6 md:space-y-8">
                  <div class="flex items-center gap-3 opacity-50">
                     <div class="w-1.5 h-1.5 bg-pink-500"></div>
@@ -422,29 +450,60 @@
             <p class="text-lg md:text-2xl text-slate-300 max-w-2xl text-center leading-relaxed mb-10 md:mb-16 font-bold italic">
               "축하합니다, {{ userNickname }}님. [{{ currentQuest.title }}] 구역의 정화가 완료되었습니다. Coduck이 다시 세상을 올바르게 보기 시작했습니다."
             </p>
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 w-full max-w-5xl">
+            <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6 w-full max-w-5xl">
               <div v-for="(v, k) in userScore" :key="k" class="p-4 md:p-8 bg-black/60 border-2 border-[#A3FF47]/30 text-center rounded-sm hover:border-[#A3FF47] transition-all">
                 <div class="text-[8px] md:text-xs opacity-50 uppercase font-black mb-2 md:mb-3 tracking-widest">{{ k }}_ENGINE</div>
                 <div class="text-3xl md:text-5xl font-black text-[#A3FF47] tracking-tighter">{{ v }}</div>
               </div>
             </div>
-            <button @click="reloadApp" class="mt-10 md:mt-20 px-10 md:px-20 py-4 md:py-6 border-2 border-[#A3FF47] text-[#A3FF47] font-black uppercase text-xs md:text-sm hover:bg-[#A3FF47] hover:text-black transition-all tracking-[0.5em] active:scale-95 shadow-2xl relative z-10">Return to Hub Command</button>
+            <div class="mt-10 md:mt-20 flex flex-wrap justify-center gap-4 md:gap-8 relative z-10 w-full px-4">
+              <!-- [수정일: 2026-02-04] 미션 재시작 버튼 -->
+              <button @click="reloadApp" class="px-8 md:px-12 py-3 md:py-5 border-2 border-white/20 text-white/60 font-black uppercase text-[10px] md:text-xs hover:border-[#A3FF47] hover:text-[#A3FF47] transition-all tracking-[0.3em] active:scale-95 bg-black/40">
+                RETRY MISSION
+              </button>
+
+              <!-- [수정일: 2026-02-04] 다음 미션 진행 버튼 (존재할 때만 표시) -->
+              <button v-if="hasNextQuest" @click="goToNextQuest" class="px-10 md:px-20 py-4 md:py-6 border-2 border-[#A3FF47] bg-[#A3FF47] text-black font-black uppercase text-xs md:text-sm hover:brightness-110 transition-all tracking-[0.5em] active:scale-95 shadow-[0_0_50px_rgba(163,255,71,0.4)]">
+                NEXT MISSION >>
+              </button>
+
+              <!-- [수정일: 2026-02-04] 허브(메뉴)로 나가기 버튼 -->
+              <button @click="emit('close')" class="px-8 md:px-12 py-3 md:py-5 border-2 border-pink-500/30 text-pink-500/60 font-black uppercase text-[10px] md:text-xs hover:border-pink-500 hover:text-pink-500 transition-all tracking-[0.3em] active:scale-95 bg-black/40">
+                EXIT TO HUB
+              </button>
+            </div>
           </div>
 
           <!-- 우측 사이드바: 아카이브 & 상태 (2077 스타일) -->
-          <!-- [2026-02-02] 큰 화면에서만 표시되거나 좁은 너비 대응 -->
-          <div class="hidden xl:flex w-72 border-l border-[#A3FF47]/10 flex-col p-6 space-y-8 bg-black/60 shrink-0">
+          <!-- [2026-02-03] UX 개선: Layout Fixed & Always Visible on Desktop (lg+) -->
+          <div class="hidden lg:flex w-80 border-l border-[#A3FF47]/10 flex-col p-6 space-y-8 bg-black/80 shrink-0 backdrop-blur-sm z-20">
             <div>
               <div class="flex items-center justify-between mb-4">
                 <h3 class="text-[10px] font-black opacity-30 uppercase tracking-[0.4em] italic">Recovered Artifacts</h3>
                 <Database class="w-4 h-4 opacity-20" />
               </div>
-              <div class="grid grid-cols-2 gap-3">
-                <div v-for="i in 4" :key="i" class="aspect-square rounded-sm border-2 border-white/5 flex items-center justify-center bg-white/5 overflow-hidden group shadow-inner relative transition-all duration-700">
-                  <Database v-if="integrity >= 100 && i === 1" class="text-[#A3FF47] w-6 h-6 animate-pulse" />
-                  <Lock v-else class="w-5 h-5 opacity-10" />
-                  <div v-if="integrity >= 100 && i === 1" class="absolute inset-0 bg-[#A3FF47]/10 animate-ping"></div>
-                  <div class="absolute bottom-1 right-1 text-[7px] opacity-10">0x{{(i*256).toString(16)}}</div>
+              <div id="tutorial-target-inventory" class="grid grid-cols-2 gap-3">
+                <div 
+                  v-for="(item, i) in recoveredArtifacts" 
+                  :key="i" 
+                  @click="currentStep === 3 && insertSnippet(item.code)"
+                  class="aspect-square rounded-sm border-2 border-[#A3FF47]/20 flex flex-col items-center justify-center bg-black/40 overflow-hidden relative transition-all duration-300"
+                  :class="(currentStep === 3 || tutorialState.isActive) ? 'brightness-100 grayscale-0 shadow-inner' : 'opacity-40 grayscale cursor-not-allowed'"
+                >
+                  <component :is="icons[item.icon] || icons.Database" class="text-[#A3FF47] w-6 h-6 mb-2 transition-transform" :class="{'group-hover:scale-110': currentStep === 3}" />
+                  <span class="text-[8px] font-black uppercase tracking-tighter text-[#A3FF47] text-center px-1">{{ item.label }}</span>
+                  
+                  <!-- 활성 상태 효과 (Step 3에서만) -->
+                  <div v-if="currentStep === 3" class="absolute inset-0 bg-[#A3FF47]/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  
+                  <!-- 비활성 상태 잠금 표시 (Step 3도 아니고 튜토리얼도 아닐 때) -->
+                  <div v-if="currentStep !== 3 && !tutorialState.isActive" class="absolute inset-0 bg-black/50 flex items-center justify-center backdrop-blur-[1px]">
+                     <Lock class="w-4 h-4 text-white/30" />
+                  </div>
+                </div>
+                <!-- Empty Slots Filler -->
+                <div v-for="j in (4 - recoveredArtifacts.length)" :key="'empty-'+j" class="aspect-square rounded-sm border-2 border-white/5 flex items-center justify-center bg-white/5 opacity-30">
+                   <Lock class="w-5 h-5 opacity-20" />
                 </div>
               </div>
             </div>
@@ -452,27 +511,34 @@
 
             <div class="h-px bg-gradient-to-r from-transparent via-[#A3FF47]/20 to-transparent"></div>
 
-            <div class="space-y-6">
+
+
+            <div class="space-y-6" :class="{'animate-shake': isDamaged}">
               <h3 class="text-[10px] font-black opacity-30 uppercase tracking-[0.4em] italic">Navi-Duck Analysis</h3>
-              <div class="p-6 bg-[#A3FF47]/5 border-2 border-[#A3FF47]/20 rounded-sm flex flex-col gap-6 shadow-xl">
+              <div id="tutorial-target-status" class="p-6 bg-[#A3FF47]/5 border-2 rounded-sm flex flex-col gap-6 shadow-xl transition-colors duration-300" :class="[hpState.borderColor, {'bg-red-500/10': isDamaged}]">
                 <div class="flex items-center gap-4">
-                  <div class="w-16 h-16 bg-[#A3FF47]/10 rounded-full flex items-center justify-center border-2 border-[#A3FF47] shadow-[0_0_20px_rgba(163,255,71,0.4)] animate-pulse">
-                    <Zap class="text-[#A3FF47] w-8 h-8" />
+                  <div class="w-16 h-16 bg-[#A3FF47]/10 rounded-full flex items-center justify-center border-2 shadow-[0_0_20px_rgba(163,255,71,0.4)] animate-pulse transition-all duration-500" :class="[hpState.borderColor, hpState.color, {'scale-110 shadow-[0_0_50px_red]': isDamaged}]">
+                    <Zap class="w-8 h-8 transition-colors duration-300" :class="hpState.color" />
                   </div>
                   <div>
-                    <div class="text-[9px] opacity-40 uppercase font-black tracking-widest leading-none mb-1">AI_MOOD</div>
-                    <div class="text-2xl font-black uppercase tracking-tighter text-[#A3FF47] terminal-glow">{{ integrity > 50 ? 'STABILIZED' : 'AWAKENING' }}</div>
+                    <div class="text-[9px] opacity-40 uppercase font-black tracking-widest leading-none mb-1">NEURAL_SYNC_RATE</div>
+                    <div class="text-2xl font-black uppercase tracking-tighter terminal-glow transition-all duration-300" :class="[hpState.color, {'text-shadow-neon': hpState.isCritical, 'text-red-500 scale-110': isDamaged, 'text-[#A3FF47] scale-110': isRepaired}]">{{ hpState.status }} ({{ systemHP }}%)</div>
                   </div>
                 </div>
-                <div class="bg-black/60 p-4 rounded-sm border border-white/5">
-                  <p class="text-[10px] font-bold text-slate-400 italic leading-relaxed">"아키텍처님, 제 사고 회로가 복구될수록 세상이 더 뚜렷하게 보이기 시작해요."</p>
+                <div class="bg-black/60 p-4 rounded-sm border border-white/5 relative overflow-hidden">
+                  <div v-if="isRepaired" class="absolute inset-0 bg-[#A3FF47]/20 animate-pulse"></div>
+                  <p class="text-[10px] font-bold text-slate-400 italic leading-relaxed relative z-10" :class="{'text-red-400': isDamaged}">
+                     <span v-if="isDamaged">"경고! 노이즈 발생! 동기화율이 떨어집니다!"</span>
+                     <span v-else-if="isRepaired">"신호 증폭! 동기화율이 상승합니다."</span>
+                     <span v-else>"현재 동기화율이 {{ systemHP }}%입니다. 100%까지 연결하세요."</span>
+                  </p>
                 </div>
               </div>
             </div>
 
-            <div class="mt-auto p-5 border-2 border-red-500/20 bg-red-500/5 rounded-sm relative overflow-hidden group">
+            <div class="mt-auto p-5 border-2 border-red-500/20 bg-red-500/5 rounded-sm relative overflow-hidden group transition-all duration-300" :class="{'border-red-500 bg-red-500/20 shadow-[0_0_30px_rgba(239,68,68,0.5)]': isDamaged || hpState.isCritical}">
               <div class="flex items-center gap-3 mb-3 text-red-500">
-                <ShieldAlert class="w-4 h-4 animate-ping" />
+                <ShieldAlert class="w-4 h-4" :class="{'animate-ping': isDamaged || hpState.isCritical}" />
                 <span class="text-[10px] font-black tracking-[0.2em] uppercase">Security Alert</span>
               </div>
               <p class="text-[10px] text-red-400 font-bold leading-normal group-hover:text-red-300 transition-colors">
@@ -499,18 +565,19 @@
             <AlertTriangle v-else class="w-10 h-10 md:w-14 md:h-14 text-pink-500" />
           </div>
           <div>
-            <h3 class="text-2xl md:text-4xl font-black italic tracking-tighter uppercase terminal-text mb-2">{{ feedbackModal.title }}</h3>
+            <h3 class="text-xl md:text-3xl font-black italic tracking-tighter uppercase terminal-text mb-2">{{ feedbackModal.title }}</h3>
             <p class="text-[8px] md:text-[10px] opacity-40 uppercase tracking-[0.5em] font-bold">{{ feedbackModal.isSuccess ? 'ACCESS_GRANTED' : 'ACCESS_DENIED' }}</p>
           </div>
         </div>
-        <p class="text-base md:text-xl font-bold text-slate-200 leading-relaxed mb-8 md:mb-12 italic border-l-4 md:border-l-8 pl-4 md:pl-8 border-white/10">
+        <p class="text-sm md:text-lg font-bold text-slate-200 leading-relaxed mb-8 md:mb-12 italic border-l-4 md:border-l-8 pl-4 md:pl-8 border-white/10">
           {{ feedbackModal.desc }}
         </p>
         <div v-if="feedbackModal.details" class="mb-8 p-4 bg-black/40 border border-[#A3FF47]/20 text-xs text-white/70 overflow-y-auto max-h-[200px] custom-scrollbar" v-html="feedbackModal.details"></div>
         <div class="flex flex-col md:flex-row justify-end gap-4 md:gap-6">
           <button v-if="!feedbackModal.isSuccess" @click="feedbackModal.visible = false" class="px-8 md:px-10 py-3 md:py-4 font-black uppercase text-[10px] md:text-xs tracking-widest btn-neon text-white">RE-TRY SEQUENCE</button>
+          <!-- [수정일: 2026-02-04] 단계에 따라 버튼 텍스트 동적 변경 (Step 4 완료 시에는 리포트 확인 안내) -->
           <button @click="nextStep" class="px-10 md:px-12 py-4 md:py-5 font-black uppercase text-[10px] md:text-xs tracking-widest transition-all active:scale-95 shadow-2xl" :class="feedbackModal.isSuccess ? 'bg-[#A3FF47] text-black hover:brightness-110' : 'hidden'">
-            EXECUTE NEXT PHASE >>
+            {{ currentStep === 4 ? 'VIEW FINAL REPORT >>' : 'EXECUTE NEXT PHASE >>' }}
           </button>
         </div>
       </div>
@@ -521,6 +588,56 @@
       <div class="absolute inset-0" style="background-image: radial-gradient(rgba(163, 255, 71, 0.1) 1px, transparent 1px); background-size: 50px 50px; opacity: 0.3;"></div>
       <div class="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-cyan-500/10 rounded-full blur-[180px] animate-pulse"></div>
       <div class="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-[#A3FF47]/10 rounded-full blur-[150px]"></div>
+    </div>
+    <!-- [수정일: 2026-02-03] 인게임 튜토리얼 (Spotlight Effect 적용) -->
+    <div v-if="tutorialState.isActive" class="fixed inset-0 z-[300] transition-all duration-500">
+        <!-- 하이라이트 박스 (스포트라이트 효과: box-shadow를 이용해 주변을 어둡게 처리) -->
+        <div 
+          class="absolute border-4 border-[#A3FF47] transition-all duration-500 ease-out z-[310] pointer-events-none rounded-sm"
+          :style="{
+              ...highlightStyle,
+              boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.85)'
+          }"
+        >
+             <!-- 코너 장식 -->
+             <div class="absolute -top-3 -left-3 w-6 h-6 border-t-4 border-l-4 border-[#A3FF47] bg-transparent shadow-[0_0_15px_#A3FF47]"></div>
+             <div class="absolute -bottom-3 -right-3 w-6 h-6 border-b-4 border-r-4 border-[#A3FF47] bg-transparent shadow-[0_0_15px_#A3FF47]"></div>
+             <div class="absolute inset-0 shadow-[inset_0_0_50px_rgba(163,255,71,0.2)]"></div>
+        </div>
+
+        <!-- 설명 모달 (하이라이트 근처 또는 중앙 하단 고정) -->
+        <div class="absolute bottom-10 left-1/2 -translate-x-1/2 w-full max-w-3xl p-6 z-[320]">
+             <div class="bg-black/95 border-2 border-[#A3FF47] p-8 relative shadow-[0_0_100px_rgba(0,0,0,0.8)] animate-fade-in-up">
+                 <div class="flex items-start gap-6">
+                     <!-- 튜토리얼 단계 표시 -->
+                     <div class="flex flex-col items-center gap-2">
+                         <div class="w-16 h-16 rounded-full border-2 border-[#A3FF47] flex items-center justify-center bg-[#A3FF47]/10 shadow-[0_0_20px_#A3FF47]">
+                             <span class="text-2xl font-black text-[#A3FF47]">{{ tutorialState.currentStep + 1 }}</span>
+                             <span class="text-xs text-[#A3FF47]/50">/{{ tutorialSteps.length }}</span>
+                         </div>
+                     </div>
+                     
+                     <div class="flex-1 space-y-4">
+                         <h3 class="text-xl font-black text-[#A3FF47] uppercase tracking-widest italic terminal-glow border-b border-[#A3FF47]/30 pb-2">
+                             {{ tutorialSteps[tutorialState.currentStep].stage }}
+                         </h3>
+                         <p class="text-lg text-white/90 leading-relaxed font-bold whitespace-pre-wrap">
+                             {{ tutorialSteps[tutorialState.currentStep].desc }}
+                         </p>
+                     </div>
+                 </div>
+
+                 <!-- 컨트롤 버튼 -->
+                 <div class="mt-8 flex justify-end gap-4">
+                     <button @click="skipTutorial" class="px-6 py-3 text-xs font-bold text-gray-500 hover:text-white uppercase tracking-widest transition-colors">
+                         SKIP TUTORIAL
+                     </button>
+                     <button @click="nextTutorialStep" class="px-10 py-3 bg-[#A3FF47] text-black font-black uppercase text-sm tracking-widest hover:bg-[#b4ff6a] transition-all shadow-[0_0_20px_rgba(163,255,71,0.4)] active:scale-95">
+                         {{ tutorialState.currentStep === tutorialSteps.length - 1 ? 'Start Mission' : 'Next Step >>' }}
+                     </button>
+                 </div>
+             </div>
+        </div>
     </div>
   </div>
 </template>
@@ -541,12 +658,42 @@ import {
   ChevronLeft, ArrowRight, Code, MessageSquare, 
   Zap, Brain, Lock, Volume2, VolumeX, SkipForward,
   PlayCircle, MoreHorizontal, Info, ShieldAlert, Award, CheckCircle, AlertTriangle,
-  Wifi, Activity
+  Wifi, Activity, ArrowUp, Target, Plus, Square, Compass, Scissors, Shuffle, Repeat, Download, Pause, RotateCcw,
+  Check as CheckIcon, Filter, PlusCircle // Cleaned up distinct imports
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { usePseudoProblem } from './pseudoProblemLogic'
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
 
+
+// [수정일: 2026-02-03] 동적 아이콘 매핑을 위한 객체
+const icons = {
+  ArrowUp,
+  Target,
+  Plus,
+  Stop: Square,
+  Compass,
+  Scissors,
+  Check: CheckIcon,
+  Filter,
+  Zap,
+  Shuffle,
+  Repeat,
+  Download,
+  SkipForward,
+  PlusCircle,
+  Database,
+  Lock,
+  Terminal,
+  Play,
+  Pause,
+  RotateCcw,
+  Cpu,
+  Shield,
+  ShieldAlert,
+  Activity,
+  Code
+}
 
 const props = defineProps({
   isOpen: Boolean
@@ -566,58 +713,102 @@ const {
   pythonInput,
   chatMessages,
   chatContainer,
-  blocks,
-  selectedBlock,
-  simulationOutput,
   simulationContainer,
   isSimulating,
-  isEvaluating,
+  // isEvaluating, // [수정일: 2026-02-04] 현재 템플릿 미사용
   isAsking,
   currentInterviewIdx,
   currentInterviewQuestion,
-  interviewResults,
+  // interviewResults, // [수정일: 2026-02-04] 현재 템플릿 미사용
   step4Options,
   feedbackModal,
   editorOptions,
-  finalReviewText,
+  // finalReviewText, // [수정일: 2026-02-04] 현재 템플릿 미사용
   handleStep1Submit,
   submitStep2,
-  selectBlock,
+  // selectBlock, // [수정일: 2026-02-04] 구 버전(블록코딩) 잔재
   runSimulation,
   handleStep4Submit,
   nextStep,
-  goToStep,
+  // goToStep, // [수정일: 2026-02-04] 내부 로직으로 대체
   reloadApp,
   goToNextQuest,
+  hasNextQuest,
   insertSnippet,
   askCoduck,
-  aiQuests,
-  currentQuestIdx,
+  // aiQuests, // [수정일: 2026-02-04] 현재 템플릿 미사용
+  // currentQuestIdx, // [수정일: 2026-02-04] 현재 템플릿 미사용
   imageSrc,
-  currentDuckImage,
+  // currentDuckImage, // [수정일: 2026-02-04] imageSrc 내부 사용으로 대체
   isMuted,
   toggleMute,
-  synopsisText,
+  // synopsisText, // [수정일: 2026-02-04] Logic 내부 사용으로 충분
   skipSynopsis,
   isPlayingBGM,
   initAudio,
   cleanupAudio,
   integrity,
   recoveredArtifacts,
-  // [수정일: 2026-02-03] 게이트키퍼 필수 상태 비구조화 할당
-  isConsulted,
-  isApproved
+  // [수정일: 2026-02-04] 게이트키퍼 필수 상태 (미사용 항목 주석)
+  // isConsulted, 
+  // [수정일: 2026-02-04] 인터뷰 기반 설계 요구사항(activeRequirements) 추가
+  activeRequirements,
+  isApproved,
+  hpState,
+  // pseudoChecklist, // [수정일: 2026-02-04] 현재 템플릿 미사용
+  systemHP,
+  isDamaged,
+  isRepaired,
+  // [수정일: 2026-02-03] 튜토리얼
+  tutorialState,
+  tutorialSteps,
+  nextTutorialStep,
+  skipTutorial
 } = usePseudoProblem(props, emit)
 
-// [수정일: 2026-02-03] 컴포넌트 마운트/언마운트 시 오디오 관리만 수행
+// [수정일: 2026-02-03] 튜토리얼 하이라이트 위치 계산 로직
+const highlightStyle = reactive({ top: '0px', left: '0px', width: '0px', height: '0px' })
+
+const updateHighlightPosition = () => {
+    if (!tutorialState.isActive) return
+    
+    // [수정일: 2026-02-04] 튜토리얼 비활성화 시(ID 2+) 에러 방지를 위해 요소 존재 여부 체크
+    if (!tutorialSteps.value || tutorialSteps.value.length === 0 || !tutorialSteps.value[tutorialState.currentStep]) return
+    
+    const targetId = tutorialSteps.value[tutorialState.currentStep].targetId
+    const el = document.getElementById(targetId)
+    
+    if (el) {
+        const rect = el.getBoundingClientRect()
+        // 약간의 여백(padding)을 주어 박스를 그림
+        const padding = 10
+        highlightStyle.top = `${rect.top - padding}px`
+        highlightStyle.left = `${rect.left - padding}px`
+        highlightStyle.width = `${rect.width + (padding * 2)}px`
+        highlightStyle.height = `${rect.height + (padding * 2)}px`
+    }
+}
+
+// 튜토리얼 스텝이 바뀌거나 활성화될 때 위치 재계산
+watch(() => [tutorialState.currentStep, tutorialState.isActive], async () => {
+    if (tutorialState.isActive) {
+        await nextTick()
+        // 애니메이션 효과를 위해 약간 지연 후 계산
+        setTimeout(updateHighlightPosition, 100)
+    }
+}, { immediate: true })
+
+// 창 크기가 바뀔 때도 재계산
 onMounted(() => {
-  if (currentStep.value === 0) {
-    initAudio()
-  }
+    window.addEventListener('resize', updateHighlightPosition)
+    if (currentStep.value === 0) {
+      initAudio()
+    }
 })
 
 onUnmounted(() => {
-  cleanupAudio()
+    window.removeEventListener('resize', updateHighlightPosition)
+    cleanupAudio()
 })
 </script>
 
@@ -788,5 +979,42 @@ body {
 }
 .animate-scale-up {
   animation: scaleUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.animate-shake {
+  animation: shake 0.2s cubic-bezier(.36,.07,.19,.97) both infinite;
+}
+
+.damage-flash {
+  animation: damageFlash 0.5s ease-out;
+}
+
+@keyframes damageFlash {
+  0% { box-shadow: inset 0 0 100px rgba(239, 68, 68, 0.8); }
+  100% { box-shadow: none; }
+}
+
+.scale-up-center {
+    animation: scale-up-center 0.4s cubic-bezier(0.390, 0.575, 0.565, 1.000) both;
+}
+
+@keyframes scale-up-center {
+  0% { transform: scale(0.5); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-width-expand {
+    animation: width-expand 0.6s ease-out forwards;
+}
+
+@keyframes width-expand {
+    0% { width: 0; opacity: 0; }
+    100% { width: 100%; opacity: 1; }
 }
 </style>
