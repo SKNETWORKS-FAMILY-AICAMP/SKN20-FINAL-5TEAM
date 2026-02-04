@@ -9,11 +9,13 @@ AI 기반 평가 시스템으로 **즉각적인 피드백**을 제공합니다.
 
 ## 👥 팀 소개
 
-|      | 이지은 | 권규리 | 김황현 | 박찬 | 최소영 | 황수현 |
-| --- | --- | --- | --- | --- | --- | --- |
-| 역할 | PM | 팀원 | 팀원 | 팀원 | 팀원 | 팀원 |
 
 **TEAM. Sliver_Vally**
+
+|      | 이지은 | 권규리 | 김황현 | 박찬 | 최소영 | 황수현 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 프로필 | <img src="frontend/public/image/member/lge.png" width="100"> | <img src="frontend/public/image/member/kkr.png" width="100"> | <img src="frontend/public/image/member/khh.png" width="100"> | <img src="frontend/public/image/member/pch.png" width="100"> | <img src="frontend/public/image/member/csy.png" width="100"> | <img src="frontend/public/image/member/hsh.png" width="100"> |
+| 역할 | PM | 팀원 | 팀원 | 팀원 | 팀원 | 팀원 |
 
 ---
 
@@ -173,6 +175,8 @@ AI 기반 평가 시스템으로 **즉각적인 피드백**을 제공합니다.
 ---
 
 ## 🧩 시스템 아키텍처
+
+![시스템 아키텍처](frontend/public/image/member/System_Architecture.png)
 
 ### Frontend (Vue 3 + Vite)
 - 3가지 Practice별 전용 UI
@@ -354,14 +358,3 @@ AI-ARCADE를 체험할 수 있습니다.
 - Research and Markets, AI in Education Market Report 2025
 - The Korea Herald (2024-2025), Ministry of Education, South Korea
 - Korea Economic Institute (2024), Ministry of Science and ICT, South Korea
-
----
-
-## 📄 라이선스
-
-본 프로젝트는 교육 목적으로 개발되었습니다.
-
----
-
-**TEAM. Sliver_Vally** | 2026.02.05
-SKN20-FINAL-5TEAM
