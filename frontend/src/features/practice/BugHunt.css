@@ -1218,7 +1218,10 @@
   position: absolute;
   z-index: 55;
   pointer-events: none;
-  transition: left 0.3s ease-out, top 0.1s ease-out;
+  /* transition 최소화로 버벅거림 방지 */
+  transition: opacity 0.15s ease-in-out;
+  /* 중심점 기준으로 위치 설정 (날아가는 오리와 동일하게) */
+  transform: translate(-50%, -50%);
 }
 
 .duck-walking-svg {
@@ -1243,6 +1246,12 @@
   position: absolute;
   z-index: 60;
   pointer-events: none;
+  /* 하드웨어 가속으로 부드러운 애니메이션 */
+  will-change: transform, left, top;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+  /* 부드러운 나타남/사라짐 효과 */
+  transition: opacity 0.2s ease-in-out;
 }
 
 .duck-flying {
@@ -3037,6 +3046,10 @@
   object-fit: contain;
   filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.7));
   /* 밭 위에 떠 있는 입체감 */
+  /* 이미지 렌더링 최적화 */
+  image-rendering: -webkit-optimize-contrast;
+  backface-visibility: hidden;
+  /* transition 제거로 성능 향상 */
 }
 
 /* [2026-02-03] 날아가는 오리 이미지 전용 스타일 (궤적에 따른 다이내믹 포즈) */
@@ -3049,6 +3062,15 @@
   /* 공중에 뜬 느낌 강화 */
   /* transform-origin을 중심으로 설정하여 궤적에 따른 회전이 자연스럽게 발생 */
   transform-origin: center center;
+  /* 이미지 렌더링 최적화 - 깨짐 방지 */
+  image-rendering: auto;
+  image-rendering: -webkit-optimize-contrast;
+  backface-visibility: hidden;
+  will-change: transform;
+  /* 하드웨어 가속 활성화 */
+  transform: translateZ(0);
+  /* 최소 transition으로 성능 향상 */
+  transition: width 0.2s ease, height 0.2s ease;
 }
 
 
@@ -3616,4 +3638,77 @@
 
 .clue-content::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 243, 255, 0.5);
+}
+
+/* 날아가는 패널 */
+.flying-panel {
+  position: fixed;
+  z-index: 10000;
+  width: 420px;
+  background: linear-gradient(135deg, rgba(0, 243, 255, 0.15) 0%, rgba(255, 0, 255, 0.15) 100%);
+  border: 2px solid var(--neon-cyan);
+  border-radius: 16px;
+  box-shadow:
+    0 0 30px rgba(0, 243, 255, 0.6),
+    0 0 60px rgba(0, 243, 255, 0.3),
+    inset 0 0 20px rgba(0, 243, 255, 0.1);
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+}
+
+.flying-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 24px;
+  background: linear-gradient(90deg, rgba(0, 243, 255, 0.2) 0%, rgba(255, 0, 255, 0.2) 100%);
+  border-bottom: 1px solid rgba(0, 243, 255, 0.4);
+  border-radius: 14px 14px 0 0;
+}
+
+.flying-icon {
+  font-size: 2rem;
+  animation: flying-icon-pulse 0.6s ease-in-out infinite;
+}
+
+@keyframes flying-icon-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
+.flying-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--neon-cyan);
+  text-shadow: 0 0 10px rgba(0, 243, 255, 0.8);
+  letter-spacing: 2px;
+}
+
+.flying-panel-body {
+  padding: 24px;
+}
+
+.flying-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--neon-cyan);
+  margin-bottom: 12px;
+}
+
+.label-icon {
+  font-size: 1.3rem;
+}
+
+.flying-preview {
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(0, 243, 255, 0.2);
+  border-radius: 8px;
+  color: #a0aec0;
+  font-size: 0.95rem;
+  line-height: 1.6;
 }
