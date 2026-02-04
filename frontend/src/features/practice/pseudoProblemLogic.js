@@ -3,7 +3,7 @@
  * [수정내용:
  * 1. 캐릭터 명칭 및 아이콘 변경 (Lion 🦁 -> Coduck 🦆)
  * 2. 챗봇 가이드 및 피드백 텍스트의 캐릭터 브랜딩 고도화
- * 3. AI 상담 모드(askCoduck) 도입 및 통합]
+ * ㄴ도입 및 통합]
  */
 import { ref, reactive, computed, watch, nextTick, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
@@ -28,6 +28,7 @@ export function usePseudoProblem(props, emit) {
 
     // --- Logic & Data Integration ---
     const currentQuestIdx = computed(() => gameStore.selectedQuestIndex || 0)
+    const hasNextQuest = computed(() => currentQuestIdx.value < aiQuests.length - 1)
 
     // [수정일: 2026-02-02] 선언 순서 조정: 의존성 있는 변수들을 최상단으로 이동
     const userNickname = computed(() => authStore.sessionNickname || 'ENGINEER')
@@ -70,7 +71,8 @@ export function usePseudoProblem(props, emit) {
     }))
 
     // --- State ---
-    const currentStep = ref(0) // [수정일: 2026-02-01] 0단계(시놉시스)부터 시작
+    // [수정일: 2026-02-04] ID 2 이상(실전 스테이지)부터는 시놉시스를 스킵하도록 초기값 조정
+    const currentStep = ref(currentQuest.value?.id === 1 ? 0 : 1)
     // [수정일: 2026-02-03] 점수 키 명칭을 UI와 일관되게 CONCEPT, LOGIC, CODE, ARCH로 통일
     const userScore = reactive({ CONCEPT: 0, LOGIC: 0, CODE: 0, ARCH: 0 })
     const pseudoInput = ref('')
@@ -104,7 +106,7 @@ export function usePseudoProblem(props, emit) {
     // [수정일: 2026-02-02] UI 고도화를 위한 새로운 상태 추가
     // [수정일: 2026-02-03] HP 시스템 (AI_MOOD) 추가
     // [수정일: 2026-02-03] 뉴럴 싱크(동기화) 시스템 (0% -> 100% 각성 목표)
-    const systemHP = ref(10) // 초기 상태: 미약한 연결 신호 (10%)
+    const systemHP = ref(0) // 초기 상태: 0%에서 시작
     const hpState = computed(() => {
         if (systemHP.value >= 95) return { color: 'text-cyan-400', borderColor: 'border-cyan-400', status: 'FULLY_SYNCED', isComplete: true }
         if (systemHP.value >= 70) return { color: 'text-[#A3FF47]', borderColor: 'border-[#A3FF47]', status: 'STABLE_LINK' }
@@ -144,9 +146,11 @@ export function usePseudoProblem(props, emit) {
         tts.toggleMute()
     }
 
-    // [수정일: 2026-01-31] 인터랙티브 인터뷰(Stage 1) 상태 변수 추가
-    const currentInterviewIdx = ref(0)
     const interviewResults = ref([])
+    // [수정일: 2026-02-04] 인터뷰에서 결정된 비즈니스 설계 요건 저장소
+    const activeRequirements = ref([])
+    // [수정일: 2026-02-04] 현재 인터뷰 질문 인덱스 (누락된 변수 선언 추가)
+    const currentInterviewIdx = ref(0)
     const currentInterviewQuestion = computed(() => {
         const questions = currentQuest.value.interviewQuestions || []
         return questions[currentInterviewIdx.value] || null
@@ -162,31 +166,35 @@ export function usePseudoProblem(props, emit) {
         hasSeen: false
     })
 
-    const tutorialSteps = [
-        {
-            stage: '[PARTNER] 코덕의 사고 회로',
-            desc: "이곳은 복구 파트너 **코덕(Coduck)**의 터미널입니다. 미션 목표를 확인하고, 코덕이 주는 힌트에 귀를 기울이세요.",
-            targetId: 'tutorial-target-partner'
-        },
-        {
-            stage: '[WORKSPACE] 중앙 제어 장치',
-            desc: "당신의 메인 작업 공간입니다. AI 개념에 대한 인터뷰를 진행하고, 나중에 이곳에서 실제 파이썬 코드를 주입하여 시스템을 수리합니다.",
-            targetId: 'tutorial-target-workspace'
-        },
-        {
-            stage: '[INVENTORY] 마스터 툴킷 가이드 & 실습',
-            desc: "4가지 긴급 수리 도구의 용도를 확인하세요:\n\n- **Data Filter (깔때기)**: 불량 데이터 제거 시 사용\n- **History Recorder (DB)**: 결과 기록/저장 시 사용\n- **Batch Mixer (화살표)**: 순차 처리(반복) 시 사용\n- **Precision Scanner (타겟)**: 조건 검사 시 사용\n\n⬇️ **[실전 테스트]**\n지금 노이즈가 감지되었습니다. **'Data Filter(깔때기)'를 클릭**해 신호를 정화해보세요!",
-            targetId: 'tutorial-target-inventory'
-        },
-        {
-            stage: '[STATUS] 뉴럴 싱크 체크',
-            desc: "방금 아이템 사용으로 **동기화율(Sync Rate)**이 회복된 것을 확인하셨나요?\n\n이처럼 위급 상황에서는 아이템을 사용해 연결을 유지해야 합니다. 100% 각성을 목표로 나아가세요!",
-            targetId: 'tutorial-target-status'
-        }
-    ]
+    // [수정일: 2026-02-04] ID 2 이상(실전 스테이지)부터는 튜토리얼 단계를 비활성화 (빈 배열 반환)
+    const tutorialSteps = computed(() => {
+        if (currentQuest.value?.id > 1) return []
+        return [
+            {
+                stage: '[PARTNER] 코덕의 사고 회로',
+                desc: "이곳은 복구 파트너 코덕(Coduck)의 터미널입니다. 미션 목표를 확인하고, 코덕이 주는 힌트에 귀를 기울이세요.",
+                targetId: 'tutorial-target-partner'
+            },
+            {
+                stage: '[WORKSPACE] 중앙 제어 장치',
+                desc: "당신의 메인 작업 공간입니다. AI 개념에 대한 인터뷰를 진행하고, 나중에 이곳에서 실제 파이썬 코드를 주입하여 시스템을 수리합니다.",
+                targetId: 'tutorial-target-workspace'
+            },
+            {
+                stage: '[INVENTORY] 마스터 툴킷 가이드',
+                desc: "우측 상단에 위치한 4가지 긴급 수리 도구입니다. 이 아이템들을 사용하면 동기화율(HP)이 소폭 회복됩니다. 위급 상황에서 적절히 활용하여 시스템을 유지하세요.",
+                targetId: 'tutorial-target-inventory'
+            },
+            {
+                stage: '[STATUS] 뉴럴 싱크 체크',
+                desc: "방금 아이템 사용으로 동기화율(Sync Rate)이 회복된 것을 확인하셨나요?\n\n이처럼 위급 상황에서는 아이템을 사용해 연결을 유지해야 합니다. 100% 각성을 목표로 나아가세요!",
+                targetId: 'tutorial-target-status'
+            }
+        ]
+    })
 
     const startTutorial = () => {
-        if (tutorialState.hasSeen) return
+        if (tutorialState.hasSeen || currentQuest.value?.id > 1) return
         tutorialState.isActive = true
         tutorialState.currentStep = 0
         // 튜토리얼 중에는 BGM 볼륨 조절 등의 로직 가능
@@ -233,17 +241,28 @@ export function usePseudoProblem(props, emit) {
         }
 
         if (targetIndex !== -1) {
-            // 해당 라인의 인덴트(공백)를 유지하며 코드 삽입
+            // 해당 라인의 인덴트(공백)를 유지하며 코드 삽입 (멀티라인 지원)
             const indent = lines[targetIndex].match(/^\s*/)[0]
-            lines[targetIndex] = `${indent}${snippet}`
+            // 스니펫의 각 줄에 인덴트 적용
+            const snippetLines = snippet.split('\n')
+            const indentedSnippet = snippetLines.map((line, idx) => {
+                // 첫 줄은 이미 인덴트가 있는 위치에 대체되거나 등등 고려 필요하지만
+                // 여기서는 기존 TODO 라인을 통째로 교체하므로 모든 줄에 인덴트 추가
+                return idx === 0 ? `${indent}${line}` : `${indent}${line}`
+            }).join('\n')
+
+            lines[targetIndex] = indentedSnippet
             pythonInput.value = lines.join('\n')
         } else {
             // 주석이 없으면 맨 뒤에 추가
             pythonInput.value += `\n${snippet}`
         }
 
-        // [수정일: 2026-02-03] 아이템 사용 시 HP 회복 (게임적 재미)
-        repairSystem(10)
+        // [수정일: 2026-02-03] 아이템 사용 시 HP 회복 (모든 단계 적용)
+        // 튜토리얼 중이 아닐 때도 사용 시 10% 회복 (게임적 재미)
+        if (!tutorialState.isActive) {
+            repairSystem(10)
+        }
     }
 
     // [수정일: 2026-02-03] 링크 안정성 시스템 (구 HP)
@@ -445,6 +464,15 @@ export function usePseudoProblem(props, emit) {
             currentDuckImage.value = currentQuest.value.character?.image
             integrity.value = Math.min(integrity.value + 15, 100)
 
+            // [수정일: 2026-02-04] 실전 스테이지(ID:2 이상)인 경우 정답 옵션의 설계 지침을 저장
+            if (currentQuest.value.id > 1 && option.requirementToken) {
+                if (!activeRequirements.value.includes(option.requirementToken)) {
+                    activeRequirements.value.push(option.requirementToken)
+                }
+            }
+
+            // Step 1 개별 문제 정답 시에는 HP 회복 없음 (단계 완료 시 일괄 지급)
+
             interviewResults.value.push({ questionId: currentQ.id, answer: option.text, isCorrect: true })
             chatMessages.value.push({ sender: 'User', text: option.text })
             chatMessages.value.push({ sender: 'Coduck', text: currentQ.coduckComment })
@@ -454,8 +482,8 @@ export function usePseudoProblem(props, emit) {
             interviewResults.value.push({ questionId: currentQ.id, answer: option.text, isCorrect: false })
             chatMessages.value.push({ sender: 'User', text: option.text })
             chatMessages.value.push({ sender: 'Coduck', text: currentQ.coduckComment })
-            // [수정일: 2026-02-03] 오답 시 HP 차감 (패널티)
-            damageSystem(20)
+            // [수정일: 2026-02-03] 오답 시 HP 차감 (5%)
+            damageSystem(5)
         }
 
         // [수정일: 2026-02-01] 인터뷰 응답 낭독
@@ -476,6 +504,8 @@ export function usePseudoProblem(props, emit) {
             setTimeout(() => {
                 // [수정일: 2026-02-02] 가동률 업데이트
                 integrity.value = Math.min(integrity.value + 25, 100)
+                // [수정일: 2026-02-03] Step 1 완료 보상: 동기화율 25% 상승
+                repairSystem(25)
 
                 showFeedback(
                     "📊 요구사항 분석 완료",
@@ -502,11 +532,25 @@ export function usePseudoProblem(props, emit) {
         chatMessages.value.push({ sender: 'Coduck', text: '엔지니어님의 로직을 검토 중입니다... 잠시만요.' })
         scrollToBottom()
 
+        // [수정일: 2026-02-04] 인터뷰 기반 설계 지침(Requirement Tokens)을 AI가 개별적으로 검토하도록 프롬프트 고도화
+        let requirementContext = ""
+        if (currentQuest.value.id > 1 && activeRequirements.value.length > 0) {
+            requirementContext = `\n\n[아키텍처 설계 지침 - 필수 준수 사항]\n` +
+                `귀하는 수석 아키텍처 컨설턴트로서 사용자가 작성한 수도코드가 
+                아래의 '인터뷰 합의 사항'을 충실히 반영했는지 정밀 분석해야 합니다.\n` +
+                `각 항목이 누락되었거나 논리적으로 위배된다면 절대 승인(isApproved: false)하지 마십시오:\n` +
+                `- ${activeRequirements.value.join('\n- ')}\n\n` +
+                `[평가 가이드라인]\n` +
+                `1. 위 지침의 핵심 키워드가 코드에 명시적으로 포함되어 있는가?\n` +
+                `2. 로직의 흐름이 위 지침의 의도(예: 시간순 분리, 학습 데이터로만 fit 등)와 일치하는가?\n` +
+                `3. 미준수 시, 어떤 지침을 어겼는지 "## 지침 미준수 안내" 섹션을 포함하여 피드백하십시오.`
+        }
+
         try {
             const response = await axios.post('/api/core/ai-evaluate/', {
                 quest_title: currentQuest.value.title,
-                user_logic: code,
-                mode: 'consult', // 단순 상담 모드 (점수 미반영)
+                user_logic: code + requirementContext, // 강화된 가이드라인 주입
+                mode: 'consult', // 상담 모드
             }, { withCredentials: true })
 
             const result = response.data
@@ -568,10 +612,19 @@ export function usePseudoProblem(props, emit) {
 
         scrollToBottom()
 
+        // [수정일: 2026-02-04] 최종 평가 시에도 인터뷰 기반 요구사항 준수 여부를 최종 점검하도록 AI에게 지시
+        let requirementContext = ""
+        if (currentQuest.value.id > 1 && activeRequirements.value.length > 0) {
+            requirementContext = `\n\n[최종 아키텍처 검증 요건]\n` +
+                `사용자가 인터뷰를 통해 확정한 다음 설계 규칙들이 수도코드에 완벽히 구현되어 있는지 최종 확인하십시오. ` +
+                `누락되거나 잘못 구현된 경우 감점 요인으로 반영하십시오:\n` +
+                `- ${activeRequirements.value.join('\n- ')}`
+        }
+
         try {
             const response = await axios.post('/api/core/ai-evaluate/', {
                 quest_title: currentQuest.value.title,
-                user_logic: code,
+                user_logic: code + requirementContext, // 요구사항 컨텍스트 포함 및 최종 체점 유도
                 score: 0,
             }, { withCredentials: true })
 
@@ -613,7 +666,10 @@ export function usePseudoProblem(props, emit) {
                 // [수정일: 2026-02-03] 점수 키 변경 반영
                 userScore.LOGIC = 25
                 integrity.value = Math.max(integrity.value, 50)
+                repairSystem(25) // Step 2 완료 보상: 25%
                 showFeedback("💡 논리 아키텍처 승인", "입력하신 의사코드가 정화 알고리즘으로 채택되었습니다. 이제 실제 코드로 변환하여 주입하십시오.", null, true)
+            } else {
+                damageSystem(5) // 논리 미흡 시 패널티
             }
         } catch (error) {
             console.error("AI Evaluation Failed:", error)
@@ -622,11 +678,21 @@ export function usePseudoProblem(props, emit) {
             userScore.LOGIC = oldScore
             // [수정일: 2026-01-31] Quest 1(튜토리얼)의 경우 실습 편의를 위해 무조건 통과 허용
             const tutorialPass = currentQuest.value.id === 1 && (hasLoop || hasCondition || hasAction)
+            const passed = tutorialPass || oldScore >= 15
+
+            if (passed) {
+                userScore.LOGIC = 25
+                integrity.value = Math.max(integrity.value, 50)
+                repairSystem(25) // 간이 평가 통과 시에도 보상 지급
+            } else {
+                damageSystem(5)
+            }
+
             showFeedback(
                 `${charName.value}의 간이 평가`,
                 "통신 장애로 인해 간이 분석기로 대체합니다.",
                 "논리 키워드 기반으로 분석되었습니다.",
-                tutorialPass || oldScore >= 15
+                passed
             )
         } finally {
             isEvaluating.value = false
@@ -693,8 +759,10 @@ export function usePseudoProblem(props, emit) {
             const expected = JSON.stringify(quest.expectedOutput)
             const actual = JSON.stringify(executionResult)
 
-            // 공백 제거 후 비교 (배열 내의 공백 등 미세 차이 무시)
-            const isMatch = expected.replace(/\s/g, '') === actual.replace(/\s/g, '')
+            // 정확한 JSON 비교 (공백이 중요한 데이터도 있으므로 replace(/\s/g, '') 제거)
+            // 단, JSON 포맷상의 단순 줄바꿈/공백 차이를 무시하기 위해 파싱 후 비교 권장하지만, 
+            // 여기서는 심플하게 문자열 비교 (파이오다이드 반환값이 JS 객체이므로 stringify 정규화됨)
+            const isMatch = expected === actual
 
             if (isMatch) {
                 score += 15
@@ -726,13 +794,14 @@ export function usePseudoProblem(props, emit) {
             isFullySuccess
         )
 
-        // [수정일: 2026-02-03] 구현 실패 시 HP 대폭 차감
+        // [수정일: 2026-02-03] 구현 실패 시 HP 차감 (5%)
         if (!isFullySuccess) {
-            damageSystem(20)
+            damageSystem(5)
         }
 
         if (isFullySuccess) {
             integrity.value = Math.min(integrity.value + 25, 100)
+            repairSystem(25) // Step 3 완료 보상: 25%
         }
     }
 
@@ -753,6 +822,10 @@ export function usePseudoProblem(props, emit) {
         // [수정일: 2026-02-03] 다중 인자 대응 로직 추가 (* spread)
         const wrappedCode = `
 ${code}
+
+# [Auto-Fix] 호환성을 위한 데이터 변수 매핑
+data_batch = target_data
+result_list = [] # dummy list for compatibility
 
 try:
     func = ${funcName}
@@ -851,14 +924,16 @@ except Exception as e:
             // [수정일: 2026-02-03] 점수 키 변경 및 가동률 최대치 반영
             userScore.ARCH = 25
             integrity.value = 100
+            repairSystem(25) // Step 4 완료 보상: 25% (Final 100%)
 
             const successText = (currentQuest.value.step4SuccessFeedback?.desc || "축하합니다! 해당 구역의 데이터 무결성이 확보되었습니다.").replace(/{username}/g, userNickname.value)
             const successDetails = currentQuest.value.step4SuccessFeedback?.details || "훌륭한 설계입니다. 마더 서버는 인류의 논리적인 접근에 반응하기 시작했습니다."
 
             showFeedback(currentQuest.value.step4SuccessFeedback?.title || "🔐 시스템 권한 회복", successText, successDetails, true)
         } else {
-            // [수정일: 2026-02-03] 실패 시 캐릭터 표정 변경
+            // [수정일: 2026-02-03] 실패 시 캐릭터 표정 변경 및 HP 차감
             currentDuckImage.value = '/assets/characters/coduck_sad.png'
+            damageSystem(5)
             showFeedback(currentQuest.value.step4FailFeedback?.title || "⚠️ 시스템 거부", currentQuest.value.step4FailFeedback?.desc || "결정적인 가치 정의 오류로 인해 최종 승인이 반려되었습니다.", currentQuest.value.step4FailFeedback?.details, false)
         }
     }
@@ -890,6 +965,8 @@ except Exception as e:
 
     // [수정일: 2026-01-31] SPA 환경에 최적화된 미션 초기화 (새로고침 없이 상태만 리셋)
     const reloadApp = () => {
+        // [수정일: 2026-02-04] 앱 재설정 시 확정된 설계 요구사항 목록 초기화
+        activeRequirements.value = []
         currentStep.value = 1
         // [수정일: 2026-02-03] 점수 키 통일
         userScore.CONCEPT = 0
@@ -906,7 +983,7 @@ except Exception as e:
         isAsking.value = false
         isSimulating.value = false
         integrity.value = 0
-        systemHP.value = 100 // [수정일: 2026-02-03] HP 초기화
+        systemHP.value = 0 // [수정일: 2026-02-03] HP 초기화 0%
         currentDuckImage.value = currentQuest.value.character?.image
 
         chatMessages.value = [
@@ -997,7 +1074,8 @@ except Exception as e:
 
     watch(currentQuest, (newQuest) => {
         if (newQuest) {
-            currentStep.value = 0
+            // [수정일: 2026-02-04] 실전 스테이지(ID 2+) 진입 시 시놉시스(0)를 스킵하고 바로 인터뷰(1)로 이동
+            currentStep.value = newQuest.id === 1 ? 0 : 1
             pythonInput.value = ''
             simulationOutput.value = ''
             isSuccess.value = false
@@ -1010,6 +1088,9 @@ except Exception as e:
             if (currentStep.value === 1) {
                 tts.speak(replaceUsername(`오늘의 미션은 ${newQuest.title}입니다. ${newQuest.desc}`));
             }
+            // [수정일: 2026-02-04] 퀘스트 변경 시 승인 상태 및 요구사항 초기화
+            isApproved.value = false
+            activeRequirements.value = []
         }
     }, { immediate: true })
 
@@ -1059,11 +1140,15 @@ except Exception as e:
         resetInactivityTimer()
     }, { immediate: true })
 
-    // [수정일: 2026-02-03] 수도코드 변경 시 AI 승인 상태 리셋 (Gatekeeper)
+    // [수정일: 2026-02-04] 수도코드 변경 시 AI 승인 상태 리셋 및 안내 (Gatekeeper)
     watch(pseudoInput, () => {
         if (isApproved.value) {
             isApproved.value = false
-            // [참고] 사용자가 내용을 수정하면 다시 승인을 받아야 함을 알림
+            chatMessages.value.push({
+                sender: 'Coduck',
+                text: '로직이 수정되었습니다. 아키텍처의 정합성을 재검토해야 하니 다시 한번 [검토 요청]을 눌러주세요!'
+            })
+            scrollToBottom()
         }
     })
 
@@ -1090,7 +1175,7 @@ except Exception as e:
         step4Options,
         feedbackModal,
         editorOptions,
-        finalReviewText,
+        // finalReviewText, // [수정일: 2026-02-04] 사용성 확인 필요로 주석 유지
         handleStep1Submit,
         submitStep2,
         selectBlock,
@@ -1100,6 +1185,7 @@ except Exception as e:
         goToStep,
         reloadApp,
         goToNextQuest,
+        hasNextQuest,
         insertSnippet,
         askCoduck,
         aiQuests,
@@ -1120,9 +1206,10 @@ except Exception as e:
         isRepaired,
         damageSystem,
         repairSystem,
-        // [수정일: 2026-02-03] 게이트키퍼 상태 반환 추가
-        isConsulted,
-        isConsulted,
+        // [수정일: 2026-02-04] 게이트키퍼 상태 반환 (중복 제거 및 주석)
+        // isConsulted,
+        // [수정일: 2026-02-04] 인터뷰 기반 설계 요구사항 저장소 반환 추가
+        activeRequirements,
         isApproved,
         pseudoChecklist,
         // [수정일: 2026-02-03] 튜토리얼 관련 내보내기
