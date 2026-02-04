@@ -8,7 +8,7 @@
           :class="{ active: isConnectionMode }"
           @click="toggleMode"
         >
-          {{ isConnectionMode ? '🎯 배치 모드' : '🔗 연결 모드' }}
+          {{ isConnectionMode ? '배치 모드' : '연결 모드' }}
         </button>
         <button class="btn btn-clear" @click="clearCanvas">🗑️ 초기화</button>
       </div>
@@ -270,8 +270,15 @@ export default {
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&display=swap');
+
 .canvas {
-  background: #2c3e50;
+  --accent-neon: #4fc3f7;
+  --accent-cyan: #00f3ff;
+  --accent-pink: #ec4899;
+  --terminal-font: 'Fira Code', monospace;
+
+  background: transparent;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -279,20 +286,22 @@ export default {
 }
 
 .canvas-header {
-  padding: 15px 20px;
+  padding: 12px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid rgba(0, 255, 157, 0.3);
-  background: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid rgba(79, 195, 247, 0.2);
+  background: rgba(5, 7, 10, 0.8);
+  backdrop-filter: blur(10px);
 }
 
 .canvas-header h2 {
-  font-family: 'Orbitron', sans-serif;
-  font-size: 1.3em;
-  color: #00ff9d;
+  font-family: var(--terminal-font);
+  font-size: 0.9rem;
+  color: var(--accent-neon);
   margin: 0;
-  text-shadow: 0 0 15px rgba(0, 255, 157, 0.5);
+  letter-spacing: 2px;
+  text-shadow: 0 0 10px rgba(79, 195, 247, 0.5);
 }
 
 .btn-group {
@@ -302,63 +311,62 @@ export default {
 
 .btn {
   padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
-  font-family: 'Space Mono', monospace;
-  font-size: 0.85em;
+  border: 1px solid rgba(79, 195, 247, 0.3);
+  background: rgba(79, 195, 247, 0.1);
+  font-family: var(--terminal-font);
+  font-size: 0.75rem;
+  color: var(--accent-neon);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .btn-mode {
-  background: rgba(100, 181, 246, 0.2);
-  color: #64b5f6;
-  border: 1px solid #64b5f6;
+  background: rgba(79, 195, 247, 0.1);
+  color: var(--accent-neon);
+  border: 1px solid rgba(79, 195, 247, 0.3);
 }
 
 .btn-mode.active {
-  background: #64b5f6;
-  color: #0a0e27;
+  background: var(--accent-neon);
+  color: #000;
+  box-shadow: 0 0 15px rgba(79, 195, 247, 0.4);
 }
 
 .btn-clear {
-  background: rgba(255, 71, 133, 0.2);
-  color: #ff4785;
-  border: 1px solid #ff4785;
+  background: rgba(236, 72, 153, 0.1);
+  color: var(--accent-pink);
+  border: 1px solid rgba(236, 72, 153, 0.3);
 }
 
 .btn-clear:hover {
-  background: #ff4785;
-  color: #fff;
+  background: rgba(236, 72, 153, 0.2);
+  box-shadow: 0 0 15px rgba(236, 72, 153, 0.3);
 }
 
 .canvas-area {
   flex: 1;
   position: relative;
   overflow: hidden;
-  /* background-image:
-    linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px); */
   background-size: 25px 25px;
-  /* background-color: #2c3e50; */
 }
 
 .dropped-component {
   position: absolute;
-  padding: 12px 18px;
-  border-radius: 10px;
+  padding: 10px 16px;
   cursor: move;
-  font-size: 0.9em;
-  font-weight: 600;
-  min-width: 140px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  font-family: var(--terminal-font);
+  min-width: 130px;
   text-align: center;
   transition: box-shadow 0.2s ease, transform 0.1s ease;
-  border: 2px solid transparent;
+  border: 1px solid rgba(79, 195, 247, 0.4);
   user-select: none;
 }
 
 .dropped-component:hover {
   transform: scale(1.02);
+  box-shadow: 0 0 20px rgba(79, 195, 247, 0.3);
 }
 
 .dropped-component:hover .delete-btn {
@@ -371,9 +379,8 @@ export default {
   right: -8px;
   width: 20px;
   height: 20px;
-  border-radius: 50%;
-  background: #ff4785;
-  border: 2px solid #fff;
+  background: var(--accent-pink);
+  border: none;
   color: #fff;
   font-size: 10px;
   font-weight: bold;
@@ -387,57 +394,57 @@ export default {
 }
 
 .delete-btn:hover {
-  background: #ff1744;
-  transform: scale(1.2);
+  background: #f43f8e;
+  transform: scale(1.1);
+  box-shadow: 0 0 10px rgba(236, 72, 153, 0.5);
 }
 
 .dropped-component.selected {
-  border-color: #00ff9d;
-  box-shadow: 0 0 20px rgba(0, 255, 157, 0.6);
-  animation: pulse 1s infinite;
+  border-color: var(--accent-neon);
+  box-shadow: 0 0 25px rgba(79, 195, 247, 0.6);
+  animation: pulse 1.5s infinite;
 }
 
 @keyframes pulse {
-  0%, 100% { box-shadow: 0 0 20px rgba(0, 255, 157, 0.6); }
-  50% { box-shadow: 0 0 30px rgba(0, 255, 157, 0.9); }
+  0%, 100% { box-shadow: 0 0 25px rgba(79, 195, 247, 0.6); }
+  50% { box-shadow: 0 0 40px rgba(79, 195, 247, 0.9); }
 }
 
-/* Component type styles */
-.dropped-component.user { background: linear-gradient(135deg, #ff4785, #ff1744); color: #fff; }
-.dropped-component.loadbalancer { background: linear-gradient(135deg, #26c6da, #00acc1); color: #0a0e27; }
-.dropped-component.gateway { background: linear-gradient(135deg, #64b5f6, #2196f3); color: #fff; }
-.dropped-component.server { background: linear-gradient(135deg, #ab47bc, #8e24aa); color: #fff; }
-.dropped-component.rdbms { background: linear-gradient(135deg, #00ff9d, #00e676); color: #0a0e27; }
-.dropped-component.nosql { background: linear-gradient(135deg, #4db6ac, #26a69a); color: #0a0e27; }
-.dropped-component.cache { background: linear-gradient(135deg, #ffc107, #ffa000); color: #0a0e27; }
-.dropped-component.search { background: linear-gradient(135deg, #7c4dff, #651fff); color: #fff; }
-.dropped-component.storage { background: linear-gradient(135deg, #ff7043, #f4511e); color: #fff; }
-.dropped-component.broker { background: linear-gradient(135deg, #ff8a65, #ff5722); color: #fff; }
-.dropped-component.eventbus { background: linear-gradient(135deg, #ba68c8, #ab47bc); color: #fff; }
-.dropped-component.monitoring { background: linear-gradient(135deg, #66bb6a, #43a047); color: #fff; }
-.dropped-component.logging { background: linear-gradient(135deg, #78909c, #607d8b); color: #fff; }
-.dropped-component.cicd { background: linear-gradient(135deg, #42a5f5, #1e88e5); color: #fff; }
+/* Component type styles - Terminal 2077 Theme */
+.dropped-component.user { background: rgba(236, 72, 153, 0.9); color: #fff; border-color: #ec4899; }
+.dropped-component.loadbalancer { background: rgba(0, 243, 255, 0.9); color: #000; border-color: #00f3ff; }
+.dropped-component.gateway { background: rgba(100, 181, 246, 0.9); color: #000; border-color: #64b5f6; }
+.dropped-component.server { background: rgba(171, 71, 188, 0.9); color: #fff; border-color: #ab47bc; }
+.dropped-component.rdbms { background: rgba(79, 195, 247, 0.9); color: #000; border-color: #4fc3f7; }
+.dropped-component.nosql { background: rgba(77, 182, 172, 0.9); color: #000; border-color: #4db6ac; }
+.dropped-component.cache { background: rgba(255, 193, 7, 0.9); color: #000; border-color: #ffc107; }
+.dropped-component.search { background: rgba(124, 77, 255, 0.9); color: #fff; border-color: #7c4dff; }
+.dropped-component.storage { background: rgba(255, 112, 67, 0.9); color: #fff; border-color: #ff7043; }
+.dropped-component.broker { background: rgba(255, 138, 101, 0.9); color: #000; border-color: #ff8a65; }
+.dropped-component.eventbus { background: rgba(186, 104, 200, 0.9); color: #fff; border-color: #ba68c8; }
+.dropped-component.monitoring { background: rgba(102, 187, 106, 0.9); color: #000; border-color: #66bb6a; }
+.dropped-component.logging { background: rgba(120, 144, 156, 0.9); color: #fff; border-color: #78909c; }
+.dropped-component.cicd { background: rgba(66, 165, 245, 0.9); color: #000; border-color: #42a5f5; }
 
 .component-name-input {
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid #00ff9d;
-  color: #fff;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid var(--accent-neon);
+  color: var(--accent-neon);
   padding: 4px 8px;
-  border-radius: 4px;
-  font-family: 'Space Mono', monospace;
-  font-size: 0.9em;
+  font-family: var(--terminal-font);
+  font-size: 0.8rem;
   width: 100%;
   text-align: center;
 }
 
-/* Connection lines - 사건반장일지 빨간 실 느낌 */
+/* Connection lines - 네온 그린 스타일 */
 .connection-line {
   position: absolute;
-  height: 4px;
-  background: #e53935;
+  height: 3px;
+  background: var(--accent-neon);
   transform-origin: left center;
   pointer-events: none;
-  box-shadow: 0 0 10px rgba(229, 57, 53, 0.6);
+  box-shadow: 0 0 10px rgba(79, 195, 247, 0.6);
   z-index: 5;
 }
 
@@ -445,12 +452,12 @@ export default {
   position: absolute;
   width: 0;
   height: 0;
-  border-left: 16px solid #e53935;
-  border-top: 10px solid transparent;
-  border-bottom: 10px solid transparent;
+  border-left: 14px solid var(--accent-neon);
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
   transform-origin: left center;
   pointer-events: none;
-  filter: drop-shadow(0 0 6px rgba(229, 57, 53, 0.8));
+  filter: drop-shadow(0 0 6px rgba(79, 195, 247, 0.8));
   z-index: 6;
 }
 </style>

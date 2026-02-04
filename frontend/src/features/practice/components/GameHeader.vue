@@ -2,7 +2,7 @@
   <div class="workspace-header">
     <div class="header-title">
       <div class="rec-dot"></div>
-      <span>REC | ARCHITECTURE_ROOM</span>
+      <span>LIVE | ARCHITECT_TERMINAL</span>
     </div>
     <div class="header-controls">
       <button
@@ -10,15 +10,15 @@
         :class="{ active: isConnectionMode }"
         @click="$emit('toggle-mode')"
       >
-        {{ isConnectionMode ? '📦 배치 모드' : '🔗 연결 모드' }}
+        {{ isConnectionMode ? 'CONNECT_MODE' : 'PLACE_MODE'  }}
       </button>
-      <button class="ctrl-btn danger" @click="$emit('clear-canvas')">🗑️ 초기화</button>
+      <button class="ctrl-btn danger" @click="$emit('clear-canvas')">RESET</button>
       <button
         class="ctrl-btn hint"
         :class="{ active: isHintActive }"
         @click="$emit('toggle-hint')"
       >
-        💡 {{ isHintActive ? '힌트 OFF' : '힌트 ON' }}
+        {{ isHintActive ? 'HINT_OFF' : 'HINT_ON' }}
       </button>
     </div>
   </div>
@@ -42,28 +42,34 @@ export default {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
 
 .workspace-header {
-  --pixel-font: 'Press Start 2P', cursive;
-  --text-white: #ecf0f1;
-  --accent-yellow: #f1c40f;
-  --danger-red: #e74c3c;
+  --space-deep: #0a0a1a;
+  --space-dark: #12122a;
+  --nebula-purple: #6b5ce7;
+  --nebula-blue: #4fc3f7;
+  --nebula-pink: #f06292;
+  --text-primary: #e8eaed;
+  --text-secondary: rgba(232, 234, 237, 0.7);
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
 
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 20px;
-  background: #2d3436;
-  border-bottom: 4px solid #000;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+  padding: 12px 20px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--glass-border);
   z-index: 50;
 }
 
 .header-title {
-  font-family: var(--pixel-font);
-  font-size: 0.8rem;
-  color: #aaa;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--nebula-blue);
   letter-spacing: 2px;
   display: flex;
   align-items: center;
@@ -71,15 +77,17 @@ export default {
 }
 
 .rec-dot {
-  width: 12px;
-  height: 12px;
-  background: red;
+  width: 10px;
+  height: 10px;
+  background: var(--nebula-pink);
   border-radius: 50%;
-  animation: blink 1s infinite;
+  animation: pulse-glow 1.5s infinite;
+  box-shadow: 0 0 8px rgba(240, 98, 146, 0.6);
 }
 
-@keyframes blink {
-  50% { opacity: 0; }
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; box-shadow: 0 0 8px rgba(240, 98, 146, 0.6); }
+  50% { opacity: 0.4; box-shadow: 0 0 16px rgba(240, 98, 146, 0.9); }
 }
 
 .header-controls {
@@ -87,63 +95,62 @@ export default {
   gap: 10px;
 }
 
-/* === 3D 버튼 스타일 === */
+/* === Space Mission 버튼 스타일 === */
 .ctrl-btn {
-  font-family: var(--pixel-font);
-  background: #333;
-  color: var(--text-white);
-  border: 2px solid #7f8c8d;
-  border-bottom: 4px solid #7f8c8d;
-  padding: 8px 15px;
-  font-size: 0.7rem;
+  font-family: 'Orbitron', sans-serif;
+  background: var(--glass-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--glass-border);
+  border-radius: 30px;
+  padding: 8px 18px;
+  font-size: 0.65rem;
+  font-weight: 700;
   cursor: pointer;
   text-transform: uppercase;
-  transition: all 0.1s;
+  letter-spacing: 2px;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(5px);
 }
 
 .ctrl-btn:hover {
-  background: #444;
-  margin-top: -2px;
-  border-bottom-width: 6px;
-}
-
-.ctrl-btn:active {
-  margin-top: 2px;
-  border-bottom-width: 2px;
+  border-color: var(--nebula-purple);
+  transform: translateY(-2px);
+  box-shadow: 0 0 20px rgba(107, 92, 231, 0.3);
 }
 
 .ctrl-btn.active {
-  background: var(--accent-yellow);
-  color: black;
-  border-color: #f39c12;
-  box-shadow: 0 0 10px var(--accent-yellow);
+  background: linear-gradient(135deg, #6b5ce7, #4fc3f7);
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 0 20px rgba(107, 92, 231, 0.4);
 }
 
 .ctrl-btn.danger {
-  background: var(--danger-red);
-  border-color: #c0392b;
-  color: white;
+  background: var(--glass-bg);
+  border-color: rgba(240, 98, 146, 0.4);
+  color: var(--nebula-pink);
 }
 
 .ctrl-btn.danger:hover {
-  background: #c0392b;
+  background: rgba(240, 98, 146, 0.15);
+  border-color: var(--nebula-pink);
+  box-shadow: 0 0 20px rgba(240, 98, 146, 0.3);
 }
 
 .ctrl-btn.hint {
-  background: #333;
-  border-color: #7f8c8d;
+  border-color: rgba(79, 195, 247, 0.4);
+  color: var(--nebula-blue);
 }
 
 .ctrl-btn.hint.active {
-  background: var(--accent-yellow);
-  color: black;
-  border-color: #f39c12;
-  box-shadow: 0 0 10px var(--accent-yellow);
-  animation: hint-pulse 1s infinite;
+  background: linear-gradient(135deg, #4fc3f7, #6b5ce7);
+  color: white;
+  border-color: transparent;
+  animation: hint-pulse 1.5s infinite;
 }
 
 @keyframes hint-pulse {
-  0%, 100% { box-shadow: 0 0 10px rgba(241, 196, 15, 0.5); }
-  50% { box-shadow: 0 0 20px rgba(241, 196, 15, 0.8), 0 0 30px rgba(241, 196, 15, 0.4); }
+  0%, 100% { box-shadow: 0 0 15px rgba(79, 195, 247, 0.4); }
+  50% { box-shadow: 0 0 30px rgba(79, 195, 247, 0.7); }
 }
 </style>

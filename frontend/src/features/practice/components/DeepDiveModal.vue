@@ -1,13 +1,20 @@
 <template>
   <div class="modal-overlay" :class="{ active: isActive }">
+    <!-- Star layers -->
+    <div class="stars"></div>
+    <div class="stars2"></div>
+    <div class="stars3"></div>
+    <div class="nebula-overlay"></div>
+
     <div class="interrogation-frame">
       <!-- 헤더 -->
       <div class="frame-header">
         <div class="header-left">
-          <div class="header-title">INTERROGATION IN PROGRESS</div>
+          <div class="header-title">{{ headerTitle }}</div>
           <div class="header-meta">
             <span class="rec">REC</span>
-            <span v-if="totalQuestions > 0">질문 {{ currentQuestion }} / {{ totalQuestions }}</span>
+            <span v-if="isExplanationPhase">Step 1: 설명 작성</span>
+            <span v-else-if="totalQuestions > 0">질문 {{ currentQuestion }} / {{ totalQuestions }}</span>
           </div>
         </div>
         <div class="header-right">
@@ -20,8 +27,11 @@
       <!-- 메인 -->
       <div class="frame-main">
         <div v-if="isGenerating" class="loading-section">
-          <div class="loading-spinner"></div>
-          <p>용의자의 설계도를 분석 중... 꽥!</p>
+          <div class="loading-orbit">
+            <div class="orbit-ring"></div>
+            <div class="orbit-core"></div>
+          </div>
+          <p>ANALYZING_ARCHITECTURE...</p>
         </div>
 
         <template v-else>
@@ -41,39 +51,34 @@
                 <img src="/image/duck_det.png" alt="Detective Duck" />
               </div>
               <div class="det-text">
-                <div class="det-name">DET. DUCK</div>
-                <!-- <div class="det-category" v-if="category">{{ categoryIcon }} {{ category }}</div> -->
+                <div class="det-name">CODUCK_AI</div>
                 <p class="det-question">{{ question }}</p>
               </div>
             </div>
 
             <!-- 용의자 진술 -->
             <div class="testimony-section">
-              <div class="testimony-label">[ANSWER]</div>
+              <div class="testimony-label">{{ isExplanationPhase ? '[EXPLANATION]' : '[ANSWER]' }}</div>
               <textarea
                 class="testimony-input"
+                :class="{ 'explanation-mode': isExplanationPhase }"
                 v-model="answer"
-                placeholder="진술하세요... (거짓말은 금지! 꽥!)"
+                :placeholder="placeholderText"
               ></textarea>
             </div>
-
-            <!-- 스탬프 -->
-            <!-- <div class="verdict-stamp">UNDER INVESTIGATION</div> -->
           </div>
         </template>
       </div>
 
       <!-- 푸터 -->
       <div class="frame-footer">
-        <button class="btn btn-silent" @click="$emit('skip')">
-          {{ isLastQuestion ? '묵비권 행사 (평가)' : '묵비권 (건너뛰기)' }}
-        </button>
         <button
           class="btn btn-submit"
+          :class="{ 'btn-explanation': isExplanationPhase }"
           @click="submitAnswer"
-          :disabled="isGenerating"
+          :disabled="isGenerating || !answer.trim()"
         >
-          {{ isLastQuestion ? '최종 진술 (평가)' : '진술 완료' }}
+          {{ submitButtonText }}
         </button>
       </div>
     </div>
@@ -113,9 +118,14 @@ export default {
     mermaidCode: {
       type: String,
       default: ''
+    },
+    // NEW: 현재 Phase (explanation | questioning)
+    phase: {
+      type: String,
+      default: 'questioning'
     }
   },
-  emits: ['skip', 'submit'],
+  emits: ['submit', 'submit-explanation'],
   data() {
     return {
       answer: ''
@@ -129,6 +139,28 @@ export default {
     isLastQuestion() {
       return this.currentQuestion >= this.totalQuestions;
     },
+    // NEW: Phase에 따른 UI 텍스트
+    isExplanationPhase() {
+      return this.phase === 'explanation';
+    },
+    submitButtonText() {
+      if (this.isExplanationPhase) {
+        return 'SUBMIT_EXPLANATION';
+      }
+      return this.isLastQuestion ? 'FINAL_SUBMIT' : 'NEXT_PROTOCOL';
+    },
+    placeholderText() {
+      if (this.isExplanationPhase) {
+        return '아키텍처에 대한 설명을 입력하세요... (최소 50자 권장)';
+      }
+      return '답변을 입력하세요...';
+    },
+    headerTitle() {
+      if (this.isExplanationPhase) {
+        return 'ARCHITECTURE_ANALYSIS';
+      }
+      return 'SYSTEM_VERIFICATION';
+    }
   },
   watch: {
     question(newVal) {
@@ -154,7 +186,14 @@ export default {
   },
   methods: {
     submitAnswer() {
-      this.$emit('submit', this.answer.trim());
+      const trimmedAnswer = this.answer.trim();
+      if (this.isExplanationPhase) {
+        // 설명 Phase: 설명 제출 이벤트
+        this.$emit('submit-explanation', trimmedAnswer);
+      } else {
+        // 질문 Phase: 기존 답변 제출 이벤트
+        this.$emit('submit', trimmedAnswer);
+      }
       this.answer = '';
     },
     async renderMermaid() {
@@ -173,7 +212,23 @@ export default {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Courier+Prime:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;700&display=swap');
+
+/* =====================
+   CSS VARIABLES
+===================== */
+.modal-overlay {
+  --space-deep: #0a0a1a;
+  --space-dark: #12122a;
+  --nebula-purple: #6b5ce7;
+  --nebula-blue: #4fc3f7;
+  --nebula-pink: #f06292;
+  --star-white: #ffffff;
+  --text-primary: #e8eaed;
+  --text-secondary: rgba(232, 234, 237, 0.7);
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
+}
 
 /* =====================
    OVERLAY
@@ -184,28 +239,82 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background: radial-gradient(circle at top, #444 0%, #000 60%);
+  background: linear-gradient(135deg, var(--space-deep) 0%, var(--space-dark) 50%, #1a1a3a 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2000;
   opacity: 0;
   visibility: hidden;
-  transition: all 0.3s ease;
-}
-
-/* CRT Noise */
-.modal-overlay::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
-  pointer-events: none;
+  transition: all 0.4s ease;
+  overflow: hidden;
 }
 
 .modal-overlay.active {
   opacity: 1;
   visibility: visible;
+}
+
+/* =====================
+   STAR LAYERS
+===================== */
+.stars, .stars2, .stars3 {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.stars {
+  background-image: radial-gradient(1px 1px at 20px 30px, rgba(255,255,255,0.5) 50%, transparent 50%),
+    radial-gradient(1px 1px at 40px 70px, rgba(255,255,255,0.4) 50%, transparent 50%),
+    radial-gradient(1px 1px at 50px 160px, rgba(255,255,255,0.5) 50%, transparent 50%),
+    radial-gradient(1px 1px at 90px 40px, rgba(255,255,255,0.4) 50%, transparent 50%),
+    radial-gradient(1px 1px at 130px 80px, rgba(255,255,255,0.5) 50%, transparent 50%),
+    radial-gradient(1px 1px at 160px 120px, rgba(255,255,255,0.3) 50%, transparent 50%);
+  background-size: 200px 200px;
+  animation: twinkle 50s linear infinite;
+  opacity: 0.5;
+}
+
+.stars2 {
+  background-image: radial-gradient(2px 2px at 100px 50px, rgba(255,255,255,0.3) 50%, transparent 50%),
+    radial-gradient(2px 2px at 200px 150px, rgba(255,255,255,0.2) 50%, transparent 50%),
+    radial-gradient(2px 2px at 300px 250px, rgba(255,255,255,0.3) 50%, transparent 50%);
+  background-size: 400px 400px;
+  animation: twinkle 100s linear infinite;
+  opacity: 0.3;
+}
+
+.stars3 {
+  background-image: radial-gradient(3px 3px at 150px 100px, rgba(255,255,255,0.2) 50%, transparent 50%),
+    radial-gradient(3px 3px at 350px 300px, rgba(255,255,255,0.15) 50%, transparent 50%);
+  background-size: 600px 600px;
+  animation: twinkle 150s linear infinite;
+  opacity: 0.2;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; transform: translateY(0); }
+  50% { opacity: 0.8; transform: translateY(-5px); }
+}
+
+/* =====================
+   NEBULA OVERLAY
+===================== */
+.nebula-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(ellipse at 20% 80%, rgba(107, 92, 231, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(79, 195, 247, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(240, 98, 146, 0.05) 0%, transparent 70%);
+  pointer-events: none;
 }
 
 /* =====================
@@ -215,13 +324,33 @@ export default {
   width: 1100px;
   max-width: 95%;
   max-height: 90vh;
-  background: #111;
-  border: 6px solid #555;
-  box-shadow: 0 0 40px rgba(255, 0, 0, 0.25);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  backdrop-filter: blur(20px);
+  box-shadow:
+    0 0 40px rgba(107, 92, 231, 0.2),
+    0 0 80px rgba(107, 92, 231, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
   position: relative;
   overflow-y: auto;
-  transform: scale(0.9);
-  transition: transform 0.3s ease;
+  transform: scale(0.95);
+  transition: transform 0.4s ease;
+  z-index: 1;
+}
+
+/* 스크롤바 커스텀 */
+.interrogation-frame::-webkit-scrollbar {
+  width: 4px;
+}
+
+.interrogation-frame::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.interrogation-frame::-webkit-scrollbar-thumb {
+  background: rgba(107, 92, 231, 0.3);
+  border-radius: 10px;
 }
 
 .modal-overlay.active .interrogation-frame {
@@ -232,44 +361,46 @@ export default {
    HEADER
 ===================== */
 .frame-header {
-  padding: 16px 20px;
-  border-bottom: 3px solid #333;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--glass-border);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #0a0a0a;
+  background: rgba(107, 92, 231, 0.08);
 }
 
 .header-title {
-  font-family: 'Press Start 2P', cursive;
-  font-size: 14px;
-  color: #e74c3c;
-  letter-spacing: 2px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.85rem;
+  color: var(--nebula-blue);
+  letter-spacing: 3px;
+  font-weight: 700;
   margin-bottom: 6px;
+  text-shadow: 0 0 15px rgba(79, 195, 247, 0.5);
 }
 
 .header-meta {
-  font-family: 'Courier Prime', monospace;
-  font-size: 12px;
-  color: #aaa;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
 .rec {
-  color: #ff3b3b;
+  color: var(--nebula-pink);
   font-weight: bold;
-  animation: blink 1s infinite;
+  animation: pulse-opacity 1.5s infinite;
 }
 
 .rec::before {
   content: "● ";
 }
 
-@keyframes blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0.3; }
+@keyframes pulse-opacity {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 
 .header-right {
@@ -278,15 +409,19 @@ export default {
 
 .progress-bar {
   width: 100%;
-  height: 8px;
-  background: #333;
-  border: 2px solid #555;
+  height: 6px;
+  background: rgba(107, 92, 231, 0.15);
+  border: 1px solid rgba(107, 92, 231, 0.3);
+  border-radius: 3px;
+  overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  background: #e74c3c;
+  background: linear-gradient(90deg, var(--nebula-purple), var(--nebula-blue));
   transition: width 0.3s ease;
+  box-shadow: 0 0 10px rgba(79, 195, 247, 0.5);
+  border-radius: 3px;
 }
 
 /* =====================
@@ -310,59 +445,92 @@ export default {
   padding: 60px;
 }
 
-.loading-spinner {
-  width: 50px;
-  height: 50px;
-  border: 4px solid rgba(231, 76, 60, 0.3);
-  border-top-color: #e74c3c;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 20px;
+.loading-orbit {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  margin-bottom: 24px;
 }
 
-@keyframes spin {
+.orbit-ring {
+  position: absolute;
+  inset: 0;
+  border: 3px solid rgba(107, 92, 231, 0.2);
+  border-top-color: var(--nebula-blue);
+  border-right-color: var(--nebula-purple);
+  border-radius: 50%;
+  animation: orbit 1.2s linear infinite;
+}
+
+.orbit-core {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  background: linear-gradient(135deg, var(--nebula-purple), var(--nebula-blue));
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 20px rgba(107, 92, 231, 0.6);
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes orbit {
+  from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
 
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 15px rgba(107, 92, 231, 0.4); }
+  50% { box-shadow: 0 0 30px rgba(79, 195, 247, 0.7); }
+}
+
 .loading-section p {
-  color: #e74c3c;
-  font-family: 'Courier Prime', monospace;
-  font-size: 1rem;
+  color: var(--nebula-blue);
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.8rem;
+  letter-spacing: 2px;
+  text-shadow: 0 0 10px rgba(79, 195, 247, 0.4);
 }
 
 /* =====================
    EVIDENCE (Left)
 ===================== */
 .evidence-section {
-  background: #0b0b0b;
-  border: 3px solid #555;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
   padding: 15px;
   position: relative;
   display: flex;
   flex-direction: column;
+  backdrop-filter: blur(10px);
 }
 
 .section-title {
-  font-family: 'Press Start 2P', cursive;
-  font-size: 10px;
-  color: #aaa;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
   margin-bottom: 12px;
+  letter-spacing: 2px;
 }
 
 .diagram-container {
   flex: 1;
   min-height: 220px;
-  border: 2px dashed #444;
+  border: 1px dashed rgba(107, 92, 231, 0.25);
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.2);
   padding: 10px;
 }
 
 .diagram-placeholder {
-  color: #666;
-  font-family: 'Courier Prime', monospace;
+  color: var(--text-secondary);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.9rem;
 }
 
 .diagram-container :deep(svg) {
@@ -372,41 +540,23 @@ export default {
 }
 
 .mermaid-error {
-  color: #e74c3c;
-  font-size: 0.8rem;
-}
-
-/* Stamp */
-.stamp {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%) rotate(-12deg);
-  border: 6px solid #c0392b;
-  color: #c0392b;
-  font-family: 'Press Start 2P', cursive;
-  font-size: 16px;
-  padding: 12px 20px;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
-  background: rgba(0, 0, 0, 0.7);
-}
-
-.stamp.stamp-active {
-  opacity: 0.85;
+  color: var(--nebula-pink);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.85rem;
 }
 
 /* =====================
    DETECTIVE (Right)
 ===================== */
 .detective-section {
-  background: #0b0b0b;
-  border: 3px solid #555;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
   padding: 15px;
   display: flex;
   flex-direction: column;
   gap: 15px;
+  backdrop-filter: blur(10px);
 }
 
 .det-card {
@@ -418,13 +568,15 @@ export default {
 .det-avatar {
   width: 70px;
   height: 70px;
-  border: 3px solid #f1c40f;
-  background: #222;
+  border: 2px solid var(--nebula-purple);
+  border-radius: 50%;
+  background: rgba(107, 92, 231, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   overflow: hidden;
+  box-shadow: 0 0 20px rgba(107, 92, 231, 0.3);
 }
 
 .det-avatar img {
@@ -438,28 +590,20 @@ export default {
 }
 
 .det-name {
-  font-family: 'Press Start 2P', cursive;
-  font-size: 10px;
-  color: #f1c40f;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.7rem;
+  color: var(--nebula-blue);
   margin-bottom: 6px;
-}
-
-.det-category {
-  display: inline-block;
-  padding: 3px 8px;
-  background: rgba(231, 76, 60, 0.2);
-  border: 2px solid #e74c3c;
-  font-family: 'Press Start 2P', cursive;
-  font-size: 8px;
-  color: #e74c3c;
-  margin-bottom: 8px;
+  letter-spacing: 2px;
+  font-weight: 700;
+  text-shadow: 0 0 8px rgba(79, 195, 247, 0.5);
 }
 
 .det-question {
-  font-family: 'Courier Prime', monospace;
-  font-size: 14px;
-  line-height: 1.5;
-  color: #eaeaea;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--text-primary);
   margin: 0;
 }
 
@@ -472,64 +616,92 @@ export default {
 }
 
 .testimony-label {
-  font-family: 'Press Start 2P', cursive;
-  font-size: 9px;
-  color: #e74c3c;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.65rem;
+  color: var(--nebula-purple);
+  letter-spacing: 2px;
 }
 
 .testimony-input {
   flex: 1;
   min-height: 80px;
-  background: #000;
-  border: 3px solid #e74c3c;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(107, 92, 231, 0.3);
+  border-radius: 12px;
   padding: 12px;
-  color: #eaeaea;
-  font-family: 'Courier Prime', monospace;
-  font-size: 14px;
+  color: var(--text-primary);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.95rem;
   resize: none;
-  transition: border-color 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 .testimony-input:focus {
   outline: none;
-  border-color: #e74c3c;
+  border-color: var(--nebula-purple);
+  box-shadow: 0 0 20px rgba(107, 92, 231, 0.3);
 }
 
 .testimony-input::placeholder {
-  color: rgba(234, 234, 234, 0.4);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+/* 설명 모드 스타일 */
+.testimony-input.explanation-mode {
+  min-height: 150px;
+  border-color: rgba(79, 195, 247, 0.4);
+}
+
+.testimony-input.explanation-mode:focus {
+  border-color: var(--nebula-blue);
+  box-shadow: 0 0 20px rgba(79, 195, 247, 0.3);
+}
+
+.btn-explanation {
+  background: linear-gradient(135deg, var(--nebula-blue), #81d4fa) !important;
+  color: var(--space-deep) !important;
+}
+
+.btn-explanation:hover:not(:disabled) {
+  box-shadow: 0 10px 30px rgba(79, 195, 247, 0.4) !important;
 }
 
 /* =====================
    FOOTER
 ===================== */
 .frame-footer {
-  border-top: 3px solid #333;
-  padding: 15px 20px;
+  border-top: 1px solid var(--glass-border);
+  padding: 15px 24px;
   display: flex;
   justify-content: flex-end;
   gap: 15px;
-  background: #0a0a0a;
+  background: rgba(107, 92, 231, 0.05);
 }
 
 .btn {
   flex: 1;
   max-width: 250px;
-  padding: 14px 20px;
-  font-family: 'Press Start 2P', cursive;
-  font-size: 1.0rem;
+  padding: 14px 28px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.75rem;
   cursor: pointer;
-  border: 3px solid #000;
-  transition: all 0.2s ease;
+  border: 1px solid rgba(107, 92, 231, 0.3);
+  border-radius: 30px;
+  transition: all 0.3s ease;
+  letter-spacing: 2px;
 }
 
 .btn-submit {
-  background: #f1c40f;
-  color: #000;
+  background: linear-gradient(135deg, var(--nebula-purple), var(--nebula-blue));
+  color: #fff;
+  font-weight: 700;
+  border: none;
 }
 
 .btn-submit:hover:not(:disabled) {
-  background: #f39c12;
-  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(107, 92, 231, 0.4);
+  transform: translateY(-3px);
 }
 
 .btn-submit:disabled {
@@ -537,15 +709,6 @@ export default {
   cursor: not-allowed;
 }
 
-.btn-silent {
-  background: #333;
-  color: #aaa;
-}
-
-.btn-silent:hover {
-  background: #444;
-  color: #fff;
-}
 
 /* =====================
    RESPONSIVE
@@ -557,6 +720,35 @@ export default {
 
   .evidence-section {
     min-height: 200px;
+  }
+
+  .header-title {
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+  }
+}
+
+@media (max-width: 600px) {
+  .interrogation-frame {
+    max-width: 98%;
+  }
+
+  .frame-header {
+    padding: 12px 16px;
+  }
+
+  .frame-main {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .frame-footer {
+    padding: 12px 16px;
+  }
+
+  .btn {
+    padding: 10px 16px;
+    font-size: 0.65rem;
   }
 }
 </style>

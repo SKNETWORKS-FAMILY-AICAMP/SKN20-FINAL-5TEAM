@@ -5,7 +5,7 @@
       <div class="profile-pic">
         <img src="/image/duck_det.png" alt="Detective Duck" class="detective-avatar" />
       </div>
-      <p class="detective-name">DET. DUCK</p>
+      <p class="detective-name">CODUCK_AI</p>
     </div>
 
     <!-- 케이스 파일 폴더 -->
@@ -59,35 +59,53 @@ export default {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
 
 .case-file-panel {
-  --panel-grey: #1a1a1a;
-  --accent-yellow: #f1c40f;
-  --danger-red: #e74c3c;
-  --text-white: #ecf0f1;
-  --pixel-font: 'Press Start 2P', cursive;
+  --space-deep: #0a0a1a;
+  --space-dark: #12122a;
+  --nebula-purple: #6b5ce7;
+  --nebula-blue: #4fc3f7;
+  --nebula-pink: #f06292;
+  --text-primary: #e8eaed;
+  --text-secondary: rgba(232, 234, 237, 0.7);
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
 
   width: 320px;
   min-width: 320px;
-  background: var(--panel-grey);
-  border-right: 4px solid #000;
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  border-right: 1px solid var(--glass-border);
   padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 20px;
   overflow-y: auto;
   z-index: 20;
-  box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+}
+
+/* 스크롤바 커스텀 */
+.case-file-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.case-file-panel::-webkit-scrollbar-track {
+  background: var(--space-deep);
+}
+
+.case-file-panel::-webkit-scrollbar-thumb {
+  background: rgba(107, 92, 231, 0.4);
+  border-radius: 10px;
 }
 
 .detective-profile {
   text-align: center;
-  border-bottom: 2px solid #333;
-  padding-bottom: 15px;
-  background: radial-gradient(circle, #333 0%, var(--panel-grey) 70%);
-  border: 2px solid #555;
   padding: 15px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
 }
 
 .profile-pic {
@@ -96,40 +114,47 @@ export default {
 }
 
 .detective-avatar {
-  width: 60px;
-  height: 60px;
-  border: 2px solid #777;
+  width: 70px;
+  height: 70px;
+  border: 2px solid var(--nebula-purple);
   border-radius: 50%;
   object-fit: contain;
-  background: #000;
+  background: var(--space-deep);
+  box-shadow: 0 0 15px rgba(107, 92, 231, 0.3);
 }
 
 .detective-name {
-  color: var(--accent-yellow);
-  margin: 5px 0 0 0;
-  font-family: var(--pixel-font);
+  color: var(--nebula-blue);
+  margin: 12px 0 0 0;
+  font-family: 'Orbitron', sans-serif;
   font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 2px;
 }
 
 /* === 케이스 파일 폴더 === */
 .case-file-folder {
   padding: 4px;
-  border: 2px solid #000;
-  box-shadow: 3px 3px 0 #000;
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
   position: relative;
 }
 
 .case-file-folder::after {
-  content: 'CONFIDENTIAL';
+  content: 'MISSION';
   position: absolute;
   top: -10px;
-  right: 10px;
-  background: var(--danger-red);
+  right: 15px;
+  background: linear-gradient(135deg, #6b5ce7, #4fc3f7);
   color: white;
-  font-size: 0.5rem;
-  padding: 2px 5px;
-  transform: rotate(5deg);
-  border: 1px solid white;
-  font-family: var(--pixel-font);
+  font-size: 0.6rem;
+  padding: 4px 12px;
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700;
+  letter-spacing: 2px;
+  border-radius: 20px;
+  box-shadow: 0 0 12px rgba(107, 92, 231, 0.4);
 }
 </style>

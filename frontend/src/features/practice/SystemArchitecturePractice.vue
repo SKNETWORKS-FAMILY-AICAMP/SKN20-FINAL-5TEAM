@@ -1,8 +1,14 @@
 <template>
-  <div class="arch-challenge-container panic-room-theme">
-    <!-- 글로벌 FX 레이어 -->
-    <div class="vignette"></div>
-    <div class="noise"></div>
+  <div class="arch-challenge-container among-theme">
+    <!-- 별 배경 -->
+    <div class="stars-container">
+      <div class="stars"></div>
+      <div class="stars2"></div>
+      <div class="stars3"></div>
+    </div>
+
+    <!-- 성운 오버레이 -->
+    <div class="nebula-overlay"></div>
 
     <!-- 인트로 씬 (비주얼 노벨 스타일) -->
     <IntroScene
@@ -22,12 +28,6 @@
 
     <!-- 메인 게임 화면 -->
     <template v-else>
-      <!-- 나사 장식 -->
-      <div class="screw tl"></div>
-      <div class="screw tr"></div>
-      <div class="screw bl"></div>
-      <div class="screw br"></div>
-
       <div class="game-container">
         <!-- 케이스 파일 패널 (좌측 사이드바) -->
         <CaseFilePanel
@@ -79,6 +79,13 @@
         </div>
       </div>
 
+      <!-- 튜토리얼 오버레이 -->
+      <TutorialOverlay
+        v-if="showTutorial"
+        @complete="onTutorialComplete"
+        @skip="onTutorialComplete"
+      />
+
       <!-- 오리 형사 토스트 메시지 -->
       <DetectiveToast
         :show="showToast"
@@ -87,7 +94,7 @@
         @dismiss="dismissToast"
       />
 
-      <!-- Deep Dive 모달 (3개 질문 순차 처리) - 평가는 여기서만 진행 -->
+      <!-- Deep Dive 모달 (설명 입력 + 꼬리질문 순차 처리) -->
       <DeepDiveModal
         :is-active="isDeepDiveModalActive"
         :question="deepDiveQuestion"
@@ -96,8 +103,9 @@
         :total-questions="deepDiveQuestions.length"
         :category="deepDiveQuestions[currentQuestionIndex]?.category || ''"
         :mermaid-code="mermaidCode"
-        @skip="skipDeepDive"
+        :phase="evaluationPhase"
         @submit="submitDeepDiveAnswer"
+        @submit-explanation="submitUserExplanation"
       />
     </template>
   </div>
@@ -115,6 +123,7 @@ import DetectiveToast from './components/DetectiveToast.vue';
 import GameHeader from './components/GameHeader.vue';
 import IntroScene from './components/IntroScene.vue';
 import CaseFilePanel from './components/CaseFilePanel.vue';
+import TutorialOverlay from './components/TutorialOverlay.vue';
 
 // Composables
 import { useToast } from './composables/useToast';
@@ -136,18 +145,20 @@ export default {
     DetectiveToast,
     GameHeader,
     IntroScene,
-    CaseFilePanel
+    CaseFilePanel,
+    TutorialOverlay
   },
   data() {
     return {
       // Intro State
       showIntro: true,
+      showTutorial: false,
       introLines: [
-        "거기 서! 도망갈 생각 마라. 꽥!",
-        "네가 오늘 발생한 대규모 서버 폭파 사건의 가장 유력한 용의자로 지목되었다.",
-        "억울하다고? 그렇다면 취조실로 들어와서 직접 증명해 봐.",
-        "올바른 시스템 아키텍처를 설계해서 네 결백을 입증하는 거다!",
-        "(철창 문이 열린다...)"
+        "[SYSTEM ALERT] 아키텍트님, 마더 서버에 이상 징후가 감지되었습니다. 꽥!",
+        "오염된 AI들이 환각(Hallucination)에 빠져 시스템을 붕괴시키고 있습니다.",
+        "당신만이 이 상황을 복구할 수 있습니다.",
+        "올바른 시스템 아키텍처를 설계하여 데이터 무결성을 확보하세요!",
+        "[PROTOCOL READY] 복구 터미널에 접속합니다..."
       ],
 
       // Problem State
@@ -198,14 +209,17 @@ export default {
       deepDiveQuestion: evaluation.deepDiveQuestion,
       deepDiveQuestions: evaluation.deepDiveQuestions,
       currentQuestionIndex: evaluation.currentQuestionIndex,
-      skipDeepDiveComposable: evaluation.skipDeepDive,
       submitDeepDiveAnswerComposable: evaluation.submitDeepDiveAnswer,
       openEvaluationModalComposable: evaluation.openEvaluationModal,
       directEvaluateComposable: evaluation.directEvaluate,
       handleRetryComposable: evaluation.handleRetry,
       resetEvaluationState: evaluation.resetEvaluationState,
       isPendingEvaluation: evaluation.isPendingEvaluation,
-      clearPendingEvaluation: evaluation.clearPendingEvaluation
+      clearPendingEvaluation: evaluation.clearPendingEvaluation,
+
+      // NEW: 설명 Phase
+      evaluationPhase: evaluation.evaluationPhase,
+      submitUserExplanationComposable: evaluation.submitUserExplanation
     };
   },
   computed: {
@@ -218,12 +232,15 @@ export default {
       startOnLoad: false,
       theme: 'dark',
       themeVariables: {
-        primaryColor: '#f1c40f',
-        primaryTextColor: '#1a1a1a',
-        primaryBorderColor: '#f1c40f',
-        lineColor: '#f1c40f',
-        secondaryColor: '#e74c3c',
-        tertiaryColor: '#3498db'
+        primaryColor: '#6b5ce7',
+        primaryTextColor: '#e8eaed',
+        primaryBorderColor: '#6b5ce7',
+        lineColor: '#4fc3f7',
+        secondaryColor: '#f06292',
+        tertiaryColor: '#4fc3f7',
+        background: '#12122a',
+        mainBkg: 'rgba(255, 255, 255, 0.05)',
+        textColor: '#e8eaed'
       },
       securityLevel: 'loose'
     });
@@ -244,8 +261,23 @@ export default {
     // === Enter Game ===
     onEnterGame() {
       this.showIntro = false;
+      if (!localStorage.getItem('arch-tutorial-done')) {
+        this.$nextTick(() => {
+          this.showTutorial = true;
+        });
+      } else {
+        this.showToastMessage(
+          '[GUIDE] 팔레트에서 컴포넌트를 드래그하여 캔버스에 배치하세요. 꽥!',
+          'guide'
+        );
+      }
+    },
+
+    onTutorialComplete() {
+      this.showTutorial = false;
+      localStorage.setItem('arch-tutorial-done', 'true');
       this.showToastMessage(
-        '자, 여기에 앉아. 오른쪽 팔레트에서 컴포넌트를 드래그해서 캔버스에 배치해. 꽥!',
+        '[GUIDE] 팔레트에서 컴포넌트를 드래그하여 캔버스에 배치하세요. 꽥!',
         'guide'
       );
     },
@@ -308,18 +340,29 @@ export default {
       );
     },
 
-    // === Deep Dive ===
-    async skipDeepDive() {
-      const allDone = await this.skipDeepDiveComposable();
+    // NEW: 사용자 설명 제출 핸들러
+    async submitUserExplanation(explanation) {
+      this.showToastMessage('[PROCESSING] 아키텍처 분석 및 질문 생성 중... 꽥!', 'guide');
+
+      const allDone = await this.submitUserExplanationComposable(
+        explanation,
+        this.currentProblem,
+        this.droppedComponents,
+        this.connections,
+        this.mermaidCode
+      );
+
       if (allDone && this.isPendingEvaluation()) {
+        // 질문 없이 바로 평가로 진행
         this.clearPendingEvaluation();
-        // EvaluationModal 없이 바로 평가 진행
         await this.directEvaluateComposable(
           this.currentProblem,
           this.droppedComponents,
           this.connections,
           this.mermaidCode
         );
+      } else {
+        this.showToastMessage('[READY] 검증 질문에 응답해주세요. 꽥!', 'guide');
       }
     },
 
@@ -357,87 +400,127 @@ export default {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Courier+Prime:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
 
-/* === 취조실 테마 변수 === */
-.arch-challenge-container.panic-room-theme {
-  --bg-dark: #0f1115;
-  --bg-metal: #2c3e50;
-  --panel-grey: #1a1a1a;
-  --accent-yellow: #f1c40f;
-  --danger-red: #e74c3c;
-  --neon-blue: #00f3ff;
-  --text-white: #ecf0f1;
-  --border-black: #000;
-  --pixel-font: 'Press Start 2P', cursive;
-  --typewriter-font: 'Courier Prime', monospace;
+/* === Space Mission Report 테마 변수 === */
+.arch-challenge-container.among-theme {
+  --space-deep: #0a0a1a;
+  --space-dark: #12122a;
 
-  font-family: var(--pixel-font);
-  background-color: var(--bg-dark);
-  color: var(--text-white);
+  --nebula-purple: #6b5ce7;
+  --nebula-blue: #4fc3f7;
+  --nebula-pink: #f06292;
+  --star-white: #ffffff;
+
+  --text-primary: #e8eaed;
+  --text-secondary: rgba(232, 234, 237, 0.7);
+
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
+
+  font-family: 'Rajdhani', sans-serif;
+  background: linear-gradient(135deg, var(--space-deep) 0%, var(--space-dark) 50%, #1a1a3a 100%);
+  color: var(--text-primary);
   height: 100vh;
   overflow: hidden;
   position: relative;
   user-select: none;
-  /* CRT 스캔라인 효과 */
-  background-image:
-    linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
-    linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-  background-size: 100% 2px, 6px 100%;
 }
 
-/* === 글로벌 FX 레이어 === */
-.vignette {
+/* === 별 배경 애니메이션 === */
+.stars-container {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: radial-gradient(circle, transparent 50%, rgba(0, 0, 0, 0.9) 100%);
   pointer-events: none;
-  z-index: 900;
+  overflow: hidden;
+  z-index: 0;
 }
 
-.noise {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0.03;
-  background-image: repeating-radial-gradient(#000 0 0.0001%, #fff 0 0.0002%);
-  pointer-events: none;
-  z-index: 899;
-}
-
-/* === 나사 장식 === */
-.screw {
-  position: fixed;
-  width: 15px;
-  height: 15px;
-  background: #555;
-  border-radius: 50%;
-  border: 2px solid #222;
-  box-shadow: inset 2px 2px 5px rgba(255, 255, 255, 0.2), 2px 2px 5px rgba(0, 0, 0, 0.5);
-  z-index: 950;
-  pointer-events: none;
-}
-
-.screw::after {
-  content: '';
+.stars, .stars2, .stars3 {
   position: absolute;
-  top: 50%;
-  left: 10%;
-  width: 80%;
-  height: 2px;
-  background: #111;
-  transform: translateY(-50%) rotate(45deg);
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
 }
 
-.screw.tl { top: 10px; left: 10px; }
-.screw.tr { top: 10px; right: 10px; }
-.screw.bl { bottom: 10px; left: 10px; }
-.screw.br { bottom: 10px; right: 10px; }
+.stars {
+  background-image:
+    radial-gradient(2px 2px at 20px 30px, var(--star-white), transparent),
+    radial-gradient(2px 2px at 40px 70px, rgba(255,255,255,0.8), transparent),
+    radial-gradient(1px 1px at 90px 40px, var(--star-white), transparent),
+    radial-gradient(2px 2px at 160px 120px, rgba(255,255,255,0.9), transparent),
+    radial-gradient(1px 1px at 230px 80px, var(--star-white), transparent),
+    radial-gradient(2px 2px at 300px 150px, rgba(255,255,255,0.7), transparent),
+    radial-gradient(1px 1px at 350px 200px, var(--star-white), transparent),
+    radial-gradient(2px 2px at 420px 50px, rgba(255,255,255,0.8), transparent),
+    radial-gradient(1px 1px at 500px 180px, var(--star-white), transparent),
+    radial-gradient(2px 2px at 580px 100px, rgba(255,255,255,0.9), transparent);
+  background-size: 600px 300px;
+  animation: twinkle 4s ease-in-out infinite;
+}
+
+.stars2 {
+  background-image:
+    radial-gradient(1px 1px at 100px 150px, var(--nebula-blue), transparent),
+    radial-gradient(2px 2px at 200px 250px, rgba(79, 195, 247, 0.6), transparent),
+    radial-gradient(1px 1px at 350px 100px, var(--nebula-blue), transparent),
+    radial-gradient(2px 2px at 450px 300px, rgba(79, 195, 247, 0.7), transparent),
+    radial-gradient(1px 1px at 550px 200px, var(--nebula-blue), transparent);
+  background-size: 600px 400px;
+  animation: twinkle 6s ease-in-out infinite 1s;
+}
+
+.stars3 {
+  background-image:
+    radial-gradient(1px 1px at 50px 200px, var(--nebula-purple), transparent),
+    radial-gradient(2px 2px at 150px 50px, rgba(107, 92, 231, 0.6), transparent),
+    radial-gradient(1px 1px at 280px 180px, var(--nebula-purple), transparent),
+    radial-gradient(2px 2px at 400px 120px, rgba(107, 92, 231, 0.7), transparent),
+    radial-gradient(1px 1px at 520px 280px, var(--nebula-purple), transparent);
+  background-size: 600px 400px;
+  animation: twinkle 5s ease-in-out infinite 2s;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* 성운 오버레이 */
+.nebula-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(ellipse at 20% 20%, rgba(107, 92, 231, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(240, 98, 146, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(79, 195, 247, 0.08) 0%, transparent 60%);
+  pointer-events: none;
+  animation: nebulaPulse 10s ease-in-out infinite;
+  z-index: 0;
+}
+
+@keyframes nebulaPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(107, 92, 231, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(107, 92, 231, 0.6); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
 
 /* === MAIN GAME === */
 .game-container {
@@ -446,13 +529,7 @@ export default {
   height: 100%;
   position: relative;
   z-index: 1;
-  /* 금속 패널 텍스처 */
-  background: #1e272e;
-  background-image:
-    linear-gradient(90deg, transparent 50%, rgba(0, 0, 0, 0.2) 50%),
-    linear-gradient(0deg, transparent 50%, rgba(0, 0, 0, 0.2) 50%);
-  background-size: 50px 50px;
-  box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.8);
+  background: transparent;
 }
 
 /* === MAIN WORKSPACE === */
@@ -469,43 +546,56 @@ export default {
   flex: 1;
   display: flex;
   overflow: hidden;
-  background: #222;
+  background: transparent;
 }
 
 .toolbox-panel {
-  width: 130px;
-  min-width: 130px;
-  background: var(--bg-metal);
-  border-right: 4px solid #000;
-  padding: 15px;
+  width: 150px;
+  min-width: 150px;
+  background: rgba(255, 255, 255, 0.05);
+  border-right: 1px solid var(--glass-border);
+  backdrop-filter: blur(10px);
+  padding: 12px;
   overflow-y: auto;
-  /* 금속 스트라이프 패턴 */
-  background-image: linear-gradient(0deg, #34495e 50%, #2c3e50 50%);
-  background-size: 100% 20px;
-  box-shadow: inset -5px 0 15px rgba(0, 0, 0, 0.5);
+}
+
+/* 스크롤바 커스텀 */
+.toolbox-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.toolbox-panel::-webkit-scrollbar-track {
+  background: var(--space-deep);
+}
+
+.toolbox-panel::-webkit-scrollbar-thumb {
+  background: rgba(107, 92, 231, 0.4);
+  border-radius: 10px;
+}
+
+.toolbox-panel::-webkit-scrollbar-thumb:hover {
+  background: var(--nebula-purple);
 }
 
 .canvas-panel {
   flex: 1;
   position: relative;
-  /* 블루프린트 그리드 패턴 */
-  background-color: #2f3542;
+  background-color: rgba(10, 10, 26, 0.85);
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-  background-size: 40px 40px;
-  box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.8);
+    radial-gradient(rgba(107, 92, 231, 0.04) 1px, transparent 1px);
+  background-size: 30px 30px;
 }
 
 .canvas-panel::after {
-  content: "SYSTEM ARCHITECTURE (DRAFT)";
+  content: "ARCHITECTURE WORKSPACE";
   position: absolute;
   bottom: 20px;
   right: 20px;
-  font-family: var(--typewriter-font);
-  font-size: 2rem;
-  color: rgba(255, 255, 255, 0.05);
-  transform: rotate(-5deg);
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: rgba(107, 92, 231, 0.15);
+  letter-spacing: 3px;
   pointer-events: none;
 }
 </style>
