@@ -14,12 +14,12 @@ axios.defaults.xsrfCookieName = 'csrftoken'
 axios.defaults.xsrfHeaderName = 'X-CSRFToken'
 
 // 새로운 퀘스트 기반 Logic Mirror 임포트
-import PseudoPractice from './features/practice/pseudoProblem.vue'
+// import PseudoPractice from './features/practice/pseudoProblem.vue'
+import CoduckWars from './features/practice/0205/CoduckWars.vue'
 import SystemArchitecturePractice from './features/practice/SystemArchitecturePractice.vue'
 import BugHunt from './features/practice/BugHunt.vue'
 import VibeCodeCleanUp from './features/practice/VibeCodeCleanUp.vue'
 import OpsPractice from './features/practice/OpsPractice.vue'
-import ProgressiveProblems from './features/practice/ProgressiveProblems.vue'
 // [수정일: 2026-01-31] 사용하지 않는 구버전/비활성 컴포넌트 임포트 주석 처리
 // import AiDetectivePractice from './features/practice/AiDetectivePractice.vue'
 // import PseudoForest from './features/practice/PseudoForest.vue'
@@ -36,7 +36,7 @@ const routes = [
   {
     path: '/practice/pseudo-code',
     name: 'PseudoCode',
-    component: PseudoPractice
+    component: CoduckWars
   },
   {
     path: '/practice/system-architecture',
@@ -59,9 +59,9 @@ const routes = [
     component: OpsPractice
   },
   {
-    path: '/practice/progressive-problems',
-    name: 'ProgressiveProblems',
-    component: ProgressiveProblems
+    path: '/practice/coduck-wars',
+    name: 'CoduckWars',
+    component: CoduckWars
   },
   /* [수정일: 2026-01-31] 비활성 라우트 주석 처리
   {
