@@ -1,0 +1,157 @@
+{
+  "model_name": "Llama-3.1-70B",
+  "results": [
+    {
+      "sample_id": "data_leakage_excellent",
+      "case_id": "data_leakage",
+      "quality_level": "excellent",
+      "expected_score_range": [
+        85,
+        100
+      ],
+      "trials": [
+        {
+          "trial": 1,
+          "error": true,
+          "message": "API error: 410",
+          "time": 0.53159499168396
+        },
+        {
+          "trial": 2,
+          "error": true,
+          "message": "API error: 410",
+          "time": 0.3574032783508301
+        },
+        {
+          "trial": 3,
+          "error": true,
+          "message": "API error: 410",
+          "time": 0.42513608932495117
+        }
+      ]
+    },
+    {
+      "sample_id": "data_leakage_good",
+      "case_id": "data_leakage",
+      "quality_level": "good",
+      "expected_score_range": [
+        70,
+        84
+      ],
+      "trials": [
+        {
+          "trial": 1,
+          "error": true,
+          "message": "API error: 410",
+          "time": 0.41501784324645996
+        },
+        {
+          "trial": 2,
+          "error": true,
+          "message": "API error: 410",
+          "time": 0.413238525390625
+        },
+        {
+          "trial": 3,
+          "error": true,
+          "message": "API error: 410",
+          "time": 0.35567378997802734
+        }
+      ]
+    },
+    {
+      "sample_id": "data_leakage_average",
+      "case_id": "data_leakage",
+      "quality_level": "average",
+      "expected_score_range": [
+        55,
+        69
+      ],
+      "trials": [
+        {
+          "trial": 1,
+          "error": true,
+          "message": "API error: 410",
+          "time": 0.4778435230255127
+        },
+        {
+          "trial": 2,
+          "error": true,
+          "message": "API error: 410",
+          "time": 0.419344425201416
+        },
+        {
+          "trial": 3,
+          "error": true,
+          "message": "API error: 410",
+          "time": 0.4172632694244385
+        }
+      ]
+    },
+    {
+      "sample_id": "data_leakage_poor",
+      "case_id": "data_leakage",
+      "quality_level": "poor",
+      "expected_score_range": [
+        35,
+        54
+      ],
+      "trials": [
+        {
+          "trial": 1,
+          "error": true,
+          "message": "API error: 410",
+          "time": 0.41799497604370117
+        },
+        {
+          "trial": 2,
+          "error": true,
+          "message": "API error: 410",
+          "time": 0.41879987716674805
+        },
+        {
+          "trial": 3,
+          "error": true,
+          "message": "API error: 410",
+          "time": 0.41706180572509766
+        }
+      ]
+    },
+    {
+      "sample_id": "data_leakage_very_poor",
+      "case_id": "data_leakage",
+      "quality_level": "very_poor",
+      "expected_score_range": [
+        0,
+        34
+      ],
+      "trials": [
+        {
+          "trial": 1,
+          "error": true,
+          "message": "API error: 410",
+          "time": 0.4206240177154541
+        },
+        {
+          "trial": 2,
+          "error": true,
+          "message": "API error: 410",
+          "time": 0.417621374130249
+        },
+        {
+          "trial": 3,
+          "error": true,
+          "message": "API error: 410",
+          "time": 0.41741251945495605
+        }
+      ]
+    }
+  ],
+  "stats": {
+    "model": "Llama-3.1-70B",
+    "total_cost": 0,
+    "total_tokens": 0,
+    "avg_time": 0.42146868705749513,
+    "total_evaluations": 15
+  }
+}

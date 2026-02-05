@@ -1,0 +1,257 @@
+[
+  {
+    "sample_id": "data_leakage_excellent",
+    "case_id": "data_leakage",
+    "case_title": "Data Leakage",
+    "bug_type": "데이터 누수",
+    "quality_level": "excellent",
+    "expected_score_range": [
+      85,
+      100
+    ],
+    "missionTitle": "Data Leakage",
+    "steps": [
+      {
+        "step": 1,
+        "title": "버그 진단",
+        "bug_type": "데이터 누수",
+        "instruction": "train_test_split 전에 스케일링하여 테스트 데이터 정보가 학습에 유출",
+        "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\nscaler = StandardScaler()\nX_scaled = scaler.fit_transform(X)\nX_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2)"
+      },
+      {
+        "step": 2,
+        "title": "코드 수정",
+        "bug_type": "데이터 누수",
+        "instruction": "버그를 수정하세요",
+        "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\nscaler = StandardScaler()\nX_scaled = scaler.fit_transform(X)\nX_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2)"
+      },
+      {
+        "step": 3,
+        "title": "설명 작성",
+        "bug_type": "데이터 누수",
+        "instruction": "수정 이유를 설명하세요",
+        "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\nscaler = StandardScaler()\nX_scaled = scaler.fit_transform(X)\nX_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2)"
+      }
+    ],
+    "explanations": {
+      "1": "데이터 누수 문제입니다. train_test_split 전에 스케일링하여 테스트 데이터 정보가 학습에 유출로 인해 발생했습니다. 구체적으로 from sklearn.preprocessing import StandardScaler\nf... 부분에서 문제가 발생하며, 이는 데이터 무결성/로직 안정성을 해칩니다.",
+      "2": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)\nscaler = StandardScaler()\nX_train = scaler.fit_transform(X_train)\nX_test = scaler.transform(X_test)",
+      "3": "원인은 데이터 누수이었습니다. 이를 해결하기 위해 from sklearn.preprocessing import StandardScaler\nf...와 같이 수정했습니다. 이 수정으로 문제의 근본 원인이 제거되며, 부작용 없이 안전하게 동작합니다. 추가로 유사한 문제 재발을 방지하기 위해 경계 조건 체크도 강화했습니다."
+    },
+    "userCodes": {
+      "1": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\nscaler = StandardScaler()\nX_scaled = scaler.fit_transform(X)\nX_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2)",
+      "2": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)\nscaler = StandardScaler()\nX_train = scaler.fit_transform(X_train)\nX_test = scaler.transform(X_test)",
+      "3": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)\nscaler = StandardScaler()\nX_train = scaler.fit_transform(X_train)\nX_test = scaler.transform(X_test)"
+    },
+    "performance": {
+      "quizIncorrectCount": 0,
+      "codeSubmitFailCount": 0,
+      "hintCount": 0,
+      "totalDebugTime": 180
+    }
+  },
+  {
+    "sample_id": "data_leakage_good",
+    "case_id": "data_leakage",
+    "case_title": "Data Leakage",
+    "bug_type": "데이터 누수",
+    "quality_level": "good",
+    "expected_score_range": [
+      70,
+      84
+    ],
+    "missionTitle": "Data Leakage",
+    "steps": [
+      {
+        "step": 1,
+        "title": "버그 진단",
+        "bug_type": "데이터 누수",
+        "instruction": "train_test_split 전에 스케일링하여 테스트 데이터 정보가 학습에 유출",
+        "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\nscaler = StandardScaler()\nX_scaled = scaler.fit_transform(X)\nX_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2)"
+      },
+      {
+        "step": 2,
+        "title": "코드 수정",
+        "bug_type": "데이터 누수",
+        "instruction": "버그를 수정하세요",
+        "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\nscaler = StandardScaler()\nX_scaled = scaler.fit_transform(X)\nX_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2)"
+      },
+      {
+        "step": 3,
+        "title": "설명 작성",
+        "bug_type": "데이터 누수",
+        "instruction": "수정 이유를 설명하세요",
+        "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\nscaler = StandardScaler()\nX_scaled = scaler.fit_transform(X)\nX_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2)"
+      }
+    ],
+    "explanations": {
+      "1": "데이터 누수 문제로 보입니다. train_test_split 전에 스케일링하여 테스트 데이터 정보가 학... 때문입니다.",
+      "2": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)\nscaler = StandardScaler()\nX_train = scaler.fit_transform(X_train)\nX_test = scaler.transform(X_test)",
+      "3": "데이터 누수 문제였습니다. 코드를 수정하여 해결했습니다."
+    },
+    "userCodes": {
+      "1": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\nscaler = StandardScaler()\nX_scaled = scaler.fit_transform(X)\nX_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2)",
+      "2": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)\nscaler = StandardScaler()\nX_train = scaler.fit_transform(X_train)\nX_test = scaler.transform(X_test)",
+      "3": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)\nscaler = StandardScaler()\nX_train = scaler.fit_transform(X_train)\nX_test = scaler.transform(X_test)"
+    },
+    "performance": {
+      "quizIncorrectCount": 0,
+      "codeSubmitFailCount": 0,
+      "hintCount": 0,
+      "totalDebugTime": 180
+    }
+  },
+  {
+    "sample_id": "data_leakage_average",
+    "case_id": "data_leakage",
+    "case_title": "Data Leakage",
+    "bug_type": "데이터 누수",
+    "quality_level": "average",
+    "expected_score_range": [
+      55,
+      69
+    ],
+    "missionTitle": "Data Leakage",
+    "steps": [
+      {
+        "step": 1,
+        "title": "버그 진단",
+        "bug_type": "데이터 누수",
+        "instruction": "train_test_split 전에 스케일링하여 테스트 데이터 정보가 학습에 유출",
+        "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\nscaler = StandardScaler()\nX_scaled = scaler.fit_transform(X)\nX_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2)"
+      },
+      {
+        "step": 2,
+        "title": "코드 수정",
+        "bug_type": "데이터 누수",
+        "instruction": "버그를 수정하세요",
+        "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\nscaler = StandardScaler()\nX_scaled = scaler.fit_transform(X)\nX_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2)"
+      },
+      {
+        "step": 3,
+        "title": "설명 작성",
+        "bug_type": "데이터 누수",
+        "instruction": "수정 이유를 설명하세요",
+        "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\nscaler = StandardScaler()\nX_scaled = scaler.fit_transform(X)\nX_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2)"
+      }
+    ],
+    "explanations": {
+      "1": "코드에 문제가 있는 것 같습니다.",
+      "2": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\nX_train, X_test, y_train, y_test =\n# ... 일부 수정",
+      "3": "버그를 찾아서 고쳤습니다."
+    },
+    "userCodes": {
+      "1": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\nscaler = StandardScaler()\nX_scaled = scaler.fit_transform(X)\nX_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2)",
+      "2": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\nX_train, X_test, y_train, y_test =\n# ... 일부 수정",
+      "3": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\nX_train, X_test, y_train, y_test =\n# ... 일부 수정"
+    },
+    "performance": {
+      "quizIncorrectCount": 0,
+      "codeSubmitFailCount": 0,
+      "hintCount": 1,
+      "totalDebugTime": 180
+    }
+  },
+  {
+    "sample_id": "data_leakage_poor",
+    "case_id": "data_leakage",
+    "case_title": "Data Leakage",
+    "bug_type": "데이터 누수",
+    "quality_level": "poor",
+    "expected_score_range": [
+      35,
+      54
+    ],
+    "missionTitle": "Data Leakage",
+    "steps": [
+      {
+        "step": 1,
+        "title": "버그 진단",
+        "bug_type": "데이터 누수",
+        "instruction": "train_test_split 전에 스케일링하여 테스트 데이터 정보가 학습에 유출",
+        "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\nscaler = StandardScaler()\nX_scaled = scaler.fit_transform(X)\nX_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2)"
+      },
+      {
+        "step": 2,
+        "title": "코드 수정",
+        "bug_type": "데이터 누수",
+        "instruction": "버그를 수정하세요",
+        "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\nscaler = StandardScaler()\nX_scaled = scaler.fit_transform(X)\nX_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2)"
+      },
+      {
+        "step": 3,
+        "title": "설명 작성",
+        "bug_type": "데이터 누수",
+        "instruction": "수정 이유를 설명하세요",
+        "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\nscaler = StandardScaler()\nX_scaled = scaler.fit_transform(X)\nX_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2)"
+      }
+    ],
+    "explanations": {
+      "1": "뭔가 잘못된 것 같습니다.",
+      "2": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\nscaler = StandardScaler()\nX_scaled = scaler.fit_transform(X)\nX_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2)\n# 변수명만 변경",
+      "3": "수정해봤는데 잘 모르겠습니다."
+    },
+    "userCodes": {
+      "1": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\nscaler = StandardScaler()\nX_scaled = scaler.fit_transform(X)\nX_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2)",
+      "2": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\nscaler = StandardScaler()\nX_scaled = scaler.fit_transform(X)\nX_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2)\n# 변수명만 변경",
+      "3": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\nscaler = StandardScaler()\nX_scaled = scaler.fit_transform(X)\nX_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2)\n# 변수명만 변경"
+    },
+    "performance": {
+      "quizIncorrectCount": 0,
+      "codeSubmitFailCount": 0,
+      "hintCount": 2,
+      "totalDebugTime": 180
+    }
+  },
+  {
+    "sample_id": "data_leakage_very_poor",
+    "case_id": "data_leakage",
+    "case_title": "Data Leakage",
+    "bug_type": "데이터 누수",
+    "quality_level": "very_poor",
+    "expected_score_range": [
+      0,
+      34
+    ],
+    "missionTitle": "Data Leakage",
+    "steps": [
+      {
+        "step": 1,
+        "title": "버그 진단",
+        "bug_type": "데이터 누수",
+        "instruction": "train_test_split 전에 스케일링하여 테스트 데이터 정보가 학습에 유출",
+        "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\nscaler = StandardScaler()\nX_scaled = scaler.fit_transform(X)\nX_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2)"
+      },
+      {
+        "step": 2,
+        "title": "코드 수정",
+        "bug_type": "데이터 누수",
+        "instruction": "버그를 수정하세요",
+        "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\nscaler = StandardScaler()\nX_scaled = scaler.fit_transform(X)\nX_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2)"
+      },
+      {
+        "step": 3,
+        "title": "설명 작성",
+        "bug_type": "데이터 누수",
+        "instruction": "수정 이유를 설명하세요",
+        "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\nscaler = StandardScaler()\nX_scaled = scaler.fit_transform(X)\nX_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2)"
+      }
+    ],
+    "explanations": {
+      "1": "모르겠습니다.",
+      "2": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\nscaler = StandardScaler()\nX_scaled = scaler.fit_transform(X)\nX_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2)",
+      "3": "잘 모르겠어요."
+    },
+    "userCodes": {
+      "1": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\nscaler = StandardScaler()\nX_scaled = scaler.fit_transform(X)\nX_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2)",
+      "2": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\nscaler = StandardScaler()\nX_scaled = scaler.fit_transform(X)\nX_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2)",
+      "3": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\nscaler = StandardScaler()\nX_scaled = scaler.fit_transform(X)\nX_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2)"
+    },
+    "performance": {
+      "quizIncorrectCount": 0,
+      "codeSubmitFailCount": 0,
+      "hintCount": 2,
+      "totalDebugTime": 180
+    }
+  }
+]
