@@ -390,6 +390,7 @@ import { useCoduckWars } from './CoduckWarsLogic.js';
 
 const router = useRouter();
 const gameStore = useGameStore();
+const emit = defineEmits(['close']);
 
 const { 
     gameState, 

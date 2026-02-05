@@ -397,6 +397,7 @@ export function useCoduckWars() {
         insertSnippet,
         nextMission,
         restartMission,
+        initPhase4Scaffolding,
         handlePseudoInput // Export this new action
     };
 }
