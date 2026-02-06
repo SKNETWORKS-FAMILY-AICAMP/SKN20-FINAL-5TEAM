@@ -1983,7 +1983,7 @@ onUnmounted(() => {
 .clue-panel {
   flex: 1; /* Take all remaining space (Expanded Log Window) */
   min-height: 0; /* flex child가 shrink 가능하도록 */
-  background: rgba(0, 0, 0, 0.4); /* Slightly darker/transparent */
+  background: rgba(0, 0, 0, 0.4);
   border-top: 1px solid rgba(0, 255, 255, 0.2);
   display: flex;
   flex-direction: column;
@@ -2037,7 +2037,7 @@ onUnmounted(() => {
 .clue-text {
   flex: 1;
   line-height: 1.6;
-  color: #e0e0e0;
+  color: #90EE90; /* 연두색 */
   white-space: pre-wrap;
   font-family: 'JetBrains Mono', 'Consolas', monospace;
   font-size: 0.85rem;
