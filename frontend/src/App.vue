@@ -296,7 +296,7 @@ function selectProblem(problem) {
 
   if (chapterName === 'pseudopractice') {
     game.selectedQuestIndex = problem.questIndex || 0;
-    // [수정일: 2026-01-31] 모든 Unit 1 문제는 HUD 스타일의 통합 연습 화면(pseudoProblem.vue)으로 연결됩니다.
+    // [수정일: 2026-02-06] 의사코드(Pseudocode) 관련 파일들은 이제 pseudocode 폴더에서 관리됩니다.
     router.push('/practice/pseudo-code');
   } else if (chapterName === 'systempractice') {
     game.selectedSystemProblemIndex = problem.problemIndex || 0;

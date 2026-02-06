@@ -1,0 +1,170 @@
+{
+  "users": [
+    {
+      "username": "jane0816@naver.com",
+      "email": "jane0816@naver.com",
+      "password": "pbkdf2_sha256$1000000$VB6NowFPDVgZU6IslQ8itm$5NeFOnlkM96AmVDI/l6Um+qgx4pXwjkLEBUt0FRmTJc=",
+      "first_name": "",
+      "last_name": "",
+      "is_staff": false,
+      "is_active": true,
+      "is_superuser": false,
+      "date_joined": "2026-01-27 05:44:59.939424+00:00"
+    },
+    {
+      "username": "bct5022@gmail.com",
+      "email": "bct5022@gmail.com",
+      "password": "pbkdf2_sha256$1000000$7zBIl5LWKv2KtVLnzrDJxs$5QZQbBu7ciyxjUe04DmDwDO3pCpioSl++eMhq/VKtUs=",
+      "first_name": "",
+      "last_name": "",
+      "is_staff": false,
+      "is_active": true,
+      "is_superuser": false,
+      "date_joined": "2026-01-27 05:34:34.991242+00:00"
+    },
+    {
+      "username": "khh1121best@gmail.com",
+      "email": "khh1121best@gmail.com",
+      "password": "pbkdf2_sha256$1000000$Im0zgXtuITxlwdlscsp8Aq$fw3L+s9Yk4/xVJMg4Js0eFhVFxrTrlZTn6GSbgVmr4c=",
+      "first_name": "",
+      "last_name": "",
+      "is_staff": false,
+      "is_active": true,
+      "is_superuser": false,
+      "date_joined": "2026-01-25 07:08:34.218660+00:00"
+    },
+    {
+      "username": "qkrcks8028@naver.com",
+      "email": "qkrcks8028@naver.com",
+      "password": "pbkdf2_sha256$1000000$XflPrTpS0GpNXBJ8d9G1Yl$IIP5ZM3XCkioJMC9F7QwS/OMvf5HR2z6vj3xpf3Ikqw=",
+      "first_name": "",
+      "last_name": "",
+      "is_staff": false,
+      "is_active": true,
+      "is_superuser": false,
+      "date_joined": "2026-01-27 05:30:33.852897+00:00"
+    },
+    {
+      "username": "csy@email.com",
+      "email": "csy@email.com",
+      "password": "pbkdf2_sha256$1000000$DFqVtqipPJyv8kG7Jk5KSH$J/gv7nFORVhniLsqpE4/BW9PXpUeyZHzw+8oSpi/fC8=",
+      "first_name": "",
+      "last_name": "",
+      "is_staff": false,
+      "is_active": true,
+      "is_superuser": false,
+      "date_joined": "2026-01-27 05:37:36.126731+00:00"
+    },
+    {
+      "username": "test@test.com",
+      "email": "test@test.com",
+      "password": "pbkdf2_sha256$1000000$C0Nj0vzgNo6IyDBwVBcu9i$4Sq5bqTrgzAj8mvKDBIiaO1atRinGtCMMW/wKRS+4ik=",
+      "first_name": "",
+      "last_name": "",
+      "is_staff": false,
+      "is_active": true,
+      "is_superuser": false,
+      "date_joined": "2026-01-26 02:52:06.574157+00:00"
+    }
+  ],
+  "profiles": [
+    {
+      "old_id": "khh1121best@gmail.com",
+      "user_name": "pseudo",
+      "user_nickname": "pseudo",
+      "email": "khh1121best@gmail.com",
+      "birth_date": "2000-07-25",
+      "password": "pbkdf2_sha256$1000000$Nyu23jSsn8oQZMgPuih59c$zp6vZOMjBMON7nh4lkceSe4jXoFT+QkZ4zkw2wFwuU4=",
+      "create_id": "admin",
+      "update_id": "admin"
+    },
+    {
+      "old_id": "test@test.com",
+      "user_name": "dorunkye",
+      "user_nickname": "dorunkye",
+      "email": "test@test.com",
+      "birth_date": null,
+      "password": "pbkdf2_sha256$1000000$pDVOy18F6uGGEj6r33Ms7a$4Yz2q2MiMlKMXbe/fsrh3L1bWRZUm6DUJW73VYzRSUo=",
+      "create_id": "admin",
+      "update_id": "admin"
+    },
+    {
+      "old_id": "qkrcks8028@naver.com",
+      "user_name": "Chan",
+      "user_nickname": "Chan",
+      "email": "qkrcks8028@naver.com",
+      "birth_date": "2026-01-08",
+      "password": "pbkdf2_sha256$1000000$wCyvnPn5WZesbYiENFIsYv$DaqqjtbmdD+6lNytxJLWDtmA4w9lSVlMxQcEdtg6yfU=",
+      "create_id": "admin",
+      "update_id": "admin"
+    },
+    {
+      "old_id": "bct5022@gmail.com",
+      "user_name": "hyeonnii",
+      "user_nickname": "hyeonnii",
+      "email": "bct5022@gmail.com",
+      "birth_date": "2002-10-27",
+      "password": "pbkdf2_sha256$1000000$rB8falE0OmquEJn2N0pPMZ$ZGkojyoRiz9lT+L+6rqH03Zb7ZzQQoU9FMA6+Ozvul4=",
+      "create_id": "admin",
+      "update_id": "admin"
+    },
+    {
+      "old_id": "csy@email.com",
+      "user_name": "csy",
+      "user_nickname": "csy",
+      "email": "csy@email.com",
+      "birth_date": null,
+      "password": "pbkdf2_sha256$1000000$GkjcHDfDeDE5g5gIykfM5Q$dCFmOzvkAzJ7W6HM30RG0KWeBWQeVary3cyp0JBMTWI=",
+      "create_id": "admin",
+      "update_id": "admin"
+    },
+    {
+      "old_id": "jane0816@naver.com",
+      "user_name": "Cap",
+      "user_nickname": "Cap",
+      "email": "jane0816@naver.com",
+      "birth_date": "2026-01-27",
+      "password": "pbkdf2_sha256$1000000$xHO6ElFWVdvu6zggqx17RK$4QDKqiqz+l2SeuYvTjejcAG1K0uW3IZYaqiZERpTM/w=",
+      "create_id": "admin",
+      "update_id": "admin"
+    }
+  ],
+  "details": [
+    {
+      "user_old_id": "khh1121best@gmail.com",
+      "is_developer": true,
+      "job_role": "backend,frontend",
+      "interests": "ai,web,data,cloud,blockchain,mobile,game,iot"
+    },
+    {
+      "user_old_id": "test@test.com",
+      "is_developer": true,
+      "job_role": "security,mobile",
+      "interests": "web"
+    },
+    {
+      "user_old_id": "qkrcks8028@naver.com",
+      "is_developer": false,
+      "job_role": "",
+      "interests": ""
+    },
+    {
+      "user_old_id": "bct5022@gmail.com",
+      "is_developer": false,
+      "job_role": "",
+      "interests": ""
+    },
+    {
+      "user_old_id": "csy@email.com",
+      "is_developer": true,
+      "job_role": "",
+      "interests": ""
+    },
+    {
+      "user_old_id": "jane0816@naver.com",
+      "is_developer": true,
+      "job_role": "ai",
+      "interests": "ai,data,game,mobile"
+    }
+  ]
+}

@@ -28,9 +28,8 @@ class LoginView(APIView):
         if not email or not password:
             return Response({'error': '이메일과 비밀번호를 모두 입력해주세요.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 이메일로 User 조회 (auth.User의 username을 모르므로)
+        # [수정일: 2026-02-04] PK 설계 원복: 이메일로 User 조회하여 기존 username 사용
         try:
-            # 우리 시스템은 이메일을 유니크하게 사용한다고 가정
             user_obj = User.objects.get(email=email)
             username = user_obj.username
         except User.DoesNotExist:

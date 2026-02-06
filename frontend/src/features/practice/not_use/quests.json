@@ -1,0 +1,149 @@
+[
+    {
+        "id": "quest_lv1_01",
+        "difficulty": 1,
+        "title": "뽀드득 양치질 하기",
+        "description": "건강한 치아를 위해 양치질 순서를 올바르게 배치해 보세요!",
+        "logic_type": "순차",
+        "examples": [
+            "● IN: 칫솔, 치약, 물\n● OUT: 깨끗한 하얀 이!",
+            "● IN: 텁텁한 입\n● OUT: 상큼한 기분!"
+        ],
+        "blocks": [
+            {
+                "id": "b1",
+                "text_ko": "칫솔에 치약과 물을 묻힌다",
+                "text_py": "prepare_brush()",
+                "mermaid_def": "A[준비하기]",
+                "indent": 0
+            },
+            {
+                "id": "b2",
+                "text_ko": "윗니 아랫니를 구석구석 닦는다",
+                "text_py": "brush_teeth()",
+                "mermaid_def": "B[이 닦기]",
+                "indent": 0
+            },
+            {
+                "id": "b3",
+                "text_ko": "물로 입을 깨끗하게 헹군다",
+                "text_py": "rinse_mouth()",
+                "mermaid_def": "C[헹구기]",
+                "indent": 0
+            }
+        ],
+        "solution_code": "prepare_brush()\nbrush_teeth()\nrinse_mouth()",
+        "feedback": {
+            "success": "완벽합니다! 치카치카 퀘스트를 클리어하여 건강 전사가 되었습니다.",
+            "failure": "순서가 조금 어색해요. 먼저 치약을 묻혀야 이가 잘 닦이겠죠?",
+            "suggestions": [
+                "순차 구조에서는 위에서 아래로 실행되는 순서가 가장 중요합니다."
+            ]
+        }
+    },
+    {
+        "id": "quest_lv2_01",
+        "difficulty": 2,
+        "title": "신호등 건너기",
+        "description": "신호등 색깔에 따라 건널지 말지 결정하는 논리를 완성하세요!",
+        "logic_type": "선택",
+        "examples": [
+            "● IN: light = 'green'\n● OUT: cross_walk() 실행",
+            "● IN: light = 'red'\n● OUT: wait() 실행"
+        ],
+        "blocks": [
+            {
+                "id": "b1",
+                "text_ko": "신호등 색깔을 확인한다",
+                "text_py": "light = check_light()",
+                "mermaid_def": "A[신호등 확인]",
+                "indent": 0
+            },
+            {
+                "id": "b2",
+                "text_ko": "만약 신호등이 초록색이라면",
+                "text_py": "if light == 'green':",
+                "mermaid_def": "B{초록불?}",
+                "indent": 0
+            },
+            {
+                "id": "b3",
+                "text_ko": "    횡단보도를 건넌다",
+                "text_py": "    cross_walk()",
+                "mermaid_def": "C[건너기]",
+                "indent": 1
+            },
+            {
+                "id": "b4",
+                "text_ko": "아니면 (빨간불이라면)",
+                "text_py": "else:",
+                "mermaid_def": "D{아니면}",
+                "indent": 0
+            },
+            {
+                "id": "b5",
+                "text_ko": "    멈춰서 신호를 기다린다",
+                "text_py": "    wait()",
+                "mermaid_def": "E[기다리기]",
+                "indent": 1
+            }
+        ],
+        "solution_code": "light = check_light()\nif light == 'green':\n    cross_walk()\nelse:\n    wait()",
+        "feedback": {
+            "success": "훌륭해요! 조건문(IF-ELSE)을 완벽하게 사용하여 사고를 방지했습니다.",
+            "failure": "조건문의 들여쓰기(Indent)가 매우 중요해요. Python은 들여쓰기가 실력입니다!",
+            "suggestions": [
+                "만약(if) 조건이 참일 때 실행할 문장은 꼭 들여쓰기를 해주세요."
+            ]
+        }
+    },
+    {
+        "id": "quest_lv3_01",
+        "difficulty": 3,
+        "title": "운동장 3바퀴 돌기",
+        "description": "목표 바퀴 수만큼 반복해서 뛰는 논리를 완성하세요!",
+        "logic_type": "반복",
+        "examples": [
+            "● IN: lap = 0\n● OUT: 3바퀴 완주!",
+            "● IN: lap = 3\n● OUT: 종료"
+        ],
+        "blocks": [
+            {
+                "id": "b1",
+                "text_ko": "뛴 바퀴 수를 0으로 정한다",
+                "text_py": "lap = 0",
+                "mermaid_def": "A[시작: 0바퀴]",
+                "indent": 0
+            },
+            {
+                "id": "b2",
+                "text_ko": "바퀴 수가 3보다 작은 동안 반복한다",
+                "text_py": "while lap < 3:",
+                "mermaid_def": "B{3바퀴 미만?}",
+                "indent": 0
+            },
+            {
+                "id": "b3",
+                "text_ko": "    운동장을 한 바퀴 힘차게 뛴다",
+                "text_py": "    run_lap()",
+                "mermaid_def": "C[한 바퀴 뛰기]",
+                "indent": 1
+            },
+            {
+                "id": "b4",
+                "text_ko": "    바퀴 수에 1을 더한다",
+                "text_py": "    lap = lap + 1",
+                "mermaid_def": "D[바퀴 수 +1]",
+                "indent": 1
+            }
+        ],
+        "solution_code": "lap = 0\nwhile lap < 3:\n    run_lap()\n    lap = lap + 1",
+        "feedback": {
+            "success": "반복의 마법사군요! 변수의 값을 직접 바꾸는 능력을 터득하셨습니다.",
+            "failure": "루프가 영원히 돌지 않도록, 'lap' 변수의 값을 1씩 더해주는 걸 잊지 마세요!",
+            "suggestions": [
+                "while은 뒤의 조건이 '참'인 동안만 계속 실행된다는 점을 기억하세요."
+            ]
+        }
+    }
+]

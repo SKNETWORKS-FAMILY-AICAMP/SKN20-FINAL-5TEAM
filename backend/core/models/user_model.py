@@ -12,7 +12,7 @@ class UserProfile(BaseModel):
     class Meta:
         db_table = 'gym_user'
 
-    # [수정일: 2026-01-22] user_id -> id 변경 (상징적인 PK 명칭 통일을 위함)
+    # [수정일: 2026-02-04] PK 설계 원복: id를 CharField로 다시 설정
     id = models.CharField(max_length=50, primary_key=True)  # 로그인 아이디 (PK)
     
     user_name = models.CharField(max_length=50)  # 사용자 이름
@@ -22,9 +22,8 @@ class UserProfile(BaseModel):
     password = models.CharField(max_length=128)  # 비밀번호   
     
     def save(self, *args, **kwargs):
-        # 1. id 자동 생성 (email @ 앞부분)
+        # [수정일: 2026-02-04] PK 설계 원복: 이메일 앞자리를 기반으로 한 id 자동 생성 로직 복구
         if not self.id and self.email:
-            # [수정일: 2026-01-21] id 길이 초과 방지 (최대 50자)
             self.id = self.email.split('@')[0][:50]
             
         super().save(*args, **kwargs)
