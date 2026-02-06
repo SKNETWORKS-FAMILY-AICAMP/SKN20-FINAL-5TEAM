@@ -22,43 +22,43 @@
     <!-- MAIN VIEWPORT -->
     <main class="viewport">
         
-      <!-- LEFT VERTICAL DRAWER (Persistent Across Phases) -->
-      <div class="tutorial-drawer-left">
-        <!-- 1. Visible Rail (Fixed on Left) -->
-        <div class="drawer-rail">
-            <div 
-                v-for="(card, idx) in currentMission.cards" 
-                :key="idx"
-                class="rail-step-marker"
-                :class="{ 
-                    'is-active': idx === activeStepIndex,
-                    'is-done': idx < activeStepIndex
-                }"
-                @click="explainStep(idx)"
-            >
-                <span v-if="idx < activeStepIndex" class="rm-icon">✓</span>
-                <span v-else class="rm-num">{{ idx + 1 }}</span>
-            </div>
-        </div>
+      <!-- GUIDE FLOATING BUTTON (Toggle) -->
+      <button class="btn-guide-floating" @click="toggleGuide" :class="{ 'is-open': isGuideOpen }">
+          <span class="icon">?</span>
+          <span class="label">CHAPTER</span>
+      </button>
 
-        <!-- 2. Hidden Content Panel (Slides out to Right) -->
-        <div class="drawer-content-panel">
-            <div class="content-header">GUIDE</div>
-            <div 
-                v-for="(card, idx) in currentMission.cards" 
-                :key="idx"
-                class="expanded-step-item"
-                :class="{ 'is-active': idx === activeStepIndex }"
-                @click="explainStep(idx)"
-            >
-                <div class="est-header">
-                    <span class="est-icon">{{ card.icon }}</span>
-                    <span class="est-title">STEP {{ idx + 1 }}</span>
-                </div>
-                <div class="est-desc">{{ card.text.split(':')[1] }}</div>
-            </div>
-        </div>
+      <!-- GUIDE SLIDE PANEL -->
+      <div class="guide-sidebar" :class="{ 'sidebar-open': isGuideOpen }">
+          <div class="sidebar-header">
+              <span class="sh-title">MISSION CHAPTERS</span>
+              <button class="sh-close" @click="toggleGuide">×</button>
+          </div>
+          <div class="sidebar-content">
+              <div 
+                  v-for="(card, idx) in currentMission.cards" 
+                  :key="idx"
+                  class="guide-step-card"
+                  :class="{ 'g-active': idx === selectedGuideIdx }"
+                  @click="handleGuideClick(idx)"
+              >
+                  <div class="gs-header-row">
+                      <div class="gs-icon">{{ card.icon }}</div>
+                      <div class="gs-info">
+                          <div class="gs-step">STEP {{ idx + 1 }}</div>
+                          <div class="gs-text">{{ card.text.split(':')[1] || card.text }}</div>
+                      </div>
+                  </div>
+                  
+                  <!-- EXPANDED HINT AREA -->
+                  <div class="gs-hint-content" v-if="idx === selectedGuideIdx">
+                      <div class="hint-label">💡 TACTICAL ADVICE</div>
+                      <p class="hint-body">"{{ card.coduckMsg }}"</p>
+                  </div>
+              </div>
+          </div>
       </div>
+
 
       <!-- PHASE: DIAGNOSTIC 1 & 2 (Shared Layout) -->
       <section v-if="gameState.phase.startsWith('DIAGNOSTIC')" class="combat-grid">
@@ -173,7 +173,38 @@
           <div class="panel decision-panel full-width-panel">
              <div class="panel-header-row">
                  <span class="p-title-small">아키텍처 설계 (자연어 서술 모드)</span>
-                 <span class="p-sub-small badge-natural">Python 코드 금지</span>
+                 <div class="header-controls">
+                     <span class="p-sub-small badge-natural">Python 코드 금지</span>
+                     <button class="btn-writing-guide" @click="toggleWritingGuide">
+                        <span class="wg-icon">📝</span> GUIDE
+                     </button>
+                 </div>
+             </div>
+
+             <!-- WRITING GUIDE OVERLAY -->
+             <div class="writing-guide-overlay" v-if="isWritingGuideOpen">
+                <div class="wg-header">
+                    <span class="wg-title">✍️ 서술 가이드라인</span>
+                    <button class="wg-close" @click="toggleWritingGuide">×</button>
+                </div>
+                <div class="wg-content">
+                    <div class="wg-section">
+                        <div class="wg-label">💡 작성 팁</div>
+                        <ul class="wg-list">
+                            <li>코드가 아닌 <strong>'사람의 언어'</strong>로 작성하세요.</li>
+                            <li><strong>"무엇을", "왜", "어떻게"</strong> 할 것인지 명확히 밝히세요.</li>
+                            <li>단계별로 번호를 매기면 더 좋습니다. (1., 2. ...)</li>
+                        </ul>
+                    </div>
+                    <div class="wg-section">
+                        <div class="wg-label">🔍 예시 (Example)</div>
+                        <div class="wg-example">
+                            "1. 먼저 결측치를 확인한다.<br>
+                            2. 평균값으로 대체할지 삭제할지 결정한다.<br>
+                            3. 최종적으로 데이터를 정규화한다."
+                        </div>
+                    </div>
+                </div>
              </div>
 
              <div class="top-briefing-zone">
@@ -258,54 +289,42 @@
                     <div class="code-header">def leakage_free_scaling(train_df, test_df):</div>
                     
                     <!-- Slot 1 -->
+                    <!-- Slot 1: Fit (Train) -->
                     <div class="code-block">
-                        <div class="comment-line"># 1. 학습 데이터(train) 기준으로 스케일러 생성</div>
+                        <div class="comment-line"># 1. 학습 데이터로만 기준 학습 (fit)</div>
                         <div 
                             class="drop-zone"
                             :class="{ 'filled': gameState.codeSlots.slot1.content }"
                             @dragover.prevent
                             @drop="onDrop('slot1', $event)"
                         >
-                            {{ gameState.codeSlots.slot1.content || "▼ [ 스케일러 생성 코드를 드래그 ] ▼" }}
+                             {{ gameState.codeSlots.slot1.content || "▼ [ 기준 학습(fit) 코드를 드래그 ] ▼" }}
                         </div>
                     </div>
 
-                    <!-- Slot 2 -->
+                    <!-- Slot 2: Transform (Train) -->
                     <div class="code-block">
-                        <div class="comment-line"># 2. 학습 데이터로만 기준 학습 (fit)</div>
+                        <div class="comment-line"># 2. 동일한 기준을 학습 데이터에 적용 (transform)</div>
                         <div 
                             class="drop-zone"
                             :class="{ 'filled': gameState.codeSlots.slot2.content }"
                             @dragover.prevent
                             @drop="onDrop('slot2', $event)"
                         >
-                             {{ gameState.codeSlots.slot2.content || "▼ [ 기준 학습(fit) 코드를 드래그 ] ▼" }}
+                             {{ gameState.codeSlots.slot2.content || "▼ [ 학습 데이터 반환 코드를 드래그 ] ▼" }}
                         </div>
                     </div>
 
-                    <!-- Slot 3 -->
+                    <!-- Slot 3: Transform (Test) -->
                     <div class="code-block">
-                        <div class="comment-line"># 3. 동일한 기준을 학습 데이터에 적용 (transform)</div>
-                        <div 
+                        <div class="comment-line"># 3. 동일한 기준을 테스트 데이터에 적용 (transform)</div>
+                         <div 
                             class="drop-zone"
                             :class="{ 'filled': gameState.codeSlots.slot3.content }"
                             @dragover.prevent
                             @drop="onDrop('slot3', $event)"
                         >
-                             {{ gameState.codeSlots.slot3.content || "▼ [ 학습 데이터 반환 코드를 드래그 ] ▼" }}
-                        </div>
-                    </div>
-
-                    <!-- Slot 4 -->
-                    <div class="code-block">
-                        <div class="comment-line"># 4. 동일한 기준을 테스트 데이터에 적용 (transform)</div>
-                         <div 
-                            class="drop-zone"
-                            :class="{ 'filled': gameState.codeSlots.slot4.content }"
-                            @dragover.prevent
-                            @drop="onDrop('slot4', $event)"
-                        >
-                             {{ gameState.codeSlots.slot4.content || "▼ [ 테스트 데이터 반환 코드를 드래그 ] ▼" }}
+                             {{ gameState.codeSlots.slot3.content || "▼ [ 테스트 데이터 반환 코드를 드래그 ] ▼" }}
                         </div>
                     </div>
 
@@ -340,7 +359,7 @@
 
                  <div class="btn-group">
                       <button class="btn-reset-large" @click="initPhase4Scaffolding">
-                          <span class="btn-text">초기화</span>
+                          <span class="btn-text">다시 하기</span>
                       </button>
                       <button class="btn-execute-large" @click="submitPythonFill">
                           <span class="btn-text">코드 배포</span>
@@ -508,6 +527,25 @@ import { useCoduckWars } from './composables/useCoduckWars.js'; // [수정일: 2
 
 const router = useRouter();
 const gameStore = useGameStore();
+
+const isGuideOpen = ref(false);
+const selectedGuideIdx = ref(0); // Track which guide card is expanded
+
+const toggleGuide = () => {
+    isGuideOpen.value = !isGuideOpen.value;
+};
+
+// Wrapper to handle both local expansion and game logic
+const handleGuideClick = (idx) => {
+    selectedGuideIdx.value = idx;
+    explainStep(idx);
+};
+
+// Writing Guide Toggle (Phase 3)
+const isWritingGuideOpen = ref(false);
+const toggleWritingGuide = () => {
+    isWritingGuideOpen.value = !isWritingGuideOpen.value;
+};
 
 const { 
     gameState, 
@@ -854,148 +892,186 @@ const getLogLabel = (type) => {
     background: #4ade80; /* Neon Green on Hover */
     color: #000;
 }
-/* LEFT DRAWER STYLES (Fixed Rail) */
-.tutorial-drawer-left {
-    position: absolute;
+/* --- GUIDE FLOATING BUTTON & SIDEBAR --- */
+.btn-guide-floating {
+    position: fixed;
     left: 0;
-    top: 20%; /* Vertically centered-ish */
-    z-index: 1000;
-    display: flex;
-    align-items: flex-start;
-}
-
-/* 1. Visible Rail */
-.drawer-rail {
-    width: 60px;
-    background: #09090b; /* Solid Dark */
+    top: 20%;
+    z-index: 2000;
+    background: #000;
     border: 1px solid #333;
     border-left: none;
-    border-radius: 0 12px 12px 0;
+    border-radius: 0 8px 8px 0;
+    padding: 15px 10px;
     display: flex;
     flex-direction: column;
-    padding: 20px 0;
-    gap: 20px;
     align-items: center;
+    gap: 10px;
+    cursor: pointer;
     box-shadow: 4px 0 15px rgba(0,0,0,0.5);
-    z-index: 1002; /* Above content */
-    position: relative;
+    transition: all 0.3s;
 }
-
-.rail-step-marker {
-    width: 36px;
-    height: 36px;
+.btn-guide-floating:hover {
+    background: #111;
+    border-color: #4ade80;
+    transform: translateX(5px);
+}
+.btn-guide-floating .icon {
+    width: 30px;
+    height: 30px;
     border-radius: 50%;
-    background: #27272a;
-    color: #71717a;
+    background: #222;
+    color: #4ade80;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.9rem;
-    font-weight: 900;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: 2px solid transparent;
-}
-
-.rail-step-marker:hover {
-    background: #3f3f46;
-    color: #fff;
-    transform: scale(1.1);
-}
-
-.rail-step-marker.is-active {
-    background: #fff;
-    color: #000;
-    border-color: #fff;
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
-}
-
-.rail-step-marker.is-done {
-    background: #10b981;
-    color: #fff;
-    border-color: #10b981;
-}
-
-/* 2. Content Panel (Slides out RIGHT) */
-.drawer-content-panel {
-    position: absolute;
-    left: 50px; /* Start hidden behind rail (width 60px - overlap 10px) */
-    top: 0;
-    width: 260px;
-    background: #111; /* Solid Background for Opacity */
+    font-weight: bold;
+    font-size: 1.1rem;
     border: 1px solid #333;
-    border-left: none;
-    border-radius: 0 12px 12px 0;
-    padding: 20px 20px 20px 30px; /* Extra padding left for rail overlap */
+}
+.btn-guide-floating .label {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    color: #fff;
+    font-weight: 900;
+    font-size: 0.8rem;
+    letter-spacing: 2px;
+}
+.btn-guide-floating.is-open {
+    transform: translateX(320px); /* Move button with sidebar */
+    border-color: #4ade80;
+    background: #000;
+}
+
+.guide-sidebar {
+    position: fixed;
+    top: 0;
+    left: -320px; /* Hidden */
+    width: 320px;
+    height: 100%;
+    background: rgba(10, 10, 10, 0.95);
+    backdrop-filter: blur(10px);
+    border-right: 1px solid #333;
+    z-index: 1999;
+    padding: 30px 20px;
+    transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+    display: flex;
+    flex-direction: column;
+    box-shadow: 10px 0 30px rgba(0,0,0,0.8);
+}
+.guide-sidebar.sidebar-open {
+    transform: translateX(320px); /* Slide in */
+}
+
+.sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 15px;
+}
+.sh-title {
+    font-size: 1.2rem;
+    font-weight: 900;
+    color: #4ade80;
+    letter-spacing: 2px;
+}
+.sh-close {
+    background: none;
+    border: none;
+    color: #666;
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+.sh-close:hover { color: #fff; }
+
+.sidebar-content {
     display: flex;
     flex-direction: column;
     gap: 15px;
-    
-    /* Animation: Slide from Left, behind Rail */
-    opacity: 0;
-    transform: translateX(-20px);
-    pointer-events: none; /* Click through when hidden */
-    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-    z-index: 1001; /* Below Rail */
-    box-shadow: 10px 0 30px rgba(0,0,0,0.8);
-    min-height: 100%;
+    overflow-y: auto;
 }
 
-.tutorial-drawer-left:hover .drawer-content-panel {
-    opacity: 1;
-    transform: translateX(0);
-    left: 60px; /* Move next to rail */
-    pointer-events: auto;
-}
-
-.content-header {
-    font-size: 0.8rem;
-    font-weight: 900;
-    color: #52525b;
-    letter-spacing: 2px;
-    margin-bottom: 5px;
-}
-
-.expanded-step-item {
-    padding: 15px;
-    border-radius: 8px;
+.guide-step-card {
     background: #18181b;
     border: 1px solid #27272a;
+    border-radius: 8px;
+    padding: 15px;
+    display: flex;
+    gap: 15px;
     cursor: pointer;
     transition: all 0.2s;
+    align-items: flex-start; /* Align top */
+    flex-direction: column; /* Changed to column for expansion */
+    gap: 0;
 }
-
-.expanded-step-item:hover {
+.gs-header-row {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    width: 100%;
+}
+.guide-step-card:hover {
     background: #27272a;
-    border-color: #3f3f46;
+    border-color: #52525b;
 }
-
-.expanded-step-item.is-active {
-    background: #27272a;
-    border-color: #fff;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+.guide-step-card.g-active {
+    background: rgba(74, 222, 128, 0.05);
+    border-color: #4ade80;
 }
-
-.est-header {
+.gs-icon {
+    font-size: 1.5rem;
+    background: #222;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 6px;
+    justify-content: center;
+    flex-shrink: 0;
 }
-.est-icon { font-size: 1.1rem; }
-.est-title { 
-    font-size: 0.85rem; 
-    font-weight: 900; 
-    color: #d4d4d8; 
+.gs-info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
 }
-.expanded-step-item.is-active .est-title { color: #fff; }
-
-.est-desc {
-    font-size: 0.8rem;
-    color: #a1a1aa;
+.gs-step {
+    font-size: 0.75rem;
+    color: #4ade80;
+    font-weight: 900;
+    letter-spacing: 1px;
+}
+.gs-text {
+    font-size: 0.9rem;
+    color: #d4d4d4;
     line-height: 1.4;
 }
-.expanded-step-item.is-active .est-desc { color: #e4e4e7; }
+/* Expanded Hint Styles */
+.gs-hint-content {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px dashed #333;
+    width: 100%;
+    animation: fadeIn 0.3s ease;
+}
+.hint-label {
+    font-size: 0.7rem;
+    color: #4ade80;
+    font-weight: 900;
+    margin-bottom: 5px;
+    display: block;
+}
+.hint-body {
+    font-size: 0.9rem;
+    color: #a1a1aa;
+    line-height: 1.6;
+    font-style: italic;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
 
 .opt-content {
     flex: 1;
@@ -1492,18 +1568,23 @@ const getLogLabel = (type) => {
 }
 
 /* Code Editor (Middle Col - 60%) */
+/* Code Editor (Middle Col - Flexible) */
+/* Code Editor (Middle Col - Flexible) */
 .code-editor-area {
-    flex: 6;
+    flex: 6; /* Ratio 4:6 with logic-viewer */
+    min-width: 0; /* Prevent overflow */
     background: #1e1e1e;
     border: 1px solid #444;
     display: flex;
     flex-direction: column;
     position: relative;
+    overflow-x: hidden; /* Prevent horizontal scrolling logic */
 }
 
-/* Modules Sidebar (Right Col) */
+/* Modules Sidebar (Right Col - Fixed Width) */
 .modules-sidebar {
-    width: 220px;
+    width: 280px; /* Slightly wider for modules */
+    flex-shrink: 0; /* Prevent shrinking */
     background: #0a0a0a;
     border: 1px solid #333;
     display: flex;
@@ -1805,6 +1886,71 @@ const getLogLabel = (type) => {
     font-size: 0.75rem;
     color: #94a3b8;
     margin-right: auto;
+}
+
+/* WRITING GUIDE BUTTON & PANEL */
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.btn-writing-guide {
+    background: #27272a;
+    border: 1px solid #4ade80;
+    color: #4ade80;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+.btn-writing-guide:hover {
+    background: #4ade80;
+    color: #000;
+}
+
+.writing-guide-overlay {
+    position: absolute;
+    top: 50px;
+    right: 20px;
+    width: 300px;
+    background: #18181b;
+    border: 1px solid #3f3f46;
+    border-radius: 8px;
+    padding: 15px;
+    z-index: 100;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    animation: fadeIn 0.2s ease-out;
+}
+.wg-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #27272a;
+    padding-bottom: 10px;
+}
+.wg-title { font-weight: bold; color: #fff; }
+.wg-close { background: none; border: none; color: #71717a; cursor: pointer; font-size: 1.2rem; }
+.wg-close:hover { color: #fff; }
+
+.wg-section { margin-bottom: 15px; }
+.wg-label { font-size: 0.8rem; color: #4ade80; font-weight: bold; margin-bottom: 5px; }
+.wg-list { padding-left: 20px; font-size: 0.85rem; color: #d4d4d8; line-height: 1.5; }
+.wg-list li { margin-bottom: 5px; }
+.wg-example {
+    background: #111;
+    border: 1px dashed #3f3f46;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    color: #a1a1aa;
+    line-height: 1.5;
+    font-style: italic;
 }
 
 </style>

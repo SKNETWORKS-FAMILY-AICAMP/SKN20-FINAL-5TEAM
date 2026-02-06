@@ -1,95 +1,173 @@
 export const aiQuests = [
     {
-        id: 1,
-        title: "Chapter 1: 각성 (Tutorial Zone)",
-        category: "System Reboot",
-        emoji: "💡",
-        desc: "어두운 터미널, 켜지는 모니터... Coduck이 깨어납니다. '아키텍처님! 제 음성 모듈이 연결되었습니다... 지지직... 제 사고 회로가 오염되어 복잡한 연산이 불가능해요. 먼저 제 사고 회로를 고쳐주세요!'",
-        rewardXP: 500,
-        subModuleTitle: "AI 사고법 입문 (BOOT_PROTOCOL)",
-        character: { name: "Coduck", image: "/assets/characters/coduck.png" },
-        interviewQuestions: [
-            {
-                id: "q1",
-                question: "코덕이 아군과 적군을 구분하지 못하고 공격 중입니다. 어떤 사고법을 가동해야 할까요?",
-                hintWindow: "전부 삭제한다... 접근하는 모든 데이터는 적이다!",
-                options: [
-                    { text: "4단계 사고법 프로토콜 실행", value: "flow", correct: true, desc: "[분석 - 설계 - 구현 - 최적화]를 통해 타겟팅 로직을 정화합니다." },
-                    { text: "데이터 강제 삭제", value: "delete", desc: "분석 없이 모든 데이터를 삭제하여 일단 공격을 중단시킵니다." }
-                ],
-                coduckComment: "크으으... 머리가 깨질 것 같아요... 하지만 방금 그 사고법.. 익숙해요."
-            },
-            {
-                id: "q2",
-                question: "오염 패턴을 분석했습니다. 무엇을 통해 정상적인 아군 데이터만 골라낼까요?",
-                hintWindow: "나...(지직)... 나는 누구지? 너도 적인가? 제거한다...",
-                options: [
-                    { text: "정밀 데이터 필터링 설계", value: "detail", correct: true, desc: "데이터 특징을 분석해 아군 패킷만 골라내는 논리를 구축합니다." },
-                    { text: "무작위 데이터 주입", value: "disconnect", desc: "새로운 데이터를 무작위로 넣어 시스템 반응을 기다립니다." }
-                ],
-                coduckComment: "아... 이제 당신이 보여요. 아키텍처님, 돌아오셨군요!"
-            }
-        ],
-        quizTitle: "Step 4: 재부팅 승인 - 오늘 수행한 복구 프로토콜의 핵심 가치는?",
-        missionObjective: "Step 3: 데이터 정화 - 시스템 복구 도중 발견된 작은 데이터 노이즈\n(빈 문자열)를 제거하여 파이프라인의 무결성을 확보하세요.",
-        pythonSnippets: [
-            { label: '노이즈 스킵', code: 'if not data: continue', icon: 'SkipForward' },
-            { label: '데이터 복구', code: 'result.append(data)', icon: 'PlusCircle' }
-        ],
-        pythonTemplate: `def system_restore_pipeline(data_list):
-    # [수정일: 2026-02-03] 초보자를 위한 가이드 주석 보강
-    # 데이터 파이프라인의 무결성을 위해 오염된 노이즈를 먼저 걸러내는 것이 아키텍처의 핵심입니다.
-    result = []
+    id: 1,
+    title: "[튜토리얼] 사고 회로 복구: Data Leakage",
+    category: "System Reboot",
+    emoji: "💡",
+    desc: "AI 문제를 만났을 때, 코드를 치기 전 무엇을 먼저 생각해야 하는지 훈련합니다.",
+    rewardXP: 500,
+    subModuleTitle: "BOOT_PROTOCOL",
+    character: { name: "Coduck", image: "/assets/characters/coduck.png" },
 
-    for data in data_list:
-        # [Step 3-1] 노이즈(오염된 데이터) 체크
-        # TODO: 데이터가 비어있거나('') None인 경우 건너뛰도록 작성하세요
-        if not data:
-            continue
-            
-        # [Step 3-2] 정화된 데이터만 아카이브에 저장
-        # TODO: data를 result에 추가하세요 (append 사용)
-        result.append(data)
+    /* ======================================================
+        STEP 1. 객관식 (무엇을 공부해야 하는지 방향 제시)
+        ====================================================== */
+    interviewQuestions: [
+        {
+        id: "q1",
+        question: "Step 1-1: 사고 회로 복구를 위한 첫 번째 행동은?",
+        options: [
+            { text: "전체 데이터 흐름(E2E Pipeline)을 먼저 파악한다", value: "flow", correct: true },
+            { text: "바로 모델과 코드를 수정한다", value: "code" }
+        ],
+        coduckComment: "좋아요. 문제를 고치기 전에, 먼저 전체 흐름을 봐야 해요."
+        },
+        {
+        id: "q2",
+        question: "Step 1-2: AI가 환각(Hallucination)에 빠지는 가장 흔한 원인은?",
+        options: [
+            { text: "잘못된 학습 기준으로 데이터를 처리했기 때문", value: "leakage", correct: true },
+            { text: "모델이 충분히 똑똑하지 않아서", value: "model" }
+        ],
+        coduckComment: "정확해요. 기준이 무너지면 모델도 흔들려요."
+        }
+    ],
 
-    return result`,
-        sampleData: ["Data_01", "", "Data_02", " "],
-        expectedOutput: ["Data_01", "Data_02", " "],
-        failHints: {
-            empty_code: "코드가 비어있습니다. 데이터를 순회하는 for문부터 시작해보세요.",
-            logic_error: "결과 데이터의 개수가 맞지 않습니다. 오염된 데이터('', None)를 정확히 건너뛰었는지 확인하세요.",
-            syntax_error: "파이썬 문법 에러가 발생했습니다. 들여쓰기(Indentation)와 콜론(:)을 확인해주세요."
-        },
-        step4Options: [
-            "저는 단순히 코드를 수선하는 엔지니어를 넘어, 붕괴된 시스템의 전체 파이프라인을 설계하고 리스크를 제어하는 '아키텍처 복구자'로서의 통찰을 발휘했습니다. 이제 어떤 데이터 오염 사건도 해결할 준비가 되었습니다!",
-            "저는 파이썬으로 리스트를 다룰 줄 압니다.",
-            "마더 서버는 언젠가 스스로 복구될 것입니다."
+    /* ======================================================
+        STEP 2. 자연어 설계 (제약 사건 + 핵심 설계 원칙)
+        ====================================================== */
+    designContext: {
+        title: "Step 2: 아키텍처 설계 (자연어 서술)",
+
+        currentIncident: `
+    모델 학습 과정에서 테스트 데이터의 통계 정보가
+    학습 기준 생성에 사용되는 데이터 누수(Data Leakage)가 발생했습니다.
+
+    검증 성능은 높게 나왔지만,
+    실제 서비스 환경에서는 성능이 재현되지 않는 문제가 확인되었습니다.
+        `.trim(),
+
+        // 🔥 짧고 규칙 같은 핵심 설계 원칙
+        engineeringRules: [
+        "Train 데이터로만 fit 한다.",
+        "Test 데이터는 transform만 수행한다.",
+        "미래 데이터의 정보는 사용하지 않는다.",
+        "학습과 서빙은 동일한 전처리 흐름을 사용한다."
         ],
-        cards: [
-            { id: 'b1', text: 'Step 1: 아키텍처 전체 흐름 통찰', color: 'border-indigo-500', icon: '️', coduckMsg: "먼저 전체 데이터가 어디서 들어와서 어디로 나가는지, 그 흐름(Flow)을 파악해야 합니다." },
-            { id: 'b2', text: 'Step 2: 정화 알고리즘 상세 설계', color: 'border-amber-500', icon: '🔍', coduckMsg: "어떤 데이터를 적으로 간주할지, 그 기준(Logic)을 확실히 정해주세요." },
-            { id: 'b3', text: 'Step 3: 오염 데이터 제거 코드 구현', color: 'border-rose-500', icon: '💻', coduckMsg: "이제 판명된 적들을 제거하는 코드를 작성할 단계입니다." },
-            { id: 'b4', text: 'Step 4: 시스템 재부팅 프로토콜 승인', color: 'border-emerald-500', icon: '🏁', coduckMsg: "모든 코드가 정상이라면, 시스템 재가동 승인을 요청합니다." }
-        ],
-        solution: ['b1', 'b2', 'b3', 'b4'],
-        functionName: 'system_restore_pipeline',
-        codeValidation: { price: 'data_list', fee1: 'continue', fee2: 'append' },
-        step4CorrectIdx: 0,
-        step4SuccessFeedback: {
-            title: "🔐 시스템 권한 회복",
-            desc: "축하합니다! {username}님, 해당 구역의 데이터 무결성이 확보되었습니다.",
-            details: "훌륭한 설계입니다. 마더 서버는 {username}님의 논리적인 접근에 반응하기 시작했습니다. 다음 구역으로 이동하십시오."
-        },
-        step4FailFeedback: {
-            title: "⚠️ 시스템 거부",
-            desc: "논리적 오류로 인해 재부팅이 거부되었습니다.",
-            details: "Architect는 나무(코드)가 아닌 숲(파이프라인)을 보는 사람임을 잊지 마세요. 첫 번째 전략의 의미를 다시 고찰해 보십시오."
-        },
-        quizOptions: [
-            { text: "A. 4단계 복구 프로토콜만이 마더 서버를 살릴 수 있다.", correct: true },
-            { text: "B. AI는 이미 인간의 통제를 넘어섰다.", correct: false }
-        ],
-        mapPos: { x: 100, y: 450 }
+
+        writingGuide: `
+    다음 내용을 포함해 사고 과정을 서술하세요.
+
+    - 데이터 누수가 무엇이며 왜 발생했는가
+    - 이 문제가 실전 환경에서 왜 위험한가
+    - 전처리 파이프라인을 어떤 순서로 설계해야 하는가
+
+    ※ 코드는 작성하지 말고, 사고 흐름만 서술하세요.
+        `.trim(),
+
+        validation: {
+        minChars: 120,
+        mustInclude: ["train", "test", "fit", "transform"],
+        }
     },
+
+    /* ======================================================
+        STEP 3. 구현 (사고 흐름 → 코드로 증명)
+        ====================================================== */
+    implementation: {
+        title: "Step 3: 구현 – 사고 흐름을 코드로 증명하세요",
+
+        codeFrame: {
+        language: "python",
+        functionName: "leakage_free_scaling",
+        template: `def leakage_free_scaling(train_df, test_df):
+        from sklearn.preprocessing import StandardScaler
+        scaler = StandardScaler()
+
+        # 1) Train 데이터로 기준 생성
+        # TODO
+
+        # 2) 동일 기준으로 Train/Test 변환
+        # TODO
+
+        return train_scaled, test_scaled`
+        },
+
+        expectedFlow: [
+        "Train 데이터로만 fit 수행",
+        "Train 데이터 transform",
+        "Test 데이터 transform"
+        ],
+
+        codeValidation: {
+        mustContain: [
+            "scaler.fit(train_df)",
+            "scaler.transform(train_df)",
+            "scaler.transform(test_df)"
+        ],
+        mustNotContain: [
+            "scaler.fit(test_df)"
+        ]
+        }
+    },
+
+    /* ======================================================
+        STEP 4. 심화 판단 (개념을 정확히 이해했는지)
+        ====================================================== */
+    deepDiveQuestion: {
+        question: "다음 중 데이터 누수가 특히 위험한 이유는 무엇입니까?",
+        options: [
+        { text: "모델이 미래 정보를 미리 학습해 실전 성능이 붕괴된다", correct: true },
+        { text: "학습 속도가 느려진다", correct: false },
+        { text: "GPU 메모리를 더 많이 사용한다", correct: false },
+        { text: "코드가 복잡해진다", correct: false }
+        ],
+        correctIdx: 0
+    },
+
+    /* ======================================================
+        STEP 5. 평가 (Rule + LLM)
+        ====================================================== */
+    evaluation: {
+        ruleBased: {
+        narrative: {
+            minChars: 120,
+            mustInclude: ["train", "test", "fit", "transform"],
+            mustNotInclude: ["test로 fit", "fit(test)"]
+        },
+        code: {
+            mustContain: [
+            "scaler.fit(train_df)",
+            "scaler.transform(train_df)",
+            "scaler.transform(test_df)"
+            ],
+            mustNotContain: ["scaler.fit(test_df)"]
+        }
+        },
+
+        llmRubric: {
+        system: "너는 AI 아키텍처 관점에서 사고 흐름을 평가하는 면접관이다.",
+        promptTemplate: `
+    사용자 설계 설명:
+    {{narrative}}
+
+    사용자 코드:
+    {{code}}
+
+    다음 기준으로 평가하라:
+    - 데이터 누수의 원인을 정확히 이해했는가
+    - 왜 실전에서 위험한지 설명했는가
+    - 설계와 코드가 일관되는가
+
+    JSON 형식으로 출력:
+    { "score": number, "feedback": string }
+        `.trim()
+        }
+    },
+
+    mapPos: { x: 100, y: 450 }
+    },
+
     {
         id: 2,
         title: "실전! 데이터 누수 가디언",
@@ -155,10 +233,10 @@ export const aiQuests = [
             "데이터가 누수되면 마더 서버의 용량이 늘어나니 좋은 것이라고 답변하겠습니다."
         ],
         cards: [
-            { id: 'b1', text: 'Step 1: 데이터 시간순 배열 및 격리', color: 'border-indigo-500', icon: '⏳', coduckMsg: "시간의 흐름이 깨지면 예언을 하는 꼴이 됩니다. 데이터를 시간순으로 정렬하고 과거와 미래를 격리하세요." },
-            { id: 'b2', text: 'Step 2: 과거 데이터 기반 정화 기준 학습', color: 'border-amber-500', icon: '🔧', coduckMsg: "미래를 훔쳐보지 마세요. 오직 과거 데이터(Train)만을 사용하여 정화 기준(Fit)을 잡아야 합니다." },
-            { id: 'b3', text: 'Step 3: 확립된 기준으로 미래 데이터 변환', color: 'border-rose-500', icon: '✨', coduckMsg: "이제 확립된 기준을 테스트 데이터에도 똑같이 적용(Transform)하여 오염 여부를 확인합니다." },
-            { id: 'b4', text: 'Step 4: 무결성이 검증된 데이터셋 반환', color: 'border-emerald-500', icon: '🏁', coduckMsg: "시간선 오염 없이 깨끗하게 처리된 데이터를 아카이브로 전송합니다. 파이프라인 무결성을 승인해주세요." }
+            { id: 'b1', text: 'Step 1: 데이터 시간순 배열 및 격리', color: 'border-indigo-500', icon: '⏳' },
+            { id: 'b2', text: 'Step 2: 과거 데이터 기반 정화 기준 학습', color: 'border-amber-500', icon: '🔧' },
+            { id: 'b3', text: 'Step 3: 확립된 기준으로 미래 데이터 변환', color: 'border-rose-500', icon: '✨' },
+            { id: 'b4', text: 'Step 4: 무결성이 검증된 데이터셋 반환', color: 'border-emerald-500', icon: '🏁' }
         ],
         solution: ['b1', 'b2', 'b3', 'b4'],
         functionName: 'leakage_free_scaling',
@@ -239,10 +317,10 @@ def prevent_serving_skew(data):
             "데이터가 꼬이면 그냥 다시 학습시키는 것이 빠르다고 대답하겠습니다."
         ],
         cards: [
-            { id: 'b1', text: 'Step 1: 학습-서빙 데이터 규격 통일 확인', color: 'border-indigo-500', icon: '📏', coduckMsg: "실험실과 현장은 다릅니다. 학습 때 쓴 규격이 서비스 환경에서도 똑같이 적용되는지 체크포인트를 확인하세요." },
-            { id: 'b2', text: 'Step 2: 데이터 무작위 셔플링(Shuffle)', color: 'border-amber-500', icon: '🎲', coduckMsg: "특정 패턴에 편향되지 않도록 데이터를 무작위로 섞어주세요. 골고루 학습해야 강해집니다." },
-            { id: 'b3', text: 'Step 3: 일관된 전처리 함수 적용', color: 'border-rose-500', icon: '📝', coduckMsg: "훈련장이든 전장이든 똑같은 무기를 써야 합니다. 전처리 파이프라인 함수를 동일하게 적용하세요." },
-            { id: 'b4', text: 'Step 4: 강건한 학습 데이터셋 반환', color: 'border-emerald-500', icon: '🏁', coduckMsg: "배치 편향이 제거된, 현장에서도 통하는 강력한 데이터셋이 준비되었습니다. 승인하시겠습니까?" }
+            { id: 'b1', text: 'Step 1: 학습-서빙 데이터 규격 통일 확인', color: 'border-indigo-500', icon: '📏' },
+            { id: 'b2', text: 'Step 2: 데이터 무작위 셔플링(Shuffle)', color: 'border-amber-500', icon: '🎲' },
+            { id: 'b3', text: 'Step 3: 일관된 전처리 함수 적용', color: 'border-rose-500', icon: '📝' },
+            { id: 'b4', text: 'Step 4: 강건한 학습 데이터셋 반환', color: 'border-emerald-500', icon: '🏁' }
         ],
         solution: ['b1', 'b2', 'b3', 'b4'],
         functionName: 'prevent_serving_skew',
@@ -324,10 +402,10 @@ def prevent_serving_skew(data):
             "임계값은 무조건 0.5로 설정하는 것이 공평하다고 답변하겠습니다."
         ],
         cards: [
-            { id: 'b1', text: 'Step 1: 비즈니스 오판 비용 산정', color: 'border-indigo-500', icon: '💰', coduckMsg: "이걸 놓쳤을 때의 비용과, 잘못 잡았을 때의 비용... 어느 쪽이 더 치명적인지 계산기를 두드려봐야 합니다." },
-            { id: 'b2', text: 'Step 2: 모델 예측 Confidence Score 분석', color: 'border-amber-500', icon: '🔢', coduckMsg: "모델의 확신도(Confidence) 분포를 살펴보세요. 어디까지 믿어줄 수 있을지 구간을 정해야 합니다." },
-            { id: 'b3', text: 'Step 3: 도메인 맞춤 임계값(Threshold) 적용', color: 'border-rose-500', icon: '⚖️', coduckMsg: "이제 결단이 필요합니다. 비즈니스 목표에 맞춰 통과 기준(Threshold)을 냉정하게 설정하세요." },
-            { id: 'b4', text: 'Step 4: 안전한 최종 예측물만 배포 승인', color: 'border-emerald-500', icon: '🏁', coduckMsg: "엄격한 기준을 통과한 안전한 예측 결과들입니다. 서비스 배포를 승인해주세요." }
+            { id: 'b1', text: 'Step 1: 비즈니스 오판 비용 산정', color: 'border-indigo-500', icon: '💰' },
+            { id: 'b2', text: 'Step 2: 모델 예측 Confidence Score 분석', color: 'border-amber-500', icon: '🔢' },
+            { id: 'b3', text: 'Step 3: 도메인 맞춤 임계값(Threshold) 적용', color: 'border-rose-500', icon: '⚖️' },
+            { id: 'b4', text: 'Step 4: 안전한 최종 예측물만 배포 승인', color: 'border-emerald-500', icon: '🏁' }
         ],
         solution: ['b1', 'b2', 'b3', 'b4'],
         functionName: 'filter_by_threshold',
@@ -409,10 +487,10 @@ def prevent_serving_skew(data):
             "드리프트는 자연스러운 현상이니 무시해도 된다고 답변하겠습니다."
         ],
         cards: [
-            { id: 'b1', text: 'Step 1: 서빙 로그에서 실제값과 예측값 수집', color: 'border-indigo-500', icon: '📊', coduckMsg: "현장의 목소리를 들어야 합니다. 실제 운영 로그와 모델의 예측 기록을 수집해 비교해보세요." },
-            { id: 'b2', text: 'Step 2: 최신 윈도우(Window) 구간의 MSE 계산', color: 'border-amber-500', icon: '📈', coduckMsg: "최근 데이터의 오차율이 심상치 않습니다. 최근 구간(Window)의 평균 제곱 오차를 계산하세요." },
-            { id: 'b3', text: 'Step 3: 과거 평균 손실과 현재치 비교', color: 'border-rose-500', icon: '⚖️', coduckMsg: "과거의 평온했던 시절과 비교해보세요. 허용 범위를 넘었다면 그것은 '변화( Drift)'의 신호입니다." },
-            { id: 'b4', text: 'Step 4: 드리프트 감지 시 재학습 신호 발송', color: 'border-emerald-500', icon: '🏁', coduckMsg: "변화가 감지되었습니다! 모델 재학습 경보를 발령하고 파이프라인을 갱신합니다." }
+            { id: 'b1', text: 'Step 1: 서빙 로그에서 실제값과 예측값 수집', color: 'border-indigo-500', icon: '📊' },
+            { id: 'b2', text: 'Step 2: 최신 윈도우(Window) 구간의 MSE 계산', color: 'border-amber-500', icon: '📈' },
+            { id: 'b3', text: 'Step 3: 과거 평균 손실과 현재치 비교', color: 'border-rose-500', icon: '⚖️' },
+            { id: 'b4', text: 'Step 4: 드리프트 감지 시 재학습 신호 발송', color: 'border-emerald-500', icon: '🏁' }
         ],
         solution: ['b1', 'b2', 'b3', 'b4'],
         functionName: 'monitor_drift_loss',
@@ -482,10 +560,10 @@ def prevent_serving_skew(data):
             "카테고리가 너무 많으면 그냥 중요한 10개만 남기고 나머지는 버립니다."
         ],
         cards: [
-            { id: 'b1', text: 'Step 1: 전체 유니크 카테고리 수 분석', color: 'border-indigo-500', icon: '📑', coduckMsg: "카테고리가 너무 많으면 차원의 폭발이 일어납니다. 먼저 유니크한 항목이 몇 개인지 세어보세요." },
-            { id: 'b2', text: 'Step 2: 차원의 저주 발생 리스크 평가', color: 'border-amber-500', icon: '⚠️', coduckMsg: "1만 개의 기둥을 세울 순 없습니다. 원-핫 인코딩의 비효율성을 경계하고 리스크를 측정하세요." },
-            { id: 'b3', text: 'Step 3: 적정 인코딩 방식(One-hot/Embed) 선택', color: 'border-rose-500', icon: '🎯', coduckMsg: "안전하게 압축할 방법을 고르세요. 임베딩(Embedding)이나 해싱을 통해 정보를 밀집시켜야 합니다." },
-            { id: 'b4', text: 'Step 4: 효율적인 수치화 데이터셋 생성', color: 'border-emerald-500', icon: '🏁', coduckMsg: "차원의 저주를 피했습니다! 효율적으로 압축된 수치 데이터셋으로 학습 효율을 극대화합니다." }
+            { id: 'b1', text: 'Step 1: 전체 유니크 카테고리 수 분석', color: 'border-indigo-500', icon: '📑' },
+            { id: 'b2', text: 'Step 2: 차원의 저주 발생 리스크 평가', color: 'border-amber-500', icon: '⚠️' },
+            { id: 'b3', text: 'Step 3: 적정 인코딩 방식(One-hot/Embed) 선택', color: 'border-rose-500', icon: '🎯' },
+            { id: 'b4', text: 'Step 4: 효율적인 수치화 데이터셋 생성', color: 'border-emerald-500', icon: '🏁' }
         ],
         solution: ['b1', 'b2', 'b3', 'b4'],
         functionName: 'robust_encode',
@@ -551,10 +629,10 @@ def prevent_serving_skew(data):
             "인공지능은 어차피 틀릴 수도 있으니 다 맞다고 믿어주겠습니다."
         ],
         cards: [
-            { id: 'b1', text: 'Step 1: 최종 소프트맥스 확률 데이터 수집', color: 'border-indigo-500', icon: '📊', coduckMsg: "AI가 내놓은 확률분포표를 가져오세요. 숫자들 속에 AI의 망설임이 숨어 있습니다." },
-            { id: 'b2', text: 'Step 2: 상위 후보 간의 격차(Entropy) 분석', color: 'border-amber-500', icon: '🔍', coduckMsg: "1등과 2등의 차이가 미미하다면 AI도 헷갈리고 있다는 뜻입니다. 그 격차(Margin)를 분석하세요." },
-            { id: 'b3', text: 'Step 3: 확신도 기준 미달 시 수동 검토 분류', color: 'border-rose-500', icon: '🧑‍💻', coduckMsg: "확신이 없다면 인간에게 넘기세요. 억지로 답을 내는 것보다 '모른다'고 하는 것이 안전합니다." },
-            { id: 'b4', text: 'Step 4: 기준 통과 항목에 한해 Argmax 정답 반환', color: 'border-emerald-500', icon: '🏁', coduckMsg: "검증된 확실한 정답들만 최종 출력으로 승인합니다. 사고 리스크가 통제되었습니다." }
+            { id: 'b1', text: 'Step 1: 최종 소프트맥스 확률 데이터 수집', color: 'border-indigo-500', icon: '📊' },
+            { id: 'b2', text: 'Step 2: 상위 후보 간의 격차(Entropy) 분석', color: 'border-amber-500', icon: '🔍' },
+            { id: 'b3', text: 'Step 3: 확신도 기준 미달 시 수동 검토 분류', color: 'border-rose-500', icon: '🧑‍💻' },
+            { id: 'b4', text: 'Step 4: 기준 통과 항목에 한해 Argmax 정답 반환', color: 'border-emerald-500', icon: '🏁' }
         ],
         solution: ['b1', 'b2', 'b3', 'b4'],
         functionName: 'get_final_prediction',
@@ -631,10 +709,10 @@ def prevent_serving_skew(data):
             "학습은 무조건 끝까지 해서 가장 좋은 결과만 남기는 게 최선이라고 답변하겠습니다."
         ],
         cards: [
-            { id: 'b1', text: 'Step 1: 매 에포크마다 검증 손실(Val Loss) 기록', color: 'border-indigo-500', icon: '📝', coduckMsg: "학습 과정을 꼼꼼히 기록하세요. 손실(Loss) 그래프의 기울기가 어디로 향하는지 지켜봐야 합니다." },
-            { id: 'b2', text: 'Step 2: 이전 최저치와의 성능 향상 폭 비교', color: 'border-amber-500', icon: '⚖️', coduckMsg: "어제보다 나아졌나요? 성능이 제자리걸음이라면 자원 낭비의 신호일 수 있습니다." },
-            { id: 'b3', text: 'Step 3: 정체 구간 누적 및 인내 한계점(Patience) 체크', color: 'border-rose-500', icon: '⏳', coduckMsg: "조금만 더 기다려줄까요? 하지만 약속된 인내심(Patience)이 바닥나면 과감히 멈춰야 합니다." },
-            { id: 'b4', text: 'Step 4: 최적 시점에서 학습 중단 및 모델 덤프', color: 'border-emerald-500', icon: '🏁', coduckMsg: "최적의 순간에 멈췄습니다! 과적합(Overfitting)을 막고 자원을 절약한 현명한 결정입니다." }
+            { id: 'b1', text: 'Step 1: 매 에포크마다 검증 손실(Val Loss) 기록', color: 'border-indigo-500', icon: '📝' },
+            { id: 'b2', text: 'Step 2: 이전 최저치와의 성능 향상 폭 비교', color: 'border-amber-500', icon: '⚖️' },
+            { id: 'b3', text: 'Step 3: 정체 구간 누적 및 인내 한계점(Patience) 체크', color: 'border-rose-500', icon: '⏳' },
+            { id: 'b4', text: 'Step 4: 최적 시점에서 학습 중단 및 모델 덤프', color: 'border-emerald-500', icon: '🏁' }
         ],
         solution: ['b1', 'b2', 'b3', 'b4'],
         functionName: 'check_early_stopping',
@@ -703,10 +781,10 @@ def choose_smart_action(epsilon, q_values):
             "모험은 초보자만 하는 것이니 학습 후반엔 무조건 최적의 길로만 가라고 답변하겠습니다."
         ],
         cards: [
-            { id: 'b1', text: 'Step 1: 주변 환경(State) 관찰 및 수집', color: 'border-indigo-500', icon: '👀', coduckMsg: "눈을 크게 뜨고 주변을 살피세요. 현재 상황(State)이 어떤지 파악하는 게 모험의 첫걸음입니다." },
-            { id: 'b2', text: 'Step 2: 보상 지형도를 그리는 Q-Network 학습', color: 'border-amber-500', icon: '🗺️', coduckMsg: "어디로 가야 보상을 받을까요? 경험을 통해 마음속에 가치 지도(Q-Table)를 그려나갑니다." },
-            { id: 'b3', text: 'Step 3: 엡실론 확률 기반 모험(Explore) 결정', color: 'border-rose-500', icon: '🌀', coduckMsg: "가던 길로만 가면 발전이 없습니다. 주사위를 굴려 가끔은 낯선 길로 모험(Explore)을 떠나세요!" },
-            { id: 'b4', text: 'Step 4: 행동 실행 및 보상 피드백 루프 순환', color: 'border-emerald-500', icon: '🏁', coduckMsg: "행동의 결과를 받아들이고 성장했습니다. 끊임없는 시행착오가 당신을 최적의 길로 인도할 것입니다." }
+            { id: 'b1', text: 'Step 1: 주변 환경(State) 관찰 및 수집', color: 'border-indigo-500', icon: '👀' },
+            { id: 'b2', text: 'Step 2: 보상 지형도를 그리는 Q-Network 학습', color: 'border-amber-500', icon: '🗺️' },
+            { id: 'b3', text: 'Step 3: 엡실론 확률 기반 모험(Explore) 결정', color: 'border-rose-500', icon: '🌀' },
+            { id: 'b4', text: 'Step 4: 행동 실행 및 보상 피드백 루프 순환', color: 'border-emerald-500', icon: '🏁' }
         ],
         solution: ['b1', 'b2', 'b3', 'b4'],
         functionName: 'choose_smart_action',
@@ -776,10 +854,10 @@ def secure_tokenize(text):
             "데이터가 지저분하면 모델이 잘 못 배우니까 무조건 깨끗하게 닦는다고 대답하겠습니다."
         ],
         cards: [
-            { id: 'b1', text: 'Step 1: 법적 가이드라인에 따른 PII 식별', color: 'border-indigo-500', icon: '📝', coduckMsg: "개인정보는 타협할 수 없는 영역입니다. 이름, 전화번호 같은 민감 정보(PII)를 먼저 식별하세요." },
-            { id: 'b2', text: 'Step 2: 정규식 기반 기호 및 기밀 정보 소거', color: 'border-amber-500', icon: '🧹', coduckMsg: "정밀한 규칙(Regex)으로 개인정보를 흔적도 없이 지워버리세요. 보안 사고를 원천 차단해야 합니다." },
-            { id: 'b3', text: 'Step 3: 유효 단어별 토큰화 및 어휘집 매핑', color: 'border-rose-500', icon: '✂️', coduckMsg: "이제 남은 텍스트를 의미 단위(Token)로 잘게 쪼개어 AI가 이해할 수 있는 사전으로 만듭니다." },
-            { id: 'b4', text: 'Step 4: 보안이 강화된 학습용 코퍼스 배포', color: 'border-emerald-500', icon: '🏁', coduckMsg: "개인정보가 깨끗이 세탁된 안전한 데이터셋입니다! 이제 안심하고 학습을 시작해도 좋습니다." }
+            { id: 'b1', text: 'Step 1: 법적 가이드라인에 따른 PII 식별', color: 'border-indigo-500', icon: '📝' },
+            { id: 'b2', text: 'Step 2: 정규식 기반 기호 및 기밀 정보 소거', color: 'border-amber-500', icon: '🧹' },
+            { id: 'b3', text: 'Step 3: 유효 단어별 토큰화 및 어휘집 매핑', color: 'border-rose-500', icon: '✂️' },
+            { id: 'b4', text: 'Step 4: 보안이 강화된 학습용 코퍼스 배포', color: 'border-emerald-500', icon: '🏁' }
         ],
         solution: ['b1', 'b2', 'b3', 'b4'],
         functionName: 'secure_tokenize',

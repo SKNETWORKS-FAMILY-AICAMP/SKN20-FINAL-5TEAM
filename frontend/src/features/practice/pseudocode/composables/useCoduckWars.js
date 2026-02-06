@@ -1,4 +1,4 @@
-import { ref, computed, reactive, onMounted } from 'vue';
+import { ref, computed, reactive, onMounted, watch } from 'vue';
 import axios from 'axios';
 import { aiQuests } from '../data/stages.js'; // [수정일: 2026-02-06] 폴더 계층화(data) 반영
 
@@ -20,12 +20,8 @@ export function useCoduckWars() {
         // Phase 3 State
         phase3Reasoning: "", // User Typed Logic
         showHint: false, // Hint visibility
-        missionContext: "표준 정규화 과정에서 테스트 데이터의 정보가 학습 과정에 유입되어 모델의 신뢰성이 붕괴된 사건(Data Leakage)이 감지되었습니다. 원인 파악 및 해결 설계가 시급합니다.",
-        constraints: [
-            "원칙 1: 스케일러(fit)는 반드시 학습 데이터(Train)만을 기준으로 생성되어야 함 (테스트 데이터 오염 방지)",
-            "원칙 2: 테스트 데이터(Test)는 기생성된 스케일러로 변환(transform)만 수행하며 절대 fit에 관여해선 안 됨",
-            "원칙 3: 위 두 원칙을 포함하여, 데이터의 정합성을 유지하기 위한 본인만의 해결 로직을 상세히 서술할 것"
-        ],
+        missionContext: "", // Loaded from stages.js
+        constraints: [],    // Loaded from stages.js
 
         // Phase 4 State
         // implementing "Monaco Editor" style content replaced by Slots
@@ -98,12 +94,6 @@ export function useCoduckWars() {
             const now = Date.now();
             const diff = now - lastInputTime;
 
-            // 10 seconds idle: Gentle nudge
-            if (diff > 10000 && diff < 11000) {
-                gameState.coduckMessage = "생각이 막히시나요? 왼쪽의 [GUIDE] 탭을 열어 단계별 힌트를 확인해보세요!";
-                addSystemLog("코덕: 아키텍트의 입력이 지연되고 있습니다...", "INFO");
-            }
-
             // 25 seconds idle: Specific hint based on blank state
             if (diff > 25000 && diff < 26000) {
                 if (gameState.phase3Reasoning.length < 10) {
@@ -147,6 +137,21 @@ export function useCoduckWars() {
         // Fallback to first quest if id not found
         return aiQuests.find(q => q.id === gameState.currentStageId) || aiQuests[0];
     });
+
+    // --- Sync Game State with Mission Data ---
+    watch(currentMission, (newMission) => {
+        if (newMission) {
+            // Support new data structure (Phase 3)
+            if (newMission.designContext) {
+                gameState.missionContext = newMission.designContext.currentIncident || "";
+                gameState.constraints = newMission.designContext.engineeringRules || [];
+            } else {
+                // Fallback to old structure
+                gameState.missionContext = newMission.incidentContext || "";
+                gameState.constraints = newMission.constraints || [];
+            }
+        }
+    }, { immediate: true });
 
     // Threat Logic
     const enemyThreat = computed(() => {
@@ -224,21 +229,10 @@ export function useCoduckWars() {
     };
 
     // --- 1. Diagnostic Phase 1 (Q1) ---
-    const diagnosticQuestion1 = computed(() => ({
-        question: "이 문제는 어디에서 시작되었습니까?",
-        options: [
-            {
-                text: "단계적 사고 프로토콜을 재가동한다",
-                bullets: ["판단 기준을 다시 정의한다", "처리 속도가 느려질 수 있다"],
-                correct: true
-            },
-            {
-                text: "외부 입력을 전면 차단한다",
-                bullets: ["즉각적인 혼란을 차단한다", "중요한 정보도 함께 사라질 수 있다"],
-                correct: false
-            }
-        ]
-    }));
+    const diagnosticQuestion1 = computed(() => {
+        const q = currentMission.value.interviewQuestions?.[0];
+        return q || { question: "데이터 로딩 실패", options: [] };
+    });
 
     const submitDiagnostic1 = (optionIndex) => {
         console.log(`[CoduckWars] submitDiagnostic1 clicked: ${optionIndex}`);
@@ -253,7 +247,13 @@ export function useCoduckWars() {
             gameState.score += 100;
             gameState.feedbackMessage = "프로토콜 확인.";
             addSystemLog("선택 승인: 프로토콜 재가동", "SUCCESS");
-            setTimeout(() => setPhase('DIAGNOSTIC_2'), 800);
+
+            // Show Coduck's specific comment
+            if (q.coduckComment) {
+                gameState.coduckMessage = q.coduckComment.replace('{username}', 'Architect');
+            }
+
+            setTimeout(() => setPhase('DIAGNOSTIC_2'), 1500); // 1.5s delay to read message
         } else {
             handleDamage();
             gameState.feedbackMessage = "판단 오류.";
@@ -262,21 +262,10 @@ export function useCoduckWars() {
     };
 
     // --- 2. Diagnostic Phase 2 (Q2) ---
-    const diagnosticQuestion2 = computed(() => ({
-        question: "정상 데이터를 남기기 위한 첫 기준은 무엇입니까?",
-        options: [
-            {
-                text: "정밀 데이터 필터링 설계",
-                bullets: ["노이즈 제거", "일부 유효 신호 손실 가능"],
-                correct: true
-            },
-            {
-                text: "무작위 데이터 주입",
-                bullets: ["분포 안정화 시도", "판단 기준 불명확 위험"],
-                correct: false
-            }
-        ]
-    }));
+    const diagnosticQuestion2 = computed(() => {
+        const q = currentMission.value.interviewQuestions?.[1];
+        return q || { question: "데이터 로딩 실패", options: [] };
+    });
 
     const submitDiagnostic2 = (optionIndex) => {
         console.log(`[CoduckWars] submitDiagnostic2 clicked: ${optionIndex}`);
@@ -290,7 +279,13 @@ export function useCoduckWars() {
             gameState.score += 100;
             gameState.feedbackMessage = "전략 수립.";
             addSystemLog(`전략 채택: ${selected.text}`, "SUCCESS");
-            setTimeout(() => setPhase('PSEUDO_WRITE'), 800);
+
+            // Show Coduck's specific comment
+            if (q.coduckComment) {
+                gameState.coduckMessage = q.coduckComment.replace('{username}', 'Architect');
+            }
+
+            setTimeout(() => setPhase('PSEUDO_WRITE'), 1500); // 1.5s delay to read message
         } else {
             handleDamage();
             gameState.feedbackMessage = "전략 오류.";
@@ -315,21 +310,47 @@ export function useCoduckWars() {
     // --- 4. Implementation Phase ---
     const initPhase4Scaffolding = () => {
         // Init slots for drag-drop interaction (Generic placeholders to not give away answers)
+        // Reduced to 3 slots for Data Leakage logic
         gameState.codeSlots = {
             slot1: { placeholder: "::: [SYSTEM SLOT 01: READY] :::", content: null },
             slot2: { placeholder: "::: [SYSTEM SLOT 02: READY] :::", content: null },
-            slot3: { placeholder: "::: [SYSTEM SLOT 03: READY] :::", content: null },
-            slot4: { placeholder: "::: [SYSTEM SLOT 04: READY] :::", content: null },
+            slot3: { placeholder: "::: [SYSTEM SLOT 03: READY] :::", content: null }
         };
+        gameState.feedbackMessage = null; // Clear previous errors
         addSystemLog("모듈 슬롯 대기 모드 활성화", "INFO");
     };
 
-    const pythonSnippets = computed(() => [
-        { id: 1, code: "StandardScaler()", label: "Initialize Scaler" },
-        { id: 2, code: "scaler.fit(train_df)", label: "Fit Model (Train Data)" },
-        { id: 3, code: "scaler.transform(train_df)", label: "Transform Train Data" },
-        { id: 4, code: "scaler.transform(test_df)", label: "Transform Test Data" },
-    ]);
+    const pythonSnippets = computed(() => {
+        const m = currentMission.value;
+
+        // 1. explicit snippets (Old structure)
+        if (m.pythonSnippets) {
+            return m.pythonSnippets.map((s, idx) => ({
+                id: idx + 1,
+                code: s.code,
+                label: s.label || s.code
+            }));
+        }
+
+        // 2. Implicit snippets from implementation.codeValidation.mustContain (New structure)
+        // We generate snippets based on the required code lines AND correct/incorrect options
+        if (m.implementation?.codeValidation?.mustContain) {
+            const goods = m.implementation.codeValidation.mustContain;
+            const bads = m.implementation.codeValidation.mustNotContain || [];
+
+            // Combine and map to snippet objects
+            // We can add a simple shuffle or just list them. For stability, just listing.
+            const allSnippets = [...goods, ...bads];
+
+            return allSnippets.map((codeStr, idx) => ({
+                id: idx + 1,
+                code: codeStr,
+                label: codeStr // Use code as label for now
+            }));
+        }
+
+        return [];
+    });
 
     // Click insertion disabled as per request ("Drag Only")
     const insertSnippet = () => {
@@ -340,56 +361,120 @@ export function useCoduckWars() {
     const handleSlotDrop = (slotKey, snippetCode) => {
         if (gameState.codeSlots[slotKey]) {
             gameState.codeSlots[slotKey].content = snippetCode;
-            addSystemLog(`슬롯[${slotKey}] 모듈 장착: ${snippetCode}`, "SUCCESS");
-
-            // Check for match immediately? Or wait for submit? 
-            // Let's just update state.
+            addSystemLog(`슬롯[${slotKey}] 모듈 장착`, "SUCCESS"); // Don't show full code to keep log clean
         }
     };
 
     const submitPythonFill = () => {
         const s = gameState.codeSlots;
-        // Validate correct order
-        // Correct Expected:
-        // slot1: StandardScaler()
-        // slot2: scaler.fit(train_df)
-        // slot3: scaler.transform(train_df)
-        // slot4: scaler.transform(test_df)
+        const m = currentMission.value;
 
-        const isCorrect =
-            s.slot1.content === "StandardScaler()" &&
-            s.slot2.content === "scaler.fit(train_df)" &&
-            s.slot3.content === "scaler.transform(train_df)" &&
-            s.slot4.content === "scaler.transform(test_df)";
+        // Validation Logic
+        let isCorrect = false;
+        let feedback = "";
+
+        // 1. New Structure (implementation.codeValidation)
+        // We simulate "ordered" check by seeing if slot 1..N match mustContain 0..N
+        if (m.implementation?.codeValidation?.mustContain) {
+            const required = m.implementation.codeValidation.mustContain;
+            // Check order: slot1 == required[0], slot2 == required[1], etc.
+            const slots = [
+                s.slot1.content?.trim(),
+                s.slot2.content?.trim(),
+                s.slot3.content?.trim()
+            ];
+
+            // Check if all matched
+            isCorrect = required.every((req, idx) => {
+                const userVal = slots[idx];
+                const cleanReq = req.trim();
+                const match = userVal === cleanReq;
+                if (!match) {
+                    console.log(`Mismatch at ${idx}: User[${userVal}] vs Req[${cleanReq}]`);
+                }
+                return match;
+            });
+
+            // Also check 'mustNotContain'
+            if (isCorrect && m.implementation.codeValidation.mustNotContain) {
+                const hasForbidden = m.implementation.codeValidation.mustNotContain.some(forbid =>
+                    slots.includes(forbid.trim())
+                );
+                if (hasForbidden) {
+                    isCorrect = false;
+                    feedback = "금지된 코드(오답)가 포함되어 있습니다.";
+                }
+            }
+
+            if (!isCorrect && !feedback) {
+                feedback = "모듈 순서가 틀렸거나 잘못된 모듈입니다.";
+                // Debug: specific error log
+                addSystemLog(`검증 실패: 순서 또는 값 불일치`, "WARN");
+            }
+
+        } else if (m.id === 1 || !m.expectedSlots) {
+            // Hardcoded Fallback for Chapter 1 (Data Leakage)
+            const required = [
+                "scaler.fit(train_df)",
+                "scaler.transform(train_df)",
+                "scaler.transform(test_df)"
+            ];
+
+            isCorrect =
+                s.slot1.content?.trim() === required[0] &&
+                s.slot2.content?.trim() === required[1] &&
+                s.slot3.content?.trim() === required[2];
+
+            // Check negative rule
+            const allSlots = [s.slot1.content, s.slot2.content, s.slot3.content];
+            if (allSlots.some(c => c?.trim() === "scaler.fit(test_df)")) {
+                isCorrect = false;
+                feedback = "금지된 코드(오답)가 포함되어 있습니다. (Test Data Leakage)";
+            }
+
+            if (!isCorrect && !feedback) {
+                feedback = "모듈 순서가 틀렸거나 올바른 모듈이 아닙니다.";
+                addSystemLog(`검증 실패: 로직 불일치`, "WARN");
+            }
+
+        } else if (m.expectedSlots) {
+            // 2. Old Structure (expectedSlots)
+            const expected = m.expectedSlots;
+            isCorrect =
+                s.slot1.content === expected[0] &&
+                s.slot2.content === expected[1] &&
+                s.slot3.content === expected[2] &&
+                s.slot4.content === expected[3];
+            if (!isCorrect) feedback = "모듈 순서 또는 종류가 잘못되었습니다.";
+        } else {
+            // 3. Fallback / Error
+            console.warn("No validation rules found for this stage.");
+            isCorrect = false;
+        }
+
 
         if (isCorrect) {
             gameState.score += 200;
             gameState.feedbackMessage = "구현 무결성 확인.";
             // Fill userCode for evaluation display later
-            gameState.userCode = `def leakage_free_scaling(train_df, test_df):
-    scaler = StandardScaler()
-    scaler.fit(train_df)
-    train_scaled = scaler.transform(train_df)
-    test_scaled = scaler.transform(test_df)
-    return train_scaled, test_scaled`;
+            // Prefer template from new structure
+            gameState.userCode = m.implementation?.codeFrame?.template || m.pythonTemplate || "코드 생성 완료";
 
             addSystemLog("코드 검증 통과: 파이프라인 정상화", "SUCCESS");
             setTimeout(() => setPhase('DEEP_QUIZ'), 800);
         } else {
             handleDamage();
-            gameState.feedbackMessage = "모듈 순서 또는 종류가 잘못되었습니다.";
+            gameState.feedbackMessage = feedback || "구현 오류.";
             addSystemLog("오류: 파이프라인 구성 결함", "ERROR");
         }
     };
 
     // --- 5. Deep Quiz Phase ---
-    const deepQuizQuestion = computed(() => ({
-        question: "다음 중 데이터 누수가 위험한 이유를 가장 정확히 설명한 것은 무엇입니까?",
-        options: [
-            { text: "데이터 누수는 모델이 미래 정보를 학습하게 만든다", correct: true },
-            { text: "검증 데이터와 학습 데이터는 섞일수록 좋다", correct: false }
-        ]
-    }));
+    const deepQuizQuestion = computed(() => {
+        const m = currentMission.value;
+        // Support new structure (deepDiveQuestion) or old (deepQuiz)
+        return m.deepDiveQuestion || m.deepQuiz || { question: "데이터 로딩 실패", options: [] };
+    });
 
     const submitDeepQuiz = (optionIndex) => {
         const selected = deepQuizQuestion.value.options[optionIndex];
