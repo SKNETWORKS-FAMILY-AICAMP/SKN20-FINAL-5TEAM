@@ -169,6 +169,15 @@
                   <div class="clue-header success-header">
                     <span class="clue-icon">🎯</span>
                     <span class="clue-title">BUG {{ currentProgressiveStep }} FIXED!</span>
+                    <!-- 오리 + 말풍선 (헤더에 위치) -->
+                    <transition name="duck-pop">
+                      <div v-if="showDuckGuide" class="duck-with-speech">
+                        <img :src="duckIdle" class="duck-guide-img-header" alt="Guide Duck">
+                        <div class="duck-guide-speech header-speech">
+                          <span class="guide-text">여기에 전략을 작성해주세요! ✏️</span>
+                        </div>
+                      </div>
+                    </transition>
                   </div>
                 </transition>
                 <transition name="fade-up">
@@ -183,8 +192,10 @@
                       @keydown.ctrl.enter="handleChatSubmit"
                       placeholder="버그 해결 전략을 작성해주세요...&#10;&#10;• 어떤 문제를 발견했나요?&#10;• 왜 이렇게 수정했나요?&#10;• 어떤 효과가 있나요?"
                       class="explanation-textarea"
+                      :class="{ 'strategy-pulse': showDuckGuide }"
                       rows="8"
                       autofocus
+                      ref="strategyTextareaRef"
                     ></textarea>
                     <div class="explanation-hint">💡 Ctrl + Enter로 빠르게 제출</div>
                   </div>
@@ -313,7 +324,7 @@
           <!-- MISS 이펙트 -->
           <transition name="miss">
             <div v-if="showMissEffect" class="miss-effect" :style="missEffectStyle">
-              <span class="miss-text">MISSED! 😢</span>
+              <span class="miss-text">MISSED!</span>
             </div>
           </transition>
 
@@ -391,22 +402,6 @@
         </main>
       </div>
 
-      <!-- 날아가는 패널 (중앙에서 로그창으로) -->
-      <transition name="fade">
-        <div v-if="showFlyingPanel" class="flying-panel" :style="flyingPanelStyle">
-          <div class="flying-panel-header">
-            <span class="flying-icon">🎯</span>
-            <span class="flying-title">BUG {{ currentProgressiveStep }} FIXED!</span>
-          </div>
-          <div class="flying-panel-body">
-            <div class="flying-label">
-              <span class="label-icon">💭</span>
-              전략 작성하기
-            </div>
-            <div class="flying-preview">버그 해결 전략을 작성해주세요...</div>
-          </div>
-        </div>
-      </transition>
     </div>
 
     <!-- 최종 평가 화면 -->
@@ -1075,14 +1070,9 @@ const showShutter = ref(false);
 // 로그창 주목 효과
 const showAttentionEffect = ref(false);
 
-// 날아가는 패널 상태
-const showFlyingPanel = ref(false);
-const flyingPanelStyle = ref({
-  top: '50%',
-  left: '50%',
-  transform: 'translate(-50%, -50%)',
-  opacity: 1
-});
+// 오리 가이드 상태 (전략 입력 안내 - 제출할 때까지 유지)
+const showDuckGuide = ref(false);
+const strategyTextareaRef = ref(null);
 
 // 코드 제출 상태
 const codeSubmitFailCount = ref(0);
@@ -1308,6 +1298,9 @@ function handleChatSubmit() {
 
   isSubmittingStrategy.value = true;
   const userText = chatInput.value.trim();
+
+  // 오리 가이드 숨기기
+  showDuckGuide.value = false;
 
   // 설명 저장
   stepExplanations[currentProgressiveStep.value] = userText;
@@ -1535,38 +1528,13 @@ function submitProgressiveStep() {
         // 성공 시 힌트 창 닫기
         showProgressiveHintPanel.value = false;
 
-        // 날아가는 패널 표시
-        showFlyingPanel.value = true;
-        flyingPanelStyle.value = {
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          opacity: 1,
-          transition: 'none'
-        };
+        // 바로 전략 입력 모드로 전환
+        currentProgressivePhase.value = 'explain';
 
-        // 짧은 딜레이 후 로그창으로 날아가기 시작
+        // 오리 가이드 표시 (제출할 때까지 유지)
         scheduleTimeout(() => {
-          flyingPanelStyle.value = {
-            top: '40%',
-            left: '18%',
-            transform: 'translate(-50%, -50%) scale(0.8)',
-            opacity: 0,
-            transition: 'all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)'
-          };
-        }, 100);
-
-        // 날아가는 애니메이션 완료 후 설명 페이즈로 전환
-        scheduleTimeout(() => {
-          showFlyingPanel.value = false;
-          currentProgressivePhase.value = 'explain';
-          showAttentionEffect.value = true;
-        }, 900);
-
-        // 주목 효과 종료
-        scheduleTimeout(() => {
-          showAttentionEffect.value = false;
-        }, 2500);
+          showDuckGuide.value = true;
+        }, 500);
 
       } else {
         // 실패 - 아무 로그도 추가하지 않음 (기존 에러 로그 유지)
@@ -1691,27 +1659,29 @@ const flyingNotificationStyle = computed(() => ({
   top: `${flyingNotificationPosition.y}%`
 }));
 
-// 지렁이 움직임 애니메이션 (바닥에서 기어다니도록 수정)
+// 지렁이 움직임 애니메이션 (땅 영역 30%에서만 움직이도록 수정)
 function animateBug(step) {
   if (progressiveCompletedSteps.value.includes(step)) return;
 
   const time = Date.now() / 1000;
 
-  // 에디터 내부에서만 움직이도록 범위 제한
-  const movementRadiusX = 25; // 좌우 이동 범위 축소 (40 → 25)
+  // 땅 영역: 하단 75~95% 구간 (코드 70% + 땅 30%)
+  const movementRadiusX = 30; // 좌우 이동 범위
   const centerX = 50; // 중앙 기준
 
-  // Y축은 에디터 중하단에서 움직임
-  const baseY = 65; // 기본 위치
-  const verticalWiggle = 3; // 상하 움직임 축소
+  // Y축은 땅 영역(하단 30%)에서만 움직임
+  const groundMinY = 75; // 땅 시작 위치
+  const groundMaxY = 95; // 땅 끝 위치
+  const baseY = (groundMinY + groundMaxY) / 2; // 중간 위치
+  const verticalWiggle = 5; // 상하 움직임
 
-  // 위치 계산 (에디터 경계 10-90% 내로 제한)
+  // 위치 계산
   let x = centerX + Math.sin(time * 0.3 + step * 10) * movementRadiusX + Math.cos(time * 0.5) * 5;
   let y = baseY + Math.sin(time * 0.8 + step * 5) * verticalWiggle;
 
-  // 경계 제한 (clamp) - 이미지 크기 고려하여 여유있게
-  x = Math.max(15, Math.min(85, x));
-  y = Math.max(15, Math.min(80, y));
+  // 경계 제한 (땅 영역 내에서만)
+  x = Math.max(10, Math.min(90, x));
+  y = Math.max(groundMinY, Math.min(groundMaxY, y));
 
   bugPositions[step] = {
     left: `${x}%`,
@@ -1721,24 +1691,26 @@ function animateBug(step) {
   bugAnimationIds[step] = requestAnimationFrame(() => animateBug(step));
 }
 
-// 오리 걷기 애니메이션
+// 오리 걷기 애니메이션 (땅 영역 30%에서만 움직이도록 수정)
 function animateDuck() {
   const time = Date.now() / 1000;
 
-  // 오리도 에디터 내부에서만 걷기
-  const movementRadiusX = 20; // 이동 범위 축소
-  const centerX = 25; // 왼쪽 영역 (15 → 25)
+  // 땅 영역: 하단 75~95% 구간 (코드 70% + 땅 30%)
+  const movementRadiusX = 25; // 이동 범위
+  const centerX = 30; // 왼쪽 영역
 
-  const baseY = 65; // 바닥 위치
-  const verticalBob = 1.5; // 상하 움직임 축소
+  const groundMinY = 75; // 땅 시작 위치
+  const groundMaxY = 95; // 땅 끝 위치
+  const baseY = (groundMinY + groundMaxY) / 2;
+  const verticalBob = 5; // 상하 움직임
 
-  // 위치 계산 (에디터 경계 10-45% 내로 제한 - 왼쪽 영역)
+  // 위치 계산
   let x = centerX + Math.sin(time * 0.4) * movementRadiusX;
   let y = baseY + Math.sin(time * 2) * verticalBob;
 
-  // 경계 제한 (clamp) - 오리는 왼쪽 영역, 이미지 크기 고려
-  x = Math.max(15, Math.min(50, x));
-  y = Math.max(15, Math.min(80, y));
+  // 경계 제한 (땅 영역 내에서만)
+  x = Math.max(5, Math.min(55, x));
+  y = Math.max(groundMinY, Math.min(groundMaxY, y));
 
   walkingDuckPosition.left = `${x}%`;
   walkingDuckPosition.top = `${y}%`;
@@ -2010,11 +1982,12 @@ onUnmounted(() => {
 
 .clue-panel {
   flex: 1; /* Take all remaining space (Expanded Log Window) */
-  min-height: 200px;
+  min-height: 0; /* flex child가 shrink 가능하도록 */
   background: rgba(0, 0, 0, 0.4); /* Slightly darker/transparent */
   border-top: 1px solid rgba(0, 255, 255, 0.2);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .clue-header {
@@ -2036,6 +2009,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
+  min-height: 0; /* flex child가 shrink 가능하도록 */
 }
 
 .clue-item {
@@ -2334,6 +2308,158 @@ onUnmounted(() => {
   100% {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* 오리 + 말풍선 컨테이너 (헤더에 위치) */
+.duck-with-speech {
+  position: absolute;
+  right: 10px;
+  bottom: 5px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 10;
+}
+
+.duck-guide-img-header {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+  animation: duckBounce 0.8s ease-in-out infinite;
+}
+
+.header-speech {
+  margin-bottom: 0;
+}
+
+.header-speech::after {
+  display: none;
+}
+
+.success-header {
+  position: relative;
+}
+
+.duck-guide-speech {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: #000;
+  padding: 8px 14px;
+  border-radius: 12px;
+  font-weight: bold;
+  font-size: 0.85rem;
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.5);
+  animation: speechPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes speechPulse {
+  0%, 100% {
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.5);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 4px 25px rgba(255, 215, 0, 0.8);
+    transform: scale(1.02);
+  }
+}
+
+.guide-text {
+  white-space: nowrap;
+}
+
+@keyframes duckBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+/* 말풍선 팝 트랜지션 */
+.speech-pop-enter-active {
+  animation: speechPopIn 0.4s ease-out;
+}
+
+.speech-pop-leave-active {
+  animation: speechPopOut 0.3s ease-in;
+}
+
+@keyframes speechPopIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-50%) scale(0.5);
+  }
+  50% {
+    transform: translateY(-50%) scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+  }
+}
+
+@keyframes speechPopOut {
+  0% {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-50%) scale(0.8);
+  }
+}
+
+/* 오리 팝 트랜지션 */
+.duck-pop-enter-active {
+  animation: duckPopIn 0.5s ease-out;
+}
+
+.duck-pop-leave-active {
+  animation: duckPopOut 0.3s ease-in;
+}
+
+@keyframes duckPopIn {
+  0% {
+    opacity: 0;
+    transform: scale(0) rotate(-20deg);
+  }
+  60% {
+    transform: scale(1.2) rotate(5deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+}
+
+@keyframes duckPopOut {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.5) translateY(-20px);
+  }
+}
+
+/* 전략창 노란색 펄스 테두리 효과 */
+.explanation-textarea.strategy-pulse {
+  animation: strategyPulse 1.5s ease-in-out infinite;
+  border-color: #FFD700 !important;
+}
+
+@keyframes strategyPulse {
+  0%, 100% {
+    box-shadow:
+      0 0 5px rgba(255, 215, 0, 0.5),
+      0 0 10px rgba(255, 215, 0, 0.3);
+    border-color: #FFD700;
+  }
+  50% {
+    box-shadow:
+      0 0 20px rgba(255, 215, 0, 0.8),
+      0 0 40px rgba(255, 215, 0, 0.5),
+      0 0 60px rgba(255, 215, 0, 0.3);
+    border-color: #FFA500;
   }
 }
 </style>

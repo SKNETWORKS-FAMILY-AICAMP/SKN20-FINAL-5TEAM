@@ -18,8 +18,6 @@ export const useGameStore = defineStore('game', {
             'Pseudo Practice': [0],
             // [수정일: 2026-01-28] 난이도별(초/중/고) 첫 문제를 기본 해금하여 즉시 선택 가능하도록 설정
             'Debug Practice': [0],
-            // [수정일: 2026-01-28] Vibe Clean Up 전용 진행도
-            'Vibe Clean Up': [0],
             'System Practice': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
             'Ops Practice': [0],
             'Agent Practice': [0],
@@ -103,17 +101,7 @@ export const useGameStore = defineStore('game', {
                         icon: item.icon_name || iconMap[item.title] || 'book',
 
                         // [2026-01-25] 하드코딩 제거: DB의 PracticeDetail 리스트에서 'PROBLEM' 타입만 추출하여 문제 구성
-                        problems,
-                        // [2026-01-28] Debug Practice의 Vibe Clean Up 전용 문제 세트
-                        vibeProblems: isDebugPractice
-                            ? (progressiveData.progressiveProblems || []).map((m, mIdx) => ({
-                                id: `vibe-${m.id}`,
-                                missionId: `vibe-${m.id}`,
-                                title: `Vibe ${mIdx + 1} - ${m.project_title}`,
-                                displayNum: `Vibe ${mIdx + 1}`,
-                                questIndex: mIdx
-                            }))
-                            : undefined
+                        problems
                     };
                 });
 
@@ -283,7 +271,7 @@ export const useGameStore = defineStore('game', {
                 targetKey = modeMap[this.unit1Mode] || 'Pseudo Practice';
             }
             if (this.activeUnit?.name === 'Debug Practice') {
-                targetKey = this.currentDebugMode === 'vibe-cleanup' ? 'Vibe Clean Up' : 'Debug Practice';
+                targetKey = 'Debug Practice';
             }
 
             const progress = this.unitProgress[targetKey];
@@ -294,7 +282,7 @@ export const useGameStore = defineStore('game', {
             // [수정일: 2026-01-28] 유닛별 최대 문제 수에 맞춰 해금 제한 동적 조절
             const maxCount = targetKey === 'AI Detective'
                 ? 30
-                : (targetKey === 'Debug Practice' || targetKey === 'Vibe Clean Up')
+                : targetKey === 'Debug Practice'
                     ? (progressiveData.progressiveProblems?.length || 0)
                     : 10;
             if (progress && nextIdx < maxCount && !progress.includes(nextIdx)) {
@@ -332,8 +320,7 @@ export const useGameStore = defineStore('game', {
             const unitTitle = rawTitle.toLowerCase().replace(/\s+/g, '');
 
             if (unitTitle === 'debugpractice') {
-                const modeKey = state.currentDebugMode === 'vibe-cleanup' ? 'Vibe Clean Up' : 'Debug Practice';
-                return state.unitProgress[modeKey] || [0];
+                return state.unitProgress['Debug Practice'] || [0];
             }
 
             if (unitTitle === 'systempractice') {

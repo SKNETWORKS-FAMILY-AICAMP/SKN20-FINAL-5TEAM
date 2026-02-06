@@ -2,482 +2,432 @@
   "progressiveProblems": [
     {
       "id": "P1",
-      "project_title": "AI 엔지니어링 핵심 디버깅",
-      "scenario": "AI 모델 개발 파이프라인에서 발생하는 실제 에러들을 해결하며 엔지니어링 역량을 키웁니다.",
+      "project_title": "딥러닝 추론 파이프라인 디버깅",
+      "scenario": "학습된 모델을 배포했는데, 추론 결과가 학습 시와 다르게 나옵니다. 동일한 입력인데도 매번 결과가 달라지거나, 메모리가 계속 증가하는 문제가 발생합니다.",
       "difficulty": 2,
       "totalSteps": 3,
       "steps": [
         {
           "step": 1,
-          "title": "학습은 되는데 성능이 안 오르지? (Numerical Stability)",
-          "file_name": "model_train.py",
-          "description": "이진 분류 모델이 에러 없이 학습되지만 accuracy가 0.5 근처에서 고정되는 현상입니다.\n\n**상황:**\n- 데이터: 10차원 입력, 10,000개 샘플, 클래스 비율 50:50\n- Loss: 0.693(ln2) 근처에서 시작 → 0.690 → 0.688 (미세 감소 후 정체)\n- Accuracy: 0.48 ~ 0.52 사이 진동, 100 epoch 이후에도 동일\n- 에러 메시지 없음\n\n**핵심 질문:** 왜 Loss가 ln(2) ≈ 0.693에서 시작할까요? 이 숫자가 의미하는 바는?",
-          "objectives": [
-            "Sigmoid + BCELoss 조합의 수치적 불안정성 이해",
-            "Gradient Saturation 현상과 원인 파악",
-            "Logits 기반 손실 함수(BCEWithLogitsLoss)의 수치 안정성 원리 이해"
-          ],
-          "buggy_code": "import torch\nimport torch.nn as nn\n\nclass Model(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.fc = nn.Linear(10, 1)\n        self.sigmoid = nn.Sigmoid()\n\n    def forward(self, x):\n        return self.sigmoid(self.fc(x))\n\nmodel = Model()\ncriterion = nn.BCELoss()\noptimizer = torch.optim.SGD(model.parameters(), lr=0.01)\n\n# Training loop\nfor epoch in range(100):\n    pred = model(X_train)\n    loss = criterion(pred, y_train)\n    optimizer.zero_grad()\n    loss.backward()\n    optimizer.step()\n    print(f\"Epoch {epoch}: Loss {loss.item():.4f}\")",
-          "correct_code": "import torch\nimport torch.nn as nn\n\nclass Model(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.fc = nn.Linear(10, 1)\n        # Sigmoid 제거: Logits을 직접 출력\n\n    def forward(self, x):\n        return self.fc(x)\n\nmodel = Model()\n# Sigmoid + BCELoss를 내부적으로 결합하여 수치 안정성 확보\ncriterion = nn.BCEWithLogitsLoss()\noptimizer = torch.optim.Adam(model.parameters(), lr=0.001)\n\n# Training loop\nfor epoch in range(100):\n    logits = model(X_train)\n    loss = criterion(logits, y_train)\n    optimizer.zero_grad()\n    loss.backward()\n    optimizer.step()\n    print(f\"Epoch {epoch}: Loss {loss.item():.4f}\")",
-          "hints": [
-            "Loss 0.693은 -log(0.5)입니다. 모델이 모든 샘플에 대해 '반반 찍기'를 하고 있다는 뜻이죠.",
-            "Sigmoid 출력이 0이나 1에 가까워지면 BCELoss 내부의 log(p) 또는 log(1-p)가 -∞로 발산합니다.",
-            "BCEWithLogitsLoss는 내부적으로 log(1 + exp(-z)) 형태(LogSumExp trick)를 사용해 수치 안정성을 확보합니다."
-          ],
-          "error_log": "Epoch 1: Loss 0.6931, Acc 0.50\nEpoch 10: Loss 0.6928, Acc 0.51\nEpoch 50: Loss 0.6925, Acc 0.49\nEpoch 100: Loss 0.6924, Acc 0.50\n[결과] 100 epoch 후에도 random guess 수준",
-          "success_log": "Epoch 1: Loss 0.6801, Acc 0.62\nEpoch 10: Loss 0.4502, Acc 0.85\nEpoch 50: Loss 0.1803, Acc 0.94\nEpoch 100: Loss 0.0892, Acc 0.97\n[결과] 정상적인 학습 곡선",
+          "title": "추론할 때마다 결과가 달라요 (model.eval 누락)",
+          "bug_type": "A",
+          "bug_type_name": "Inference Mode",
+          "file_name": "inference.py",
+          "buggy_code": "import torch\nimport torch.nn as nn\n\nclass Model(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.conv = nn.Conv2d(3, 64, 3)\n        self.bn = nn.BatchNorm2d(64)\n        self.dropout = nn.Dropout(0.5)\n        self.fc = nn.Linear(64 * 6 * 6, 10)\n    \n    def forward(self, x):\n        x = self.conv(x)\n        x = self.bn(x)\n        x = torch.relu(x)\n        x = self.dropout(x)\n        x = x.view(x.size(0), -1)\n        return self.fc(x)\n\n# 학습 완료 후 추론\nmodel = Model()\nmodel.load_state_dict(torch.load('model.pth'))\n\n# 추론 실행\nwith torch.no_grad():\n    for img in test_images:\n        output = model(img)\n        pred = torch.softmax(output, dim=1)\n        print(pred)",
+          "correct_code": "import torch\nimport torch.nn as nn\n\nclass Model(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.conv = nn.Conv2d(3, 64, 3)\n        self.bn = nn.BatchNorm2d(64)\n        self.dropout = nn.Dropout(0.5)\n        self.fc = nn.Linear(64 * 6 * 6, 10)\n    \n    def forward(self, x):\n        x = self.conv(x)\n        x = self.bn(x)\n        x = torch.relu(x)\n        x = self.dropout(x)\n        x = x.view(x.size(0), -1)\n        return self.fc(x)\n\n# 학습 완료 후 추론\nmodel = Model()\nmodel.load_state_dict(torch.load('model.pth'))\nmodel.eval()  # 추론 모드로 전환\n\n# 추론 실행\nwith torch.no_grad():\n    for img in test_images:\n        output = model(img)\n        pred = torch.softmax(output, dim=1)\n        print(pred)",
+          "error_log": "=== 추론 결과 (5회 실행) ===\nRun 1: [0.12, 0.03, 0.82, ...] → class 2 (conf: 0.82)\nRun 2: [0.08, 0.05, 0.78, ...] → class 2 (conf: 0.78)\nRun 3: [0.15, 0.02, 0.85, ...] → class 2 (conf: 0.85)\nRun 4: [0.22, 0.04, 0.71, ...] → class 2 (conf: 0.71)\nRun 5: [0.10, 0.03, 0.83, ...] → class 2 (conf: 0.83)\n[문제] 같은 입력인데 확률값이 매번 다름",
+          "success_log": "=== 추론 결과 (5회 실행) ===\nRun 1: [0.08, 0.02, 0.87, ...] → class 2 (conf: 0.87)\nRun 2: [0.08, 0.02, 0.87, ...] → class 2 (conf: 0.87)\nRun 3: [0.08, 0.02, 0.87, ...] → class 2 (conf: 0.87)\nRun 4: [0.08, 0.02, 0.87, ...] → class 2 (conf: 0.87)\nRun 5: [0.08, 0.02, 0.87, ...] → class 2 (conf: 0.87)\n[정상] 동일 입력 → 동일 출력",
+          "hint": "모델에는 학습 모드와 추론 모드가 있습니다. Dropout과 BatchNorm은 이 두 모드에서 다르게 동작합니다.",
           "solution_check": {
             "type": "multi_condition",
             "required_all": [
-              "BCEWithLogitsLoss"
+              "model.eval()"
             ],
-            "forbidden": [
-              "BCELoss",
-              "self.sigmoid"
-            ]
+            "forbidden": []
           },
           "error_info": {
-            "type": "Model Design Error (Gradient Saturation)",
-            "description": "Sigmoid 출력이 0 또는 1에 가까워지면 두 가지 문제가 발생합니다:\n1. BCELoss 내부 log(p), log(1-p) 계산에서 수치적 불안정 (log(0) → -∞)\n2. Sigmoid의 미분값이 0에 가까워져 gradient가 소실 (Saturation)\n\n이로 인해 모델이 초기 random guess 상태에서 벗어나지 못합니다.",
-            "suggestion": "Logits을 직접 입력받는 `BCEWithLogitsLoss`를 사용하세요. 이 함수는 내부적으로 수치적으로 안정적인 계산을 수행합니다."
-          }
+            "type": "Inference Mode Error",
+            "description": "PyTorch 모델은 기본적으로 학습 모드(train mode)로 생성됩니다.\n\n학습 모드에서:\n- Dropout: 뉴런을 랜덤하게 비활성화 (매 forward마다 다름)\n- BatchNorm: 현재 배치의 평균/분산 사용\n\n추론 모드(eval mode)에서:\n- Dropout: 모든 뉴런 활성화 (dropout 비율만큼 스케일링)\n- BatchNorm: 학습 중 저장된 running_mean/running_var 사용\n\nmodel.eval()을 호출하지 않으면 추론 시에도 Dropout이 랜덤하게 동작하여 같은 입력에 대해 다른 출력이 나옵니다.",
+            "suggestion": "추론 전에 반드시 model.eval()을 호출하세요. 학습을 다시 시작할 때는 model.train()을 호출해야 합니다."
+          },
+          "coaching": "🎯 현업: model.eval() 누락은 신입 개발자가 가장 많이 하는 실수 중 하나입니다. 추론 코드를 작성할 때는 model.eval()과 torch.no_grad()를 세트로 기억하세요."
         },
         {
           "step": 2,
-          "title": "실험은 성공, 배포는 실패 (Pipeline Consistency)",
-          "file_name": "pipeline.py",
-          "description": "Validation에서는 성능이 매우 좋았으나, 실제 서비스 배포 후 예측값이 한쪽 클래스로 쏠립니다.\n\n**측정된 수치:**\n- Train Accuracy: 0.94\n- Validation Accuracy: 0.91 (좋아 보임)\n- Production Accuracy: 0.58 (망함)\n- Production 예측 분포: Class 1로 82% 쏠림\n\n**데이터 특성:**\n- Feature 20개, 각 feature의 scale이 0.001 ~ 10,000으로 다양\n- Train 50,000건, Validation 10,000건\n\n**핵심 질문:** Validation도 잘 나왔는데 왜 Production에서만 망할까요?",
-          "objectives": [
-            "Train/Val/Serving 파이프라인 일관성의 중요성 이해",
-            "Scaler 객체의 상태(state) 관리 원리 파악",
-            "sklearn Pipeline을 통한 구조적 해결 방법 습득"
-          ],
-          "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.linear_model import LogisticRegression\nimport joblib\n\nscaler = StandardScaler()\n\n# === 학습 단계 ===\nX_train_scaled = scaler.fit_transform(X_train)  # μ_train, σ_train 저장\nmodel = LogisticRegression()\nmodel.fit(X_train_scaled, y_train)\n\n# === 검증 단계 ===\nX_val_scaled = scaler.fit_transform(X_val)  # ⚠️ μ_val, σ_val로 덮어쓰기!\nval_score = model.score(X_val_scaled, y_val)\nprint(f\"Validation Score: {val_score}\")\n\n# 저장\njoblib.dump(scaler, 'scaler.pkl')  # μ_val, σ_val이 저장됨\njoblib.dump(model, 'model.pkl')\n\n# === 서빙 단계 ===\nscaler = joblib.load('scaler.pkl')\nmodel = joblib.load('model.pkl')\nX_input_scaled = scaler.transform(X_input)  # μ_val 기준으로 변환\npred = model.predict(X_input_scaled)",
-          "correct_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.pipeline import Pipeline\nimport joblib\n\n# === 방법 1: transform만 사용 ===\nscaler = StandardScaler()\nX_train_scaled = scaler.fit_transform(X_train)\nmodel = LogisticRegression()\nmodel.fit(X_train_scaled, y_train)\n\n# Validation: transform만! (fit 하지 않음)\nX_val_scaled = scaler.transform(X_val)\nval_score = model.score(X_val_scaled, y_val)\nprint(f\"Validation Score: {val_score}\")\n\n# === 방법 2 (권장): Pipeline 사용 ===\npipeline = Pipeline([\n    ('scaler', StandardScaler()),\n    ('model', LogisticRegression())\n])\npipeline.fit(X_train, y_train)\nval_score = pipeline.score(X_val, y_val)\n\njoblib.dump(pipeline, 'pipeline.pkl')\n\n# 서빙: 단일 객체로 일관성 보장\npipeline = joblib.load('pipeline.pkl')\npred = pipeline.predict(X_input)",
-          "hints": [
-            "fit_transform()은 두 가지 일을 합니다: (1) 데이터로부터 mean, std 계산(fit), (2) 변환(transform). Validation에서 fit을 다시 하면?",
-            "분포 불일치 시각화:\n  Train  → fit_transform → μ_A, σ_A 저장 → Model 학습\n  Val    → fit_transform → μ_B, σ_B로 덮어쓰기!\n  Live   → transform     → μ_B 기준 변환 → Model(μ_A 기준)과 불일치",
-            "sklearn의 Pipeline을 사용하면 preprocessing과 model이 하나로 묶여 이런 실수를 구조적으로 방지할 수 있습니다."
-          ],
-          "error_log": "=== 학습/검증 단계 ===\nTrain Accuracy: 0.94\nValidation Accuracy: 0.91 ✓ (좋아 보임)\n\n=== 배포 후 ===\nProduction Accuracy: 0.58 ✗\nPrediction Distribution: {0: 0.18, 1: 0.82}\n[경고] 예측이 Class 1로 심하게 편향됨",
-          "success_log": "=== 학습/검증 단계 ===\nTrain Accuracy: 0.94\nValidation Accuracy: 0.89 ✓\n\n=== 배포 후 ===\nProduction Accuracy: 0.87 ✓\nPrediction Distribution: {0: 0.73, 1: 0.27}\n[정상] Train/Val/Prod 일관된 성능",
+          "title": "추론하면 할수록 메모리가 터져요 (no_grad 누락)",
+          "bug_type": "B",
+          "bug_type_name": "Memory Leak",
+          "file_name": "batch_inference.py",
+          "buggy_code": "import torch\n\nmodel = Model()\nmodel.load_state_dict(torch.load('model.pth'))\nmodel.eval()\nmodel.cuda()\n\nresults = []\n\n# 대량 배치 추론\nfor batch in data_loader:\n    images = batch['image'].cuda()\n    \n    # 추론 실행\n    outputs = model(images)\n    predictions = torch.argmax(outputs, dim=1)\n    \n    results.extend(predictions.cpu().tolist())\n    \n    # 매 100배치마다 메모리 확인\n    if len(results) % 100 == 0:\n        print(f\"Processed: {len(results)}, GPU Memory: {torch.cuda.memory_allocated() / 1e9:.2f}GB\")",
+          "correct_code": "import torch\n\nmodel = Model()\nmodel.load_state_dict(torch.load('model.pth'))\nmodel.eval()\nmodel.cuda()\n\nresults = []\n\n# 대량 배치 추론\nwith torch.no_grad():  # 그래디언트 계산 비활성화\n    for batch in data_loader:\n        images = batch['image'].cuda()\n        \n        # 추론 실행\n        outputs = model(images)\n        predictions = torch.argmax(outputs, dim=1)\n        \n        results.extend(predictions.cpu().tolist())\n        \n        # 매 100배치마다 메모리 확인\n        if len(results) % 100 == 0:\n            print(f\"Processed: {len(results)}, GPU Memory: {torch.cuda.memory_allocated() / 1e9:.2f}GB\")",
+          "error_log": "Processed: 100, GPU Memory: 2.15GB\nProcessed: 500, GPU Memory: 4.82GB\nProcessed: 1000, GPU Memory: 7.93GB\nProcessed: 1500, GPU Memory: 11.24GB\nRuntimeError: CUDA out of memory. Tried to allocate 256.00 MiB (GPU 0; 12.00 GiB total capacity)",
+          "success_log": "Processed: 100, GPU Memory: 1.23GB\nProcessed: 500, GPU Memory: 1.24GB\nProcessed: 1000, GPU Memory: 1.23GB\nProcessed: 5000, GPU Memory: 1.25GB\n[정상] 메모리 사용량 일정하게 유지",
+          "hint": "PyTorch는 역전파를 위해 forward 연산의 중간 결과를 저장합니다. 추론에서는 이게 필요할까요?",
           "solution_check": {
             "type": "multi_condition",
-            "required_any": [
-              "scaler.transform(X_val)",
-              "Pipeline"
+            "required_all": [
+              "torch.no_grad()"
             ],
-            "forbidden": [
-              "fit_transform(X_val)"
-            ]
+            "forbidden": []
           },
           "error_info": {
-            "type": "Pipeline Consistency Error (Train-Serving Skew)",
-            "description": "검증 데이터에 fit_transform()을 사용하면 scaler의 내부 상태(mean_, std_)가 validation 데이터 기준으로 덮어쓰여집니다.\n\n결과적으로:\n- Model: X_train의 분포(μ_A, σ_A)를 기준으로 학습됨\n- Serving: X_val의 분포(μ_B, σ_B)를 기준으로 입력 변환\n- 입력 분포 불일치로 decision boundary가 어긋남\n\nValidation이 잘 나온 이유: X_val도 자체 기준으로 정규화되어 mean≈0, std≈1 형태가 되므로 '우연히' 동작하는 것처럼 보임.",
-            "suggestion": "Validation 및 Serving 데이터는 반드시 Training 데이터로 fit된 scaler를 사용해 transform()만 해야 합니다. sklearn.pipeline.Pipeline 사용을 권장합니다."
-          }
+            "type": "Memory Leak (Gradient Accumulation)",
+            "description": "PyTorch는 Autograd 시스템을 통해 자동 미분을 지원합니다. 모든 텐서 연산은 연산 그래프(Computational Graph)로 기록되며, backward() 호출 시 이 그래프를 역순회하며 그래디언트를 계산합니다.\n\n문제는 추론 시에도 이 그래프가 계속 생성된다는 것입니다:\n- 매 forward마다 새로운 연산 그래프 생성\n- 그래디언트 계산용 중간 텐서들이 메모리에 누적\n- 배치가 쌓일수록 메모리 사용량 증가 → OOM\n\ntorch.no_grad()는 연산 그래프 생성 자체를 비활성화하여 메모리를 절약합니다.",
+            "suggestion": "추론 코드는 반드시 with torch.no_grad(): 블록 안에서 실행하세요. 추가로 torch.inference_mode()를 사용하면 더 최적화됩니다."
+          },
+          "coaching": "🎯 현업: 대규모 배치 추론에서 OOM은 흔한 문제입니다. model.eval()은 레이어 동작을 바꾸고, torch.no_grad()는 메모리를 절약합니다. 둘은 다른 역할이므로 함께 사용해야 합니다."
         },
         {
           "step": 3,
-          "title": "지표는 완벽, 사업은 폭망 (Problem Definition)",
-          "file_name": "feature_engineering.py",
-          "description": "AUC 0.91, Accuracy 0.88로 모델 성능은 완벽해 보입니다. 하지만 이 모델로 마케팅 캠페인을 집행했더니 전환율이 오히려 떨어지고, 충성 고객 불만만 늘었습니다.\n\n**오프라인 지표:**\n- AUC: 0.91, Accuracy: 0.88, Precision: 0.85\n\n**비즈니스 결과:**\n- 캠페인 전 전환율: 12%\n- 캠페인 후 전환율: 7% (↓)\n- 고객 불만 접수: 증가\n\n**모델 목적:** 이탈 가능성 높은 고객 예측 → 할인 쿠폰 발송\n\n**핵심 질문:** 모델이 학습한 것은 '이탈할 사람'일까요, '쿠폰을 받은 사람'일까요?",
-          "objectives": [
-            "Action Contamination(개입 오염) 개념 이해",
-            "예측(Prediction)과 인과(Causation)의 차이 구분",
-            "Leaky Feature 탐지 및 제거"
-          ],
-          "buggy_code": "# 이탈 예측 모델용 피처 정의\nfeatures = [\n    'monthly_payment',        # 월 요금\n    'usage_time',             # 사용 시간\n    'customer_service_call',  # 고객 센터 상담 이력\n    'retention_coupon_used',  # 해지 방어 쿠폰 사용 여부\n    'cancel_request_flag'     # 해지 상담 신청 여부\n]\n\n# 학습 데이터\n# - 과거 30일 행동 로그\n# - 라벨: 향후 30일 내 이탈 여부\n\nmodel.fit(X[features], y)\nprint(f\"AUC: {roc_auc_score(y_val, model.predict_proba(X_val)[:, 1])}\")",
-          "correct_code": "# 이탈 예측 모델용 피처 정의\n# 원칙: 예측 시점에 알 수 있고, 우리 개입과 무관한 정보만 사용\nfeatures = [\n    'monthly_payment',        # 월 요금\n    'usage_time',             # 사용 시간\n    'customer_service_call',  # 고객 센터 상담 이력\n    # 'retention_coupon_used', # ✗ 제거: 우리가 예측 후 수행할 액션 (Action Contamination)\n    # 'cancel_request_flag'    # ✗ 제거: 이미 이탈 의사 확정된 지표 (Leaky Feature)\n]\n\n# 주의: AUC가 낮아지더라도 이것이 실제 비즈니스 임팩트를 낼 수 있는 모델입니다.\nmodel.fit(X[features], y)\nprint(f\"AUC: {roc_auc_score(y_val, model.predict_proba(X_val)[:, 1])}\")\n\n# 더 나은 접근: Uplift Modeling\n# 목표를 '이탈 예측'이 아닌 '개입 효과 예측'으로 재정의\n# τ(x) = P(이탈|쿠폰 없음) - P(이탈|쿠폰 있음)",
-          "hints": [
-            "retention_coupon_used가 피처에 있다면, 모델은 '쿠폰을 받으면 안 떠난다'는 상관관계만 학습합니다. 하지만 우리가 알고 싶은 건 '누구에게 쿠폰을 줘야 효과가 있는가'입니다.",
-            "cancel_request_flag가 1인 고객은 이미 이탈 의사를 밝힌 것입니다. 이걸 예측할 필요가 있을까요?",
-            "이 문제의 본질:\n  - 모델이 예측하는 것: P(이탈 | features)\n  - 비즈니스가 원하는 것: P(이탈 | 쿠폰 없음) - P(이탈 | 쿠폰 있음)\n  이 둘은 완전히 다른 질문입니다."
-          ],
-          "error_log": "=== 오프라인 평가 ===\nAUC: 0.91 ✓\nAccuracy: 0.88 ✓\n\n=== 캠페인 결과 ===\n쿠폰 발송 대상: 상위 20% 이탈 예측 고객\n전환율: 7% (기존 12% 대비 하락)\n고객 피드백: \"왜 갑자기 쿠폰이 오죠? 해지할 생각 없었는데...\"\n\n[분석] 모델이 '이미 쿠폰 받은 사람'을 예측함",
-          "success_log": "=== 오프라인 평가 ===\nAUC: 0.75 (낮아짐, 하지만 정상)\nAccuracy: 0.72\n\n=== 캠페인 결과 ===\n쿠폰 발송 대상: Uplift 상위 20% 고객\n전환율: 18% (기존 12% 대비 상승)\n비용 효율: 40% 개선\n\n[성공] 개입 효과가 높은 고객에게만 타겟팅",
+          "title": "CPU에서 만든 텐서가 GPU 모델을 만나면? (Device Mismatch)",
+          "bug_type": "C",
+          "bug_type_name": "Device Error",
+          "file_name": "multi_device.py",
+          "buggy_code": "import torch\nimport torch.nn as nn\n\nclass PositionalEncoding(nn.Module):\n    def __init__(self, d_model, max_len=512):\n        super().__init__()\n        # 위치 인코딩 생성\n        pe = torch.zeros(max_len, d_model)\n        position = torch.arange(0, max_len).unsqueeze(1).float()\n        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))\n        pe[:, 0::2] = torch.sin(position * div_term)\n        pe[:, 1::2] = torch.cos(position * div_term)\n        self.pe = pe.unsqueeze(0)  # [1, max_len, d_model]\n    \n    def forward(self, x):\n        # x: [batch, seq_len, d_model]\n        return x + self.pe[:, :x.size(1), :]\n\nmodel = PositionalEncoding(d_model=512)\nmodel.cuda()\n\nx = torch.randn(32, 100, 512).cuda()\noutput = model(x)  # 에러 발생!",
+          "correct_code": "import torch\nimport torch.nn as nn\n\nclass PositionalEncoding(nn.Module):\n    def __init__(self, d_model, max_len=512):\n        super().__init__()\n        # 위치 인코딩 생성\n        pe = torch.zeros(max_len, d_model)\n        position = torch.arange(0, max_len).unsqueeze(1).float()\n        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))\n        pe[:, 0::2] = torch.sin(position * div_term)\n        pe[:, 1::2] = torch.cos(position * div_term)\n        self.register_buffer('pe', pe.unsqueeze(0))  # buffer로 등록\n    \n    def forward(self, x):\n        # x: [batch, seq_len, d_model]\n        return x + self.pe[:, :x.size(1), :]\n\nmodel = PositionalEncoding(d_model=512)\nmodel.cuda()\n\nx = torch.randn(32, 100, 512).cuda()\noutput = model(x)  # 정상 동작!",
+          "error_log": "Traceback (most recent call last):\n  File \"inference.py\", line 25, in <module>\n    output = model(x)\n  File \"model.py\", line 18, in forward\n    return x + self.pe[:, :x.size(1), :]\nRuntimeError: Expected all tensors to be on the same device, but found at least two devices, cuda:0 and cpu!",
+          "success_log": "Model device: cuda:0\nInput device: cuda:0\nPositional encoding device: cuda:0\nOutput shape: torch.Size([32, 100, 512])\n[정상] 모든 텐서가 같은 device에 있음",
+          "hint": "model.cuda()를 호출하면 nn.Parameter만 GPU로 이동합니다. 단순 텐서 속성(self.pe = ...)은 이동하지 않습니다.",
           "solution_check": {
             "type": "multi_condition",
+            "required_all": [
+              "register_buffer"
+            ],
             "forbidden": [
-              "retention_coupon_used",
-              "cancel_request_flag"
+              "self.pe = pe"
             ]
           },
           "error_info": {
-            "type": "Problem Definition Error (Action Contamination & Data Leakage)",
-            "description": "두 가지 문제가 있습니다:\n\n1. **Action Contamination (개입 오염)**\n   retention_coupon_used는 '우리의 개입(Action)'입니다. 이걸 피처로 쓰면 모델은 인과관계가 아닌 상관관계만 학습합니다.\n   - 학습: \"쿠폰 쓴 사람 = 안 떠남\" (상관관계)\n   - 실제: \"쿠폰 때문에 안 떠남\" vs \"원래 안 떠날 사람\" 구분 불가\n\n2. **Leaky Feature (미래 정보 누수)**\n   cancel_request_flag는 이미 이탈 의사가 확정된 시점의 정보입니다. 예측 시점에는 알 수 없는 미래 정보입니다.\n\n**근본 원인:** 예측(Prediction) 문제와 인과(Causal) 문제를 혼동함.\n- 모델이 답하는 질문: \"이 고객이 이탈할까?\"\n- 비즈니스가 원하는 질문: \"이 고객에게 쿠폰을 주면 이탈을 막을 수 있을까?\"",
-            "suggestion": "1. 예측 시점에 알 수 없거나, 예측 결과로 발생하는 액션 관련 피처는 제거하세요.\n2. 더 나은 접근: 문제를 'Uplift Modeling'으로 재정의하세요. 개입 효과(Treatment Effect)를 직접 모델링하면 '쿠폰이 효과 있는 고객'을 찾을 수 있습니다."
-          }
+            "type": "Device Mismatch Error",
+            "description": "PyTorch에서 model.cuda() 또는 model.to(device)를 호출하면 이동하는 것들:\n- nn.Parameter로 등록된 학습 가능한 파라미터\n- register_buffer()로 등록된 버퍼\n\n이동하지 않는 것:\n- 단순 텐서 속성 (self.tensor = torch.zeros(...))\n- 지역 변수로 생성된 텐서\n\nself.pe = pe.unsqueeze(0)은 단순 속성 할당이므로 model.cuda() 시 CPU에 남아있게 됩니다. forward에서 GPU 텐서 x와 연산하려 할 때 device 불일치 에러가 발생합니다.",
+            "suggestion": "학습되지 않지만 모델과 함께 이동해야 하는 텐서는 self.register_buffer('name', tensor)로 등록하세요. 이렇게 하면 device 이동과 state_dict 저장이 자동으로 처리됩니다."
+          },
+          "coaching": "🎯 현업: Positional Encoding, 마스크 텐서 등 학습되지 않는 상수 텐서를 다룰 때 register_buffer를 사용하세요. 안 그러면 GPU/CPU 혼용 버그나 모델 저장/로드 문제가 발생합니다."
         }
       ]
     },
     {
       "id": "P2",
-      "project_title": "데이터 전처리 파이프라인 기본 방어",
-      "scenario": "사용자 행동 로그로 이탈 예측 모델을 학습하고 있습니다. 전처리 파이프라인이 종종 예외로 터지거나, 학습이 '되는 것처럼' 보이지만 결과가 불안정합니다.",
+      "project_title": "학습 루프 치명적 버그",
+      "scenario": "모델 학습 코드를 작성했는데, loss가 이상하게 동작합니다. 감소해야 할 loss가 증가하거나, 학습이 전혀 안 되거나, 갑자기 NaN이 되어버립니다.",
       "difficulty": 2,
       "totalSteps": 3,
       "steps": [
         {
           "step": 1,
-          "title": "결측치 처리 누락 (NaN Handling)",
+          "title": "Loss가 배치마다 폭발해요 (zero_grad 위치 오류)",
           "bug_type": "A",
-          "bug_type_name": "Null Handling",
-          "questions": {
-            "text": "모델 학습 직전에 'Input contains NaN' 에러가 발생했습니다. 가장 가능성이 높은 원인은?",
-            "options": [
-              "학습 데이터가 너무 커서",
-              "전처리 과정에서 결측치(NaN)가 남아 있어서",
-              "모델이 너무 단순해서",
-              "정규화를 해서"
-            ],
-            "answer": 1
-          },
-          "buggy_code": "import pandas as pd\n\ndef preprocess(df):\n    df = df.copy()\n    df['age'] = df['age'].astype(int)\n    return df",
-          "correct_code": "import pandas as pd\n\ndef preprocess(df):\n    df = df.copy()\n    df['age'] = df['age'].fillna(0).astype(int)\n    return df",
-          "hint": "NaN이 있으면 astype()이 실패합니다. 결측치를 처리하세요.",
+          "bug_type_name": "Gradient Bug",
+          "file_name": "train_loop.py",
+          "buggy_code": "import torch\nimport torch.nn as nn\nimport torch.optim as optim\n\nmodel = SimpleNet()\ncriterion = nn.CrossEntropyLoss()\noptimizer = optim.Adam(model.parameters(), lr=0.001)\n\n# Training loop\nfor epoch in range(10):\n    for batch_idx, (data, target) in enumerate(train_loader):\n        output = model(data)\n        loss = criterion(output, target)\n        \n        loss.backward()\n        optimizer.step()\n        optimizer.zero_grad()  # ← 위치가 잘못됨\n        \n        print(f\"Epoch {epoch}, Batch {batch_idx}: Loss = {loss.item():.4f}\")",
+          "correct_code": "import torch\nimport torch.nn as nn\nimport torch.optim as optim\n\nmodel = SimpleNet()\ncriterion = nn.CrossEntropyLoss()\noptimizer = optim.Adam(model.parameters(), lr=0.001)\n\n# Training loop\nfor epoch in range(10):\n    for batch_idx, (data, target) in enumerate(train_loader):\n        optimizer.zero_grad()  # ← 반드시 backward 전에!\n        \n        output = model(data)\n        loss = criterion(output, target)\n        \n        loss.backward()\n        optimizer.step()\n        \n        print(f\"Epoch {epoch}, Batch {batch_idx}: Loss = {loss.item():.4f}\")",
+          "error_log": "Epoch 0, Batch 0: Loss = 2.3025\nEpoch 0, Batch 1: Loss = 4.7891\nEpoch 0, Batch 2: Loss = 8.2341\nEpoch 0, Batch 10: Loss = 156.2847\nEpoch 0, Batch 50: Loss = inf\nEpoch 1, Batch 0: Loss = nan",
+          "success_log": "Epoch 0, Batch 0: Loss = 2.3025\nEpoch 0, Batch 1: Loss = 2.2891\nEpoch 0, Batch 10: Loss = 1.8542\nEpoch 0, Batch 50: Loss = 0.9823\nEpoch 1, Batch 0: Loss = 0.7654\n[정상] Loss가 점진적으로 감소",
+          "hint": "zero_grad()는 그래디언트를 0으로 초기화합니다. backward() 전에 호출해야 이전 배치의 그래디언트가 누적되지 않습니다.",
           "solution_check": {
             "type": "regex",
-            "value": "(fillna\\(\\s*(0)?\\s*\\)|dropna\\(\\s*\\))",
+            "value": "zero_grad\\(\\)[\\s\\S]*?forward|zero_grad\\(\\)[\\s\\S]*?output\\s*=\\s*model",
             "flags": ""
           },
-          "coaching": "🎯 현업: 실무 데이터는 항상 결측치를 포함합니다. fillna(0), fillna(평균), fillna(중앙값) 중 도메인에 맞는 전략을 선택하세요."
+          "error_info": {
+            "type": "Gradient Accumulation Bug",
+            "description": "PyTorch는 메모리 효율성과 유연성을 위해 그래디언트를 자동으로 누적합니다. 이는 대형 모델을 작은 배치로 나눠 학습할 때(Gradient Accumulation) 유용하지만, 의도치 않은 누적은 문제를 일으킵니다.\n\n잘못된 순서 (zero_grad가 step 후):\n1. backward() → 그래디언트 계산 + 이전 그래디언트에 누적\n2. step() → 누적된 (폭발한) 그래디언트로 파라미터 업데이트\n3. zero_grad() → 초기화 (이미 늦음)\n\n배치가 쌓일수록 그래디언트가 기하급수적으로 커져 loss 폭발 → NaN 발생",
+            "suggestion": "학습 루프에서 zero_grad()는 반드시 backward() 전에 호출하세요. 표준 순서: optimizer.zero_grad() → output = model(x) → loss.backward() → optimizer.step()"
+          },
+          "coaching": "🎯 현업: 학습 코드의 표준 순서를 외워두세요. zero_grad → forward → loss → backward → step. 이 순서가 틀리면 loss 폭발, NaN, 학습 안 됨 등의 문제가 발생합니다."
         },
         {
           "step": 2,
-          "title": "0으로 나누기 방어 (Zero Division Guard)",
+          "title": "Loss는 줄어드는데 모델이 안 바뀌어요 (detach 실수)",
           "bug_type": "B",
-          "bug_type_name": "Null Guard",
-          "questions": {
-            "text": "사용자별 평균 구매액 계산 시 'division by zero' 에러가 발생했습니다. 어떤 상황일까요?",
-            "options": [
-              "구매액이 너무 커서",
-              "특정 사용자의 구매 횟수(count)가 0이어서",
-              "CSV 인코딩이 깨져서",
-              "데이터가 너무 적어서"
-            ],
-            "answer": 1
-          },
-          "buggy_code": "def avg_spend(total_spend, count):\n    return total_spend / count",
-          "correct_code": "def avg_spend(total_spend, count):\n    if count == 0:\n        return 0\n    return total_spend / count",
-          "hint": "count가 0일 때를 방어해야 합니다.",
+          "bug_type_name": "Graph Break",
+          "file_name": "custom_loss.py",
+          "buggy_code": "import torch\nimport torch.nn as nn\n\ndef custom_loss(pred, target, model):\n    # L2 regularization 추가\n    mse_loss = nn.MSELoss()(pred, target)\n    \n    # 정규화 항 계산\n    l2_reg = 0\n    for param in model.parameters():\n        l2_reg += torch.norm(param)\n    \n    total_loss = mse_loss.detach() + 0.01 * l2_reg\n    return total_loss\n\n# Training loop\nfor epoch in range(100):\n    optimizer.zero_grad()\n    pred = model(x)\n    loss = custom_loss(pred, y, model)\n    loss.backward()\n    optimizer.step()\n    print(f\"Loss: {loss.item():.4f}\")",
+          "correct_code": "import torch\nimport torch.nn as nn\n\ndef custom_loss(pred, target, model):\n    # L2 regularization 추가\n    mse_loss = nn.MSELoss()(pred, target)\n    \n    # 정규화 항 계산\n    l2_reg = 0\n    for param in model.parameters():\n        l2_reg += torch.norm(param)\n    \n    total_loss = mse_loss + 0.01 * l2_reg  # detach 제거!\n    return total_loss\n\n# Training loop\nfor epoch in range(100):\n    optimizer.zero_grad()\n    pred = model(x)\n    loss = custom_loss(pred, y, model)\n    loss.backward()\n    optimizer.step()\n    print(f\"Loss: {loss.item():.4f}\")",
+          "error_log": "Epoch 0: Loss = 2.3456\nEpoch 10: Loss = 0.0234  (줄어드는 것처럼 보임)\nEpoch 50: Loss = 0.0012\n\n[검증]\nTrain Accuracy: 12.3% (변화 없음)\nTest Accuracy: 11.8% (변화 없음)\n[문제] Loss는 줄어들지만 모델 성능 불변",
+          "success_log": "Epoch 0: Loss = 2.3456\nEpoch 10: Loss = 0.4521\nEpoch 50: Loss = 0.0234\n\n[검증]\nTrain Accuracy: 98.2%\nTest Accuracy: 94.5%\n[정상] Loss 감소와 함께 성능도 향상",
+          "hint": ".detach()는 텐서를 계산 그래프에서 분리합니다. loss에 detach된 텐서가 포함되면 그 부분의 그래디언트가 흐르지 않습니다.",
           "solution_check": {
             "type": "multi_condition",
             "required_all": [
-              "if count == 0"
+              "mse_loss + 0.01"
             ],
-            "forbidden": []
+            "forbidden": [
+              "mse_loss.detach()"
+            ]
           },
-          "coaching": "🎯 현업: 신규 가입자나 비활성 사용자는 count가 0일 수 있습니다. 방어 코드는 선택이 아니라 필수입니다."
+          "error_info": {
+            "type": "Computational Graph Disconnection",
+            "description": "PyTorch의 자동 미분은 연산 그래프를 통해 작동합니다. .detach()를 호출하면:\n\n1. 해당 텐서가 그래프에서 분리됨\n2. 분리된 텐서를 사용한 이후 연산에는 그래디언트가 흐르지 않음\n\n이 코드에서:\n- mse_loss.detach() → MSE 손실과 모델 파라미터 간의 연결 끊김\n- l2_reg만 그래프에 연결됨\n- backward() 시 MSE에 대한 그래디언트 = 0\n- 결과: 정규화 항만 최소화되고, 실제 예측 성능은 개선 안 됨",
+            "suggestion": "detach()는 특정 텐서의 그래디언트 흐름을 막고 싶을 때만 사용하세요. loss 계산에서는 대부분 detach가 필요 없습니다."
+          },
+          "coaching": "🎯 현업: 'Loss가 줄어드는데 성능이 안 오른다'면 그래디언트 흐름을 확인하세요. print(loss.grad_fn)으로 연산 그래프 연결 상태를 디버깅할 수 있습니다."
         },
         {
           "step": 3,
-          "title": "원본 데이터 보존 (State Leak)",
+          "title": "학습률 스케줄러를 썼더니 오히려 망했어요 (스케줄러 순서 오류)",
           "bug_type": "C",
-          "bug_type_name": "State Leak",
-          "questions": {
-            "text": "전처리 함수를 호출한 뒤 원본 데이터프레임까지 함께 바뀌었습니다. 왜일까요?",
-            "options": [
-              "메모리가 부족해서",
-              "데이터프레임이 참조로 전달되어 원본이 수정되었기 때문에",
-              "Pandas 버그라서",
-              "전역 변수가 자동 생성되어서"
-            ],
-            "answer": 1
-          },
-          "buggy_code": "def add_feature(df):\n    df['is_vip'] = df['spend'] > 100\n    return df",
-          "correct_code": "def add_feature(df):\n    df = df.copy()\n    df['is_vip'] = df['spend'] > 100\n    return df",
-          "hint": "DataFrame은 참조로 전달되므로 원본이 수정됩니다. 복사본을 만들어 작업하세요.",
+          "bug_type_name": "Scheduler Bug",
+          "file_name": "scheduler.py",
+          "buggy_code": "import torch\nimport torch.optim as optim\nfrom torch.optim.lr_scheduler import StepLR\n\nmodel = MyModel()\noptimizer = optim.Adam(model.parameters(), lr=0.001)\nscheduler = StepLR(optimizer, step_size=10, gamma=0.1)\n\n# Training loop\nfor epoch in range(100):\n    for batch in train_loader:\n        scheduler.step()  # ← 위치가 잘못됨\n        \n        optimizer.zero_grad()\n        output = model(batch['x'])\n        loss = criterion(output, batch['y'])\n        loss.backward()\n        optimizer.step()\n    \n    print(f\"Epoch {epoch}: LR = {scheduler.get_last_lr()[0]:.6f}\")",
+          "correct_code": "import torch\nimport torch.optim as optim\nfrom torch.optim.lr_scheduler import StepLR\n\nmodel = MyModel()\noptimizer = optim.Adam(model.parameters(), lr=0.001)\nscheduler = StepLR(optimizer, step_size=10, gamma=0.1)\n\n# Training loop\nfor epoch in range(100):\n    for batch in train_loader:\n        optimizer.zero_grad()\n        output = model(batch['x'])\n        loss = criterion(output, batch['y'])\n        loss.backward()\n        optimizer.step()\n    \n    scheduler.step()  # ← 에포크 끝에서 한 번만 호출\n    print(f\"Epoch {epoch}: LR = {scheduler.get_last_lr()[0]:.6f}\")",
+          "error_log": "Epoch 0: LR = 0.000100 (첫 배치 후 이미 급감)\nEpoch 1: LR = 0.000001\nEpoch 2: LR = 0.000000\nLoss가 수렴하지 않고 진동",
+          "success_log": "Epoch 0: LR = 0.001000\nEpoch 9: LR = 0.001000\nEpoch 10: LR = 0.000100\nEpoch 19: LR = 0.000100\nEpoch 20: LR = 0.000010\n[정상] 10에포크마다 LR이 1/10로 감소",
+          "hint": "StepLR(step_size=10)은 '10번의 step() 호출 후' LR을 감소시킵니다. 배치마다 호출하면 step_size의 의미가 달라집니다.",
           "solution_check": {
-            "type": "multi_condition",
-            "required_all": [
-              ".copy()"
-            ],
-            "forbidden": [
-              "inplace=True"
-            ]
+            "type": "regex",
+            "value": "for batch[\\s\\S]*?optimizer\\.step\\(\\)[\\s\\S]*?\\n\\s*scheduler\\.step\\(\\)",
+            "flags": ""
           },
-          "coaching": "🎯 현업: State Leak는 재현 불가능한 버그의 주요 원인입니다. 함수는 입력을 변경하지 않고 새로운 객체를 반환하세요."
+          "error_info": {
+            "type": "LR Scheduler Misuse",
+            "description": "Learning Rate Scheduler는 학습률을 동적으로 조정합니다. 하지만 호출 위치가 잘못되면:\n\n**잘못된 사용 (배치마다 호출):**\n- StepLR(step_size=10)이 10배치 후 LR 감소\n- 한 에포크에 100배치라면, 10배치만에 LR = 0.0001\n- 20배치 후 LR = 0.00001... 급격히 0에 수렴\n\n**올바른 사용 (에포크마다 호출):**\n- 10에포크 후 LR 감소\n- 의도한 대로 점진적 학습률 감소\n\n또한 PyTorch 1.1 이후부터는 scheduler.step()을 optimizer.step() 이후에 호출해야 합니다.",
+            "suggestion": "대부분의 스케줄러(StepLR, ExponentialLR 등)는 에포크 끝에서 한 번만 호출하세요. 배치 단위 스케줄러(OneCycleLR 등)는 배치마다 호출합니다. 스케줄러 문서를 확인하세요."
+          },
+          "coaching": "🎯 현업: 스케줄러 버그는 찾기 어렵습니다. get_last_lr()로 현재 학습률을 로깅하고, 의도한 스케줄과 맞는지 확인하세요. 특히 재학습 시 scheduler.last_epoch 초기화에 주의하세요."
         }
       ]
     },
     {
       "id": "P3",
-      "project_title": "평가 파이프라인 신뢰성 확보",
-      "scenario": "이탈 예측 모델을 배포하기 전 성능 리포트를 만들었습니다. 그런데 리포트 수치가 과도하게 좋거나, 실행할 때마다 결과가 달라집니다.",
-      "difficulty": 3,
+      "project_title": "데이터 로더 & 전처리 함정",
+      "scenario": "데이터 파이프라인을 구축했는데, 학습 속도가 너무 느리거나, 예상치 못한 에러가 발생하거나, 재현이 안 되는 문제가 생깁니다.",
+      "difficulty": 2,
       "totalSteps": 3,
       "steps": [
         {
           "step": 1,
-          "title": "불균형 데이터 분할 오류 (Stratify 누락)",
+          "title": "GPU는 놀고 있고 CPU만 일해요 (DataLoader 병목)",
           "bug_type": "A",
-          "bug_type_name": "Sampling Bug",
-          "questions": {
-            "text": "이탈률 5%인 데이터에서 매번 평가 결과가 크게 흔들립니다. 가장 먼저 의심해야 할 것은?",
-            "options": [
-              "모델이 너무 단순해서",
-              "train/test 분할 시 클래스 비율이 깨졌을 가능성",
-              "전처리 시간이 너무 길어서",
-              "특성이 너무 많아서"
-            ],
-            "answer": 1
-          },
-          "buggy_code": "from sklearn.model_selection import train_test_split\n\ndef split(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42\n    )\n    return X_train, X_test, y_train, y_test",
-          "correct_code": "from sklearn.model_selection import train_test_split\n\ndef split(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42, stratify=y\n    )\n    return X_train, X_test, y_train, y_test",
-          "hint": "데이터가 불균형합니다. train_test_split의 특정 파라미터를 활용해 y 클래스 비율을 유지하세요.",
-          "solution_check": {
-            "type": "regex",
-            "value": "stratify\\s*=\\s*y\\s*(?=,\\s*\\w|\\))",
-            "flags": ""
-          },
-          "coaching": "🎯 현업: 불균형 데이터(사기 탐지, 이탈 예측)에서 stratify 없이 split하면 test에 positive 샘플이 거의 없어 평가가 무의미해집니다."
-        },
-        {
-          "step": 2,
-          "title": "재현성(Seed) 누락",
-          "bug_type": "B",
-          "bug_type_name": "Non-determinism",
-          "questions": {
-            "text": "같은 코드로 학습했는데 실행할 때마다 점수가 다릅니다. 가장 그럴듯한 원인은?",
-            "options": [
-              "CPU 성능이 달라서",
-              "난수 시드가 고정되지 않아서",
-              "데이터가 너무 많아서",
-              "모델이 너무 단순해서"
-            ],
-            "answer": 1
-          },
-          "buggy_code": "import numpy as np\nimport random\n\ndef train(model, X_train, y_train):\n    random.seed(42)\n    model.fit(X_train, y_train)\n    return model",
-          "correct_code": "import numpy as np\nimport random\n\ndef train(model, X_train, y_train):\n    random.seed(42)\n    np.random.seed(42)\n    model.fit(X_train, y_train)\n    return model",
-          "hint": "결과를 재현하려면 Numpy의 난수 시드를 학습 전에 고정하세요.",
+          "bug_type_name": "I/O Bottleneck",
+          "file_name": "dataloader.py",
+          "buggy_code": "from torch.utils.data import DataLoader\n\n# 이미지 데이터셋 (50,000장, 각 224x224)\ntrain_dataset = ImageDataset(root='./data', transform=transform)\n\ntrain_loader = DataLoader(\n    train_dataset,\n    batch_size=64,\n    shuffle=True\n)\n\n# Training loop\nfor epoch in range(10):\n    for batch in train_loader:  # 여기서 대부분의 시간 소요\n        images = batch['image'].cuda()\n        labels = batch['label'].cuda()\n        # ... 학습 코드",
+          "correct_code": "from torch.utils.data import DataLoader\n\n# 이미지 데이터셋 (50,000장, 각 224x224)\ntrain_dataset = ImageDataset(root='./data', transform=transform)\n\ntrain_loader = DataLoader(\n    train_dataset,\n    batch_size=64,\n    shuffle=True,\n    num_workers=4,      # 병렬 데이터 로딩\n    pin_memory=True     # GPU 전송 최적화\n)\n\n# Training loop\nfor epoch in range(10):\n    for batch in train_loader:\n        images = batch['image'].cuda(non_blocking=True)\n        labels = batch['label'].cuda(non_blocking=True)\n        # ... 학습 코드",
+          "error_log": "=== 배치 시간 분석 ===\nData Loading: 4.52s (90.4%)\nForward Pass: 0.31s (6.2%)\nBackward Pass: 0.17s (3.4%)\nTotal: 5.00s\n\nGPU Utilization: 8%\nCPU Utilization: 12%\n[병목] 데이터 로딩이 전체 시간의 90% 차지",
+          "success_log": "=== 배치 시간 분석 ===\nData Loading: 0.08s (14.3%)\nForward Pass: 0.31s (55.4%)\nBackward Pass: 0.17s (30.3%)\nTotal: 0.56s\n\nGPU Utilization: 92%\nCPU Utilization: 45%\n[정상] GPU가 충분히 활용됨, 8.9배 속도 향상",
+          "hint": "DataLoader의 num_workers와 pin_memory 옵션을 확인하세요. 기본값은 병렬 로딩을 하지 않습니다.",
           "solution_check": {
             "type": "multi_condition",
             "required_all": [
-              "np.random.seed(",
-              "random.seed("
+              "num_workers=",
+              "pin_memory=True"
             ],
             "forbidden": []
           },
-          "coaching": "🎯 현업: 재현 불가능하면 A/B 테스트, 디버깅, 하이퍼파라미터 튜닝이 모두 무의미해집니다. 시드 고정은 필수입니다."
+          "error_info": {
+            "type": "Data Loading Bottleneck",
+            "description": "DataLoader의 기본 설정(num_workers=0)은 메인 프로세스에서 순차적으로 데이터를 로딩합니다:\n\n1. GPU가 배치 처리 완료\n2. 메인 프로세스가 다음 배치 로딩 시작\n3. GPU 대기... (이 시간이 낭비)\n4. 로딩 완료 후 GPU에 전송\n5. GPU 처리 시작\n\nnum_workers > 0으로 설정하면:\n1. 서브 프로세스들이 미리 다음 배치들을 준비\n2. GPU 처리 중에 다음 배치가 이미 준비됨\n3. GPU 대기 시간 최소화\n\npin_memory=True는 CPU→GPU 전송을 비동기로 만들어 추가 최적화합니다.",
+            "suggestion": "num_workers는 CPU 코어 수의 2~4배로 시작하세요 (너무 높으면 오버헤드). GPU 사용 시 pin_memory=True, .cuda(non_blocking=True)를 함께 사용하세요."
+          },
+          "coaching": "🎯 현업: nvidia-smi로 GPU 사용률을 확인하세요. 30% 미만이면 데이터 로딩 병목을 의심하세요. num_workers 최적값은 실험으로 찾아야 합니다."
+        },
+        {
+          "step": 2,
+          "title": "똑같이 학습했는데 결과가 매번 달라요 (시드 불완전)",
+          "bug_type": "B",
+          "bug_type_name": "Reproducibility",
+          "file_name": "seed_fix.py",
+          "buggy_code": "import random\nimport numpy as np\nimport torch\n\ndef set_seed(seed):\n    random.seed(seed)\n    np.random.seed(seed)\n\nset_seed(42)\n\nmodel = MyModel().cuda()\noptimizer = torch.optim.Adam(model.parameters())\n\n# DataLoader\ntrain_loader = DataLoader(dataset, batch_size=32, shuffle=True)\n\n# Training\nfor epoch in range(10):\n    for batch in train_loader:\n        # ... 학습 코드",
+          "correct_code": "import random\nimport numpy as np\nimport torch\n\ndef set_seed(seed):\n    random.seed(seed)\n    np.random.seed(seed)\n    torch.manual_seed(seed)\n    torch.cuda.manual_seed(seed)\n    torch.cuda.manual_seed_all(seed)  # 멀티 GPU\n    torch.backends.cudnn.deterministic = True\n    torch.backends.cudnn.benchmark = False\n\nset_seed(42)\n\nmodel = MyModel().cuda()\noptimizer = torch.optim.Adam(model.parameters())\n\n# DataLoader에도 시드 적용\ng = torch.Generator()\ng.manual_seed(42)\ntrain_loader = DataLoader(dataset, batch_size=32, shuffle=True, generator=g)\n\n# Training\nfor epoch in range(10):\n    for batch in train_loader:\n        # ... 학습 코드",
+          "error_log": "=== Run 1 ===\nFinal Test Accuracy: 94.23%\n\n=== Run 2 (동일 코드) ===\nFinal Test Accuracy: 91.87%\n\n=== Run 3 (동일 코드) ===\nFinal Test Accuracy: 93.51%\n\n[문제] 실험 재현 불가능",
+          "success_log": "=== Run 1 ===\nFinal Test Accuracy: 93.42%\n\n=== Run 2 (동일 코드) ===\nFinal Test Accuracy: 93.42%\n\n=== Run 3 (동일 코드) ===\nFinal Test Accuracy: 93.42%\n\n[정상] 완벽한 재현성",
+          "hint": "random과 numpy 시드만으로는 부족합니다. PyTorch, CUDA, cuDNN, DataLoader 모두 시드 설정이 필요합니다.",
+          "solution_check": {
+            "type": "multi_condition",
+            "required_all": [
+              "torch.manual_seed(",
+              "torch.cuda.manual_seed("
+            ],
+            "forbidden": []
+          },
+          "error_info": {
+            "type": "Incomplete Seed Setting",
+            "description": "딥러닝 학습에서 난수를 사용하는 곳:\n\n1. **Python random**: shuffle, random.choice 등\n2. **NumPy**: 데이터 전처리, augmentation\n3. **PyTorch CPU**: 가중치 초기화, Dropout\n4. **PyTorch CUDA**: GPU 연산\n5. **cuDNN**: 성능 최적화를 위한 알고리즘 선택\n6. **DataLoader**: 데이터 셔플링\n\n모든 소스에 시드를 설정해야 완벽한 재현이 가능합니다.\n\n주의: cudnn.deterministic=True는 성능을 약간 저하시킬 수 있습니다.",
+            "suggestion": "재현성이 중요한 실험에서는 모든 시드를 고정하세요. 단, cudnn.deterministic은 성능 영향이 있으므로 프로덕션에서는 끄는 것을 고려하세요."
+          },
+          "coaching": "🎯 현업: 실험 재현성은 연구와 디버깅의 기본입니다. 시드 고정 함수를 만들어 모든 프로젝트에서 재사용하세요. 또한 환경 정보(PyTorch 버전, CUDA 버전)도 함께 기록하세요."
         },
         {
           "step": 3,
-          "title": "불균형 데이터 지표 선택 오류 (Accuracy 함정)",
+          "title": "Validation에서 본 데이터가 Train에도 있어요 (Data Leakage)",
           "bug_type": "C",
-          "bug_type_name": "Metric Choice",
-          "questions": {
-            "text": "이탈률 5%인 데이터에서 accuracy 95%가 나왔지만 이탈 고객을 하나도 못 잡습니다. 이유는?",
-            "options": [
-              "accuracy가 불균형 데이터에서 다수 클래스에 편향되어 오해를 만들 수 있어서",
-              "모델이 너무 복잡해서",
-              "데이터가 너무 커서",
-              "전처리를 해서"
-            ],
-            "answer": 0
-          },
-          "buggy_code": "from sklearn.metrics import accuracy_score\n\ndef evaluate(model, X_test, y_test):\n    y_pred = model.predict(X_test)\n    return accuracy_score(y_test, y_pred)",
-          "correct_code": "from sklearn.metrics import f1_score\n\ndef evaluate(model, X_test, y_test):\n    y_pred = model.predict(X_test)\n    return f1_score(y_test, y_pred)",
-          "hint": "불균형 데이터에서는 accuracy 대신 재현율과 정밀도를 모두 고려하는 지표를 사용하세요.",
+          "bug_type_name": "Data Leakage",
+          "file_name": "data_split.py",
+          "buggy_code": "from sklearn.model_selection import train_test_split\nimport albumentations as A\n\n# 원본 데이터: 1000장\noriginal_images = load_images('./data')\n\n# 1. Augmentation 적용 (5배 증강)\naugmented_images = []\naugment = A.Compose([A.HorizontalFlip(), A.RandomBrightness()])\n\nfor img in original_images:\n    augmented_images.append(img)  # 원본\n    for _ in range(4):  # 4개 추가\n        augmented_images.append(augment(image=img)['image'])\n\n# 2. 증강된 전체 데이터에서 분할 (5000장)\nX_train, X_val = train_test_split(augmented_images, test_size=0.2)\n\n# 결과: 같은 원본의 증강 이미지가 train과 val에 섞임!",
+          "correct_code": "from sklearn.model_selection import train_test_split\nimport albumentations as A\n\n# 원본 데이터: 1000장\noriginal_images = load_images('./data')\n\n# 1. 먼저 원본 데이터를 분할\nX_train_orig, X_val_orig = train_test_split(original_images, test_size=0.2)\n\n# 2. Train 데이터에만 Augmentation 적용\naugment = A.Compose([A.HorizontalFlip(), A.RandomBrightness()])\n\nX_train = []\nfor img in X_train_orig:\n    X_train.append(img)  # 원본\n    for _ in range(4):  # 4개 추가\n        X_train.append(augment(image=img)['image'])\n\n# Validation은 원본 그대로 (증강 없음)\nX_val = X_val_orig\n\n# 결과: train과 val이 완전히 독립적",
+          "error_log": "=== 학습 결과 ===\nTrain Accuracy: 98.5%\nValidation Accuracy: 97.8%\n\n=== 실제 서비스 ===\nTest Accuracy: 62.3%\n\n[문제] Val과 Test 성능 차이가 35%p 이상!\n[원인 분석] 같은 원본의 증강 이미지가 Train/Val에 분산됨",
+          "success_log": "=== 학습 결과 ===\nTrain Accuracy: 95.2%\nValidation Accuracy: 88.4%\n\n=== 실제 서비스 ===\nTest Accuracy: 87.1%\n\n[정상] Val과 Test 성능이 유사\n[분석] Train/Val이 완전히 독립적으로 분리됨",
+          "hint": "Augmentation은 같은 원본에서 파생된 이미지들을 만듭니다. 분할은 augmentation 전에 원본 데이터로 해야 합니다.",
           "solution_check": {
-            "type": "multi_condition",
-            "required_all": [],
-            "required_any": [
-              "f1_score"
-            ],
-            "forbidden": [
-              "accuracy_score"
-            ]
+            "type": "regex",
+            "value": "train_test_split\\(original|train_test_split.*\\)\\s*[\\s\\S]*?augment",
+            "flags": ""
           },
-          "coaching": "🎯 현업: 모든 것을 '유지'로 예측해도 95% accuracy가 나옵니다. F1-score는 recall과 precision과 조화평균으로 불균형 데이터에 적합합니다."
+          "error_info": {
+            "type": "Augmentation Data Leakage",
+            "description": "Data Augmentation 후 분할하면 발생하는 문제:\n\n**원본 이미지 A**\n- 증강 → A, A_flip, A_bright, A_rotate, A_crop\n- 증강 후 분할 → A, A_flip은 Train, A_bright는 Val로...\n\n**결과:**\n- 모델이 Train에서 A를 학습\n- Val의 A_bright도 같은 특징을 가짐\n- Val에서 높은 성능 (하지만 실제로는 외운 것)\n- Test에서 완전히 새로운 이미지 → 성능 급락\n\n이것이 'Validation 성능은 좋은데 Test 성능이 낮은' 전형적인 원인입니다.",
+            "suggestion": "Train/Val/Test 분할은 항상 Augmentation 전에, 원본 데이터로 수행하세요. 시계열 데이터는 시간 순서로 분할하고, 그룹(환자, 사용자 등)이 있으면 그룹 단위로 분할하세요."
+          },
+          "coaching": "🎯 현업: Data Leakage는 모델이 '너무 잘 나올 때' 가장 먼저 의심해야 합니다. Val 성능과 실서비스 성능 차이가 크다면 데이터 분할 과정을 점검하세요."
         }
       ]
     },
     {
       "id": "P4",
-      "project_title": "배포 전 마지막 함정 제거",
-      "scenario": "모델은 충분히 학습되었고 평가도 통과했습니다. 하지만 배포 직전 점검에서 운영 환경에서만 터지는 문제가 발견되었습니다.",
-      "difficulty": 4,
+      "project_title": "모델 저장 & 배포 실수",
+      "scenario": "학습이 완료된 모델을 저장하고 나중에 다시 불러왔는데, 성능이 다르거나 에러가 발생합니다. 또는 다른 환경에서 모델을 불러올 수 없습니다.",
+      "difficulty": 3,
       "totalSteps": 3,
       "steps": [
         {
           "step": 1,
-          "title": "학습/서빙 피처 불일치 (Feature Mismatch)",
+          "title": "저장한 모델을 불러왔더니 성능이 망가졌어요 (state_dict 혼동)",
           "bug_type": "A",
-          "bug_type_name": "Schema Drift",
-          "questions": {
-            "text": "오프라인에서는 통과했는데 운영에서 'Feature names mismatch' 에러가 발생했습니다. 원인은?",
-            "options": [
-              "모델이 너무 커서",
-              "학습 시 사용한 피처 컬럼과 서빙 입력 컬럼의 순서나 개수가 달라서",
-              "데이터가 너무 적어서",
-              "난수 시드를 고정해서"
-            ],
-            "answer": 1
-          },
-          "buggy_code": "def serve(model, input_df):\n    return model.predict(input_df)",
-          "correct_code": "def serve(model, input_df, feature_cols):\n    X = input_df[feature_cols]\n    return model.predict(X)",
-          "hint": "학습 시 사용한 feature 컬럼 리스트를 저장해두고, 서빙 시 그 컬럼만 선택해서 사용하세요.",
+          "bug_type_name": "Save/Load Error",
+          "file_name": "save_model.py",
+          "buggy_code": "import torch\n\n# 학습 완료 후 저장\nmodel = MyModel()\n# ... 학습 ...\nprint(f\"Before save: Accuracy = {evaluate(model)}\")\n\n# 모델 저장\ntorch.save(model.state_dict(), 'model.pth')\n\n# 나중에 로드\nloaded_model = torch.load('model.pth')  # 잘못된 로드 방법\nloaded_model.eval()\nprint(f\"After load: Accuracy = {evaluate(loaded_model)}\")",
+          "correct_code": "import torch\n\n# 학습 완료 후 저장\nmodel = MyModel()\n# ... 학습 ...\nprint(f\"Before save: Accuracy = {evaluate(model)}\")\n\n# 모델 저장\ntorch.save(model.state_dict(), 'model.pth')\n\n# 올바른 로드 방법\nloaded_model = MyModel()  # 먼저 모델 인스턴스 생성\nloaded_model.load_state_dict(torch.load('model.pth'))  # state_dict 로드\nloaded_model.eval()\nprint(f\"After load: Accuracy = {evaluate(loaded_model)}\")",
+          "error_log": "Before save: Accuracy = 94.52%\n\n# 로드 시도\n>>> loaded_model = torch.load('model.pth')\n>>> type(loaded_model)\n<class 'collections.OrderedDict'>  # 모델이 아니라 딕셔너리!\n\n>>> loaded_model.eval()\nAttributeError: 'OrderedDict' object has no attribute 'eval'",
+          "success_log": "Before save: Accuracy = 94.52%\n\n# 올바른 로드\n>>> loaded_model = MyModel()\n>>> loaded_model.load_state_dict(torch.load('model.pth'))\n<All keys matched successfully>\n>>> loaded_model.eval()\n>>> evaluate(loaded_model)\nAfter load: Accuracy = 94.52%",
+          "hint": "torch.save(model.state_dict(), ...)로 저장했다면, 로드할 때도 state_dict 방식으로 불러와야 합니다.",
           "solution_check": {
             "type": "multi_condition",
             "required_all": [
-              "input_df[feature_cols]"
+              "load_state_dict(",
+              "MyModel()"
             ],
             "forbidden": []
           },
-          "coaching": "🎯 현업: Train-Serve Skew는 ML 시스템 장애의 70% 이상을 차지합니다. Feature 컬럼 리스트를 모델 메타데이터로 저장하세요."
+          "error_info": {
+            "type": "State Dict Confusion",
+            "description": "PyTorch 모델 저장 방식:\n\n**1. state_dict 저장 (권장):**\n- torch.save(model.state_dict(), 'model.pth')\n- 저장: 파라미터(가중치, 바이어스)만\n- 로드: model = MyModel(); model.load_state_dict(torch.load(...))\n\n**2. 전체 모델 저장:**\n- torch.save(model, 'model.pth')\n- 저장: 모델 구조 + 파라미터\n- 로드: model = torch.load('model.pth')\n- 단점: 저장 시점의 코드 경로에 의존\n\n문제 코드는 state_dict를 저장하고 전체 모델 로드 방식으로 불러와서 딕셔너리 객체가 반환되었습니다.",
+            "suggestion": "state_dict 방식을 권장합니다. 코드 경로 의존성이 없고, 다른 환경에서도 안정적으로 로드됩니다. 저장/로드 방식을 일관되게 유지하세요."
+          },
+          "coaching": "🎯 현업: state_dict 방식이 표준입니다. 추가로 optimizer.state_dict()도 함께 저장하면 학습을 이어서 할 수 있습니다."
         },
         {
           "step": 2,
-          "title": "새로운 카테고리 처리 누락 (Unseen Category)",
+          "title": "체크포인트에서 학습 재개했더니 성능이 떨어졌어요 (Optimizer 상태 누락)",
           "bug_type": "B",
-          "bug_type_name": "Unseen Category",
-          "questions": {
-            "text": "운영 데이터에 학습 때 없던 신규 국가 코드가 들어오면서 에러가 발생했습니다. 어떤 문제일까요?",
-            "options": [
-              "속도가 빨라진다",
-              "인코더가 학습 시 보지 못한 카테고리를 처리하지 못해 에러를 낸다",
-              "메모리가 줄어든다",
-              "정확도가 자동으로 올라간다"
-            ],
-            "answer": 1
-          },
-          "buggy_code": "from sklearn.preprocessing import OneHotEncoder\n\ndef fit_encoder(train_cat):\n    enc = OneHotEncoder()\n    enc.fit(train_cat)\n    return enc",
-          "correct_code": "from sklearn.preprocessing import OneHotEncoder\n\ndef fit_encoder(train_cat):\n    enc = OneHotEncoder(handle_unknown='ignore')\n    enc.fit(train_cat)\n    return enc",
-          "hint": "OneHotEncoder에 handle_unknown='_ _ _ _ _ _' 옵션을 설정하세요.",
+          "bug_type_name": "Checkpoint Error",
+          "file_name": "checkpoint.py",
+          "buggy_code": "import torch\n\n# 체크포인트 저장\ndef save_checkpoint(model, optimizer, epoch, loss):\n    torch.save({\n        'epoch': epoch,\n        'model_state_dict': model.state_dict(),\n        # optimizer 상태 누락!\n        'loss': loss\n    }, 'checkpoint.pth')\n\n# 체크포인트 로드\ndef load_checkpoint(model, optimizer):\n    checkpoint = torch.load('checkpoint.pth')\n    model.load_state_dict(checkpoint['model_state_dict'])\n    # optimizer 상태 복원 안 함!\n    return checkpoint['epoch'], checkpoint['loss']\n\n# 학습 재개\nmodel = MyModel()\noptimizer = torch.optim.Adam(model.parameters(), lr=0.001)\nstart_epoch, _ = load_checkpoint(model, optimizer)\n\nfor epoch in range(start_epoch, 100):\n    # 학습...",
+          "correct_code": "import torch\n\n# 체크포인트 저장\ndef save_checkpoint(model, optimizer, epoch, loss):\n    torch.save({\n        'epoch': epoch,\n        'model_state_dict': model.state_dict(),\n        'optimizer_state_dict': optimizer.state_dict(),  # optimizer 상태 포함!\n        'loss': loss\n    }, 'checkpoint.pth')\n\n# 체크포인트 로드\ndef load_checkpoint(model, optimizer):\n    checkpoint = torch.load('checkpoint.pth')\n    model.load_state_dict(checkpoint['model_state_dict'])\n    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])  # optimizer 복원!\n    return checkpoint['epoch'], checkpoint['loss']\n\n# 학습 재개\nmodel = MyModel()\noptimizer = torch.optim.Adam(model.parameters(), lr=0.001)\nstart_epoch, _ = load_checkpoint(model, optimizer)\n\nfor epoch in range(start_epoch, 100):\n    # 학습...",
+          "error_log": "=== 체크포인트 저장 (Epoch 50) ===\nLoss: 0.1523, Accuracy: 94.2%\n\n=== 학습 재개 ===\nEpoch 51: Loss = 0.8934 (급증!)\nEpoch 52: Loss = 0.6721\nEpoch 53: Loss = 0.5102\n...\nEpoch 60: Loss = 0.3421 (다시 수렴 시작)\n\n[문제] 10 epoch 분량의 학습이 낭비됨",
+          "success_log": "=== 체크포인트 저장 (Epoch 50) ===\nLoss: 0.1523, Accuracy: 94.2%\n\n=== 학습 재개 ===\nEpoch 51: Loss = 0.1498 (자연스러운 연속)\nEpoch 52: Loss = 0.1456\nEpoch 53: Loss = 0.1402\n\n[정상] 끊김 없이 학습 이어감",
+          "hint": "Adam, SGD+momentum 등의 옵티마이저는 내부 상태를 가지고 있습니다. 이 상태도 함께 저장해야 학습을 자연스럽게 이어갈 수 있습니다.",
           "solution_check": {
             "type": "multi_condition",
             "required_all": [
-              "handle_unknown='ignore'"
+              "optimizer.state_dict()",
+              "optimizer.load_state_dict("
             ],
             "forbidden": []
           },
-          "coaching": "🎯 현업: 운영 데이터는 항상 학습 데이터보다 다양합니다. 새 상품, 신규 국가 등이 계속 추가되므로 방어 코드가 필수입니다."
+          "error_info": {
+            "type": "Incomplete Checkpoint",
+            "description": "Optimizer 내부 상태 예시 (Adam):\n\n```python\n{\n  'param_0': {\n    'step': 50000,           # 업데이트 횟수\n    'exp_avg': tensor(...),   # 1차 모멘트 (gradient 이동평균)\n    'exp_avg_sq': tensor(...) # 2차 모멘트 (gradient² 이동평균)\n  },\n  ...\n}\n```\n\n이 상태가 없으면:\n- Adam의 adaptive learning rate가 리셋\n- 파라미터별로 최적화된 학습률 정보 손실\n- 학습이 '처음부터 다시 시작'하는 것처럼 동작\n- 결과: Loss 급증 → 다시 수렴 (시간 낭비)",
+            "suggestion": "체크포인트에는 최소한 model.state_dict(), optimizer.state_dict(), epoch를 포함하세요. 스케줄러 사용 시 scheduler.state_dict()도 추가하세요."
+          },
+          "coaching": "🎯 현업: 장시간 학습(수 일~수 주)에서 체크포인트는 필수입니다. 서버 장애, 메모리 부족 등으로 학습이 중단될 수 있으므로, 매 N 에포크마다 완전한 체크포인트를 저장하세요."
         },
         {
           "step": 3,
-          "title": "전처리기/모델 번들 저장 누락",
+          "title": "다른 서버에서 모델을 불러올 수 없어요 (GPU/CPU 호환성)",
           "bug_type": "C",
-          "bug_type_name": "Artifact Drift",
-          "questions": {
-            "text": "모델을 재배포했는데 성능이 갑자기 나빠졌습니다. 모델 코드는 안 바꿨는데 왜일까요?",
-            "options": [
-              "모델이 스스로 변해서",
-              "전처리기가 재학습되어 이전과 다른 기준으로 변환하기 때문에",
-              "CPU가 느려져서",
-              "데이터가 줄어서"
-            ],
-            "answer": 1
-          },
-          "buggy_code": "import joblib\n\ndef save_model(model, scaler, encoder, path):\n    joblib.dump(model, path)\n    return path",
-          "correct_code": "import joblib\n\ndef save_model(model, scaler, encoder, path):\n    bundle = {\n        'model': model,\n        'scaler': scaler,\n        'encoder': encoder\n    }\n    joblib.dump(bundle, path)\n    return path",
-          "hint": "모델뿐 아니라 scaler, encoder도 함께 저장해야 합니다. 딕셔너리로 묶어서 bundle 형태로 만든 후 dump하세요.",
+          "bug_type_name": "Device Compat",
+          "file_name": "cross_device.py",
+          "buggy_code": "import torch\n\n# === GPU 서버에서 학습 및 저장 ===\nmodel = MyModel().cuda()\n# ... 학습 ...\ntorch.save(model.state_dict(), 'model.pth')\n\n# === CPU 서버에서 로드 (에러!) ===\nmodel = MyModel()\nmodel.load_state_dict(torch.load('model.pth'))  # 에러 발생\nmodel.eval()",
+          "correct_code": "import torch\n\n# === GPU 서버에서 학습 및 저장 ===\nmodel = MyModel().cuda()\n# ... 학습 ...\ntorch.save(model.state_dict(), 'model.pth')\n\n# === CPU 서버에서 로드 ===\ndevice = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\nmodel = MyModel()\nmodel.load_state_dict(torch.load('model.pth', map_location=device))\nmodel.to(device)\nmodel.eval()",
+          "error_log": "# CPU 서버에서 실행\n>>> torch.cuda.is_available()\nFalse\n\n>>> model.load_state_dict(torch.load('model.pth'))\nRuntimeError: Attempting to deserialize object on a CUDA device but torch.cuda.is_available() is False. If you are running on a CPU-only machine, please use torch.load with map_location=torch.device('cpu').",
+          "success_log": "# CPU 서버에서 실행\n>>> torch.cuda.is_available()\nFalse\n>>> device = torch.device('cpu')\n>>> model.load_state_dict(torch.load('model.pth', map_location=device))\n<All keys matched successfully>\n>>> model.to(device)\n>>> model.eval()\n\n# 추론 정상 동작",
+          "hint": "torch.load()의 map_location 파라미터를 사용하면 저장된 텐서를 원하는 device로 매핑하여 로드할 수 있습니다.",
           "solution_check": {
             "type": "multi_condition",
             "required_all": [
-              "'model':",
-              "'scaler':",
-              "'encoder':"
+              "map_location"
             ],
             "forbidden": []
           },
-          "coaching": "🎯 현업: 모델만 저장하면 전처리 기준이 달라져서 성능이 무너집니다. 모델+전처리기를 하나의 번들로 관리하세요."
+          "error_info": {
+            "type": "Cross-Device Compatibility Error",
+            "description": "torch.save()는 텐서의 device 정보도 함께 저장합니다.\n\n**GPU에서 저장 시:**\n- 텐서 데이터: [0.123, 0.456, ...]\n- Device 정보: 'cuda:0'\n\n**CPU에서 로드 시:**\n- torch.load()가 'cuda:0'으로 텐서를 복원하려 시도\n- CUDA 없음 → 에러\n\n**해결책:**\n- map_location='cpu': 모든 텐서를 CPU로\n- map_location=device: 동적으로 device 결정\n- map_location={'cuda:0': 'cuda:1'}: 특정 GPU→다른 GPU 매핑",
+            "suggestion": "배포 환경이 학습 환경과 다를 수 있으므로, 로드 코드에서 항상 map_location을 사용하세요. 특히 torch.device('cuda' if torch.cuda.is_available() else 'cpu') 패턴을 활용하면 어느 환경에서도 동작합니다."
+          },
+          "coaching": "🎯 현업: GPU에서 학습하고 CPU에서 서빙하는 경우가 많습니다. 또한 멀티 GPU로 학습하고 단일 GPU로 배포하는 경우도 있습니다. map_location 사용을 습관화하세요."
         }
       ]
     },
     {
       "id": "P5",
-      "project_title": "정화가 시급한 오염된 데이터 섹터",
-      "scenario": "마더 서버의 특정 섹터에서 정확도가 비정상적으로 높게 보고되고 있습니다. 이는 전형적인 '데이터 오염(Hallucination)' 증상입니다. {username}님, 파트너 Coduck과 함께 오염된 파이프라인의 버그를 순서대로 찾아 정화해야 합니다.",
-      "difficulty": 1,
+      "project_title": "LLM & Transformer 디버깅",
+      "scenario": "Transformer 기반 모델(BERT, GPT 등)을 Fine-tuning하거나 추론하는데, 예상과 다른 결과가 나오거나 에러가 발생합니다.",
+      "difficulty": 3,
       "totalSteps": 3,
       "steps": [
         {
           "step": 1,
-          "title": "비정상적으로 높은 검증 성능 (Data Leakage)",
+          "title": "패딩 토큰이 문장 의미를 망쳐요 (Attention Mask 누락)",
           "bug_type": "A",
-          "bug_type_name": "Data Leakage",
-          "questions": {
-            "text": "전처리 코드에서 이상한 부분을 발견했습니다:\n\nX_train, X_test, y_train, y_test = train_test_split(X, y, ...)\nscaler = StandardScaler()\nX_train = scaler.fit_transform(X)  \nX_test = scaler.transform(X_test)\n\nTrain 0.98 vs Test 0.65로 차이가 큽니다. 무엇이 문제일까요?",
-            "options": [
-              "scaler를 전체 데이터 X로 fit해서",
-              "train_test_split의 test_size가 너무 작아서",
-              "StandardScaler 대신 MinMaxScaler를 써야 해서",
-              "random_state를 고정하지 않아서"
-            ],
-            "answer": 0
-          },
-          "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\ndef prepare_data(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, random_state=42\n    )\n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X)\n    X_test = scaler.transform(X_test)\n    \n    return X_train, X_test, y_train, y_test",
-          "correct_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\ndef prepare_data(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    \n    return X_train, X_test, y_train, y_test",
-          "hint": "scaler가 전체 데이터 X로 fit하면, X_test의 평균과 표준편차 정보도 함께 학습됩니다. 이게 왜 문제일까요?",
-          "solution_check": {
-            "type": "multi_condition",
-            "required_any": [
-              "fit_transform(X_train)",
-              "fit(X_train)"
-            ],
-            "forbidden": [
-              "fit_transform(X)",
-              "fit(X)"
-            ]
-          },
-          "coaching": "🎯 현업: Data Leakage는 모델이 '너무 잘 나올 때' 의심해야 하는 1순위 버그입니다. 전처리는 반드시 train/test 분할 후에 train으로만 fit하고, test는 transform만 해야 합니다."
-        },
-        {
-          "step": 2,
-          "title": "불안정한 평가 결과 (Imbalanced Sampling)",
-          "bug_type": "B",
-          "bug_type_name": "Sampling Bug",
-          "questions": {
-            "text": "Step 1을 고쳤더니 test 정확도가 0.85로 내려갔습니다.\n\n그런데 현재 split의 test set을 확인해보니 이탈률이 3% 정도입니다. 원래 전체 데이터의 이탈률은 5%인데, test set의 비율이 달라졌습니다.\n\nX_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, random_state=42)\n무엇을 의심해야 할까요?",
-            "options": [
-              "random_state 값이 잘못됨",
-              "test_size를 0.3 이상으로",
-              "train/test의 클래스 비율이 달라서",
-              "shuffle=False로 변경"
-            ],
-            "answer": 2
-          },
-          "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\ndef prepare_data(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    \n    return X_train, X_test, y_train, y_test",
-          "correct_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\ndef prepare_data(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42, stratify=y\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    \n    return X_train, X_test, y_train, y_test",
-          "hint": "불균형 데이터에선 split 후 train/test의 클래스 비율이 달라질 수 있습니다. 이를 강제로 유지하는 옵션이 있습니다.",
-          "solution_check": {
-            "type": "regex",
-            "value": "stratify\\s*=\\s*y\\s*(?=,\\s*\\w|\\))",
-            "flags": ""
-          },
-          "coaching": "🎯 현업: 불균형 데이터(이탈 예측, 사기 탐지 등)에서 stratify 없이 split하면 train/test의 클래스 비율이 달라져 평가가 불안정해집니다. 특히 test에 positive 샘플이 적으면 평가 자체가 무의미해질 수 있습니다."
-        },
-        {
-          "step": 3,
-          "title": "잘못된 평가 데이터 사용 (Train Data Evaluation)",
-          "bug_type": "C",
-          "bug_type_name": "Evaluation Error",
-          "questions": {
-            "text": "Step 1, 2를 고쳤습니다. 이제 모델을 학습하고 평가했습니다:\n\nmodel.fit(X_train, y_train)\ny_pred = model.predict(X_train) \naccuracy = accuracy_score(y_train, y_pred)\nprint(f'정확도: {accuracy}')  # 0.95\n\n그런데 test로 확인하니 0.60이 나옵니다. 무엇이 문제일까요?",
-            "options": [
-              "accuracy_score 대신 f1_score를 써야 함",
-              "train 데이터로 평가해서 성능이 과대평가됨",
-              "predict 대신 predict_proba를 써야 함",
-              "y_train과 y_pred 순서가 바뀜"
-            ],
-            "answer": 1
-          },
-          "buggy_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.metrics import accuracy_score\n\ndef train_and_evaluate(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42, stratify=y\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    \n    model = LogisticRegression()\n    model.fit(X_train, y_train)\n    \n    y_pred = model.predict(X_train)\n    accuracy = accuracy_score(y_train, y_pred)\n    \n    return accuracy",
-          "correct_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.metrics import accuracy_score\n\ndef train_and_evaluate(df):\n    X = df.drop('churn', axis=1)\n    y = df['churn']\n    \n    X_train, X_test, y_train, y_test = train_test_split(\n        X, y, test_size=0.2, random_state=42, stratify=y\n    )\n    \n    scaler = StandardScaler()\n    X_train = scaler.fit_transform(X_train)\n    X_test = scaler.transform(X_test)\n    \n    model = LogisticRegression()\n    model.fit(X_train, y_train)\n    \n    y_pred = model.predict(X_test)\n    accuracy = accuracy_score(y_test, y_pred)\n    \n    return accuracy",
-          "hint": "학습에 사용한 데이터로 평가하면 모델 성능이 과대평가됩니다. 모델이 학습 중 보지 못한 데이터로 평가해야 합니다.",
+          "bug_type_name": "Attention Mask",
+          "file_name": "bert_inference.py",
+          "buggy_code": "from transformers import BertModel, BertTokenizer\nimport torch\n\ntokenizer = BertTokenizer.from_pretrained('bert-base-uncased')\nmodel = BertModel.from_pretrained('bert-base-uncased')\nmodel.eval()\n\ndef get_embedding(text, max_length=128):\n    # 토크나이징\n    tokens = tokenizer(\n        text,\n        padding='max_length',\n        max_length=max_length,\n        truncation=True,\n        return_tensors='pt'\n    )\n    \n    with torch.no_grad():\n        # attention_mask를 전달하지 않음!\n        outputs = model(input_ids=tokens['input_ids'])\n        \n    # [CLS] 토큰의 임베딩 반환\n    return outputs.last_hidden_state[:, 0, :]\n\n# 문장 유사도 계산\nemb_a = get_embedding(\"I love you\")\nemb_b = get_embedding(\"I love you\")\nemb_c = get_embedding(\"I hate everything in this world\")\n\nprint(f\"A-B similarity: {cosine_similarity(emb_a, emb_b)}\")\nprint(f\"A-C similarity: {cosine_similarity(emb_a, emb_c)}\")",
+          "correct_code": "from transformers import BertModel, BertTokenizer\nimport torch\n\ntokenizer = BertTokenizer.from_pretrained('bert-base-uncased')\nmodel = BertModel.from_pretrained('bert-base-uncased')\nmodel.eval()\n\ndef get_embedding(text, max_length=128):\n    # 토크나이징\n    tokens = tokenizer(\n        text,\n        padding='max_length',\n        max_length=max_length,\n        truncation=True,\n        return_tensors='pt'\n    )\n    \n    with torch.no_grad():\n        # attention_mask 전달!\n        outputs = model(\n            input_ids=tokens['input_ids'],\n            attention_mask=tokens['attention_mask']  # 패딩 마스킹\n        )\n        \n    # [CLS] 토큰의 임베딩 반환\n    return outputs.last_hidden_state[:, 0, :]\n\n# 문장 유사도 계산\nemb_a = get_embedding(\"I love you\")\nemb_b = get_embedding(\"I love you\")\nemb_c = get_embedding(\"I hate everything in this world\")\n\nprint(f\"A-B similarity: {cosine_similarity(emb_a, emb_b)}\")\nprint(f\"A-C similarity: {cosine_similarity(emb_a, emb_c)}\")",
+          "error_log": "A: \"I love you\" (125 padding tokens)\nB: \"I love you\" (125 padding tokens)\nC: \"I hate everything in this world\" (120 padding tokens)\n\nA-B similarity: 0.9234 (OK)\nA-C similarity: 0.9456 (이상! A-B보다 높음)\n\n[원인] 패딩 토큰이 attention에 포함되어 의미 왜곡",
+          "success_log": "A: \"I love you\" (masked: 125 padding tokens)\nB: \"I love you\" (masked: 125 padding tokens)\nC: \"I hate everything in this world\" (masked: 120 padding tokens)\n\nA-B similarity: 1.0000 (완벽히 동일)\nA-C similarity: 0.2341 (낮음 - 의미 차이 반영)\n\n[정상] 실제 토큰만 attention에 반영",
+          "hint": "Tokenizer가 반환하는 attention_mask는 실제 토큰=1, 패딩=0입니다. 이 마스크를 모델에 전달해야 패딩이 무시됩니다.",
           "solution_check": {
             "type": "multi_condition",
             "required_all": [
-              "predict(X_test)",
-              "accuracy_score(y_test"
+              "attention_mask"
+            ],
+            "forbidden": []
+          },
+          "error_info": {
+            "type": "Missing Attention Mask",
+            "description": "Transformer의 Self-Attention은 모든 토큰 간의 관계를 계산합니다:\n\n**Attention mask 없이:**\n- [CLS] I love you [PAD] [PAD] [PAD] ... (125개)\n- [CLS]가 모든 [PAD] 토큰에도 attention\n- 패딩이 많을수록 임베딩이 패딩에 의해 왜곡\n\n**Attention mask 있으면:**\n- attention_mask = [1, 1, 1, 1, 0, 0, 0, ...]\n- [PAD] 위치의 attention score = -∞ → softmax 후 0\n- 실제 토큰만 attention 계산에 참여\n\n짧은 문장끼리 패딩이 비슷하면 '패딩 유사도'가 높아져 의미 비교가 왜곡됩니다.",
+            "suggestion": "HuggingFace 모델 사용 시 tokenizer의 attention_mask를 항상 모델에 전달하세요. **tokens를 사용하면 한 번에 전달됩니다: model(**tokens)"
+          },
+          "coaching": "🎯 현업: BERT, GPT 등 Transformer 모델을 사용할 때 attention_mask는 필수입니다. 특히 배치 처리 시 문장 길이가 다르면 패딩이 불균형해지므로 반드시 마스킹해야 합니다."
+        },
+        {
+          "step": 2,
+          "title": "Tokenizer와 모델이 서로 다른 말을 해요 (Tokenizer 불일치)",
+          "bug_type": "B",
+          "bug_type_name": "Tokenizer Mismatch",
+          "file_name": "mismatched_tokenizer.py",
+          "buggy_code": "from transformers import BertForSequenceClassification, BertTokenizer\nimport torch\n\n# Fine-tuning된 모델 로드\nmodel = BertForSequenceClassification.from_pretrained('./my_finetuned_model')\nmodel.eval()\n\n# 다른 tokenizer 사용 (실수!)\ntokenizer = BertTokenizer.from_pretrained('bert-large-uncased')  # large 버전!\n\ndef predict(text):\n    inputs = tokenizer(text, return_tensors='pt', padding=True, truncation=True)\n    \n    with torch.no_grad():\n        outputs = model(**inputs)\n    \n    probs = torch.softmax(outputs.logits, dim=1)\n    return 'Positive' if probs[0, 1] > 0.5 else 'Negative', probs[0].tolist()\n\nresult, probs = predict(\"The movie was great!\")\nprint(f\"Prediction: {result}, Probabilities: {probs}\")",
+          "correct_code": "from transformers import BertForSequenceClassification, BertTokenizer\nimport torch\n\n# Fine-tuning된 모델 로드\nmodel = BertForSequenceClassification.from_pretrained('./my_finetuned_model')\nmodel.eval()\n\n# 같은 모델의 tokenizer 사용!\ntokenizer = BertTokenizer.from_pretrained('./my_finetuned_model')  # 모델과 동일 경로\n# 또는: BertTokenizer.from_pretrained('bert-base-uncased')  # 학습 시 사용한 것과 동일\n\ndef predict(text):\n    inputs = tokenizer(text, return_tensors='pt', padding=True, truncation=True)\n    \n    with torch.no_grad():\n        outputs = model(**inputs)\n    \n    probs = torch.softmax(outputs.logits, dim=1)\n    return 'Positive' if probs[0, 1] > 0.5 else 'Negative', probs[0].tolist()\n\nresult, probs = predict(\"The movie was great!\")\nprint(f\"Prediction: {result}, Probabilities: {probs}\")",
+          "error_log": "Input: \"The movie was great!\"\n\n[잘못된 Tokenizer: bert-large-uncased]\nTokens: ['the', 'movie', 'was', 'great', '!']\nToken IDs: [1996, 3185, 2001, 2307, 999]\n\nPrediction: Negative (0.01, 0.99)\n[틀림] 모델이 본 적 없는 토큰 ID 매핑",
+          "success_log": "Input: \"The movie was great!\"\n\n[올바른 Tokenizer: bert-base-uncased]\nTokens: ['the', 'movie', 'was', 'great', '!']\nToken IDs: [1996, 3185, 2001, 2307, 999]\n\nPrediction: Positive (0.97, 0.03)\n[정답] 학습 시와 동일한 토큰화",
+          "hint": "모델과 Tokenizer는 항상 짝을 맞춰야 합니다. Fine-tuning한 모델을 저장할 때 tokenizer도 같은 경로에 저장하세요.",
+          "solution_check": {
+            "type": "multi_condition",
+            "required_any": [
+              "'./my_finetuned_model'",
+              "'bert-base-uncased'"
             ],
             "forbidden": [
-              "predict(X_train)",
-              "accuracy_score(y_train, y_pred)"
+              "'bert-large-uncased'"
             ]
           },
-          "coaching": "🎯 현업: train 데이터로 평가하면 모델이 '이미 본' 데이터에 대한 성능만 측정되어 과대평가됩니다. 반드시 학습에 사용하지 않은 test 데이터로 평가해야 실제 성능을 알 수 있습니다. 이것이 train/test split을 하는 이유입니다."
+          "error_info": {
+            "type": "Tokenizer-Model Mismatch",
+            "description": "Tokenizer와 모델의 불일치 문제:\n\n**같은 단어 → 다른 토큰 ID:**\n- bert-base: \"great\" → ID 2307\n- bert-large: \"great\" → ID 2307 (같을 수 있지만...)\n- roberta: \"great\" → ID 372 (완전히 다름!)\n\n**문제:**\n- 모델은 학습 시 특정 vocabulary로 학습\n- 다른 tokenizer는 다른 ID 매핑\n- ID 2307이 학습 때 \"great\"였지만, 다른 tokenizer에서는 \"terrible\"일 수 있음\n- 결과: 완전히 엉뚱한 예측\n\n**특히 위험한 경우:**\n- 모델 계열이 다른 경우 (BERT vs RoBERTa)\n- 같은 계열이지만 크기가 다른 경우 (base vs large)",
+            "suggestion": "모델 저장 시 tokenizer.save_pretrained(path)로 tokenizer도 함께 저장하세요. 로드할 때는 모델과 같은 경로에서 tokenizer를 불러오세요."
+          },
+          "coaching": "🎯 현업: HuggingFace 모델 배포 시 모델+tokenizer+config를 세트로 관리하세요. 버전 불일치는 찾기 어려운 버그의 원인이 됩니다."
+        },
+        {
+          "step": 3,
+          "title": "GPT가 이상한 말만 반복해요 (생성 파라미터 오류)",
+          "bug_type": "C",
+          "bug_type_name": "Generation Bug",
+          "file_name": "gpt_generate.py",
+          "buggy_code": "from transformers import GPT2LMHeadModel, GPT2Tokenizer\n\ntokenizer = GPT2Tokenizer.from_pretrained('gpt2')\nmodel = GPT2LMHeadModel.from_pretrained('gpt2')\nmodel.eval()\n\ndef generate_text(prompt, max_length=100):\n    inputs = tokenizer(prompt, return_tensors='pt')\n    \n    with torch.no_grad():\n        outputs = model.generate(\n            inputs['input_ids'],\n            max_length=max_length,\n            # 파라미터가 없거나 잘못됨\n        )\n    \n    return tokenizer.decode(outputs[0], skip_special_tokens=True)\n\nresult = generate_text(\"Once upon a time\")\nprint(result)",
+          "correct_code": "from transformers import GPT2LMHeadModel, GPT2Tokenizer\n\ntokenizer = GPT2Tokenizer.from_pretrained('gpt2')\nmodel = GPT2LMHeadModel.from_pretrained('gpt2')\nmodel.eval()\n\ndef generate_text(prompt, max_length=100):\n    inputs = tokenizer(prompt, return_tensors='pt')\n    \n    with torch.no_grad():\n        outputs = model.generate(\n            inputs['input_ids'],\n            max_length=max_length,\n            do_sample=True,           # 샘플링 활성화\n            temperature=0.8,           # 다양성 조절 (0.7~1.0 권장)\n            top_k=50,                  # 상위 50개 토큰에서 샘플링\n            top_p=0.95,                # 누적 확률 95%까지의 토큰에서 샘플링\n            repetition_penalty=1.2,    # 반복 방지 (>1.0)\n            pad_token_id=tokenizer.eos_token_id  # 패딩 경고 방지\n        )\n    \n    return tokenizer.decode(outputs[0], skip_special_tokens=True)\n\nresult = generate_text(\"Once upon a time\")\nprint(result)",
+          "error_log": "Prompt: \"Once upon a time\"\n\n[Greedy Decoding - 기본 설정]\nOutput: \"Once upon a time, the the the the the the the the the the the the the the the the...\"\n\n[문제] 가장 높은 확률 토큰만 계속 선택 → 반복 루프",
+          "success_log": "Prompt: \"Once upon a time\"\n\n[Sampling with parameters]\nOutput: \"Once upon a time, there was a young princess who lived in a magnificent castle at the edge of an enchanted forest. Every morning, she would...\"\n\n[정상] 다양하고 자연스러운 텍스트 생성",
+          "hint": "generate()의 기본 설정은 Greedy Decoding(do_sample=False)입니다. 이 모드에서는 가장 확률 높은 토큰만 반복 선택하여 반복 문제가 생깁니다.",
+          "solution_check": {
+            "type": "multi_condition",
+            "required_all": [
+              "do_sample=True"
+            ],
+            "required_any": [
+              "temperature=",
+              "top_k=",
+              "top_p=",
+              "repetition_penalty="
+            ],
+            "forbidden": []
+          },
+          "error_info": {
+            "type": "Text Generation Parameter Error",
+            "description": "텍스트 생성 전략:\n\n**Greedy Decoding (기본):**\n- 매 스텝 가장 높은 확률의 토큰 선택\n- 결정적(deterministic) - 항상 같은 결과\n- 문제: 반복 루프, 지루한 텍스트\n\n**Sampling:**\n- 확률 분포에서 무작위 샘플링\n- do_sample=True로 활성화\n- temperature: 분포의 날카로움 조절 (낮으면 greedy에 가까움)\n- top_k: 상위 k개 토큰에서만 샘플링\n- top_p (nucleus): 누적 확률 p까지의 토큰에서 샘플링\n\n**repetition_penalty:**\n- 이미 생성된 토큰의 확률을 낮춤\n- > 1.0: 반복 억제\n- 1.0: 효과 없음",
+            "suggestion": "용도에 맞게 파라미터를 조정하세요. 창의적 글쓰기: temperature=0.9, top_p=0.95. 정확한 답변: temperature=0.3, top_k=10. 반복 문제가 있으면 repetition_penalty=1.2 추가."
+          },
+          "coaching": "🎯 현업: 텍스트 생성 품질은 파라미터 튜닝에 크게 의존합니다. 용도(챗봇, 번역, 요약, 창작)에 따라 최적 파라미터가 다릅니다. A/B 테스트로 최적값을 찾으세요."
         }
       ]
     }

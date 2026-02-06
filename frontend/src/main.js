@@ -19,7 +19,6 @@ import PseudoPractice from './features/practice/pseudoProblem.vue'
 import CoduckWars from './features/practice/0205/CoduckWars.vue'
 import SystemArchitecturePractice from './features/practice/SystemArchitecturePractice.vue'
 import BugHunt from './features/practice/BugHunt.vue'
-import VibeCodeCleanUp from './features/practice/VibeCodeCleanUp.vue'
 import OpsPractice from './features/practice/OpsPractice.vue'
 
 const routes = [
@@ -43,11 +42,6 @@ const routes = [
     path: '/practice/bug-hunt',
     name: 'BugHunt',
     component: BugHunt
-  },
-  {
-    path: '/practice/vibe-cleanup',
-    name: 'VibeCodeCleanUp',
-    component: VibeCodeCleanUp
   },
   {
     path: '/practice/ops-practice',
