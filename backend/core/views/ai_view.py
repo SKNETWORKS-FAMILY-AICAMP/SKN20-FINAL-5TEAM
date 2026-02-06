@@ -1,3 +1,4 @@
+# [수정일: 2026-02-04] pseudo_tts 브런치를 main 브런치로 머지: AI 평가 로직 강화(gpt-4o-mini) 및 관련 기능 통합
 import openai
 from django.conf import settings
 from rest_framework.views import APIView

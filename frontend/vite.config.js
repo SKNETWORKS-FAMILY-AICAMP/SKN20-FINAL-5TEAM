@@ -60,8 +60,12 @@ export default defineConfig({
     ]
   },
   build: {
+    // [수정일: 2026-02-04] main.html 접근을 위해 rollupOptions input 수정
     rollupOptions: {
-      input: path.resolve(__dirname, 'index.html'),
+      input: {
+        index: path.resolve(__dirname, 'index.html'),
+        main: path.resolve(__dirname, 'main.html'),
+      }
     },
   }
 })

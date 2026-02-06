@@ -86,7 +86,7 @@
 </template>
 
 <script>
-import mermaid from 'mermaid';
+// import mermaid from 'mermaid';
 
 export default {
   name: 'DeepDiveModal',
@@ -201,8 +201,8 @@ export default {
       if (!container || !this.mermaidCode) return;
 
       try {
-        const { svg } = await mermaid.render('deepdive-mermaid-' + Date.now(), this.mermaidCode);
-        container.innerHTML = svg;
+        // const { svg } = await mermaid.render('deepdive-mermaid-' + Date.now(), this.mermaidCode);
+        container.innerHTML = '<p>Mermaid diagram disabled temporarily.</p>'; // svg;
       } catch (error) {
         container.innerHTML = '<p class="mermaid-error">다이어그램 렌더링 오류</p>';
       }

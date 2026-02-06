@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RE-BOOT 2077</title>
+    <!-- Vue 3 Global Build -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons (via CDN) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap');
+        
+        body {
+            background-color: #0d110d;
+            color: #a2ff42;
+            font-family: 'JetBrains Mono', monospace;
+            margin: 0;
+            background-image: radial-gradient(#1a241a 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+
+        .shadow-neon { box-shadow: 0 0 25px rgba(162, 255, 66, 0.15); }
+        .shadow-neon-sm { box-shadow: 0 0 15px rgba(162, 255, 66, 0.3); }
+        .shadow-neon-lg { box-shadow: 0 0 40px rgba(162, 255, 66, 0.5); }
+        
+        .energy-bar-bg { background-color: #111; border: 1px solid rgba(162, 255, 66, 0.2); }
+        .energy-fill { background-color: #a2ff42; box-shadow: 0 0 15px #a2ff42; transition: width 0.5s ease-in-out; }
+
+        .code-box { background-color: rgba(0, 0, 0, 0.95); }
+        .highlight-span {
+            background-color: rgba(255, 123, 66, 0.2);
+            color: #ff7b42;
+            border: 1px solid rgba(255, 123, 66, 0.4);
+            padding: 0 6px;
+            font-weight: 800;
+        }
+
+        .duck-frame { background-color: #0a0e0a; border: 2px solid #a2ff42; }
+        .mood-overlay {
+            background-color: rgba(0, 0, 0, 0.88);
+            backdrop-filter: blur(6px);
+            border: 1px solid rgba(162, 255, 66, 0.2);
+        }
+
+        .btn-primary {
+            background-color: #a2ff42;
+            color: #000;
+            font-weight: 800;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-primary:hover { background-color: #fff; transform: translateY(-2px); box-shadow: 0 0 20px #fff; }
+        .btn-primary:active { transform: scale(0.96); }
+
+        .hint-btn {
+            background-color: #000;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+        .hint-btn.active {
+            background-color: #fff;
+            color: #000;
+            box-shadow: 0 0 20px #fff;
+        }
+
+        .save-btn {
+            background-color: rgba(162, 255, 66, 0.05);
+            border: 1px solid #a2ff42;
+            color: #a2ff42;
+            transition: all 0.2s;
+        }
+        .save-btn:hover {
+            background-color: #a2ff42;
+            color: #000;
+        }
+
+        .log-line { border-left: 2px solid rgba(162, 255, 66, 0.3); padding-left: 10px; margin-bottom: 6px; font-size: 11px; }
+        
+        .loader {
+            border: 4px solid rgba(162, 255, 66, 0.05);
+            border-top: 4px solid #a2ff42;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .duck-img-zoom {
+            animation: slow-zoom 20s infinite alternate linear;
+        }
+        @keyframes slow-zoom {
+            from { transform: scale(1); }
+            to { transform: scale(1.05); }
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="min-h-screen p-4 flex flex-col items-center justify-center">
+        <!-- Header -->
+        <div class="w-full max-w-5xl mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+            <div class="flex items-center gap-5">
+                <div class="p-4 rounded-xl shadow-neon border-2 border-[#a2ff42] bg-[#1a241a]">
+                    <i data-lucide="zap" style="color: #ff7b42; width: 36px; height: 36px;"></i>
+                </div>
+                <div>
+                    <h1 class="text-4xl font-black tracking-tighter" style="color: #a2ff42;">RE-BOOT 2077</h1>
+                    <p class="text-sm font-bold opacity-80 tracking-[0.2em] uppercase">Status: Python_Architect_Connected</p>
+                </div>
+            </div>
+            
+            <div class="w-full md:w-72">
+                <div class="flex justify-between text-xs mb-2 font-black tracking-wider">
+                    <span class="flex items-center gap-2">SYSTEM_ENERGY</span>
+                    <span>{{ energy }}%</span>
+                </div>
+                <div class="energy-bar-bg h-3 w-full rounded-full overflow-hidden">
+                    <div class="energy-fill h-full" :style="{ width: energy + '%' }"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Coduck Visual -->
+            <div class="duck-frame relative rounded-2xl overflow-hidden flex flex-col shadow-2xl border-4">
+                <div class="p-3 border-b text-[11px] flex justify-between bg-black/60 border-[#a2ff42]">
+                    <span class="font-black tracking-widest uppercase">Unit: Coduck_V1.3_Image_Mapped</span>
+                    <div class="flex items-center gap-4">
+                        <button v-if="currentDuckImg" @click="downloadImage" class="save-btn px-3 py-1 rounded-md flex items-center gap-2 text-[10px] font-black">
+                            <i data-lucide="download" style="width: 12px; height: 12px;"></i> SAVE_IMAGE
+                        </button>
+                        <span class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-red-600 animate-pulse shadow-[0_0_8px_#dc2626]"></span> LIVE_SYNC
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="aspect-square flex items-center justify-center bg-[#050705] relative overflow-hidden">
+                    <div v-if="isLoading" class="flex flex-col items-center gap-5">
+                        <div class="loader shadow-neon"></div>
+                        <span class="text-sm font-black tracking-[0.3em] animate-pulse" style="color: #a2ff42;">SYNCING_PARTNER...</span>
+                    </div>
+                    
+                    <img v-else :src="currentDuckImg" alt="Coduck" class="w-full h-full object-cover duck-img-zoom" />
+                    
+                    <div class="mood-overlay absolute bottom-6 left-6 right-6 p-4 rounded-xl shadow-2xl">
+                        <div class="flex items-center gap-3 mb-1 opacity-50">
+                            <i data-lucide="message-square" style="width: 12px; height: 12px;"></i>
+                            <span class="text-[9px] font-black tracking-widest uppercase">Coduck_Neural_Link</span>
+                        </div>
+                        <p class="text-sm font-bold text-white text-center leading-relaxed">
+                            {{ moodText }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Game/Console Area -->
+            <div class="flex flex-col gap-6 min-h-[500px]">
+                <!-- Intro State -->
+                <div v-if="gameState === 'intro'" class="duck-frame flex-1 p-8 rounded-2xl flex flex-col justify-center gap-8 shadow-xl relative overflow-hidden">
+                    <div class="absolute -top-10 -right-10 opacity-10">
+                        <i data-lucide="shield" style="width: 200px; height: 200px;"></i>
+                    </div>
+
+                    <div class="space-y-6 relative z-10">
+                        <div class="flex items-center gap-4">
+                            <i data-lucide="terminal" style="color: #a2ff42; width: 32px; height: 32px;"></i>
+                            <h2 class="text-3xl font-black text-white tracking-tighter">MISSION BRIEFING</h2>
+                        </div>
+                        <div class="space-y-4 text-base leading-relaxed opacity-90 border-l-4 border-[#a2ff42] pl-6 py-2">
+                            <p>서기 2077년, '대각성'으로 오염된 마더 서버가 인류의 지식을 '환각'으로 대체하고 있습니다.</p>
+                            <p>당신은 최후의 아키텍처로서 <strong style="color: #ff7b42;">Python</strong> 핵심 로직을 복구하여 시스템을 정상화해야 합니다.</p>
+                            <p class="text-xs font-bold mt-6 text-[#ff7b42] animate-pulse">※ 준비가 되었다면 하단의 버튼을 눌러 침투를 시작하십시오.</p>
+                        </div>
+                    </div>
+                    
+                    <button @click="startReboot" class="btn-primary w-full py-5 rounded-xl text-2xl tracking-[0.3em] shadow-neon-lg uppercase flex items-center justify-center gap-3">
+                        <i data-lucide="play-circle" style="width: 28px; height: 28px;"></i>
+                        REBOOT_START
+                    </button>
+                </div>
+
+                <!-- Playing State -->
+                <div v-else-if="gameState === 'playing'" class="duck-frame flex-1 p-8 rounded-2xl flex flex-col gap-6 overflow-y-auto relative shadow-xl">
+                    <div class="border-b-2 border-[#a2ff42]/20 pb-5 mb-2 flex justify-between items-start">
+                        <div>
+                            <h2 class="text-2xl font-black text-white uppercase tracking-tighter">{{ currentSector.name }}</h2>
+                            <p class="text-xs font-bold opacity-60 italic mt-2 tracking-wide">{{ currentSector.description }}</p>
+                        </div>
+                        <button @click="toggleHint" class="hint-btn p-3 rounded-xl transition-all" :class="{ active: showHint }">
+                            <i data-lucide="sparkles" style="width: 24px; height: 24px;"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="code-box p-6 rounded-xl border-2 border-[#a2ff42]/10 font-mono text-[14px] overflow-x-auto whitespace-pre leading-relaxed shadow-2xl">
+                        <template v-for="(part, i) in highlightedParts" :key="i">
+                            <span v-if="part.isHighlight" class="highlight-span animate-pulse shadow-[0_0_10px_rgba(255,123,66,0.3)]">{{ part.content }}</span>
+                            <template v-else>{{ part.content }}</template>
+                        </template>
+                    </div>
+
+                    <div v-if="showHint" class="bg-[#1a2e1a] p-4 rounded-xl border-l-8 border-[#a2ff42] border border-[#a2ff42]/20 shadow-lg">
+                        <p class="text-sm font-bold text-white/95 leading-relaxed">{{ currentSector.hint }}</p>
+                    </div>
+
+                    <form @submit.prevent="handleSubmit" class="mt-auto pt-6">
+                        <div class="flex gap-4">
+                            <input v-model="userInput" type="text" class="flex-1 bg-black/50 border-2 border-[#a2ff42] p-4 rounded-xl focus:outline-none font-black text-xl shadow-inner" style="color: #a2ff42;" placeholder="INPUT_RESULT...">
+                            <button type="submit" class="btn-primary px-8 py-4 rounded-xl uppercase tracking-tighter">Execute</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Success/Fail/End States -->
+                <div v-else class="duck-frame flex-1 p-8 rounded-2xl flex flex-col justify-center items-center text-center gap-6 shadow-xl">
+                    <template v-if="gameState === 'success'">
+                        <div class="bg-black p-8 rounded-full border-4 border-[#a2ff42] animate-bounce shadow-neon-lg">
+                            <i data-lucide="shield-check" style="color: #a2ff42; width: 64px; height: 64px;"></i>
+                        </div>
+                        <h2 class="text-3xl font-black text-white uppercase tracking-tighter">Sector Purified</h2>
+                        <button @click="nextSector" class="btn-primary w-full py-5 rounded-xl text-xl mt-6">ADVANCE_TO_NEXT_SECTOR</button>
+                    </template>
+                    <template v-else-if="gameState === 'fail'">
+                        <i data-lucide="alert-octagon" style="color: #ef4444; width: 80px; height: 80px;" class="animate-pulse"></i>
+                        <button @click="reload" class="w-full py-5 font-black bg-red-600 text-white rounded-xl mt-6">REBOOT_SYSTEM</button>
+                    </template>
+                    <template v-else-if="gameState === 'end'">
+                        <i data-lucide="unlock" style="color: #a2ff42; width: 100px; height: 100px;"></i>
+                        <h2 class="text-5xl font-black text-white tracking-tighter">MISSION_COMPLETE</h2>
+                        <button @click="reload" class="btn-primary w-full py-5 rounded-xl text-xl mt-8 tracking-widest font-black">START_NEW_SESSION</button>
+                    </template>
+                </div>
+
+                <!-- Logs Console -->
+                <div class="h-40 bg-black/95 border-2 border-white/5 p-4 rounded-xl overflow-hidden text-[11px] flex flex-col-reverse shadow-inner">
+                    <div v-for="(log, i) in logs" :key="i" class="log-line opacity-80 font-bold">
+                        {{ log }}
+                    </div>
+                    <div class="border-b-2 border-white/10 mb-3 pb-2 text-white font-black uppercase tracking-[0.4em] flex justify-between items-center">
+                        <span class="flex items-center gap-2"><i data-lucide="terminal" style="width: 12px;"></i> Debug Console</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, computed, watch, onMounted, nextTick } = Vue;
+
+        createApp({
+            setup() {
+                const SECTORS = [
+                    { id: 1, name: "데이터 레이크", description: "무한 루프 정화", problem: `# Python\ndef clean_data(items):\n    count = 0\n    for item in items:\n        if item == "CORRUPTED":\n            [[ continue ]]\n        count += 1\n    return count\n# Input: ["OK", "CORRUPTED", "OK", "OK"]\n# Result: [[ ? ]]`, answer: "3", hint: "continue는 아래를 건너뛰고 다음 반복으로 갑니다." },
+                    { id: 2, name: "메모리 셀", description: "슬라이싱 복구", problem: `# Python\ndef reconstruct(memory):\n    if [[ len(memory) > 5 ]]:\n        result = memory[[ 0:3 ]]\n    else:\n        result = memory\n    return len(result)\n# Input: [1, 2, 3, 4, 5, 6, 7]\n# Result: [[ ? ]]`, answer: "3", hint: "memory[0:3]은 인덱스 0, 1, 2를 가져옵니다." },
+                    { id: 3, name: "로직 게이트", description: "논리 연산 검증", problem: `# Python\ndef verify(input_val):\n    a, b = True, False\n    c = [[ input_val > 10 ]]\n    if [[ (a and b) or c ]]:\n        return "STABLE"\n    else:\n        return "GLITCH"\n# Input: 15\n# Result: [[ ? ]]`, answer: "STABLE", hint: "and가 or보다 우선순위가 높습니다." }
+                ];
+
+                const currentSectorIdx = ref(0);
+                const gameState = ref('intro');
+                const userInput = ref('');
+                const duckMood = ref('neutral');
+                const isLoading = ref(false);
+                const energy = ref(100);
+                const logs = ref([]);
+                const showHint = ref(false);
+
+                const addLog = (msg) => {
+                    const time = new Date().toLocaleTimeString();
+                    logs.value = [`[${time}] ${msg}`, ...logs.value].slice(0, 6);
+                };
+
+                // Image Mapping Logic
+                const currentDuckImg = computed(() => {
+                    if (gameState.value === 'intro') return 'coduck_main.jpg';
+                    if (gameState.value === 'success') return 'coduck_success.jpg';
+                    if (gameState.value === 'fail') return 'coduck_gameover.jpg';
+                    if (gameState.value === 'end') return 'coduck_success.jpg';
+                    
+                    if (gameState.value === 'playing') {
+                        if (duckMood.value === 'sad') {
+                            const fails = ['coduck_fail1.jpg', 'coduck_fail2.jpg', 'coduck_fail3.jpg'];
+                            return fails[Math.floor(Math.random() * fails.length)];
+                        }
+                        if (duckMood.value === 'thinking') return 'coduck_waiting.jpg';
+                        return 'coduck_waiting.jpg';
+                    }
+                    return 'coduck_waiting.jpg';
+                });
+
+                const downloadImage = () => {
+                    const link = document.createElement('a');
+                    link.href = currentDuckImg.value;
+                    link.download = `coduck_capture.jpg`;
+                    link.click();
+                    addLog("Coduck 시각 데이터를 로컬에 저장했습니다.");
+                };
+
+                const startReboot = () => {
+                    gameState.value = 'playing';
+                    duckMood.value = 'neutral';
+                    addLog("시스템 재부팅 시퀀스 개시.");
+                };
+
+                const handleSubmit = () => {
+                    const sector = SECTORS[currentSectorIdx.value];
+                    duckMood.value = 'thinking';
+                    isLoading.value = true;
+                    
+                    setTimeout(() => {
+                        isLoading.value = false;
+                        if (userInput.value.trim().toUpperCase() === sector.answer.toUpperCase()) {
+                            duckMood.value = 'happy';
+                            gameState.value = 'success';
+                            addLog(`Sector ${sector.id} 정화 성공.`);
+                        } else {
+                            duckMood.value = 'sad';
+                            energy.value = Math.max(0, energy.value - 20);
+                            addLog("Error: 논리 프로토콜 불일치. 시스템 데미지 누적.");
+                            if (energy.value <= 0) gameState.value = 'fail';
+                        }
+                    }, 800);
+                };
+
+                const nextSector = () => {
+                    if (currentSectorIdx.value < SECTORS.length - 1) {
+                        currentSectorIdx.value++;
+                        gameState.value = 'playing';
+                        userInput.value = '';
+                        duckMood.value = 'neutral';
+                        showHint.value = false;
+                    } else {
+                        gameState.value = 'end';
+                    }
+                };
+
+                onMounted(() => { 
+                    lucide.createIcons(); 
+                    addLog("Architect 시스템 초기화 중...");
+                });
+
+                return {
+                    energy, gameState, currentSectorIdx, SECTORS, userInput, isLoading,
+                    logs, showHint, duckMood, currentDuckImg, moodText: computed(() => {
+                        if (gameState.value === 'intro') return "꽥! 아키텍처님, 접속을 환영합니다. 시스템 정화를 시작할 준비가 되었습니다.";
+                        if (gameState.value === 'fail') return "치익... 시스템이 오염에 완전히 잠식되었습니다. 재시도가 필요합니다.";
+                        if (gameState.value === 'end') return "축하합니다! 마더 서버가 완전히 복구되었습니다. 이제 안전합니다.";
+                        const moods = { 
+                            neutral: "꽥! 파이썬 엔진 정상 구동 중. 명령을 입력하세요.", 
+                            thinking: "데이터 스트림 분석 중...", 
+                            happy: "놀라운 구현력입니다! 정화가 가속화됩니다.", 
+                            sad: "치익... 로직 오류 발생. 에너지가 손실되었습니다." 
+                        };
+                        return moods[duckMood.value];
+                    }),
+                    startReboot, handleSubmit, nextSector,
+                    toggleHint: () => { showHint.value = !showHint.value; if(showHint.value) addLog("전략 분석 모듈 활성화."); },
+                    reload: () => window.location.reload(),
+                    highlightedParts: computed(() => {
+                        const parts = SECTORS[currentSectorIdx.value].problem.split(/(\[\[.*?\]\])/g);
+                        return parts.map(p => p.startsWith('[[') ? { isHighlight: true, content: p.substring(2, p.length - 2) } : { isHighlight: false, content: p });
+                    }),
+                    downloadImage, currentSector: computed(() => SECTORS[currentSectorIdx.value]),
+                    isLastSector: computed(() => currentSectorIdx.value === SECTORS.length - 1)
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html> 

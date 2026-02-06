@@ -102,7 +102,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         detail_data = validated_data.pop('user_detail', {})
 
         raw_password = validated_data.get('password') # 평문 비밀번호 보관 (User 생성용)
-        # [수정일: 2026-01-22] id가 없으면 이메일에서 생성 (save 메서드와 동기화)
+        # [수정일: 2026-02-04] PK 설계 원복: id가 없으면 이메일에서 생성
         id = validated_data.get('id')
         email = validated_data.get('email')
         if not id and email:
@@ -116,8 +116,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         # [수정일: 2026-01-21] 트랜잭션으로 모든 DB 작업 묶기 (원자성 보장)
         try:
             with transaction.atomic():
-                # 3. Django 기본 인증 유저(auth.User) 생성
-                # id(이메일)를 username으로 사용
+                # [수정일: 2026-02-04] PK 설계 원복: email 대신 id를 auth.User의 username으로 사용
                 if id and raw_password:
                     try:
                         # auth.User 중복 체크 및 생성

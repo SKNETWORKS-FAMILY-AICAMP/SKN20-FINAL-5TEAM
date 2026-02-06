@@ -176,9 +176,14 @@ export function usePseudoProblem(props, emit) {
                 targetId: 'tutorial-target-partner'
             },
             {
-                stage: '[WORKSPACE] 중앙 제어 장치',
-                desc: "당신의 메인 작업 공간입니다. AI 개념에 대한 인터뷰를 진행하고, 나중에 이곳에서 실제 파이썬 코드를 주입하여 시스템을 수리합니다.",
-                targetId: 'tutorial-target-workspace'
+                stage: '[MISSION] 프로토콜 질문',
+                desc: "해결해야 할 문제가 이곳에 표시됩니다. AI 개념에 대한 질문이나 상황이 주어지면 꼼꼼히 읽어주세요.",
+                targetId: 'tutorial-target-question'
+            },
+            {
+                stage: '[ACTION] 수리 시퀀스',
+                desc: "올바른 답변을 선택하여 시스템을 복구하세요. 선택에 따라 동기화율(HP)이 변동될 수 있습니다.",
+                targetId: 'tutorial-target-options'
             },
             {
                 stage: '[INVENTORY] 마스터 툴킷 가이드',
@@ -201,7 +206,7 @@ export function usePseudoProblem(props, emit) {
     }
 
     const nextTutorialStep = () => {
-        if (tutorialState.currentStep < tutorialSteps.length - 1) {
+        if (tutorialState.currentStep < tutorialSteps.value.length - 1) {
             tutorialState.currentStep++
         } else {
             closeTutorial()
@@ -1219,6 +1224,7 @@ except Exception as e:
         tutorialState,
         tutorialSteps,
         nextTutorialStep,
-        skipTutorial
+        skipTutorial,
+        cards: computed(() => currentQuest.value.cards || [])
     }
 }

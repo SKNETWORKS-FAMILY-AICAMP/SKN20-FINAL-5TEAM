@@ -45,8 +45,8 @@
     <!-- [Navigation Bar - Glassmorphism] -->
     <nav class="navbar-v2" :class="{ 'is-hidden': isScrolled }">
       <div class="logo-playground">
-        <Dumbbell class="logo-icon" />
-        <span class="logo-text">Engineer-Gym</span>
+        <Gamepad2 class="logo-icon" />
+        <span class="logo-text">AI-Arcade</span>
       </div>
       <div class="nav-links-v2">
         <a href="#chapters" class="nav-item" @click.prevent="scrollToSection('chapters')">
@@ -57,8 +57,8 @@
           <Trophy class="nav-icon" />
           <span class="nav-label">Hall of Fame</span>
         </a>
-        <div class="protein-status">
-          <Milk class="icon-protein" />
+        <div class="protein-status arcade-mode">
+          <Zap class="icon-protein" />
           <span class="protein-count">{{ userProteinShakes }}</span>
         </div>
         <slot name="auth-buttons"></slot>
@@ -67,7 +67,7 @@
 
     <nav class="navbar-v2 bookmark-mode" :class="{ 'is-visible': isScrolled }">
       <div class="logo-playground">
-        <Dumbbell class="logo-icon" />
+        <Gamepad2 class="logo-icon" />
       </div>
       <div class="nav-links-v2">
         <a href="#chapters" class="nav-item" @click.prevent="scrollToSection('chapters')">
@@ -78,8 +78,8 @@
           <Trophy class="nav-icon" />
           <span class="nav-label">Hall of Fame</span>
         </a>
-        <div class="protein-status">
-          <Milk class="icon-protein" />
+        <div class="protein-status arcade-mode">
+          <Zap class="icon-protein" />
           <span class="protein-count">{{ userProteinShakes }}</span>
         </div>
         <slot name="auth-buttons"></slot>
@@ -91,9 +91,9 @@
       <div class="background-grid-pattern"></div>
       <div class="section-header">
         <h2 class="title-with-mascot">
-          Engineer's Gym <Dumbbell class="title-icon-gym" />
+          Engineer's Arcade <Gamepad2 class="title-icon-gym" />
         </h2>
-        <p>원하는 훈련 기구를 선택하고 당신의 실력을 증명하세요!</p>
+        <p>원하는 게임을 선택하고 당신의 실력을 증명하세요!</p>
       </div>
 
       <div class="playground-slider-container">
@@ -150,7 +150,7 @@
                     <!-- 4. 참여 인원 데이터 표시 (예: 85+ Training) -->
                     <span class="engineer-count">
                       <Users style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 4px;" /> 
-                      {{ chapter.participant_count }}+ Training
+                      {{ chapter.participant_count }}+ Played
                     </span>
                     <button class="btn-enter-mini" @click="handleCardClick(chapter, idx)">START</button>
                   </div>
@@ -181,9 +181,9 @@
         <div class="lb-header-v2">
           <div class="lb-title-wrap">
             <span class="lb-subtitle">ENGINEER RANKING</span>
-            <h2>오늘의 득근 전당 🏆</h2>
+            <h2>오늘의 명예 전당 🏆</h2>
           </div>
-          <p>상위 5명의 아키텍처 마스터들이 훈련장을 빛내고 있습니다.</p>
+          <p>상위 5명의 아키텍처 마스터들이 아케이드를 빛내고 있습니다.</p>
         </div>
         
         <div class="lb-glass-table-v2">
@@ -191,7 +191,7 @@
             <span class="col-rank">Rank</span>
             <span class="col-user">Engineer</span>
             <span class="col-solved">Stages Mastered</span>
-            <span class="col-shakes">Protein Points</span>
+            <span class="col-shakes">Arcade Points</span>
           </div>
           <div v-for="(user, index) in leaderboard" :key="user.id" 
                class="lb-row-v2" :class="'row-rank-' + (index + 1)">
@@ -212,8 +212,8 @@
               <span class="label-v2">UNITS</span>
             </div>
             <div class="col-shakes">
-              <div class="shake-badge-v2">
-                <Milk class="milk-icon-v2" />
+              <div class="shake-badge-v2 arcade-mode">
+                <Zap class="milk-icon-v2" />
                 <span>{{ user.shakes.toLocaleString() }}</span>
               </div>
             </div>
@@ -223,7 +223,7 @@
     </section>
 
     <footer class="playground-footer">
-      <p>&copy; 2026 ARCH-GYM. Crafted with ❤️ by Final 5 Team</p>
+      <p>&copy; 2026 AI-ARCADE. Crafted with ❤️ by Final 5 Team</p>
     </footer>
 
     <!-- [2026-01-24] 최상단 복귀용 프리미엄 Home 버튼 추가 -->
@@ -238,10 +238,10 @@
 
 <script>
 import { 
-  Dumbbell, 
+  Gamepad2, 
   LayoutGrid, 
   Trophy, 
-  Milk, 
+  Zap, 
   ArrowRight,
   ChevronLeft,
   ChevronRight,
@@ -253,10 +253,10 @@ import {
 export default {
   name: 'LandingView',
   components: {
-    Dumbbell,
+    Gamepad2,
     LayoutGrid,
     Trophy,
-    Milk,
+    Zap,
     ArrowRight,
     ChevronLeft,
     ChevronRight,

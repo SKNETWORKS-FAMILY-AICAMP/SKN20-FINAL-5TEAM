@@ -662,7 +662,7 @@ import {
   Check as CheckIcon, Filter, PlusCircle // Cleaned up distinct imports
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
-import { usePseudoProblem } from './pseudoProblemLogic'
+import { usePseudoProblem } from './useLegacyPseudoProblem' // [수정일: 2026-02-06] 파일 이동 및 이름 변경 반영
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
 
 

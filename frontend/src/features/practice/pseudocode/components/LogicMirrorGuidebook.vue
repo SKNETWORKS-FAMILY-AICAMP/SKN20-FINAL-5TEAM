@@ -64,7 +64,7 @@
 
 <script setup>
 import { computed } from 'vue';
-import { aiQuests } from './data/stages.js';
+import { aiQuests } from '../data/stages.js'; // [수정일: 2026-02-06] 폴더 계층화(data) 반영
 import { 
   BookOpen, 
   X, 

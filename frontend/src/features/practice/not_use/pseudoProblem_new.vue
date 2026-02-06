@@ -548,7 +548,7 @@ import {
   Wifi
 } from 'lucide-vue-next'
 import Duck from './components/Duck.vue'
-import { usePseudoProblem } from './pseudoProblemLogic'
+import { usePseudoProblem } from '../pseudoProblemLogic'
 
 const props = defineProps({
   // 라우터를 통해 페이지로 접근 시 화면이 즉시 보이도록 기본값을 true로 설정
