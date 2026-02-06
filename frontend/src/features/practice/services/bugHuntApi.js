@@ -2,11 +2,67 @@
  * Bug Hunt API Service
  * 백엔드를 통해 OpenAI API로 사용자의 디버깅 사고를 평가합니다.
  *
- * [수정일: 2026-01-27]
- * [수정내용: 프론트엔드 직접 API 호출 → 백엔드 API 호출로 변경 (보안 강화)]
+ * [수정일: 2026-02-06]
+ * [수정내용: 행동 기반 검증 API 추가 (Docker 샌드박스)]
  */
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/core';
+
+/**
+ * 행동 기반 코드 검증 함수
+ * Docker 샌드박스에서 실제 코드를 실행하여 검증합니다.
+ *
+ * @param {string} userCode - 사용자가 수정한 코드
+ * @param {string} verificationCode - 검증용 코드 (문제에서 제공)
+ * @param {string} problemId - 문제 ID (로깅용)
+ * @returns {Object} 검증 결과 {verified, message, details, execution_time}
+ */
+export async function verifyCodeBehavior(userCode, verificationCode, problemId = '') {
+    try {
+        console.log('🔬 행동 기반 검증 시작:', problemId);
+
+        const response = await fetch(`${API_BASE_URL}/verify-behavior/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                user_code: userCode,
+                verification_code: verificationCode,
+                problem_id: problemId,
+                image: 'pytorch'  // PyTorch 이미지 사용
+            })
+        });
+
+        console.log('📡 검증 응답 상태:', response.status);
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `Verification Error: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('🔬 검증 결과:', result);
+
+        return {
+            verified: Boolean(result.verified),
+            message: result.message || '',
+            details: result.details || {},
+            execution_time: result.execution_time || 0
+        };
+
+    } catch (error) {
+        console.error('❌ 행동 기반 검증 실패:', error);
+
+        // Docker 미설치 등의 경우 문자열 검증으로 폴백
+        return {
+            verified: null,  // null = 검증 불가 (폴백 필요)
+            message: error.message,
+            details: { fallback: true },
+            execution_time: 0
+        };
+    }
+}
 
 /**
  * 디버깅 사고 평가 함수

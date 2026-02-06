@@ -1,5 +1,5 @@
-# 수정일: 2026-01-25
-# 수정내용: Antigravity - 라우팅 정보 최종 동기화
+# 수정일: 2026-02-06
+# 수정내용: On-demand Docker 코드 실행 샌드박스 엔드포인트 추가
 
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
@@ -12,7 +12,9 @@ from core.views import (
     LogoutView,
     SessionCheckView,
     AIEvaluationView,
-    BugHuntEvaluationView
+    BugHuntEvaluationView,
+    CodeExecutionView,
+    BehaviorVerificationView
 )
 
 router = DefaultRouter()
@@ -38,4 +40,8 @@ urlpatterns = [
     path('auth/me/', SessionCheckView.as_view(), name='session_check'),
     path('ai-evaluate/', AIEvaluationView.as_view(), name='ai_evaluate'),
     path('ai-bughunt-evaluate/', BugHuntEvaluationView.as_view(), name='bughunt_evaluate'),
+
+    # 코드 실행 샌드박스 API
+    path('execute-code/', CodeExecutionView.as_view(), name='execute_code'),
+    path('verify-behavior/', BehaviorVerificationView.as_view(), name='verify_behavior'),
 ]

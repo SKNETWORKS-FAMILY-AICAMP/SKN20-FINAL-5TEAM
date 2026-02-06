@@ -129,6 +129,9 @@
           <div class="remaining-bugs">
             🪱 {{ 3 - progressiveCompletedSteps.length }} worms left
           </div>
+          <button class="editor-btn tutorial-btn" @click="startTutorial" style="margin-right: 10px;">
+            📖 튜토리얼
+          </button>
           <button class="back-btn" @click="confirmExit">EXIT</button>
         </div>
       </header>
@@ -155,9 +158,13 @@
                     v-for="(clue, idx) in clueMessages"
                     :key="idx"
                     class="clue-item"
-                    :class="{ 'new-clue': clue.isNew }"
+                    :class="{
+                      'new-clue': clue.isNew,
+                      'clue-success': clue.type === 'SUCCESS',
+                      'clue-error': clue.type === 'ERROR'
+                    }"
                   >
-                    <span class="clue-badge">{{ clue.type }}</span>
+                    <span class="clue-badge" :class="`badge-${clue.type.toLowerCase()}`">{{ clue.type }}</span>
                     <span class="clue-text">{{ clue.text }}</span>
                   </div>
                 </div>
@@ -396,7 +403,7 @@
                 <div class="bubble-header">DUC-TIP! 💡</div>
                 <div class="bubble-content">{{ getCurrentStepData()?.hint }}</div>
               </div>
-              <img src="/image/unit_duck.png" class="hint-duck-img" alt="Hint Duck">
+              <img :src="unitDuck" class="hint-duck-img" alt="Hint Duck">
             </div>
           </transition>
         </main>
@@ -423,14 +430,14 @@
                 <span class="label">FINAL SCORE</span>
                 <span class="value">{{ progressiveMissionScore }}</span>
               </div>
-              <div class="penalty-stats" v-if="(codeSubmitFailCount || Object.values(progressiveHintUsed).filter(v => v).length)">
+              <div class="penalty-stats" v-if="hasPenalties">
                  <div class="penalty-item">
                    <span class="p-label">CODE RETRY ({{ codeSubmitFailCount }})</span>
                    <span class="p-value">-{{ codeSubmitFailCount * 2 }}</span>
                  </div>
                  <div class="penalty-item">
-                   <span class="p-label">HINTS USED ({{ Object.values(progressiveHintUsed).filter(v => v).length }})</span>
-                   <span class="p-value">-{{ Object.values(progressiveHintUsed).filter(v => v).length }}</span>
+                    <span class="p-label">HINTS USED ({{ totalHintCount }})</span>
+                    <span class="p-value">-{{ totalHintCount }}</span>
                  </div>
               </div>
             </div>
@@ -566,6 +573,14 @@
         </div>
       </div>
     </transition>
+
+    <!-- 튜토리얼 오버레이 -->
+    <BugHuntTutorialOverlay
+      v-if="showTutorial && currentView === 'progressivePractice'"
+      :tutorial-steps="bugHuntTutorialSteps"
+      @complete="onTutorialComplete"
+      @skip="onTutorialComplete"
+    />
   </div>
 </template>
 
@@ -875,7 +890,8 @@ import unitDuck from '@/assets/image/unit_duck.png';
 import { useRoute, useRouter } from 'vue-router';
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
 import progressiveData from './progressive-problems.json';
-import { evaluateBugHunt } from './services/bugHuntApi';
+import { evaluateBugHunt, verifyCodeBehavior } from './services/bugHuntApi';
+import BugHuntTutorialOverlay from './components/BugHuntTutorialOverlay.vue';
 import './BugHunt.css';
 
 const route = useRoute();
@@ -1034,6 +1050,14 @@ const showAchievementPopup = ref(false);
 const newAchievement = ref(null);
 const showStatsPanel = ref(false);
 
+const hasPenalties = computed(() => {
+  return codeSubmitFailCount.value > 0 || totalHintCount.value > 0;
+});
+
+const totalHintCount = computed(() => {
+  return Object.values(progressiveHintUsed.value).filter(v => v).length;
+});
+
 // [2026-02-03] 오리 캐릭터의 상태(평상시/먹기)를 제어하기 위한 반응형 변수 추가
 const isEating = ref(false);
 const isSad = ref(false);
@@ -1109,6 +1133,62 @@ const showAlertPopup = ref(false);
 const alertPopupMessage = ref('');
 const alertPopupPhase = ref(''); // 'shake' | 'fly' | ''
 const chatInterfaceRef = ref(null);
+
+// 튜토리얼 상태
+const showTutorial = ref(false);
+const bugHuntTutorialSteps = [
+  {
+    selector: '.progressive-header',
+    title: '미션 정보',
+    description: '현재 진행 중인 프로젝트 제목과 남은 벌레 수를 확인할 수 있습니다.',
+    cardPosition: 'bottom'
+  },
+  {
+    selector: '.scenario-box',
+    title: '미션 브리핑',
+    description: '여기에서 현재 해결해야 할 문제의 시나리오를 확인하세요.',
+    cardPosition: 'right'
+  },
+  {
+    selector: '.clue-panel',
+    title: '단서 및 로그',
+    description: '시스템 로그와 힌트가 표시되는 곳입니다. 디버깅의 중요한 실마리를 찾으세요.',
+    cardPosition: 'right'
+  },
+  {
+    selector: '.full-code-editor',
+    title: '코드 에디터',
+    description: '실제 코드를 수정하는 영역입니다. 벌레가 숨어있는 부분을 찾아 올바르게 수정해 주세요.',
+    cardPosition: 'left'
+  },
+  {
+    selector: '.hint-btn',
+    title: '힌트 시스템',
+    description: '문제가 풀리지 않을 때는 힌트 버튼을 눌러보세요! 오리가 유용한 단서를 알려줍니다. (점수가 조금 차감될 수 있습니다)',
+    cardPosition: 'bottom'
+  },
+  {
+    selector: '.reset-btn',
+    title: '코드 초기화',
+    description: '코드를 처음부터 다시 작성하고 싶다면 리셋 버튼을 사용하세요.',
+    cardPosition: 'bottom'
+  },
+  {
+    selector: '.submit-btn',
+    title: '제출 버튼',
+    description: '코드를 모두 수정했다면 제출 버튼을 클릭해 결과를 확인하세요!',
+    cardPosition: 'top'
+  }
+];
+
+function onTutorialComplete() {
+  showTutorial.value = false;
+  localStorage.setItem('bughunt-tutorial-done', 'true');
+}
+
+function startTutorial() {
+  showTutorial.value = true;
+}
 
 
 
@@ -1406,14 +1486,37 @@ function showProgressiveHint() {
   showProgressiveHintPanel.value = !showProgressiveHintPanel.value;
 }
 
-// Progressive 솔루션 체크
-function checkProgressiveSolution() {
+// Progressive 솔루션 체크 (행동 기반 검증 + 문자열 폴백)
+// 반환값: { passed: boolean, result: object }
+async function checkProgressiveSolution() {
   const stepData = getCurrentStepData();
-  if (!stepData) return false;
+  if (!stepData) return { passed: false, result: null };
 
-  const check = stepData.solution_check;
   const code = progressiveStepCodes.value[currentProgressiveStep.value];
+  const problemId = `${currentProgressiveMission.value?.id}_step${currentProgressiveStep.value}`;
 
+  // 1. 행동 기반 검증 시도 (verification_code가 있는 경우)
+  if (stepData.verification_code) {
+    try {
+      const result = await verifyCodeBehavior(code, stepData.verification_code, problemId);
+
+      // 검증 성공/실패가 명확한 경우
+      if (result.verified !== null) {
+        console.log('🔬 행동 기반 검증 결과:', result);
+        return { passed: result.verified, result };  // result 객체도 함께 반환
+      }
+      // result.verified === null 이면 폴백으로 진행
+      console.log('⚠️ 행동 기반 검증 불가, 문자열 검증으로 폴백');
+    } catch (e) {
+      console.warn('행동 기반 검증 실패, 문자열 검증으로 폴백:', e);
+    }
+  }
+
+  // 2. 폴백: 기존 문자열 기반 검증
+  const check = stepData.solution_check;
+  if (!check) return { passed: false, result: null };
+
+  let passed = false;
   switch (check.type) {
     case 'multi_condition':
       // required_all: 모든 조건이 코드에 포함되어야 함 (AND)
@@ -1427,26 +1530,32 @@ function checkProgressiveSolution() {
       // forbidden: 금지된 패턴이 코드에 없어야 함
       const hasNoForbidden = check.forbidden?.every(forbidden => !code.includes(forbidden)) ?? true;
 
-      return hasAllRequired && hasAnyRequired && hasNoForbidden;
+      passed = hasAllRequired && hasAnyRequired && hasNoForbidden;
+      break;
 
     case 'contains':
-      return code.includes(check.value);
+      passed = code.includes(check.value);
+      break;
 
     case 'notContains':
-      return !code.includes(check.value);
+      passed = !code.includes(check.value);
+      break;
 
     case 'regex':
       // 패턴 일치 여부 확인 (string -> RegExp)
       try {
         const re = new RegExp(check.value, check.flags ?? '');
-        return re.test(code);
+        passed = re.test(code);
       } catch {
-        return false;
+        passed = false;
       }
+      break;
 
     default:
-      return false;
+      passed = false;
   }
+
+  return { passed, result: null };
 }
 
 // 해골이 bugs-status로 날아가는 애니메이션
@@ -1492,14 +1601,50 @@ function animateSkullToBug(targetStep) {
 }
 
 // Progressive 스텝 제출
-function submitProgressiveStep() {
+async function submitProgressiveStep() {
   if (currentProgressiveStep.value > 3) return;
 
   isRunning.value = true;
   isSad.value = false; // 새로운 제출 시 슬픈 상태 초기화
 
-  scheduleTimeout(() => {
-    const passed = checkProgressiveSolution();
+  scheduleTimeout(async () => {
+    const { passed, result } = await checkProgressiveSolution();
+    const stepData = getCurrentStepData();
+
+    // 🔍 디버깅 로그
+    console.log('📊 검증 결과:', { passed, result });
+    console.log('📊 result?.details:', result?.details);
+    console.log('📊 simulation_logs 있음?:', !!result?.details?.simulation_logs);
+
+    // 검증 결과에 따라 로그 업데이트
+    if (passed && stepData?.success_log) {
+      // 성공 시: success_log로 교체
+      clueMessages.value = [{
+        type: 'SUCCESS',
+        text: stepData.success_log,
+        isNew: true
+      }];
+    } else if (!passed) {
+      // 실패 시: 실제 실행 로그 또는 error_log 표시
+      if (result?.details?.simulation_logs) {
+        // 실제 실행 결과 로그 표시
+        clueMessages.value = [{
+          type: 'ERROR',
+          text: `=== 실시간 추론 로그 ===\n${result.details.simulation_logs}\n\n[ALERT] ${result.message}`,
+          isNew: true
+        }];
+      } else if (stepData?.error_log) {
+        // 기본 error_log 표시 (폴백)
+        const hasErrorLog = clueMessages.value.some(msg => msg.text === stepData.error_log);
+        if (!hasErrorLog) {
+          clueMessages.value.push({
+            type: 'ERROR',
+            text: stepData.error_log,
+            isNew: true
+          });
+        }
+      }
+    }
 
     // 저격 애니메이션
     shootBug(currentProgressiveStep.value, passed);
@@ -1537,7 +1682,7 @@ function submitProgressiveStep() {
         }, 500);
 
       } else {
-        // 실패 - 아무 로그도 추가하지 않음 (기존 에러 로그 유지)
+        // 실패
         codeSubmitFailCount.value++;
       }
       isRunning.value = false;
@@ -1904,6 +2049,11 @@ onMounted(() => {
       startProgressiveMission(mission, missionIndex, 1);
     }
   }
+
+  // 튜토리얼 체크
+  if (!localStorage.getItem('bughunt-tutorial-done')) {
+    showTutorial.value = true;
+  }
 });
 
 onUnmounted(() => {
@@ -1913,7 +2063,7 @@ onUnmounted(() => {
 </script>
 
 
-<style scoped src="./BugHunt.css"></style>
+
 
 <style scoped>
 /* ============================================ */

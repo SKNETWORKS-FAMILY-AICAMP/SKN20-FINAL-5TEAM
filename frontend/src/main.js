@@ -17,7 +17,7 @@ axios.defaults.xsrfHeaderName = 'X-CSRFToken'
 import CoduckWars from './features/practice/pseudocode/CoduckWars.vue'
 import SystemArchitecturePractice from './features/practice/SystemArchitecturePractice.vue'
 import BugHunt from './features/practice/BugHunt.vue'
-import OpsPractice from './features/practice/OpsPractice.vue'
+// import OpsPractice from './features/practice/OpsPractice.vue'
 
 // [수정일: 2026-01-31] 사용하지 않는 구버전/비활성 컴포넌트 임포트 주석 처리
 // import AiDetectivePractice from './features/practice/AiDetectivePractice.vue'
@@ -47,11 +47,13 @@ const routes = [
     name: 'BugHunt',
     component: BugHunt
   },
-  {
-    path: '/practice/ops-practice',
-    name: 'OpsPractice',
-    component: OpsPractice
-  },
+  /*
+    {
+      path: '/practice/ops-practice',
+      name: 'OpsPractice',
+      component: OpsPractice
+    },
+  */
   {
     path: '/practice/coduck-wars',
     name: 'CoduckWars',

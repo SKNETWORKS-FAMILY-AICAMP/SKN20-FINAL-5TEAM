@@ -170,7 +170,7 @@ const isPracticePage = computed(() => {
     'PseudoCode',
     'SystemArchitecturePractice',
     'BugHunt',
-    'OpsPractice',
+    // 'OpsPractice',
     'ProgressiveProblems'
   ];
   return practiceRoutes.includes(route?.name);
@@ -211,7 +211,7 @@ const currentMaxIdx = computed(() => {
 
 // [수정일: 2026-01-28] 라우트 감시: 연습 페이지에서 홈으로 돌아올 때 유닛 상세 모달 자동 재개
 watch(() => route.name, (newNav, oldNav) => {
-  const practiceRoutes = ['PseudoCode', 'SystemArchitecturePractice', 'BugHunt', 'OpsPractice' /*, 'AiDetective', 'PseudoForest', 'PseudoCompany', 'PseudoEmergency' */];
+  const practiceRoutes = ['PseudoCode', 'SystemArchitecturePractice', 'BugHunt' /*, 'OpsPractice', 'AiDetective', 'PseudoForest', 'PseudoCompany', 'PseudoEmergency' */];
   // 연습 페이지에서 홈('/')으로 돌아오는 경우
   if (newNav === 'Home' && practiceRoutes.includes(oldNav)) {
     if (game.activeUnit) {
@@ -292,8 +292,6 @@ function selectProblem(problem) {
       path: '/practice/bug-hunt',
       query: { missionId: problem.id, mapMode: 'true' }
     });
-  } else if (chapterName === 'opspractice') {
-    router.push('/practice/ops-practice');
   } else if (chapterName === 'Agent Practice') {
     ui.isAgentModalOpen = true;
     nextTick(() => {

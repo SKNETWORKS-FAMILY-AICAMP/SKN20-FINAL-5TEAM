@@ -849,6 +849,19 @@
   color: #000;
 }
 
+.editor-btn.tutorial-btn {
+  background: transparent;
+  border-color: var(--neon-cyan);
+  color: var(--neon-cyan);
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+}
+
+.editor-btn.tutorial-btn:hover {
+  background: var(--neon-cyan);
+  color: #000;
+  box-shadow: 0 0 15px rgba(0, 243, 255, 0.5);
+}
+
 .editor-btn.submit-btn {
   background: var(--neon-green);
   border-color: var(--neon-green);
@@ -3641,6 +3654,26 @@
   flex-shrink: 0;
   background: rgba(0, 243, 255, 0.2);
   color: var(--neon-cyan);
+}
+
+/* SUCCESS 타입 스타일 */
+.badge-success {
+  background: rgba(0, 255, 100, 0.2) !important;
+  color: #00ff64 !important;
+}
+
+.clue-success {
+  border-left-color: rgba(0, 255, 100, 0.5) !important;
+}
+
+/* ERROR 타입 스타일 */
+.badge-error {
+  background: rgba(255, 50, 50, 0.2) !important;
+  color: #ff5555 !important;
+}
+
+.clue-error {
+  border-left-color: rgba(255, 50, 50, 0.5) !important;
 }
 
 .clue-text {
