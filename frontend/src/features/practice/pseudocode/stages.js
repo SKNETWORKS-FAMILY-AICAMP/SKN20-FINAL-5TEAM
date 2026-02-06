@@ -1,54 +1,64 @@
 export const aiQuests = [
     {
         id: 1,
-        title: "[복구 가이드] Architect의 귀환",
+        title: "Chapter 1: 각성 (Tutorial Zone)",
         category: "System Reboot",
-        emoji: "🌐",
-        desc: "마더 서버의 오염된 파이프라인(The Great Overfitting)을 진단하고 아키텍처 복구를 준비하세요.",
+        emoji: "💡",
+        desc: "어두운 터미널, 켜지는 모니터... Coduck이 깨어납니다. '아키텍처님! 제 음성 모듈이 연결되었습니다... 지지직... 제 사고 회로가 오염되어 복잡한 연산이 불가능해요. 먼저 제 사고 회로를 고쳐주세요!'",
         rewardXP: 500,
-        subModuleTitle: "BOOT_PROTOCOL",
+        subModuleTitle: "AI 사고법 입문 (BOOT_PROTOCOL)",
         character: { name: "Coduck", image: "/assets/characters/coduck.png" },
         interviewQuestions: [
             {
                 id: "q1",
-                question: "Step 1: 오염 진단 - 붕괴된 시스템을 복구하기 위한 Architect의 첫 번째 프로토콜은 무엇입니까?",
+                question: "코덕이 아군과 적군을 구분하지 못하고 공격 중입니다. 어떤 사고법을 가동해야 할까요?",
+                hintWindow: "전부 삭제한다... 접근하는 모든 데이터는 적이다!",
                 options: [
-                    { text: "시스템의 전체 데이터 흐름(E2E Pipeline)을 정의하고 통찰하기", value: "flow", correct: true },
-                    { text: "아무 데이터나 일단 마더 서버에 업로드하기", value: "code" }
+                    { text: "4단계 사고법 프로토콜 실행", value: "flow", correct: true, desc: "[분석 - 설계 - 구현 - 최적화]를 통해 타겟팅 로직을 정화합니다." },
+                    { text: "데이터 강제 삭제", value: "delete", desc: "분석 없이 모든 데이터를 삭제하여 일단 공격을 중단시킵니다." }
                 ],
-                coduckComment: "역시 유일한 '아키텍처 복구자'답네요! {username}님, 전체 흐름을 잡는 것이 정화의 시작입니다."
+                coduckComment: "크으으... 머리가 깨질 것 같아요... 하지만 방금 그 사고법.. 익숙해요."
             },
             {
                 id: "q2",
-                question: "Step 2: 오버피팅 체크 - 흐름을 파악했다면, AI가 환각(Hallucination)에 빠지지 않도록 무엇을 해야 할까요?",
+                question: "오염 패턴을 분석했습니다. 무엇을 통해 정상적인 아군 데이터만 골라낼까요?",
+                hintWindow: "나...(지직)... 나는 누구지? 너도 적인가? 제거한다...",
                 options: [
-                    { text: "데이터의 특징을 세부적으로 분석하여 필터링 규칙 설계하기", value: "detail", correct: true },
-                    { text: "마더 서버가 스스로 학습하기를 방치하기", value: "pray" }
+                    { text: "정밀 데이터 필터링 설계", value: "detail", correct: true, desc: "데이터 특징을 분석해 아군 패킷만 골라내는 논리를 구축합니다." },
+                    { text: "무작위 데이터 주입", value: "disconnect", desc: "새로운 데이터를 무작위로 넣어 시스템 반응을 기다립니다." }
                 ],
-                coduckComment: "완벽합니다! {username}님이 설정한 디테일이 마더 서버의 환각을 걷어낼 것입니다."
+                coduckComment: "아... 이제 당신이 보여요. 아키텍처님, 돌아오셨군요!"
             }
         ],
         quizTitle: "Step 4: 재부팅 승인 - 오늘 수행한 복구 프로토콜의 핵심 가치는?",
-        missionObjective: "Step 3: 데이터 정화 - 시스템 복구 도중 발견된 작은 데이터 노이즈(빈 문자열)를 제거하여 파이프라인의 무결성을 확보하세요.",
+        missionObjective: "Step 3: 데이터 정화 - 시스템 복구 도중 발견된 작은 데이터 노이즈\n(빈 문자열)를 제거하여 파이프라인의 무결성을 확보하세요.",
         pythonSnippets: [
             { label: '노이즈 스킵', code: 'if not data: continue', icon: 'SkipForward' },
             { label: '데이터 복구', code: 'result.append(data)', icon: 'PlusCircle' }
         ],
         pythonTemplate: `def system_restore_pipeline(data_list):
+    # [수정일: 2026-02-03] 초보자를 위한 가이드 주석 보강
+    # 데이터 파이프라인의 무결성을 위해 오염된 노이즈를 먼저 걸러내는 것이 아키텍처의 핵심입니다.
     result = []
 
     for data in data_list:
         # [Step 3-1] 노이즈(오염된 데이터) 체크
+        # TODO: 데이터가 비어있거나('') None인 경우 건너뛰도록 작성하세요
         if not data:
-            # TODO: 데이터가 오염되었으면 건너뛰도록 작성하세요
             continue
             
         # [Step 3-2] 정화된 데이터만 아카이브에 저장
-        # TODO: data를 result에 추가하세요
+        # TODO: data를 result에 추가하세요 (append 사용)
         result.append(data)
 
     return result`,
         sampleData: ["Data_01", "", "Data_02", " "],
+        expectedOutput: ["Data_01", "Data_02", " "],
+        failHints: {
+            empty_code: "코드가 비어있습니다. 데이터를 순회하는 for문부터 시작해보세요.",
+            logic_error: "결과 데이터의 개수가 맞지 않습니다. 오염된 데이터('', None)를 정확히 건너뛰었는지 확인하세요.",
+            syntax_error: "파이썬 문법 에러가 발생했습니다. 들여쓰기(Indentation)와 콜론(:)을 확인해주세요."
+        },
         step4Options: [
             "저는 단순히 코드를 수선하는 엔지니어를 넘어, 붕괴된 시스템의 전체 파이프라인을 설계하고 리스크를 제어하는 '아키텍처 복구자'로서의 통찰을 발휘했습니다. 이제 어떤 데이터 오염 사건도 해결할 준비가 되었습니다!",
             "저는 파이썬으로 리스트를 다룰 줄 압니다.",
@@ -94,7 +104,8 @@ export const aiQuests = [
                 id: "q1",
                 question: "Step 1: 뼈대 설계 - 미래의 정보가 현재의 학습에 스며들어 시간선이 꼬이는 'Data Leakage'를 막기 위한 분리 방식은?",
                 options: [
-                    { text: "시간의 흐름대로 데이터를 분리 (Time-based Split)", value: "time", correct: true },
+                    /* [수정일: 2026-02-04] 설계 연동을 위한 토큰 추가 */
+                    { text: "시간의 흐름대로 데이터를 분리 (Time-based Split)", value: "time", correct: true, requirementToken: "데이터를 무작위로 섞지 않고 '시간 흐름(Time-series)'에 따라 순차적으로 분리" },
                     { text: "과거와 미래를 무작위로 섞어서 분리 (Random Split)", value: "random" }
                 ],
                 coduckComment: "옳은 선택입니다, {username}님! 시간선이 뒤섞이면 마더 서버는 환각을 보게 됩니다."
@@ -103,7 +114,8 @@ export const aiQuests = [
                 id: "q2",
                 question: "Step 2: 상세화 - 마더 서버가 검증 데이터의 통계량을 미리 훔쳐보는 것을 막기 위한 핵심 조치는?",
                 options: [
-                    { text: "오직 학습용 데이터셋으로만 전처리 기준(fit)을 수립하기", value: "leak", correct: true },
+                    /* [수정일: 2026-02-04] 설계 연동을 위한 토큰 추가 */
+                    { text: "오직 학습용 데이터셋으로만 전처리 기준(fit)을 수립하기", value: "leak", correct: true, requirementToken: "전처리 기준(fit)은 반드시 '학습용 데이터(train_df)'로만 수립하여 미래 정보 유출 차단" },
                     { text: "모든 데이터를 한 번에 정규화하기", value: "lack" }
                 ],
                 coduckComment: "정확한 방어 전략입니다. 'Fit before Split'은 Architect가 절대 범해서는 안 되는 실수죠."
@@ -116,11 +128,14 @@ export const aiQuests = [
             { label: '보안 변환 (Transform)', code: 'scaler.transform(target_df)', icon: 'Filter' }
         ],
         pythonTemplate: `def leakage_free_scaling(train_df, test_df):
+    # [수정일: 2026-02-03] 초보자를 위한 가이드 주석 보강
+    # 'Target Leakage'는 미래의 정보를 학습에 사용하는 실수입니다. 
+    # 반드시 학습 데이터(train)로만 기준을 세워야 함을 기억하세요.
     from sklearn.preprocessing import StandardScaler
     scaler = StandardScaler()
     
     # [Step 3-1] 오직 Train 데이터로만 전처리 기준 설정 (누수 방지)
-    # TODO: train_df를 사용하여 scaler를 학습시키세요
+    # TODO: train_df를 사용하여 scaler를 학습(fit)시키세요
     scaler.fit(train_df)
     
     # [Step 3-2] 동일한 보안 기준을 두 데이터셋에 적용
@@ -129,6 +144,11 @@ export const aiQuests = [
     
     return train_scaled, test_scaled`,
         sampleData: [[1, 2, 3], [4, 5, 6]],
+        expectedOutput: [[-1.224744871391589, 0.0, 1.224744871391589], [2.449489742783178, 3.674234614174767, 4.898979485566356]],
+        failHints: {
+            logic_error: "누수 방지에 실패했습니다. scaler.fit()의 인자가 train_df인지 확인하세요.",
+            incomplete: "transform() 과정이 누락되었습니다. 학습된 기준으로 데이터를 변환해야 합니다."
+        },
         step4Options: [
             "저는 시계열 데이터 복구 프로젝트에서 Target Leakage의 위험을 인지했습니다. 이를 위해 Time Series Split 전략을 수립하고, Scaler의 기준을 오직 과거 데이터에 고정함으로써 실전 환경에서의 복구 정확도를 98% 이상 유지했습니다.",
             "저는 스케일러를 사용하여 데이터를 정화할 줄 압니다.",
@@ -174,7 +194,8 @@ export const aiQuests = [
                 id: "q1",
                 question: "Step 1: E2E 뼈대 - 학습된 모델이 현장에 배포되었을 때 성능이 급락하는 'Train/Serving Skew'의 주요 원인은?",
                 options: [
-                    { text: "학습 시 사용한 피처 가공 로직과 실시간 환경의 로직이 다르기 때문", value: "skew", correct: true },
+                    /* [수정일: 2026-02-04] 설계 연동을 위한 토큰 추가 */
+                    { text: "학습 시 사용한 피처 가공 로직과 실시간 환경의 로직이 다르기 때문", value: "skew", correct: true, requirementToken: "학습(Train)과 운영(Serving) 환경 간의 전처리 파이프라인 로직 통일" },
                     { text: "서버 사양이 부족해서", value: "server" }
                 ],
                 coduckComment: "날카롭군요! '전처리 코드 형상 관리'가 안 되면 발생하는 비극이죠."
@@ -183,7 +204,8 @@ export const aiQuests = [
                 id: "q2",
                 question: "Step 2: 상세화 - 데이터 편향을 막기 위한 셔플링(Shuffling)이 역효과를 내는 경우는?",
                 options: [
-                    { text: "시계열적 특성이 중요한 금융/로그 데이터일 때", value: "time", correct: true },
+                    /* [수정일: 2026-02-04] 설계 연동을 위한 토큰 추가 */
+                    { text: "시계열적 특성이 중요한 금융/로그 데이터일 때", value: "time", correct: true, requirementToken: "시계열적 특성 보존을 위해 문맥에 맞지 않는 불필요한 셔플링 지양" },
                     { text: "데이터가 너무 많을 때", value: "volume" }
                 ],
                 coduckComment: "정확합니다. 도메인의 특성에 맞춰 셔플링 여부를 결정하는 것이 의사결정의 핵심입니다."
@@ -206,6 +228,11 @@ def prevent_serving_skew(data):
     # [Step 3-2] 파이프라인 정규화
     return [data[i] for i in indices]`,
         sampleData: ["ClassA", "ClassA", "ClassB", "ClassB"],
+        expectedOutput: ["ClassA", "ClassA", "ClassB", "ClassB"], // 셔플링 결과는 집합으로 검증하거나 길이를 체크함 (현재는 단순 비교 로직이므로 정적 데이터 우선)
+        failHints: {
+            logic_error: "순서가 섞이지 않았거나 데이터가 유실되었습니다. random.shuffle()을 호출했는지 확인하세요.",
+            invalid: "리스트 반환 형식이 올바르지 않습니다."
+        },
         step4Options: [
             "저는 학습 환경과 실제 서빙 환경 간의 '전처리 파이프라인 동기화'를 최우선으로 고려합니다. 셔플링을 통한 일반화 성능 확보는 물론, 서빙 단계의 입력값 분포 변화를 추적하는 드리프트 모니터링 체계를 구축하여 모델의 신뢰도를 관리합니다.",
             "저는 데이터 순서를 무작위로 섞어서 모델이 잘 배우게 만듭니다.",
@@ -251,7 +278,8 @@ def prevent_serving_skew(data):
                 id: "q1",
                 question: "Step 1: E2E 뼈대 - 긴급 재난 알림 시스템처럼 '놓치면 치명적인' 문제에서 가장 중요한 메트릭은?",
                 options: [
-                    { text: "재현율 (Recall: 실제 양성을 얼마나 잘 찾아내는가)", value: "recall", correct: true },
+                    /* [수정일: 2026-02-04] 설계 연동을 위한 토큰 추가 */
+                    { text: "재현율 (Recall: 실제 양성을 얼마나 잘 찾아내는가)", value: "recall", correct: true, requirementToken: "미탐(False Negative) 리스크가 큰 경우 재현율(Recall) 최적화 전략 수립" },
                     { text: "정밀도 (Precision: 모델이 맞다고 한 것 중 실제는 얼마인가)", value: "precision" }
                 ],
                 coduckComment: "훌륭한 비즈니스 감각입니다! 하나라도 놓치는 것이 더 위험한 상황이니까요."
@@ -260,7 +288,8 @@ def prevent_serving_skew(data):
                 id: "q2",
                 question: "Step 2: 상세화 - 암 진단 모델에서 임계값을 0.9로 높게 잡는 '보수적 전략'의 리스크는?",
                 options: [
-                    { text: "실제 환자를 정상으로 오판(False Negative)하여 골든타임을 놓칠 수 있음", value: "fn", correct: true },
+                    /* [수정일: 2026-02-04] 설계 연동을 위한 토큰 추가 */
+                    { text: "실제 환자를 정상으로 오판(False Negative)하여 골든타임을 놓칠 수 있음", value: "fn", correct: true, requirementToken: "임계값(Threshold) 설정 시 비즈니스 오판 비용(Cost of Error)을 고려" },
                     { text: "학습 시간이 길어짐", value: "slow" }
                 ],
                 coduckComment: "정답입니다. 기술적 지표 뒤에 숨겨진 '사람의 생명'이나 '비용'을 보는 것이 시니어의 눈이죠."
@@ -284,6 +313,11 @@ def prevent_serving_skew(data):
             
     return filtered_results`,
         sampleData: [{ "id": 1, "score": 0.95 }, { "id": 2, "score": 0.32 }],
+        expectedOutput: [{ "id": 1, "score": 0.95 }],
+        failHints: {
+            logic_error: "필터링이 제대로 되지 않았습니다. score >= threshold 조건을 확인하세요.",
+            empty: "결과가 비어있습니다. append 로직을 확인하세요."
+        },
         step4Options: [
             "저는 모델의 F1-Score를 넘어 비즈니스 기대 가치(Expected Value)를 극대화하는 임계값 설계를 지향합니다. 오판 시의 비용(Cost of Error)을 수치화하여, 정밀도가 필요한 스팸 필터와 재현율이 중요한 제어판 등 각 도메인에 최적화된 배포 정책을 적용합니다.",
             "저는 임계값을 조절해서 예측을 정확하게 만듭니다.",
@@ -329,7 +363,8 @@ def prevent_serving_skew(data):
                 id: "q1",
                 question: "Step 1: E2E 뼈대 - 학습 데이터의 분포와 실제 서빙 데이터의 분포가 달라지는 현상을 무엇이라 부릅니까?",
                 options: [
-                    { text: "개념 드리프트 (Concept Drift) / 데이터 드리프트", value: "drift", correct: true },
+                    /* [수정일: 2026-02-04] 설계 연동을 위한 토큰 추가 */
+                    { text: "개념 드리프트 (Concept Drift) / 데이터 드리프트", value: "drift", correct: true, requirementToken: "데이터 분포 변화를 감지하기 위한 성능 모니터링(Drift Check) 로직 설계" },
                     { text: "메모리 릭 (Memory Leak)", value: "leak" }
                 ],
                 coduckComment: "맞습니다! 어제의 정답이 오늘의 오답이 될 수 있는 인공지능 세계의 숙명이죠."
@@ -338,7 +373,8 @@ def prevent_serving_skew(data):
                 id: "q2",
                 question: "Step 2: 상세화 - 드리프트를 감지했을 때 가장 먼저 실행해야 할 실무적 파이프라인 액션은?",
                 options: [
-                    { text: "최신 데이터를 포함한 모델 재학습(Retraining) 및 버전 업", value: "retrain", correct: true },
+                    /* [수정일: 2026-02-04] 설계 연동을 위한 토큰 추가 */
+                    { text: "최신 데이터를 포함한 모델 재학습(Retraining) 및 버전 업", value: "retrain", correct: true, requirementToken: "성능 저하 감지 시 최신 데이터 기반 모델 재학습(Retraining) 수행" },
                     { text: "서버를 껐다가 다시 켜기", value: "restart" }
                 ],
                 coduckComment: "정석적인 답변입니다. 모델도 주기적으로 수혈(데이터)이 필요하답니다."
@@ -361,7 +397,12 @@ def prevent_serving_skew(data):
         
     # [Step 3-2] 드리프트 임계값 체크를 위한 최종 손실값 반환
     return sum(errors) / len(real)`,
-        sampleData: [100, 200, 150],
+        sampleData: [[100, 200, 150], [90, 210, 140]],
+        expectedOutput: 100.0,
+        failHints: {
+            logic_error: "오차 계산 방식이 틀렸습니다. (실제-예측)**2 의 평균을 구해야 합니다.",
+            math_error: "나누기(/)를 할 때 데이터의 전체 개수(len)로 나누었는지 확인하세요."
+        },
         step4Options: [
             "저는 모델의 정적 정확도에 만족하지 않고, 'Concept Drift'를 추적하는 모니터링 시스템을 구축합니다. 특정 지표(예: MSE)의 이동 평균이 임계값을 상회할 경우 원인 분석 및 자동 재학습 파이프라인이 가동되도록 설계하여 서비스의 지속 가능성을 보장합니다.",
             "저는 오차가 커지면 모델을 다시 만듭니다.",
@@ -396,7 +437,8 @@ def prevent_serving_skew(data):
                 id: "q1",
                 question: "Step 1: E2E 뼈대 - 카테고리 종류가 수백 개일 때 원-핫 인코딩(One-hot)을 남발하면 파이프라인에 생기는 비극은?",
                 options: [
-                    { text: "메모리 부족 및 연산 속도 급락 (차원의 저주)", value: "curse", correct: true },
+                    /* [수정일: 2026-02-04] 설계 연동을 위한 토큰 추가 */
+                    { text: "메모리 부족 및 연산 속도 급락 (차원의 저주)", value: "curse", correct: true, requirementToken: "고차원 카테고리 데이터 처리 시 Sparse Matrix 및 메모리 부족 리스크 관리" },
                     { text: "모델 가중치가 모두 0이 됨", value: "zero" }
                 ],
                 coduckComment: "정확합니다. 불필요하게 늘어난 0(Sparse)이 모델을 멍청하게 만들 수 있죠."
@@ -405,7 +447,8 @@ def prevent_serving_skew(data):
                 id: "q2",
                 question: "Step 2: 상세화 - 수백 개의 카테고리를 숫자로 안전하게 바꾸기 위해 실무에서 고려하는 대안은?",
                 options: [
-                    { text: "차원을 축소하여 정보를 집약하는 임베딩(Embedding) 기법", value: "embed", correct: true },
+                    /* [수정일: 2026-02-04] 설계 연동을 위한 토큰 추가 */
+                    { text: "차원을 축소하여 정보를 집약하는 임베딩(Embedding) 기법", value: "embed", correct: true, requirementToken: "정보 손실을 줄이면서 차원을 효율적으로 축약하는 인코딩/임베딩 전략 수립" },
                     { text: "모두 무시하고 삭제하기", value: "delete" }
                 ],
                 coduckComment: "훌륭해요. 복잡도를 제어하면서도 정보를 유지하는 것이 실력입니다."
@@ -427,7 +470,12 @@ def prevent_serving_skew(data):
     # [Step 3-2] 실무 리스크 대응: 처음 보는 값은 예외 처리
     # TODO: mapping.get을 사용하여 category에 대한 벡터를 반환하세요
     return mapping.get(category, [0, 0])`,
-        sampleData: ["NLP", "Unknown"],
+        sampleData: "NLP",
+        expectedOutput: [1, 0],
+        failHints: {
+            logic_error: "매핑 결과가 틀렸습니다. mapping.get() 로직을 확인하세요.",
+            unknown: "정의되지 않은 값에 대한 기본값([0, 0]) 처리가 되어있는지 확인하세요."
+        },
         step4Options: [
             "저는 카테고리의 농도와 데이터 스케일을 종합적으로 판단합니다. 카테고리 수가 적을 땐 원-핫 인코딩의 명확성을 활용하고, '차원의 저주' 위험이 크면 임베딩이나 해싱(Hashing) 기법을 도입하여 연산 효율과 정보 보전의 균형을 맞춥니다.",
             "저는 get 메서드로 에러가 안 나게 코딩합니다.",
@@ -462,7 +510,8 @@ def prevent_serving_skew(data):
                 id: "q1",
                 question: "Step 1: E2E 뼈대 - 확률 [0.35, 0.3, 0.35]처럼 모델이 갈팡질팡할 때 '자동 배포'를 강행하면 생기는 실무 리스크는?",
                 options: [
-                    { text: "오판 확률이 매우 높아져 서비스 신뢰도 붕괴", value: "fail", correct: true },
+                    /* [수정일: 2026-02-04] 설계 연동을 위한 토큰 추가 */
+                    { text: "오판 확률이 매우 높아져 서비스 신뢰도 붕괴", value: "fail", correct: true, requirementToken: "모델 예측의 불확실성이 높을 경우 자동 승인을 반려하는 안전 장치 설계" },
                     { text: "모델 용량이 커짐", value: "size" }
                 ],
                 coduckComment: "빙고! 이때는 '모름'이라고 인정하고 사람에게 검토를 맡기는 것이 진짜 실력이죠."
@@ -471,7 +520,8 @@ def prevent_serving_skew(data):
                 id: "q2",
                 question: "Step 2: 상세화 - 1등 확률만 뽑는 것보다, 2등과의 차이(Margin)를 계산해야 하는 이유는?",
                 options: [
-                    { text: "모델이 얼마나 압도적으로 확신하는지 측정하기 위해", value: "margin", correct: true },
+                    /* [수정일: 2026-02-04] 설계 연동을 위한 토큰 추가 */
+                    { text: "모델이 얼마나 압도적으로 확신하는지 측정하기 위해", value: "margin", correct: true, requirementToken: "신뢰도 임계값(Margin/Confidence) 미달 시 수동 검토 프로세스 유도" },
                     { text: "수학을 좋아하는 면접관에게 잘 보이려고", value: "show" }
                 ],
                 coduckComment: "정확합니다. 압도적인 1위가 아니면 의사결정을 유보하는 전략이 필요하죠."
@@ -491,6 +541,10 @@ def prevent_serving_skew(data):
     # TODO: probs.index를 사용하여 max_val의 위치를 반환하세요
     return probs.index(max_val)`,
         sampleData: [0.05, 0.9, 0.05],
+        expectedOutput: 1,
+        failHints: {
+            logic_error: "가장 높은 확률의 인덱스를 찾지 못했습니다. probs.index(max_val)를 확인하세요."
+        },
         step4Options: [
             "저는 모델의 예측 결과에 '신뢰 점수(Confidence Score)'를 병행 표기하는 아키텍처를 선호합니다. 확률적 모호함이 발생할 경우 'Human-in-the-loop' 프로세스로 유도하여 시스템 전체의 안전성을 담보하는 협업 파이프라인을 구축합니다.",
             "저는 max 함수를 써서 가장 큰 점수를 고를 수 있습니다.",
@@ -525,7 +579,8 @@ def prevent_serving_skew(data):
                 id: "q1",
                 question: "Step 1: E2E 뼈대 - 학습 세션이 너무 길어져 그래픽 카드(GPU) 자원이 낭비되고 비용이 폭증할 때 필요한 시스템은?",
                 options: [
-                    { text: "개선 없을 시 자동 종료하는 얼리 스토핑 (Early Stopping)", value: "stop", correct: true },
+                    /* [수정일: 2026-02-04] 설계 연동을 위한 토큰 추가 */
+                    { text: "개선 없을 시 자동 종료하는 얼리 스토핑 (Early Stopping)", value: "stop", correct: true, requirementToken: "자원 낭비 및 오버피팅 전조 현상 발생 시 조기 종료(Early Stopping) 기법 적용" },
                     { text: "컴퓨터 전원 강제로 끄기", value: "power" }
                 ],
                 coduckComment: "합리적이네요. 에너지와 비용을 아끼는 것도 훌륭한 엔지니어링의 일환입니다."
@@ -534,7 +589,8 @@ def prevent_serving_skew(data):
                 id: "q2",
                 question: "Step 2: 상세화 - 얼리 스토핑 기준 손실값이 0.1, 0.11, 0.12처럼 조금씩 '오를 때' 바로 멈추지 않고 좀 더 기다려야 하는 이유는?",
                 options: [
-                    { text: "모델이 로컬 미니마(Local Minima)를 벗어날 기회를 주기 위해 (인내심)", value: "local", correct: true },
+                    /* [수정일: 2026-02-04] 설계 연동을 위한 토큰 추가 */
+                    { text: "모델이 로컬 미니마(Local Minima)를 벗어날 기회를 주기 위해 (인내심)", value: "local", correct: true, requirementToken: "일시적 정체 구간(Patience)을 감안한 유연한 종료 기준 수립" },
                     { text: "내가 코딩을 덜 하고 싶어서", value: "lazy" }
                 ],
                 coduckComment: "맞습니다. 일시적인 정체를 넘어 진정한 '수렴'인지 판단할 시간을 줘야 하죠."
@@ -565,6 +621,10 @@ def prevent_serving_skew(data):
             
     return False`,
         sampleData: [0.5, 0.4, 0.41, 0.42, 0.43],
+        expectedOutput: true,
+        failHints: {
+            logic_error: "조기 종료 조건이 발동되지 않았습니다. patience 범위를 확인하세요."
+        },
         step4Options: [
             "저는 학습 모델이 스스로 학습 종료 시점을 결정하도록 'Early Stopping'과 'Callback' 구조를 설계합니다. 이를 통해 오버피팅을 방지할 뿐만 아니라, 클라우드 컴퓨팅 비용을 약 20% 절감하는 실무적인 가치를 창출합니다.",
             "저는 숫자를 세는 변수를 써서 3이 되면 멈추게 합니다.",
@@ -599,7 +659,8 @@ def prevent_serving_skew(data):
                 id: "q1",
                 question: "Step 1: E2E 뼈대 - 정해진 라벨 없이 로봇이 행동하고 '보상(Reward)'을 받는 파이프라인을 무엇이라 합니까?",
                 options: [
-                    { text: "강화 학습 (Reinforcement Learning)", value: "rl", correct: true },
+                    /* [수정일: 2026-02-04] 설계 연동을 위한 토큰 추가 */
+                    { text: "강화 학습 (Reinforcement Learning)", value: "rl", correct: true, requirementToken: "환경과의 상호작용 및 보상(Reward) 시스템 기반의 최적 정책 학습 엔진 설계" },
                     { text: "지도 학습 (Supervised Learning)", value: "supervised" }
                 ],
                 coduckComment: "훌륭한 정의입니다. 스스로 시행착오를 겪으며 성장하는 엔진이죠."
@@ -608,7 +669,8 @@ def prevent_serving_skew(data):
                 id: "q2",
                 question: "Step 2: 상세화 - 에이전트가 항상 '최선'이라고 판단한 길로만 가지 않고 가끔 랜덤한 길을 가야 하는 이유는?",
                 options: [
-                    { text: "현재 모르는 더 큰 보석(Global Optimum)이 숨어있을 수 있기 때문에", value: "explore", correct: true },
+                    /* [수정일: 2026-02-04] 설계 연동을 위한 토큰 추가 */
+                    { text: "현재 모르는 더 큰 보석(Global Optimum)이 숨어있을 수 있기 때문에", value: "explore", correct: true, requirementToken: "탐색(Exploration)과 활용(Exploitation)의 균형을 맞추는 메커니즘 구축" },
                     { text: "인공지능도 가끔은 쉬고 싶기 때문", value: "rest" }
                 ],
                 coduckComment: "멋집니다! 이 '탐험' 없이는 영원히 지역적인 최선(Local Optima)에 갇히게 됩니다."
@@ -629,7 +691,12 @@ def choose_smart_action(epsilon, q_values):
         
     # [Step 3-2] 축적된 지식 기반 활용(Exploitation)
     return q_values.index(max(q_values))`,
-        sampleData: [0.1, 0.7, 0.2],
+        sampleData: [[0.0, [0.1, 0.7, 0.2]], [1.0, [0.1, 0.7, 0.2]]], // epsilon=0.0(활용), epsilon=1.0(탐험)
+        expectedOutput: 1, // epsilon=0.0 일 때의 결과 (q_values[1]이 최대)
+        // 실제로는 무작위성이 있어 검증이 어렵지만, epsilon=0일 때를 기준으로 테스트
+        failHints: {
+            logic_error: "조건부 탐험(Exploration) 로직이 부정확합니다."
+        },
         step4Options: [
             "저는 변화하는 환경 속에서 최적의 결정을 도출하기 위해 'Exploration vs Exploitation'의 균형을 중시합니다. 학습 초반엔 탐험 범위를 넓히는 엡실론-그리디 전략을 통해 잠재적 기회를 발견하고, 점진적으로 지식 우위의 결정을 내려 파이프라인의 수익률을 20% 개선했습니다.",
             "저는 랜덤 기능을 써서 모델이 모험하게 만들 수 있습니다.",
@@ -664,7 +731,8 @@ def choose_smart_action(epsilon, q_values):
                 id: "q1",
                 question: "Step 1: E2E 뼈대 - 언어 모델 학습 전, 이메일이나 전화번호 같은 기밀 정보를 처리하는 필수 전처리 단계는?",
                 options: [
-                    { text: "개인정보 식별 및 마스킹 (De-identification)", value: "masking", correct: true },
+                    /* [수정일: 2026-02-04] 설계 연동을 위한 토큰 추가 */
+                    { text: "개인정보 식별 및 마스킹 (De-identification)", value: "masking", correct: true, requirementToken: "민감 정보(PII) 유출 방지를 위한 강력한 데이터 마스킹 전략 수립" },
                     { text: "크게 읽고 암기하기", value: "read" }
                 ],
                 coduckComment: "훌륭한 보안 의식입니다! 신뢰할 수 있는 데이터 수집이 모델의 토대니까요."
@@ -673,7 +741,8 @@ def choose_smart_action(epsilon, q_values):
                 id: "q2",
                 question: "Step 2: 상세화 - 정규표현식으로 기호를 지울 때 '공백'만 남기고 소문자로 통일하는 이유는?",
                 options: [
-                    { text: "Apple, apple, APPLE!? 을 하나의 동일한 의미 단위로 묶기 위해", value: "normalize", correct: true },
+                    /* [수정일: 2026-02-04] 설계 연동을 위한 토큰 추가 */
+                    { text: "Apple, apple, APPLE!? 을 하나의 동일한 의미 단위로 묶기 위해", value: "normalize", correct: true, requirementToken: "의미적 일관성 확보를 위한 텍스트 정규화(Normalization) 전처리 수행" },
                     { text: "소문자가 더 귀여워서", value: "cute" }
                 ],
                 coduckComment: "정확합니다. 의미적 정규화를 통해 모델의 어휘집(Vocabulary) 효율을 극대화하는 것이죠."
@@ -696,7 +765,11 @@ def secure_tokenize(text):
     
     # [Step 3-3] 최종 무결성 토큰 리스트 반환
     return [t for t in tokens if t.strip()]`,
-        sampleData: ["Secure AI! 2026...", "Sensitive Info? No!"],
+        sampleData: "Secure AI! 2026...",
+        expectedOutput: ["secure", "ai", "2026"],
+        failHints: {
+            logic_error: "토큰화 결과가 예상과 다릅니다. 정규식과 lower().split()을 확인하세요."
+        },
         step4Options: [
             "저는 텍스트 전처리 단계에서 정규표현식을 활용해 데이터 무결성을 확보합니다. 특히 개인정보(PII) 노출 리스크를 원천 차단하는 마스킹 전략을 최우선으로 하며, 정규화된 토큰 추출을 통해 모델의 수렴 속도를 인덱싱 기준 15% 단축시킨 경험이 있습니다.",
             "저는 소문자로 바꾸고 기호를 지우는 코드를 잘 짭니다.",
