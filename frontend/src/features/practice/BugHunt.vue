@@ -145,79 +145,28 @@
               <p class="scenario-text">{{ currentProgressiveMission?.scenario }}</p>
             </div>
 
-            <!-- 단서창 (문제 관련 로그/힌트 표시) 또는 설명 입력창 -->
+            <!-- 단서창 (문제 관련 로그/힌트 표시) - 항상 표시 -->
             <div class="clue-panel neon-border" :class="{ 'attention-pulse': showAttentionEffect }">
-              <!-- 디버그 모드: 로그 표시 -->
-              <template v-if="currentProgressivePhase === 'debug'">
-                <div class="clue-header">
-                  <span class="clue-icon">🔍</span>
-                  <span class="clue-title">CLUES & LOGS</span>
+              <!-- 로그 항상 표시 -->
+              <div class="clue-header">
+                <span class="clue-icon">🔍</span>
+                <span class="clue-title">CLUES & LOGS</span>
+              </div>
+              <div class="clue-content" ref="clueContentRef">
+                <div
+                  v-for="(clue, idx) in clueMessages"
+                  :key="idx"
+                  class="clue-item"
+                  :class="{
+                    'new-clue': clue.isNew,
+                    'clue-success': clue.type === 'SUCCESS',
+                    'clue-error': clue.type === 'ERROR'
+                  }"
+                >
+                  <span class="clue-badge" :class="`badge-${clue.type.toLowerCase()}`">{{ clue.type }}</span>
+                  <span class="clue-text">{{ clue.text }}</span>
                 </div>
-                <div class="clue-content" ref="clueContentRef">
-                  <div
-                    v-for="(clue, idx) in clueMessages"
-                    :key="idx"
-                    class="clue-item"
-                    :class="{
-                      'new-clue': clue.isNew,
-                      'clue-success': clue.type === 'SUCCESS',
-                      'clue-error': clue.type === 'ERROR'
-                    }"
-                  >
-                    <span class="clue-badge" :class="`badge-${clue.type.toLowerCase()}`">{{ clue.type }}</span>
-                    <span class="clue-text">{{ clue.text }}</span>
-                  </div>
-                </div>
-              </template>
-
-              <!-- 설명 모드: 전략 입력창 -->
-              <template v-else-if="currentProgressivePhase === 'explain'">
-                <transition name="slide-down">
-                  <div class="clue-header success-header">
-                    <span class="clue-icon">🎯</span>
-                    <span class="clue-title">BUG {{ currentProgressiveStep }} FIXED!</span>
-                    <!-- 오리 + 말풍선 (헤더에 위치) -->
-                    <transition name="duck-pop">
-                      <div v-if="showDuckGuide" class="duck-with-speech">
-                        <img :src="duckIdle" class="duck-guide-img-header" alt="Guide Duck">
-                        <div class="duck-guide-speech header-speech">
-                          <span class="guide-text">여기에 전략을 작성해주세요! ✏️</span>
-                        </div>
-                      </div>
-                    </transition>
-                  </div>
-                </transition>
-                <transition name="fade-up">
-                  <div class="explanation-section-inline">
-                  <div class="explanation-body">
-                    <label class="explanation-label">
-                      <span class="label-icon">💭</span>
-                      어떤 전략으로 이 버그를 해결했나요?
-                    </label>
-                    <textarea
-                      v-model="chatInput"
-                      @keydown.ctrl.enter="handleChatSubmit"
-                      placeholder="버그 해결 전략을 작성해주세요...&#10;&#10;• 어떤 문제를 발견했나요?&#10;• 왜 이렇게 수정했나요?&#10;• 어떤 효과가 있나요?"
-                      class="explanation-textarea"
-                      :class="{ 'strategy-pulse': showDuckGuide }"
-                      rows="8"
-                      autofocus
-                      ref="strategyTextareaRef"
-                    ></textarea>
-                    <div class="explanation-hint">💡 Ctrl + Enter로 빠르게 제출</div>
-                  </div>
-                  <div class="explanation-footer">
-                    <button
-                      class="submit-explanation-btn"
-                      @click="handleChatSubmit"
-                      :disabled="!chatInput.trim()"
-                    >
-                      📝 전략 제출하기
-                    </button>
-                  </div>
-                </div>
-                </transition>
-              </template>
+              </div>
             </div>
           </div>
         </aside>
@@ -356,6 +305,33 @@
             </div>
           </div>
 
+          <!-- 전략 작성 오리 (힌트 오리와 동일한 UI) -->
+          <transition name="duck-pop">
+            <div v-if="showStrategyDuck" class="hint-duck-container">
+              <div class="hint-speech-bubble strategy-bubble">
+                <div class="bubble-header">전략을 작성해주세요! ✍️</div>
+                <div class="bubble-content">
+                  <textarea
+                    v-model="strategyInput"
+                    @keydown.ctrl.enter="handleStrategySubmit"
+                    placeholder="버그 해결 전략을 작성해주세요...&#10;&#10;• 어떤 문제를 발견했나요?&#10;• 왜 이렇게 수정했나요?&#10;• 어떤 효과가 있나요?"
+                    class="strategy-textarea"
+                    rows="6"
+                    autofocus
+                  ></textarea>
+                  <button
+                    class="submit-strategy-btn"
+                    @click="handleStrategySubmit"
+                    :disabled="!strategyInput.trim()"
+                  >
+                    📝 전략 제출하기
+                  </button>
+                </div>
+              </div>
+              <img :src="unitDuck" class="hint-duck-img" alt="Strategy Duck">
+            </div>
+          </transition>
+
           <div class="editor-body" ref="editorBodyRef">
             <!-- 현재 스텝만 표시 -->
             <div class="code-sections">
@@ -373,18 +349,18 @@
                       {{ getStepData(step)?.title }}
                     </span>
                     <span class="section-status">
-                      <span v-if="currentProgressivePhase === 'debug'" class="status-current">🔧 CURRENT</span>
-                      <span v-else-if="currentProgressivePhase === 'explain'" class="status-success">✅ SOLVED</span>
+                      <span v-if="step === currentProgressiveStep && !progressiveCompletedSteps.includes(step)" class="status-current">🔧 CURRENT</span>
+                      <span v-else-if="progressiveCompletedSteps.includes(step)" class="status-success">✅ SOLVED</span>
                     </span>
                   </div>
 
-                  <!-- 편집 가능한 섹션 (디버그 모드) 또는 읽기 전용 (설명 모드) -->
+                  <!-- 편집 가능한 섹션 (디버그 모드) 또는 읽기 전용 (전략 입력 시) -->
                   <div class="code-editor-wrapper active-wrapper monaco-active-wrapper">
                     <vue-monaco-editor
                       v-model:value="progressiveStepCodes[Number(step)]"
                       theme="vs-dark"
                       language="python"
-                      :options="currentProgressivePhase === 'explain' ? { ...editorOptions, readOnly: true } : editorOptions"
+                      :options="editorOptions"
                       @mount="handleEditorMount"
                       class="bughunt-monaco-editor"
                     />
@@ -581,6 +557,7 @@
       @complete="onTutorialComplete"
       @skip="onTutorialComplete"
     />
+
   </div>
 </template>
 
@@ -1094,9 +1071,9 @@ const showShutter = ref(false);
 // 로그창 주목 효과
 const showAttentionEffect = ref(false);
 
-// 오리 가이드 상태 (전략 입력 안내 - 제출할 때까지 유지)
-const showDuckGuide = ref(false);
-const strategyTextareaRef = ref(null);
+// 전략 입력 관련 상태
+const showStrategyDuck = ref(false);      // 전략 오리 + 말풍선 표시 여부
+const strategyInput = ref('');             // 전략 입력 내용
 
 // 코드 제출 상태
 const codeSubmitFailCount = ref(0);
@@ -1104,7 +1081,6 @@ const codeSubmitFailCount = ref(0);
 // 설명 및 평가 데이터
 const stepExplanations = reactive({ 1: '', 2: '', 3: '' });
 const clueMessages = ref([]); // 단서 메시지 (로그, 힌트 등)
-const chatInput = ref('');
 const clueContentRef = ref(null);
 const hasNewMessage = ref(false);
 
@@ -1368,52 +1344,44 @@ function moveToNextStep() {
   }
 }
 
-// 채팅 제출 (설명 처리)
-// 채팅 제출 (설명 처리)
-const isSubmittingStrategy = ref(false);
+/**
+ * 전략 제출 처리
+ */
+function handleStrategySubmit() {
+  if (!strategyInput.value.trim()) return;
 
-function handleChatSubmit() {
-  if (isSubmittingStrategy.value) return;
-  if (!chatInput.value.trim() || currentProgressivePhase.value !== 'explain') return;
+  // 전략 저장
+  stepExplanations[currentProgressiveStep.value] = strategyInput.value.trim();
 
-  isSubmittingStrategy.value = true;
-  const userText = chatInput.value.trim();
-
-  // 오리 가이드 숨기기
-  showDuckGuide.value = false;
-
-  // 설명 저장
-  stepExplanations[currentProgressiveStep.value] = userText;
-
-  // 전략 기록 로그
+  // 로그에 기록
   addClue('SUCCESS', `Step ${currentProgressiveStep.value} 전략이 기록되었습니다.`);
 
-  chatInput.value = '';
+  // 입력창 초기화
+  strategyInput.value = '';
 
-  // 시스템 응답 및 다음 단계 진행
-  scheduleTimeout(() => {
-    if (currentProgressiveStep.value < 3) {
-      scheduleTimeout(() => {
-        moveToNextStep();
+  // 오리와 말풍선 숨기기
+  showStrategyDuck.value = false;
 
-        // 다음 단계 에러 로그만 표시
-        const stepData = getCurrentStepData();
-        if (stepData?.error_log) {
-          clueMessages.value = [{
-            type: 'ERROR',
-            text: stepData.error_log,
-            isNew: true
-          }];
-        }
-        isSubmittingStrategy.value = false;
-      }, 500);
-    } else {
-      scheduleTimeout(() => {
-        completeMission();
-        isSubmittingStrategy.value = false;
-      }, 1500);
-    }
-  }, 300);
+  // 다음 단계로 이동 또는 미션 완료
+  if (currentProgressiveStep.value < 3) {
+    scheduleTimeout(() => {
+      moveToNextStep();
+
+      // 다음 단계 에러 로그만 표시
+      const stepData = getCurrentStepData();
+      if (stepData?.error_log) {
+        clueMessages.value = [{
+          type: 'ERROR',
+          text: stepData.error_log,
+          isNew: true
+        }];
+      }
+    }, 500);
+  } else {
+    scheduleTimeout(() => {
+      completeMission();
+    }, 500);
+  }
 }
 
 // 평가 화면 보기
@@ -1673,12 +1641,9 @@ async function submitProgressiveStep() {
         // 성공 시 힌트 창 닫기
         showProgressiveHintPanel.value = false;
 
-        // 바로 전략 입력 모드로 전환
-        currentProgressivePhase.value = 'explain';
-
-        // 오리 가이드 표시 (제출할 때까지 유지)
+        // 전략 작성 오리 표시 (클릭하면 오버레이 열림)
         scheduleTimeout(() => {
-          showDuckGuide.value = true;
+          showStrategyDuck.value = true;
         }, 500);
 
       } else {
@@ -2237,118 +2202,6 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
-/* 로그창 설명 입력 섹션 (인라인) */
-.explanation-section-inline {
-  display: flex;
-  flex-direction: column;
-  padding: 1rem;
-  gap: 1rem;
-  overflow-y: auto;
-  max-height: calc(100% - 2rem);
-}
-
-.explanation-section-inline .explanation-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.8rem;
-  min-height: 0;
-}
-
-.explanation-section-inline .explanation-label {
-  font-size: 1rem;
-  font-weight: bold;
-  color: #0ff;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
-}
-
-.explanation-section-inline .explanation-textarea {
-  flex: 1;
-  min-height: 150px;
-  background: rgba(0, 0, 0, 0.5);
-  border: 2px solid rgba(0, 255, 255, 0.3);
-  border-radius: 8px;
-  padding: 1rem;
-  color: #fff;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.9rem;
-  line-height: 1.6;
-  resize: vertical;
-  transition: all 0.3s;
-}
-
-.explanation-section-inline .explanation-textarea:focus {
-  outline: none;
-  border-color: #0ff;
-  box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
-  background: rgba(0, 0, 0, 0.7);
-}
-
-.explanation-section-inline .explanation-hint {
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.6);
-  text-align: right;
-  font-style: italic;
-}
-
-.explanation-section-inline .explanation-footer {
-  display: flex;
-  justify-content: center;
-  padding-top: 0.5rem;
-  border-top: 1px solid rgba(0, 255, 255, 0.2);
-}
-
-.explanation-section-inline .submit-explanation-btn {
-  background: linear-gradient(135deg, #0ff, #00aaff);
-  border: none;
-  color: #000;
-  font-weight: bold;
-  padding: 1rem 3rem;
-  border-radius: 10px;
-  cursor: pointer;
-  font-size: 1.1rem;
-  transition: all 0.3s;
-  box-shadow: 0 4px 15px rgba(0, 255, 255, 0.3);
-  letter-spacing: 0.5px;
-  position: relative;
-  overflow: hidden;
-}
-
-.explanation-section-inline .submit-explanation-btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-  transition: left 0.5s;
-}
-
-.explanation-section-inline .submit-explanation-btn:hover:not(:disabled)::before {
-  left: 100%;
-}
-
-.explanation-section-inline .submit-explanation-btn:hover:not(:disabled) {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 25px rgba(0, 255, 255, 0.6);
-  background: linear-gradient(135deg, #00aaff, #0ff);
-}
-
-.explanation-section-inline .submit-explanation-btn:active:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 15px rgba(0, 255, 255, 0.4);
-}
-
-.explanation-section-inline .submit-explanation-btn:disabled {
-  background: linear-gradient(135deg, #333, #444);
-  color: #666;
-  cursor: not-allowed;
-  box-shadow: none;
-}
 
 /* 성공 헤더 스타일 */
 .success-header {
@@ -2461,62 +2314,6 @@ onUnmounted(() => {
   }
 }
 
-/* 오리 + 말풍선 컨테이너 (헤더에 위치) */
-.duck-with-speech {
-  position: absolute;
-  right: 10px;
-  bottom: 5px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  z-index: 10;
-}
-
-.duck-guide-img-header {
-  width: 50px;
-  height: 50px;
-  object-fit: contain;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
-  animation: duckBounce 0.8s ease-in-out infinite;
-}
-
-.header-speech {
-  margin-bottom: 0;
-}
-
-.header-speech::after {
-  display: none;
-}
-
-.success-header {
-  position: relative;
-}
-
-.duck-guide-speech {
-  background: linear-gradient(135deg, #FFD700, #FFA500);
-  color: #000;
-  padding: 8px 14px;
-  border-radius: 12px;
-  font-weight: bold;
-  font-size: 0.85rem;
-  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.5);
-  animation: speechPulse 1.5s ease-in-out infinite;
-}
-
-@keyframes speechPulse {
-  0%, 100% {
-    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.5);
-    transform: scale(1);
-  }
-  50% {
-    box-shadow: 0 4px 25px rgba(255, 215, 0, 0.8);
-    transform: scale(1.02);
-  }
-}
-
-.guide-text {
-  white-space: nowrap;
-}
 
 @keyframes duckBounce {
   0%, 100% { transform: translateY(0); }
@@ -2591,25 +2388,4 @@ onUnmounted(() => {
   }
 }
 
-/* 전략창 노란색 펄스 테두리 효과 */
-.explanation-textarea.strategy-pulse {
-  animation: strategyPulse 1.5s ease-in-out infinite;
-  border-color: #FFD700 !important;
-}
-
-@keyframes strategyPulse {
-  0%, 100% {
-    box-shadow:
-      0 0 5px rgba(255, 215, 0, 0.5),
-      0 0 10px rgba(255, 215, 0, 0.3);
-    border-color: #FFD700;
-  }
-  50% {
-    box-shadow:
-      0 0 20px rgba(255, 215, 0, 0.8),
-      0 0 40px rgba(255, 215, 0, 0.5),
-      0 0 60px rgba(255, 215, 0, 0.3);
-    border-color: #FFA500;
-  }
-}
 </style>

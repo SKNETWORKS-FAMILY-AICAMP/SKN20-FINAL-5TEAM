@@ -192,8 +192,7 @@ class AIEvaluationView(APIView):
 class BugHuntEvaluationView(APIView):
     """
     [수정일: 2026-01-27]
-    Bug Hunt 디버깅 사고 평가 뷰
-    사용자의 코드 수정과 설명을 분석하여 디버깅 능력을 평가합니다.
+    JSON 정답 데이터를 기반으로 사용자의 디버깅 사고 전략을 평가합니다.
     """
     authentication_classes = []
     permission_classes = [AllowAny]
@@ -201,7 +200,7 @@ class BugHuntEvaluationView(APIView):
     def post(self, request):
         data = request.data
         mission_title = data.get('missionTitle', 'Unknown Mission')
-        steps = data.get('steps', [])
+        steps = data.get('steps', []) # JSON의 원본 데이터가 포함된 배열
         explanations = data.get('explanations', {})
         user_codes = data.get('userCodes', {})
         performance = data.get('performance', {})
@@ -216,16 +215,23 @@ class BugHuntEvaluationView(APIView):
 
             client = openai.OpenAI(api_key=api_key)
 
-            # 각 단계별 데이터 구성
+            # [변경 사항] 각 단계별 '정답 데이터'를 컨텍스트에 포함시켜 LLM의 평가 기준을 명확히 함
             step_context = []
             for idx, s in enumerate(steps):
                 step_num = idx + 1
                 original_code = s.get('buggy_code', '')
                 modified_code = user_codes.get(str(step_num), '')
                 explanation = explanations.get(str(step_num), '설명 없음')
+                
+                # JSON 파일 내의 정답 정보 추출
+                true_cause = s.get('error_info', {}).get('description', '정보 없음') # 
+                correct_logic = s.get('error_info', {}).get('suggestion', '정보 없음') # 
+                coaching_point = s.get('coaching', '정보 없음') # 
 
-                step_context.append(f"""### Step {step_num}: {s.get('title', s.get('bug_type', ''))}
-- 문제 설명: {s.get('instruction', '')}
+                step_context.append(f"""### Step {step_num}: {s.get('title', '')}
+- 문제 원인(정답): {true_cause}
+- 권장 해결책(정답): {correct_logic}
+- 실무 코칭 가이드: {coaching_point}
 
 - 원본 버그 코드:
 ```python

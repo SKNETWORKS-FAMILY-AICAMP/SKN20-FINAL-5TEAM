@@ -77,13 +77,7 @@
 
     <!-- [Logic Mirror 가이드북 모달] - Unit 1 전용 (수정일: 2026-01-24) -->
     <!-- [Bug Hunt 가이드북 모달] - Debug Practice 전용 (수정일: 2026-01-29) -->
-    <BugHuntGuidebook
-        v-if="game.activeUnit?.name === 'Debug Practice' && game.currentDebugMode === 'bug-hunt'"
-        :isOpen="ui.isGuidebookOpen"
-        @close="ui.isGuidebookOpen = false"
-    />
     <LogicMirrorGuidebook
-        v-else
         :isOpen="ui.isGuidebookOpen"
         @close="ui.isGuidebookOpen = false"
     />
@@ -124,7 +118,6 @@ import LoginModal from './LoginModal.vue';
 import SignUpModal from './SignUpModal.vue';
 import ConstructionModal from './ConstructionModal.vue';
 import LogicMirrorGuidebook from '../features/practice/pseudocode/components/LogicMirrorGuidebook.vue'; // [수정일: 2026-02-06] 폴더 계층화(components) 반영
-import BugHuntGuidebook from '../features/practice/BugHuntGuidebook.vue';
 
 /**
  * [수정일: 2026-01-24] 
