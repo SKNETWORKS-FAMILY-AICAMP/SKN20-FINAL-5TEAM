@@ -9,7 +9,10 @@ export const useAuthStore = defineStore('auth', {
     state: () => ({
         isLoggedIn: false,
         sessionNickname: '',
-        userProteinShakes: 420 // 초기/더미 값
+        userProteinShakes: 420, // 초기/더미 값
+        userAvatarUrl: null,    // [수정일: 2026-02-06] 나노바나나 아바타 URL
+        userRank: 'BRONZE',     // [수정일: 2026-02-06] 현재 등급
+        user: null              // [수정일: 2026-02-06] 전체 유저 데이터 (프로필 수정용)
     }),
 
     actions: {
@@ -23,16 +26,38 @@ export const useAuthStore = defineStore('auth', {
                 const response = await axios.get('/api/core/auth/me/');
                 if (response.data.isAuthenticated && response.data.user) {
                     this.isLoggedIn = true;
-                    // 우선순위: 닉네임 > 유저네임
                     this.sessionNickname = response.data.user.nickname || response.data.user.username;
+
+                    // [수정일: 2026-02-07] 새 사용자 정보로 완전히 갱신 (이전 상태 잔류 방지)
+                    this.userProteinShakes = 0;
+                    this.userRank = 'BRONZE';
+                    this.userAvatarUrl = null;
+
+                    // [수정일: 2026-02-06] 활동 및 아바타 정보 동기화
+                    if (response.data.user.activity) {
+                        this.userProteinShakes = response.data.user.activity.total_points || 0;
+                        this.userRank = response.data.user.activity.current_rank || 'BRONZE';
+                        if (response.data.user.activity.active_avatar) {
+                            this.userAvatarUrl = response.data.user.activity.active_avatar.image_url;
+                        }
+                    }
+                    // [수정일: 2026-02-07] active_avatar 최상위 필드에서도 확인 (LoginView 응답 호환)
+                    if (!this.userAvatarUrl && response.data.user.active_avatar?.image_url) {
+                        this.userAvatarUrl = response.data.user.active_avatar.image_url;
+                    }
+                    // [수정일: 2026-02-06] 전체 유저 객체 보관 (수정 페이지용)
+                    this.user = response.data.user;
                 } else {
                     this.isLoggedIn = false;
                     this.sessionNickname = '';
+                    this.userAvatarUrl = null;
+                    this.user = null;
                 }
             } catch (error) {
                 console.error("Session check failed:", error);
                 this.isLoggedIn = false;
                 this.sessionNickname = '';
+                this.userAvatarUrl = null;
             }
         },
 
@@ -87,9 +112,18 @@ export const useAuthStore = defineStore('auth', {
             // [2026-01-25] 유연한 닉네임 추출 로직 (객체인 경우와 이메일 문자열인 경우 모두 대응)
             if (typeof user === 'string') {
                 this.sessionNickname = user.split('@')[0];
+                this.userAvatarUrl = null;
             } else {
                 this.sessionNickname = user.nickname || user.username || user.user_nickname || 'ENGINEER';
+                // [수정일: 2026-02-07] 아바타 정보 동기화
+                this.userAvatarUrl = user.activity?.active_avatar?.image_url
+                    || user.active_avatar?.image_url
+                    || null;
+                this.userProteinShakes = user.activity?.total_points || 0;
+                this.userRank = user.activity?.current_rank || 'BRONZE';
             }
+            // [수정일: 2026-02-06] 유저 객체 저장
+            this.user = user;
         }
     }
 });

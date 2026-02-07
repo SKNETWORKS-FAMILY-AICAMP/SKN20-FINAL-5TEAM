@@ -12,8 +12,11 @@ class UserProfile(BaseModel):
     class Meta:
         db_table = 'gym_user'
 
-    # [수정일: 2026-02-04] PK 설계 원복: id를 CharField로 다시 설정
-    id = models.CharField(max_length=50, primary_key=True)  # 로그인 아이디 (PK)
+    # [수정일: 2026-02-07] PK 구조 리팩토링 최종 단계: 정수형 PK(BigAutoField) 채택
+    id = models.BigAutoField(primary_key=True)  # 시스템용 고유 번호 (PK)
+    
+    # [수정일: 2026-02-07] 유저 식별용 호출명 (Unique)
+    username = models.CharField(max_length=100, unique=True)
     
     user_name = models.CharField(max_length=50)  # 사용자 이름
     user_nickname = models.CharField(max_length=50, null=True, blank=True)  # 사용자 닉네임
@@ -22,16 +25,28 @@ class UserProfile(BaseModel):
     password = models.CharField(max_length=128)  # 비밀번호   
     
     def save(self, *args, **kwargs):
-        # [수정일: 2026-02-04] PK 설계 원복: 이메일 앞자리를 기반으로 한 id 자동 생성 로직 복구
-        if not self.id and self.email:
-            self.id = self.email.split('@')[0][:50]
+        # [수정일: 2026-02-07] 유니크한 username 충돌 방지 로직 강화
+        # 신규 생성(id가 없음) 명시적인 username이 있더라도 중복되면 숫자를 붙임
+        if not self.id:
+            if not self.username and self.email:
+                self.username = self.email.split('@')[0][:90]
+            
+            base = self.username
+            candidate = base
+            counter = 1
+            from django.contrib.auth.models import User
+            # 자신을 제외한 중복 체크 (UserProfile뿐만 아니라 Django 기본 User와도 대조)
+            while UserProfile.objects.filter(username=candidate).exists() or User.objects.filter(username=candidate).exists():
+                candidate = f"{base}_{counter}"
+                counter += 1
+            self.username = candidate
             
         super().save(*args, **kwargs)
     
     def __str__(self):
-        return f"{self.user_name} ({self.id})"
+        return f"{self.user_name} ({self.username})"
 
-class UserDetail(models.Model):
+class UserDetail(BaseModel):
     """
     팀원 A 담당: 사용자 상세 정보 모델 (UserProfile과 1:1)
     """
@@ -50,9 +65,10 @@ class UserDetail(models.Model):
     )
 
     is_developer = models.BooleanField(default=True)  # 개발자 여부
-    job_role = models.TextField(null=True, blank=True)  # 직군 (다중 선택 가능하므로 Text)
-    # [수정일: 2026-01-21] IT INTERESTS (관심 분야) 추가, 길이 제한 해제
-    interests = models.TextField(null=True, blank=True) 
+    
+    # [수정일: 2026-02-07] 최종적으로 JSONField 적용
+    job_role = models.JSONField(default=list, null=True, blank=True)
+    interests = models.JSONField(default=list, null=True, blank=True)
     
     # [수정일: 2026-01-22] 참조 필드명 변경 반영
     def __str__(self):

@@ -34,6 +34,7 @@ services:
       - DB_HOST=${DB_HOST}
       - DB_PORT=${DB_PORT}
       - DATABASE_URL=${DATABASE_URL}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
       # [원복] 로컬 DB 의존성 복구
     depends_on:
       - db

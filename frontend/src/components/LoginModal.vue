@@ -12,31 +12,31 @@
           <p class="auth-subtitle">엔지니어 신원 확인을 위해 접속 보안 코드를 입력하세요.</p>
         </header>
 
-        <div class="auth-body">
-          <div class="input-group">
-            <label class="input-label">ENGINEERING ID</label>
-            <input type="email" v-model="email" class="auth-input" placeholder="이메일을 입력하세요" 
-              @keyup.enter="handleLogin">
+        <form @submit.prevent="handleLogin">
+          <div class="auth-body">
+            <div class="input-group">
+              <label class="input-label">ENGINEERING ID</label>
+              <input type="email" v-model="email" class="auth-input" placeholder="이메일을 입력하세요">
+            </div>
+            <div class="input-group">
+              <label class="input-label">ACCESS SECRET</label>
+              <input type="password" v-model="password" class="auth-input" placeholder="비밀번호">
+            </div>
           </div>
-          <div class="input-group">
-            <label class="input-label">ACCESS SECRET</label>
-            <input type="password" v-model="password" class="auth-input" placeholder="비밀번호" 
-              @keyup.enter="handleLogin">
-          </div>
-        </div>
 
-        <footer class="auth-footer" style="flex-direction: column; gap: 0.5rem; border-top: none; padding-top: 0; margin-top: 2rem;">
-          <button class="btn btn-primary" @click="handleLogin" :disabled="isSubmitting" style="width: 100%;">
-            {{ isSubmitting ? 'Verifying...' : '승인 요청' }}
-          </button>
-          <div style="text-align: center; margin-top: 1rem;">
-            <span style="color: var(--text-muted); font-size: 0.85rem;">New here? </span>
-            <a href="javascript:void(0)" @click="$emit('request-signup')"
-              style="color: var(--primary); font-size: 0.85rem; font-weight: 700; text-decoration: none;">Register Now</a>
-          </div>
-          <button class="btn btn-secondary" @click="$emit('close')"
-            style="width: 100%; border: none; background: transparent; color: #64748b;">Cancel</button>
-        </footer>
+          <footer class="auth-footer" style="flex-direction: column; gap: 0.5rem; border-top: none; padding-top: 0; margin-top: 2rem;">
+            <button type="submit" class="btn btn-primary" :disabled="isSubmitting" style="width: 100%;">
+              {{ isSubmitting ? 'Verifying...' : '승인 요청' }}
+            </button>
+            <div style="text-align: center; margin-top: 1rem;">
+              <span style="color: var(--text-muted); font-size: 0.85rem;">New here? </span>
+              <a href="javascript:void(0)" @click="$emit('request-signup')"
+                style="color: var(--primary); font-size: 0.85rem; font-weight: 700; text-decoration: none;">Register Now</a>
+            </div>
+            <button type="button" class="btn btn-secondary" @click="$emit('close')"
+              style="width: 100%; border: none; background: transparent; color: #64748b;">Cancel</button>
+          </footer>
+        </form>
       </div>
     </div>
   </transition>

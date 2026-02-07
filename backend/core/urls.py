@@ -1,5 +1,4 @@
-# 수정일: 2026-02-06
-# 수정내용: On-demand Docker 코드 실행 샌드박스 엔드포인트 추가
+# 수정내용: 코드 실행 샌드박스 및 라우팅 설정 정합성 수정 (Antigravity)
 
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
@@ -14,30 +13,34 @@ from core.views import (
     AIEvaluationView,
     BugHuntEvaluationView,
     CodeExecutionView,
-    BehaviorVerificationView
+    BehaviorVerificationView,
+    activity_view
 )
 
 router = DefaultRouter()
-
-# 1. 담당자 A (User)
-router.register(r'users', UserProfileViewSet)
-
-# 2. 담당자 F (Dashboard)
-router.register(r'dashboard', DashboardLogViewSet)
-
-# 3. 연습 과정 (Practice)
-router.register(r'practices', PracticeViewSet)
-
-# 4. 공통 코드
+router.register(r'users', UserProfileViewSet, basename='users')
+router.register(r'dashboard-logs', DashboardLogViewSet)
 router.register(r'commons', CommonViewSet)
+router.register(r'practices', PracticeViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
     
-    # 인증 관련 API
+    # 인증 및 사용자 관리 API
+    path('user/profile/', UserProfileViewSet.as_view({'get': 'list', 'post': 'create'})),
+    
+    # 활동 및 리더보드 통합 API (AI-Arcade)
+    path('activity/leaderboard/', activity_view.LeaderboardView.as_view(), name='leaderboard'),
+    path('activity/progress/', activity_view.UserProgressView.as_view(), name='user_progress'),
+    path('activity/submit/', activity_view.SubmitProblemView.as_view(), name='submit_problem'),
+    path('activity/preview/', activity_view.AvatarPreviewView.as_view(), name='avatar_preview'), # [수정일: 2026-02-06] 추가
+
+    # 인증 관련
     path('auth/login/', LoginView.as_view(), name='login'),
     path('auth/logout/', LogoutView.as_view(), name='logout'),
     path('auth/me/', SessionCheckView.as_view(), name='session_check'),
+    
+    # AI 평가 관련
     path('ai-evaluate/', AIEvaluationView.as_view(), name='ai_evaluate'),
     path('ai-bughunt-evaluate/', BugHuntEvaluationView.as_view(), name='bughunt_evaluate'),
 

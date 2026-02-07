@@ -203,9 +203,9 @@
             </div>
             <div class="col-user">
               <div class="user-avatar-mini">
-                <img src="/assets/characters/coduck.png" alt="avatar">
+                <img :src="user.avatar_url || '/image/unit_duck.png'" alt="avatar">
               </div>
-              <span class="username-premium">{{ user.username }}</span>
+              <span class="username-premium">{{ user.nickname }}</span>
             </div>
             <div class="col-solved">
               <span class="solved-count-v2">{{ user.solved }}</span>
@@ -214,7 +214,7 @@
             <div class="col-shakes">
               <div class="shake-badge-v2 arcade-mode">
                 <Zap class="milk-icon-v2" />
-                <span>{{ user.shakes.toLocaleString() }}</span>
+                <span>{{ user.points.toLocaleString() }}</span>
               </div>
             </div>
           </div>
@@ -1534,6 +1534,18 @@ export default {
   border-radius: 12px;
   padding: 5px;
   border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  cursor: zoom-in;
+  position: relative;
+  z-index: 1;
+}
+
+.user-avatar-mini:hover {
+  transform: scale(5.0);
+  background: rgba(182, 255, 64, 0.15);
+  border-color: #b6ff40;
+  box-shadow: 0 0 20px rgba(182, 255, 64, 0.6), 0 0 40px rgba(182, 255, 64, 0.3);
+  z-index: 100;
 }
 
 .user-avatar-mini img {

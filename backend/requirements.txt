@@ -13,3 +13,4 @@ deep-translator
 openai
 python-dotenv
 Pillow
+google-genai

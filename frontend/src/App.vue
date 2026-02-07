@@ -25,8 +25,12 @@
         <div v-else class="user-profile-v2">
           <div class="user-info-v2">
             <span class="user-name-v2">{{ auth.sessionNickname }}</span>
-            <span class="user-rank-v2">ENGINEER</span>
+            <span class="user-rank-v2">{{ auth.userRank }}</span>
           </div>
+          <div class="user-avatar-header" v-if="auth.userAvatarUrl">
+             <img :src="auth.userAvatarUrl" class="header-avatar-img">
+          </div>
+          <button class="btn-profile-settings" @click="ui.isProfileSettingsModalOpen = true">Setting</button>
           <button class="btn-logout-v2" @click="auth.logout">Logout</button>
         </div>
       </template>
@@ -83,7 +87,9 @@
 
                 <div class="platform-circle-v3">
                   <template v-if="game.currentUnitProgress.includes(problem.questIndex)">
-                    <img v-if="problem.questIndex === currentMaxIdx" src="/image/unit_duck.png" class="duck-on-node-v3">
+                    <img v-if="problem.questIndex === currentMaxIdx"
+                         :src="auth.userAvatarUrl || '/image/unit_duck.png'"
+                         class="duck-on-node-v3 user-avatar-on-node">
                     <div style="width: 20px; height: 20px; background: #b6ff40; border-radius: 50%; box-shadow: 0 0 10px #b6ff40;"></div>
                   </template>
                   <template v-else>
@@ -133,6 +139,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUpdated, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import axios from 'axios';
 import { useAuthStore } from '@/stores/auth';
 import { useGameStore } from '@/stores/game';
 import { useUiStore } from '@/stores/ui';
@@ -152,13 +159,17 @@ const route = useRoute();
 const router = useRouter();
 
 // Local State
-const leaderboard = ref([
-  { id: 1, username: 'TopEngineer', solved: 45, shakes: 2450 },
-  { id: 2, username: 'DjangoMaster', solved: 42, shakes: 2100 },
-  { id: 3, username: 'VueNinja', solved: 38, shakes: 1850 },
-  { id: 4, username: 'AgentZero', solved: 35, shakes: 1600 },
-  { id: 5, username: 'OpsWizard', solved: 30, shakes: 1400 }
-]);
+const leaderboard = ref([]);
+
+// [수정일: 2026-02-06] 리더보드 실시간 연동
+const fetchLeaderboard = async () => {
+    try {
+        const response = await axios.get('/api/core/activity/leaderboard/');
+        leaderboard.value = response.data.leaderboard;
+    } catch (error) {
+        console.error("Failed to fetch leaderboard:", error);
+    }
+};
 
 // [수정일: 2026-01-31] 미사용 상태 제거 (모드 통합으로 인해 불필요)
 // const detectiveLevel = ref('초급');
@@ -342,6 +353,7 @@ function handleGuidebookClick() {
 onMounted(() => {
   auth.checkSession();
   game.initGame();
+  fetchLeaderboard(); // [수정일: 2026-02-06] 리더보드 데이터 호출
   nextTick(() => {
     if (window.lucide) window.lucide.createIcons();
   });
@@ -439,7 +451,11 @@ onUpdated(() => {
 .user-profile-v2 {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.8rem;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0.4rem 0.8rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .user-info-v2 {
@@ -458,6 +474,35 @@ onUpdated(() => {
   font-size: 0.7rem;
   color: #b6ff40;
   font-weight: 900;
+  line-height: 1;
+}
+
+.user-avatar-header {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid rgba(182, 255, 64, 0.5);
+  box-shadow: 0 0 10px rgba(182, 255, 64, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  cursor: zoom-in;
+}
+
+.user-avatar-header:hover {
+  transform: scale(4.0);
+  border-color: #b6ff40;
+  box-shadow: 0 0 20px rgba(182, 255, 64, 0.6), 0 0 40px rgba(182, 255, 64, 0.3);
+  z-index: 1001;
+}
+
+.header-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .btn-logout-v2 {
@@ -469,5 +514,34 @@ onUpdated(() => {
   font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
+  margin-left: 0.5rem;
+}
+
+.btn-profile-settings {
+  background: rgba(182, 255, 64, 0.1);
+  color: #b6ff40;
+  border: 1px solid rgba(182, 255, 64, 0.2);
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-profile-settings:hover {
+  background: rgba(182, 255, 64, 0.2);
+  box-shadow: 0 0 10px rgba(182, 255, 64, 0.3);
+}
+
+/* User avatar on progression map node */
+.user-avatar-on-node {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 3px solid #b6ff40;
+  box-shadow: 0 0 20px rgba(182, 255, 64, 0.5);
+  object-fit: cover;
+  background: #000;
 }
 </style>

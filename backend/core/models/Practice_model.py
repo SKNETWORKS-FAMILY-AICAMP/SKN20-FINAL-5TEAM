@@ -32,6 +32,7 @@ class Practice(BaseModel):
     icon_name = models.CharField(max_length=50, default="book-open", help_text="Lucide 아이콘 이름")
     
     icon_image = models.ImageField(upload_to='practice_icons/', null=True, blank=True)
+    max_points = models.IntegerField(default=1000, help_text="해당 유닛 전체 완료 시 기준 총점")
     display_order = models.IntegerField(default=0)
     is_active = models.BooleanField(default=True)
 

@@ -1,5 +1,4 @@
-# 수정일: 2026-02-06
-# 수정내용: On-demand Docker 코드 실행 샌드박스 뷰 추가
+# 수정내용: 코드 실행 샌드박스 및 활동/아바타 뷰 병합 (Antigravity)
 
 from .user_view import UserProfileViewSet
 from .dashboard_view import DashboardLogViewSet
@@ -8,3 +7,4 @@ from .practice_view import PracticeViewSet
 from .auth_view import LoginView, LogoutView, SessionCheckView
 from .ai_view import AIEvaluationView, BugHuntEvaluationView
 from .code_execution_view import CodeExecutionView, BehaviorVerificationView
+from . import activity_view

@@ -18,6 +18,12 @@
         @signup-success="onSignUpSuccess"
     />
 
+    <!-- [회원 정보 수정 모달] -->
+    <ProfileSettingsModal
+        :isOpen="ui.isProfileSettingsModalOpen"
+        @close="ui.isProfileSettingsModalOpen = false"
+    />
+
      <!-- [접근 제한 안내 모달] -->
      <transition name="fade">
         <div v-if="ui.isAuthRequiredModalOpen" class="modal-overlay" @click.self="ui.isAuthRequiredModalOpen = false">
@@ -117,6 +123,7 @@ import NoticeModal from './NoticeModal.vue';
 import LoginModal from './LoginModal.vue';
 import SignUpModal from './SignUpModal.vue';
 import ConstructionModal from './ConstructionModal.vue';
+import ProfileSettingsModal from './ProfileSettingsModal.vue';
 import LogicMirrorGuidebook from '../features/practice/pseudocode/components/LogicMirrorGuidebook.vue'; // [수정일: 2026-02-06] 폴더 계층화(components) 반영
 
 /**

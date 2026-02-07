@@ -15,7 +15,8 @@ export const useUiStore = defineStore('ui', {
         isPseudoCodeOpen: false,
         isGuidebookOpen: false,
         isAgentModalOpen: false,
-        isReportModalOpen: false
+        isReportModalOpen: false,
+        isProfileSettingsModalOpen: false
     }),
 
     actions: {

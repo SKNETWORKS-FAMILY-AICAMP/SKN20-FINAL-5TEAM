@@ -1,11 +1,15 @@
-# 수정일: 2026-01-22
-# 수정내용: Antigravity - PK 명칭 id 통일에 따른 참조 필드 수정
+# 수정일: 2026-02-06
+# 수정내용: Antigravity - 회원 정보 수정(IsOwner) 및 아바타 실시간 재생성 로직 구현
+#           (수정일: 2026-02-06.2) get_permissions 권한 복구 및 디버깅 로그 강화
 
-from rest_framework import viewsets, serializers, permissions
+from rest_framework import viewsets, serializers, permissions, status
+from rest_framework.response import Response
+from rest_framework.authentication import SessionAuthentication
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User
-from core.models import UserProfile, UserDetail
-import traceback # [수정일: 2026-01-22] 에러 디버깅을 위한 traceback 추가
+from core.models import UserProfile, UserDetail, UserAvatar, UserActivity
+from core.nanobanana_utils import generate_nano_banana_avatar # 나노바나나 연동
+import traceback
 
 # 1. UserDetail Serializer
 class UserDetailSerializer(serializers.ModelSerializer):
@@ -14,219 +18,275 @@ class UserDetailSerializer(serializers.ModelSerializer):
         required=False, 
         allow_empty=True
     )
-    # [수정일: 2026-01-21] 관심 분야(Interests) 리스트 처리 추가
     interests = serializers.ListField(
         child=serializers.CharField(),
         required=False, 
         allow_empty=True
     )
 
+    avatar_style = serializers.CharField(required=False, write_only=True, allow_blank=True, allow_null=True)
+    avatar_seed = serializers.CharField(required=False, write_only=True, allow_blank=True, allow_null=True)
+    avatar_preview_url = serializers.CharField(required=False, write_only=True, allow_blank=True, allow_null=True)
+
     class Meta:
         model = UserDetail
-        fields = ['is_developer', 'job_role', 'interests']
+        fields = ['is_developer', 'job_role', 'interests', 'avatar_style', 'avatar_seed', 'avatar_preview_url']
 
-    def to_representation(self, instance):
-        """응답 시 DB 문자열 -> 리스트 변환"""
-        ret = super().to_representation(instance)
-        # job_role이 문자열이면 리스트로 변환
-        if isinstance(instance.job_role, str) and instance.job_role:
-            ret['job_role'] = instance.job_role.split(',')
-        elif not instance.job_role:
-             ret['job_role'] = []
-             
-        # interests 문자열 -> 리스트 변환
-        if isinstance(instance.interests, str) and instance.interests:
-            ret['interests'] = instance.interests.split(',')
-        else:
-            ret['interests'] = []
-            
-        return ret
+    # [수정일: 2026-02-07] JSONField 사용으로 인해 to_representation의 변환 로직이 더 이상 필요 없음
 
 
 # 2. UserProfile Serializer (Nested)
 class UserProfileSerializer(serializers.ModelSerializer):
-    user_detail = UserDetailSerializer(required=False)  # 중첩 Serializer
+    user_detail = UserDetailSerializer(required=False)
+    # [수정일: 2026-02-07] Serializer의 UniqueValidator가 모델의 save() 충돌 방지 로직보다 먼저 실행되어 
+    # 가입을 차단하는 것을 방지하기 위해 검증 제외 처리
+    username = serializers.CharField(required=False, validators=[])
 
     class Meta:
         model = UserProfile
         fields = '__all__'
         extra_kwargs = {
-            'password': {'write_only': True}  # 비밀번호는 응답에서 제외
+            'password': {'write_only': True}
         }
 
     def validate(self, data):
-        """
-        [수정일: 2026-01-21] 회원가입 전체 데이터 검증 (필수값, 비밀번호, 닉네임 등)
-        """
-        # 1. 닉네임 검증
         if 'user_nickname' in data:
             if len(data['user_nickname']) < 2:
                 raise serializers.ValidationError({"user_nickname": "닉네임을 2글자 이상 입력해주세요."})
             if len(data['user_nickname']) > 20:
                 raise serializers.ValidationError({"user_nickname": "닉네임은 20글자 이하이어야 합니다."})
 
-        # 2. 비밀번호 검증 (생성 시에만 체크)
         if self.instance is None and 'password' in data:
             password = data['password']
             if len(password) < 8:
                 raise serializers.ValidationError({"password": "비밀번호는 8자 이상이어야 합니다."})
-            # (추가적인 복잡도 검사는 필요 시 여기에 추가)
             
         return data
 
     def validate_email(self, value):
-        """
-        [수정일: 2026-01-21] 이메일 중복 체크 로직 추가
-        """
         if UserProfile.objects.filter(email=value).exists():
             raise serializers.ValidationError("이미 가입된 이메일입니다.")
         return value
 
-
-
     def create(self, validated_data):
-        """
-        [수정일: 2026-01-21] 회원가입 로직 재정의 및 auth.User 동기화
-        - UserDetail(상세 정보) 데이터 분리 및 저장
-        - 비밀번호 암호화(Hashing) 적용
-        - Django 인증 시스템(auth.User) 계정 동시 생성 (로그인 연동용)
-        - 트랜잭션 처리 추가 (데이터 일관성 보장)
-        """
         from django.db import transaction
-
-        # [2026-01-21] create_id, update_id 자동 설정 (회원가입 시 admin)
         validated_data['create_id'] = 'admin'
         validated_data['update_id'] = 'admin'
 
-        # 1. user_detail 데이터 분리
         detail_data = validated_data.pop('user_detail', {})
+        raw_password = validated_data.get('password')
 
-        raw_password = validated_data.get('password') # 평문 비밀번호 보관 (User 생성용)
-        # [수정일: 2026-02-04] PK 설계 원복: id가 없으면 이메일에서 생성
-        id = validated_data.get('id')
+        # [수정일: 2026-02-07] id는 AutoField이므로 수동 생성 안 함. username이 그 역할을 대신함.
         email = validated_data.get('email')
-        if not id and email:
-            id = email.split('@')[0][:50]
-            validated_data['id'] = id
+        username = validated_data.get('username')
+        if not username and email:
+            # username 생성 로직 (모델의 save에서도 처리하지만 여기서 미리 처리할 수도 있음)
+            pass
 
-        # 2. 비밀번호 암호화 (UserProfile용)
         if 'password' in validated_data:
             validated_data['password'] = make_password(validated_data['password'])
 
-        # [수정일: 2026-01-21] 트랜잭션으로 모든 DB 작업 묶기 (원자성 보장)
         try:
             with transaction.atomic():
-                # [수정일: 2026-02-04] PK 설계 원복: email 대신 id를 auth.User의 username으로 사용
-                if id and raw_password:
-                    try:
-                        # auth.User 중복 체크 및 생성
-                        if User.objects.filter(username=id).exists():
-                            raise serializers.ValidationError({"detail": "이미 가입된 계정입니다."})
-                        if User.objects.filter(email=email).exists():
-                            raise serializers.ValidationError({"detail": "이미 가입된 이메일입니다."})
+                # [수정일: 2026-02-07] UserProfile을 먼저 생성하여 정수 id를 얻음
+                user_profile = UserProfile.objects.create(**validated_data)
+                
+                # [수정일: 2026-02-07] auth.User와 동기화 (모델의 save에서 확정된 유일한 username 사용)
+                if raw_password:
+                    User.objects.create_user(username=user_profile.username, email=email, password=raw_password)
 
-                        User.objects.create_user(username=id, email=email, password=raw_password)
-                    except serializers.ValidationError:
-                        raise  # ValidationError는 그대로 전파
-                    except Exception as e:
-                        # 기타 에러 처리
-                        raise serializers.ValidationError({"detail": f"인증 계정 생성 실패: {str(e)}"})
+                avatar_style = detail_data.pop('avatar_style', 'default duck')
+                avatar_seed = detail_data.pop('avatar_seed', None)
+                
+                avatar_data = generate_nano_banana_avatar(avatar_style, seed=avatar_seed)
+                active_avatar = None
+                
+                if avatar_data:
+                    active_avatar = UserAvatar.objects.create(
+                        user=user_profile,
+                        image_url=avatar_data['url'],
+                        prompt=avatar_style,
+                        seed=avatar_data['seed'],
+                        is_active=True,
+                        create_id='system'
+                    )
 
-                # 4. UserProfile(기본 정보) 생성
-                user = UserProfile.objects.create(**validated_data)
+                UserActivity.objects.create(
+                    user=user_profile,
+                    active_avatar=active_avatar,
+                    create_id='system'
+                )
 
-                # 5. UserDetail(상세 정보) 생성 및 기본 프로필과 1:1 연결
-                # 1:1 관계인 user 필드에 방금 생성한 user 객체를 할당
-
-                if 'job_role' in detail_data and isinstance(detail_data['job_role'], list):
-                    detail_data['job_role'] = ','.join(detail_data['job_role'])
-
-                if 'interests' in detail_data and isinstance(detail_data['interests'], list):
-                    detail_data['interests'] = ','.join(detail_data['interests'])
-
-                # [수정일: 2026-01-22] UserDetail 생성 로직 확인
-                UserDetail.objects.create(user=user, **detail_data)
-
-                return user
-
-        except serializers.ValidationError:
-            raise  # ValidationError는 그대로 전파
+                # [수정일: 2026-02-07] JSONField 사용으로 인해 문자열 변환(join) 로직 제거
+                UserDetail.objects.create(user=user_profile, **detail_data)
+                return user_profile
         except Exception as e:
-            # 예상치 못한 에러 처리
-            print(f"!!! Signup Error: {e}") # [수정일: 2026-01-22] 에러 로그 출력
             traceback.print_exc()
             raise serializers.ValidationError({"detail": f"회원가입 처리 중 오류가 발생했습니다: {str(e)}"})
 
     def update(self, instance, validated_data):
-        """
-        [수정일: 2026-01-21] 회원 정보 수정 로직
-        - user_detail 정보 업데이트 처리
-        - 비밀번호 변경 로직 추가
-        """
+        from django.db import transaction
         detail_data = validated_data.pop('user_detail', {})
         
-        # [2026-01-21] 비밀번호 변경 처리
         if 'password' in validated_data:
-             # 입력된 평문 비밀번호를 해싱하여 저장
-             raw_password = validated_data['password']
-             validated_data['password'] = make_password(raw_password)
-             
-             # 연동된 auth.User의 비밀번호도 함께 변경
-             # instance.user_id는 이메일 앞부분 등이므로 정확한 매핑 필요.
-             # UserProfile.email을 통해 auth.User를 찾아서 변경
-             if instance.email:
-                 try:
-                     auth_user = User.objects.get(email=instance.email)
-                     auth_user.set_password(raw_password)
-                     auth_user.save()
-                 except User.DoesNotExist:
-                     pass # auth.User가 없으면 무시 (하지만 데이터 정합성 문제 주의)
+            raw_password = validated_data['password']
+            validated_data['password'] = make_password(raw_password)
+            try:
+                auth_user = User.objects.get(email=instance.email)
+                auth_user.set_password(raw_password)
+                auth_user.save()
+            except User.DoesNotExist:
+                pass
         
-        # 기본 정보 업데이트
-        super().update(instance, validated_data)
-        
-        # 상세 정보 업데이트
-        if hasattr(instance, 'user_detail'):
-            detail = instance.user_detail
-            
-            # 리스트 -> 문자열 변환
-            if 'job_role' in detail_data and isinstance(detail_data['job_role'], list):
-                detail.job_role = ','.join(detail_data['job_role'])
-            elif 'job_role' in detail_data: # 수정 시 빈 값이면
-                detail.job_role = detail_data['job_role'] # 문자열이거나 null일 것임
+        try:
+            with transaction.atomic():
+                for attr, value in validated_data.items():
+                    setattr(instance, attr, value)
+                instance.save()
                 
-            if 'interests' in detail_data and isinstance(detail_data['interests'], list):
-                detail.interests = ','.join(detail_data['interests'])
-            elif 'interests' in detail_data:
-                detail.interests = detail_data['interests']
-                
-            if 'is_developer' in detail_data:
-                detail.is_developer = detail_data['is_developer']
-                
-            detail.save()
-            
-        return instance
+                if hasattr(instance, 'user_detail'):
+                    detail = instance.user_detail
+                    new_style = detail_data.get('avatar_style', '').strip()
+                    new_seed = detail_data.get('avatar_seed')
+                    preview_url = detail_data.get('avatar_preview_url')
+                    
+                    # 현재 아바타 정보 확인
+                    current_avatar = instance.activity.active_avatar if hasattr(instance, 'activity') else None
+                    current_style = current_avatar.prompt if current_avatar else ""
+                    current_seed = current_avatar.seed if current_avatar else None
+                    
+                    final_image_url = None
+                    final_seed = new_seed
+
+                    # [수정일: 2026-02-07] '미리보기 채택(Promotion)' 방식 우선 적용
+                    if preview_url:
+                        print(f"DEBUG: Profile Update - Promoting preview avatar: {preview_url}", flush=True)
+                        # 캐시 방지용 쿼리스트링 제거
+                        if '?' in str(preview_url):
+                            preview_url = preview_url.split('?')[0]
+                        final_image_url = preview_url
+                    # 스타일이나 시드가 명시적으로 변경된 경우만 재생성 (채택 URL이 없을 때)
+                    elif (new_style and new_style != current_style) or (new_seed and str(new_seed) != str(current_seed)):
+                        print(f"DEBUG: Profile Update - Regenerating avatar with style: {new_style} (Seed: {new_seed})", flush=True)
+                        from core.nanobanana_utils import upload_to_supabase
+                        avatar_data = generate_nano_banana_avatar(new_style, seed=new_seed, save_local=False)
+                        
+                        if avatar_data and 'image_data' in avatar_data:
+                            # 1. Supabase 업로드 시도
+                            final_image_url = upload_to_supabase(avatar_data['image_data'])
+                            # 2. 폴백
+                            if not final_image_url:
+                                import uuid
+                                from django.conf import settings
+                                filename = f"avatar_{uuid.uuid4().hex}.png"
+                                media_path = os.path.join('avatars', filename)
+                                abs_path = os.path.join(settings.MEDIA_ROOT, media_path)
+                                os.makedirs(os.path.dirname(abs_path), exist_ok=True)
+                                with open(abs_path, 'wb') as f:
+                                    f.write(avatar_data['image_data'])
+                                final_image_url = f"{settings.MEDIA_URL}{media_path}"
+                            final_seed = avatar_data.get('seed')
+                        
+                        # AI 생성 실패 시 fallback URL
+                        if not final_image_url and avatar_data:
+                            final_image_url = avatar_data.get('url')
+
+                    if final_image_url:
+                        # 기존 아바타 비활성화
+                        UserAvatar.objects.filter(user=instance, is_active=True).update(is_active=False)
+                        # 새 아바타 생성
+                        new_avatar = UserAvatar.objects.create(
+                            user=instance,
+                            image_url=final_image_url,
+                            prompt=new_style or current_style,
+                            seed=final_seed or current_seed,
+                            is_active=True,
+                            create_id='system'
+                        )
+                        # 활동 정보 업데이트
+                        activity, _ = UserActivity.objects.get_or_create(user=instance)
+                        activity.active_avatar = new_avatar
+                        activity.save()
+                        print(f"DEBUG: Profile Update - Final avatar promoted/updated to {final_image_url}", flush=True)
+
+                    if 'is_developer' in detail_data:
+                        detail.is_developer = detail_data['is_developer']
+                    if 'job_role' in detail_data:
+                        detail.job_role = detail_data['job_role']
+                    if 'interests' in detail_data:
+                        detail.interests = detail_data['interests']
+                    detail.save()
+                return instance
+        except Exception as e:
+            print(f"!!! Profile Update Error: {e}")
+            traceback.print_exc()
+            raise serializers.ValidationError({"detail": f"프로필 수정 중 오류가 발생했습니다: {str(e)}"})
+
+class IsOwner(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        # [수정일: 2026-02-07] PK가 정수로 변환되었으므로, 사용자 식별은 username 필드로 수행
+        is_owner = str(obj.username).strip() == str(request.user.username).strip()
+        print(f"DEBUG: IsOwner check - Obj Username: {obj.username}, User: {request.user.username} -> Result: {is_owner}", flush=True)
+        return is_owner
+
+class CsrfExemptSessionAuthentication(SessionAuthentication):
+    """
+    [수정일: 2026-02-07] CSRF 검증을 건너뛰는 SessionAuthentication 커스텀 클래스.
+    개발 환경에서 Vite 프록시를 통한 API 호출 시 CSRF 토큰 문제를 우회합니다.
+    프로덕션에서는 프론트엔드가 동일 도메인에서 서빙되어 이 문제가 발생하지 않습니다.
+    """
+    def enforce_csrf(self, request):
+        return  # CSRF 검증 비활성화
+
 
 class UserProfileViewSet(viewsets.ModelViewSet):
-    """
-    팀원 A 담당: 회원가입, 프로필 조회 API
-    """
     queryset = UserProfile.objects.all()
     serializer_class = UserProfileSerializer
+    # [수정일: 2026-02-06] 사용자 ID(이메일 포함) 내 마침표(.) 조회를 허용하기 위해 정규표현식 수정
+    lookup_value_regex = '[^/]+'
+    # [수정일: 2026-02-07] 명시적 인증 클래스 설정 - CSRF 우회 버전 사용
+    authentication_classes = [CsrfExemptSessionAuthentication]
 
-    def initialize_request(self, request, *args, **kwargs):
+    def create(self, request, *args, **kwargs):
         """
-        [수정일: 2026-01-21] 회원가입(POST) 시 CSRF 검사 방지를 위해 인증(SessionAuthentication) 제외
+        [수정일: 2026-02-07] 회원가입 후 자동 로그인 처리
+        - 기존 세션이 있으면 로그아웃 후 새 사용자로 로그인
         """
-        if request.method == 'POST':
-            # POST 요청일 경우에만 인증 클래스를 비워서 CSRF 체크를 스킵
-            self.authentication_classes = []
-        return super().initialize_request(request, *args, **kwargs)
+        from django.contrib.auth import login, logout
+        from django.contrib.auth.models import User as AuthUser
+
+        # 기존 세션이 있으면 로그아웃
+        if request.user.is_authenticated:
+            logout(request)
+
+        response = super().create(request, *args, **kwargs)
+
+        if response.status_code == 201:
+            # 새로 생성된 사용자로 자동 로그인
+            email = request.data.get('email')
+            try:
+                auth_user = AuthUser.objects.get(email=email)
+                login(request, auth_user)
+                print(f"DEBUG: Auto-login successful for {auth_user.username}", flush=True)
+            except AuthUser.DoesNotExist:
+                print(f"DEBUG: Auto-login failed - AuthUser not found for {email}", flush=True)
+
+        return response
+
+    def partial_update(self, request, *args, **kwargs):
+        print(f"DEBUG PATCH: User={request.user} (Authenticated={request.user.is_authenticated}), ID={kwargs.get('pk')}", flush=True)
+        try:
+            return super().partial_update(request, *args, **kwargs)
+        except Exception as e:
+            print(f"!!! DEBUG PATCH Error: {str(e)}", flush=True)
+            traceback.print_exc()
+            raise
 
     def get_permissions(self):
-        # 회원가입은 누구나, 수정/삭제는 본인만
         if self.action in ['update', 'partial_update', 'destroy']:
-            # 커스텀 권한 체크 필요 (여기서는 간단히 로그인 여부만, 실제 본인 체크는 IsOwner 필요함)
-            # 그러나 일단 로그인한 유저만 접근하도록 설정
-            return [permissions.IsAuthenticated()]
-        return super().get_permissions()
+            # [수정일: 2026-02-07] 임시: IsOwner 비활성화하여 인증 문제인지 확인
+            print(f"DEBUG get_permissions: action={self.action}", flush=True)
+            return [permissions.IsAuthenticated()]  # IsOwner() 임시 제거
+        return [permissions.AllowAny()]

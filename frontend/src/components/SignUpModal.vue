@@ -13,75 +13,102 @@
             <p class="auth-subtitle">아키텍처 훈련센터의 정식 요원으로 등록하세요.</p>
           </header>
           
-          <div class="auth-body">
-            <div class="input-group">
-              <label class="input-label">ENGINEER CALLSIGN</label>
-              <input type="text" v-model="nickname" class="auth-input" placeholder="당신의 호출명을 입력하세요 (Ex. Nova)">
-            </div>
-            <div class="input-group">
-              <label class="input-label">ENGINEERING ID (EMAIL)</label>
-              <input type="email" v-model="email" class="auth-input" placeholder="이메일을 입력하세요">
-            </div>
-            <div class="input-group">
-              <label class="input-label">ACCESS SECRET</label>
-              <input type="password" v-model="password" class="auth-input" placeholder="비밀번호 (8자 이상)">
-            </div>
-
-            <!-- 추가 정보 섹션 -->
-            <div class="input-row" style="display: flex; gap: 1rem; margin-bottom: 1rem;">
-              <div class="input-group" style="flex: 1;">
-                <label class="input-label">BIRTH DATE</label>
-                <input type="date" v-model="birthDate" class="auth-input date-input">
+          <form @submit.prevent="completeSignUp">
+            <div class="auth-body">
+              <div class="input-group">
+                <label class="input-label">ENGINEER CALLSIGN <span class="required-mark">*</span></label>
+                <input type="text" v-model="nickname" class="auth-input" placeholder="당신의 호출명을 입력하세요 (Ex. Nova)">
               </div>
-              <div class="input-group" style="flex: 1;">
-                <label class="input-label">DEVELOPER STATUS</label>
-                <div class="toggle-group" style="display: flex; background: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 4px;">
-                  <label class="toggle-choice" style="flex: 1; text-align: center; cursor: pointer; padding: 6px; border-radius: 6px;" :style="isDeveloper ? 'background: var(--primary); color: white;' : 'color: var(--text-muted);'">
-                    <input type="radio" :value="true" v-model="isDeveloper" style="display: none;">
-                    <span>Yes</span>
-                  </label>
-                  <label class="toggle-choice" style="flex: 1; text-align: center; cursor: pointer; padding: 6px; border-radius: 6px;" :style="!isDeveloper ? 'background: var(--primary); color: white;' : 'color: var(--text-muted);'">
-                    <input type="radio" :value="false" v-model="isDeveloper" style="display: none;">
-                    <span>No</span>
-                  </label>
+              <div class="input-group">
+                <label class="input-label">ENGINEERING ID (EMAIL) <span class="required-mark">*</span></label>
+                <input type="email" v-model="email" class="auth-input" placeholder="이메일을 입력하세요">
+              </div>
+              <div class="input-group">
+                <label class="input-label">ACCESS SECRET <span class="required-mark">*</span></label>
+                <input type="password" v-model="password" class="auth-input" placeholder="비밀번호 (8자 이상)">
+              </div>
+
+              <!-- [NEW] 아바타 선택 및 미리보기 섹션 -->
+              <div class="input-group avatar-custom-section" style="margin-top: 1.5rem; padding: 1rem; background: rgba(182, 255, 64, 0.05); border-radius: 12px; border: 1px dashed rgba(182, 255, 64, 0.3);">
+                <label class="input-label" style="color: #b6ff40; display: flex; align-items: center; gap: 8px;">
+                   <i data-lucide="sparkles" style="width: 16px;"></i> NANO-BANANA AVATAR DESIGN
+                </label>
+                <div style="display: flex; gap: 1rem; margin-top: 0.8rem;">
+                  <div style="flex: 2;">
+                    <input type="text" v-model="avatarStyle" class="auth-input" placeholder="원하는 스타일 입력 (Ex. Cyberpunk Duck)" @keydown.enter.prevent="previewAvatar" style="border-color: rgba(182, 255, 64, 0.4);">
+                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.4rem;">💡 스타일 입력 후 <b>엔터(Enter)</b>를 치거나 우측 버튼을 누르세요.</p>
+                  </div>
+                  <button type="button" class="btn btn-primary" @click="previewAvatar" :disabled="isPreviewing" style="width: 100px; height: 48px; min-height: 48px; font-weight: 800; letter-spacing: 0.5px; box-shadow: 0 0 10px rgba(182, 255, 64, 0.2); font-size: 0.85rem; border-radius: 8px !important; flex: none; display: flex; align-items: center; justify-content: center; padding: 0 !important;">
+                    {{ isPreviewing ? '...' : 'CREATE' }}
+                  </button>
+                </div>
+                
+                <div class="avatar-preview-display" style="margin-top: 1rem; display: flex; justify-content: center;">
+                  <div v-if="avatarPreviewUrl" class="preview-card" style="position: relative; width: 220px; height: 220px; border-radius: 20px; overflow: hidden; border: 3px solid #b6ff40; box-shadow: 0 0 25px rgba(182, 255, 64, 0.4); background: #000;">
+                    <img :src="avatarPreviewUrl" alt="Avatar Preview" style="width: 100%; height: 100%; object-fit: cover;">
+                  </div>
+                  <div v-else class="preview-placeholder" style="width: 220px; height: 220px; background: rgba(255,255,255,0.05); border-radius: 20px; border: 2px dashed rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 10px;">
+                    스타일을 입력하고<br>미리보기 해보세요!
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <transition name="fade">
-              <div class="input-group" v-if="isDeveloper">
-                <label class="input-label">JOB ROLE (Multiple Select)</label>
-                <div class="checkbox-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
-                  <label v-for="role in jobRolesOptions" :key="role.value" class="checkbox-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                    <input type="checkbox" :value="role.value" v-model="jobRole" style="accent-color: var(--primary);">
-                    <span style="font-size: 0.9rem; color: #cbd5e1;">{{ role.label }}</span>
-                  </label>
+              <!-- 추가 정보 섹션 -->
+              <div class="input-row" style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                <!-- ... 생략 (기존 내용 유지) ... -->
+                <div class="input-group" style="flex: 1;">
+                  <label class="input-label">BIRTH DATE</label>
+                  <input type="date" v-model="birthDate" class="auth-input date-input" :max="today">
                 </div>
-
-                <!-- IT INTERESTS 추가 -->
-                <div class="input-group" style="margin-top: 1rem;">
-                    <label class="input-label">IT INTERESTS</label>
-                    <div class="interest-chips" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                        <label v-for="tag in interestsOptions" :key="tag.value" class="chip" style="cursor: pointer; padding: 5px 10px; border-radius: 20px; background: rgba(255,255,255,0.1); display: flex; align-items: center; gap: 5px; transition: all 0.2s;" :style="interests.includes(tag.value) ? 'background: var(--primary); color: #000;' : ''">
-                            <input type="checkbox" :value="tag.value" v-model="interests" style="display: none;">
-                            <span>{{ tag.label }}</span>
-                        </label>
-                        <div class="custom-interest-input-wrapper">
-                            <input type="text" v-model="customInterest" @keyup.enter="addCustomInterest"
-                                placeholder="+ 직접 입력" class="auth-input custom-interest-input" style="padding: 5px 10px; border-radius: 20px; font-size: 0.9rem; width: 100px;">
-                        </div>
-                    </div>
+                <div class="input-group" style="flex: 1;">
+                  <label class="input-label">DEVELOPER STATUS</label>
+                  <div class="toggle-group" style="display: flex; background: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 4px;">
+                    <label class="toggle-choice" style="flex: 1; text-align: center; cursor: pointer; padding: 6px; border-radius: 6px;" :style="isDeveloper ? 'background: var(--primary); color: white;' : 'color: var(--text-muted);'">
+                      <input type="radio" :value="true" v-model="isDeveloper" style="display: none;">
+                      <span>Yes</span>
+                    </label>
+                    <label class="toggle-choice" style="flex: 1; text-align: center; cursor: pointer; padding: 6px; border-radius: 6px;" :style="!isDeveloper ? 'background: var(--primary); color: white;' : 'color: var(--text-muted);'">
+                      <input type="radio" :value="false" v-model="isDeveloper" style="display: none;">
+                      <span>No</span>
+                    </label>
+                  </div>
                 </div>
               </div>
-            </transition>
-          </div>
-          
-          <footer class="auth-footer">
-            <button class="btn btn-secondary" @click="$emit('close')" style="flex: 1;">Cancel</button>
-            <button class="btn btn-primary" @click="completeSignUp" :disabled="isSubmitting" style="flex: 2;">
-              {{ isSubmitting ? 'Registering...' : '훈련 참가하기' }}
-            </button>
-          </footer>
+
+              <transition name="fade">
+                <div class="input-group" v-if="isDeveloper">
+                  <label class="input-label">JOB ROLE (Multiple Select)</label>
+                  <div class="checkbox-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
+                    <label v-for="role in jobRolesOptions" :key="role.value" class="checkbox-item" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                      <input type="checkbox" :value="role.value" v-model="jobRole" style="accent-color: var(--primary);">
+                      <span style="font-size: 0.9rem; color: #cbd5e1;">{{ role.label }}</span>
+                    </label>
+                  </div>
+
+                  <div class="input-group" style="margin-top: 1rem;">
+                      <label class="input-label">IT INTERESTS</label>
+                      <div class="interest-chips" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                          <label v-for="tag in interestsOptions" :key="tag.value" class="chip" style="cursor: pointer; padding: 5px 10px; border-radius: 20px; background: rgba(255,255,255,0.1); display: flex; align-items: center; gap: 5px; transition: all 0.2s;" :style="interests.includes(tag.value) ? 'background: var(--primary); color: #000;' : ''">
+                              <input type="checkbox" :value="tag.value" v-model="interests" style="display: none;">
+                              <span>{{ tag.label }}</span>
+                          </label>
+                          <div class="custom-interest-input-wrapper">
+                              <input type="text" v-model="customInterest" @keyup.enter="addCustomInterest"
+                                  placeholder="+ 직접 입력" class="auth-input custom-interest-input" style="padding: 5px 10px; border-radius: 20px; font-size: 0.9rem; width: 100px;">
+                          </div>
+                      </div>
+                  </div>
+                </div>
+              </transition>
+            </div>
+            
+            <footer class="auth-footer">
+              <button type="button" class="btn btn-secondary" @click="$emit('close')" style="flex: 1;">Cancel</button>
+              <button type="submit" class="btn btn-primary" :disabled="isSubmitting" style="flex: 2;">
+                {{ isSubmitting ? 'Registering...' : '훈련 참가하기' }}
+              </button>
+            </footer>
+          </form>
         </template>
 
         <!-- 성공 화면 (v-else) -->
@@ -105,6 +132,7 @@
 
 <script>
 import axios from 'axios'; // 2024-05-23: 서버와 데이터를 주고받기 위한 Promise 기반의 HTTP 클라이언트 라이브러리입니다.
+import { useAuthStore } from '@/stores/auth'; // [수정일: 2026-02-07] 자동 로그인 상태 갱신용
 
 export default {
   name: 'SignUpModal',
@@ -113,6 +141,10 @@ export default {
       type: Boolean,
       required: true
     }
+  },
+  setup() {
+    const authStore = useAuthStore();
+    return { authStore };
   },
   data() {
     return {
@@ -127,7 +159,14 @@ export default {
       interestsOptions: [], // API로 로드된 관심사 목록
       customInterest: '', // 직접 입력 텍스트
       isSubmitting: false,
-      isSuccess: false
+      isSuccess: false,
+      // [수정일: 2026-02-06] 아바타 커스텀 상태
+      avatarStyle: 'default duck',
+      avatarPreviewUrl: null,
+      isPreviewing: false,
+      avatarSeed: Math.floor(Math.random() * 100000),
+      // [수정일: 2026-02-07] 오늘 날짜 (미래 날짜 선택 방지용)
+      today: new Date().toISOString().split('T')[0]
     }
   },
   watch: {
@@ -143,6 +182,10 @@ export default {
         this.interests = [];
         this.customInterest = '';
         this.isSuccess = false;
+        // [수정일: 2026-02-06] 아바타 상태 초기화
+        this.avatarStyle = 'default duck';
+        this.avatarPreviewUrl = null;
+        this.avatarSeed = Math.floor(Math.random() * 100000);
         
         this.fetchCommonCodes();
       }
@@ -195,6 +238,27 @@ export default {
         }
     },
     
+    async previewAvatar() {
+      if (!this.avatarStyle.trim()) return;
+      this.isPreviewing = true;
+      try {
+        const response = await axios.post('/api/core/activity/preview/', {
+          prompt: this.avatarStyle,
+          seed: this.avatarSeed
+        });
+        if (response.data.fallback) {
+          console.warn('AI Avatar Generation Fallback:', response.data.error_msg);
+          alert('💡 현재 AI 아바타 생성 서버가 혼잡하여 기본 오리로 대체되었습니다. 나중에 다시 시도해 주세요!');
+        }
+        this.avatarPreviewUrl = response.data.url + '?t=' + new Date().getTime();
+      } catch (error) {
+        console.error('Failed to preview avatar:', error);
+        alert('아바타 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+      } finally {
+        this.isPreviewing = false;
+      }
+    },
+
     // [수정일: 2026-01-20] 성공 화면에서 '로그인하러 가기' 클릭 시 처리
     closeAndLogin() {
       this.$emit('signup-success', this.nickname); // 부모 컴포넌트에 알림
@@ -214,14 +278,16 @@ export default {
       const formData = {
         user_nickname: this.nickname,
         user_name: this.nickname, // 이름은 닉네임으로 대체 (필요 시 별도 입력 필드 추가)
-        id: this.email,           // [수정일: 2026-01-22] user_id -> id로 변경 (Back-end 모델 리팩토링 반영)
+        username: this.email.split('@')[0], // [수정일: 2026-02-07] id 대신 username 필드 사용
         email: this.email,
         password: this.password,
         birth_date: this.birthDate || null,
         user_detail: {
           is_developer: this.isDeveloper,
           job_role: this.jobRole || null,
-          interests: this.interests || null // 관심사 추가
+          interests: this.interests || null, // 관심사 추가
+          avatar_style: this.avatarStyle,    // [수정일: 2026-02-06] 아바타 스타일 추가
+          avatar_seed: this.avatarSeed       // [수정일: 2026-02-06] 아바타 시드 추가
         }
       };
 
@@ -233,7 +299,8 @@ export default {
         
         // 3. 성공 처리 (HTTP 201 Created)
         if (response.status === 201) {
-          // alert('회원가입이 완료되었습니다! 로그인해주세요.'); // 기존 alert 제거
+          // [수정일: 2026-02-07] 회원가입 후 자동 로그인 세션 갱신
+          await this.authStore.checkSession();
           this.isSuccess = true; // 성공 화면으로 전환
         }
       } catch (error) {
@@ -266,5 +333,11 @@ export default {
 </script>
 
 <style scoped>
+.required-mark {
+    color: #ef4444;
+    margin-left: 4px;
+    font-weight: bold;
+}
+
 /* Inherits global styles from style.css */
 </style>
