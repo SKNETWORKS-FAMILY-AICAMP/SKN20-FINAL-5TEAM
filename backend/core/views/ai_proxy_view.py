@@ -1,0 +1,63 @@
+
+import openai
+from django.conf import settings
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import AllowAny
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+
+# [수정일: 2026-02-08] AI Proxy View 추가 (Antigravity)
+@method_decorator(csrf_exempt, name='dispatch')
+class AIProxyView(APIView):
+    """
+    OpenAI API 프록시 뷰 (프론트엔드에서 API Key 노출 방지)
+    """
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        try:
+            # 1. 요청 데이터 추출
+            messages = request.data.get('messages', [])
+            model = request.data.get('model', 'gpt-4o-mini')
+            max_tokens = request.data.get('max_tokens', 1500)
+            temperature = request.data.get('temperature', 0.7)
+
+            if not messages:
+                return Response({"error": "Messages are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+            # 2. API Key 확인
+            api_key = settings.OPENAI_API_KEY
+            if not api_key:
+                print("[AIProxy] Error: OPENAI_API_KEY is missing in settings.", flush=True)
+                return Response({"error": "OpenAI API Key is missing on server"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            print(f"[AIProxy] Loaded API Key: {api_key[:10]}...{api_key[-4:]} (Length: {len(api_key)})", flush=True)
+
+            client = openai.OpenAI(api_key=api_key)
+
+            # 3. OpenAI API 호출
+            print(f"[AIProxy] Calling OpenAI ({model})...", flush=True)
+            response = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                max_tokens=max_tokens,
+                temperature=temperature
+            )
+
+            # 4. 응답 반환
+            ai_content = response.choices[0].message.content
+            print("[AIProxy] OpenAI Call Success!", flush=True)
+            return Response({"content": ai_content}, status=status.HTTP_200_OK)
+
+        except openai.AuthenticationError as e:
+            print(f"[AIProxy] Authentication Error (Check API Key): {e}", flush=True)
+            return Response({"error": "Invalid API Key or Authentication Error"}, status=status.HTTP_401_UNAUTHORIZED)
+        except openai.RateLimitError as e:
+            print(f"[AIProxy] Rate Limit Error (Quota Exceeded?): {e}", flush=True)
+            return Response({"error": "Rate Limit Exceeded"}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+        except Exception as e:
+            print(f"[AIProxy] General Error: {e}", flush=True)
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

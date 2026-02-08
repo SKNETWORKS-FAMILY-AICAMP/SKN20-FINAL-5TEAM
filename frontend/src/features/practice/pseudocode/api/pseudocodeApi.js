@@ -1,19 +1,29 @@
 /**
  * Pseudocode Practice API Service (Deep Dive Evaluation)
  * SystemArchitecture 스타일의 면접관 페르소나 평가 방식 적용
+ * [수정일: 2026-02-08] 즉시 평가, 루브릭 기반 평가, 재시도 로직 추가
  */
 
-const getApiKey = () => import.meta.env.VITE_OPENAI_API_KEY;
+import {
+  EVALUATION_RUBRIC,
+  FEW_SHOT_EXAMPLES,
+  buildEvaluationPrompt,
+  CONSISTENCY_CHECK_RULES
+} from '../evaluationRubric.js';
+import axios from 'axios';
+
+// const getApiKey = () => import.meta.env.VITE_OPENAI_API_KEY; // Deprecated: Use Backend Proxy
 
 /**
- * OpenAI API 호출 기본 함수
+ * OpenAI API 호출 기본 함수 (재시도 로직 포함)
  */
 async function callOpenAI(prompt, options = {}) {
   const {
     model = 'gpt-4o-mini',
     maxTokens = 1500,
     temperature = 0.4,
-    systemMessage = null
+    systemMessage = null,
+    maxRetries = 2
   } = options;
 
   const messages = [];
@@ -22,27 +32,109 @@ async function callOpenAI(prompt, options = {}) {
   }
   messages.push({ role: 'user', content: prompt });
 
-  try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getApiKey()}`
-      },
-      body: JSON.stringify({
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      // [Modified] Call Backend Proxy instead of OpenAI directly
+      const response = await axios.post('/api/core/ai-proxy/', {
         model,
         messages,
         max_tokens: maxTokens,
         temperature
-      })
+      });
+
+      return response.data.content.trim();
+    } catch (error) {
+      if (attempt < maxRetries) {
+        console.warn(`Retry ${attempt + 1}/${maxRetries} after error:`, error);
+        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+        continue;
+      }
+      console.error('OpenAI Call Error:', error);
+      throw error;
+    }
+  }
+}
+
+/**
+ * JSON 파싱 헬퍼 (더 강건하게)
+ */
+function parseJSONSafely(text) {
+  // 마크다운 코드 블록 제거
+  text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+
+  // JSON 객체 추출 (중첩된 경우도 처리)
+  const jsonMatch = text.match(/\{(?:[^{}]|\{[^{}]*\})*\}/);
+  if (!jsonMatch) {
+    throw new Error('No valid JSON object found');
+  }
+
+  return JSON.parse(jsonMatch[0]);
+}
+
+/**
+ * Phase 3 의사코드 즉시 평가 (제출 시 바로 피드백)
+ * @returns {score: 0-100, grade: string, comment: string, improvements: string[], seniorAdvice: string}
+ */
+export async function quickCheckPseudocode(problem, pseudocode) {
+  const prompt = buildEvaluationPrompt(
+    problem,
+    pseudocode,
+    EVALUATION_RUBRIC.pseudocode,
+    FEW_SHOT_EXAMPLES.dataLeakage
+  );
+
+  try {
+    const response = await callOpenAI(prompt, {
+      temperature: 0.1,  // 더 일관성 있게
+      maxTokens: 1200  // 5차원 평가이므로 더 많은 토큰 필요
     });
 
-    if (!response.ok) throw new Error(`API Error: ${response.status}`);
-    const data = await response.json();
-    return data.choices[0].message.content.trim();
+    const result = parseJSONSafely(response);
+
+    // 5차원 메트릭 총점 계산 (각 100점 만점, 총 500점 만점)
+    const totalScore = result.details.reduce((sum, item) => sum + item.score, 0);
+    const normalizedScore = Math.round((totalScore / 500) * 100); // 100점 만점으로 환산
+
+    // 등급 산정
+    let grade, comment;
+    if (normalizedScore >= 80) {
+      grade = 'excellent';
+      comment = result.strengths.join(' ') || '논리 구조가 우수합니다.';
+    } else if (normalizedScore >= 60) {
+      grade = 'good';
+      comment = '기본 흐름은 맞지만 ' + (result.weaknesses[0] || '세부사항이 부족합니다.');
+    } else if (normalizedScore >= 40) {
+      grade = 'fair';
+      comment = result.weaknesses.join(' ') || '일부 개선이 필요합니다.';
+    } else {
+      grade = 'poor';
+      comment = result.weaknesses.join(' ') || '논리 구조를 다시 검토해주세요.';
+    }
+
+    return {
+      score: normalizedScore,
+      grade,
+      comment,
+      improvements: result.weaknesses || [],
+      keywordCheck: result.keywordCheck,
+      seniorAdvice: result.seniorAdvice || '사고 과정을 더 구체화하세요.',
+      tailQuestions: result.tailQuestions || [],
+      details: result.details || []
+    };
+
   } catch (error) {
-    console.error('OpenAI Call Error:', error);
-    throw error;
+    console.error('Quick check error:', error);
+    // Fallback
+    return {
+      score: 50,
+      grade: 'unknown',
+      comment: '평가 중 오류가 발생했습니다. 다시 시도해주세요.',
+      improvements: ['시스템 오류로 평가 불가'],
+      keywordCheck: { found: [], missing: [] },
+      seniorAdvice: '시스템 오류가 발생했습니다.',
+      tailQuestions: [],
+      details: []
+    };
   }
 }
 
@@ -86,12 +178,8 @@ ${pseudocode}
 
   try {
     const response = await callOpenAI(prompt, { maxTokens: 600, temperature: 0.7 });
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      return parsed.questions || [];
-    }
-    throw new Error('Invalid JSON');
+    const parsed = parseJSONSafely(response);
+    return parsed.questions || [];
   } catch (error) {
     console.error('Deep dive questions generation error:', error);
     // Fallback 질문
@@ -104,7 +192,7 @@ ${pseudocode}
 }
 
 /**
- * Pseudocode 종합 평가
+ * Pseudocode 종합 평가 (최종 평가)
  * - 의사코드 자체 평가 (50점) + 면접 답변 평가 (50점)
  * 
  * @param {Object} problem - 문제 데이터
@@ -115,8 +203,8 @@ export async function evaluatePseudocode(problem, pseudocode, deepDiveQnA) {
   const deepDiveArray = Array.isArray(deepDiveQnA) ? deepDiveQnA : [];
   const deepDiveQnAText = deepDiveArray.length > 0
     ? deepDiveArray.map((item, idx) =>
-        `[질문 ${idx + 1} - ${item.category || '일반'}]\nQ: ${item.question}\nA: ${item.answer || '(답변 없음)'}`
-      ).join('\n\n')
+      `[질문 ${idx + 1} - ${item.category || '일반'}]\nQ: ${item.question}\nA: ${item.answer || '(답변 없음)'}`
+    ).join('\n\n')
     : '(심화 질문에 답변하지 않음)';
 
   const answeredCount = deepDiveArray.filter(item => item.answer && item.answer.length > 0).length;
@@ -127,6 +215,21 @@ export async function evaluatePseudocode(problem, pseudocode, deepDiveQnA) {
   const solutionCode = problem?.solution_code || '';
 
   const prompt = `당신은 알고리즘 및 의사코드 평가 전문가입니다.
+
+# 평가 루브릭
+${JSON.stringify(EVALUATION_RUBRIC, null, 2)}
+
+# Few-shot Examples
+## 우수 답변 예시
+${JSON.stringify(FEW_SHOT_EXAMPLES.interview.excellent, null, 2)}
+
+## 보통 답변 예시
+${JSON.stringify(FEW_SHOT_EXAMPLES.interview.good, null, 2)}
+
+## 부족 답변 예시
+${JSON.stringify(FEW_SHOT_EXAMPLES.interview.poor, null, 2)}
+
+---
 
 ## 문제 정보
 - 제목: ${problem?.title || '알고리즘 문제'}
@@ -200,14 +303,13 @@ totalScore = pseudocodeScore + interviewScore (100점 만점)
 }`;
 
   try {
-    const response = await callOpenAI(prompt, { maxTokens: 2000, temperature: 0.3 });
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const result = JSON.parse(jsonMatch[0]);
-      result.score = result.totalScore; // 호환성
-      return result;
-    }
-    throw new Error('Invalid JSON response');
+    const response = await callOpenAI(prompt, {
+      maxTokens: 2000,
+      temperature: 0.1  // 더 일관성 있게
+    });
+    const result = parseJSONSafely(response);
+    result.score = result.totalScore; // 호환성
+    return result;
   } catch (error) {
     console.error('Evaluation error:', error);
     // Fallback 응답
@@ -241,4 +343,46 @@ totalScore = pseudocodeScore + interviewScore (100점 만점)
       suggestions: ['다시 시도해주세요']
     };
   }
+}
+
+/**
+ * 의사코드와 실제 코드 정합성 체크
+ */
+export async function checkConsistency(pseudocode, actualCode, problemType = 'dataLeakage') {
+  const rules = CONSISTENCY_CHECK_RULES[problemType];
+  if (!rules) {
+    return { score: 100, comment: '검증 규칙이 없습니다.', gaps: [] };
+  }
+
+  const gaps = [];
+
+  // 의사코드에서 언급해야 할 것들 체크
+  for (const keyword of rules.pseudocode_must_mention) {
+    if (!pseudocode.toLowerCase().includes(keyword.toLowerCase())) {
+      gaps.push(`의사코드에 "${keyword}" 개념이 누락됨`);
+    }
+  }
+
+  // 코드에 있어야 할 것들 체크
+  for (const pattern of rules.code_must_have) {
+    const regex = new RegExp(pattern, 'i');
+    if (!regex.test(actualCode)) {
+      gaps.push(`코드에 "${pattern}" 패턴이 없음`);
+    }
+  }
+
+  // 코드에 있으면 안 되는 것들 체크
+  for (const pattern of rules.code_must_not_have) {
+    const regex = new RegExp(pattern, 'i');
+    if (regex.test(actualCode)) {
+      gaps.push(`코드에 금지된 패턴 "${pattern}" 발견`);
+    }
+  }
+
+  const score = Math.max(0, 100 - (gaps.length * 20));
+  const comment = gaps.length === 0
+    ? '의사코드와 구현이 일치합니다.'
+    : `${gaps.length}개 불일치 발견`;
+
+  return { score, comment, gaps };
 }

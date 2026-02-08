@@ -115,7 +115,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Home,
-  AlertCircle
+  AlertCircle,
+  Lock,
+  CheckCircle
 } from 'lucide-vue-next'
 
 const app = createApp(App)
@@ -133,6 +135,8 @@ app.component('ChevronLeft', ChevronLeft)
 app.component('ChevronRight', ChevronRight)
 app.component('Home', Home)
 app.component('alert-circle', AlertCircle)
+app.component('lock', Lock)
+app.component('check-circle', CheckCircle)
 const pinia = createPinia()
 
 app.use(pinia)
