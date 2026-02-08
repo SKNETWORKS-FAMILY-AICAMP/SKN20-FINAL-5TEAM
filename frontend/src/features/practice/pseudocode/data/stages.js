@@ -1,95 +1,173 @@
 export const aiQuests = [
     {
-        id: 1,
-        title: "Chapter 1: 각성 (Tutorial Zone)",
-        category: "System Reboot",
-        emoji: "💡",
-        desc: "어두운 터미널, 켜지는 모니터... Coduck이 깨어납니다. '아키텍처님! 제 음성 모듈이 연결되었습니다... 지지직... 제 사고 회로가 오염되어 복잡한 연산이 불가능해요. 먼저 제 사고 회로를 고쳐주세요!'",
-        rewardXP: 500,
-        subModuleTitle: "AI 사고법 입문 (BOOT_PROTOCOL)",
-        character: { name: "Coduck", image: "/assets/characters/coduck.png" },
-        interviewQuestions: [
-            {
-                id: "q1",
-                question: "코덕이 아군과 적군을 구분하지 못하고 공격 중입니다. 어떤 사고법을 가동해야 할까요?",
-                hintWindow: "전부 삭제한다... 접근하는 모든 데이터는 적이다!",
-                options: [
-                    { text: "4단계 사고법 프로토콜 실행", value: "flow", correct: true, desc: "[분석 - 설계 - 구현 - 최적화]를 통해 타겟팅 로직을 정화합니다." },
-                    { text: "데이터 강제 삭제", value: "delete", desc: "분석 없이 모든 데이터를 삭제하여 일단 공격을 중단시킵니다." }
-                ],
-                coduckComment: "크으으... 머리가 깨질 것 같아요... 하지만 방금 그 사고법.. 익숙해요."
-            },
-            {
-                id: "q2",
-                question: "오염 패턴을 분석했습니다. 무엇을 통해 정상적인 아군 데이터만 골라낼까요?",
-                hintWindow: "나...(지직)... 나는 누구지? 너도 적인가? 제거한다...",
-                options: [
-                    { text: "정밀 데이터 필터링 설계", value: "detail", correct: true, desc: "데이터 특징을 분석해 아군 패킷만 골라내는 논리를 구축합니다." },
-                    { text: "무작위 데이터 주입", value: "disconnect", desc: "새로운 데이터를 무작위로 넣어 시스템 반응을 기다립니다." }
-                ],
-                coduckComment: "아... 이제 당신이 보여요. 아키텍처님, 돌아오셨군요!"
-            }
-        ],
-        quizTitle: "Step 4: 재부팅 승인 - 오늘 수행한 복구 프로토콜의 핵심 가치는?",
-        missionObjective: "Step 3: 데이터 정화 - 시스템 복구 도중 발견된 작은 데이터 노이즈\n(빈 문자열)를 제거하여 파이프라인의 무결성을 확보하세요.",
-        pythonSnippets: [
-            { label: '노이즈 스킵', code: 'if not data: continue', icon: 'SkipForward' },
-            { label: '데이터 복구', code: 'result.append(data)', icon: 'PlusCircle' }
-        ],
-        pythonTemplate: `def system_restore_pipeline(data_list):
-    # [수정일: 2026-02-03] 초보자를 위한 가이드 주석 보강
-    # 데이터 파이프라인의 무결성을 위해 오염된 노이즈를 먼저 걸러내는 것이 아키텍처의 핵심입니다.
-    result = []
+    id: 1,
+    title: "[튜토리얼] 사고 회로 복구: Data Leakage",
+    category: "System Reboot",
+    emoji: "💡",
+    desc: "AI 문제를 만났을 때, 코드를 치기 전 무엇을 먼저 생각해야 하는지 훈련합니다.",
+    rewardXP: 500,
+    subModuleTitle: "BOOT_PROTOCOL",
+    character: { name: "Coduck", image: "/assets/characters/coduck.png" },
 
-    for data in data_list:
-        # [Step 3-1] 노이즈(오염된 데이터) 체크
-        # TODO: 데이터가 비어있거나('') None인 경우 건너뛰도록 작성하세요
-        if not data:
-            continue
-            
-        # [Step 3-2] 정화된 데이터만 아카이브에 저장
-        # TODO: data를 result에 추가하세요 (append 사용)
-        result.append(data)
+    /* ======================================================
+        STEP 1. 객관식 (무엇을 공부해야 하는지 방향 제시)
+        ====================================================== */
+    interviewQuestions: [
+        {
+        id: "q1",
+        question: "Step 1-1: 사고 회로 복구를 위한 첫 번째 행동은?",
+        options: [
+            { text: "전체 데이터 흐름(E2E Pipeline)을 먼저 파악한다", value: "flow", correct: true },
+            { text: "바로 모델과 코드를 수정한다", value: "code" }
+        ],
+        coduckComment: "좋아요. 문제를 고치기 전에, 먼저 전체 흐름을 봐야 해요."
+        },
+        {
+        id: "q2",
+        question: "Step 1-2: AI가 환각(Hallucination)에 빠지는 가장 흔한 원인은?",
+        options: [
+            { text: "잘못된 학습 기준으로 데이터를 처리했기 때문", value: "leakage", correct: true },
+            { text: "모델이 충분히 똑똑하지 않아서", value: "model" }
+        ],
+        coduckComment: "정확해요. 기준이 무너지면 모델도 흔들려요."
+        }
+    ],
 
-    return result`,
-        sampleData: ["Data_01", "", "Data_02", " "],
-        expectedOutput: ["Data_01", "Data_02", " "],
-        failHints: {
-            empty_code: "코드가 비어있습니다. 데이터를 순회하는 for문부터 시작해보세요.",
-            logic_error: "결과 데이터의 개수가 맞지 않습니다. 오염된 데이터('', None)를 정확히 건너뛰었는지 확인하세요.",
-            syntax_error: "파이썬 문법 에러가 발생했습니다. 들여쓰기(Indentation)와 콜론(:)을 확인해주세요."
-        },
-        step4Options: [
-            "저는 단순히 코드를 수선하는 엔지니어를 넘어, 붕괴된 시스템의 전체 파이프라인을 설계하고 리스크를 제어하는 '아키텍처 복구자'로서의 통찰을 발휘했습니다. 이제 어떤 데이터 오염 사건도 해결할 준비가 되었습니다!",
-            "저는 파이썬으로 리스트를 다룰 줄 압니다.",
-            "마더 서버는 언젠가 스스로 복구될 것입니다."
+    /* ======================================================
+        STEP 2. 자연어 설계 (제약 사건 + 핵심 설계 원칙)
+        ====================================================== */
+    designContext: {
+        title: "Step 2: 아키텍처 설계 (자연어 서술)",
+
+        currentIncident: `
+    모델 학습 과정에서 테스트 데이터의 통계 정보가
+    학습 기준 생성에 사용되는 데이터 누수(Data Leakage)가 발생했습니다.
+
+    검증 성능은 높게 나왔지만,
+    실제 서비스 환경에서는 성능이 재현되지 않는 문제가 확인되었습니다.
+        `.trim(),
+
+        // 🔥 짧고 규칙 같은 핵심 설계 원칙
+        engineeringRules: [
+        "Train 데이터로만 fit 한다.",
+        "Test 데이터는 transform만 수행한다.",
+        "미래 데이터의 정보는 사용하지 않는다.",
+        "학습과 서빙은 동일한 전처리 흐름을 사용한다."
         ],
-        cards: [
-            { id: 'b1', text: 'Step 1: 아키텍처 전체 흐름 통찰', color: 'border-indigo-500', icon: '️' },
-            { id: 'b2', text: 'Step 2: 정화 알고리즘 상세 설계', color: 'border-amber-500', icon: '🔍' },
-            { id: 'b3', text: 'Step 3: 오염 데이터 제거 코드 구현', color: 'border-rose-500', icon: '💻' },
-            { id: 'b4', text: 'Step 4: 시스템 재부팅 프로토콜 승인', color: 'border-emerald-500', icon: '🏁' }
-        ],
-        solution: ['b1', 'b2', 'b3', 'b4'],
-        functionName: 'system_restore_pipeline',
-        codeValidation: { price: 'data_list', fee1: 'continue', fee2: 'append' },
-        step4CorrectIdx: 0,
-        step4SuccessFeedback: {
-            title: "🔐 시스템 권한 회복",
-            desc: "축하합니다! {username}님, 해당 구역의 데이터 무결성이 확보되었습니다.",
-            details: "훌륭한 설계입니다. 마더 서버는 {username}님의 논리적인 접근에 반응하기 시작했습니다. 다음 구역으로 이동하십시오."
-        },
-        step4FailFeedback: {
-            title: "⚠️ 시스템 거부",
-            desc: "논리적 오류로 인해 재부팅이 거부되었습니다.",
-            details: "Architect는 나무(코드)가 아닌 숲(파이프라인)을 보는 사람임을 잊지 마세요. 첫 번째 전략의 의미를 다시 고찰해 보십시오."
-        },
-        quizOptions: [
-            { text: "A. 4단계 복구 프로토콜만이 마더 서버를 살릴 수 있다.", correct: true },
-            { text: "B. AI는 이미 인간의 통제를 넘어섰다.", correct: false }
-        ],
-        mapPos: { x: 100, y: 450 }
+
+        writingGuide: `
+    다음 내용을 포함해 사고 과정을 서술하세요.
+
+    - 데이터 누수가 무엇이며 왜 발생했는가
+    - 이 문제가 실전 환경에서 왜 위험한가
+    - 전처리 파이프라인을 어떤 순서로 설계해야 하는가
+
+    ※ 코드는 작성하지 말고, 사고 흐름만 서술하세요.
+        `.trim(),
+
+        validation: {
+        minChars: 120,
+        mustInclude: ["train", "test", "fit", "transform"],
+        }
     },
+
+    /* ======================================================
+        STEP 3. 구현 (사고 흐름 → 코드로 증명)
+        ====================================================== */
+    implementation: {
+        title: "Step 3: 구현 – 사고 흐름을 코드로 증명하세요",
+
+        codeFrame: {
+        language: "python",
+        functionName: "leakage_free_scaling",
+        template: `def leakage_free_scaling(train_df, test_df):
+        from sklearn.preprocessing import StandardScaler
+        scaler = StandardScaler()
+
+        # 1) Train 데이터로 기준 생성
+        # TODO
+
+        # 2) 동일 기준으로 Train/Test 변환
+        # TODO
+
+        return train_scaled, test_scaled`
+        },
+
+        expectedFlow: [
+        "Train 데이터로만 fit 수행",
+        "Train 데이터 transform",
+        "Test 데이터 transform"
+        ],
+
+        codeValidation: {
+        mustContain: [
+            "scaler.fit(train_df)",
+            "scaler.transform(train_df)",
+            "scaler.transform(test_df)"
+        ],
+        mustNotContain: [
+            "scaler.fit(test_df)"
+        ]
+        }
+    },
+
+    /* ======================================================
+        STEP 4. 심화 판단 (개념을 정확히 이해했는지)
+        ====================================================== */
+    deepDiveQuestion: {
+        question: "다음 중 데이터 누수가 특히 위험한 이유는 무엇입니까?",
+        options: [
+        { text: "모델이 미래 정보를 미리 학습해 실전 성능이 붕괴된다", correct: true },
+        { text: "학습 속도가 느려진다", correct: false },
+        { text: "GPU 메모리를 더 많이 사용한다", correct: false },
+        { text: "코드가 복잡해진다", correct: false }
+        ],
+        correctIdx: 0
+    },
+
+    /* ======================================================
+        STEP 5. 평가 (Rule + LLM)
+        ====================================================== */
+    evaluation: {
+        ruleBased: {
+        narrative: {
+            minChars: 120,
+            mustInclude: ["train", "test", "fit", "transform"],
+            mustNotInclude: ["test로 fit", "fit(test)"]
+        },
+        code: {
+            mustContain: [
+            "scaler.fit(train_df)",
+            "scaler.transform(train_df)",
+            "scaler.transform(test_df)"
+            ],
+            mustNotContain: ["scaler.fit(test_df)"]
+        }
+        },
+
+        llmRubric: {
+        system: "너는 AI 아키텍처 관점에서 사고 흐름을 평가하는 면접관이다.",
+        promptTemplate: `
+    사용자 설계 설명:
+    {{narrative}}
+
+    사용자 코드:
+    {{code}}
+
+    다음 기준으로 평가하라:
+    - 데이터 누수의 원인을 정확히 이해했는가
+    - 왜 실전에서 위험한지 설명했는가
+    - 설계와 코드가 일관되는가
+
+    JSON 형식으로 출력:
+    { "score": number, "feedback": string }
+        `.trim()
+        }
+    },
+
+    mapPos: { x: 100, y: 450 }
+    },
+
     {
         id: 2,
         title: "실전! 데이터 누수 가디언",
