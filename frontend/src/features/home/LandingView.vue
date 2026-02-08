@@ -159,7 +159,6 @@
             </div>
           </div>
         </div>
-
         <button class="slider-nav next" @click="nextSlide">
           <ChevronRight />
         </button>

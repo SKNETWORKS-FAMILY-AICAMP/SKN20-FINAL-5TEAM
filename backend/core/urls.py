@@ -14,6 +14,8 @@ from core.views import (
     BugHuntEvaluationView,
     CodeExecutionView,
     BehaviorVerificationView,
+    OverallProgressView,
+    UserAnswersView,
     activity_view
 )
 
@@ -47,4 +49,10 @@ urlpatterns = [
     # 코드 실행 샌드박스 API
     path('execute-code/', CodeExecutionView.as_view(), name='execute_code'),
     path('verify-behavior/', BehaviorVerificationView.as_view(), name='verify_behavior'),
+
+    # 관리 및 기록 조회 API
+    path('management/overall-progress/', OverallProgressView.as_view(), name='overall_progress'),
+    path('management/user-answers/', UserAnswersView.as_view(), name='user_answers_all'),
+    path('management/user-answers/<str:practice_id>/', UserAnswersView.as_view(), name='user_answers_practice'),
+    path('management/user-answers/<str:practice_id>/<int:user_id>/', UserAnswersView.as_view(), name='user_answers_detail'),
 ]

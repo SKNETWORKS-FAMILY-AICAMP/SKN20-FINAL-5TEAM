@@ -97,16 +97,31 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
                 avatar_style = detail_data.pop('avatar_style', 'default duck')
                 avatar_seed = detail_data.pop('avatar_seed', None)
+                preview_url = detail_data.pop('avatar_preview_url', None)
                 
-                avatar_data = generate_nano_banana_avatar(avatar_style, seed=avatar_seed)
+                final_image_url = None
+                final_seed = avatar_seed
+                
+                # [수정일: 2026-02-08] 회원가입 시에도 미리보기(Preview) 채택 로직 적용
+                if preview_url:
+                    if '?' in str(preview_url):
+                        preview_url = preview_url.split('?')[0]
+                    final_image_url = preview_url
+                    print(f"DEBUG: Signup - Promoting preview avatar: {final_image_url}", flush=True)
+                else:
+                    # 미리보기가 없는 경우에만 재생성 (Antigravity 로직 유지)
+                    avatar_data = generate_nano_banana_avatar(avatar_style, seed=avatar_seed)
+                    if avatar_data:
+                        final_image_url = avatar_data['url']
+                        final_seed = avatar_data.get('seed')
+
                 active_avatar = None
-                
-                if avatar_data:
+                if final_image_url:
                     active_avatar = UserAvatar.objects.create(
                         user=user_profile,
-                        image_url=avatar_data['url'],
+                        image_url=final_image_url,
                         prompt=avatar_style,
-                        seed=avatar_data['seed'],
+                        seed=final_seed,
                         is_active=True,
                         create_id='system'
                     )

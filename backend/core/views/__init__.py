@@ -7,4 +7,5 @@ from .practice_view import PracticeViewSet
 from .auth_view import LoginView, LogoutView, SessionCheckView
 from .ai_view import AIEvaluationView, BugHuntEvaluationView
 from .code_execution_view import CodeExecutionView, BehaviorVerificationView
+from .management_view import OverallProgressView, UserAnswersView
 from . import activity_view

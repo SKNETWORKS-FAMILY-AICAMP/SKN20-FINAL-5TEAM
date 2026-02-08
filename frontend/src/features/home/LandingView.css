@@ -383,17 +383,22 @@
   - .nav-links-v2에 flex-direction: column 추가: 사이드바 폭(75px) 내에서 아이콘들이 수평으로 나열되어 깨지는 문제 해결
 */
 .navbar-v2.bookmark-mode .nav-links-v2 {
-    flex-direction: column;
-    gap: 2rem;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    width: 100% !important;
+    gap: 2rem !important;
 }
 
 .navbar-v2.bookmark-mode .nav-item {
-    padding: 0;
-    width: 50px;
-    height: 50px;
-    justify-content: center;
-    position: relative;
-    flex-shrink: 0;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    width: 60px !important;
+    height: 60px !important;
+    position: relative !important;
+    flex-shrink: 0 !important;
 }
 
 .navbar-v2.bookmark-mode .nav-label {
@@ -1065,6 +1070,9 @@
     border-radius: 40px;
     border: 1px solid rgba(255, 255, 255, 0.06);
     padding: 1.5rem;
+    width: 95%;
+    max-width: 1200px;
+    margin: 0 auto;
     box-shadow:
         0 40px 100px rgba(0, 0, 0, 0.6),
         inset 0 0 20px rgba(255, 255, 255, 0.02);
