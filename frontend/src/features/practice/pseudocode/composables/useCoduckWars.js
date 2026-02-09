@@ -625,12 +625,18 @@ export function useCoduckWars() {
 
             // AI가 제공한 5차원 메트릭 반영
             if (aiResult.metrics) {
-                evaluationResult.details = Object.entries(aiResult.metrics).map(([category, score]) => ({
-                    category,
-                    score,
-                    comment: getMetricComment(category, score),
-                    improvements: getMetricImprovements(category, score)
-                }));
+                evaluationResult.details = Object.entries(aiResult.metrics).map(([category, data]) => {
+                    // 호환성 처리: 숫자로만 왔을 경우 (구버전/Fallback)
+                    const isNumber = typeof data === 'number';
+                    const score = isNumber ? data : data.score;
+
+                    return {
+                        category,
+                        score,
+                        comment: isNumber ? getMetricComment(category, score) : data.comment,
+                        improvements: isNumber ? getMetricImprovements(category, score) : [data.improvement]
+                    };
+                });
             } else {
                 // Fallback Metrics
                 evaluationResult.details = [

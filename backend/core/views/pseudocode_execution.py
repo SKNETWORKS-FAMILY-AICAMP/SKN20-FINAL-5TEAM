@@ -14,10 +14,10 @@ import json
 import time
 
 # Docker 실행 설정
-TIMEOUT_SECONDS = 120 # Increased to 120s to allow for very slow pip install
+TIMEOUT_SECONDS = 30 # Reduced to 30s as dependencies are pre-installed
 MEMORY_LIMIT = "512m"
 CPU_LIMIT = "1.0"
-DOCKER_IMAGE = "python:3.10-slim"
+DOCKER_IMAGE = "coduck-sandbox:latest"
 
 def generate_runner_script(user_code, function_name, test_cases):
     """
@@ -28,16 +28,14 @@ def generate_runner_script(user_code, function_name, test_cases):
 import sys
 import json
 import traceback
-# 의존성 설치가 완료된 후 임포트
-try:
-    import numpy as np
-    import pandas as pd
-    from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
-except ImportError:
-    # Fallback to avoid immediate crash if install fails (though it likely crashed before python started)
-    pass
+# 의존성 설치가 완료된 이미지 사용으로 즉시 임포트 가능
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
 import random
 import re
+
+# ... (rest of the script is unchanged, just removing the try-except/fallback for imports as they are guaranteed)
 
 # === 사용자 코드 영역 ===
 try:
@@ -183,12 +181,12 @@ def _execute_in_docker(script_code):
     docker_cmd = [
         "docker", "run",
         "--rm",             # 실행 후 컨테이너 삭제
-        # "--network", "none", # PIP 설치를 위해 네트워크 허용
+        # "--network", "none", # 네트워크 격리 (이미지 내부에 라이브러리가 있으므로 외부 통신 불필요)
         "--memory", MEMORY_LIMIT,
         "--cpus", CPU_LIMIT,
         "-i",               # stdin 개방
         DOCKER_IMAGE,
-        "sh", "-c", "pip install numpy pandas scikit-learn > /dev/null 2>&1 && python -"       # stdin에서 코드를 읽어 실행
+        "sh", "-c", "python -"       # stdin에서 코드를 읽어 실행 (pip install 제거)
     ]
 
     try:

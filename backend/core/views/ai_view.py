@@ -145,7 +145,11 @@ class AIEvaluationView(APIView):
               "advice": "다음 단계를 위한 시니어의 핵심 조언",
               "is_logical": true/false (지침 미준수 시 false),
               "metrics": {{
-                "정합성": 0-100, "추상화": 0-100, "예외처리": 0-100, "구현력": 0-100, "설계력": 0-100
+                "정합성": {{ "score": 0-100, "comment": "요구사항 대비 누락된 점 (30자 내외)", "improvement": "구체적 개선 키워드" }},
+                "추상화": {{ "score": 0-100, "comment": "함수/모듈 분리 적절성 평가", "improvement": "리팩토링 제안" }},
+                "예외처리": {{ "score": 0-100, "comment": "엣지 케이스 대응 수준", "improvement": "추가해야 할 예외" }},
+                "구현력": {{ "score": 0-100, "comment": "문법 및 라이브러리 활용도", "improvement": "더 나은 문법/함수" }},
+                "설계력": {{ "score": 0-100, "comment": "전체 파이프라인 구조 평가", "improvement": "구조적 보완점" }}
               }},
               "tail_question": {{
                 "question": "현재 설계된 아키텍처의 맹점을 찌르거나 다음 구현 단계에서 고려해야 할 예외 상황 질문",
@@ -184,6 +188,8 @@ class AIEvaluationView(APIView):
             """
 
             print("[DEBUG] Calling AI for Logic Evaluation with gpt-4o-mini...", flush=True)
+            print(f"[DEBUG] System Prompt: {system_prompt[:500]}...", flush=True) # Check if strict mode is active
+
             response = client.chat.completions.create(
                 model="gpt-4o-mini", 
                 messages=[
@@ -194,7 +200,7 @@ class AIEvaluationView(APIView):
             )
             
             content = response.choices[0].message.content
-            print(f"[DEBUG] AI Response Received: {content[:100]}...", flush=True)
+            print(f"[DEBUG] Raw AI Response: {content}", flush=True) # Check raw JSON response
 
             try:
                 # JSON 문자열 정제

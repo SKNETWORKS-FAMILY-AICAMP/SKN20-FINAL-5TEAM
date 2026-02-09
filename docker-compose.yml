@@ -58,5 +58,14 @@ services:
       - CHOKIDAR_USEPOLLING=true
       - WATCHPACK_POLLING=true
 
+  # [2026-02-09] 코드 실행 전용 샌드박스 이미지 빌드
+  sandbox:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.sandbox
+    image: coduck-sandbox:latest
+    profiles: ["tools"] # 평소에는 실행되지 않고 빌드만 되도록 설정 (또는 명시적 실행 필요)
+    command: ["echo", "Sandbox Image Built"]
+
 volumes:
   postgres_data:
