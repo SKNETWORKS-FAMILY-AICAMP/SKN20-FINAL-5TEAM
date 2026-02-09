@@ -218,8 +218,9 @@ export const useGameStore = defineStore('game', {
                     id: m.id,
                     missionId: m.id,
                     title: m.project_title,
-                    displayNum: `Campaign ${idx + 1}`,
-                    questIndex: idx
+                    displayNum: `Stage ${idx + 1}`,
+                    questIndex: idx,
+                    mode: m.mode
                 }));
             }
 

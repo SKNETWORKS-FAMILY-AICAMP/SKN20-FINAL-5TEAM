@@ -1,11 +1,13 @@
 {
   "progressiveProblems": [
     {
-      "id": "P1",
-      "project_title": "딥러닝 추론 파이프라인 디버깅",
-      "scenario": "학습된 모델을 배포했는데, 추론 결과가 학습 시와 다르게 나옵니다. 동일한 입력인데도 매번 결과가 달라지거나, 메모리가 계속 증가하는 문제가 발생합니다.",
-      "difficulty": 2,
-      "totalSteps": 3,
+      "id": "S1",
+      "source_id": "P1",
+      "mode": "tutorial",
+      "project_title": "추론 파이프라인 입문",
+      "scenario": "학습된 모델을 배포했는데, 추론 결과가 학습 시와 다르게 나옵니다. 동일한 입력인데도 매번 결과가 달라집니다.",
+      "difficulty": 1,
+      "totalSteps": 1,
       "steps": [
         {
           "step": 1,
@@ -13,6 +15,8 @@
           "bug_type": "A",
           "bug_type_name": "Inference Mode",
           "file_name": "inference.py",
+          "fix_mode": "choice",
+          "bug_line": 20,
           "buggy_code": "import torch\nimport torch.nn as nn\n\nclass Model(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.conv = nn.Conv2d(3, 64, 3)\n        self.bn = nn.BatchNorm2d(64)\n        self.fc = nn.Linear(64 * 6 * 6, 10)\n    \n    def forward(self, x):\n        x = self.conv(x)\n        x = self.bn(x)\n        x = torch.relu(x)\n        x = x.view(x.size(0), -1)\n        return self.fc(x)\n\nmodel = Model()\nmodel.load_state_dict(torch.load('model.pth'))\n\n# 실시간 서비스: 이미지 1장씩 추론\nwith torch.no_grad():\n    for img in test_images:\n        output = model(img.unsqueeze(0))  # batch_size=1\n        pred = torch.softmax(output, dim=1)\n        print(pred)",
           "correct_code": "import torch\nimport torch.nn as nn\n\nclass Model(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.conv = nn.Conv2d(3, 64, 3)\n        self.bn = nn.BatchNorm2d(64)\n        self.fc = nn.Linear(64 * 6 * 6, 10)\n    \n    def forward(self, x):\n        x = self.conv(x)\n        x = self.bn(x)\n        x = torch.relu(x)\n        x = x.view(x.size(0), -1)\n        return self.fc(x)\n\nmodel = Model()\nmodel.load_state_dict(torch.load('model.pth'))\nmodel.eval()  # 추론 모드로 전환\n\n# 실시간 서비스: 이미지 1장씩 추론\nwith torch.no_grad():\n    for img in test_images:\n        output = model(img.unsqueeze(0))  # batch_size=1\n        pred = torch.softmax(output, dim=1)\n        print(pred)",
           "error_log": "=== 실시간 추론 로그 ===\n[14:01:01] Image 1: class 2 (conf: 0.87)\n[14:01:02] Image 2: class 2 (conf: 0.85)\n[14:01:03] Image 3: class 2 (conf: 0.82)\n...\n[14:12:31] Image 100: class 2 (conf: 0.71)\n[15:03:22] Image 500: class 2 (conf: 0.58)\n[16:45:10] Image 1000: class 3 (conf: 0.49)  # 예측 클래스 변경!\n\n[ALERT] confidence가 시간이 지날수록 하락 중\n[METRIC] 첫 추론 대비 confidence 변화율: -43.7%",
@@ -32,14 +36,55 @@
             "suggestion": "모델의 학습 모드와 추론 모드에서 동작이 달라지는 레이어를 확인하세요."
           },
           "coaching": "이 버그는 실제 서비스에서 '모델이 서서히 이상해진다'는 리포트로 발견됩니다. Dropout이 없어도 BatchNorm만으로 발생하며, 배포 후 시간이 지나면서 나타나 원인 파악이 어렵습니다.",
-          "verification_code": "import torch\nimport torch.nn as nn\nimport json\n\nclass Model(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.conv = nn.Conv2d(3, 64, 3)\n        self.bn = nn.BatchNorm2d(64)\n        self.fc = nn.Linear(64 * 6 * 6, 10)\n    def forward(self, x):\n        x = self.conv(x)\n        x = self.bn(x)\n        x = torch.relu(x)\n        x = x.view(x.size(0), -1)\n        return self.fc(x)\n\n# torch.load를 mock (파일이 없어도 작동하도록)\noriginal_load = torch.load\ndef mock_load(path, *args, **kwargs):\n    # Model이 재정의되어 있으면 그것 사용\n    return Model().state_dict()\ntorch.load = mock_load\n\n# test_images를 빈 리스트로 정의\ntest_images = []\n\ntry:\n    __USER_CODE__\nexcept:\n    pass  # test_images 루프 등에서 에러 무시\n\ntorch.load = original_load\n\n# 검증: 실제 추론 실행하여 로그 생성\nresult = {'verified': False, 'message': '', 'logs': [], 'details': {}}\n\ntry:\n    # 실제로 10번 추론 실행하여 confidence 변화 확인\n    for i in range(10):\n        dummy = torch.randn(1, 3, 8, 8)\n        with torch.no_grad():\n            output = model(dummy)\n            pred = torch.softmax(output, dim=1)\n            confidence = pred[0].max().item()\n            predicted_class = pred[0].argmax().item()\n        result['logs'].append(f\"[14:01:{i:02d}] Image {i+1}: class {predicted_class} (conf: {confidence:.2f})\")\n    \n    # eval 모드 확인\n    if model.training:\n        result['verified'] = False\n        result['message'] = 'FAIL: 모델이 여전히 학습 모드입니다. 실시간 추론 로그를 확인하세요.'\n    else:\n        old_mean = model.bn.running_mean.clone()\n        dummy = torch.randn(1, 3, 8, 8)\n        _ = model(dummy)\n        new_mean = model.bn.running_mean\n        if torch.equal(old_mean, new_mean):\n            result['verified'] = True\n            result['message'] = 'PASS: eval 모드에서 running stats가 고정됩니다'\n        else:\n            result['verified'] = False\n            result['message'] = 'FAIL: running stats가 여전히 업데이트되고 있습니다'\n    \n    # 로그와 상세 정보 추가\n    result['details'] = {'simulation_logs': '\\n'.join(result['logs']), 'model_mode': 'training' if model.training else 'eval'}\n\nexcept Exception as e:\n    result['message'] = f'ERROR: {str(e)}'\n    # 에러 발생 시에도 지금까지 수집한 로그 포함\n    result['details'] = {'simulation_logs': '\\n'.join(result['logs']) if result['logs'] else 'No logs collected', 'error': str(e)}\n\nprint(json.dumps(result))"
-        },
+          "choices": [
+            {
+              "label": "model.eval()",
+              "code": "model.eval()",
+              "correct": true
+            },
+            {
+              "label": "model.train(False)",
+              "code": "model.train(False)",
+              "correct": false
+            },
+            {
+              "label": "model.requires_grad_(False)",
+              "code": "model.requires_grad_(False)",
+              "correct": false
+            },
+            {
+              "label": "model.freeze()",
+              "code": "model.freeze()",
+              "correct": false
+            }
+          ],
+          "review_card": {
+            "title": "model.eval() - 추론 모드 전환",
+            "explanation": "BatchNorm과 Dropout은 학습과 추론에서 동작이 다릅니다. model.eval()을 호출하면 BatchNorm은 running statistics를 사용하고 Dropout은 비활성화됩니다. 배포 전 반드시 호출해야 합니다.",
+            "correct_pattern": "model = Model()\nmodel.load_state_dict(torch.load('model.pth'))\nmodel.eval()  # 반드시 추론 전에 호출!\n\nwith torch.no_grad():\n    output = model(input_data)"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S2",
+      "source_id": "P1",
+      "mode": "guided",
+      "project_title": "추론 파이프라인 실전",
+      "scenario": "학습된 모델을 배포했는데, 추론 결과가 학습 시와 다르게 나옵니다. 동일한 입력인데도 매번 결과가 달라지거나, 메모리가 계속 증가하는 문제가 발생합니다.",
+      "difficulty": 1,
+      "totalSteps": 2,
+      "steps": [
         {
-          "step": 2,
+          "step": 1,
           "title": "추론하면 할수록 메모리가 터져요",
           "bug_type": "B",
           "bug_type_name": "Memory Leak",
           "file_name": "batch_inference.py",
+          "fix_mode": "fill_blank",
+          "blank_template": "import torch\n\nmodel = Model()\nmodel.load_state_dict(torch.load('model.pth'))\nmodel.eval()\nmodel.cuda()\n\nresults = []\n\n# 대량 배치 추론\n_______________:  # 여기를 채우세요\n    for batch in data_loader:\n        images = batch['image'].cuda()\n        outputs = model(images)\n        predictions = torch.argmax(outputs, dim=1)\n        results.extend(predictions.cpu().tolist())",
+          "blank_answer": "with torch.no_grad()",
+          "blank_placeholder": "with ___________",
           "buggy_code": "import torch\n\nmodel = Model()\nmodel.load_state_dict(torch.load('model.pth'))\nmodel.eval()\nmodel.cuda()\n\nresults = []\n\n# 대량 배치 추론\nfor batch in data_loader:\n    images = batch['image'].cuda()\n    \n    # 추론 실행\n    outputs = model(images)\n    predictions = torch.argmax(outputs, dim=1)\n    \n    results.extend(predictions.cpu().tolist())\n    \n    # 매 100배치마다 메모리 확인\n    if len(results) % 100 == 0:\n        print(f\"Processed: {len(results)}, GPU Memory: {torch.cuda.memory_allocated() / 1e9:.2f}GB\")",
           "correct_code": "import torch\n\nmodel = Model()\nmodel.load_state_dict(torch.load('model.pth'))\nmodel.eval()\nmodel.cuda()\n\nresults = []\n\n# 대량 배치 추론\nwith torch.no_grad():  # 그래디언트 계산 비활성화\n    for batch in data_loader:\n        images = batch['image'].cuda()\n        \n        # 추론 실행\n        outputs = model(images)\n        predictions = torch.argmax(outputs, dim=1)\n        \n        results.extend(predictions.cpu().tolist())\n        \n        # 매 100배치마다 메모리 확인\n        if len(results) % 100 == 0:\n            print(f\"Processed: {len(results)}, GPU Memory: {torch.cuda.memory_allocated() / 1e9:.2f}GB\")",
           "error_log": "=== GPU 메모리 모니터링 ===\n[Batch 100]   GPU Memory: 2.15 GB\n[Batch 500]   GPU Memory: 4.82 GB\n[Batch 1000]  GPU Memory: 7.93 GB\n[Batch 1500]  GPU Memory: 11.24 GB\n[Batch 1847]  RuntimeError: CUDA out of memory.\n\n[METRIC] 배치당 메모리 증가량: ~5.2 MB/batch\n[ALERT] 메모리가 선형으로 증가 중 - 해제되지 않는 무언가가 쌓이고 있음",
@@ -61,11 +106,15 @@
           "coaching": "대규모 배치 추론에서 OOM은 흔한 문제입니다. model.eval()은 레이어 동작을 바꾸고, torch.no_grad()는 메모리를 절약합니다. 둘은 다른 역할이므로 함께 사용해야 합니다."
         },
         {
-          "step": 3,
+          "step": 2,
           "title": "CPU에서 만든 텐서가 GPU 모델을 만나면?",
           "bug_type": "C",
           "bug_type_name": "Device Error",
           "file_name": "multi_device.py",
+          "fix_mode": "fill_blank",
+          "blank_template": "class PositionalEncoding(nn.Module):\n    def __init__(self, d_model, max_len=512):\n        super().__init__()\n        pe = torch.zeros(max_len, d_model)\n        position = torch.arange(0, max_len).unsqueeze(1).float()\n        div_term = torch.exp(...)\n        pe[:, 0::2] = torch.sin(position * div_term)\n        pe[:, 1::2] = torch.cos(position * div_term)\n        self._______________('pe', pe.unsqueeze(0))  # 여기를 채우세요",
+          "blank_answer": "register_buffer",
+          "blank_placeholder": "self.___________('pe', ...)",
           "buggy_code": "import torch\nimport torch.nn as nn\nimport math\n\nclass PositionalEncoding(nn.Module):\n    def __init__(self, d_model, max_len=512):\n        super().__init__()\n        pe = torch.zeros(max_len, d_model)\n        position = torch.arange(0, max_len).unsqueeze(1).float()\n        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))\n        pe[:, 0::2] = torch.sin(position * div_term)\n        pe[:, 1::2] = torch.cos(position * div_term)\n        self.pe = pe.unsqueeze(0)  # [1, max_len, d_model]\n    \n    def forward(self, x):\n        return x + self.pe[:, :x.size(1), :]\n\nmodel = PositionalEncoding(d_model=512)\nmodel.cuda()\n\nx = torch.randn(32, 100, 512).cuda()\noutput = model(x)",
           "correct_code": "import torch\nimport torch.nn as nn\nimport math\n\nclass PositionalEncoding(nn.Module):\n    def __init__(self, d_model, max_len=512):\n        super().__init__()\n        pe = torch.zeros(max_len, d_model)\n        position = torch.arange(0, max_len).unsqueeze(1).float()\n        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))\n        pe[:, 0::2] = torch.sin(position * div_term)\n        pe[:, 1::2] = torch.cos(position * div_term)\n        self.register_buffer('pe', pe.unsqueeze(0))  # buffer로 등록\n    \n    def forward(self, x):\n        return x + self.pe[:, :x.size(1), :]\n\nmodel = PositionalEncoding(d_model=512)\nmodel.cuda()\n\nx = torch.randn(32, 100, 512).cuda()\noutput = model(x)",
           "error_log": "=== 에러 로그 ===\nmodel = PositionalEncoding(d_model=512)\nmodel.cuda()\nx = torch.randn(1, 10, 512).cuda()\noutput = model(x)\n\nRuntimeError: Expected all tensors to be on the same device,\nbut found at least two devices, cuda:0 and cpu!\n\n[DEBUG] model.parameters() → 모두 cuda:0\n[DEBUG] 에러 발생 위치: forward() 내 덧셈 연산",
@@ -91,7 +140,7 @@
       ]
     },
     {
-      "id": "P2",
+      "id": "S3",
       "project_title": "학습 루프 치명적 버그",
       "scenario": "모델 학습 코드를 작성했는데, loss가 이상하게 동작합니다. 감소해야 할 loss가 증가하거나, 학습이 전혀 안 되거나, 갑자기 NaN이 되어버립니다.",
       "difficulty": 2,
@@ -119,7 +168,8 @@
             "description": "매 배치마다 초기화되어야 하는 것이 누적되면서 Loss가 폭발합니다.",
             "suggestion": "학습 루프의 각 단계가 올바른 순서로 실행되는지 확인하세요."
           },
-          "coaching": "학습 코드의 표준 순서를 외워두세요. zero_grad → forward → loss → backward → step."
+          "coaching": "학습 코드의 표준 순서를 외워두세요. zero_grad → forward → loss → backward → step.",
+          "fix_mode": "free_code"
         },
         {
           "step": 2,
@@ -147,7 +197,8 @@
             "description": "Loss 값은 줄어들지만 그 gradient가 모델 파라미터까지 전달되지 않고 있습니다.",
             "suggestion": "loss 계산 과정에서 연산 그래프가 끊기는 지점이 있는지 확인하세요."
           },
-          "coaching": "'Loss가 줄어드는데 성능이 안 오른다'면 print(loss.grad_fn)으로 연산 그래프를 확인하세요."
+          "coaching": "'Loss가 줄어드는데 성능이 안 오른다'면 print(loss.grad_fn)으로 연산 그래프를 확인하세요.",
+          "fix_mode": "free_code"
         },
         {
           "step": 3,
@@ -171,12 +222,15 @@
             "description": "스케줄러의 step()이 의도한 것보다 훨씬 자주 호출되고 있습니다.",
             "suggestion": "스케줄러의 step() 호출 위치와 빈도를 확인하세요."
           },
-          "coaching": "스케줄러 버그는 찾기 어렵습니다. get_last_lr()로 현재 학습률을 로깅하세요."
+          "coaching": "스케줄러 버그는 찾기 어렵습니다. get_last_lr()로 현재 학습률을 로깅하세요.",
+          "fix_mode": "free_code"
         }
-      ]
+      ],
+      "source_id": "P2",
+      "mode": "standard"
     },
     {
-      "id": "P3",
+      "id": "S4",
       "project_title": "데이터 로더 & 전처리 함정",
       "scenario": "데이터 파이프라인을 구축했는데, 학습 속도가 너무 느리거나, 예상치 못한 에러가 발생하거나, 재현이 안 되는 문제가 생깁니다.",
       "difficulty": 2,
@@ -207,7 +261,8 @@
             "description": "데이터 로딩이 전체 학습 시간의 90%를 차지하고 GPU는 대부분 idle 상태입니다.",
             "suggestion": "데이터 로딩 병렬화와 메모리 전송 최적화를 확인하세요."
           },
-          "coaching": "nvidia-smi로 GPU 사용률을 확인하세요. 30% 미만이면 데이터 로딩 병목을 의심하세요."
+          "coaching": "nvidia-smi로 GPU 사용률을 확인하세요. 30% 미만이면 데이터 로딩 병목을 의심하세요.",
+          "fix_mode": "free_code"
         },
         {
           "step": 2,
@@ -234,7 +289,8 @@
             "description": "동일 코드와 데이터인데 매 실행마다 결과가 달라집니다. 여러 난수 소스가 제어되지 않고 있습니다.",
             "suggestion": "딥러닝에서 난수가 사용되는 모든 곳을 확인하세요."
           },
-          "coaching": "실험 재현성은 연구와 디버깅의 기본입니다. 시드 고정 함수를 만들어 재사용하세요."
+          "coaching": "실험 재현성은 연구와 디버깅의 기본입니다. 시드 고정 함수를 만들어 재사용하세요.",
+          "fix_mode": "free_code"
         },
         {
           "step": 3,
@@ -267,12 +323,15 @@
             "description": "Validation 성능과 실제 Test 성능 사이에 큰 갭이 있습니다. 데이터 처리 순서에 문제가 있을 수 있습니다.",
             "suggestion": "데이터 전처리와 분할의 순서를 점검하세요."
           },
-          "coaching": "Data Leakage는 여러 곳에서 동시에 발생합니다. Val 성능이 유난히 좋으면 파이프라인 전체를 점검하세요."
+          "coaching": "Data Leakage는 여러 곳에서 동시에 발생합니다. Val 성능이 유난히 좋으면 파이프라인 전체를 점검하세요.",
+          "fix_mode": "free_code"
         }
-      ]
+      ],
+      "source_id": "P3",
+      "mode": "standard"
     },
     {
-      "id": "P4",
+      "id": "S5",
       "project_title": "모델 저장 & 배포 실수",
       "scenario": "학습이 완료된 모델을 저장하고 나중에 다시 불러왔는데, 성능이 다르거나 에러가 발생합니다.",
       "difficulty": 3,
@@ -303,7 +362,8 @@
             "description": "저장한 것과 로드한 것의 타입이 다릅니다. 저장 시 무엇을 저장했는지와 로드 방식을 일치시켜야 합니다.",
             "suggestion": "저장 코드와 로드 코드가 짝이 맞는지 확인하세요."
           },
-          "coaching": "state_dict 방식이 표준입니다. optimizer.state_dict()도 함께 저장하면 학습을 이어서 할 수 있습니다."
+          "coaching": "state_dict 방식이 표준입니다. optimizer.state_dict()도 함께 저장하면 학습을 이어서 할 수 있습니다.",
+          "fix_mode": "free_code"
         },
         {
           "step": 2,
@@ -335,7 +395,8 @@
             "description": "학습 재개 시 Loss와 LR이 중단 전과 크게 달라졌습니다. 복원되지 않은 학습 상태가 있습니다.",
             "suggestion": "학습 루프를 구성하는 모든 stateful 컴포넌트를 확인하세요."
           },
-          "coaching": "대규모 학습에서 체크포인트 누락은 GPU 비용 낭비입니다. save/load 함수를 템플릿화하세요."
+          "coaching": "대규모 학습에서 체크포인트 누락은 GPU 비용 낭비입니다. save/load 함수를 템플릿화하세요.",
+          "fix_mode": "free_code"
         },
         {
           "step": 3,
@@ -362,12 +423,15 @@
             "suggestion": "로드 시 디바이스 매핑을 지정하는 방법을 확인하세요."
           },
           "coaching": "GPU에서 학습하고 CPU에서 서빙하는 경우가 많습니다. map_location 사용을 습관화하세요.",
-          "verification_code": "import torch\nimport torch.nn as nn\nimport json\nimport tempfile, os\n\nmodel = nn.Linear(10, 2)\ntmp = tempfile.NamedTemporaryFile(suffix='.pth', delete=False)\ntorch.save(model.state_dict(), tmp.name)\ntmp.close()\n\n__USER_CODE__\n\nresult = {'passed': False, 'message': ''}\ntry:\n    # map_location이 사용되었는지 확인 (코드 문자열 검사는 solution_check에서)\n    # 여기서는 실제 로드 가능 여부 확인\n    loaded = torch.load(tmp.name, map_location='cpu', weights_only=True)\n    new_model = nn.Linear(10, 2)\n    new_model.load_state_dict(loaded)\n    output = new_model(torch.randn(1, 10))\n    if output.shape == (1, 2):\n        result['verified'] = True\n        result['message'] = 'PASS: map_location을 사용하여 CPU에서 정상 로드됩니다'\n    else:\n        result['message'] = 'FAIL: 로드 후 추론 결과가 비정상입니다'\n    os.unlink(tmp.name)\nexcept Exception as e:\n    result['message'] = f'ERROR: {str(e)}'\n    os.unlink(tmp.name)\nprint(json.dumps(result))"
+          "verification_code": "import torch\nimport torch.nn as nn\nimport json\nimport tempfile, os\n\nmodel = nn.Linear(10, 2)\ntmp = tempfile.NamedTemporaryFile(suffix='.pth', delete=False)\ntorch.save(model.state_dict(), tmp.name)\ntmp.close()\n\n__USER_CODE__\n\nresult = {'passed': False, 'message': ''}\ntry:\n    # map_location이 사용되었는지 확인 (코드 문자열 검사는 solution_check에서)\n    # 여기서는 실제 로드 가능 여부 확인\n    loaded = torch.load(tmp.name, map_location='cpu', weights_only=True)\n    new_model = nn.Linear(10, 2)\n    new_model.load_state_dict(loaded)\n    output = new_model(torch.randn(1, 10))\n    if output.shape == (1, 2):\n        result['verified'] = True\n        result['message'] = 'PASS: map_location을 사용하여 CPU에서 정상 로드됩니다'\n    else:\n        result['message'] = 'FAIL: 로드 후 추론 결과가 비정상입니다'\n    os.unlink(tmp.name)\nexcept Exception as e:\n    result['message'] = f'ERROR: {str(e)}'\n    os.unlink(tmp.name)\nprint(json.dumps(result))",
+          "fix_mode": "free_code"
         }
-      ]
+      ],
+      "source_id": "P4",
+      "mode": "standard"
     },
     {
-      "id": "P5",
+      "id": "S6",
       "project_title": "LLM & Transformer 디버깅",
       "scenario": "Transformer 기반 모델(BERT, GPT 등)을 Fine-tuning하거나 추론하는데, 예상과 다른 결과가 나오거나 에러가 발생합니다.",
       "difficulty": 3,
@@ -398,7 +462,8 @@
             "suggestion": "모델에 전달하는 입력을 확인하세요. tokenizer가 반환하는 모든 것을 활용하고 있나요?"
           },
           "coaching": "Transformer 모델을 사용할 때 attention_mask는 필수입니다. 특히 배치 처리 시 반드시 마스킹해야 합니다.",
-          "verification_code": "import json\n\ntry:\n    from transformers import BertModel, BertTokenizer\n    import torch\n    \n    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')\n    model = BertModel.from_pretrained('bert-base-uncased')\n    model.eval()\n    \n    __USER_CODE__\n    \n    result = {'passed': False, 'message': ''}\n    \n    # attention_mask가 사용되는지 확인\n    tokens = tokenizer(['test', 'test longer sentence'], padding=True, return_tensors='pt')\n    with torch.no_grad():\n        outputs = model(tokens['input_ids'], attention_mask=tokens['attention_mask'])\n    \n    result['verified'] = True\n    result['message'] = 'PASS: attention_mask가 올바르게 전달되고 있습니다'\nexcept Exception as e:\n    result = {'passed': False, 'message': f'ERROR: {str(e)}'}\nprint(json.dumps(result))"
+          "verification_code": "import json\n\ntry:\n    from transformers import BertModel, BertTokenizer\n    import torch\n    \n    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')\n    model = BertModel.from_pretrained('bert-base-uncased')\n    model.eval()\n    \n    __USER_CODE__\n    \n    result = {'passed': False, 'message': ''}\n    \n    # attention_mask가 사용되는지 확인\n    tokens = tokenizer(['test', 'test longer sentence'], padding=True, return_tensors='pt')\n    with torch.no_grad():\n        outputs = model(tokens['input_ids'], attention_mask=tokens['attention_mask'])\n    \n    result['verified'] = True\n    result['message'] = 'PASS: attention_mask가 올바르게 전달되고 있습니다'\nexcept Exception as e:\n    result = {'passed': False, 'message': f'ERROR: {str(e)}'}\nprint(json.dumps(result))",
+          "fix_mode": "free_code"
         },
         {
           "step": 2,
@@ -428,7 +493,8 @@
             "suggestion": "모델과 tokenizer가 동일한 것인지 확인하세요."
           },
           "coaching": "HuggingFace 모델 배포 시 모델+tokenizer+config를 세트로 관리하세요.",
-          "verification_code": "import json\n\nresult = {'passed': False, 'message': ''}\ntry:\n    from transformers import BertTokenizer\n    \n    __USER_CODE__\n    \n    # tokenizer가 bert-base-uncased 또는 fine-tuned 모델의 것인지 확인\n    test_token = tokenizer.encode('great', add_special_tokens=False)\n    base_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')\n    base_token = base_tokenizer.encode('great', add_special_tokens=False)\n    \n    if test_token == base_token:\n        result['verified'] = True\n        result['message'] = 'PASS: tokenizer가 학습 시 사용한 것과 일치합니다'\n    else:\n        result['message'] = f'FAIL: token ID 불일치 - 현재: {test_token}, 필요: {base_token}'\nexcept Exception as e:\n    result['message'] = f'ERROR: {str(e)}'\nprint(json.dumps(result))"
+          "verification_code": "import json\n\nresult = {'passed': False, 'message': ''}\ntry:\n    from transformers import BertTokenizer\n    \n    __USER_CODE__\n    \n    # tokenizer가 bert-base-uncased 또는 fine-tuned 모델의 것인지 확인\n    test_token = tokenizer.encode('great', add_special_tokens=False)\n    base_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')\n    base_token = base_tokenizer.encode('great', add_special_tokens=False)\n    \n    if test_token == base_token:\n        result['verified'] = True\n        result['message'] = 'PASS: tokenizer가 학습 시 사용한 것과 일치합니다'\n    else:\n        result['message'] = f'FAIL: token ID 불일치 - 현재: {test_token}, 필요: {base_token}'\nexcept Exception as e:\n    result['message'] = f'ERROR: {str(e)}'\nprint(json.dumps(result))",
+          "fix_mode": "free_code"
         },
         {
           "step": 3,
@@ -465,9 +531,12 @@
             "suggestion": "generate() 함수의 주요 파라미터들을 확인하세요."
           },
           "coaching": "LLM 서빙에서 KV cache 미사용은 GPU 비용 낭비입니다. vLLM의 PagedAttention 같은 기술을 공부하세요.",
-          "verification_code": "import json\n\nresult = {'passed': False, 'message': ''}\ntry:\n    from transformers import GPT2LMHeadModel, GPT2Tokenizer\n    import torch\n    \n    tokenizer = GPT2Tokenizer.from_pretrained('gpt2')\n    model = GPT2LMHeadModel.from_pretrained('gpt2')\n    model.eval()\n    \n    __USER_CODE__\n    \n    checks = []\n    # pad_token 설정 확인\n    if tokenizer.pad_token is not None:\n        checks.append('pad_token')\n    \n    # generate 파라미터 확인 (코드 문자열 기반은 solution_check에서)\n    inputs = tokenizer('Once upon a time', return_tensors='pt')\n    with torch.no_grad():\n        outputs = model.generate(\n            inputs['input_ids'],\n            max_new_tokens=20,\n            use_cache=True,\n            do_sample=True,\n            temperature=0.8,\n            pad_token_id=tokenizer.pad_token_id\n        )\n    text = tokenizer.decode(outputs[0], skip_special_tokens=True)\n    \n    # 반복 체크\n    words = text.split()\n    unique_ratio = len(set(words)) / len(words) if words else 0\n    if unique_ratio > 0.3:\n        checks.append('no_repetition')\n    \n    if len(checks) >= 2:\n        result['verified'] = True\n        result['message'] = f'PASS: 생성 설정이 올바릅니다. Output: {text[:100]}'\n    else:\n        result['message'] = f'FAIL: 통과한 검증: {checks}'\nexcept Exception as e:\n    result['message'] = f'ERROR: {str(e)}'\nprint(json.dumps(result))"
+          "verification_code": "import json\n\nresult = {'passed': False, 'message': ''}\ntry:\n    from transformers import GPT2LMHeadModel, GPT2Tokenizer\n    import torch\n    \n    tokenizer = GPT2Tokenizer.from_pretrained('gpt2')\n    model = GPT2LMHeadModel.from_pretrained('gpt2')\n    model.eval()\n    \n    __USER_CODE__\n    \n    checks = []\n    # pad_token 설정 확인\n    if tokenizer.pad_token is not None:\n        checks.append('pad_token')\n    \n    # generate 파라미터 확인 (코드 문자열 기반은 solution_check에서)\n    inputs = tokenizer('Once upon a time', return_tensors='pt')\n    with torch.no_grad():\n        outputs = model.generate(\n            inputs['input_ids'],\n            max_new_tokens=20,\n            use_cache=True,\n            do_sample=True,\n            temperature=0.8,\n            pad_token_id=tokenizer.pad_token_id\n        )\n    text = tokenizer.decode(outputs[0], skip_special_tokens=True)\n    \n    # 반복 체크\n    words = text.split()\n    unique_ratio = len(set(words)) / len(words) if words else 0\n    if unique_ratio > 0.3:\n        checks.append('no_repetition')\n    \n    if len(checks) >= 2:\n        result['verified'] = True\n        result['message'] = f'PASS: 생성 설정이 올바릅니다. Output: {text[:100]}'\n    else:\n        result['message'] = f'FAIL: 통과한 검증: {checks}'\nexcept Exception as e:\n    result['message'] = f'ERROR: {str(e)}'\nprint(json.dumps(result))",
+          "fix_mode": "free_code"
         }
-      ]
+      ],
+      "source_id": "P5",
+      "mode": "standard"
     }
   ]
 }

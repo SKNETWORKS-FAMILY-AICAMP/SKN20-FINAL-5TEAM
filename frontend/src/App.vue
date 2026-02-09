@@ -209,7 +209,7 @@ const displayProblems = computed(() => {
 
 const displayLabelsCount = computed(() => {
   const currentCount = displayProblems.value?.length || 0;
-  const targetCount = game.activeUnit?.name === 'Debug Practice' ? 7 : 10;
+  const targetCount = game.activeUnit?.name === 'Debug Practice' ? 8 : 10;
   return Math.max(0, targetCount - currentCount);
 });
 
@@ -253,8 +253,9 @@ function syncDebugProgress() {
             const progress = [0]; // 캠페인 1은 기본 해금
             
             progressiveData.progressiveProblems.forEach((m, idx) => {
-                // 미션의 마지막 단계(step 3)가 완료되었는지 확인
-                const missionCompleted = completed.includes(`progressive_${m.id}_step3`);
+                // 미션의 마지막 단계(totalSteps 동적)가 완료되었는지 확인
+                const lastStep = m.totalSteps || 3;
+                const missionCompleted = completed.includes(`progressive_${m.id}_step${lastStep}`);
                 if (missionCompleted) {
                     progress.push(idx + 1);
                 }

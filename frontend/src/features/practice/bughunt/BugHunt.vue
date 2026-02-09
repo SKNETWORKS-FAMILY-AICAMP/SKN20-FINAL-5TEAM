@@ -1,5 +1,14 @@
 <template>
   <div class="debug-practice-page" :class="{ 'shake-effect': isShaking }">
+    <!-- 별 배경 -->
+    <div class="stars-container">
+      <div class="stars"></div>
+      <div class="stars2"></div>
+      <div class="stars3"></div>
+    </div>
+    <!-- 성운 오버레이 -->
+    <div class="nebula-overlay"></div>
+
     <!-- 레벨업 이펙트 -->
     <transition name="levelup">
       <div v-if="showLevelUp" class="levelup-overlay">
@@ -106,7 +115,7 @@
           <!-- 버그 상태 표시 (3마리) -->
           <div class="bugs-status">
             <div
-              v-for="step in 3"
+              v-for="step in totalStepsComputed"
               :key="step"
               :ref="el => { if (el) bugStatusRefs[step] = el }"
               class="bug-status-item"
@@ -127,7 +136,7 @@
         </div>
         <div class="header-right">
           <div class="remaining-bugs">
-            🪱 {{ 3 - progressiveCompletedSteps.length }} worms left
+            🪱 {{ totalStepsComputed - progressiveCompletedSteps.length }} worms left
           </div>
           <button class="editor-btn tutorial-btn" @click="startTutorial" style="margin-right: 10px;">
             📖 튜토리얼
@@ -171,12 +180,371 @@
           </div>
         </aside>
 
-        <!-- 중앙: 전체 코드 에디터 (3단계 모두 표시) -->
-        <main class="full-code-editor" ref="editorFrameRef">
+        <!-- ========== TUTORIAL MODE ========== -->
+        <main v-if="currentStageMode === 'tutorial'" class="full-code-editor tutorial-mode" ref="editorFrameRef">
           <!-- 3마리 지렁이 SVG 애니메이션 -->
           <div class="bugs-container">
             <div
-              v-for="step in 3"
+              v-for="step in totalStepsComputed"
+              :key="'bug-' + step"
+              class="code-bug"
+              :ref="el => (bugRefs[step] = el)"
+              :class="{
+                dead: progressiveCompletedSteps.includes(step),
+                eating: !progressiveCompletedSteps.includes(step),
+                targeted: step === currentProgressiveStep && isRunning,
+                clickable: step === currentProgressiveStep && currentProgressivePhase === 'debug'
+              }"
+              :style="bugPositions[step]"
+              @click="onBugClick(step)"
+            >
+              <!-- 지렁이 SVG (더 리얼하게) -->
+              <svg v-if="!progressiveCompletedSteps.includes(step)"
+                   width="60" height="60" viewBox="0 0 80 40"
+                   class="worm-svg">
+                <!-- 지렁이 몸통 (세그먼트화된 구조) -->
+                <defs>
+                  <linearGradient id="wormGradientTutorial" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#FFE4E1;stop-opacity:1" />
+                    <stop offset="50%" style="stop-color:#FFB6C1;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#FFC0CB;stop-opacity:1" />
+                  </linearGradient>
+                </defs>
+
+                <!-- 메인 몸통 -->
+                <path class="worm-body-main"
+                      d="M10,20 Q20,15 30,20 Q40,25 50,20 Q60,15 70,20"
+                      stroke="url(#wormGradientTutorial)"
+                      stroke-width="10"
+                      stroke-linecap="round"
+                      fill="none">
+                  <animate attributeName="d"
+                           dur="2s"
+                           repeatCount="indefinite"
+                           values="M10,20 Q20,15 30,20 Q40,25 50,20 Q60,15 70,20;
+                                   M10,20 Q20,25 30,20 Q40,15 50,20 Q60,25 70,20;
+                                   M10,20 Q20,15 30,20 Q40,25 50,20 Q60,15 70,20"/>
+                </path>
+
+                <!-- 세그먼트 링 -->
+                <ellipse cx="18" cy="20" rx="2" ry="4" fill="#FFB6C1" opacity="0.8">
+                  <animate attributeName="cy" dur="2s" repeatCount="indefinite"
+                           values="20;17;20;23;20"/>
+                </ellipse>
+                <ellipse cx="30" cy="20" rx="2" ry="4" fill="#FFB6C1" opacity="0.8">
+                  <animate attributeName="cy" dur="2s" repeatCount="indefinite"
+                           values="20;23;20;17;20"/>
+                </ellipse>
+                <ellipse cx="42" cy="20" rx="2" ry="4" fill="#FFB6C1" opacity="0.8">
+                  <animate attributeName="cy" dur="2s" repeatCount="indefinite"
+                           values="20;17;20;23;20"/>
+                </ellipse>
+                <ellipse cx="54" cy="20" rx="2" ry="4" fill="#FFB6C1" opacity="0.8">
+                  <animate attributeName="cy" dur="2s" repeatCount="indefinite"
+                           values="20;23;20;17;20"/>
+                </ellipse>
+
+                <!-- 머리 부분 -->
+                <circle cx="70" cy="20" r="5" fill="#FFB6C1"/>
+                <!-- 눈 (작게) -->
+                <circle cx="68" cy="18" r="1.5" fill="#000">
+                  <animate attributeName="r"
+                           dur="3s"
+                           repeatCount="indefinite"
+                           values="1.5;0.3;1.5;1.5;1.5"/>
+                </circle>
+              </svg>
+            </div>
+          </div>
+
+          <!-- [2026-02-03] 메인 화면 걷는 오리 PNG 교체 (v-show로 변경하여 부드러운 전환) -->
+          <div v-show="!showBullet" class="walking-duck" :style="walkingDuckStyle">
+            <!-- [2026-02-03] 에셋 임포트 방식으로 안정적인 이미지 로딩 보장 -->
+            <img v-if="isEating" :src="duckEating" class="duck-walking-img eating-motion" alt="Eating Duck">
+            <img v-else-if="isSad" :src="duckSad" class="duck-walking-img sad-motion" alt="Sad Duck">
+            <img v-else :src="duckIdle" class="duck-walking-img" alt="Walking Duck Bird">
+          </div>
+
+          <!-- [2026-02-03] 오리가 날아가서 도착 지점에서 지렁이를 먹는 동작 (v-show로 변경하여 부드러운 전환) -->
+          <div v-show="showBullet" class="bullet duck-flying cinematic" :style="bulletStyle">
+            <img :src="isEating ? duckEating : (isSad ? duckSad : duckFlying)"
+                 class="duck-flying-img"
+                 :class="{ 'eating-at-target': isEating, 'sad-at-target': isSad }"
+                 alt="Flying/Eating/Sad Duck">
+            <!-- 속도선 효과 (비행 중에만 표시) -->
+            <div v-if="!isEating && !isSad" class="speed-lines">
+              <span v-for="n in 5" :key="n" class="speed-line"></span>
+            </div>
+          </div>
+
+          <transition name="explode">
+            <div v-if="showHitEffect" class="hit-effect" :style="hitEffectStyle">
+              <span class="hit-text">{{ hitEffectText }}</span>
+              <div class="explosion-particles">
+                <span v-for="n in 8" :key="n" class="particle" :style="`--angle: ${n * 45}deg`"></span>
+              </div>
+            </div>
+          </transition>
+
+          <!-- MISS 이펙트 -->
+          <transition name="miss">
+            <div v-if="showMissEffect" class="miss-effect" :style="missEffectStyle">
+              <span class="miss-text">MISSED!</span>
+            </div>
+          </transition>
+
+          <!-- 에디터 헤더: 튜토리얼 페이즈 표시 -->
+          <div class="editor-header">
+            <div class="code-progress">
+              <span class="progress-text">TUTORIAL</span>
+            </div>
+            <div class="tutorial-phase-indicator">
+              <span :class="{ active: tutorialPhase === 'explore' }">1. EXPLORE</span>
+              <span class="phase-arrow">→</span>
+              <span :class="{ active: tutorialPhase === 'fix' }">2. FIX</span>
+              <span class="phase-arrow">→</span>
+              <span :class="{ active: tutorialPhase === 'review' }">3. REVIEW</span>
+            </div>
+          </div>
+
+          <div class="editor-body">
+            <!-- Phase A: Explore - 클릭 가능한 코드 뷰어 -->
+            <div v-if="tutorialPhase === 'explore'" class="tutorial-explore">
+              <div class="tutorial-instruction">
+                코드에서 버그가 있는 줄을 찾아 클릭하세요!
+              </div>
+              <div class="tutorial-code-viewer">
+                <div
+                  v-for="(line, idx) in (getCurrentStepData()?.buggy_code?.split('\n') || [])"
+                  :key="idx"
+                  class="code-line"
+                  :class="{
+                    'hovered': hoveredLine === idx + 1,
+                    'selected-correct': selectedBugLine === idx + 1 && bugLineCorrect,
+                    'selected-wrong': selectedBugLine === idx + 1 && !bugLineCorrect && selectedBugLine !== null
+                  }"
+                  @mouseenter="hoveredLine = idx + 1"
+                  @mouseleave="hoveredLine = null"
+                  @click="handleTutorialLineClick(idx + 1)"
+                >
+                  <span class="line-number">{{ idx + 1 }}</span>
+                  <pre class="line-content">{{ line }}</pre>
+                </div>
+              </div>
+            </div>
+
+            <!-- Phase B: Fix - 객관식 -->
+            <div v-else-if="tutorialPhase === 'fix'" class="tutorial-fix">
+              <div class="tutorial-instruction">
+                올바른 수정 방법을 선택하세요!
+              </div>
+              <div class="tutorial-coaching">
+                {{ getCurrentStepData()?.coaching }}
+              </div>
+              <div class="choice-grid">
+                <button
+                  v-for="(choice, idx) in getCurrentStepData()?.choices"
+                  :key="idx"
+                  class="choice-btn"
+                  :class="{
+                    'selected': selectedChoice === idx,
+                    'correct': choiceSubmitted && choice.correct,
+                    'wrong': choiceSubmitted && selectedChoice === idx && !choice.correct
+                  }"
+                  @click="handleTutorialChoice(idx)"
+                  :disabled="choiceSubmitted"
+                >
+                  <code>{{ choice.label }}</code>
+                </button>
+              </div>
+              <button
+                v-if="!choiceSubmitted"
+                class="editor-btn submit-btn"
+                @click="submitTutorialChoice"
+                :disabled="selectedChoice === null"
+              >
+                SUBMIT
+              </button>
+            </div>
+
+            <!-- Phase C: Review - 리뷰 카드 -->
+            <div v-else-if="tutorialPhase === 'review'" class="tutorial-review">
+              <div class="review-card neon-border">
+                <div class="review-header">STAGE CLEAR!</div>
+                <h3>{{ getCurrentStepData()?.review_card?.title }}</h3>
+                <p class="review-explanation">{{ getCurrentStepData()?.review_card?.explanation }}</p>
+                <pre class="review-pattern">{{ getCurrentStepData()?.review_card?.correct_pattern }}</pre>
+              </div>
+              <button class="stage-clear-btn" @click="completeTutorialStage">
+                STAGE CLEAR
+              </button>
+            </div>
+          </div>
+        </main>
+
+        <!-- ========== GUIDED MODE ========== -->
+        <main v-else-if="currentStageMode === 'guided'" class="full-code-editor guided-mode" ref="editorFrameRef">
+          <!-- 3마리 지렁이 SVG 애니메이션 (tutorial과 동일) -->
+          <div class="bugs-container">
+            <div
+              v-for="step in totalStepsComputed"
+              :key="'bug-' + step"
+              class="code-bug"
+              :ref="el => (bugRefs[step] = el)"
+              :class="{
+                dead: progressiveCompletedSteps.includes(step),
+                eating: !progressiveCompletedSteps.includes(step),
+                targeted: step === currentProgressiveStep && isRunning,
+                clickable: step === currentProgressiveStep && currentProgressivePhase === 'debug'
+              }"
+              :style="bugPositions[step]"
+              @click="onBugClick(step)"
+            >
+              <!-- 지렁이 SVG -->
+              <svg v-if="!progressiveCompletedSteps.includes(step)"
+                   width="60" height="60" viewBox="0 0 80 40"
+                   class="worm-svg">
+                <defs>
+                  <linearGradient id="wormGradientGuided" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#FFE4E1;stop-opacity:1" />
+                    <stop offset="50%" style="stop-color:#FFB6C1;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#FFC0CB;stop-opacity:1" />
+                  </linearGradient>
+                </defs>
+                <path class="worm-body-main"
+                      d="M10,20 Q20,15 30,20 Q40,25 50,20 Q60,15 70,20"
+                      stroke="url(#wormGradientGuided)"
+                      stroke-width="10"
+                      stroke-linecap="round"
+                      fill="none">
+                  <animate attributeName="d"
+                           dur="2s"
+                           repeatCount="indefinite"
+                           values="M10,20 Q20,15 30,20 Q40,25 50,20 Q60,15 70,20;
+                                   M10,20 Q20,25 30,20 Q40,15 50,20 Q60,25 70,20;
+                                   M10,20 Q20,15 30,20 Q40,25 50,20 Q60,15 70,20"/>
+                </path>
+                <ellipse cx="18" cy="20" rx="2" ry="4" fill="#FFB6C1" opacity="0.8">
+                  <animate attributeName="cy" dur="2s" repeatCount="indefinite"
+                           values="20;17;20;23;20"/>
+                </ellipse>
+                <ellipse cx="30" cy="20" rx="2" ry="4" fill="#FFB6C1" opacity="0.8">
+                  <animate attributeName="cy" dur="2s" repeatCount="indefinite"
+                           values="20;23;20;17;20"/>
+                </ellipse>
+                <ellipse cx="42" cy="20" rx="2" ry="4" fill="#FFB6C1" opacity="0.8">
+                  <animate attributeName="cy" dur="2s" repeatCount="indefinite"
+                           values="20;17;20;23;20"/>
+                </ellipse>
+                <ellipse cx="54" cy="20" rx="2" ry="4" fill="#FFB6C1" opacity="0.8">
+                  <animate attributeName="cy" dur="2s" repeatCount="indefinite"
+                           values="20;23;20;17;20"/>
+                </ellipse>
+                <circle cx="70" cy="20" r="5" fill="#FFB6C1"/>
+                <circle cx="68" cy="18" r="1.5" fill="#000">
+                  <animate attributeName="r"
+                           dur="3s"
+                           repeatCount="indefinite"
+                           values="1.5;0.3;1.5;1.5;1.5"/>
+                </circle>
+              </svg>
+            </div>
+          </div>
+
+          <!-- 걷는 오리 -->
+          <div v-show="!showBullet" class="walking-duck" :style="walkingDuckStyle">
+            <img v-if="isEating" :src="duckEating" class="duck-walking-img eating-motion" alt="Eating Duck">
+            <img v-else-if="isSad" :src="duckSad" class="duck-walking-img sad-motion" alt="Sad Duck">
+            <img v-else :src="duckIdle" class="duck-walking-img" alt="Walking Duck Bird">
+          </div>
+
+          <!-- 날아가는 오리 -->
+          <div v-show="showBullet" class="bullet duck-flying cinematic" :style="bulletStyle">
+            <img :src="isEating ? duckEating : (isSad ? duckSad : duckFlying)"
+                 class="duck-flying-img"
+                 :class="{ 'eating-at-target': isEating, 'sad-at-target': isSad }"
+                 alt="Flying/Eating/Sad Duck">
+            <div v-if="!isEating && !isSad" class="speed-lines">
+              <span v-for="n in 5" :key="n" class="speed-line"></span>
+            </div>
+          </div>
+
+          <transition name="explode">
+            <div v-if="showHitEffect" class="hit-effect" :style="hitEffectStyle">
+              <span class="hit-text">{{ hitEffectText }}</span>
+              <div class="explosion-particles">
+                <span v-for="n in 8" :key="n" class="particle" :style="`--angle: ${n * 45}deg`"></span>
+              </div>
+            </div>
+          </transition>
+
+          <transition name="miss">
+            <div v-if="showMissEffect" class="miss-effect" :style="missEffectStyle">
+              <span class="miss-text">MISSED!</span>
+            </div>
+          </transition>
+
+          <div class="editor-header">
+            <div class="code-progress">
+              <span class="progress-text">{{ progressiveCompletedSteps.length }}/{{ totalStepsComputed }} BLANKS FILLED</span>
+              <div class="progress-bar">
+                <div class="progress-fill" :style="{ width: (progressiveCompletedSteps.length / totalStepsComputed * 100) + '%' }"></div>
+              </div>
+            </div>
+            <div class="editor-top-buttons">
+              <button class="editor-btn hint-btn" @click="showProgressiveHint">HINT</button>
+            </div>
+          </div>
+
+          <div class="editor-body">
+            <div class="guided-step-container">
+              <div class="section-header">
+                <span class="section-label">
+                  <span class="step-num">{{ currentProgressiveStep }}</span>
+                  {{ getCurrentStepData()?.title }}
+                </span>
+              </div>
+              <div class="guided-code-display">
+                <pre class="guided-code" v-html="renderBlankTemplate(currentProgressiveStep)"></pre>
+              </div>
+              <div class="blank-input-area">
+                <label class="blank-label">Fill in the blank:</label>
+                <input
+                  v-model="blankInputs[currentProgressiveStep]"
+                  class="blank-input"
+                  :placeholder="getCurrentStepData()?.blank_placeholder || '___'"
+                  @keydown.enter="submitGuidedBlank(currentProgressiveStep)"
+                  :disabled="blankVerified[currentProgressiveStep]"
+                />
+                <button
+                  class="editor-btn submit-btn"
+                  @click="submitGuidedBlank(currentProgressiveStep)"
+                  :disabled="!blankInputs[currentProgressiveStep]?.trim() || blankVerified[currentProgressiveStep]"
+                >
+                  VERIFY
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 힌트 오리 -->
+          <transition name="duck-pop">
+            <div v-if="showProgressiveHintPanel" class="hint-duck-container">
+              <div class="hint-speech-bubble">
+                <div class="bubble-header">DUC-TIP!</div>
+                <div class="bubble-content">{{ getCurrentStepData()?.hint }}</div>
+              </div>
+              <img :src="unitDuck" class="hint-duck-img" alt="Hint Duck">
+            </div>
+          </transition>
+        </main>
+
+        <!-- ========== STANDARD MODE (기존 그대로) ========== -->
+        <main v-else class="full-code-editor" ref="editorFrameRef">
+          <!-- 3마리 지렁이 SVG 애니메이션 -->
+          <div class="bugs-container">
+            <div
+              v-for="step in totalStepsComputed"
               :key="'bug-' + step"
               class="code-bug"
               :ref="el => (bugRefs[step] = el)"
@@ -286,9 +654,9 @@
 
           <div class="editor-header">
             <div class="code-progress">
-              <span class="progress-text">{{ progressiveCompletedSteps.length }}/3 BUGS FIXED</span>
+              <span class="progress-text">{{ progressiveCompletedSteps.length }}/{{ totalStepsComputed }} BUGS FIXED</span>
               <div class="progress-bar">
-                <div class="progress-fill" :style="{ width: (progressiveCompletedSteps.length / 3 * 100) + '%' }"></div>
+                <div class="progress-fill" :style="{ width: (progressiveCompletedSteps.length / totalStepsComputed * 100) + '%' }"></div>
               </div>
             </div>
             <!-- 에디터 상단 버튼들 -->
@@ -299,7 +667,7 @@
               <button class="editor-btn reset-btn" @click="resetCurrentStep">
                 ↺ RESET
               </button>
-              <button class="editor-btn submit-btn" @click="submitProgressiveStep" :disabled="currentProgressiveStep > 3 || isRunning">
+              <button class="editor-btn submit-btn" @click="submitProgressiveStep" :disabled="currentProgressiveStep > totalStepsComputed || isRunning">
                 🚀 SUBMIT
               </button>
             </div>
@@ -335,7 +703,7 @@
           <div class="editor-body" ref="editorBodyRef">
             <!-- 현재 스텝만 표시 -->
             <div class="code-sections">
-              <template v-for="step in 3" :key="'section-' + step">
+              <template v-for="step in totalStepsComputed" :key="'section-' + step">
                 <div
                   v-if="Number(step) === Number(currentProgressiveStep)"
                   ref="sectionRefs"
@@ -371,7 +739,7 @@
             </template>
           </div>
           </div>
-          
+
           <!-- 힌트 오리 (말풍선 포함) -->
           <transition name="duck-pop">
             <div v-if="showProgressiveHintPanel" class="hint-duck-container">
@@ -431,13 +799,13 @@
               <div class="stat-icon">💎</div>
               <div class="stat-details">
                 <span class="label">PERFECT CLEARS</span>
-                <span class="value text-green">{{ evaluationStats.perfectClears }}/3</span>
+                <span class="value text-green">{{ evaluationStats.perfectClears }}/{{ totalStepsComputed }}</span>
               </div>
             </div>
           </div>
 
-          <!-- AI 디버깅 사고 평가 섹션 -->
-          <div class="ai-report-section neon-border">
+          <!-- AI 디버깅 사고 평가 섹션 (standard 모드에서만) -->
+          <div v-if="currentStageMode === 'standard'" class="ai-report-section neon-border">
             <div class="report-section-title">
               <span class="ai-icon">🧠</span>
               디버깅 사고 평가
@@ -505,11 +873,19 @@
             </div>
           </div>
 
+          <!-- Tutorial/Guided 모드에서는 간략한 결과 표시 -->
+          <div v-else-if="currentStageMode !== 'standard'" class="simple-evaluation">
+            <div class="eval-summary">
+              <p>Score: {{ progressiveMissionScore }}/100</p>
+              <p>XP Earned: +{{ progressiveMissionXP }}</p>
+            </div>
+          </div>
+
           <div class="explanations-list">
             <div class="list-title">📋 DEBBUGING LOG & STRATEGY</div>
-            <div 
-              v-for="step in 3" 
-              :key="'eval-step-' + step" 
+            <div
+              v-for="step in totalStepsComputed"
+              :key="'eval-step-' + step"
               class="eval-step-box"
             >
               <div class="step-header">
@@ -569,8 +945,8 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: rgba(10, 10, 15, 0.8);
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: rgba(10, 10, 26, 0.8);
+  border: 1px solid rgba(107, 92, 231, 0.3);
   border-radius: 8px;
   margin-top: 1rem;
   overflow: hidden;
@@ -580,18 +956,18 @@
 
 .chat-interface.mission-log-active {
   border-color: var(--neon-magenta);
-  box-shadow: 0 0 15px var(--neon-magenta), inset 0 0 10px rgba(255, 0, 255, 0.3);
+  box-shadow: 0 0 15px rgba(240, 98, 146, 0.4), inset 0 0 10px rgba(240, 98, 146, 0.15);
 }
 
 .chat-header {
   padding: 0.8rem;
-  background: rgba(0, 255, 255, 0.1);
-  border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+  background: rgba(107, 92, 231, 0.1);
+  border-bottom: 1px solid rgba(107, 92, 231, 0.2);
   display: flex;
   align-items: center;
   gap: 0.5rem;
   font-weight: bold;
-  color: #0ff;
+  color: var(--neon-cyan);
 }
 
 .chat-messages {
@@ -638,15 +1014,15 @@
 }
 
 .chat-message.system .message-content {
-  background: rgba(0, 255, 255, 0.15);
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: rgba(79, 195, 247, 0.1);
+  border: 1px solid rgba(79, 195, 247, 0.25);
   color: #e0f0ff;
   border-top-left-radius: 2px;
 }
 
 .chat-message.user .message-content {
-  background: rgba(255, 0, 255, 0.15);
-  border: 1px solid rgba(255, 0, 255, 0.3);
+  background: rgba(240, 98, 146, 0.1);
+  border: 1px solid rgba(240, 98, 146, 0.25);
   color: #ffe0ff;
   border-top-right-radius: 2px;
 }
@@ -671,8 +1047,8 @@
 
 .chat-input-box:focus {
   outline: none;
-  border-color: #0ff;
-  box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 10px rgba(79, 195, 247, 0.2);
 }
 
 .chat-input-box:disabled {
@@ -682,7 +1058,7 @@
 }
 
 .chat-send-btn {
-  background: linear-gradient(135deg, #0ff, #0088ff);
+  background: linear-gradient(135deg, #4fc3f7, #0088ff);
   border: none;
   color: black;
   font-weight: bold;
@@ -713,7 +1089,7 @@
 }
 
 .chat-messages::-webkit-scrollbar-thumb {
-  background: rgba(0, 255, 255, 0.2);
+  background: rgba(79, 195, 247, 0.2);
   border-radius: 3px;
 }
 
@@ -758,15 +1134,15 @@
 }
 
 .alert-popup-content {
-  background: linear-gradient(135deg, rgba(0, 255, 255, 0.15), rgba(255, 0, 128, 0.15));
+  background: linear-gradient(135deg, rgba(79, 195, 247, 0.15), rgba(240, 98, 146, 0.15));
   border: 2px solid var(--neon-cyan);
   border-radius: 16px;
   padding: 30px 50px;
   text-align: center;
   box-shadow:
-    0 0 30px rgba(0, 255, 255, 0.5),
-    0 0 60px rgba(0, 255, 255, 0.3),
-    inset 0 0 30px rgba(0, 255, 255, 0.1);
+    0 0 30px rgba(79, 195, 247, 0.5),
+    0 0 60px rgba(79, 195, 247, 0.3),
+    inset 0 0 30px rgba(79, 195, 247, 0.1);
   backdrop-filter: blur(10px);
   max-width: 500px;
 }
@@ -787,7 +1163,7 @@
   color: #fff;
   line-height: 1.8;
   white-space: pre-wrap;
-  text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+  text-shadow: 0 0 10px rgba(79, 195, 247, 0.5);
 }
 
 .alert-popup-hint {
@@ -1065,6 +1441,25 @@ const progressiveHintUsed = ref({ 1: false, 2: false, 3: false });
 const showProgressiveHintPanel = ref(false);
 const justCompletedStep = ref(0);
 
+// ============================================
+// Stage Mode 시스템
+// ============================================
+const currentStageMode = ref('standard');  // 'tutorial' | 'guided' | 'standard'
+const totalStepsComputed = computed(() => currentProgressiveMission.value?.totalSteps || 3);
+
+// Tutorial Mode refs
+const tutorialPhase = ref('explore');     // 'explore' | 'fix' | 'review'
+const hoveredLine = ref(null);
+const selectedBugLine = ref(null);
+const bugLineCorrect = ref(false);
+const selectedChoice = ref(null);
+const choiceSubmitted = ref(false);
+const showReviewCard = ref(false);
+
+// Guided Mode refs
+const blankInputs = ref({});
+const blankVerified = ref({});
+
 // 셔터 애니메이션 상태
 const showShutter = ref(false);
 
@@ -1239,13 +1634,21 @@ function startProgressiveMission(mission, index, startAtStep = 1) {
   currentProgressiveMission.value = mission;
   currentProgressiveStep.value = startAtStep;
   progressiveCompletedSteps.value = [];
-  
+
   // 이미 진행된 스텝들은 완료 처리 (현재 스텝 미만)
   for (let i = 1; i < startAtStep; i++) {
     progressiveCompletedSteps.value.push(i);
   }
 
-  progressiveHintUsed.value = { 1: false, 2: false, 3: false };
+  // 변경: 동적 초기화
+  const totalSteps = mission.totalSteps || 3;
+  currentStageMode.value = mission.mode || 'standard';
+
+  // 힌트 동적 초기화
+  progressiveHintUsed.value = {};
+  for (let i = 1; i <= totalSteps; i++) {
+    progressiveHintUsed.value[i] = false;
+  }
 
   // 모든 스텝의 버그 코드 로드 (키 불일치 방지를 위해 번호로 강제 변환)
   progressiveStepCodes.value = {};
@@ -1253,19 +1656,35 @@ function startProgressiveMission(mission, index, startAtStep = 1) {
     progressiveStepCodes.value[Number(s.step)] = s.buggy_code;
   });
 
-  stepExplanations[1] = '';
-  stepExplanations[2] = '';
-  stepExplanations[3] = '';
+  // 설명 동적 초기화
+  for (let i = 1; i <= totalSteps; i++) {
+    stepExplanations[i] = '';
+  }
+
   codeSubmitFailCount.value = 0;
   totalDebugTime.value = 0;
   evaluationStats.perfectClears = 0;
 
   currentView.value = 'progressivePractice';
 
-  // 바로 디버깅 페이즈 시작
-  startDebugPhase();
+  // 모드별 초기화
+  if (currentStageMode.value === 'tutorial') {
+    tutorialPhase.value = 'explore';
+    selectedBugLine.value = null;
+    bugLineCorrect.value = false;
+    selectedChoice.value = null;
+    choiceSubmitted.value = false;
+    showReviewCard.value = false;
+    // tutorial은 startDebugPhase 호출 안 함
+  } else if (currentStageMode.value === 'guided') {
+    blankInputs.value = {};
+    blankVerified.value = {};
+    startDebugPhase();
+  } else {
+    startDebugPhase();
+  }
 
-  // 단서 초기화
+  // 단서 초기화 (공통)
   const stepData = getCurrentStepData();
   clueMessages.value = [];
 
@@ -1278,15 +1697,15 @@ function startProgressiveMission(mission, index, startAtStep = 1) {
     });
   }
 
-  // 버그 애니메이션 시작
+  // 버그 애니메이션 시작 (공통)
   scheduleTimeout(() => {
     startBugAnimations();
   }, 500);
 
-  // 터미널 초기화
+  // 터미널 초기화 - 동적 totalSteps
   terminalOutput.value = [
     { prompt: '>', text: `Project: ${mission.project_title} Initialized.`, type: 'info' },
-    { prompt: '>', text: `Total Errors: 3 | Current: Step ${startAtStep}`, type: 'warning' }
+    { prompt: '>', text: `Total Errors: ${totalSteps} | Current: Step ${startAtStep}`, type: 'warning' }
   ];
   terminalStatus.value = 'ready';
 }
@@ -1336,7 +1755,7 @@ function scrollClues() {
 
 // 다음 문제로 이동 (설명 완료 후)
 function moveToNextStep() {
-  if (currentProgressiveStep.value < 3) {
+  if (currentProgressiveStep.value < totalStepsComputed.value) {
     currentProgressiveStep.value++;
     startDebugPhase();
   } else {
@@ -1363,7 +1782,7 @@ function handleStrategySubmit() {
   showStrategyDuck.value = false;
 
   // 다음 단계로 이동 또는 미션 완료
-  if (currentProgressiveStep.value < 3) {
+  if (currentProgressiveStep.value < totalStepsComputed.value) {
     scheduleTimeout(() => {
       moveToNextStep();
 
@@ -1389,6 +1808,14 @@ async function showEvaluation() {
   showMissionComplete.value = false;
   currentView.value = 'evaluation';
 
+  // tutorial/guided 모드에서는 AI 평가 skip
+  if (currentStageMode.value === 'tutorial' || currentStageMode.value === 'guided') {
+    aiEvaluationResult.value = null;
+    isEvaluatingAI.value = false;
+    return;
+  }
+
+  // 기존 standard 모드 AI 평가 로직 유지
   if (currentProgressiveMission.value) {
     isEvaluatingAI.value = true;
     try {
@@ -1442,6 +1869,145 @@ function resetCurrentStep() {
   if (stepData) {
     progressiveStepCodes.value[currentProgressiveStep.value] = stepData.buggy_code;
   }
+}
+
+// ============================================
+// Tutorial Mode 메서드
+// ============================================
+
+// Tutorial Phase A - 라인 클릭
+function handleTutorialLineClick(lineNum) {
+  if (tutorialPhase.value !== 'explore') return;
+
+  const stepData = getCurrentStepData();
+  const correctLine = stepData?.bug_line;
+
+  selectedBugLine.value = lineNum;
+
+  if (lineNum === correctLine) {
+    bugLineCorrect.value = true;
+    addClue('SUCCESS', 'Bug Found! 이 줄에 문제가 있습니다.');
+    scheduleTimeout(() => {
+      tutorialPhase.value = 'fix';
+    }, 1500);
+  } else {
+    // 틀린 줄 - shake 효과
+    isShaking.value = true;
+    scheduleTimeout(() => { isShaking.value = false; }, 500);
+    addClue('HINT', '다시 살펴보세요. 코드의 흐름을 따라가며 빠진 것이 없는지 확인해보세요.');
+    // 선택 초기화 (재시도 가능)
+    scheduleTimeout(() => { selectedBugLine.value = null; }, 1000);
+  }
+}
+
+// Tutorial Phase B - 선택지
+function handleTutorialChoice(idx) {
+  if (tutorialPhase.value !== 'fix' || choiceSubmitted.value) return;
+  selectedChoice.value = idx;
+}
+
+function submitTutorialChoice() {
+  if (selectedChoice.value === null) return;
+
+  const stepData = getCurrentStepData();
+  const choices = stepData?.choices || [];
+  const chosen = choices[selectedChoice.value];
+
+  choiceSubmitted.value = true;
+
+  if (chosen?.correct) {
+    // 정답: 오리가 벌레 잡는 애니메이션
+    shootBug(currentProgressiveStep.value, true);
+
+    scheduleTimeout(() => {
+      progressiveCompletedSteps.value.push(currentProgressiveStep.value);
+      const stepId = `progressive_${currentProgressiveMission.value.id}_step${currentProgressiveStep.value}`;
+      if (!gameData.completedProblems.includes(stepId)) {
+        gameData.completedProblems.push(stepId);
+      }
+      gameData.stats.totalBugsFixed++;
+
+      // 리뷰 페이즈로 이동
+      tutorialPhase.value = 'review';
+      showReviewCard.value = true;
+    }, 2000);
+  } else {
+    // 오답: 오리가 빗나가는 애니메이션
+    shootBug(currentProgressiveStep.value, false);
+    codeSubmitFailCount.value++;
+
+    // 재시도 가능하도록 초기화
+    scheduleTimeout(() => {
+      choiceSubmitted.value = false;
+      selectedChoice.value = null;
+    }, 2000);
+  }
+}
+
+// Tutorial Phase C - 리뷰 + 스테이지 클리어
+function completeTutorialStage() {
+  showReviewCard.value = false;
+  completeMission();
+}
+
+// ============================================
+// Guided Mode 메서드
+// ============================================
+
+function submitGuidedBlank(stepNum) {
+  const stepData = getStepData(stepNum);
+  if (!stepData) return;
+
+  const userInput = (blankInputs.value[stepNum] || '').trim();
+  const correctAnswer = stepData.blank_answer;
+
+  // 비교: 공백 제거 후 case-insensitive
+  const normalize = (s) => s.toLowerCase().replace(/\s+/g, '').replace(/[()]/g, '');
+  const isCorrect = normalize(userInput) === normalize(correctAnswer);
+
+  if (isCorrect) {
+    blankVerified.value[stepNum] = true;
+    shootBug(stepNum, true);
+    addClue('SUCCESS', `Step ${stepNum} 정답! ${stepData.coaching}`);
+
+    scheduleTimeout(() => {
+      progressiveCompletedSteps.value.push(stepNum);
+      const stepId = `progressive_${currentProgressiveMission.value.id}_step${stepNum}`;
+      if (!gameData.completedProblems.includes(stepId)) {
+        gameData.completedProblems.push(stepId);
+      }
+      gameData.stats.totalBugsFixed++;
+
+      const totalSteps = currentProgressiveMission.value.totalSteps;
+      if (stepNum < totalSteps) {
+        currentProgressiveStep.value = stepNum + 1;
+        // 다음 step 에러 로그 표시
+        const nextStepData = getCurrentStepData();
+        clueMessages.value = [];
+        if (nextStepData?.error_log) {
+          clueMessages.value.push({ type: 'ERROR', text: nextStepData.error_log, isNew: true });
+        }
+      } else {
+        completeMission();
+      }
+    }, 2000);
+  } else {
+    shootBug(stepNum, false);
+    codeSubmitFailCount.value++;
+    addClue('ERROR', '답이 맞지 않습니다. 힌트를 확인해보세요.');
+  }
+}
+
+function renderBlankTemplate(stepNum) {
+  const stepData = getStepData(stepNum);
+  if (!stepData?.blank_template) return '';
+
+  const escaped = stepData.blank_template
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  return escaped.replace(/_{3,}/g, '<span class="blank-slot">___</span>');
 }
 
 // Progressive 힌트 보기 (토글 방식으로 변경 - 여러 번 볼 수 있음)
@@ -1641,10 +2207,12 @@ async function submitProgressiveStep() {
         // 성공 시 힌트 창 닫기
         showProgressiveHintPanel.value = false;
 
-        // 전략 작성 오리 표시 (클릭하면 오버레이 열림)
-        scheduleTimeout(() => {
-          showStrategyDuck.value = true;
-        }, 500);
+        // 전략 작성 오리 표시 (클릭하면 오버레이 열림) - standard 모드에서만
+        if (currentStageMode.value === 'standard') {
+          scheduleTimeout(() => {
+            showStrategyDuck.value = true;
+          }, 500);
+        }
 
       } else {
         // 실패
@@ -1830,7 +2398,8 @@ function animateDuck() {
 
 // 버그 애니메이션 시작
 function startBugAnimations() {
-  for (let step = 1; step <= 3; step++) {
+  const totalSteps = totalStepsComputed.value;
+  for (let step = 1; step <= totalSteps; step++) {
     if (!progressiveCompletedSteps.value.includes(step)) {
       animateBug(step);
     }
@@ -1841,7 +2410,8 @@ function startBugAnimations() {
 
 // 버그 애니메이션 중지
 function stopBugAnimations() {
-  for (let step = 1; step <= 3; step++) {
+  const totalSteps = totalStepsComputed.value || 3;
+  for (let step = 1; step <= totalSteps; step++) {
     if (bugAnimationIds[step]) {
       cancelAnimationFrame(bugAnimationIds[step]);
       bugAnimationIds[step] = null;
@@ -1994,8 +2564,57 @@ function resetGameData() {
   }
 }
 
+// ============================================
+// LocalStorage 마이그레이션
+// ============================================
+
+function migrateGameDataToStages() {
+  const data = loadGameData();
+  if (!data || data._migrated_v2) return;
+
+  const completed = data.completedProblems || [];
+  const newCompleted = [...completed];
+
+  // P1 step1 → S1 step1
+  if (completed.includes('progressive_P1_step1')) {
+    if (!newCompleted.includes('progressive_S1_step1')) newCompleted.push('progressive_S1_step1');
+  }
+  // P1 step2 → S2 step1
+  if (completed.includes('progressive_P1_step2')) {
+    if (!newCompleted.includes('progressive_S2_step1')) newCompleted.push('progressive_S2_step1');
+  }
+  // P1 step3 → S2 step2
+  if (completed.includes('progressive_P1_step3')) {
+    if (!newCompleted.includes('progressive_S2_step2')) newCompleted.push('progressive_S2_step2');
+  }
+  // P1 mission complete → S1 + S2
+  if (completed.includes('progressive_P1')) {
+    if (!newCompleted.includes('progressive_S1')) newCompleted.push('progressive_S1');
+    if (!newCompleted.includes('progressive_S2')) newCompleted.push('progressive_S2');
+  }
+
+  // P2→S3, P3→S4, P4→S5, P5→S6
+  const mapping = { 'P2': 'S3', 'P3': 'S4', 'P4': 'S5', 'P5': 'S6' };
+  for (const [oldId, newId] of Object.entries(mapping)) {
+    for (const entry of completed) {
+      if (entry.startsWith(`progressive_${oldId}`)) {
+        const newEntry = entry.replace(`progressive_${oldId}`, `progressive_${newId}`);
+        if (!newCompleted.includes(newEntry)) newCompleted.push(newEntry);
+      }
+    }
+  }
+
+  data.completedProblems = newCompleted;
+  data._migrated_v2 = true;
+  saveGameData(data);
+  Object.assign(gameData, data);
+}
+
 // 라이프사이클
 onMounted(() => {
+  // LocalStorage 마이그레이션 먼저 실행
+  migrateGameDataToStages();
+
   // 이미지 preload (애니메이션 전에 미리 로딩)
   const imagesToPreload = [duckIdle, duckEating, duckFlying, duckSad, unitDuck];
   imagesToPreload.forEach(src => {
@@ -2062,7 +2681,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   background: rgba(10, 10, 15, 0.85); /* Dark unified body background */
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(79, 195, 247, 0.2);
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
@@ -2075,7 +2694,7 @@ onUnmounted(() => {
   border: none;
   padding: 1.5rem;
   overflow-y: auto;
-  border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(79, 195, 247, 0.1);
 }
 
 .panel-title {
@@ -2099,7 +2718,7 @@ onUnmounted(() => {
   flex: 1; /* Take all remaining space (Expanded Log Window) */
   min-height: 0; /* flex child가 shrink 가능하도록 */
   background: rgba(0, 0, 0, 0.4);
-  border-top: 1px solid rgba(0, 255, 255, 0.2);
+  border-top: 1px solid rgba(79, 195, 247, 0.2);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -2107,8 +2726,8 @@ onUnmounted(() => {
 
 .clue-header {
   padding: 0.6rem 1rem; /* Compact header */
-  background: rgba(0, 255, 255, 0.05);
-  border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+  background: rgba(79, 195, 247, 0.05);
+  border-bottom: 1px solid rgba(79, 195, 247, 0.1);
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -2205,13 +2824,13 @@ onUnmounted(() => {
 
 /* 성공 헤더 스타일 */
 .success-header {
-  background: linear-gradient(90deg, rgba(0, 255, 255, 0.1), rgba(0, 170, 255, 0.1));
-  border-bottom: 2px solid #0ff;
+  background: linear-gradient(90deg, rgba(79, 195, 247, 0.1), rgba(0, 170, 255, 0.1));
+  border-bottom: 2px solid #4fc3f7;
 }
 
 /* 해결 완료 상태 */
 .status-success {
-  color: #0ff;
+  color: #4fc3f7;
   font-weight: bold;
   animation: pulse 2s ease-in-out infinite;
 }
@@ -2235,8 +2854,8 @@ onUnmounted(() => {
   transform: translateY(-50%);
   font-size: 1.5rem;
   font-weight: bold;
-  color: #0ff;
-  text-shadow: 0 0 20px rgba(0, 255, 255, 1);
+  color: #4fc3f7;
+  text-shadow: 0 0 20px rgba(79, 195, 247, 1);
   animation: pointerBounce 0.6s ease-in-out infinite;
   z-index: 1000;
 }
@@ -2244,32 +2863,32 @@ onUnmounted(() => {
 @keyframes attentionPulse {
   0%, 100% {
     transform: scale(1);
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
-    border-color: rgba(0, 255, 255, 0.3);
+    box-shadow: 0 0 10px rgba(79, 195, 247, 0.3);
+    border-color: rgba(79, 195, 247, 0.3);
   }
   25% {
     transform: scale(1.05);
     box-shadow:
-      0 0 40px rgba(0, 255, 255, 1),
-      0 0 80px rgba(0, 255, 255, 0.8),
-      inset 0 0 30px rgba(0, 255, 255, 0.3);
-    border-color: #0ff;
+      0 0 40px rgba(79, 195, 247, 1),
+      0 0 80px rgba(79, 195, 247, 0.8),
+      inset 0 0 30px rgba(79, 195, 247, 0.3);
+    border-color: #4fc3f7;
   }
   50% {
     transform: scale(1.03);
     box-shadow:
-      0 0 60px rgba(0, 255, 255, 1),
-      0 0 100px rgba(0, 255, 255, 0.8),
-      inset 0 0 40px rgba(0, 255, 255, 0.4);
-    border-color: #0ff;
+      0 0 60px rgba(79, 195, 247, 1),
+      0 0 100px rgba(79, 195, 247, 0.8),
+      inset 0 0 40px rgba(79, 195, 247, 0.4);
+    border-color: #4fc3f7;
   }
   75% {
     transform: scale(1.05);
     box-shadow:
-      0 0 40px rgba(0, 255, 255, 1),
-      0 0 80px rgba(0, 255, 255, 0.8),
-      inset 0 0 30px rgba(0, 255, 255, 0.3);
-    border-color: #0ff;
+      0 0 40px rgba(79, 195, 247, 1),
+      0 0 80px rgba(79, 195, 247, 0.8),
+      inset 0 0 30px rgba(79, 195, 247, 0.3);
+    border-color: #4fc3f7;
   }
 }
 
