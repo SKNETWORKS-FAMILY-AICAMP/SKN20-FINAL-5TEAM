@@ -14,6 +14,9 @@
       :userProteinShakes="auth.userProteinShakes"
       :chapters="game.chapters"
       :leaderboard="leaderboard"
+      :leaderboardCurrentPage="leaderboardCurrentPage"
+      :leaderboardTotalPages="leaderboardTotalPages"
+      @change-page="fetchLeaderboard"
       @go-to-playground="handleGoToPlayground"
       @open-unit="openUnitPopup"
     >
@@ -162,12 +165,16 @@ const router = useRouter();
 
 // Local State
 const leaderboard = ref([]);
+const leaderboardCurrentPage = ref(1);
+const leaderboardTotalPages = ref(1);
 
-// [수정일: 2026-02-06] 리더보드 실시간 연동
-const fetchLeaderboard = async () => {
+// [수정일: 2026-02-09] 리더보드 페이징 연동
+const fetchLeaderboard = async (page = 1) => {
     try {
-        const response = await axios.get('/api/core/activity/leaderboard/');
+        const response = await axios.get(`/api/core/activity/leaderboard/?page=${page}`);
         leaderboard.value = response.data.leaderboard;
+        leaderboardCurrentPage.value = response.data.current_page;
+        leaderboardTotalPages.value = response.data.total_pages;
     } catch (error) {
         console.error("Failed to fetch leaderboard:", error);
     }

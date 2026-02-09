@@ -9,30 +9,44 @@ from core.models import UserActivity, UserSolvedProblem, UserProgress, UserAvata
 from django.shortcuts import get_object_or_404
 from core.nanobanana_utils import generate_nano_banana_avatar # [수정일: 2026-02-06] 추가
 
+from django.core.paginator import Paginator
+
 class LeaderboardView(APIView):
     """
-    상위 랭커 목록 및 현재 사용자의 순위 정보 반환
+    상위 랭커 목록 및 현재 사용자의 순위 정보 반환 (페이징 지원)
     """
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
-        # 상위 10명 포인트순 집계
-        top_rankers = UserActivity.objects.select_related('user', 'active_avatar').order_by('-total_points')[:10]
+        # 전체 랭킹 조회
+        all_activities = UserActivity.objects.select_related('user', 'active_avatar').order_by('-total_points')
         
+        # [수정일: 2026-02-09] 페이징 처리 (페이지당 5명)
+        page_number = request.query_params.get('page', 1)
+        page_size = 5
+        paginator = Paginator(all_activities, page_size)
+        
+        try:
+            page_obj = paginator.get_page(page_number)
+        except Exception:
+            return Response({"error": "Invalid page number"}, status=status.HTTP_400_BAD_REQUEST)
+
         leaderboard_data = []
-        for rank, activity in enumerate(top_rankers, 1):
-            # [수정일: 2026-02-09] 닉네임 폴백 로직 강화 및 프론트엔드 연동을 위한 id 필드 추가
+        # 페이징 시작 번호를 기반으로 절대 순위 계산
+        start_rank = (page_obj.number - 1) * page_size + 1
+        
+        for i, activity in enumerate(page_obj, start_rank):
+            # [수정일: 2026-02-09] 닉네임 폴백 로직 강화
             user_nickname = getattr(activity.user, 'user_nickname', None) or str(activity.user.username)
             
             avatar_url = None
             if activity.active_avatar and activity.active_avatar.image_url:
-                # [수정일: 2026-02-09] default_duck.png는 프론트엔드 폴백을 사용하도록 None 처리
                 if 'default_duck.png' not in activity.active_avatar.image_url:
                     avatar_url = activity.active_avatar.image_url
 
             leaderboard_data.append({
                 'id': activity.user.id,
-                'rank': rank,
+                'rank': i,
                 'nickname': user_nickname,
                 'points': activity.total_points,
                 'current_grade': activity.current_rank,
@@ -40,7 +54,11 @@ class LeaderboardView(APIView):
             })
             
         return Response({
-            'leaderboard': leaderboard_data
+            'leaderboard': leaderboard_data,
+            'total_pages': paginator.num_pages,
+            'current_page': page_obj.number,
+            'has_next': page_obj.has_next(),
+            'has_previous': page_obj.has_previous()
         }, status=status.HTTP_200_OK)
 
 class UserProgressView(APIView):

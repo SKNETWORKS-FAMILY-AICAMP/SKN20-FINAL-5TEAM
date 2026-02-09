@@ -1298,3 +1298,77 @@
     opacity: 0;
     transform: translateY(30px) scale(0.5);
 }
+
+/* [수정일: 2026-02-09] 리더보드 페이징 컨트롤 스타일 */
+.lb-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 30px;
+    margin-top: 40px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.btn-pg {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.btn-pg:hover:not(:disabled) {
+    background: rgba(99, 102, 241, 0.2);
+    border-color: #6366f1;
+    color: #6366f1;
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+    transform: translateY(-2px);
+}
+
+.btn-pg:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.pg-numbers {
+    display: flex;
+    gap: 12px;
+}
+
+.pg-num {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 800;
+    font-size: 1.1rem;
+    color: #64748b;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+.pg-num:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.pg-num.active {
+    color: #b6ff40;
+    background: rgba(182, 255, 64, 0.1);
+    border-color: rgba(182, 255, 64, 0.3);
+    box-shadow: 0 0 15px rgba(182, 255, 64, 0.2);
+}

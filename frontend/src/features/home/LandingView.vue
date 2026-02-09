@@ -178,7 +178,7 @@
       <div class="lb-header-v2">
         <span class="lb-subtitle">ENGINEER RANKING</span>
         <h2>오늘의 명예 전당 🏆</h2>
-        <p>상위 5명의 아키텍처 마스터들이 아케이드를 빛내고 있습니다.</p>
+        <p>아키텍처 마스터들이 아케이드를 빛내고 있습니다. (Page {{ leaderboardCurrentPage }} / {{ leaderboardTotalPages }})</p>
       </div>
       
       <div class="lb-glass-table-v2">
@@ -189,11 +189,11 @@
             <span class="col-shakes">Arcade Points</span>
           </div>
           <div v-for="(user, index) in leaderboard" :key="user.id" 
-               class="lb-row-v2" :class="'row-rank-' + (index + 1)">
+               class="lb-row-v2" :class="'row-rank-' + user.rank">
             <div class="col-rank">
               <div class="rank-box">
-                <span class="rank-num">#{{ index + 1 }}</span>
-                <Crown v-if="index === 0" class="crown-icon" />
+                <span class="rank-num">#{{ user.rank }}</span>
+                <Crown v-if="user.rank === 1" class="crown-icon" />
               </div>
             </div>
             <div class="col-user">
@@ -212,6 +212,37 @@
                 <span>{{ user.points.toLocaleString() }}</span>
               </div>
             </div>
+          </div>
+
+          <!-- [수정일: 2026-02-09] 페이징 컨트롤 UI 추가 -->
+          <div class="lb-pagination" v-if="leaderboardTotalPages > 1">
+            <button 
+              class="btn-pg prev" 
+              :disabled="leaderboardCurrentPage === 1"
+              @click="$emit('change-page', leaderboardCurrentPage - 1)"
+            >
+              <ChevronLeft style="width: 20px;" />
+            </button>
+            
+            <div class="pg-numbers">
+              <span 
+                v-for="p in leaderboardTotalPages" 
+                :key="'pg-'+p"
+                class="pg-num"
+                :class="{ active: p === leaderboardCurrentPage }"
+                @click="$emit('change-page', p)"
+              >
+                {{ p }}
+              </span>
+            </div>
+
+            <button 
+              class="btn-pg next" 
+              :disabled="leaderboardCurrentPage === leaderboardTotalPages"
+              @click="$emit('change-page', leaderboardCurrentPage + 1)"
+            >
+              <ChevronRight style="width: 20px;" />
+            </button>
           </div>
       </div>
     </section>
@@ -262,7 +293,9 @@ export default {
     isLoggedIn: Boolean,
     userProteinShakes: Number,
     chapters: Array,
-    leaderboard: Array
+    leaderboard: Array,
+    leaderboardCurrentPage: Number,
+    leaderboardTotalPages: Number
   },
   data() {
     return {
