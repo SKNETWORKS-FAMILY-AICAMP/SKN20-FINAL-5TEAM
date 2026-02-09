@@ -12,7 +12,7 @@
     color: #fff;
     font-family: 'Outfit', sans-serif;
     overflow-x: hidden;
-    height: 100vh;
+    min-height: 100vh;
     overflow-y: auto;
     scroll-snap-type: y mandatory;
     -webkit-overflow-scrolling: touch;
@@ -21,7 +21,9 @@
 /* [Hero Playground Premium] */
 .hero-playground-premium {
     position: relative;
-    height: 100vh;
+    min-height: 100vh;
+    padding: 120px 0;
+    /* 네비게이션 공간 확보 및 상하 여백 */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -122,11 +124,11 @@
 }
 
 .playground-title-v2 {
-    font-size: 6.5rem;
+    font-size: clamp(3rem, 10vw, 6.5rem);
     font-weight: 950;
-    line-height: 0.85;
-    margin-bottom: 2.5rem;
-    letter-spacing: -2px;
+    line-height: 0.9;
+    margin-bottom: 2rem;
+    letter-spacing: -0.02em;
 }
 
 .text-glow-premium {
@@ -151,14 +153,14 @@
 }
 
 .playground-subtitle-v2 {
-    font-size: 1.6rem;
+    font-size: clamp(1rem, 2vw, 1.6rem);
     color: #cbd5e1;
-    margin-bottom: 4rem;
+    margin-bottom: 3rem;
     font-weight: 300;
-    max-width: 800px;
+    max-width: 90%;
     margin-left: auto;
     margin-right: auto;
-    line-height: 1.5;
+    line-height: 1.6;
 }
 
 .hero-action-group-v2 {
@@ -1000,16 +1002,16 @@
 */
 .lb-section-premium {
     position: relative;
-    height: 100vh;
+    min-height: 100vh;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 2rem;
+    padding: 8vw 2rem;
+    /* 화면 비율에 따른 상하 패딩 */
     background: #06070a;
     overflow: hidden;
     scroll-snap-align: start;
-    will-change: transform;
 }
 
 .lb-energy-pulse {
@@ -1053,7 +1055,7 @@
 }
 
 .lb-header-v2 h2 {
-    font-size: 3.5rem;
+    font-size: clamp(2rem, 6vw, 3.5rem);
     font-weight: 950;
     color: #fff;
     margin-bottom: 1.5rem;
@@ -1069,9 +1071,9 @@
     backdrop-filter: blur(40px);
     border-radius: 40px;
     border: 1px solid rgba(255, 255, 255, 0.06);
-    padding: 1.5rem;
-    width: 95%;
-    max-width: 1200px;
+    padding: clamp(1rem, 3vw, 2.5rem);
+    width: 92%;
+    max-width: 1400px;
     margin: 0 auto;
     box-shadow:
         0 40px 100px rgba(0, 0, 0, 0.6),

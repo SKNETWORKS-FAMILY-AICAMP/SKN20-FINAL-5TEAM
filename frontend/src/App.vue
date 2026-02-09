@@ -66,7 +66,7 @@
                   </template>
                 </h2>
               </div>
-              <div style="display: flex; align-items: center;">
+              <div class="header-actions-v3">
                 <button class="guidebook-btn-v3" @click="handleGuidebookClick">
                   <span class="btn-icon-wrapper"><i data-lucide="book-open"></i></span>
                   GUIDEBOOK

@@ -5,10 +5,70 @@ import os
 import uuid
 import requests
 import io
+import boto3
+from botocore.exceptions import ClientError
 from PIL import Image
 from django.conf import settings
 from google import genai
 from google.genai import types
+
+def upload_to_s3(file_data, bucket_name=None, file_path=None):
+    """
+    AWS S3에 파일을 업로드합니다.
+    [수정일: 2026-02-09] (Antigravity)
+    """
+    access_key = os.environ.get("AWS_ACCESS_KEY_ID")
+    secret_key = os.environ.get("AWS_SECRET_ACCESS_KEY")
+    region = os.environ.get("AWS_S3_REGION_NAME", "ap-northeast-2")
+    bucket = bucket_name or os.environ.get("AWS_STORAGE_BUCKET_NAME")
+
+    if not all([access_key, secret_key, bucket]):
+        print("DEBUG: AWS S3 credentials missing (KEY/SECRET/BUCKET)")
+        return None
+
+    if not file_path:
+        file_path = f"avatars/avatar_{uuid.uuid4().hex}.webp"
+
+    try:
+        s3_client = boto3.client(
+            's3',
+            aws_access_key_id=access_key,
+            aws_secret_access_key=secret_key,
+            region_name=region
+        )
+        
+        # S3 업로드 (Public Read 권한 부여 시도)
+        s3_client.put_object(
+            Bucket=bucket,
+            Key=file_path,
+            Body=file_data,
+            ContentType='image/webp',
+            ACL='public-read' # 버킷 설정에 따라 다를 수 있음
+        )
+        
+        # S3 URL 생성
+        url = f"https://{bucket}.s3.{region}.amazonaws.com/{file_path}"
+        print(f"DEBUG: S3 Upload success: {url}")
+        return url
+        
+    except ClientError as e:
+        print(f"DEBUG: S3 upload failed (ClientError): {e}")
+        # ACL 오류가 날 수 있으므로 ACL 없이 재시도
+        try:
+            s3_client.put_object(
+                Bucket=bucket,
+                Key=file_path,
+                Body=file_data,
+                ContentType='image/webp'
+            )
+            url = f"https://{bucket}.s3.{region}.amazonaws.com/{file_path}"
+            return url
+        except Exception as e2:
+            print(f"DEBUG: S3 upload failed again: {e2}")
+            return None
+    except Exception as e:
+        print(f"DEBUG: S3 upload exception: {e}")
+        return None
 
 def upload_to_supabase(file_data, bucket_name='avatars', file_path=None):
     """
@@ -142,9 +202,13 @@ def generate_nano_banana_avatar(prompt, seed=None, save_local=True):
                     with open(abs_path, 'wb') as f:
                         f.write(image_data)
                     
+                    # [수정일: 2026-02-09] S3 연동 테스트 및 자동 업로드
+                    # S3 설정이 있으면 S3로, 성능상 로컬에도 저장 유지
+                    s3_url = upload_to_s3(image_data)
+                    
                     print(f"DEBUG: SUCCESSful AI generation with {model_id}", flush=True)
                     return {
-                        'url': f"{settings.MEDIA_URL}{media_path}",
+                        'url': s3_url if s3_url else f"{settings.MEDIA_URL}{media_path}",
                         'seed': seed,
                         'ai_generated': True,
                         'model_used': model_id

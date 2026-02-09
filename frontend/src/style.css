@@ -86,13 +86,14 @@ body {
 /* Hero Section */
 .hero {
     position: relative;
-    height: 100vh;
+    min-height: 100vh;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     text-align: center;
     overflow: hidden;
+    padding: 2rem;
 }
 
 #hero-video {
@@ -189,7 +190,7 @@ body {
 
 .main-title {
     font-family: 'Outfit', sans-serif;
-    font-size: 5rem;
+    font-size: clamp(2.5rem, 8vw, 5rem);
     font-weight: 900;
     margin-bottom: 1.5rem;
     line-height: 1.1;
@@ -363,14 +364,15 @@ body {
 
 /* Leaderboard */
 .leaderboard-container {
+    width: 92%;
     max-width: 1200px;
-    margin: 0;
+    margin: 0 auto;
     background: rgba(30, 41, 59, 0.5);
     backdrop-filter: blur(20px);
     border-radius: 24px;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 1.5rem;
+    padding: clamp(1rem, 3vw, 2.5rem);
 }
 
 .leaderboard-table {
@@ -706,9 +708,9 @@ footer {
 }
 
 .workspace-container {
-    width: 90%;
-    max-width: 1200px;
-    height: 85vh;
+    width: 95%;
+    max-width: 1400px;
+    height: 90vh;
     background: var(--dark-light);
     border-radius: 24px;
     border: 1px solid var(--glass-border);
@@ -2834,8 +2836,11 @@ footer {
     z-index: 1;
 }
 
-.hero-content {
-    position: relative;
-    z-index: 2;
-    /* 글자가 영상 위로 */
+
+.header-actions-v3 {
+    display: flex;
+    align-items: center;
+    gap: clamp(0.5rem, 2vw, 2rem);
+    flex-wrap: wrap;
+    justify-content: flex-end;
 }

@@ -18,7 +18,7 @@ services:
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - ./backend:/app
-      - /var/run/docker.sock:/var/run/docker.sock  # Docker socket 마운트
+      - /var/run/docker.sock:/var/run/docker.sock # Docker socket 마운트
     ports:
       - "8000:8000"
     dns:
@@ -35,6 +35,10 @@ services:
       - DB_PORT=${DB_PORT}
       - DATABASE_URL=${DATABASE_URL}
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_STORAGE_BUCKET_NAME=${AWS_STORAGE_BUCKET_NAME}
+      - AWS_S3_REGION_NAME=${AWS_S3_REGION_NAME}
       # [원복] 로컬 DB 의존성 복구
     depends_on:
       - db
