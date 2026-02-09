@@ -21,12 +21,22 @@ class LeaderboardView(APIView):
         
         leaderboard_data = []
         for rank, activity in enumerate(top_rankers, 1):
+            # [수정일: 2026-02-09] 닉네임 폴백 로직 강화 및 프론트엔드 연동을 위한 id 필드 추가
+            user_nickname = getattr(activity.user, 'user_nickname', None) or str(activity.user.username)
+            
+            avatar_url = None
+            if activity.active_avatar and activity.active_avatar.image_url:
+                # [수정일: 2026-02-09] default_duck.png는 프론트엔드 폴백을 사용하도록 None 처리
+                if 'default_duck.png' not in activity.active_avatar.image_url:
+                    avatar_url = activity.active_avatar.image_url
+
             leaderboard_data.append({
+                'id': activity.user.id,
                 'rank': rank,
-                'nickname': activity.user.user_nickname if hasattr(activity.user, 'user_nickname') else activity.user.id,
+                'nickname': user_nickname,
                 'points': activity.total_points,
                 'current_grade': activity.current_rank,
-                'avatar_url': activity.active_avatar.image_url if activity.active_avatar else None
+                'avatar_url': avatar_url
             })
             
         return Response({

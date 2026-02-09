@@ -4,6 +4,8 @@
 import os
 import uuid
 import requests
+import io
+from PIL import Image
 from django.conf import settings
 from google import genai
 from google.genai import types
@@ -42,6 +44,33 @@ def upload_to_supabase(file_data, bucket_name='avatars', file_path=None):
     except Exception as e:
         print(f"DEBUG: Supabase upload exception: {e}")
         return None
+
+def optimize_image(image_bytes, size=(512, 512), quality=80):
+    """
+    이미지 데이터를 WebP 포맷으로 변환하고 리사이징하여 용량을 최적화합니다.
+    [수정일: 2026-02-09] (Antigravity)
+    """
+    try:
+        img = Image.open(io.BytesIO(image_bytes))
+        
+        # RGBA -> RGB 변환 (WebP는 투명도를 지원하지만 용량 최적화를 위해 필요한 경우)
+        # 여기서는 투명도를 유지하면서 최적화 진행
+        if img.mode in ("RGBA", "P"):
+            img = img.convert("RGBA")
+        
+        # 리사이징 (Lanczos 필터 사용)
+        img = img.resize(size, Image.Resampling.LANCZOS)
+        
+        # WebP로 출력
+        output = io.BytesIO()
+        img.save(output, format="WEBP", quality=quality)
+        optimized_data = output.getvalue()
+        
+        print(f"DEBUG: Image optimized. {len(image_bytes)} -> {len(optimized_data)} bytes")
+        return optimized_data
+    except Exception as e:
+        print(f"DEBUG: Image optimization failed: {e}")
+        return image_bytes # 실패 시 원본 반환
 
 def generate_nano_banana_avatar(prompt, seed=None, save_local=True):
     """
@@ -93,6 +122,9 @@ def generate_nano_banana_avatar(prompt, seed=None, save_local=True):
                 if response and response.generated_images:
                     image_data = response.generated_images[0].image.image_bytes
                     
+                    # [수정일: 2026-02-09] 이미지 최적화 적용
+                    image_data = optimize_image(image_data)
+
                     if not save_local:
                         return {
                             'image_data': image_data,
@@ -101,8 +133,8 @@ def generate_nano_banana_avatar(prompt, seed=None, save_local=True):
                             'model_used': model_id
                         }
 
-                    # 고유 파일명 생성 및 저장 (기존 로컬 저장 방식)
-                    filename = f"avatar_{uuid.uuid4().hex}.png"
+                    # 고유 파일명 생성 및 저장 (.webp 확장자 권장)
+                    filename = f"avatar_{uuid.uuid4().hex}.webp"
                     media_path = os.path.join('avatars', filename)
                     abs_path = os.path.join(settings.MEDIA_ROOT, media_path)
                     
