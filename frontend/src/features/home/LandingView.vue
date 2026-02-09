@@ -174,6 +174,7 @@
 
     <!-- [Leaderboard Section Premium] -->
     <section id="leaderboard" class="lb-section-premium">
+      <div class="background-grid-pattern"></div>
       <div class="lb-energy-pulse"></div>
       <div class="lb-header-v2">
         <span class="lb-subtitle">ENGINEER RANKING</span>
