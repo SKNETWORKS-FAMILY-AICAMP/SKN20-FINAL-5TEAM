@@ -149,7 +149,7 @@ import { useUiStore } from '@/stores/ui';
 import './style.css';
 import LandingView from './features/home/LandingView.vue';
 import GlobalModals from './components/GlobalModals.vue';
-import progressiveData from './features/practice/progressive-problems.json';
+import progressiveData from './features/practice/bughunt/problem_data/progressive-problems.json';
 
 // Stores
 const auth = useAuthStore();

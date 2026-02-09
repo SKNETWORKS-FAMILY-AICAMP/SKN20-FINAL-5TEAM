@@ -866,9 +866,9 @@ import duckSad from '@/assets/image/duck_sad.png';
 import unitDuck from '@/assets/image/unit_duck.png';
 import { useRoute, useRouter } from 'vue-router';
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
-import progressiveData from './progressive-problems.json';
-import { evaluateBugHunt, verifyCodeBehavior } from './services/bugHuntApi';
-import BugHuntTutorialOverlay from './components/BugHuntTutorialOverlay.vue';
+import progressiveData from './problem_data/progressive-problems.json';
+import { evaluateBugHunt, verifyCodeBehavior } from './api/bugHuntApi';
+import BugHuntTutorialOverlay from './composables/BugHuntTutorialOverlay.vue';
 import './BugHunt.css';
 
 const route = useRoute();

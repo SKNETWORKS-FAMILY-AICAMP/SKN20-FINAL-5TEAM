@@ -3,7 +3,7 @@ import axios from 'axios';
 import { aiQuests } from '../features/practice/pseudocode/data/stages.js'; // [수정일: 2026-02-06] 폴더 계층화(data) 반영
 // [수정일: 2026-02-06] 비활성 데이터 임포트 경로 수정 (support -> not_use/support)
 // import { aiDetectiveQuests } from '../features/practice/not_use/support/unit1/logic-mirror/data/aiDetectiveQuests.js';
-import progressiveData from '../features/practice/progressive-problems.json';
+import progressiveData from '../features/practice/bughunt/problem_data/progressive-problems.json';
 // [수정일: 2026-01-31] 비활성 데이터 임포트 주석 처리
 // import forestGameData from '../features/practice/PseudoForestData.js';
 
