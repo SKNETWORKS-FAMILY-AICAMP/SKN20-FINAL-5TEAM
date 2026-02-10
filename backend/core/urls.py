@@ -36,6 +36,7 @@ urlpatterns = [
     # 활동 및 리더보드 통합 API (AI-Arcade)
     path('activity/leaderboard/', activity_view.LeaderboardView.as_view(), name='leaderboard'),
     path('activity/progress/', activity_view.UserProgressView.as_view(), name='user_progress'),
+    path('activity/solved-problems/', activity_view.UserSolvedProblemView.as_view(), name='solved_problems'),
     path('activity/submit/', activity_view.SubmitProblemView.as_view(), name='submit_problem'),
     path('activity/preview/', activity_view.AvatarPreviewView.as_view(), name='avatar_preview'), # [수정일: 2026-02-06] 추가
 

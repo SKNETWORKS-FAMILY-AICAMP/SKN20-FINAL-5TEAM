@@ -154,6 +154,7 @@ class SessionCheckView(APIView):
                     'interests': detail.interests if isinstance(detail.interests, list) else []
                 }
 
+            # [수정일: 2026-02-10] 세션 체크 시 프로필/활동 정보가 없는 경우에 대한 예외 처리 강화 (Antigravity)
             return Response({
                 'isAuthenticated': True,
                 'user': {
@@ -164,9 +165,9 @@ class SessionCheckView(APIView):
                     'activity': activity_data,
                     'user_detail': user_detail_data,
                     'active_avatar': {
-                        'image_url': activity_data['active_avatar']['image_url'] if activity_data['active_avatar'] else None,
+                        'image_url': activity_data['active_avatar']['image_url'] if activity_data.get('active_avatar') else None,
                         'prompt': profile.activity.active_avatar.prompt if profile and hasattr(profile, 'activity') and profile.activity.active_avatar else ''
-                    } if activity_data['active_avatar'] else None
+                    } if activity_data.get('active_avatar') else None
                 }
             })
         else:

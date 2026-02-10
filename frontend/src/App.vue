@@ -30,9 +30,13 @@
             <span class="user-name-v2">{{ auth.sessionNickname }}</span>
             <span class="user-rank-v2">{{ auth.userRank }}</span>
           </div>
-          <div class="user-avatar-header" v-if="auth.userAvatarUrl">
-             <img :src="auth.userAvatarUrl" class="header-avatar-img">
-          </div>
+          <AvatarFrame 
+            :src="auth.userAvatarUrl" 
+            :rank="auth.userRank" 
+            size="40px" 
+            class="user-avatar-header" 
+            v-if="auth.isLoggedIn"
+          />
           <button class="btn-history" @click="router.push('/my-records')">My Records</button>
           <button v-if="auth.user?.is_superuser" class="btn-mgmt" @click="router.push('/management/progress')">Management</button>
           <button class="btn-profile-settings" @click="ui.isProfileSettingsModalOpen = true">Setting</button>
@@ -92,9 +96,13 @@
 
                 <div class="platform-circle-v3">
                   <template v-if="game.currentUnitProgress.includes(problem.questIndex)">
-                    <img v-if="problem.questIndex === currentMaxIdx"
-                         :src="auth.userAvatarUrl || '/image/unit_duck.png'"
-                         class="duck-on-node-v3 user-avatar-on-node">
+                    <AvatarFrame 
+                      v-if="problem.questIndex === currentMaxIdx"
+                      :src="auth.userAvatarUrl" 
+                      :rank="auth.userRank" 
+                      size="50px" 
+                      class="duck-on-node-v3 user-avatar-on-node"
+                    />
                     <div style="width: 20px; height: 20px; background: #b6ff40; border-radius: 50%; box-shadow: 0 0 10px #b6ff40;"></div>
                   </template>
                   <template v-else>
@@ -151,6 +159,7 @@ import { useUiStore } from '@/stores/ui';
 
 import './style.css';
 import LandingView from './features/home/LandingView.vue';
+import AvatarFrame from '@/components/AvatarFrame.vue';
 import GlobalModals from './components/GlobalModals.vue';
 import progressiveData from './features/practice/bughunt/problem_data/progressive-problems.json';
 

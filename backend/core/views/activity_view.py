@@ -120,10 +120,10 @@ class SubmitProblemView(APIView):
         total_points = UserSolvedProblem.objects.filter(user=profile).aggregate(Sum('score'))['score__sum'] or 0
         activity.total_points = total_points
         
-        # 랭킹(등급) 업데이트 로직 (간단한 예시)
-        if total_points > 5000:
+        # [2026-02-10] 랭킹(등급) 업데이트 로직 최적화
+        if total_points > 8000:
             activity.current_rank = 'ENGINEER'
-        elif total_points > 2000:
+        elif total_points > 3000:
             activity.current_rank = 'GOLD'
         elif total_points > 1000:
             activity.current_rank = 'SILVER'
@@ -160,6 +160,33 @@ class SubmitProblemView(APIView):
             'current_rank': activity.current_rank,
             'progress_rate': progress.progress_rate
         }, status=status.HTTP_200_OK)
+
+class UserSolvedProblemView(APIView):
+    """
+    사용자가 해결한 문제 목록 및 제출 데이터 조회
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        from core.models import UserProfile
+        profile = get_object_or_404(UserProfile, email=user.email)
+        
+        # 사용자의 모든 해결 기록 조회 (최신순)
+        solved_problems = UserSolvedProblem.objects.filter(user=profile).select_related('practice_detail').order_by('-updated_at')
+        
+        data = []
+        for sp in solved_problems:
+            data.append({
+                'id': sp.id,
+                'practice_detail': sp.practice_detail.id,
+                'score': sp.score,
+                'submitted_data': sp.submitted_data,
+                'is_perfect': sp.is_perfect,
+                'updated_at': sp.updated_at
+            })
+            
+        return Response(data, status=status.HTTP_200_OK)
 
 class AvatarPreviewView(APIView):
     """

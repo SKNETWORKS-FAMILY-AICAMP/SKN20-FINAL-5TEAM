@@ -42,9 +42,13 @@
               </div>
               
               <div class="avatar-preview-display" style="margin-top: 1.5rem; display: flex; justify-content: center; width: 100%;">
-                <div v-if="avatarPreviewUrl" class="preview-card avatar-preview-box" style="position: relative; width: 220px; height: 220px; border-radius: 20px; overflow: hidden; border: 3px solid #b6ff40; box-shadow: 0 0 25px rgba(182, 255, 64, 0.4); background: #000;">
-                  <img :src="avatarPreviewUrl" alt="Avatar Preview" style="width: 100%; height: 100%; object-fit: cover;">
-                </div>
+                <AvatarFrame 
+                  v-if="avatarPreviewUrl" 
+                  :src="avatarPreviewUrl" 
+                  :rank="authStore.user?.current_rank || 'BRONZE'" 
+                  size="220px" 
+                  class="preview-card avatar-preview-box"
+                />
               </div>
             </div>
 
@@ -85,9 +89,11 @@
 <script>
 import axios from 'axios';
 import { useAuthStore } from '@/stores/auth';
+import AvatarFrame from '@/components/AvatarFrame.vue';
 
 export default {
   name: 'ProfileSettingsModal',
+  components: { AvatarFrame },
   props: {
     isOpen: { type: Boolean, required: true }
   },

@@ -183,23 +183,26 @@ class UserProfileSerializer(serializers.ModelSerializer):
                     # 스타일이나 시드가 명시적으로 변경된 경우만 재생성 (채택 URL이 없을 때)
                     elif (new_style and new_style != current_style) or (new_seed and str(new_seed) != str(current_seed)):
                         print(f"DEBUG: Profile Update - Regenerating avatar with style: {new_style} (Seed: {new_seed})", flush=True)
-                        from core.nanobanana_utils import upload_to_supabase
+                        from core.nanobanana_utils import upload_to_s3
                         avatar_data = generate_nano_banana_avatar(new_style, seed=new_seed, save_local=False)
                         
                         if avatar_data and 'image_data' in avatar_data:
-                            # 1. Supabase 업로드 시도
-                            final_image_url = upload_to_supabase(avatar_data['image_data'])
-                            # 2. 폴백
+                            # [수정일: 2026-02-10] S3 업로드 통합 (Supabase 제거)
+                            final_image_url = upload_to_s3(avatar_data['image_data'])
+                            
+                            # S3 실패 시 폴백
                             if not final_image_url:
                                 import uuid
                                 from django.conf import settings
-                                filename = f"avatar_{uuid.uuid4().hex}.png"
+                                filename = f"avatar_{uuid.uuid4().hex}.webp"
                                 media_path = os.path.join('avatars', filename)
                                 abs_path = os.path.join(settings.MEDIA_ROOT, media_path)
                                 os.makedirs(os.path.dirname(abs_path), exist_ok=True)
                                 with open(abs_path, 'wb') as f:
                                     f.write(avatar_data['image_data'])
                                 final_image_url = f"{settings.MEDIA_URL}{media_path}"
+                                print(f"DEBUG: S3 Promotion failed in update, fallback to local: {final_image_url}", flush=True)
+                            
                             final_seed = avatar_data.get('seed')
                         
                         # AI 생성 실패 시 fallback URL

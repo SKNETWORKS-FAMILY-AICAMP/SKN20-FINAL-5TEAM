@@ -1,7 +1,7 @@
 /* 
- * [수정일: 2026-02-08] 
- * [내용]: App.vue에서 스타일 코드를 분리하여 관리. 가독성 및 유지보수성 향상.
- */
+  * [수정일: 2026-02-10] 
+  * [내용]: App.vue에서 스타일 코드를 분리하여 관리. 가독성 및 유지보수성 향상.
+  */
 
 /* ==========================================================================
    게임 모드 선택 버튼 (Game Mode Selection)
@@ -104,33 +104,17 @@
 
 /* 헤더 아바타 컨테이너 (Magnifier 효과 포함) */
 .user-avatar-header {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    overflow: hidden;
-    border: 2px solid rgba(182, 255, 64, 0.5);
-    box-shadow: 0 0 10px rgba(182, 255, 64, 0.2);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #000;
     cursor: zoom-in;
     flex-shrink: 0;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-/* 아바타 호버 시 확대 효과 (Magnifier) */
+/* 아바타 호버 시 시각 효과 */
 .user-avatar-header:hover {
-    transform: scale(4.0);
     border-color: #b6ff40;
     box-shadow: 0 0 20px rgba(182, 255, 64, 0.6), 0 0 40px rgba(182, 255, 64, 0.3);
-    z-index: 1001;
 }
 
-.header-avatar-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
 
 /* 로그아웃 버튼 (Alert Red) */
 .btn-logout-v2 {
@@ -192,11 +176,6 @@
    - 유닛 선택 모달 내 진행 경로 노드에 위치하는 사용자 아바타 스타일
    ========================================================================== */
 .user-avatar-on-node {
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    border: 3px solid #b6ff40;
-    box-shadow: 0 0 20px rgba(182, 255, 64, 0.5);
-    object-fit: cover;
-    background: #000;
+    /* AvatarFrame 내부 이미지가 꽉 차도록 여백 조정 */
+    padding: 2px;
 }
