@@ -11,6 +11,49 @@ export function useCodeRunner(gameState, currentMission, addSystemLog, setPhase)
         executionResult: null
     });
 
+    // [2026-02-09] Task 1.1: 에러 타입 분류 함수 (인프라 에러 vs 사용자 에러)
+    const classifyError = (error) => {
+        // 네트워크 에러 (서버 응답 없음)
+        if (!error.response) {
+            return {
+                type: 'NETWORK_ERROR',
+                shouldPenalize: false,
+                userMessage: '네트워크 연결을 확인해주세요. 잠시 후 다시 시도해주세요.',
+                logMessage: '네트워크 장애 감지 - 사용자 패널티 없음'
+            };
+        }
+
+        const status = error.response.status;
+
+        // 서버 내부 오류 (500번대)
+        if (status >= 500) {
+            return {
+                type: 'SERVER_ERROR',
+                shouldPenalize: false,
+                userMessage: '시스템 재접속 중... 잠시 후 다시 시도해주세요.',
+                logMessage: '서버 인프라 오류 감지 - 사용자 패널티 없음'
+            };
+        }
+
+        // 사용자 입력 오류 (400번대)
+        if (status >= 400 && status < 500) {
+            return {
+                type: 'USER_ERROR',
+                shouldPenalize: true,
+                userMessage: '코드 검증 실패',
+                logMessage: '사용자 입력 오류'
+            };
+        }
+
+        // 기타 에러
+        return {
+            type: 'UNKNOWN_ERROR',
+            shouldPenalize: false,
+            userMessage: '알 수 없는 오류가 발생했습니다.',
+            logMessage: '미분류 에러'
+        };
+    };
+
     // --- Initialization ---
     const initPhase4Scaffolding = () => {
         console.log("[CodeRunner] initPhase4Scaffolding executed. Resetting state...");
@@ -128,21 +171,19 @@ export function useCodeRunner(gameState, currentMission, addSystemLog, setPhase)
         } catch (error) {
             console.error('[CodeRunner] Execution error:', error);
 
-            if (error.response && error.response.data && error.response.data.details) {
-                // Server returned a detailed error
-                const detail = error.response.data.details;
-                gameState.feedbackMessage = "시스템 오류 (Server Error)";
-                addSystemLog(`서버 에러 감지: ${error.response.data.error}`, "ERROR");
-                // Optional: Console log the traceback
-                console.warn("Server Traceback:", detail);
-                handleDamage(); // Penalty for crashing the server? Or maybe not. Let's keep it strict or safe. 
-                // If it's a 500, it might be user code crashing the sandbox wrapper, 
-                // OR it could be the backend infrastructure. 
-                // If it's infrastructure, we shouldn't punish. 
-                // But let's assume it's recoverable.
-            } else {
-                // Genuine Network Error
+            // [2026-02-09] Task 1.1: 에러 타입 분류 적용
+            const errorInfo = classifyError(error);
+
+            gameState.feedbackMessage = errorInfo.userMessage;
+            addSystemLog(errorInfo.logMessage, errorInfo.shouldPenalize ? "ERROR" : "WARN");
+
+            // 인프라 에러는 HP 차감 없음, 사용자 에러만 패널티
+            if (errorInfo.shouldPenalize) {
+                // 사용자 코드 문제 - fallback 검증 시도
                 fallbackValidation(userCode, handleDamage, setPhase);
+            } else {
+                // 인프라 문제 - HP 차감 없이 안내만
+                console.warn(`[Infrastructure Error] ${errorInfo.type}:`, error);
             }
         }
     };

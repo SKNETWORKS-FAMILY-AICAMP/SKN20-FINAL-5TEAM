@@ -1,3 +1,7 @@
+<!--
+수정일: 2026-02-10
+수정 내용: 이전 작업 버전(SKN20-FINAL-5TEAM_before)으로 pseudocode 프론트엔드 코드 복구
+-->
 <template>
   <div class="coduck-wars-container">
     <!-- BACKGROUND WATERMARK -->
@@ -379,10 +383,7 @@
       
        <!-- PHASE: EVALUATION (Refined AI Report System) -->
        <section v-if="gameState.phase === 'EVALUATION'" class="panel evaluation-view">
-          <!-- [2026-02-10] 공통 로딩바 적용 -->
-          <LoadingDuck v-if="isEvaluating" />
-          
-          <div v-else class="report-card">
+          <div class="report-card">
              <!-- Top Philosophy Banner -->
              <div class="philosophy-banner">
                 <span class="p-badge">평가 철학</span>
@@ -579,7 +580,6 @@
 <script setup>
 import { computed, ref, onMounted, watch, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
-import LoadingDuck from '@/features/practice/components/LoadingDuck.vue';
 import { useGameStore } from '@/stores/game';
 import { useCoduckWars } from './composables/useCoduckWars.js';
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
@@ -784,7 +784,7 @@ const getLogLabel = (type) => {
 
 /* GLOBAL CONTAINER */
 .coduck-wars-container {
-  width: 100vw;
+  width: 100%; /* [2026-02-09] 100vw → 100%로 변경하여 스크롤바 너비 고려 */
   height: 100vh;
   background-color: #050505; /* Pitch Black */
   color: #E5E7EB;
@@ -793,6 +793,14 @@ const getLogLabel = (type) => {
   display: flex;
   flex-direction: column;
   position: relative;
+}
+
+/* [2026-02-09] 반응형 레이아웃 강제 적용 - 모든 요소가 화면 너비를 초과하지 않도록 */
+.coduck-wars-container *,
+.coduck-wars-container *::before,
+.coduck-wars-container *::after {
+  box-sizing: border-box;
+  max-width: 100%;
 }
 
 /* BACKGROUND WATERMARK */

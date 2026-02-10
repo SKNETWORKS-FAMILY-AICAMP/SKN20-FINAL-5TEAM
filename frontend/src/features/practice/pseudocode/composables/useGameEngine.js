@@ -19,7 +19,12 @@ export function useGameEngine() {
 
         // State for Decisions
         selectedStrategyLabel: "", // Set in Phase 2
-
+        // Phase 3 State
+            phase3Reasoning: "",
+            phase3Score: 0,
+            phase3Feedback: "",
+            phase3EvaluationResult: null,
+            showHint: false,
         // Interactive Messages
         coduckMessage: "경고! 접근하는 모든 데이터는 적입니다!",
         feedbackMessage: null,
@@ -150,29 +155,8 @@ export function useGameEngine() {
         setPhase('DIAGNOSTIC_1');
     };
 
-    // [수정일: 2026-02-09] 데이터 복구 로직: 서버에서 이전에 저장된 서술 내용 로드
-    const recoverSavedData = async (stageId) => {
-        try {
-            // [수정일: 2026-02-09] gameStore를 통해 최신 해결 기록 가져오기
-            await gameStore.fetchUserSolvedProblems();
-
-            const questId = `unit01_0${stageId}`;
-            const solvedData = gameStore.userSolvedProblems?.find(p => p.practice_detail === questId);
-
-            // [수정일: 2026-02-09] 가독성을 위해 변경된 한국어 키에서 데이터 추출
-            const savedReasoning = solvedData?.submitted_data?.["1. 사고 과정 (Architecture)"];
-
-            if (savedReasoning) {
-                gameState.phase3Reasoning = savedReasoning;
-                addSystemLog("이전 설계 기록을 서버에서 복구했습니다.", "SUCCESS");
-            }
-        } catch (error) {
-            console.warn('[GameEngine] Data recovery failed:', error);
-        }
-    };
-
     // 맵에서 단계 선택
-    const selectStage = async (stageId) => {
+    const selectStage = (stageId) => {
         const targetQuest = aiQuests.find(q => q.id === stageId);
         if (!targetQuest) return;
 
@@ -180,13 +164,8 @@ export function useGameEngine() {
         gameState.playerHP = 100;
         gameState.score = 0;
         gameState.systemLogs = [];
-        gameState.phase3Reasoning = ""; // 초기화
-
         addSystemLog(`스테이지 ${stageId}: ${targetQuest.title} 시작`, "INFO");
         setPhase('DIAGNOSTIC_1');
-
-        // 데이터 복구 시도
-        await recoverSavedData(stageId);
     };
 
     return {
