@@ -44,9 +44,13 @@
                 </div>
                 
                 <div class="avatar-preview-display" style="margin-top: 1rem; display: flex; justify-content: center;">
-                  <div v-if="avatarPreviewUrl" class="preview-card" style="position: relative; width: 220px; height: 220px; border-radius: 20px; overflow: hidden; border: 3px solid #b6ff40; box-shadow: 0 0 25px rgba(182, 255, 64, 0.4); background: #000;">
-                    <img :src="avatarPreviewUrl" alt="Avatar Preview" style="width: 100%; height: 100%; object-fit: cover;">
-                  </div>
+                  <AvatarFrame 
+                    v-if="avatarPreviewUrl" 
+                    :src="avatarPreviewUrl" 
+                    rank="BRONZE" 
+                    size="220px" 
+                    class="preview-card"
+                  />
                   <div v-else class="preview-placeholder" style="width: 220px; height: 220px; background: rgba(255,255,255,0.05); border-radius: 20px; border: 2px dashed rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 10px;">
                     스타일을 입력하고<br>미리보기 해보세요!
                   </div>
@@ -133,9 +137,11 @@
 <script>
 import axios from 'axios'; // 2024-05-23: 서버와 데이터를 주고받기 위한 Promise 기반의 HTTP 클라이언트 라이브러리입니다.
 import { useAuthStore } from '@/stores/auth'; // [수정일: 2026-02-07] 자동 로그인 상태 갱신용
+import AvatarFrame from '@/components/AvatarFrame.vue';
 
 export default {
   name: 'SignUpModal',
+  components: { AvatarFrame },
   props: {
     isOpen: {
       type: Boolean,

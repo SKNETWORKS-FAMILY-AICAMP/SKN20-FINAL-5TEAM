@@ -379,7 +379,10 @@
       
        <!-- PHASE: EVALUATION (Refined AI Report System) -->
        <section v-if="gameState.phase === 'EVALUATION'" class="panel evaluation-view">
-          <div class="report-card">
+          <!-- [2026-02-10] 공통 로딩바 적용 -->
+          <LoadingDuck v-if="isEvaluating" />
+          
+          <div v-else class="report-card">
              <!-- Top Philosophy Banner -->
              <div class="philosophy-banner">
                 <span class="p-badge">평가 철학</span>
@@ -576,6 +579,7 @@
 <script setup>
 import { computed, ref, onMounted, watch, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
+import LoadingDuck from '@/features/practice/components/LoadingDuck.vue';
 import { useGameStore } from '@/stores/game';
 import { useCoduckWars } from './composables/useCoduckWars.js';
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor';

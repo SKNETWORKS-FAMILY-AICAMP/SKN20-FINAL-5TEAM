@@ -1,0 +1,75 @@
+/* 
+  [2026-02-10] 등급별 아바타 테두리 스타일 정의
+  - BRONZE, SILVER, GOLD, ENGINEER 등급에 따른 시각적 피드백 제공
+*/
+
+/* 공통 아바타 테두리 기본 베이스 */
+.avatar-ranked {
+    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+    position: relative;
+    box-sizing: border-box;
+    border-radius: 50% !important;
+}
+
+/* BRONZE: 갈색 테두리 */
+.avatar-rank-BRONZE {
+    border: 3px solid #cd7f32 !important;
+    box-shadow: 0 0 10px rgba(205, 127, 50, 0.3) !important;
+}
+
+/* SILVER: 은색 테두리 */
+.avatar-rank-SILVER {
+    border: 3px solid #c0c0c0 !important;
+    box-shadow: 0 0 15px rgba(192, 192, 192, 0.4) !important;
+    background: linear-gradient(135deg, #e0e0e0, #808080) padding-box,
+        linear-gradient(135deg, #ffffff, #a0a0a0) border-box !important;
+}
+
+/* GOLD: 금색 테두리 + 글로우 */
+.avatar-rank-GOLD {
+    border: 3px solid #ffd700 !important;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.5), 0 0 40px rgba(255, 215, 0, 0.2) !important;
+    background: linear-gradient(135deg, #fff2cc, #d4af37) padding-box,
+        linear-gradient(135deg, #fff, #ffd700, #b8860b) border-box !important;
+}
+
+/* ENGINEER: 블링블링 (네온/무지개 애니메이션) */
+.avatar-rank-ENGINEER {
+    border: 3px solid transparent !important;
+    background: linear-gradient(#000, #000) padding-box,
+        linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000) border-box !important;
+    background-size: 400% 400% !important;
+    animation: bling-bling 8s linear infinite !important;
+    box-shadow: 0 0 25px rgba(255, 255, 255, 0.3), 0 0 50px rgba(182, 255, 64, 0.2) !important;
+}
+
+@keyframes bling-bling {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* 호버 시 확대 효과 유지 및 강화 (Magnifier) */
+.avatar-ranked:hover {
+    transform: scale(1.1);
+    /* 기본 확대 */
+    z-index: 9999 !important;
+    /* 모든 요소보다 위에 오도록 최상위 값 부여 */
+}
+
+/* 특정 클래스와 결합하여 개별 페이지용 확대율 지정 가능 */
+.user-avatar-header:hover {
+    transform: scale(4.0) !important;
+}
+
+.user-avatar-mini:hover {
+    transform: scale(5.0) !important;
+}

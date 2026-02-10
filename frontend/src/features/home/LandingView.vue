@@ -198,9 +198,13 @@
               </div>
             </div>
             <div class="col-user">
-              <div class="user-avatar-mini">
-                <img :src="user.avatar_url || '/image/unit_duck.png'" alt="avatar">
-              </div>
+              <AvatarFrame 
+                :src="user.avatar_url" 
+                :rank="user.current_grade || 'BRONZE'" 
+                size="50px" 
+                hoverZoom 
+                class="user-avatar-mini"
+              />
               <span class="username-premium">{{ user.nickname }}</span>
             </div>
             <div class="col-solved">
@@ -273,22 +277,32 @@ import {
   ChevronRight,
   Users,
   Crown,
-  Home
+  Home,
+  Play,
+  Settings,
+  History,
+  LogOut
 } from 'lucide-vue-next';
+import AvatarFrame from '@/components/AvatarFrame.vue';
 
 export default {
   name: 'LandingView',
   components: {
+    AvatarFrame,
+    Users, 
+    Crown, 
+    Zap, 
+    ChevronLeft, 
+    ChevronRight,
+    Play,
+    Settings,
+    History,
+    LogOut,
+    Home,
     Gamepad2,
     LayoutGrid,
     Trophy,
-    Zap,
-    ArrowRight,
-    ChevronLeft,
-    ChevronRight,
-    Users,
-    Crown,
-    Home
+    ArrowRight
   },
   props: {
     isLoggedIn: Boolean,
