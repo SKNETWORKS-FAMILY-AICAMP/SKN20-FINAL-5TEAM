@@ -17,7 +17,8 @@ from core.views import (
     BehaviorVerificationView,
     OverallProgressView,
     UserAnswersView,
-    activity_view
+    activity_view,
+    PseudocodeAgentView
 )
 from core.views.pseudocode_execution import execute_python_code
 
@@ -60,4 +61,5 @@ urlpatterns = [
     path('management/user-answers/<str:practice_id>/<int:user_id>/', UserAnswersView.as_view(), name='user_answers_detail'),
 
     path('pseudocode/execute/', execute_python_code, name='pseudocode_execute'),
+    path('pseudo-agent/', PseudocodeAgentView.as_view(), name='pseudo_agent'),
 ]
