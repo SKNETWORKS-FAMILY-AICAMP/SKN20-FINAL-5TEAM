@@ -1,6 +1,6 @@
 import { ref, computed, reactive, onMounted } from 'vue';
 import axios from 'axios';
-import { quickCheckPseudocode } from '../api/pseudocodeApi.js';
+import { quickCheckPseudocode, runPseudocodeAgent } from '../api/pseudocodeApi.js';
 import { useGameEngine } from './useGameEngine.js';
 import { useCodeRunner } from './useCodeRunner.js';
 
@@ -149,18 +149,33 @@ export function useCoduckWars() {
         addSystemLog("LLM 기반 논리 구조 분석 중...", "INFO");
 
         try {
-            // [AI Optimization] Single-Pass Call
-            const evaluation = await quickCheckPseudocode(
-                {
-                    title: currentMission.value.title,
-                    description: currentMission.value.missionObjective,
-                    missionObjective: missionContext.value
-                },
-                gameState.phase3Reasoning
-            );
+            // [수정일: 2026-02-10] 백엔드 지능형 에이전트(Coduck Wizard) 호출로 변경
+            // 단순 룰 베이스 + AI를 넘어, 사용자의 전략과 제약사항을 심층 분석
+            const evaluation = await runPseudocodeAgent({
+                user_logic: gameState.phase3Reasoning,
+                quest_title: currentMission.value.title,
+                quest_description: currentMission.value.missionObjective,
+                selected_strategy: gameState.selectedStrategyLabel,
+                constraints: constraints.value
+            });
 
             gameState.phase3Score = evaluation.score;
-            gameState.phase3Feedback = evaluation.feedback; // AI Integrated Feedback
+            gameState.phase3Feedback = evaluation.advice; // 핵심 조언을 우선 표시
+
+            // 상세 리포트 항목 업데이트
+            evaluationResult.verdict = evaluation.verdict;
+            evaluationResult.aiAnalysis = evaluation.analysis;
+            evaluationResult.seniorAdvice = evaluation.advice;
+            evaluationResult.tailQuestion = evaluation.tail_question;
+
+            if (evaluation.metrics) {
+                evaluationResult.details = Object.entries(evaluation.metrics).map(([category, data]) => ({
+                    category,
+                    score: data.score,
+                    comment: data.comment,
+                    improvements: data.improvements || []
+                }));
+            }
 
             // 점수 차등 부여
             if (evaluation.score >= 70) {

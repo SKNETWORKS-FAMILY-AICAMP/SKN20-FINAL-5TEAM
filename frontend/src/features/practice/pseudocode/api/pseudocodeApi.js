@@ -205,6 +205,34 @@ export async function quickCheckPseudocode(problem, pseudocode) {
 }
 
 /**
+ * [NEW] 백엔드 지능형 에이전트 호출 (Coduck Wizard)
+ * 사용자의 전략과 제약사항을 포함하여 정밀 분석을 수행합니다.
+ */
+export async function runPseudocodeAgent(params) {
+  const {
+    user_logic,
+    quest_title,
+    quest_description,
+    selected_strategy,
+    constraints
+  } = params;
+
+  try {
+    const response = await axios.post('/api/core/pseudo-agent/', {
+      user_logic,
+      quest_title,
+      quest_description,
+      selected_strategy,
+      constraints
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Pseudocode Agent Error:', error);
+    throw error;
+  }
+}
+
+/**
  * 최종 종합 평가 (의사코드 + 면접 답변)
  */
 export async function evaluatePseudocode(problem, pseudocode, deepDiveQnA) {
