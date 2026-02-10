@@ -74,7 +74,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 # Database 설정 (PostgreSQL)
-# [수정일: 2026-01-22] Supabase 및 로컬 환경 동시 지원을 위한 DB 설정 (Antigravity)
+# [수정일: 2026-01-22] AWS RDS 및 로컬 환경 동시 지원을 위한 DB 설정 (Antigravity)
 import dj_database_url
 
 # [수정일: 2026-01-25] 특수문자 포함 비밀번호 처리를 위해 개별 변수 우선 로직 적용
