@@ -4044,10 +4044,11 @@
 
 /* Tutorial: 클릭 가능한 코드 뷰어 */
 .tutorial-code-viewer {
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  font-size: 14px;
-  line-height: 1.8;
-  background: rgba(0, 0, 0, 0.4);
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 15px;
+  line-height: 1.6;
+  background: rgba(10, 10, 26, 0.6);
+  border: 1px solid rgba(79, 195, 247, 0.2);
   border-radius: 8px;
   padding: 1rem 0;
   overflow-y: auto;
@@ -4086,18 +4087,22 @@
 }
 
 .line-number {
-  width: 40px;
+  width: 50px;
   text-align: right;
-  color: #4b5563;
-  padding-right: 1rem;
+  color: #606d80;
+  padding-right: 1.2rem;
   user-select: none;
   flex-shrink: 0;
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+  font-size: 13px;
 }
 
 .line-content {
   margin: 0;
   color: #e8eaed;
   white-space: pre;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 15px;
 }
 
 /* Tutorial: 객관식 */
@@ -4253,9 +4258,9 @@
 }
 
 .guided-code {
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  font-size: 14px;
-  line-height: 1.8;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 15px;
+  line-height: 1.6;
   color: #e8eaed;
   margin: 0;
   white-space: pre-wrap;

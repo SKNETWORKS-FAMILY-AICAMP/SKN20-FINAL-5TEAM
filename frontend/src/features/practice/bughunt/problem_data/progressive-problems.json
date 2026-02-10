@@ -4,64 +4,64 @@
       "id": "S1",
       "source_id": "P1",
       "mode": "tutorial",
-      "project_title": "추론 파이프라인 입문",
-      "scenario": "학습된 모델을 배포했는데, 추론 결과가 학습 시와 다르게 나옵니다. 동일한 입력인데도 매번 결과가 달라집니다.",
+      "project_title": "GPU 추론의 함정",
+      "scenario": "학습된 모델을 GPU로 옮겨서 추론 성능을 높이려고 합니다. 그런데 실행하자마자 RuntimeError가 발생하며 텐서 디바이스가 다르다는 에러가 발생합니다.",
       "difficulty": 1,
       "totalSteps": 1,
       "steps": [
         {
           "step": 1,
-          "title": "추론할 때마다 결과가 달라요",
-          "bug_type": "A",
-          "bug_type_name": "Inference Mode",
-          "file_name": "inference.py",
+          "title": "모델과 데이터의 위치가 일치하지 않아요",
+          "bug_type": "D",
+          "bug_type_name": "Device Mismatch",
+          "file_name": "gpu_inference.py",
           "fix_mode": "choice",
-          "bug_line": 20,
-          "buggy_code": "import torch\nimport torch.nn as nn\n\nclass Model(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.conv = nn.Conv2d(3, 64, 3)\n        self.bn = nn.BatchNorm2d(64)\n        self.fc = nn.Linear(64 * 6 * 6, 10)\n    \n    def forward(self, x):\n        x = self.conv(x)\n        x = self.bn(x)\n        x = torch.relu(x)\n        x = x.view(x.size(0), -1)\n        return self.fc(x)\n\nmodel = Model()\nmodel.load_state_dict(torch.load('model.pth'))\n\n# 실시간 서비스: 이미지 1장씩 추론\nwith torch.no_grad():\n    for img in test_images:\n        output = model(img.unsqueeze(0))  # batch_size=1\n        pred = torch.softmax(output, dim=1)\n        print(pred)",
-          "correct_code": "import torch\nimport torch.nn as nn\n\nclass Model(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.conv = nn.Conv2d(3, 64, 3)\n        self.bn = nn.BatchNorm2d(64)\n        self.fc = nn.Linear(64 * 6 * 6, 10)\n    \n    def forward(self, x):\n        x = self.conv(x)\n        x = self.bn(x)\n        x = torch.relu(x)\n        x = x.view(x.size(0), -1)\n        return self.fc(x)\n\nmodel = Model()\nmodel.load_state_dict(torch.load('model.pth'))\nmodel.eval()  # 추론 모드로 전환\n\n# 실시간 서비스: 이미지 1장씩 추론\nwith torch.no_grad():\n    for img in test_images:\n        output = model(img.unsqueeze(0))  # batch_size=1\n        pred = torch.softmax(output, dim=1)\n        print(pred)",
-          "error_log": "=== 실시간 추론 로그 ===\n[14:01:01] Image 1: class 2 (conf: 0.87)\n[14:01:02] Image 2: class 2 (conf: 0.85)\n[14:01:03] Image 3: class 2 (conf: 0.82)\n...\n[14:12:31] Image 100: class 2 (conf: 0.71)\n[15:03:22] Image 500: class 2 (conf: 0.58)\n[16:45:10] Image 1000: class 3 (conf: 0.49)  # 예측 클래스 변경!\n\n[ALERT] confidence가 시간이 지날수록 하락 중\n[METRIC] 첫 추론 대비 confidence 변화율: -43.7%",
-          "success_log": "=== 실시간 추론 결과 (시간 순서대로) ===\nImage 1: class 2 (conf: 0.87)\nImage 2: class 2 (conf: 0.87)\nImage 3: class 2 (conf: 0.87)\n...\nImage 100: class 2 (conf: 0.87)\nImage 500: class 2 (conf: 0.87)\nImage 1000: class 2 (conf: 0.87)\n\n[정상] 시간이 지나도 일관된 예측",
-          "hint": "같은 모델인데 시간이 지날수록 결과가 달라진다면, 모델 내부에서 '상태가 변하는' 레이어가 있지 않을까요?",
-          "debugging_guide": "print(model.training)으로 모델의 현재 모드를 확인하세요. True면 학습 모드입니다.",
+          "bug_line": 21,
+          "buggy_code": "import torch\nimport torch.nn as nn\n\n# 1. 모델 정의 및 로드\nmodel = nn.Sequential(\n    nn.Linear(10, 50),\n    nn.ReLU(),\n    nn.Linear(50, 2)\n)\n\n# 2. 모델을 GPU로 이동\ndevice = \"cuda\" if torch.cuda.is_available() else \"cpu\"\nmodel.to(device)\nmodel.eval()\n\n# 3. 입력 데이터 준비 (CPU 상태)\ninput_data = torch.randn(1, 10)\n\n# 4. 추론 실행\nwith torch.no_grad():\n    output = model(input_data)  # 여기서 에러 발생!\n    print(\"추론 성공:\", output)",
+          "correct_code": "import torch\nimport torch.nn as nn\n\n# 1. 모델 정의 및 로드\nmodel = nn.Sequential(\n    nn.Linear(10, 50),\n    nn.ReLU(),\n    nn.Linear(50, 2)\n)\n\n# 2. 모델을 GPU로 이동\ndevice = \"cuda\" if torch.cuda.is_available() else \"cpu\"\nmodel.to(device)\nmodel.eval()\n\n# 3. 입력 데이터 준비 (GPU로 이동 필요)\ninput_data = torch.randn(1, 10).to(device)\n\n# 4. 추론 실행\nwith torch.no_grad():\n    output = model(input_data)\n    print(\"추론 성공:\", output)",
+          "error_log": "=== 런타임 에러 로그 ===\nRuntimeError: Expected all tensors to be on the same device, \nbut found at least two devices, cuda:0 and cpu!\n\n[ERROR] forward pass 중 연산 불가\n[DETAIL] layer weights: cuda:0 / input tensor: cpu",
+          "success_log": "=== 추론 실행 결과 ===\n추론 성공: tensor([[-0.1234,  0.5678]], device='cuda:0')\n\n[정상] 모든 텐서가 cuda:0 디바이스에서 연산됨",
+          "hint": "모델을 GPU(cuda)로 보냈다면, 모델이 먹는 '밥'(데이터)도 같은 곳에 있어야 하지 않을까요?",
+          "debugging_guide": "print(next(model.parameters()).device)와 print(input_data.device)를 비교해보세요.",
           "solution_check": {
             "type": "multi_condition",
             "required_all": [
-              "model.eval()"
+              "input_data.to(device)"
             ],
             "forbidden": []
           },
           "error_info": {
-            "type": "Inference Mode Error",
-            "description": "모델 내부에 추론 시에도 내부 통계가 갱신되는 레이어가 존재합니다. batch_size=1 환경에서 이 통계가 현재 입력에 치우치면서 점진적으로 왜곡됩니다.",
-            "suggestion": "모델의 학습 모드와 추론 모드에서 동작이 달라지는 레이어를 확인하세요."
+            "type": "Device Mismatch Error",
+            "description": "모델 파라미터는 GPU 메모리에 있는데, 입력 데이터는 CPU 메모리에 있어 연산이 불가능한 상태입니다.",
+            "suggestion": "입력 데이터를 모델과 동일한 디바이스로 이동시켜야 합니다."
           },
-          "coaching": "이 버그는 실제 서비스에서 '모델이 서서히 이상해진다'는 리포트로 발견됩니다. Dropout이 없어도 BatchNorm만으로 발생하며, 배포 후 시간이 지나면서 나타나 원인 파악이 어렵습니다.",
+          "coaching": "주니어 단계에서 가장 많이 하는 실수 중 하나입니다. .to(device)는 텐서를 복사하므로 반드시 'input = input.to(device)'와 같이 할당해주어야 한다는 점도 잊지 마세요!",
           "choices": [
             {
-              "label": "model.eval()",
-              "code": "model.eval()",
+              "label": "input_data = input_data.to(device)",
+              "code": "input_data = input_data.to(device)",
               "correct": true
             },
             {
-              "label": "model.train(False)",
-              "code": "model.train(False)",
+              "label": "model.cpu()",
+              "code": "model.cpu()",
               "correct": false
             },
             {
-              "label": "model.requires_grad_(False)",
-              "code": "model.requires_grad_(False)",
+              "label": "torch.set_default_tensor_type('torch.cuda.FloatTensor')",
+              "code": "torch.set_default_tensor_type('torch.cuda.FloatTensor')",
               "correct": false
             },
             {
-              "label": "model.freeze()",
-              "code": "model.freeze()",
+              "label": "input_data.cuda()",
+              "code": "input_data.cuda()",
               "correct": false
             }
           ],
           "review_card": {
-            "title": "model.eval() - 추론 모드 전환",
-            "explanation": "BatchNorm과 Dropout은 학습과 추론에서 동작이 다릅니다. model.eval()을 호출하면 BatchNorm은 running statistics를 사용하고 Dropout은 비활성화됩니다. 배포 전 반드시 호출해야 합니다.",
-            "correct_pattern": "model = Model()\nmodel.load_state_dict(torch.load('model.pth'))\nmodel.eval()  # 반드시 추론 전에 호출!\n\nwith torch.no_grad():\n    output = model(input_data)"
+            "title": "Device Management - 텐서 위치 관리",
+            "explanation": "PyTorch 연산은 모든 텐서가 동일한 디바이스(CPU 또는 동일한 GPU)에 있을 때만 가능합니다. .to(device)를 사용하여 항상 위치를 일치시켜주세요.",
+            "correct_pattern": "device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\nmodel.to(device)\n\ndata = data.to(device)  # 데이터를 모델과 같은 곳으로!\noutput = model(data)"
           }
         }
       ]

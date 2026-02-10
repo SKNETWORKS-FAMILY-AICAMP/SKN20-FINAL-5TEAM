@@ -73,39 +73,6 @@
     <div v-if="currentView === 'progressivePractice'" class="progressive-practice-container">
       <!-- 날아가는 먹은 지렁이 애니메이션 - 제거됨 -->
 
-
-
-      <!-- 미션 완료 이펙트 -->
-      <transition name="missionComplete">
-        <div v-if="showMissionComplete" class="mission-complete-overlay">
-          <div class="mission-complete-content">
-            <div class="complete-fireworks">🎆</div>
-            <div class="complete-title">MISSION COMPLETE!</div>
-            <div class="complete-project">{{ currentProgressiveMission?.project_title }}</div>
-            <div class="all-bugs-dead">
-              <span class="dead-bug-row">
-                <span class="dead-bug">🦆</span>
-                <span class="dead-bug">🪱</span>
-                <span class="dead-bug">🦆</span>
-              </span>
-              <span class="all-dead-text">ALL WORMS EATEN!</span>
-            </div>
-            <div class="mission-rewards">
-              <div class="reward-item">
-                <span class="reward-icon">✨</span>
-                <span class="reward-value">+{{ progressiveMissionXP }} XP</span>
-              </div>
-              <div class="reward-item">
-                <span class="reward-icon">🏆</span>
-                <span class="reward-value">+{{ progressiveMissionScore }} Points</span>
-              </div>
-            </div>
-            <button class="continue-btn" @click="showEvaluation">VIEW EVALUATION REPORT</button>
-          </div>
-        </div>
-      </transition>
-
-
       <!-- 헤더 -->
       <header class="header compact progressive-header">
         <div class="header-left">
@@ -1366,7 +1333,6 @@ function addXP(amount) {
     if (gameData.xp >= levelTitles[i].xpRequired && gameData.level < levelTitles[i].level) {
       const oldLevel = gameData.level;
       gameData.level = levelTitles[i].level;
-      showLevelUpEffect(oldLevel, gameData.level, levelTitles[i].title);
       break;
     }
   }
@@ -2043,6 +2009,8 @@ async function checkProgressiveSolution() {
       console.log('⚠️ 행동 기반 검증 불가, 문자열 검증으로 폴백');
     } catch (e) {
       console.warn('행동 기반 검증 실패, 문자열 검증으로 폴백:', e);
+      // 에러가 발생한 경우에도 에러 메시지를 result로 반환
+      return { passed: false, result: { message: e.message, details: {} } };
     }
   }
 
@@ -2244,15 +2212,15 @@ function completeMission() {
   const baseScore = 100;
   const hintCount = Object.values(progressiveHintUsed.value).filter(v => v).length;
   const penalty = (codeSubmitFailCount.value * 2) + (hintCount * 1);
-  
+
   progressiveMissionXP.value = 100;
   progressiveMissionScore.value = Math.max(0, baseScore - penalty);
 
   addXP(progressiveMissionXP.value);
   gameData.totalScore += progressiveMissionScore.value;
 
-  showMissionComplete.value = true;
   checkAchievements();
+  showEvaluation();
 }
 
 // Progressive 미션 종료

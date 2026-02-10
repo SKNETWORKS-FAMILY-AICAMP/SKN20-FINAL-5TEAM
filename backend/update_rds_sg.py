@@ -18,7 +18,7 @@ def update_rds_security_group(group_id=None, port=5432):
     
     # 보안 그룹 ID (제공해주신 ID가 있다면 우선 사용)
     # 실제 환경에 맞춰 sg-xxxxxxxxxxxx 부분을 수정하거나 환경 변수로 관리하세요.
-    target_group_id = group_id or "sg-04473347b9195d852" # 예시 ID
+    target_group_id = group_id or "sg-0a7ae2d0ad8393440" # 예시 ID
 
     if not all([access_key, secret_key]):
         print("❌ 에러: AWS 인증 정보가 .env에 없습니다.")
