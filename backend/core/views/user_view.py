@@ -10,6 +10,9 @@ from django.contrib.auth.models import User
 from core.models import UserProfile, UserDetail, UserAvatar, UserActivity
 from core.nanobanana_utils import generate_nano_banana_avatar # 나노바나나 연동
 import traceback
+import os
+import uuid
+from django.conf import settings
 
 # 1. UserDetail Serializer
 class UserDetailSerializer(serializers.ModelSerializer):
@@ -173,12 +176,28 @@ class UserProfileSerializer(serializers.ModelSerializer):
                     final_image_url = None
                     final_seed = new_seed
 
-                    # [수정일: 2026-02-07] '미리보기 채택(Promotion)' 방식 우선 적용
+                    # [수정일: 2026-02-10] '미리보기 채택(Promotion)' 시 S3 업로드 보장
                     if preview_url:
                         print(f"DEBUG: Profile Update - Promoting preview avatar: {preview_url}", flush=True)
                         # 캐시 방지용 쿼리스트링 제거
                         if '?' in str(preview_url):
                             preview_url = preview_url.split('?')[0]
+                        
+                        # 만약 로컬 경로(/media/...)라면 S3로 업로드하여 전역 가시성 확보
+                        if preview_url.startswith('/media/'):
+                            local_rel_path = preview_url.lstrip('/')
+                            local_full_path = os.path.join(settings.BASE_DIR, local_rel_path)
+                            if os.path.exists(local_full_path):
+                                from core.nanobanana_utils import upload_to_s3
+                                try:
+                                    with open(local_full_path, 'rb') as f:
+                                        s3_url = upload_to_s3(f.read())
+                                        if s3_url:
+                                            print(f"DEBUG: Promoted local preview to S3: {s3_url}", flush=True)
+                                            preview_url = s3_url
+                                except Exception as e:
+                                    print(f"DEBUG: Failed to upload promoted preview to S3: {e}", flush=True)
+
                         final_image_url = preview_url
                     # 스타일이나 시드가 명시적으로 변경된 경우만 재생성 (채택 URL이 없을 때)
                     elif (new_style and new_style != current_style) or (new_seed and str(new_seed) != str(current_seed)):
@@ -187,13 +206,11 @@ class UserProfileSerializer(serializers.ModelSerializer):
                         avatar_data = generate_nano_banana_avatar(new_style, seed=new_seed, save_local=False)
                         
                         if avatar_data and 'image_data' in avatar_data:
-                            # [수정일: 2026-02-10] S3 업로드 통합 (Supabase 제거)
+                            # [수정일: 2026-02-10] S3 업로드 통합
                             final_image_url = upload_to_s3(avatar_data['image_data'])
                             
                             # S3 실패 시 폴백
                             if not final_image_url:
-                                import uuid
-                                from django.conf import settings
                                 filename = f"avatar_{uuid.uuid4().hex}.webp"
                                 media_path = os.path.join('avatars', filename)
                                 abs_path = os.path.join(settings.MEDIA_ROOT, media_path)
@@ -236,9 +253,10 @@ class UserProfileSerializer(serializers.ModelSerializer):
                     detail.save()
                 return instance
         except Exception as e:
-            print(f"!!! Profile Update Error: {e}")
+            error_msg = f"프로필 수정 중 오류 발생: {type(e).__name__} - {str(e)}"
+            print(f"!!! {error_msg}")
             traceback.print_exc()
-            raise serializers.ValidationError({"detail": f"프로필 수정 중 오류가 발생했습니다: {str(e)}"})
+            raise serializers.ValidationError({"detail": error_msg})
 
 class IsOwner(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):

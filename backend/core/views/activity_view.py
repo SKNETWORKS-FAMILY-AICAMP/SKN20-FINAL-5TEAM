@@ -41,8 +41,7 @@ class LeaderboardView(APIView):
             
             avatar_url = None
             if activity.active_avatar and activity.active_avatar.image_url:
-                if 'default_duck.png' not in activity.active_avatar.image_url:
-                    avatar_url = activity.active_avatar.image_url
+                avatar_url = activity.active_avatar.image_url
 
             leaderboard_data.append({
                 'id': activity.user.id,
@@ -205,7 +204,8 @@ class AvatarPreviewView(APIView):
         avatar_data = generate_nano_banana_avatar(prompt, seed=seed, save_local=False)
         
         if avatar_data and 'image_data' in avatar_data:
-            # [수정일: 2026-02-07] 고정된 파일명 대신 유니크한 파일명 사용 (채택 방식을 위해)
+            # [수정일: 2026-02-10] 미리보기 시에는 로컬에만 저장 (비용/용량 절감)
+            # 확정 시(UserProfileSerializer.update)에만 S3로 업로드됨
             import uuid
             filename = f"preview_{uuid.uuid4().hex}.png"
             media_path = os.path.join('avatars', filename)
@@ -215,7 +215,7 @@ class AvatarPreviewView(APIView):
             with open(abs_path, 'wb') as f:
                 f.write(avatar_data['image_data'])
             
-            # 최종 응답 데이터 구성
+            # 최종 응답 데이터 구성 (로컬 URL 반환)
             response_data = {
                 'url': f"{settings.MEDIA_URL}{media_path}",
                 'seed': avatar_data['seed'],

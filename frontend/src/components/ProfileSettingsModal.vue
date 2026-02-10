@@ -212,7 +212,10 @@ export default {
         }
       } catch (error) {
         console.error('Update Failed:', error);
-        alert('정보 수정 중 오류가 발생했습니다.');
+        const errorMsg = error.response?.data?.detail || 
+                        JSON.stringify(error.response?.data) || 
+                        '정보 수정 중 오류가 발생했습니다.';
+        alert(`❌ 수정 실패: ${errorMsg}`);
       } finally {
         this.isSubmitting = false;
       }

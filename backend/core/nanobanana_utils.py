@@ -1,5 +1,5 @@
 # 수정일: 2026-02-06
-# 수정내용: 나노바나나(Gemini API)를 활용한 아바타 생성 유틸리티 구현 및 Supabase Storage 연동
+# 수정내용: 나노바나나(Gemini API)를 활용한 아바타 생성 유틸리티 구현 및 AWS S3 연동
 
 import os
 import uuid

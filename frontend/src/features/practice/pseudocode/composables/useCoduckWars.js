@@ -32,6 +32,9 @@ export function useCoduckWars() {
         submitPythonFill
     } = useCodeRunner(gameState, currentMission, addSystemLog, setPhase);
 
+    // [2026-02-09] Task 1.2: 레이스 컨디션 방지 - 중복 요청 차단
+    const isProcessing = ref(false);
+
     // --- 3. Additional State specific to Composable ---
     // Hint Timer Logic (Could be in GameEngine, but kept here for now)
     let hintTimer = null;
@@ -87,7 +90,7 @@ export function useCoduckWars() {
         if (!q.options[optionIndex]) return;
 
         if (q.options[optionIndex].correct) {
-            gameState.score += 100;
+            gameState.score += 7.5;
             gameState.feedbackMessage = "프로토콜 확인.";
             addSystemLog("선택 승인: 프로토콜 재가동", "SUCCESS");
             setTimeout(() => setPhase('DIAGNOSTIC_2'), 800);
@@ -121,7 +124,7 @@ export function useCoduckWars() {
         gameState.selectedStrategyLabel = selected.text;
 
         if (selected.correct) {
-            gameState.score += 100;
+            gameState.score += 7.5;
             gameState.feedbackMessage = "전략 수립.";
             addSystemLog(`전략 채택: ${selected.text}`, "SUCCESS");
             setTimeout(() => {
@@ -137,6 +140,12 @@ export function useCoduckWars() {
 
     // --- Pseudo Write Phase (Phase 3) ---
     const submitPseudo = async () => {
+        // [2026-02-09] Task 1.2: 중복 클릭 방지
+        if (isProcessing.value) {
+            addSystemLog("이미 처리 중입니다. 잠시만 기다려주세요.", "WARN");
+            return;
+        }
+
         if (!gameState.phase3Reasoning.trim()) {
             alert("아키텍처 설계를 입력해주세요.");
             return;
@@ -145,6 +154,7 @@ export function useCoduckWars() {
         if (hintTimer) clearTimeout(hintTimer);
 
         // 즉시 평가
+        isProcessing.value = true;
         gameState.feedbackMessage = "논리 분석 중...";
         addSystemLog("LLM 기반 논리 구조 분석 중...", "INFO");
 
@@ -178,40 +188,26 @@ export function useCoduckWars() {
             }
 
             // 점수 차등 부여
-            if (evaluation.score >= 70) {
-                gameState.score += 150;
-                gameState.feedbackMessage = `우수 (${evaluation.score}점): ${evaluation.feedback}`;
-                addSystemLog(`논리 평가: 우수 (${evaluation.score}/100)`, "SUCCESS");
-            } else if (evaluation.score >= 40) {
-                gameState.score += 100;
-                gameState.feedbackMessage = `보통 (${evaluation.score}점): ${evaluation.feedback}`;
-                addSystemLog(`논리 평가: 보통 (${evaluation.score}/100)`, "INFO");
+            if (evaluation.score >= 85) {
+                gameState.score += 20;
+                gameState.feedbackMessage = `우수 (${evaluation.score}점): ${evaluation.advice}`;
+                addSystemLog(`논리 평가: 우수 (${evaluation.score}/100) +20점`, "SUCCESS");
+            } else if (evaluation.score >= 70) {
+                gameState.score += 15;
+                gameState.feedbackMessage = `양호 (${evaluation.score}점): ${evaluation.advice}`;
+                addSystemLog(`논리 평가: 양호 (${evaluation.score}/100) +15점`, "SUCCESS");
+            } else if (evaluation.score >= 50) {
+                gameState.score += 10;
+                gameState.feedbackMessage = `보통 (${evaluation.score}점): ${evaluation.advice}`;
+                addSystemLog(`논리 평가: 보통 (${evaluation.score}/100) +10점`, "INFO");
             } else {
-                gameState.score += 50;
-                gameState.feedbackMessage = `미흡 (${evaluation.score}점): ${evaluation.feedback}`;
-                addSystemLog(`논리 평가: 개선 필요 (${evaluation.score}/100)`, "WARN");
+                gameState.score += 0;
+                gameState.feedbackMessage = `미흡 (${evaluation.score}점): ${evaluation.advice}`;
+                addSystemLog(`논리 평가: 미흡 (${evaluation.score}/100) +0점`, "WARN");
             }
-
             // Save AI questions for later use (e.g. review) or logs
             if (evaluation.questions && evaluation.questions.length > 0) {
                 console.log("[Deep Dive Candidates]", evaluation.questions);
-            }
-
-            // [수정일: 2026-02-09] 중간 저장 추가: 훈련 기록에서 가독성을 높이기 위해 한국어 키 사용
-            try {
-                const questId = `unit01_0${gameState.currentStageId}`;
-                await axios.post('/api/core/activity/submit/', {
-                    detail_id: questId,
-                    score: evaluation.score,
-                    submitted_data: {
-                        "1. 사고 과정 (Architecture)": gameState.phase3Reasoning,
-                        "2. AI 평가 결과": evaluation.feedback
-                    }
-                });
-                addSystemLog("아키텍처 설계 데이터 동기화 완료", "INFO");
-            } catch (saveError) {
-                console.warn('[CoduckWars] Intermediate save failed:', saveError);
-                addSystemLog("동기화 지연: 로컬 상태 유지", "WARN");
             }
 
             // 점수와 관계없이 다음 단계로 (학습 기회 제공)
@@ -223,12 +219,14 @@ export function useCoduckWars() {
         } catch (error) {
             console.error('[CoduckWars] Pseudo evaluation error:', error);
             gameState.feedbackMessage = "평가 오류: 다음 단계로 진행합니다.";
-            gameState.score += 80;
+            gameState.score += 8;
             addSystemLog("평가 시스템 오류, 기본 점수 부여", "WARN");
             setTimeout(() => {
                 setPhase('PYTHON_FILL');
                 initPhase4Scaffolding();
             }, 800);
+        } finally {
+            isProcessing.value = false;
         }
     };
 
@@ -247,7 +245,7 @@ export function useCoduckWars() {
     const submitDeepQuiz = (optionIndex) => {
         const selected = deepQuizQuestion.value.options[optionIndex];
         if (selected && selected.correct) {
-            gameState.score += 300;
+            gameState.score += 20;
             handleVictory();
         } else {
             handleDamage();
@@ -258,10 +256,11 @@ export function useCoduckWars() {
 
     const handleVictory = () => {
         gameState.phase = 'EVALUATION';
-        gameState.score += 500 + (gameState.playerHP * 5);
+        const hpBonus = Math.min(10, Math.round(gameState.playerHP * 0.2 * 10) / 10);
+        gameState.score += 15 + hpBonus;
+        gameState.score = Math.round(gameState.score * 10) / 10; // 소수점 1자리
         gameState.feedbackMessage = "미션 종료.";
-        addSystemLog("미션 클리어: 데이터 정상화", "SUCCESS");
-
+        addSystemLog(`미션 클리어 +15점, HP 보너스 +${hpBonus}점 (총점: ${gameState.score}/100)`, "SUCCESS");
         // Generate Final Report Logic (Using AI Single Pass for Final Report if needed, or re-using existing logic)
         // For now, we trigger the existing generation logic which handles the 5-dimension score
         // Ideally, this should also be refactored to use `evaluatePseudocode` or similar
@@ -269,27 +268,7 @@ export function useCoduckWars() {
 
         // Unlock next stage
         const nextId = gameState.currentStageId + 1;
-
-        // [수정일: 2026-02-09] 최종 저장: 훈련 기록 동기화
-        syncFinalResult();
-    };
-
-    const syncFinalResult = async () => {
-        try {
-            const questId = `unit01_0${gameState.currentStageId}`;
-            await axios.post('/api/core/activity/submit/', {
-                detail_id: questId,
-                score: gameState.score,
-                submitted_data: {
-                    "1. 사고 과정 (Architecture)": gameState.phase3Reasoning,
-                    "3. 구현 코드 (Implementation)": runnerState.userCode
-                }
-            });
-            addSystemLog("최종 데이터 서버 동기화 완료", "SUCCESS");
-        } catch (error) {
-            console.error('[CoduckWars] Final sync failed:', error);
-            addSystemLog("서버 동기화 실패: 네트워크 상태를 확인하세요", "ERROR");
-        }
+        // Logic to update global unlocked state would go here
     };
 
     // --- Final Evaluation Logic ---
@@ -377,7 +356,6 @@ export function useCoduckWars() {
         if (option.is_correct) {
             addSystemLog(`[Tail Question] 논리 검증 성공: ${option.reason}`, "SUCCESS");
             gameState.feedbackMessage = "✅ 통찰력 있는 분석입니다! 아키텍처 점수가 추가되었습니다.";
-            gameState.score += 200;
         } else {
             addSystemLog(`[Tail Question] 논리 허점 발견: ${option.reason}`, "ERROR");
             gameState.feedbackMessage = "❌ 아키텍처의 맹점이 발견되었습니다. 보완이 필요합니다.";

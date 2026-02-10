@@ -53,10 +53,10 @@ const computedSrc = computed(() => {
   // 이미 전체 URL(http://...)인 경우 그대로 사용
   if (props.src.startsWith('http')) return props.src;
   
-  // 상대 경로(/media/...)인 경우 백엔드 포트(8000)를 붙여줌
-  // 개발 환경(Vite)에서 5173으로 요청되는 문제를 해결하기 위함
+  // 상대 경로(/media/...)인 경우 그대로 반환
+  // Vite proxy(vite.config.js)가 /media를 백엔드로 전달하므로 상대 경로가 더 안전함
   if (props.src.startsWith('/media/')) {
-    return `http://${window.location.hostname}:8000${props.src}`;
+    return props.src;
   }
   
   return props.src;
@@ -98,6 +98,7 @@ const handleImageError = () => {
 /* 호버 시 확대 효과 (호버 허용된 경우만) */
 .avatar-frame-container.allow-hover:hover .avatar-img {
   /* LandingView 등에서 정의한 scale 효과와 조화되도록 설정 */
+  transform: scale(1.1);
 }
 
 /* ranking.css가 전역에 임포트되어 있으므로 border-radius 등은 거기서 제어 */

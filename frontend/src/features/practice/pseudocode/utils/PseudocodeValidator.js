@@ -1,41 +1,33 @@
 /**
- * PseudocodeValidator.js - 실용적 규칙 기반 평가
+ * PseudocodeValidator.js - 규칙 주입형 검증 엔진
  * 
- * 설계 철학:
- * 1. 치명적 오류만 엄격하게 검증 (블로킹)
- * 2. 나머지는 가이드 제공 (비블로킹)
- * 3. 동의어/표현 변형 허용
- * 4. 교육적 피드백 우선
+ * 개선 사항:
+ * 3. 검증 규칙을 외부에서 주입받음 (OCP 준수)
+ * 5. 부정어 처리 로직 추가
+ * 6. 코드 검증 시 주석 제거
  * 
- * [2026-02-09] 완전 재설계 (Antigravity + Claude)
+ * [2026-02-09] Rule Engine 리팩토링 (Antigravity + Claude)
  */
 
 export class PseudocodeValidator {
     constructor(problem) {
         this.problem = problem;
-        this.rules = this.buildRules(problem);
+        
+        // ✨ 개선: 규칙을 외부에서 주입받음
+        this.rules = problem?.validation || this.getDefaultRules();
+        
+        // 검증 타입별 라이브러리 (필요 시)
+        this.typeLibrary = problem?.validationTypeLibrary || {};
     }
 
     /**
      * 메인 검증 함수
-     * @returns {
-     *   passed: boolean,          // 치명적 오류 없음
-     *   score: number,            // 구조 점수 (0-100)
-     *   criticalErrors: string[], // 블로킹 오류들
-     *   warnings: string[],       // 개선 제안들
-     *   details: object           // 상세 분석
-     * }
      */
     validate(pseudocode) {
-        // 1. 치명적 오류 체크 (블로킹)
         const criticalErrors = this.checkCriticalErrors(pseudocode);
-
-        // 2. 구조 분석 (점수화)
         const structure = this.analyzeStructure(pseudocode);
-
-        // 3. 개선 제안 (교육적)
         const warnings = this.generateWarnings(pseudocode, structure);
-
+        
         return {
             passed: criticalErrors.length === 0,
             score: structure.score,
@@ -50,24 +42,51 @@ export class PseudocodeValidator {
     }
 
     /**
-     * 1단계: 치명적 오류만 검증 (블로킹)
-     * 예: 데이터 누수, 논리적 모순
+     * ✨ 5번 해결: 부정어를 고려한 치명적 오류 체크
      */
     checkCriticalErrors(pseudocode) {
         const errors = [];
         const normalized = this.normalize(pseudocode);
 
-        // 문제별 치명적 패턴
-        if (this.rules.criticalPatterns) {
-            for (const pattern of this.rules.criticalPatterns) {
-                if (pattern.test(normalized)) {
-                    errors.push({
-                        severity: 'CRITICAL',
-                        message: pattern.message,
-                        example: pattern.correctExample,
-                        why: pattern.explanation
-                    });
+        if (!this.rules.criticalPatterns) return errors;
+
+        for (const patternDef of this.rules.criticalPatterns) {
+            // 새로운 구조: { pattern: { positive, negatives }, message, ... }
+            const { pattern, message, correctExample, explanation } = patternDef;
+            
+            let isError = false;
+
+            // 단순 정규식 (하위 호환)
+            if (pattern instanceof RegExp) {
+                isError = pattern.test(normalized);
+            }
+            // 부정어 포함 객체 구조
+            else if (typeof pattern === 'object') {
+                const { positive, negatives = [] } = pattern;
+                
+                // 1. 양성 패턴 체크
+                if (positive.test(normalized)) {
+                    // 2. 부정어가 있는지 체크
+                    const hasNegative = negatives.some(neg => neg.test(normalized));
+                    
+                    // 부정어 없으면 오류
+                    if (!hasNegative) {
+                        isError = true;
+                    }
                 }
+            }
+            // 함수형 (최대 유연성)
+            else if (typeof pattern === 'function') {
+                isError = pattern(normalized);
+            }
+
+            if (isError) {
+                errors.push({
+                    severity: patternDef.severity || 'CRITICAL',
+                    message,
+                    example: correctExample,
+                    why: explanation
+                });
             }
         }
 
@@ -75,55 +94,34 @@ export class PseudocodeValidator {
     }
 
     /**
-     * 2단계: 구조 점수 계산 (일관성 있는 점수)
+     * ✨ 3번 해결: 외부 규칙 기반 구조 분석
      */
     analyzeStructure(pseudocode) {
         const lines = pseudocode.split('\n').filter(l => l.trim());
-
+        
         let score = 0;
         const feedback = [];
 
-        // 기본 형식 (20점)
-        if (lines.length >= 3) {
-            score += 10;
-            feedback.push('✅ 적절한 길이');
-        } else {
-            feedback.push('⚠️ 너무 짧음 (최소 3줄 권장)');
-        }
+        // 점수 구성 (규칙에서 가져옴)
+        const scoring = this.rules.scoring || {
+            structure: 20,
+            concepts: 40,
+            flow: 40
+        };
 
-        const hasNumbering = lines.filter(l => /^\d+[\.\):]/.test(l.trim())).length > 0;
-        if (hasNumbering) {
-            score += 10;
-            feedback.push('✅ 번호 매기기 사용');
-        } else {
-            feedback.push('💡 번호 매기기를 권장합니다');
-        }
+        // 1. 기본 구조 (scoring.structure 점수)
+        const structureScore = this.evaluateBasicStructure(lines, scoring.structure);
+        score += structureScore.score;
+        feedback.push(...structureScore.feedback);
 
-        // 핵심 개념 포함 여부 (40점)
+        // 2. 핵심 개념 (scoring.concepts 점수)
         const concepts = this.extractConcepts(pseudocode);
-        const requiredConcepts = this.rules.requiredConcepts || [];
+        const conceptScore = this.evaluateConcepts(concepts, scoring.concepts);
+        score += conceptScore.score;
+        feedback.push(...conceptScore.feedback);
 
-        let foundConcepts = 0;
-        for (const required of requiredConcepts) {
-            if (concepts.has(required.id)) {
-                foundConcepts++;
-            }
-        }
-
-        const conceptScore = Math.round(40 * (foundConcepts / requiredConcepts.length));
-        score += conceptScore;
-
-        if (foundConcepts === requiredConcepts.length) {
-            feedback.push('✅ 모든 핵심 개념 포함');
-        } else {
-            const missing = requiredConcepts
-                .filter(c => !concepts.has(c.id))
-                .map(c => c.name);
-            feedback.push(`⚠️ 누락된 개념: ${missing.join(', ')}`);
-        }
-
-        // 논리적 흐름 (40점)
-        const flow = this.analyzeLogicalFlow(pseudocode, concepts);
+        // 3. 논리적 흐름 (scoring.flow 점수)
+        const flow = this.analyzeLogicalFlow(pseudocode, concepts, scoring.flow);
         score += flow.score;
         feedback.push(...flow.feedback);
 
@@ -136,7 +134,42 @@ export class PseudocodeValidator {
     }
 
     /**
-     * 핵심: 동의어를 고려한 개념 추출
+     * 기본 구조 평가 (외부 규칙 반영)
+     */
+    evaluateBasicStructure(lines, maxScore) {
+        let score = 0;
+        const feedback = [];
+        
+        const recommendations = this.rules.recommendations || {};
+        const minLines = recommendations.minLines || 3;
+        const maxLines = recommendations.maxLines || 20;
+
+        // 길이 체크
+        if (lines.length >= minLines && lines.length <= maxLines) {
+            score += maxScore / 2;
+            feedback.push('✅ 적절한 길이');
+        } else if (lines.length < minLines) {
+            feedback.push(`⚠️ 너무 짧음 (최소 ${minLines}줄 권장)`);
+        } else {
+            feedback.push(`⚠️ 너무 김 (최대 ${maxLines}줄 권장)`);
+        }
+
+        // 번호 매기기 체크
+        const hasNumbering = lines.filter(l => /^\d+[\.\):]/.test(l.trim())).length > 0;
+        const preferredStyle = recommendations.preferredStyle;
+        
+        if (hasNumbering) {
+            score += maxScore / 2;
+            feedback.push('✅ 번호 매기기 사용');
+        } else if (preferredStyle === 'numbered') {
+            feedback.push('💡 번호 매기기를 권장합니다');
+        }
+
+        return { score, feedback };
+    }
+
+    /**
+     * ✨ 3번 해결: 규칙 기반 개념 추출 (가중치 반영)
      */
     extractConcepts(pseudocode) {
         const normalized = this.normalize(pseudocode);
@@ -145,7 +178,6 @@ export class PseudocodeValidator {
         if (!this.rules.requiredConcepts) return concepts;
 
         for (const concept of this.rules.requiredConcepts) {
-            // 여러 표현 중 하나라도 있으면 인정
             for (const pattern of concept.patterns) {
                 if (pattern.test(normalized)) {
                     concepts.add(concept.id);
@@ -158,43 +190,88 @@ export class PseudocodeValidator {
     }
 
     /**
-     * 논리적 흐름 분석 (의존성 검증)
+     * 개념 평가 (가중치 반영)
      */
-    analyzeLogicalFlow(pseudocode, concepts) {
-        const lines = pseudocode.toLowerCase().split('\n');
-        let score = 0;
+    evaluateConcepts(concepts, maxScore) {
         const feedback = [];
-
-        // 문제별 의존성 규칙
-        if (!this.rules.dependencies) {
-            return { score: 40, feedback: ['(흐름 검증 규칙 없음)'] };
+        const requiredConcepts = this.rules.requiredConcepts || [];
+        
+        if (requiredConcepts.length === 0) {
+            return { score: maxScore, feedback: ['(개념 검증 규칙 없음)'] };
         }
 
-        for (const dep of this.rules.dependencies) {
-            const beforeIdx = this.findConceptLine(lines, dep.before);
-            const afterIdx = this.findConceptLine(lines, dep.after);
-
-            if (beforeIdx === -1 || afterIdx === -1) {
-                // 개념 자체가 없으면 이미 감점됨
-                continue;
+        // 가중치 합산
+        let totalWeight = 0;
+        let foundWeight = 0;
+        
+        for (const required of requiredConcepts) {
+            const weight = required.weight || 1;
+            totalWeight += weight;
+            
+            if (concepts.has(required.id)) {
+                foundWeight += weight;
             }
+        }
 
-            if (beforeIdx < afterIdx) {
-                score += dep.points;
-                feedback.push(`✅ ${dep.name} 순서 정확`);
-            } else {
-                feedback.push(`❌ ${dep.name}: "${dep.before}"가 "${dep.after}"보다 먼저 와야 함`);
-            }
+        const score = Math.round(maxScore * (foundWeight / totalWeight));
+        
+        if (foundWeight === totalWeight) {
+            feedback.push('✅ 모든 핵심 개념 포함');
+        } else {
+            const missing = requiredConcepts
+                .filter(c => !concepts.has(c.id))
+                .map(c => c.name);
+            feedback.push(`⚠️ 누락된 개념: ${missing.join(', ')}`);
         }
 
         return { score, feedback };
     }
 
     /**
+     * 논리적 흐름 분석 (규칙 주입)
+     */
+    analyzeLogicalFlow(pseudocode, concepts, maxScore) {
+        const lines = pseudocode.toLowerCase().split('\n');
+        let score = 0;
+        const feedback = [];
+
+        if (!this.rules.dependencies) {
+            return { score: maxScore, feedback: ['(흐름 검증 규칙 없음)'] };
+        }
+
+        // 총 포인트 계산
+        const totalPoints = this.rules.dependencies.reduce((sum, dep) => sum + dep.points, 0);
+
+        for (const dep of this.rules.dependencies) {
+            const beforeIdx = this.findConceptLine(lines, dep.before);
+            const afterIdx = this.findConceptLine(lines, dep.after);
+
+            if (beforeIdx === -1 || afterIdx === -1) {
+                continue;
+            }
+
+            if (beforeIdx < afterIdx) {
+                score += (dep.points / totalPoints) * maxScore;
+                feedback.push(`✅ ${dep.name} 순서 정확`);
+            } else {
+                // Strictness 체크
+                if (dep.strictness === 'REQUIRED') {
+                    feedback.push(`❌ ${dep.name}: 순서 오류 (필수)`);
+                } else {
+                    feedback.push(`⚠️ ${dep.name}: 순서 권장됨`);
+                    score += ((dep.points / 2) / totalPoints) * maxScore;  // 부분 점수
+                }
+            }
+        }
+
+        return { score: Math.round(score), feedback };
+    }
+
+    /**
      * 개념이 등장하는 첫 번째 라인 찾기
      */
     findConceptLine(lines, conceptId) {
-        const concept = this.rules.requiredConcepts.find(c => c.id === conceptId);
+        const concept = this.rules.requiredConcepts?.find(c => c.id === conceptId);
         if (!concept) return -1;
 
         for (let i = 0; i < lines.length; i++) {
@@ -208,218 +285,169 @@ export class PseudocodeValidator {
     }
 
     /**
-     * 정규화: 동의어/표현 변형을 통일
+     * 정규화
      */
     normalize(text) {
         let normalized = text.toLowerCase();
-
-        // 공백 정리
         normalized = normalized.replace(/\s+/g, ' ');
-
-        // 불필요한 기호 제거
         normalized = normalized.replace(/[^a-z0-9가-힣\s\.\,\(\)]/g, ' ');
-
         return normalized;
     }
 
     /**
-     * 완성도 체크
+     * 완성도 체크 (규칙 반영)
      */
     checkCompleteness(pseudocode) {
         const wordCount = pseudocode.split(/\s+/).length;
-
+        const recommendations = this.rules.recommendations || {};
+        const minWords = recommendations.minWords || 20;
+        const maxWords = recommendations.maxWords || 200;
+        
         return {
             wordCount,
-            adequate: wordCount >= 20,
-            message: wordCount < 20
-                ? '의사코드가 너무 간략합니다. 각 단계를 더 구체적으로 설명하세요.'
-                : wordCount > 200
-                    ? '너무 세부적입니다. 핵심 단계만 간결하게 표현하세요.'
-                    : '적절한 길이입니다.'
+            adequate: wordCount >= minWords && wordCount <= maxWords,
+            message: wordCount < minWords
+                ? `의사코드가 너무 간략합니다 (최소 ${minWords}단어 권장)`
+                : wordCount > maxWords
+                ? `너무 세부적입니다 (최대 ${maxWords}단어 권장)`
+                : '적절한 길이입니다.'
         };
     }
 
     /**
-     * 경고 메시지 생성 (비블로킹, 교육적)
+     * 경고 메시지 생성
      */
     generateWarnings(pseudocode, structure) {
         const warnings = [];
+        const recommendations = this.rules.recommendations || {};
 
-        // 완성도 경고
         const completeness = this.checkCompleteness(pseudocode);
         if (!completeness.adequate) {
             warnings.push(completeness.message);
         }
 
         // 예외 처리 권장
-        const normalized = this.normalize(pseudocode);
-        const hasExceptionHandling = /예외|오류|체크|검증|확인|validation|error|check/.test(normalized);
-
-        if (!hasExceptionHandling && this.rules.recommendExceptionHandling) {
-            warnings.push('💡 예외 상황 처리를 추가하면 더 견고한 설계가 됩니다.');
+        if (recommendations.exceptionHandling) {
+            const normalized = this.normalize(pseudocode);
+            const hasExceptionHandling = /예외|오류|체크|검증|확인|validation|error|check/.test(normalized);
+            
+            if (!hasExceptionHandling) {
+                warnings.push('💡 예외 상황 처리를 추가하면 더 견고한 설계가 됩니다.');
+            }
         }
 
         return warnings;
     }
 
     /**
-     * 문제별 규칙 정의
+     * 기본 규칙 (하위 호환용)
      */
-    buildRules(problem) {
-        // Data Leakage 문제 규칙
-        if (problem?.type === 'data_leakage' || problem?.title?.includes('누수')) {
-            return {
-                // 치명적 오류 (블로킹)
-                // 치명적 오류 (블로킹)
-                criticalPatterns: [
-                    {
-                        test: (text) => {
-                            // "전체 데이터로 fit" 패턴 - 오판 방지 강화
-                            // "분리" 또는 "나눈 후" 라는 말이 문장에 있으면 허용
-                            const lines = text.split('\n');
-                            for (const line of lines) {
-                                const lower = line.toLowerCase();
-                                const hasFitAll = /(전체|모든|all|entire|whole).*(데이터|data).*(fit|학습|fitting|학습시)/.test(lower) ||
-                                    /fit.*(전체|모든|all|entire|whole).*(데이터|data)/.test(lower);
-
-                                // 예외: "분리" 등의 단어가 같은 줄에 있거나, 부정어("않는다")가 있으면 패스
-                                const hasSplitReference = /분리|split|divide|after|나눈|따로/.test(lower);
-                                const hasNegative = /않는다|not|never|no/.test(lower);
-
-                                if (hasFitAll && !hasSplitReference && !hasNegative) {
-                                    return true;
-                                }
-                            }
-                            return false;
-                        },
-                        message: '🚨 데이터 누수 발생: 전체 데이터로 fit하면 테스트 정보가 학습에 유입됩니다',
-                        correctExample: '학습 데이터로만 fit → 두 데이터셋 모두 transform',
-                        explanation: '스케일러는 학습 데이터의 통계만 학습해야 합니다. 테스트 데이터의 평균/분산 정보가 들어가면 실전 성능이 하락합니다.'
-                    },
-                    {
-                        test: (text) => {
-                            // "test 데이터로 fit" 패턴
-                            const lines = text.split('\n');
-                            for (const line of lines) {
-                                const lower = line.toLowerCase();
-                                const hasTestFit = /(test|테스트|검증|평가).*(fit|학습시|fitting)/.test(lower);
-                                const hasTransform = /(transform|변환)/.test(lower);
-                                const hasNegative = /않는다|not|never|no/.test(lower);
-
-                                // "test 데이터는 fit 하지 않는다"는 문장은 허용해야 함
-                                if (hasTestFit && !hasTransform && !hasNegative) {
-                                    return true;
-                                }
-                            }
-                            return false;
-                        },
-                        message: '🚨 데이터 누수 발생: 테스트 데이터로 fit하면 안 됩니다',
-                        correctExample: 'train 데이터로 fit → test 데이터는 transform만',
-                        explanation: '테스트 데이터는 모델이 한 번도 본 적 없는 "미래의 데이터"를 시뮬레이션합니다.'
-                    }
-                ],
-
-                // 필수 개념 (동의어 포함)
-                requiredConcepts: [
-                    {
-                        id: 'data_split',
-                        name: '데이터 분리',
-                        patterns: [
-                            /분리|나누|나눔|split|separate|divide/,
-                            /train.*test|학습.*테스트|학습.*검증/,
-                            /training.*test/
-                        ]
-                    },
-                    {
-                        id: 'scaler_create',
-                        name: '스케일러 생성',
-                        patterns: [
-                            /scaler|스케일러|standardscaler/,
-                            /정규화.*도구|normalization.*tool/,
-                            /변환.*객체|transformer.*object/
-                        ]
-                    },
-                    {
-                        id: 'fit_train',
-                        name: '학습 데이터로 fit',
-                        patterns: [
-                            /(train|학습).*(fit|학습시|학습하|fitting)/,
-                            /fit.*(train|학습)/,
-                            /(학습 데이터|training).*(통계|평균|분산|statistics)/
-                        ]
-                    },
-                    {
-                        id: 'transform_train',
-                        name: '학습 데이터 변환',
-                        patterns: [
-                            /(train|학습).*(transform|변환|적용)/,
-                            /transform.*(train|학습)/
-                        ]
-                    },
-                    {
-                        id: 'transform_test',
-                        name: '테스트 데이터 변환',
-                        patterns: [
-                            /(test|테스트|검증).*(transform|변환|적용)/,
-                            /transform.*(test|테스트|검증)/
-                        ]
-                    }
-                ],
-
-                // 논리적 의존성 (순서)
-                dependencies: [
-                    {
-                        name: '분리 → 스케일러 생성',
-                        before: 'data_split',
-                        after: 'scaler_create',
-                        points: 8
-                    },
-                    {
-                        name: '스케일러 생성 → fit',
-                        before: 'scaler_create',
-                        after: 'fit_train',
-                        points: 8
-                    },
-                    {
-                        name: 'fit → train transform',
-                        before: 'fit_train',
-                        after: 'transform_train',
-                        points: 12
-                    },
-                    {
-                        name: 'fit → test transform',
-                        before: 'fit_train',
-                        after: 'transform_test',
-                        points: 12
-                    }
-                ],
-
-                recommendExceptionHandling: true
-            };
-        }
-
-        // 기본 규칙 (범용)
+    getDefaultRules() {
         return {
             criticalPatterns: [],
             requiredConcepts: [
                 {
                     id: 'input',
                     name: '입력',
-                    patterns: [/입력|input|받|receive/]
+                    weight: 1,
+                    patterns: [/입력|input|받|receive/i]
                 },
                 {
                     id: 'process',
                     name: '처리',
-                    patterns: [/처리|계산|process|compute|calculate/]
+                    weight: 1,
+                    patterns: [/처리|계산|process|compute/i]
                 },
                 {
                     id: 'output',
                     name: '출력',
-                    patterns: [/출력|반환|return|output/]
+                    weight: 1,
+                    patterns: [/출력|반환|return|output/i]
                 }
             ],
             dependencies: [],
-            recommendExceptionHandling: false
+            scoring: {
+                structure: 20,
+                concepts: 40,
+                flow: 40
+            },
+            recommendations: {
+                exceptionHandling: false,
+                minLines: 3,
+                maxLines: 20,
+                minWords: 20,
+                maxWords: 200
+            }
+        };
+    }
+}
+
+/**
+ * ✨ 6번 해결: 코드 검증 헬퍼 (주석 제거)
+ */
+export class CodeValidator {
+    constructor(codeValidationRules) {
+        this.rules = codeValidationRules || {};
+    }
+
+    /**
+     * 주석 제거
+     */
+    removeComments(code) {
+        let cleaned = code;
+        
+        const commentPatterns = this.rules.commentPatterns || [
+            /#.*$/gm,           // Python #
+            /"""[\s\S]*?"""/g,  // Python """
+            /'''[\s\S]*?'''/g,  // Python '''
+            /\/\/.*$/gm,        // JS //
+            /\/\*[\s\S]*?\*\//g // JS /* */
+        ];
+
+        for (const pattern of commentPatterns) {
+            cleaned = cleaned.replace(pattern, '');
+        }
+
+        return cleaned;
+    }
+
+    /**
+     * 코드 검증 (주석 제외)
+     */
+    validate(code) {
+        const cleanCode = this.removeComments(code);
+        const errors = [];
+        const warnings = [];
+
+        // 필수 호출 체크
+        if (this.rules.requiredCalls) {
+            for (const callDef of this.rules.requiredCalls) {
+                const found = callDef.pattern.test(cleanCode);
+                
+                if (!found) {
+                    errors.push(`❌ ${callDef.name} 호출 누락`);
+                }
+            }
+        }
+
+        // 금지 패턴 체크
+        if (this.rules.forbiddenPatterns) {
+            for (const forbiddenDef of this.rules.forbiddenPatterns) {
+                const codeToCheck = forbiddenDef.excludeComments 
+                    ? cleanCode 
+                    : code;
+                
+                if (forbiddenDef.pattern.test(codeToCheck)) {
+                    errors.push(`🚨 ${forbiddenDef.message}`);
+                }
+            }
+        }
+
+        return {
+            passed: errors.length === 0,
+            errors,
+            warnings,
+            cleanCode
         };
     }
 }
