@@ -1,7 +1,8 @@
 import { ref } from 'vue';
 // 마스터 에이전트 기반 다중 에이전트 평가 사용 (6대 기둥)
 import { evaluateWithMasterAgent, getAvailableSubAgents, getAllQuestionStrategies } from '../services/architectureApiMasterAgent';
-import { generateFollowUpQuestions } from '../services/architectureApiFastTest';
+// ✅ NEW: 하이브리드 질문 생성 (안티패턴 체크 + CoT + 동적 Pillar 선별)
+import { generateFollowUpQuestions } from '../services/architectureHybridQuestionGenerator';
 import {
   buildArchitectureContext,
   generateMockEvaluation
@@ -154,7 +155,7 @@ export function useEvaluation() {
     });
 
     try {
-      // 고품질 질문 3개 생성 (txt 파일 참고)
+      // ✅ NEW: 하이브리드 질문 생성 (안티패턴 체크 + CoT + 동적 Pillar 선별)
       const result = await generateFollowUpQuestions(
         problem,
         droppedComponents,
@@ -165,11 +166,12 @@ export function useEvaluation() {
 
       explanationAnalysis.value = result.analysis;
 
-      // 질문들 설정
-      if (result.questions && result.questions.length > 0) {
-        deepDiveQuestions.value = result.questions;
+      // 질문들 설정 (정확히 3개)
+      const questionsToUse = result.questions || [];
+      if (questionsToUse && questionsToUse.length > 0) {
+        deepDiveQuestions.value = questionsToUse;
         currentQuestionIndex.value = 0;
-        deepDiveQuestion.value = result.questions[0].question;
+        deepDiveQuestion.value = questionsToUse[0].question;
         evaluationPhase.value = 'questioning';
       } else {
         // 질문이 없으면 바로 평가로
