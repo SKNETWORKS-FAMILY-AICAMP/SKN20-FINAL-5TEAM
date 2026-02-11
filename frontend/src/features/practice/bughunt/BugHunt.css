@@ -1627,272 +1627,6 @@
 
 /* Terminal styles removed */
 
-/* 힌트 패널 */
-.hint-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 500;
-}
-
-.hint-panel {
-  background: var(--panel-bg);
-  border: 4px solid var(--neon-yellow);
-  border-radius: 20px;
-  max-width: 600px;
-  width: 95%;
-  height: 40vh;
-  min-height: 300px;
-  max-height: 70vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 0 50px rgba(255, 255, 0, 0.3), inset 0 0 20px rgba(255, 255, 0, 0.1);
-  animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-@keyframes modalPop {
-  from {
-    transform: scale(0.9);
-    opacity: 0;
-  }
-
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-.hint-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 20px;
-  border-bottom: 2px solid var(--border-color);
-  font-family: 'Orbitron', monospace;
-  color: var(--neon-yellow);
-  flex-shrink: 0;
-}
-
-.hint-header span:not(.close-btn) {
-  font-size: 1rem;
-  letter-spacing: 2px;
-  text-shadow: 0 0 10px var(--neon-yellow);
-}
-
-.hint-content {
-  padding: 15px 20px;
-  line-height: 1.6;
-  color: #f0f0f0;
-  overflow-y: auto;
-  font-size: 1rem;
-  flex: 1;
-}
-
-.hint-content::-webkit-scrollbar {
-  width: 12px;
-}
-
-.hint-content::-webkit-scrollbar-thumb {
-  background: var(--neon-yellow);
-  border-radius: 3px;
-}
-
-/* 날아가는 해골 애니메이션 */
-.flying-skull {
-  position: fixed;
-  font-size: 4rem;
-  z-index: 1500;
-  pointer-events: none;
-  transform: translate(-50%, -50%);
-  transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.8));
-  animation: skullRotate 0.8s ease-in-out;
-}
-
-@keyframes skullRotate {
-  0% {
-    transform: translate(-50%, -50%) rotate(0deg) scale(1);
-  }
-
-  50% {
-    transform: translate(-50%, -50%) rotate(180deg) scale(1.3);
-  }
-
-  100% {
-    transform: translate(-50%, -50%) rotate(360deg) scale(0.8);
-  }
-}
-
-/* 미션 완료 이펙트 */
-.mission-complete-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, rgba(10, 10, 26, 0.95), rgba(18, 18, 42, 0.95));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.mission-complete-content {
-  text-align: center;
-  animation: missionCompletePop 0.8s ease-out;
-}
-
-@keyframes missionCompletePop {
-  0% {
-    transform: scale(0) rotate(-10deg);
-    opacity: 0;
-  }
-
-  50% {
-    transform: scale(1.1) rotate(5deg);
-  }
-
-  100% {
-    transform: scale(1) rotate(0);
-    opacity: 1;
-  }
-}
-
-.complete-fireworks {
-  font-size: 6rem;
-  animation: fireworksBurst 1s ease-out infinite;
-}
-
-@keyframes fireworksBurst {
-
-  0%,
-  100% {
-    transform: scale(1);
-    filter: hue-rotate(0deg);
-  }
-
-  50% {
-    transform: scale(1.2);
-    filter: hue-rotate(180deg);
-  }
-}
-
-.complete-title {
-  font-family: 'Orbitron', monospace;
-  font-size: 3rem;
-  color: var(--neon-yellow);
-  text-shadow: 0 0 40px var(--neon-yellow);
-  margin: 20px 0;
-}
-
-.complete-project {
-  font-size: 1.5rem;
-  color: #fff;
-  margin-bottom: 30px;
-}
-
-.all-bugs-dead {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 15px;
-  margin-bottom: 30px;
-}
-
-.dead-bug-row {
-  display: flex;
-  gap: 20px;
-}
-
-.dead-bug-row .dead-bug {
-  font-size: 3rem;
-  animation: allDeadSpin 2s linear infinite;
-}
-
-@keyframes allDeadSpin {
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.all-dead-text {
-  font-family: 'Orbitron', monospace;
-  font-size: 1.2rem;
-  color: var(--neon-green);
-  text-shadow: 0 0 15px var(--neon-green);
-}
-
-.mission-rewards {
-  display: flex;
-  justify-content: center;
-  gap: 40px;
-  margin-bottom: 30px;
-}
-
-.reward-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: rgba(255, 255, 255, 0.1);
-  padding: 15px 25px;
-  border-radius: 30px;
-}
-
-.reward-icon {
-  font-size: 1.5rem;
-}
-
-.reward-value {
-  font-family: 'Orbitron', monospace;
-  font-size: 1.2rem;
-  color: var(--neon-yellow);
-}
-
-.continue-btn {
-  background: var(--neon-magenta);
-  border: none;
-  color: #fff;
-  padding: 15px 50px;
-  font-family: 'Orbitron', monospace;
-  font-size: 1.1rem;
-  border-radius: 30px;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.continue-btn:hover {
-  transform: scale(1.05);
-  box-shadow: 0 0 30px var(--neon-magenta);
-}
-
-.missionComplete-enter-active {
-  animation: missionCompletePop 0.8s ease-out;
-}
-
-.missionComplete-leave-active {
-  animation: missionFade 0.5s ease-in forwards;
-}
-
-@keyframes missionFade {
-  from {
-    opacity: 1;
-  }
-
-  to {
-    opacity: 0;
-  }
-}
-
 /* 종료 확인 모달 */
 .confirm-overlay {
   position: fixed;
@@ -4117,25 +3851,65 @@
   margin-bottom: 1rem;
 }
 
+.tutorial-fix {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.tutorial-fix .tutorial-instruction,
+.tutorial-fix .tutorial-coaching {
+  width: min(100%, 900px);
+}
+
+.tutorial-combined .tutorial-instruction,
+.tutorial-combined .tutorial-coaching {
+  width: min(100%, 1100px);
+}
+
+.tutorial-fix-inline {
+  width: min(100%, 1100px);
+  margin: 0 auto;
+}
+
 .choice-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  padding: 1rem;
-  max-width: 600px;
-  margin: 1rem auto;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+  width: min(100%, 1100px);
+  padding: 0.5rem clamp(0.25rem, 1.5vw, 0.75rem);
+  box-sizing: border-box;
+  margin: 0.5rem auto;
+}
+
+.choice-grid.inline-four {
+  grid-template-columns: 1fr;
 }
 
 .choice-btn {
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: rgba(255, 255, 255, 0.05);
   border: 2px solid rgba(255, 255, 255, 0.15);
   border-radius: 12px;
-  padding: 1rem 1.5rem;
+  padding: 0.55rem 0.8rem;
   color: #e8eaed;
-  font-size: 0.95rem;
+  font-size: 0.88rem;
   cursor: pointer;
   transition: all 0.3s;
   text-align: center;
+}
+
+.choice-btn code {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 0.84rem;
+  line-height: 1.35;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .choice-btn:hover:not(:disabled) {
@@ -4219,6 +3993,12 @@
   text-align: left;
   white-space: pre-wrap;
   margin-top: 1rem;
+}
+
+@media (max-width: 900px) {
+  .choice-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .stage-clear-btn {

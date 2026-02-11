@@ -4,25 +4,24 @@
       "id": "S1",
       "source_id": "PY_BASICS_1",
       "mode": "tutorial",
-      "project_title": "Python 디버깅 워밍업 1",
-      "scenario": "서비스 점수 집계 스크립트가 배포 직후 실패했습니다. 에러 로그를 읽고 문제가 되는 줄을 찾아 올바른 수정 방법을 고르세요.",
+      "scenario": "신입 개발자가 작성한 Python 스크립트 5개에서 버그 리포트가 들어왔습니다. 에러 로그를 분석하고 올바른 수정안을 선택하세요.",
       "difficulty": 1,
       "totalSteps": 5,
       "steps": [
         {
           "step": 1,
-          "title": "문자열 점수와 정수 보너스를 더하면?",
+          "title": "서버 응답 점수와 보너스를 더하면?",
           "bug_type": "A",
           "bug_type_name": "Type Error",
           "file_name": "score_aggregator.py",
           "fix_mode": "choice",
-          "bug_line": 7,
-          "buggy_code": "import json\n\nraw_score = \"100\"\nbonus = 50\n\n# 사용자 최종 점수 계산\nfinal_score = raw_score + bonus\n\npayload = {\"final_score\": final_score}\nprint(json.dumps(payload, ensure_ascii=False))",
-          "correct_code": "import json\n\nraw_score = \"100\"\nbonus = 50\n\n# 사용자 최종 점수 계산\nfinal_score = int(raw_score) + bonus\n\npayload = {\"final_score\": final_score}\nprint(json.dumps(payload, ensure_ascii=False))",
-          "error_log": "TypeError: can only concatenate str (not \"int\") to str\nFile \"score_aggregator.py\", line 7",
+          "bug_line": 8,
+          "buggy_code": "import json\n\n# 서버 응답 (점수는 항상 문자열로 들어옴)\nresponse = '{\"score\": \"100\", \"bonus\": 50}'\ndata = json.loads(response)\n\nraw_score = data[\"score\"]\nfinal_score = raw_score + data[\"bonus\"]\n\nprint(f\"최종 점수: {final_score}\")",
+          "correct_code": "import json\n\n# 서버 응답 (점수는 항상 문자열로 들어옴)\nresponse = '{\"score\": \"100\", \"bonus\": 50}'\ndata = json.loads(response)\n\nraw_score = data[\"score\"]\nfinal_score = int(raw_score) + data[\"bonus\"]\n\nprint(f\"최종 점수: {final_score}\")",
+          "error_log": "TypeError: can only concatenate str (not \"int\") to str\nFile \"score_aggregator.py\", line 8\n[DEBUG] raw_score = '100' (type: str), data[\"bonus\"] = 50 (type: int)",
           "success_log": "{\"final_score\": 150}\n[정상] 점수 집계 완료",
-          "hint": "raw_score와 bonus의 타입을 각각 확인해보세요.",
-          "debugging_guide": "print(type(raw_score), type(bonus))를 출력해 타입을 확인하세요.",
+          "hint": "raw_score와 data[\"bonus\"]의 타입을 각각 확인해보세요. 두 값의 타입이 같은가요?",
+          "debugging_guide": "print(type(raw_score))를 출력해 타입을 확인하세요.",
           "solution_check": {
             "type": "multi_condition",
             "required_all": [
@@ -32,36 +31,36 @@
           },
           "error_info": {
             "type": "Type Mismatch",
-            "description": "문자열(str)과 정수(int)를 직접 더하고 있어 TypeError가 발생합니다.",
+            "description": "JSON에서 파싱한 값이 문자열(str)인데 정수(int)와 직접 더하고 있어 TypeError가 발생합니다.",
             "suggestion": "연산 전에 문자열 숫자를 정수로 변환하세요."
           },
-          "coaching": "실무에서 로그 숫자가 문자열로 들어오는 경우가 흔합니다. 계산 전 타입 확인을 습관화하세요.",
+          "coaching": "실무에서 API/JSON 응답의 숫자가 문자열로 들어오는 경우가 매우 흔합니다. 항상 타입을 확인하세요.",
           "choices": [
             {
-              "label": "final_score = int(raw_score) + bonus",
-              "code": "final_score = int(raw_score) + bonus",
+              "label": "final_score = int(raw_score) + data[\"bonus\"]",
+              "code": "final_score = int(raw_score) + data[\"bonus\"]",
               "correct": true
             },
             {
-              "label": "final_score = raw_score + str(bonus)",
-              "code": "final_score = raw_score + str(bonus)",
+              "label": "final_score = raw_score + str(data[\"bonus\"])",
+              "code": "final_score = raw_score + str(data[\"bonus\"])",
               "correct": false
             },
             {
-              "label": "final_score = raw_score.append(bonus)",
-              "code": "final_score = raw_score.append(bonus)",
+              "label": "final_score = raw_score.append(data[\"bonus\"])",
+              "code": "final_score = raw_score.append(data[\"bonus\"])",
               "correct": false
             },
             {
-              "label": "final_score = bonus(raw_score)",
-              "code": "final_score = bonus(raw_score)",
+              "label": "final_score = data[\"bonus\"](raw_score)",
+              "code": "final_score = data[\"bonus\"](raw_score)",
               "correct": false
             }
           ],
           "review_card": {
             "title": "TypeError 기본 패턴",
-            "explanation": "에러 메시지에서 str/int 같은 타입 키워드를 먼저 찾으면 원인 파악이 빨라집니다.",
-            "correct_pattern": "raw = '100'\nbonus = 50\nfinal = int(raw) + bonus"
+            "explanation": "JSON/API에서 받은 데이터는 문자열일 수 있습니다. 에러 메시지에서 str/int 타입 키워드를 찾으면 원인 파악이 빨라집니다.",
+            "correct_pattern": "raw = data[\"score\"]  # '100' (str)\nbonus = data[\"bonus\"]  # 50 (int)\nfinal = int(raw) + bonus  # 150"
           }
         },
         {
@@ -69,56 +68,57 @@
           "title": "리스트 마지막 인덱스를 벗어났어요",
           "bug_type": "B",
           "bug_type_name": "Index Error",
-          "file_name": "data_processor.py",
+          "file_name": "fruit_picker.py",
           "fix_mode": "choice",
-          "bug_line": 6,
-          "buggy_code": "data = [10, 20, 30, 40, 50]\ntotal = 0\n\n# 모든 원소를 더함\nfor i in range(len(data)):\n    total += data[len(data)]\n\nprint(f\"Total: {total}\")",
-          "correct_code": "data = [10, 20, 30, 40, 50]\ntotal = 0\n\n# 모든 원소를 더함\nfor i in range(len(data)):\n    total += data[i]\n\nprint(f\"Total: {total}\")",
-          "error_log": "IndexError: list index out of range\nFile \"data_processor.py\", line 6\n[DEBUG] data length: 5, tried to access: data[5]",
-          "success_log": "Total: 150\n[정상] 리스트 합계 계산 완료",
-          "hint": "루프에서 인덱스 변수 i를 사용하고 있나요?",
-          "debugging_guide": "print(i, len(data))를 루프 안에서 찍어 범위를 확인하세요.",
+          "bug_line": 4,
+          "buggy_code": "fruits = [\"apple\", \"banana\", \"cherry\"]\n\n# 세 번째 과일 출력\nlast_fruit = fruits[3]\nprint(f\"세 번째 과일: {last_fruit}\")",
+          "correct_code": "fruits = [\"apple\", \"banana\", \"cherry\"]\n\n# 세 번째 과일 출력\nlast_fruit = fruits[2]\nprint(f\"세 번째 과일: {last_fruit}\")",
+          "error_log": "IndexError: list index out of range\nFile \"fruit_picker.py\", line 4\n[DEBUG] 리스트 길이: 3, 접근 인덱스: 3",
+          "success_log": "세 번째 과일: cherry\n[정상] 인덱스 수정 완료",
+          "hint": "리스트의 인덱스는 몇부터 시작하나요? 길이가 3인 리스트의 유효 인덱스 범위를 생각해보세요.",
+          "debugging_guide": "len(fruits)와 실제 접근 인덱스를 함께 출력해서 확인해보세요.",
           "solution_check": {
             "type": "multi_condition",
             "required_all": [
-              "data[i]"
+              "fruits[2]"
             ],
             "forbidden": [
-              "data[len(data)]"
+              "fruits[3]",
+              "fruits[len(fruits)]"
             ]
           },
           "error_info": {
             "type": "Index Out of Range",
-            "description": "리스트 인덱스가 범위를 벗어났습니다. len(data)는 5이지만, 인덱스는 0부터 4까지입니다.",
-            "suggestion": "루프 변수를 올바르게 사용하세요."
+            "description": "리스트 길이가 3인데 인덱스 3에 접근해 범위를 벗어났습니다.",
+            "suggestion": "Python 리스트 인덱스는 0부터 시작하므로 세 번째 원소는 인덱스 2입니다."
           },
-          "coaching": "인덱스 에러는 종종 변수명 실수에서 발생합니다. 루프 변수를 일관되게 사용하세요.",
+          "coaching": "인덱스가 0부터 시작한다는 건 알아도 실수하기 쉽습니다. len()-1 패턴을 기억하세요.",
           "choices": [
             {
-              "label": "total += data[i]",
-              "code": "total += data[i]",
+              "label": "last_fruit = fruits[2]",
+              "code": "last_fruit = fruits[2]",
               "correct": true
             },
             {
-              "label": "total += data[len(data) - 1]",
-              "code": "total += data[len(data) - 1]",
+              "label": "last_fruit = fruits[len(fruits)]",
+              "code": "last_fruit = fruits[len(fruits)]",
               "correct": false
             },
             {
-              "label": "total += data.get(i)",
-              "code": "total += data.get(i)",
+              "label": "last_fruit = fruits.get(3)",
+              "code": "last_fruit = fruits.get(3)",
               "correct": false
             },
             {
-              "label": "total += data[i + 1]",
-              "code": "total += data[i + 1]",
+              "label": "last_fruit = fruits[3:4][0]",
+              "code": "last_fruit = fruits[3:4][0]",
               "correct": false
             }
           ],
           "review_card": {
             "title": "IndexError 기본 패턴",
-            "explanation": "리스트 길이가 N이면 유효 인덱스는 0~N-1입니다. 루프 변수를 항상 확인하세요.",
-            "correct_pattern": "for i in range(len(data)):\n    value = data[i]"
+            "explanation": "Python 인덱스는 0부터 시작합니다. 길이 N인 리스트의 마지막 인덱스는 N-1입니다.",
+            "correct_pattern": "data = ['a', 'b', 'c']\ndata[0]  # 첫 번째\ndata[2]  # 세 번째 (마지막)"
           }
         },
         {
@@ -131,9 +131,9 @@
           "bug_line": 6,
           "buggy_code": "user = {\n    \"name\": \"Alice\",\n    \"age\": 30\n}\n\nemail = user[\"email\"]\nprint(f\"Email: {email}\")",
           "correct_code": "user = {\n    \"name\": \"Alice\",\n    \"age\": 30\n}\n\nemail = user.get(\"email\", \"no-email@example.com\")\nprint(f\"Email: {email}\")",
-          "error_log": "KeyError: 'email'\nFile \"user_profile.py\", line 6\n[힌트] 딕셔너리에 키가 없을 때 안전하게 접근하는 방법은?",
+          "error_log": "KeyError: 'email'\nFile \"user_profile.py\", line 6\n[DEBUG] user 딕셔너리의 키 목록: ['name', 'age']",
           "success_log": "Email: no-email@example.com\n[정상] 기본값으로 안전하게 처리",
-          "hint": "딕셔너리에 키가 없을 때 기본값을 반환하는 메서드를 사용하세요.",
+          "hint": "user 딕셔너리에 어떤 키들이 있는지 먼저 확인해보세요.",
           "debugging_guide": "print(user.keys())로 사용 가능한 키 목록을 확인하세요.",
           "solution_check": {
             "type": "multi_condition",
@@ -178,130 +178,161 @@
         },
         {
           "step": 4,
-          "title": "None을 반환받아서 메서드를 호출했어요",
+          "title": "문자열의 첫 글자를 바로 바꾸려 했어요",
           "bug_type": "A",
-          "bug_type_name": "Attribute Error",
-          "file_name": "text_parser.py",
+          "bug_type_name": "Type Error",
+          "file_name": "greeting.py",
           "fix_mode": "choice",
-          "bug_line": 9,
-          "buggy_code": "def find_keyword(text, keyword):\n    if keyword in text:\n        return text.upper()\n    # 찾지 못하면 None 반환\n\ninput_text = \"hello world\"\nresult = find_keyword(input_text, \"python\")\n\nwords = result.split()\nprint(words)",
-          "correct_code": "def find_keyword(text, keyword):\n    if keyword in text:\n        return text.upper()\n    return \"\"  # 빈 문자열 반환\n\ninput_text = \"hello world\"\nresult = find_keyword(input_text, \"python\")\n\nwords = result.split()\nprint(words)",
-          "error_log": "AttributeError: 'NoneType' object has no attribute 'split'\nFile \"text_parser.py\", line 9\n[DEBUG] result = None",
-          "success_log": "[]\n[정상] 빈 결과 처리 완료",
-          "hint": "함수가 암묵적으로 None을 반환하는 경우를 확인하세요.",
-          "debugging_guide": "print(result, type(result))로 반환값을 확인하세요.",
+          "bug_line": 4,
+          "buggy_code": "greeting = \"hello world\"\n\n# 첫 글자를 대문자로 변경\ngreeting[0] = \"H\"\nprint(greeting)",
+          "correct_code": "greeting = \"hello world\"\n\n# 첫 글자를 대문자로 변경\ngreeting = \"H\" + greeting[1:]\nprint(greeting)",
+          "error_log": "TypeError: 'str' object does not support item assignment\nFile \"greeting.py\", line 4\n[DEBUG] greeting 타입: str, 시도한 연산: greeting[0] = \"H\"",
+          "success_log": "Hello world\n[정상] 문자열 수정 완료",
+          "hint": "에러 메시지의 'does not support item assignment'가 무슨 뜻인지 생각해보세요.",
+          "debugging_guide": "문자열에 인덱스로 값을 대입하는 코드가 있는지 확인하세요.",
           "solution_check": {
             "type": "multi_condition",
             "required_all": [
-              "return \"\""
+              "\"H\" + greeting[1:]"
             ],
-            "forbidden": []
+            "forbidden": [
+              "greeting[0] = \"H\""
+            ]
           },
           "error_info": {
-            "type": "None Return",
-            "description": "함수가 조건을 만족하지 못하면 암묵적으로 None을 반환합니다.",
-            "suggestion": "모든 경로에서 적절한 값을 반환하도록 하세요."
+            "type": "String Immutability",
+            "description": "Python 문자열은 불변 객체라 개별 문자 대입이 불가능합니다.",
+            "suggestion": "슬라이싱과 문자열 연결로 새 문자열을 만들어 대체하세요."
           },
-          "coaching": "함수 끝에 명시적 return을 두면 None 관련 버그를 예방할 수 있습니다.",
+          "coaching": "문자열이 불변이라는 건 Python 핵심 개념입니다. 슬라이싱과 연결로 새 문자열을 만드세요.",
           "choices": [
             {
-              "label": "return \"\"  (빈 문자열 반환)",
-              "code": "return \"\"",
+              "label": "greeting = \"H\" + greeting[1:]",
+              "code": "greeting = \"H\" + greeting[1:]",
               "correct": true
             },
             {
-              "label": "return None",
-              "code": "return None",
+              "label": "greeting[0] = \"H\"",
+              "code": "greeting[0] = \"H\"",
               "correct": false
             },
             {
-              "label": "pass",
-              "code": "pass",
+              "label": "greeting.replace(0, \"H\")",
+              "code": "greeting.replace(0, \"H\")",
               "correct": false
             },
             {
-              "label": "return result.split()",
-              "code": "return result.split()",
+              "label": "greeting = greeting.upper()",
+              "code": "greeting = greeting.upper()",
               "correct": false
             }
           ],
           "review_card": {
-            "title": "None 처리 패턴",
-            "explanation": "함수의 모든 실행 경로에서 적절한 값을 반환하는지 확인하세요.",
-            "correct_pattern": "def func():\n    if condition:\n        return value\n    return default"
+            "title": "문자열 불변성(Immutability)",
+            "explanation": "Python 문자열은 불변 객체입니다. 개별 문자를 직접 바꿀 수 없고, 새 문자열을 만들어야 합니다.",
+            "correct_pattern": "name = 'hello'\nname = 'H' + name[1:]  # 슬라이싱으로 새 문자열"
           }
         },
         {
           "step": 5,
-          "title": "함수 기본 인자가 호출 간 공유되고 있어요",
-          "bug_type": "B",
-          "bug_type_name": "Mutable Default",
-          "file_name": "task_manager.py",
+          "title": "리스트에 None이 섞여 있어서 터져요",
+          "bug_type": "A",
+          "bug_type_name": "Attribute Error",
+          "file_name": "name_formatter.py",
           "fix_mode": "choice",
-          "bug_line": 1,
-          "buggy_code": "def add_task(task, tasks=[]):\n    tasks.append(task)\n    return tasks\n\nprint(add_task(\"Write report\"))\nprint(add_task(\"Send email\"))",
-          "correct_code": "def add_task(task, tasks=None):\n    if tasks is None:\n        tasks = []\n    tasks.append(task)\n    return tasks\n\nprint(add_task(\"Write report\"))\nprint(add_task(\"Send email\"))",
-          "error_log": "Run1: ['Write report']\nRun2: ['Write report', 'Send email']  # 새 호출인데 이전 값이 남음\n[힌트] 기본 인자가 함수 정의 시점에 한 번만 생성됩니다",
-          "success_log": "Run1: ['Write report']\nRun2: ['Send email']\n[정상] 호출 간 독립적인 리스트",
-          "hint": "기본 인자에 리스트나 딕셔너리 같은 mutable 객체를 직접 두면 함정에 빠집니다.",
-          "debugging_guide": "print(id(tasks))로 각 호출에서 리스트 객체의 메모리 주소를 확인하세요.",
+          "bug_line": 5,
+          "buggy_code": "names = [\"Alice\", \"Bob\", None, \"Charlie\"]\nresult = []\n\nfor name in names:\n    result.append(name.upper())\n\nprint(result)",
+          "correct_code": "names = [\"Alice\", \"Bob\", None, \"Charlie\"]\nresult = []\n\nfor name in names:\n    result.append(name.upper() if name is not None else \"Unknown\")\n\nprint(result)",
+          "error_log": "AttributeError: 'NoneType' object has no attribute 'upper'\nFile \"name_formatter.py\", line 5\n[DEBUG] name = None (3번째 원소)",
+          "success_log": "['ALICE', 'BOB', 'Unknown', 'CHARLIE']\n[정상] None 값을 안전하게 처리",
+          "hint": "names 리스트의 모든 원소가 문자열인지 확인해보세요. None에 .upper()를 호출하면 어떻게 될까요?",
+          "debugging_guide": "for문 안에서 print(name, type(name))을 찍어 각 원소의 타입을 확인하세요.",
           "solution_check": {
             "type": "multi_condition",
             "required_all": [
-              "tasks=None",
-              "if tasks is None:"
+              "is not None"
             ],
-            "forbidden": [
-              "tasks=[]"
-            ]
+            "forbidden": []
           },
           "error_info": {
-            "type": "Mutable Default Argument",
-            "description": "리스트 기본값이 함수 호출 간 재사용되고 있습니다.",
-            "suggestion": "기본값을 None으로 두고 함수 내부에서 새 리스트를 생성하세요."
+            "type": "NoneType Attribute Error",
+            "description": "리스트에 None이 섞여 있어서 .upper() 메서드를 호출할 수 없습니다.",
+            "suggestion": "None 여부를 먼저 체크한 뒤 메서드를 호출하세요."
           },
-          "coaching": "Python의 유명한 함정입니다. 면접에서도 자주 나오므로 None 패턴을 기억하세요.",
+          "coaching": "실무 데이터에는 결측값(None)이 흔합니다. 메서드 호출 전에 항상 None 체크를 습관화하세요.",
           "choices": [
             {
-              "label": "def add_task(task, tasks=None):",
-              "code": "def add_task(task, tasks=None):\n    if tasks is None:\n        tasks = []\n    tasks.append(task)\n    return tasks",
+              "label": "result.append(name.upper() if name is not None else \"Unknown\")",
+              "code": "result.append(name.upper() if name is not None else \"Unknown\")",
               "correct": true
             },
             {
-              "label": "def add_task(task, tasks=[].copy()):",
-              "code": "def add_task(task, tasks=[].copy()):\n    tasks.append(task)\n    return tasks",
+              "label": "result.append(str(name).upper())",
+              "code": "result.append(str(name).upper())",
               "correct": false
             },
             {
-              "label": "tasks = []  # 함수 밖에서",
-              "code": "tasks = []\ndef add_task(task, tasks=tasks):\n    tasks.append(task)\n    return tasks",
+              "label": "result.append(name.upper() or \"Unknown\")",
+              "code": "result.append(name.upper() or \"Unknown\")",
               "correct": false
             },
             {
-              "label": "def add_task(task, tasks=list()):",
-              "code": "def add_task(task, tasks=list()):\n    tasks.append(task)\n    return tasks",
+              "label": "result.append(name.value.upper())",
+              "code": "result.append(name.value.upper())",
               "correct": false
             }
           ],
           "review_card": {
-            "title": "Mutable Default 함정",
-            "explanation": "기본 인자는 함수 정의 시 한 번만 평가됩니다. Mutable 객체는 None으로 받으세요.",
-            "correct_pattern": "def func(items=None):\n    if items is None:\n        items = []"
+            "title": "None 안전 처리 패턴",
+            "explanation": "리스트에 None이 섞여 있으면 메서드 호출 시 AttributeError가 발생합니다. 조건부 표현식으로 None을 먼저 걸러내세요.",
+            "correct_pattern": "for item in data:\n    value = item.method() if item is not None else default"
           }
         }
-      ]
+      ],
+      "stage_title": "에러 로그 읽기"
     },
     {
       "id": "S2",
       "source_id": "PY_MIX_1",
       "mode": "guided",
-      "project_title": "기초 디버깅 워밍업 2",
-      "scenario": "빈칸 채우기로 자주 발생하는 기초 버그를 빠르게 고쳐봅니다. Python 데이터 처리와 PyTorch 추론 설정을 다룹니다.",
+      "scenario": "QA팀에서 버그 티켓 5건이 넘어왔습니다. Python 로직 오류부터 PyTorch 추론 설정 실수까지, 빈칸에 정확한 코드를 채워 이슈를 클로즈하세요.",
       "difficulty": 1,
       "totalSteps": 5,
       "steps": [
         {
           "step": 1,
+          "title": "숫자 변환 예외를 잘못 잡고 있어요",
+          "bug_type": "A",
+          "bug_type_name": "Value Error",
+          "file_name": "age_parser.py",
+          "fix_mode": "fill_blank",
+          "blank_template": "def parse_age(text):\n    try:\n        age = int(text)\n        return age\n    except ______:\n        return -1\n\nresult = parse_age(\"스물다섯\")\nprint(f\"나이: {result}\")",
+          "blank_answer": "ValueError",
+          "blank_placeholder": "______Error",
+          "buggy_code": "def parse_age(text):\n    try:\n        age = int(text)\n        return age\n    except TypeError:\n        return -1\n\nresult = parse_age(\"스물다섯\")\nprint(f\"나이: {result}\")",
+          "correct_code": "def parse_age(text):\n    try:\n        age = int(text)\n        return age\n    except ValueError:\n        return -1\n\nresult = parse_age(\"스물다섯\")\nprint(f\"나이: {result}\")",
+          "error_log": "ValueError: invalid literal for int() with base 10: '스물다섯'\nFile \"age_parser.py\", line 3\n[DEBUG] except TypeError에서 잡히지 않아 프로그램이 종료됨",
+          "success_log": "나이: -1\n[정상] 잘못된 입력을 안전하게 처리",
+          "hint": "에러 메시지의 첫 단어가 어떤 에러 타입인지 읽어보세요. except에서 잡으려는 타입과 같나요?",
+          "debugging_guide": "에러 로그의 첫 줄에 나오는 에러 타입명을 확인하세요.",
+          "solution_check": {
+            "type": "multi_condition",
+            "required_all": [
+              "ValueError"
+            ],
+            "forbidden": [
+              "TypeError"
+            ]
+          },
+          "error_info": {
+            "type": "Wrong Exception Type",
+            "description": "int()에 숫자가 아닌 문자열을 넣으면 ValueError가 발생하지만, except TypeError로 잡으려 하고 있습니다.",
+            "suggestion": "에러 로그에서 발생하는 실제 예외 타입을 확인하세요."
+          },
+          "coaching": "에러 메시지를 읽는 것이 디버깅의 첫걸음입니다. 어떤 에러가 발생하는지 정확히 파악하세요."
+        },
+        {
+          "step": 2,
           "title": "다음 원소 비교 루프가 마지막에서 터져요",
           "bug_type": "B",
           "bug_type_name": "Index Error",
@@ -331,7 +362,38 @@
           "coaching": "오프바이원은 가장 흔한 버그입니다. 인덱스 범위를 먼저 종이에 써보세요."
         },
         {
-          "step": 2,
+          "step": 3,
+          "title": "모델은 GPU인데 입력은 CPU예요",
+          "bug_type": "C",
+          "bug_type_name": "Device Mismatch",
+          "file_name": "device_input.py",
+          "fix_mode": "fill_blank",
+          "bug_line": 7,
+          "blank_template": "import torch\n\ndevice = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\nmodel = MyModel().to(device)\n\nbatch = [0.3, 0.1, -0.2]\nx = torch.tensor(batch)_______________\nout = model(x)",
+          "blank_answer": ".to(device)",
+          "blank_placeholder": ".______()",
+          "buggy_code": "import torch\n\ndevice = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\nmodel = MyModel().to(device)\n\nbatch = [0.3, 0.1, -0.2]\nx = torch.tensor(batch)\nout = model(x)",
+          "correct_code": "import torch\n\ndevice = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\nmodel = MyModel().to(device)\n\nbatch = [0.3, 0.1, -0.2]\nx = torch.tensor(batch).to(device)\nout = model(x)",
+          "error_log": "RuntimeError: Expected all tensors to be on the same device, but got at least two devices, cuda:0 and cpu!\n[DEBUG] model device: cuda:0\n[DEBUG] input device: cpu\n[TRACE] model = MyModel().to(device) → cuda:0\n[TRACE] x = torch.tensor(batch)     → cpu",
+          "success_log": "[정상] 입력 텐서와 모델 디바이스 일치",
+          "hint": "에러 메시지에 두 디바이스 이름이 나옵니다. 어느 쪽을 맞춰야 할까요?",
+          "debugging_guide": "print(next(model.parameters()).device, x.device)로 비교하세요.",
+          "solution_check": {
+            "type": "multi_condition",
+            "required_all": [
+              "to(device)"
+            ],
+            "forbidden": []
+          },
+          "error_info": {
+            "type": "Device Mismatch",
+            "description": "입력 텐서와 모델 파라미터의 디바이스가 다릅니다.",
+            "suggestion": "입력 텐서를 model과 동일한 device로 이동하세요."
+          },
+          "coaching": "PyTorch 추론/학습에서 가장 흔한 런타임 에러 중 하나입니다."
+        },
+        {
+          "step": 4,
           "title": "추론 결과가 실행마다 미세하게 달라져요",
           "bug_type": "C",
           "bug_type_name": "Inference Mode",
@@ -361,66 +423,6 @@
           "coaching": "PyTorch 추론 코드 템플릿은 eval + no_grad 조합으로 외워두는 것이 좋습니다."
         },
         {
-          "step": 3,
-          "title": "루프 안에서만 변수를 정의했어요",
-          "bug_type": "A",
-          "bug_type_name": "Name Error",
-          "file_name": "score_calc.py",
-          "fix_mode": "fill_blank",
-          "blank_template": "scores = [85, 92, 78, 95]\n_______________\n\nfor score in scores:\n    if score >= 90:\n        result = \"Excellent\"\n\nprint(f\"Result: {result}\")",
-          "blank_answer": "result = \"Unknown\"",
-          "blank_placeholder": "result = ________",
-          "buggy_code": "scores = [85, 92, 78, 95]\n\nfor score in scores:\n    if score >= 90:\n        result = \"Excellent\"\n\nprint(f\"Result: {result}\")",
-          "correct_code": "scores = [85, 92, 78, 95]\nresult = \"Unknown\"\n\nfor score in scores:\n    if score >= 90:\n        result = \"Excellent\"\n\nprint(f\"Result: {result}\")",
-          "error_log": "NameError: name 'result' is not defined\nFile \"score_calc.py\", line 7\n[DEBUG] result는 if 블록 안에서만 정의됨",
-          "success_log": "Result: Excellent\n[정상] 변수 초기화 완료",
-          "hint": "변수를 조건문 밖에서 미리 초기화해야 합니다.",
-          "debugging_guide": "변수가 어느 스코프에서 처음 정의되는지 확인하세요.",
-          "solution_check": {
-            "type": "multi_condition",
-            "required_all": [
-              "result ="
-            ],
-            "forbidden": []
-          },
-          "error_info": {
-            "type": "Variable Initialization",
-            "description": "변수가 조건문 안에서만 선언되어 외부에서 사용할 수 없습니다.",
-            "suggestion": "변수를 루프 시작 전에 초기화하세요."
-          },
-          "coaching": "변수를 사용하기 전에 항상 초기값을 설정하는 습관을 들이세요."
-        },
-        {
-          "step": 4,
-          "title": "모델은 GPU인데 입력은 CPU예요",
-          "bug_type": "C",
-          "bug_type_name": "Device Mismatch",
-          "file_name": "device_input.py",
-          "fix_mode": "fill_blank",
-          "blank_template": "import torch\n\ndevice = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\nmodel = MyModel().to(device)\n\nbatch = [0.3, 0.1, -0.2]\nx = torch.tensor(batch)_______________\nout = model(x)",
-          "blank_answer": ".to(device)",
-          "blank_placeholder": ".______()",
-          "buggy_code": "import torch\n\ndevice = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\nmodel = MyModel().to(device)\n\nbatch = [0.3, 0.1, -0.2]\nx = torch.tensor(batch)\nout = model(x)",
-          "correct_code": "import torch\n\ndevice = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\nmodel = MyModel().to(device)\n\nbatch = [0.3, 0.1, -0.2]\nx = torch.tensor(batch).to(device)\nout = model(x)",
-          "error_log": "RuntimeError: Expected all tensors to be on the same device\n[DEBUG] model device: cuda:0, input device: cpu",
-          "success_log": "[정상] 입력 텐서와 모델 디바이스 일치",
-          "hint": "모델이 있는 device로 입력 텐서도 이동해야 합니다.",
-          "debugging_guide": "print(next(model.parameters()).device, x.device)로 비교하세요.",
-          "solution_check": {
-            "type": "multi_condition",
-            "required_all": [
-              "to(device)"
-            ],
-            "forbidden": []
-          },
-          "error_info": {
-            "type": "Device Mismatch",
-            "description": "입력 텐서와 모델 파라미터의 디바이스가 다릅니다.",
-            "suggestion": "입력 텐서를 model과 동일한 device로 이동하세요."
-          },
-          "coaching": "PyTorch 추론/학습에서 가장 흔한 런타임 에러 중 하나입니다."
-        },
-        {
           "step": 5,
           "title": "추론 시 메모리가 계속 쌓여요",
           "bug_type": "C",
@@ -429,7 +431,7 @@
           "fix_mode": "fill_blank",
           "blank_template": "import torch\n\nmodel = MyModel().cuda()\nmodel.eval()\n\n_______________\n    for batch in test_loader:\n        x = batch['data'].cuda()\n        y = model(x)\n        predictions.append(y.cpu())",
           "blank_answer": "with torch.no_grad():",
-          "blank_placeholder": "_______________",
+          "blank_placeholder": "with torch.____________():",
           "buggy_code": "import torch\n\nmodel = MyModel().cuda()\nmodel.eval()\n\nfor batch in test_loader:\n    x = batch['data'].cuda()\n    y = model(x)\n    predictions.append(y.cpu())",
           "correct_code": "import torch\n\nmodel = MyModel().cuda()\nmodel.eval()\n\nwith torch.no_grad():\n    for batch in test_loader:\n        x = batch['data'].cuda()\n        y = model(x)\n        predictions.append(y.cpu())",
           "error_log": "=== 메모리 프로파일링 ===\nBatch 1: GPU Memory 1.2 GB\nBatch 10: GPU Memory 2.8 GB\nBatch 50: GPU Memory 8.4 GB\nBatch 100: RuntimeError: CUDA out of memory\n\n[ALERT] eval() 모드인데 메모리가 계속 증가",
@@ -450,79 +452,80 @@
           },
           "coaching": "eval()은 레이어 동작만 바꿉니다. 메모리 절약은 no_grad()의 역할입니다."
         }
-      ]
+      ],
+      "stage_title": "코드 한 줄 채우기"
     },
     {
       "id": "S3",
       "source_id": "PYTORCH_BRIDGE_1",
       "mode": "line_edit",
-      "project_title": "직접 수정 워밍업 3",
-      "scenario": "버그 줄을 직접 찾아 수정하는 연습 단계입니다. Python 함정과 PyTorch 장치 설정을 해결합니다.",
+      "scenario": "코드 리뷰에서 버그가 발견된 파일 5개가 할당되었습니다. 틀린 줄을 정확히 찾아 클릭하고 직접 수정하세요.",
       "difficulty": 1,
       "totalSteps": 5,
       "steps": [
         {
           "step": 1,
-          "title": "함수를 두 번 호출했더니 이전 값이 남아요",
-          "bug_type": "B",
-          "bug_type_name": "Mutable Default",
-          "file_name": "default_arg.py",
+          "title": "비교 연산자를 쓸 곳에 할당 연산자를 썼어요",
+          "bug_type": "A",
+          "bug_type_name": "Syntax Error",
+          "file_name": "condition.py",
           "fix_mode": "line_edit",
-          "bug_line": 1,
-          "correct_line": "def add_item(item, items=None):",
+          "bug_line": 3,
+          "correct_line": "if x == 5:",
           "click_tolerance": 0,
-          "buggy_code": "def add_item(item, items=[]):\n    items.append(item)\n    return items\n\nprint(add_item('A'))\nprint(add_item('B'))",
-          "correct_code": "def add_item(item, items=None):\n    if items is None:\n        items = []\n    items.append(item)\n    return items\n\nprint(add_item('A'))\nprint(add_item('B'))",
-          "error_log": "Run1: ['A']\nRun2: ['A', 'B']  # 새 호출인데 이전 값이 남음",
-          "success_log": "Run1: ['A']\nRun2: ['B']\n[정상] 호출 간 상태 분리 완료\n[포인트] 기본 인자에 mutable 객체를 직접 두지 않습니다.",
-          "hint": "함수 시그니처에서 기본 인자를 None으로 두는 패턴을 먼저 적용해보세요.",
-          "debugging_guide": "함수 정의부의 기본 인자를 먼저 확인해보세요.",
+          "buggy_code": "x = 5\n\nif x = 5:\n    print(\"x is 5\")\nelse:\n    print(\"x is not 5\")",
+          "correct_code": "x = 5\n\nif x == 5:\n    print(\"x is 5\")\nelse:\n    print(\"x is not 5\")",
+          "error_log": "SyntaxError: invalid syntax. Maybe you meant '==' or ':=' instead of '='?\nFile \"condition.py\", line 3",
+          "success_log": "x is 5\n[정상] 조건문 실행 완료",
+          "hint": "에러 메시지가 제안하는 대체 연산자를 확인해보세요.",
+          "debugging_guide": "Python은 구문 에러 메시지에서 해결책을 제안합니다.",
           "solution_check": {
             "type": "multi_condition",
             "required_all": [
-              "def add_item(item, items=None):"
+              "if x == 5:"
             ],
             "forbidden": [
-              "item=None",
-              "items=[]"
+              "if x = 5:"
             ]
           },
           "error_info": {
-            "type": "Mutable Default Argument",
-            "description": "리스트 기본값이 함수 호출 간 재사용되고 있습니다.",
-            "suggestion": "기본값을 None으로 두고 함수 내부에서 새 리스트를 생성하세요."
+            "type": "Syntax Error",
+            "description": "조건문에서 할당 연산자(=)를 사용할 수 없습니다.",
+            "suggestion": "비교 연산자(==)를 사용하세요."
           },
-          "coaching": "Python 실무/면접에서 매우 자주 나오는 패턴입니다."
+          "coaching": "= (할당)과 == (비교)를 명확히 구분하세요. 이는 가장 흔한 타이핑 실수입니다."
         },
         {
           "step": 2,
-          "title": "모델은 GPU인데 입력 텐서는 CPU예요",
-          "bug_type": "C",
-          "bug_type_name": "Device Mismatch",
-          "file_name": "device_input.py",
+          "title": "나이 입력값을 바로 숫자와 비교했어요",
+          "bug_type": "A",
+          "bug_type_name": "Type Error",
+          "file_name": "age_check.py",
           "fix_mode": "line_edit",
-          "bug_line": 7,
-          "correct_line": "x = torch.tensor(batch).to(device)",
+          "bug_line": 3,
+          "correct_line": "if int(age) >= 18:",
           "click_tolerance": 0,
-          "buggy_code": "import torch\n\ndevice = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\nmodel = MyModel().to(device)\n\nbatch = [0.3, 0.1, -0.2]\nx = torch.tensor(batch)\nout = model(x)",
-          "correct_code": "import torch\n\ndevice = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\nmodel = MyModel().to(device)\n\nbatch = [0.3, 0.1, -0.2]\nx = torch.tensor(batch).to(device)\nout = model(x)",
-          "error_log": "RuntimeError: Expected all tensors to be on the same device\n[DEBUG] model: cuda:0, input: cpu",
-          "success_log": "[정상] 입력 텐서와 모델 디바이스 일치",
-          "hint": "모델이 있는 device로 입력 텐서도 이동해야 합니다.",
-          "debugging_guide": "print(next(model.parameters()).device, x.device)로 비교하세요.",
+          "buggy_code": "age = input(\"나이를 입력하세요: \")\n\nif age >= 18:\n    print(\"성인입니다\")\nelse:\n    print(\"미성년자입니다\")",
+          "correct_code": "age = input(\"나이를 입력하세요: \")\n\nif int(age) >= 18:\n    print(\"성인입니다\")\nelse:\n    print(\"미성년자입니다\")",
+          "error_log": "TypeError: '>=' not supported between instances of 'str' and 'int'\nFile \"age_check.py\", line 3\n[DEBUG] age = '25' (type: str)",
+          "success_log": "성인입니다\n[정상] 문자열을 정수로 변환 후 비교",
+          "hint": "input() 함수가 반환하는 값의 타입이 무엇인지 생각해보세요.",
+          "debugging_guide": "print(type(age))를 찍어 타입을 확인하세요.",
           "solution_check": {
             "type": "multi_condition",
             "required_all": [
-              "to(device)"
+              "int(age)"
             ],
-            "forbidden": []
+            "forbidden": [
+              "if age >= 18:"
+            ]
           },
           "error_info": {
-            "type": "Device Mismatch",
-            "description": "입력 텐서와 모델 파라미터의 디바이스가 다릅니다.",
-            "suggestion": "입력 텐서를 model과 동일한 device로 이동하세요."
+            "type": "Type Comparison Error",
+            "description": "문자열과 정수를 비교할 수 없습니다. input()은 항상 문자열을 반환합니다.",
+            "suggestion": "비교 전에 문자열을 정수로 변환하세요."
           },
-          "coaching": "PyTorch 추론/학습에서 가장 흔한 런타임 에러 중 하나입니다."
+          "coaching": "input()은 항상 str을 반환합니다. 숫자 비교가 필요하면 int()로 변환하세요."
         },
         {
           "step": 3,
@@ -538,7 +541,7 @@
           "correct_code": "import torch\nimport torch.nn as nn\n\nlogits = torch.randn(3, 3)\nlabels = torch.tensor([0, 1, 2], dtype=torch.long)\n\ncriterion = nn.CrossEntropyLoss()\nloss = criterion(logits, labels)",
           "error_log": "RuntimeError: expected scalar type Long but found Float\n[DEBUG] CrossEntropyLoss requires Long dtype for target",
           "success_log": "tensor(1.2345)\n[정상] Loss 계산 완료",
-          "hint": "분류 문제의 레이블은 정수(Long) 타입이어야 합니다.",
+          "hint": "에러 메시지에서 기대하는 타입과 실제 타입이 각각 뭔지 읽어보세요.",
           "debugging_guide": "print(labels.dtype)로 레이블 타입을 확인하세요.",
           "solution_check": {
             "type": "multi_condition",
@@ -558,72 +561,75 @@
         },
         {
           "step": 4,
-          "title": "전역 변수를 수정하려는데 인식이 안 돼요",
+          "title": "함수를 두 번 호출했더니 이전 값이 남아요",
           "bug_type": "B",
-          "bug_type_name": "Scope Error",
-          "file_name": "counter.py",
+          "bug_type_name": "Mutable Default",
+          "file_name": "default_arg.py",
           "fix_mode": "line_edit",
-          "bug_line": 4,
-          "correct_line": "    global count",
+          "bug_line": 1,
+          "correct_line": "def add_item(item, items=None):",
           "click_tolerance": 0,
-          "buggy_code": "count = 0\n\ndef increment():\n    count += 1\n    return count\n\nprint(increment())\nprint(increment())",
-          "correct_code": "count = 0\n\ndef increment():\n    global count\n    count += 1\n    return count\n\nprint(increment())\nprint(increment())",
-          "error_log": "UnboundLocalError: local variable 'count' referenced before assignment\nFile \"counter.py\", line 4",
-          "success_log": "1\n2\n[정상] 전역 변수 수정 완료",
-          "hint": "함수 안에서 전역 변수를 수정하려면 선언이 필요합니다.",
-          "debugging_guide": "전역 변수를 수정하는 함수에서 global 키워드를 확인하세요.",
+          "buggy_code": "def add_item(item, items=[]):\n    items.append(item)\n    return items\n\nprint(add_item('A'))\nprint(add_item('B'))",
+          "correct_code": "def add_item(item, items=None):\n    if items is None:\n        items = []\n    items.append(item)\n    return items\n\nprint(add_item('A'))\nprint(add_item('B'))",
+          "error_log": "=== 함수 호출 테스트 ===\n호출 1: add_item('A')\n  예상: ['A']\n  실제: ['A'] ✓\n\n호출 2: add_item('B')\n  예상: ['B']\n  실제: ['A', 'B'] ✗\n\n[ANOMALY] 두 번째 호출에 첫 번째 호출의 데이터가 남아있음",
+          "success_log": "Run1: ['A']\nRun2: ['B']\n[정상] 호출 간 상태 분리 완료\n[포인트] 기본 인자에 mutable 객체를 직접 두지 않습니다.",
+          "hint": "함수를 두 번 호출했는데 왜 결과가 섞일까요? 기본 인자가 언제 생성되는지 생각해보세요.",
+          "debugging_guide": "함수 정의부의 기본 인자를 먼저 확인해보세요.",
           "solution_check": {
             "type": "multi_condition",
             "required_all": [
-              "global count"
-            ],
-            "forbidden": []
-          },
-          "error_info": {
-            "type": "UnboundLocalError",
-            "description": "함수 안에서 전역 변수를 수정하려면 global 선언이 필요합니다.",
-            "suggestion": "함수 첫 줄에 global count를 추가하세요."
-          },
-          "coaching": "전역 변수 수정은 가능하면 피하고, 필요하면 명시적으로 global 선언하세요."
-        },
-        {
-          "step": 5,
-          "title": "비교 연산자를 쓸 곳에 할당 연산자를 썼어요",
-          "bug_type": "A",
-          "bug_type_name": "Syntax Error",
-          "file_name": "condition.py",
-          "fix_mode": "line_edit",
-          "bug_line": 3,
-          "correct_line": "if x == 5:",
-          "click_tolerance": 0,
-          "buggy_code": "x = 5\n\nif x = 5:\n    print(\"x is 5\")\nelse:\n    print(\"x is not 5\")",
-          "correct_code": "x = 5\n\nif x == 5:\n    print(\"x is 5\")\nelse:\n    print(\"x is not 5\")",
-          "error_log": "SyntaxError: invalid syntax. Maybe you meant '==' or ':=' instead of '='?\nFile \"condition.py\", line 3",
-          "success_log": "x is 5\n[정상] 조건문 실행 완료",
-          "hint": "조건문에서는 비교 연산자 ==를 사용해야 합니다.",
-          "debugging_guide": "Python은 구문 에러 메시지에서 해결책을 제안합니다.",
-          "solution_check": {
-            "type": "multi_condition",
-            "required_all": [
-              "if x == 5:"
+              "def add_item(item, items=None):"
             ],
             "forbidden": [
-              "if x = 5:"
+              "item=None",
+              "items=[]"
             ]
           },
           "error_info": {
-            "type": "Syntax Error",
-            "description": "조건문에서 할당 연산자(=)를 사용할 수 없습니다.",
-            "suggestion": "비교 연산자(==)를 사용하세요."
+            "type": "Mutable Default Argument",
+            "description": "리스트 기본값이 함수 호출 간 재사용되고 있습니다.",
+            "suggestion": "기본값을 None으로 두고 함수 내부에서 새 리스트를 생성하세요."
           },
-          "coaching": "= (할당)과 == (비교)를 명확히 구분하세요. 이는 가장 흔한 타이핑 실수입니다."
+          "coaching": "Python 실무/면접에서 매우 자주 나오는 패턴입니다."
+        },
+        {
+          "step": 5,
+          "title": "학생별 평균을 구해야 하는데 축을 잘못 선택했어요",
+          "bug_type": "D",
+          "bug_type_name": "Logic Error",
+          "file_name": "student_avg.py",
+          "fix_mode": "line_edit",
+          "bug_line": 11,
+          "correct_line": "student_avg = torch.mean(scores.float(), dim=1)",
+          "click_tolerance": 0,
+          "buggy_code": "import torch\n\n# 3명의 학생, 각 4과목 점수\nscores = torch.tensor([\n    [85, 90, 78, 92],\n    [88, 76, 95, 89],\n    [90, 85, 87, 91]\n])\n\n# 각 학생의 평균 점수 계산\nstudent_avg = torch.mean(scores.float(), dim=0)\nprint(f\"학생별 평균: {student_avg}\")",
+          "correct_code": "import torch\n\n# 3명의 학생, 각 4과목 점수\nscores = torch.tensor([\n    [85, 90, 78, 92],\n    [88, 76, 95, 89],\n    [90, 85, 87, 91]\n])\n\n# 각 학생의 평균 점수 계산\nstudent_avg = torch.mean(scores.float(), dim=1)\nprint(f\"학생별 평균: {student_avg}\")",
+          "error_log": "출력: tensor([87.6667, 83.6667, 86.6667, 90.6667])\n기대: tensor([86.2500, 87.0000, 88.2500])\n\n[ANOMALY] 결과가 4개 — 학생 수(3)가 아닌 과목 수(4)만큼 나옴\n[DEBUG] dim=0은 행(학생)을 축소 -> 과목별 평균\n[DEBUG] dim=1은 열(과목)을 축소 -> 학생별 평균",
+          "success_log": "학생별 평균: tensor([86.2500, 87.0000, 88.2500])\n[정상] dim=1로 학생별 평균 계산 완료",
+          "hint": "출력 텐서의 크기가 기대와 다릅니다. dim 파라미터가 어느 축을 축소하는지 생각해보세요.",
+          "debugging_guide": "scores.shape를 출력하고 dim=0, dim=1 각각의 결과 shape를 비교하세요.",
+          "solution_check": {
+            "type": "multi_condition",
+            "required_all": [
+              "dim=1"
+            ],
+            "forbidden": [
+              "dim=0"
+            ]
+          },
+          "error_info": {
+            "type": "Dimension Mismatch",
+            "description": "학생별 평균을 구하려면 과목 축(dim=1)을 축소해야 하는데, 학생 축(dim=0)을 축소하고 있습니다.",
+            "suggestion": "torch.mean()의 dim 파라미터를 확인하세요."
+          },
+          "coaching": "텐서의 dim은 헷갈리기 쉽습니다. dim=0은 행 방향(세로), dim=1은 열 방향(가로)을 축소합니다."
         }
-      ]
+      ],
+      "stage_title": "버그 라인 사냥"
     },
     {
       "id": "S4",
-      "project_title": "학습 루프 실전 입문",
-      "scenario": "이제부터는 자유코딩 실전입니다. 학습 루프에서 현업에서 자주 발생하는 핵심 버그를 단계적으로 해결해봅니다.",
+      "scenario": "이제부터 실전입니다. PyTorch 학습 루프에서 현업 개발자도 자주 겪는 핵심 버그 3건을 자유 코딩으로 해결하세요.",
       "difficulty": 2,
       "totalSteps": 3,
       "steps": [
@@ -706,11 +712,11 @@
         }
       ],
       "source_id": "P2",
-      "mode": "standard"
+      "mode": "standard",
+      "stage_title": "학습 루프 실전 입문"
     },
     {
       "id": "S5",
-      "project_title": "데이터 로더 & 전처리 함정",
       "scenario": "데이터 파이프라인을 구축했는데, 학습 속도가 너무 느리거나, 예상치 못한 에러가 발생하거나, 재현이 안 되는 문제가 생깁니다.",
       "difficulty": 2,
       "totalSteps": 3,
@@ -807,11 +813,11 @@
         }
       ],
       "source_id": "P3",
-      "mode": "standard"
+      "mode": "standard",
+      "stage_title": "데이터 로더 & 전처리 함정"
     },
     {
       "id": "S6",
-      "project_title": "모델 저장 & 배포 실수",
       "scenario": "학습이 완료된 모델을 저장하고 나중에 다시 불러왔는데, 성능이 다르거나 에러가 발생합니다.",
       "difficulty": 3,
       "totalSteps": 3,
@@ -907,11 +913,11 @@
         }
       ],
       "source_id": "P4",
-      "mode": "standard"
+      "mode": "standard",
+      "stage_title": "모델 저장 & 배포 실수"
     },
     {
       "id": "S7",
-      "project_title": "LLM & Transformer 디버깅",
       "scenario": "Transformer 기반 모델(BERT, GPT 등)을 Fine-tuning하거나 추론하는데, 예상과 다른 결과가 나오거나 에러가 발생합니다.",
       "difficulty": 3,
       "totalSteps": 3,
@@ -1015,7 +1021,8 @@
         }
       ],
       "source_id": "P5",
-      "mode": "standard"
+      "mode": "standard",
+      "stage_title": "LLM & Transformer 디버깅"
     }
   ]
 }

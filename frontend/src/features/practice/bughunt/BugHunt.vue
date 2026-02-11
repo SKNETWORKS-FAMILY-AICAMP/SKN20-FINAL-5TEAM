@@ -76,7 +76,7 @@
       <!-- 헤더 -->
       <header class="header compact progressive-header">
         <div class="header-left">
-          <h1>🎯 {{ currentProgressiveMission?.project_title }}</h1>
+          <h1>🎯 {{ currentProgressiveMission?.stage_title }}</h1>
         </div>
         <div class="header-center">
           <!-- 버그 상태 표시 (3마리) -->
@@ -84,7 +84,6 @@
             <div
               v-for="step in totalStepsComputed"
               :key="step"
-              :ref="el => { if (el) bugStatusRefs[step] = el }"
               class="bug-status-item"
               :class="{ dead: progressiveCompletedSteps.includes(step), active: step === currentProgressiveStep }"
             >
@@ -275,10 +274,15 @@
           </div>
 
           <div class="editor-body">
-            <!-- Phase A: Explore - 클릭 가능한 코드 뷰어 -->
-            <div v-if="tutorialPhase === 'explore'" class="tutorial-explore">
+            <!-- Phase A+B: Explore/Fix - 코드 뷰어 유지 + 코드 아래 객관식 -->
+            <div v-if="tutorialPhase === 'explore' || tutorialPhase === 'fix'" class="tutorial-explore tutorial-combined">
               <div class="tutorial-instruction">
-                코드에서 버그가 있는 줄을 찾아 클릭하세요!
+                <template v-if="tutorialPhase === 'explore'">
+                  코드에서 버그가 있는 줄을 찾아 클릭하세요!
+                </template>
+                <template v-else>
+                  아래 보기에서 올바른 수정 방법을 선택하세요!
+                </template>
               </div>
               <div class="tutorial-code-viewer">
                 <div
@@ -290,7 +294,7 @@
                     'selected-correct': selectedBugLine === idx + 1 && bugLineCorrect,
                     'selected-wrong': selectedBugLine === idx + 1 && !bugLineCorrect && selectedBugLine !== null
                   }"
-                  @mouseenter="hoveredLine = idx + 1"
+                  @mouseenter="tutorialPhase === 'explore' ? (hoveredLine = idx + 1) : null"
                   @mouseleave="hoveredLine = null"
                   @click="handleTutorialLineClick(idx + 1)"
                 >
@@ -298,40 +302,36 @@
                   <pre class="line-content">{{ line }}</pre>
                 </div>
               </div>
-            </div>
 
-            <!-- Phase B: Fix - 객관식 -->
-            <div v-else-if="tutorialPhase === 'fix'" class="tutorial-fix">
-              <div class="tutorial-instruction">
-                올바른 수정 방법을 선택하세요!
-              </div>
-              <div class="tutorial-coaching">
-                {{ getCurrentStepData()?.coaching }}
-              </div>
-              <div class="choice-grid">
+              <div v-if="tutorialPhase === 'fix'" class="tutorial-fix-inline" ref="tutorialFixRef">
+                <div class="tutorial-coaching">
+                  {{ getCurrentStepData()?.coaching }}
+                </div>
+                <div class="choice-grid inline-four">
+                  <button
+                    v-for="(choice, idx) in getCurrentStepData()?.choices"
+                    :key="idx"
+                    class="choice-btn"
+                    :class="{
+                      'selected': selectedChoice === idx,
+                      'correct': choiceSubmitted && tutorialChoiceCorrect && choice.correct,
+                      'wrong': choiceSubmitted && selectedChoice === idx && !choice.correct
+                    }"
+                    @click="handleTutorialChoice(idx)"
+                    :disabled="choiceSubmitted"
+                  >
+                    <code>{{ choice.label }}</code>
+                  </button>
+                </div>
                 <button
-                  v-for="(choice, idx) in getCurrentStepData()?.choices"
-                  :key="idx"
-                  class="choice-btn"
-                  :class="{
-                    'selected': selectedChoice === idx,
-                    'correct': choiceSubmitted && choice.correct,
-                    'wrong': choiceSubmitted && selectedChoice === idx && !choice.correct
-                  }"
-                  @click="handleTutorialChoice(idx)"
-                  :disabled="choiceSubmitted"
+                  v-if="!choiceSubmitted"
+                  class="editor-btn submit-btn"
+                  @click="submitTutorialChoice"
+                  :disabled="selectedChoice === null"
                 >
-                  <code>{{ choice.label }}</code>
+                  SUBMIT
                 </button>
               </div>
-              <button
-                v-if="!choiceSubmitted"
-                class="editor-btn submit-btn"
-                @click="submitTutorialChoice"
-                :disabled="selectedChoice === null"
-              >
-                SUBMIT
-              </button>
             </div>
 
             <!-- Phase C: Review - 리뷰 카드 -->
@@ -892,7 +892,7 @@
           <div class="report-header">
             <div class="project-info">
               <span class="id-badge">CLEAR!</span>
-              <h2>{{ currentProgressiveMission?.project_title }}</h2>
+              <h2>{{ currentProgressiveMission?.stage_title }}</h2>
             </div>
             <div class="score-summary">
               <div class="score-item">
@@ -1073,301 +1073,6 @@
 
   </div>
 </template>
-
-<style scoped>
-/* 기존 스타일 유지 */
-
-/* 채팅 인터페이스 스타일 */
-.chat-interface {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background: rgba(10, 10, 26, 0.8);
-  border: 1px solid rgba(107, 92, 231, 0.3);
-  border-radius: 8px;
-  margin-top: 1rem;
-  overflow: hidden;
-  min-height: 300px;
-  max-height: 450px;
-}
-
-.chat-interface.mission-log-active {
-  border-color: var(--neon-magenta);
-  box-shadow: 0 0 15px rgba(240, 98, 146, 0.4), inset 0 0 10px rgba(240, 98, 146, 0.15);
-}
-
-.chat-header {
-  padding: 0.8rem;
-  background: rgba(107, 92, 231, 0.1);
-  border-bottom: 1px solid rgba(107, 92, 231, 0.2);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: bold;
-  color: var(--neon-cyan);
-}
-
-.chat-messages {
-  flex: 1;
-  padding: 1rem;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.chat-message {
-  display: flex;
-  gap: 0.5rem;
-  max-width: 90%;
-}
-
-.chat-message.system {
-  align-self: flex-start;
-}
-
-.chat-message.user {
-  align-self: flex-end;
-  flex-direction: row-reverse;
-}
-
-.message-avatar {
-  font-size: 1.2rem;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 50%;
-}
-
-.message-content {
-  padding: 0.8rem;
-  border-radius: 12px;
-  font-size: 0.9rem;
-  line-height: 1.4;
-  white-space: pre-wrap;
-}
-
-.chat-message.system .message-content {
-  background: rgba(79, 195, 247, 0.1);
-  border: 1px solid rgba(79, 195, 247, 0.25);
-  color: #e0f0ff;
-  border-top-left-radius: 2px;
-}
-
-.chat-message.user .message-content {
-  background: rgba(240, 98, 146, 0.1);
-  border: 1px solid rgba(240, 98, 146, 0.25);
-  color: #ffe0ff;
-  border-top-right-radius: 2px;
-}
-
-.chat-input-area {
-  padding: 1rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  display: flex;
-  gap: 0.5rem;
-  background: rgba(0, 0, 0, 0.3);
-}
-
-.chat-input-box {
-  flex: 1;
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
-  padding: 0.8rem;
-  color: white;
-  font-family: inherit;
-}
-
-.chat-input-box:focus {
-  outline: none;
-  border-color: var(--neon-cyan);
-  box-shadow: 0 0 10px rgba(79, 195, 247, 0.2);
-}
-
-.chat-input-box:disabled {
-  background: rgba(255, 255, 255, 0.05);
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-
-.chat-send-btn {
-  background: linear-gradient(135deg, #4fc3f7, #0088ff);
-  border: none;
-  color: black;
-  font-weight: bold;
-  padding: 0 1.2rem;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.chat-send-btn:hover:not(:disabled) {
-  filter: brightness(1.2);
-  transform: translateY(-1px);
-}
-
-.chat-send-btn:disabled {
-  background: #333;
-  color: #666;
-  cursor: not-allowed;
-}
-
-/* Scrollbar styling for chat */
-.chat-messages::-webkit-scrollbar {
-  width: 6px;
-}
-
-.chat-messages::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
-}
-
-.chat-messages::-webkit-scrollbar-thumb {
-  background: rgba(79, 195, 247, 0.2);
-  border-radius: 3px;
-}
-
-/* New Message Effects */
-.flash-bubble {
-  animation: bubbleFlash 1.5s ease-out infinite alternate;
-}
-
-@keyframes bubbleFlash {
-  0% { box-shadow: 0 0 5px var(--neon-cyan); border-color: var(--neon-cyan); }
-  100% { box-shadow: 0 0 15px var(--neon-cyan), 0 0 5px #fff; border-color: #fff; }
-}
-
-.chat-message.new-message {
-  animation: slideInMessage 0.3s ease-out, highlightMessage 1s ease-out;
-}
-
-@keyframes slideInMessage {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes highlightMessage {
-  0% { filter: brightness(1.5); }
-  100% { filter: brightness(1); }
-}
-
-/* 버그 수정 알림 팝업 스타일 */
-.alert-popup-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-  pointer-events: auto;
-  cursor: pointer;
-  background: rgba(0, 0, 0, 0.3);
-}
-
-.alert-popup-content {
-  background: linear-gradient(135deg, rgba(79, 195, 247, 0.15), rgba(240, 98, 146, 0.15));
-  border: 2px solid var(--neon-cyan);
-  border-radius: 16px;
-  padding: 30px 50px;
-  text-align: center;
-  box-shadow:
-    0 0 30px rgba(79, 195, 247, 0.5),
-    0 0 60px rgba(79, 195, 247, 0.3),
-    inset 0 0 30px rgba(79, 195, 247, 0.1);
-  backdrop-filter: blur(10px);
-  max-width: 500px;
-}
-
-.alert-popup-icon {
-  font-size: 3rem;
-  margin-bottom: 15px;
-  animation: iconPulse 0.5s ease-in-out infinite alternate;
-}
-
-@keyframes iconPulse {
-  from { transform: scale(1); filter: brightness(1); }
-  to { transform: scale(1.1); filter: brightness(1.3); }
-}
-
-.alert-popup-message {
-  font-size: 1.1rem;
-  color: #fff;
-  line-height: 1.8;
-  white-space: pre-wrap;
-  text-shadow: 0 0 10px rgba(79, 195, 247, 0.5);
-}
-
-.alert-popup-hint {
-  margin-top: 20px;
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.6);
-  animation: hintBlink 1.5s ease-in-out infinite;
-}
-
-@keyframes hintBlink {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
-}
-
-/* 흔들림 애니메이션 (shake) */
-.alert-popup-content.shake {
-  animation: popupShake 0.6s ease-out, popupAppear 0.3s ease-out;
-}
-
-@keyframes popupAppear {
-  0% {
-    opacity: 0;
-    transform: scale(0.5);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.1);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes popupShake {
-  0%, 100% { transform: translateX(0) rotate(0deg); }
-  10% { transform: translateX(-8px) rotate(-2deg); }
-  20% { transform: translateX(8px) rotate(2deg); }
-  30% { transform: translateX(-8px) rotate(-2deg); }
-  40% { transform: translateX(8px) rotate(2deg); }
-  50% { transform: translateX(-5px) rotate(-1deg); }
-  60% { transform: translateX(5px) rotate(1deg); }
-  70% { transform: translateX(-3px) rotate(0deg); }
-  80% { transform: translateX(3px) rotate(0deg); }
-  90% { transform: translateX(-1px) rotate(0deg); }
-}
-
-/* 대화창으로 날아가는 애니메이션 (fly) */
-.alert-popup-content.fly {
-  animation: flyToChat 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-@keyframes flyToChat {
-  0% {
-    opacity: 1;
-    transform: scale(1) translate(0, 0);
-  }
-  30% {
-    opacity: 1;
-    transform: scale(0.8) translate(0, -20px);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(0.3) translate(-60vw, 30vh);
-  }
-}
-</style>
 
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted, watch, shallowRef, nextTick } from 'vue';
@@ -1575,7 +1280,6 @@ const progressiveCompletedSteps = ref([]);
 const progressiveStepCodes = ref({ 1: '', 2: '', 3: '', 4: '', 5: '' });
 const progressiveHintUsed = ref({ 1: false, 2: false, 3: false, 4: false, 5: false });
 const showProgressiveHintPanel = ref(false);
-const justCompletedStep = ref(0);
 
 // ============================================
 // Stage Mode 시스템
@@ -1590,7 +1294,7 @@ const selectedBugLine = ref(null);
 const bugLineCorrect = ref(false);
 const selectedChoice = ref(null);
 const choiceSubmitted = ref(false);
-const showReviewCard = ref(false);
+const tutorialChoiceCorrect = ref(false);
 
 // Guided Mode refs
 const blankInputs = ref({});
@@ -1603,8 +1307,6 @@ const lineEditCorrect = ref(false);      // 정답 줄 찾았는지
 const lineEditInput = ref('');           // 수정 코드 입력값
 const lineEditSubmitted = ref(false);    // 제출 여부
 
-// 셔터 애니메이션 상태
-const showShutter = ref(false);
 
 // 로그창 주목 효과
 const showAttentionEffect = ref(false);
@@ -1620,7 +1322,6 @@ const codeSubmitFailCount = ref(0);
 const stepExplanations = reactive({ 1: '', 2: '', 3: '', 4: '', 5: '' });
 const clueMessages = ref([]); // 단서 메시지 (로그, 힌트 등)
 const clueContentRef = ref(null);
-const hasNewMessage = ref(false);
 
 const stepStartTime = ref(null);
 const totalDebugTime = ref(0);
@@ -1633,9 +1334,6 @@ const isEvaluatingAI = ref(false);
 const aiEvaluationResult = ref(null);
 
 // Progressive UI 이펙트
-const showFlyingSkull = ref(false);
-const flyingSkullPosition = reactive({ x: 50, y: 50 }); // 중앙에서 시작 (%)
-const showMissionComplete = ref(false);
 const progressiveMissionXP = ref(0);
 const progressiveMissionScore = ref(0);
 const showStepResultOverlay = ref(false);
@@ -1644,10 +1342,6 @@ const showStepResultOverlay = ref(false);
 const isShaking = ref(false);
 
 // 버그 수정 알림 팝업 (중앙에서 대화창으로 날아가는 효과)
-const showAlertPopup = ref(false);
-const alertPopupMessage = ref('');
-const alertPopupPhase = ref(''); // 'shake' | 'fly' | ''
-const chatInterfaceRef = ref(null);
 
 // 튜토리얼 상태
 const showTutorial = ref(false);
@@ -1829,7 +1523,15 @@ function startTutorial() {
 // 미션 해금 여부 (순차적)
 function isMissionUnlocked(index) {
   if (index === 0) return true;
-  return isMissionCompleted(progressiveProblems[index - 1].id);
+  const prevMission = progressiveProblems[index - 1];
+  if (!prevMission) return false;
+
+  // 미션 완료 플래그가 없더라도, 마지막 스텝을 완료한 기록이 있으면 해금 처리
+  // (스테이지 구조 변경/마이그레이션 상황에서 잠금이 영구화되는 문제 방지)
+  return (
+    isMissionCompleted(prevMission.id) ||
+    isStepCompleted(prevMission.id, prevMission.totalSteps || 3)
+  );
 }
 
 // 미션 완료 여부 확인
@@ -1876,17 +1578,6 @@ function getStepFeedback(stepNum) {
 // 현재 스텝 데이터 가져오기
 function getCurrentStepData() {
   return getStepData(currentProgressiveStep.value);
-}
-
-// 버그 타입별 이모지 (지렁이로 변경)
-function getBugEmoji(bugType) {
-  const emojis = { 'A': '🪱', 'B': '🪱', 'C': '🪱' };
-  return emojis[bugType] || '🪱';
-}
-
-// 라인 수 계산
-function getLineCount(code) {
-  return (code || '').split('\n').length;
 }
 
 // Progressive Mission 시작
@@ -1940,7 +1631,7 @@ function startProgressiveMission(mission, index, startAtStep = 1) {
     bugLineCorrect.value = false;
     selectedChoice.value = null;
     choiceSubmitted.value = false;
-    showReviewCard.value = false;
+    tutorialChoiceCorrect.value = false;
     // tutorial은 startDebugPhase 호출 안 함
   } else if (currentStageMode.value === 'guided') {
     blankInputs.value = {};
@@ -1976,13 +1667,6 @@ function startProgressiveMission(mission, index, startAtStep = 1) {
     startBugAnimations();
   }, 500);
 
-  // 터미널 초기화 - 동적 totalSteps
-  terminalOutput.value = [
-    { prompt: '>', text: `Project: ${mission.project_title} Initialized.`, type: 'info' },
-    { prompt: '>', text: `Total Errors: ${totalSteps} | Current: Step ${startAtStep}`, type: 'warning' }
-  ];
-  terminalStatus.value = 'ready';
-
   if (['S1', 'S2', 'S3', 'S4'].includes(mission.id) && !stageTutorialDone.value[mission.id]) {
     scheduleTimeout(() => {
       showTutorial.value = true;
@@ -1994,11 +1678,6 @@ function startProgressiveMission(mission, index, startAtStep = 1) {
 function startDebugPhase() {
   currentProgressivePhase.value = 'debug';
   stepStartTime.value = Date.now();
-  terminalOutput.value.push({
-    prompt: '>',
-    text: `Step ${currentProgressiveStep.value} debugging started.`,
-    type: 'info'
-  });
 }
 
 // 단서 메시지 추가 헬퍼
@@ -2127,7 +1806,6 @@ function handleStrategySubmit() {
 
 // 평가 화면 보기
 async function showEvaluation() {
-  showMissionComplete.value = false;
   currentView.value = 'evaluation';
 
   // tutorial/guided/line_edit 모드에서는 AI 평가 skip
@@ -2142,7 +1820,7 @@ async function showEvaluation() {
     isEvaluatingAI.value = true;
     try {
       aiEvaluationResult.value = await evaluateBugHunt(
-        currentProgressiveMission.value.project_title,
+        currentProgressiveMission.value.stage_title,
         currentProgressiveMission.value.steps,
         stepExplanations,
         progressiveStepCodes.value,
@@ -2236,6 +1914,7 @@ function submitTutorialChoice() {
   const chosen = choices[selectedChoice.value];
 
   choiceSubmitted.value = true;
+  tutorialChoiceCorrect.value = !!chosen?.correct;
 
   if (chosen?.correct) {
     // 정답: 오리가 벌레 잡는 애니메이션
@@ -2251,7 +1930,6 @@ function submitTutorialChoice() {
 
       // 리뷰 페이즈로 이동
       tutorialPhase.value = 'review';
-      showReviewCard.value = true;
     }, 2000);
   } else {
     // 오답: 오리가 빗나가는 애니메이션
@@ -2262,14 +1940,13 @@ function submitTutorialChoice() {
     scheduleTimeout(() => {
       choiceSubmitted.value = false;
       selectedChoice.value = null;
+      tutorialChoiceCorrect.value = false;
     }, 2000);
   }
 }
 
 // Tutorial Phase C - 리뷰 + 스테이지 클리어
 function completeTutorialStage() {
-  showReviewCard.value = false;
-
   const totalSteps = currentProgressiveMission.value.totalSteps || 1;
 
   if (currentProgressiveStep.value < totalSteps) {
@@ -2282,6 +1959,7 @@ function completeTutorialStage() {
     bugLineCorrect.value = false;
     selectedChoice.value = null;
     choiceSubmitted.value = false;
+    tutorialChoiceCorrect.value = false;
     hoveredLine.value = null;
 
     // 다음 step의 error_log 로드
@@ -2544,48 +2222,6 @@ async function checkProgressiveSolution() {
   return { passed, result: null };
 }
 
-// 해골이 bugs-status로 날아가는 애니메이션
-function animateSkullToBug(targetStep) {
-  const bugStatusEl = bugStatusRefs[targetStep];
-  if (!bugStatusEl) {
-    console.warn('Bug status element not found');
-    return;
-  }
-
-  // bugs-status 요소의 화면상 위치 계산
-  const rect = bugStatusEl.getBoundingClientRect();
-  const centerX = rect.left + rect.width / 2;
-  const centerY = rect.top + rect.height / 2;
-
-  // 화면 크기 대비 %로 변환
-  const targetX = (centerX / window.innerWidth) * 100;
-  const targetY = (centerY / window.innerHeight) * 100;
-
-  // 해골 표시 (잡은 버그 위치에서 시작)
-  const bugEl = bugRefs[targetStep];
-  if (bugEl) {
-    const bugRect = bugEl.getBoundingClientRect();
-    flyingSkullPosition.x = (bugRect.left + bugRect.width / 2) / window.innerWidth * 100;
-    flyingSkullPosition.y = (bugRect.top + bugRect.height / 2) / window.innerHeight * 100;
-  } else {
-    const { left: bugLeft, top: bugTop } = getBugPositionPercent(targetStep);
-    flyingSkullPosition.x = bugLeft;
-    flyingSkullPosition.y = bugTop;
-  }
-  showFlyingSkull.value = true;
-
-  // 애니메이션 (CSS transition 사용)
-  scheduleTimeout(() => {
-    flyingSkullPosition.x = targetX;
-    flyingSkullPosition.y = targetY;
-  }, 50);
-
-  // 애니메이션 완료 후 숨기기
-  scheduleTimeout(() => {
-    showFlyingSkull.value = false;
-  }, 1000);
-}
-
 // Progressive 스텝 제출
 async function submitProgressiveStep() {
   if (currentProgressiveStep.value > totalStepsComputed.value) return;
@@ -2645,7 +2281,6 @@ async function submitProgressiveStep() {
         const duration = Math.floor((endTime - stepStartTime.value) / 1000);
         totalDebugTime.value += duration;
 
-        justCompletedStep.value = currentProgressiveStep.value;
         progressiveCompletedSteps.value.push(currentProgressiveStep.value);
 
         const stepId = `progressive_${currentProgressiveMission.value.id}_step${currentProgressiveStep.value}`;
@@ -2716,7 +2351,6 @@ function completeMission() {
 
 // Progressive 미션 종료
 function finishProgressiveMission() {
-  showMissionComplete.value = false;
   stopBugAnimations();
   router.push('/'); // 메인 페이지로 복귀
 }
@@ -2724,8 +2358,8 @@ function finishProgressiveMission() {
 // 에디터 프레임 참조
 const editorFrameRef = ref(null);
 const editorBodyRef = ref(null);
+const tutorialFixRef = ref(null);
 const sectionRefs = ref([]);
-const bugStatusRefs = reactive({}); // 상단 bugs-status 아이템 참조
 const bugRefs = reactive({}); // 버그 요소 참조
 
 // 스텝 변경 시 자동 스크롤
@@ -2736,6 +2370,17 @@ watch(currentProgressiveStep, (newStep) => {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }, 100);
+});
+
+watch(tutorialPhase, (newPhase, oldPhase) => {
+  if (currentStageMode.value !== 'tutorial') return;
+  if (oldPhase === 'explore' && newPhase === 'fix') {
+    nextTick(() => {
+      scheduleTimeout(() => {
+        tutorialFixRef.value?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 80);
+    });
+  }
 });
 
 // 버그 위치 상태
@@ -2786,16 +2431,6 @@ const hitEffectStyle = computed(() => ({
 const missEffectStyle = computed(() => ({
   left: `${missEffectPosition.value.x}px`,
   top: `${missEffectPosition.value.y}px`
-}));
-
-const flyingSkullStyle = computed(() => ({
-  left: `${flyingSkullPosition.x}%`,
-  top: `${flyingSkullPosition.y}%`
-}));
-
-const flyingNotificationStyle = computed(() => ({
-  left: `${flyingNotificationPosition.x}%`,
-  top: `${flyingNotificationPosition.y}%`
 }));
 
 // 지렁이 움직임 애니메이션 (땅 영역 30%에서만 움직이도록 수정)
@@ -3004,10 +2639,6 @@ function shootBug(targetStep, isHit) {
 const currentView = ref('menu');
 const showExitConfirm = ref(false);
 let pendingStepContinue = null;
-
-// 터미널 상태
-const terminalOutput = ref([]);
-const terminalStatus = ref('ready');
 
 function confirmExit() {
   showExitConfirm.value = true;

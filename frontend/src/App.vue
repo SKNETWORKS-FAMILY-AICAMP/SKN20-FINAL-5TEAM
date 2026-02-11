@@ -245,6 +245,10 @@ watch(() => route.name, (newNav, oldNav) => {
   // 연습 페이지에서 홈('/')으로 돌아오는 경우
   if (newNav === 'Home' && practiceRoutes.includes(oldNav)) {
     if (game.activeUnit) {
+      // BugHunt 클리어 직후 돌아왔을 때 잠금 상태가 즉시 반영되도록 진행도 동기화
+      if (game.activeUnit?.name === 'Debug Practice') {
+        syncDebugProgress();
+      }
       ui.isUnitModalOpen = true;
       nextTick(() => { if (window.lucide) window.lucide.createIcons(); });
     }

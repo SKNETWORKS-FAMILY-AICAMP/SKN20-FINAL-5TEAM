@@ -217,7 +217,7 @@ export const useGameStore = defineStore('game', {
                 return progressiveData.progressiveProblems.map((m, idx) => ({
                     id: m.id,
                     missionId: m.id,
-                    title: m.project_title,
+                    title: m.stage_title || m.project_title,
                     displayNum: `Stage ${idx + 1}`,
                     questIndex: idx,
                     mode: m.mode
