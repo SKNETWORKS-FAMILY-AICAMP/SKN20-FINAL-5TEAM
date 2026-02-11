@@ -64,255 +64,243 @@
       </div>
 
 
-      <!-- PHASE: DIAGNOSTIC 1 & 2 (Shared Layout) -->
-      <section v-if="gameState.phase.startsWith('DIAGNOSTIC')" class="combat-grid">
-         <!-- LEFT: Entity Card -->
-        <div class="panel entity-card">
-           <div class="entity-header">
-              <span class="entity-label">개체명: 코덕</span>
-              <span class="entity-status">⚠ 불안정</span>
-           </div>
-           <div class="visual-frame">
-              <img src="/assets/characters/coduck_sad.png" class="coduck-portrait" />
-              <div class="scan-overlay"></div>
-              <div class="disconnect-tag">! 연결 끊김 !</div>
-           </div>
-           <div class="dialogue-box">
-              <span class="speaker">Coduck</span>
-              <p class="dialogue-text">"{{ gameState.coduckMessage }}"</p>
-           </div>
-        </div>
-
-        <!-- RIGHT: Decision Engine -->
-        <div class="panel decision-panel">
-          <!-- Background Decor -->
-          <div class="grid-overlay"></div>
-          
-          <div class="panel-top-bar">
-             <div class="system-status-text">_ 진단 프로토콜 활성화</div>
-          </div>
-          
-          <div class="question-zone">
-             <div class="decorative-corner top-left"></div>
-             <div class="decorative-corner bottom-right"></div>
-             <h1 class="big-question">
-                {{ currentDiagnosticQuestion.question }}
-             </h1>
-          </div>
-
-          <div class="options-list">
-             <button 
-               v-for="(opt, idx) in currentDiagnosticQuestion.options" 
-               :key="idx"
-               class="option-card"
-               @click="handleDiagnosticSubmit(idx)"
-             >
-                <div class="opt-index">0{{ idx + 1 }}</div>
-                <div class="opt-content">
-                    <div class="opt-main">{{ opt.text }}</div>
-                    <div class="opt-desc" v-if="opt.bullets && opt.bullets.length > 0">
-                        {{ opt.bullets[0] }}
+      <!-- PHASE: STEP 0 (INTRO) -->
+      <section v-if="gameState.phase === 'INTRO' || gameState.phase === 'DIAGNOSTIC_1' && gameState.step === 0" class="w-full h-full overflow-y-auto p-12">
+          <div class="max-w-3xl mx-auto space-y-8">
+                <div class="bg-slate-900/50 p-10 rounded-[2.5rem] border border-slate-800 shadow-2xl">
+                    <div class="w-16 h-16 text-red-500 mb-8"><AlertOctagon class="w-full h-full" /></div>
+                    <h2 class="text-3xl font-black mb-6 leading-tight">
+                        Quest 01:<br/>
+                        전처리 데이터 누수 방어 시스템 설계
+                    </h2>
+                    
+                    <!-- 사고 보고서 -->
+                    <div class="bg-red-500/5 border border-red-500/20 p-6 rounded-2xl mb-6">
+                        <p class="text-sm text-red-400 font-bold mb-2">🚨 긴급 사고 보고</p>
+                        <p class="text-slate-300 text-base leading-relaxed mb-3">
+                            주니어 개발자가 작성한 전처리 코드가 Production에 배포되었습니다.
+                        </p>
+                        <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800 mb-3">
+                            <pre class="text-emerald-400 text-xs code-line">scaler = StandardScaler()
+scaler.fit(df)  # 전체 데이터로 학습
+X_train = scaler.transform(df[:800])
+X_test = scaler.transform(df[800:])</pre>
+                        </div>
+                        <p class="text-slate-400 text-sm">
+                            <strong class="text-red-400">결과:</strong> 
+                            Train 정확도 95% → Test 정확도 68% <span class="text-red-400 font-bold">(27%p 폭락)</span>
+                        </p>
                     </div>
-                </div>
-                <div class="opt-arrow">→</div>
-             </button>
-          </div>
 
-           <!-- Expanded Footer: System Log -->
-          <div class="tactical-console">
-             <div class="console-header">/// 시스템 이벤트 로그 ///</div>
-             <div class="console-body">
-                <transition-group name="log-fade">
-                   <div 
-                       v-for="(log, idx) in gameState.systemLogs" 
-                       :key="idx" 
-                       class="log-line"
-                       :class="{ 'active-line': idx === gameState.systemLogs.length - 1 }"
-                   >
-                       <span class="t-time">{{ log.time }}</span> 
-                       <span :class="getLogTypeClass(log.type)">[{{ getLogLabel(log.type) }}]</span> 
-                       {{ log.message }}
-                       <span v-if="idx === gameState.systemLogs.length - 1" class="cursor-blink">_</span>
-                   </div>
-                </transition-group>
-             </div>
+                    <p class="text-slate-400 text-lg leading-relaxed mb-6">
+                        당신은 <strong class="text-blue-400">AI 코드 리뷰어 시스템 설계자</strong>입니다.<br/>
+                        이런 전처리 누수 코드가 다시 작성되지 않도록 <strong>자동 검증 규칙</strong>을 만드세요.
+                    </p>
+
+                    <div class="flex items-start gap-4 p-5 bg-blue-500/10 rounded-2xl border border-blue-500/20 mb-8">
+                        <Info class="text-blue-400 mt-1 shrink-0 w-5 h-5" />
+                        <div class="text-sm text-blue-100">
+                            <p class="font-bold mb-2">학습 목표</p>
+                            <p class="text-blue-200 leading-relaxed">
+                                코드를 직접 고치는 것이 아닌, <strong>AI가 자동으로 문제를 찾게 만드는 프롬프트</strong>를 개발합니다.
+                            </p>
+                        </div>
+                    </div>
+
+                    <button @click="submitDiagnostic1(0)" 
+                            class="w-full md:w-auto px-10 py-5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-3 shadow-xl active:scale-95">
+                        개념 학습 시작하기 <ArrowRight class="w-5 h-5" />
+                    </button>
+                </div>
           </div>
-        </div>
       </section>
 
-      <!-- PHASE: LOGIC DESIGN (Phase 3) - REFINED LAYOUT -->
-      <section v-if="gameState.phase === 'PSEUDO_WRITE'" class="combat-grid">
-          <!-- LEFT: Standard Entity Card (Reusing Phase 1/2 Size) -->
-          <div class="panel entity-card">
-             <div class="entity-header">
-                <span class="entity-label">목표: 정밀 아키텍처 설계</span>
-                <span class="entity-status">자연어 분석 중</span>
-             </div>
-             
-             <!-- 1. Visual Frame -->
-             <div class="visual-frame">
-                <img src="/assets/characters/coduck_sad.png" class="coduck-portrait" />
-                <div class="scan-overlay"></div>
-                <div class="disconnect-tag">! 분석 대기 !</div>
-             </div>
-
-             <!-- ADDED: Dialogue Box for Real-time Feedback -->
-             <div class="dialogue-box">
-                <span class="speaker">Coduck</span>
-                <p class="dialogue-text">"{{ gameState.coduckMessage }}"</p>
-             </div>
-
-             <!-- 3. Mission Box -->
-             <div class="mission-problem-box">
-                <h3 class="mp-title">미션 목표: 사고 과정 상세 분석</h3>
-                <div class="mp-content">
-                    <p class="mp-desc">
-                        제기된 [제약 사건]을 해결하기 위한 공학적 의사결정을 오른쪽 에디터에 상세히 서술하십시오.
+      <!-- PHASE: STEP 1 (CONCEPTS) -->
+      <section v-if="gameState.phase.startsWith('DIAGNOSTIC') && gameState.step !== 0" class="w-full h-full overflow-y-auto p-12">
+            <div class="max-w-3xl mx-auto space-y-8">
+                <div class="text-center space-y-4 mb-10">
+                    <span class="text-xs font-bold text-blue-500 uppercase tracking-[0.2em]">
+                        Step 01: Concept Foundation
+                    </span>
+                    <h3 class="text-3xl font-black">전처리 누수 개념 이해</h3>
+                    <p class="text-slate-400">
+                        규칙을 설계하기 전, 먼저 <strong>왜 문제인지</strong> 명확히 이해해야 합니다.
                     </p>
                 </div>
-             </div>
-          </div>
-          
-          <!-- RIGHT: Decision Panel + Logic Briefing -->
-          <div class="panel decision-panel full-width-panel">
-             <div class="panel-header-row">
-                 <span class="p-title-small">아키텍처 설계 (자연어 서술 모드)</span>
-                 <div class="header-controls">
-                     <span class="p-sub-small badge-natural">Python 코드 금지</span>
-                     <button class="btn-writing-guide" @click="toggleWritingGuide">
-                        <span class="wg-icon">📝</span> GUIDE
-                     </button>
-                 </div>
-             </div>
 
-             <!-- WRITING GUIDE OVERLAY -->
-             <div class="writing-guide-overlay" v-if="isWritingGuideOpen">
-                <div class="wg-header">
-                    <span class="wg-title">✍️ 서술 가이드라인</span>
-                    <button class="wg-close" @click="toggleWritingGuide">×</button>
-                </div>
-                <div class="wg-content">
-                    <div class="wg-section">
-                        <div class="wg-label">💡 작성 팁</div>
-                        <ul class="wg-list">
-                            <li>코드가 아닌 <strong>'사람의 언어'</strong>로 작성하세요.</li>
-                            <li><strong>"무엇을", "왜", "어떻게"</strong> 할 것인지 명확히 밝히세요.</li>
-                            <li>단계별로 번호를 매기면 더 좋습니다. (1., 2. ...)</li>
-                        </ul>
+                <!-- 진행 상태 -->
+                <div class="flex justify-center gap-3 mb-8">
+                    <div v-for="s in 2" :key="s"
+                         :class="['w-3 h-3 rounded-full transition-all',
+                                  (gameState.phase === 'DIAGNOSTIC_2' && s===1) || gameState.phase === 'DIAGNOSTIC_2' ? 'bg-blue-500 scale-110' : 'bg-slate-700']">
                     </div>
-                    <div class="wg-section">
-                        <div class="wg-label">🔍 예시 (Example)</div>
-                        <div class="wg-example">
-                            "1. 먼저 결측치를 확인한다.<br>
-                            2. 평균값으로 대체할지 삭제할지 결정한다.<br>
-                            3. 최종적으로 데이터를 정규화한다."
+                </div>
+
+                <!-- 현재 문제 -->
+                <div class="bg-slate-900/50 p-10 rounded-[2.5rem] border border-slate-800 space-y-8">
+                    <!-- 카테고리 -->
+                    <div class="inline-block px-3 py-1 bg-indigo-500/20 text-indigo-400 rounded-lg text-xs font-bold uppercase">
+                        {{ gameState.phase === 'DIAGNOSTIC_1' ? "데이터 누수 정의" : "올바른 해결 방법" }}
+                    </div>
+
+                    <!-- 질문 -->
+                    <div class="space-y-4">
+                        <h4 class="text-2xl font-bold leading-snug">
+                            {{ gameState.phase === 'DIAGNOSTIC_1' ? diagnosticQuestion1.question : diagnosticQuestion2.question }}
+                        </h4>
+                    </div>
+
+                    <!-- 선택지 -->
+                    <div class="space-y-4">
+                        <button
+                            v-for="(opt, idx) in (gameState.phase === 'DIAGNOSTIC_1' ? diagnosticQuestion1.options : diagnosticQuestion2.options)"
+                            :key="idx"
+                            @click="gameState.phase === 'DIAGNOSTIC_1' ? submitDiagnostic1(idx) : submitDiagnostic2(idx)"
+                            class="w-full text-left p-6 rounded-2xl border-2 border-slate-800 bg-slate-900/50 hover:border-slate-700 transition-all group"
+                        >
+                            <div class="flex items-start gap-4">
+                                <span class="w-10 h-10 rounded-xl bg-slate-800 text-slate-500 group-hover:bg-slate-700 flex items-center justify-center text-sm font-black shrink-0">
+                                    {{ String.fromCharCode(65 + idx) }}
+                                </span>
+                                <div class="flex-1">
+                                    <p class="text-base leading-relaxed text-slate-400 group-hover:text-slate-200">
+                                        {{ opt.text }}
+                                    </p>
+                                </div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+      </section>
+
+      <!-- PHASE: STEP 2 (RULE DESIGN) -->
+      <section v-if="gameState.phase === 'PSEUDO_WRITE'" class="w-full h-full overflow-y-auto p-12">
+        <div class="max-w-6xl mx-auto space-y-8">
+            <div class="text-center space-y-4 mb-10">
+                <span class="text-xs font-bold text-blue-500 uppercase tracking-[0.2em]">
+                    Step 02: Rule Design
+                </span>
+                <h3 class="text-3xl font-black">AI 리뷰어 검증 규칙 설계</h3>
+                <p class="text-slate-400 max-w-2xl mx-auto leading-relaxed">
+                    이제 개념을 이해했으니, <strong class="text-blue-400">AI가 자동으로 전처리 누수를 찾게 만드는 규칙</strong>을 의사코드로 작성하세요.
+                </p>
+            </div>
+
+            <!-- 사고 코드 복습 -->
+            <div class="bg-red-500/5 border border-red-500/20 rounded-2xl overflow-hidden mb-8">
+                <div class="bg-red-500/10 px-6 py-4 border-b border-red-500/20">
+                    <p class="text-xs font-bold text-red-400 uppercase">막아야 할 패턴</p>
+                </div>
+                <div class="p-6">
+                    <pre class="text-emerald-400 text-sm code-line mb-4">scaler = StandardScaler()
+scaler.fit(df)  # ⚠️ 전체 데이터로 fit
+X_train = scaler.transform(df[:800])
+X_test = scaler.transform(df[800:])</pre>
+                    <p class="text-xs text-slate-500">
+                        <strong class="text-red-400">문제:</strong> fit() 실행 시점에 Train/Test 분할이 되지 않아 Test 통계량이 Train에 영향
+                    </p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+                <!-- 왼쪽: 가이드 -->
+                <div class="lg:col-span-4 space-y-6">
+                    <div class="p-6 bg-slate-900/80 rounded-[2rem] border border-slate-800 sticky top-28">
+                        <h4 class="text-xs font-bold uppercase tracking-widest mb-6 text-blue-500 flex items-center gap-2">
+                            <Lightbulb class="w-4 h-4" /> 작성 가이드
+                        </h4>
+                        
+                        <div class="space-y-4 mb-6">
+                            <div class="p-4 bg-blue-500/5 rounded-xl border border-blue-500/10">
+                                <p class="text-xs text-blue-300 font-bold mb-2">의사코드 형식</p>
+                                <p class="text-xs text-slate-400 leading-relaxed">
+                                    IF (조건) THEN 경고 형태로 작성하세요
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- 체크리스트 -->
+                        <div class="space-y-4">
+                            <h5 class="text-[10px] font-black text-slate-500 uppercase tracking-widest">검증 항목</h5>
+                            <div v-for="check in ruleChecklist" :key="check.id" class="space-y-2">
+                                <div class="flex items-start gap-3">
+                                    <div :class="['w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5',
+                                                    check.completed ? 'bg-emerald-500' : 'bg-slate-700']">
+                                        <Check class="w-3 h-3 text-white" />
+                                    </div>
+                                    <span :class="['text-xs font-bold',
+                                                    check.completed ? 'text-emerald-400' : 'text-slate-500']">
+                                        {{ check.label }}
+                                    </span>
+                                </div>
+                                <div v-if="!check.completed" class="ml-8 text-[10px] text-slate-600 italic">
+                                    {{ check.hint }}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-             </div>
 
-             <div class="top-briefing-zone">
-                <div class="briefing-section">
-                    <div class="briefing-label"><span class="b-icon">🚨</span> 제약 사건 (Current Incident)</div>
-                    <p class="incident-text">{{ missionContext }}</p>
+                <!-- 오른쪽: 입력창 -->
+                <div class="lg:col-span-8 space-y-6">
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                            <Code2 class="w-4 h-4" /> 검증 규칙 (의사코드)
+                        </label>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            AI가 코드를 스캔할 때 사용할 규칙을 작성하세요. 
+                            <strong>어떤 패턴을 찾고, 어떤 경고를 낼지</strong> 명시하세요.
+                        </p>
+                    </div>
+                    
+                    <textarea 
+                        v-model="gameState.phase3Reasoning"
+                        @input="handlePseudoInput"
+                        placeholder="예시:
+
+IF 코드에 'scaler.fit(' 또는 'encoder.fit(' 패턴이 있음
+AND 그 이전 줄에 'train_test_split' 또는 '[: 슬라이싱]'이 없음
+THEN 
+    경고: '분할 전 통계량 산출 감지'
+    설명: 'Test 데이터 통계량이 Train 학습에 영향을 줍니다'
+    해결책: 'Train/Test 분할 후 scaler.fit(X_train)으로 변경하세요'"
+                        class="w-full h-[500px] bg-slate-900 border-2 border-slate-800 rounded-[2.5rem] 
+                                p-10 text-slate-200 focus:border-blue-600 outline-none transition-all 
+                                resize-none leading-relaxed shadow-2xl text-sm font-mono"
+                    ></textarea>
+                    
+                    <div class="flex items-center justify-between text-xs text-slate-600">
+                        <span>{{ gameState.phase3Reasoning.length }} characters</span>
+                        <span :class="allChecksPassed ? 'text-emerald-400 font-bold' : 'text-slate-500'">
+                            {{ completedChecksCount }}/{{ ruleChecklist.length }} 검증 항목 완료
+                        </span>
+                    </div>
+
+                    <button 
+                        :disabled="!allChecksPassed"
+                        @click="submitPseudo"
+                        :class="['w-full py-6 rounded-3xl font-black flex justify-center items-center gap-3 text-lg transition-all',
+                                    allChecksPassed
+                                    ? 'bg-blue-600 text-white hover:bg-blue-500 shadow-xl active:scale-95' 
+                                    : 'bg-slate-800 text-slate-600 cursor-not-allowed']"
+                    >
+                        <span v-if="!allChecksPassed">
+                            모든 검증 항목 완료 필요 ({{ completedChecksCount }}/{{ ruleChecklist.length }})
+                        </span>
+                        <span v-else>
+                            파이썬 코드 생성 <Play class="w-5 h-5" />
+                        </span>
+                    </button>
+                    <!-- Progress / Feedback Message -->
+                    <div v-if="gameState.feedbackMessage" class="text-center text-sm font-bold text-blue-400 mt-2">
+                        {{ gameState.feedbackMessage }}
+                    </div>
                 </div>
-                
-                <div class="briefing-divider"></div>
-
-                <div class="briefing-section">
-                    <div class="briefing-label"><span class="b-icon">⚙️</span> 핵심 설계 원칙 (Engineering Rules)</div>
-                    <p class="briefing-sub">아래 원칙을 반드시 준수하여 설계 리포트를 작성하십시오.</p>
-                    <ul class="briefing-list">
-                        <li v-for="(cons, i) in constraints" :key="i">{{ cons }}</li>
-                    </ul>
-                </div>
-             </div>
-
-             <div class="monaco-wrapper">
-                <div class="line-numbers">
-                    <span v-for="n in 15" :key="n">{{ n }}</span>
-                </div>
-                <textarea 
-                    :value="gameState.phase3Reasoning"
-                    @input="handlePseudoInput"
-                    class="monaco-textarea"
-                    placeholder="여기에 한글이나 영어로 본인의 사고 과정을 서술하세요.&#10;(예: 1. 먼저 스케일러를 생성한다&#10;     2. 학습 데이터로만 fit을 수행한다&#10;     3. 테스트 데이터는 transform만 한다)"
-                    spellcheck="false"
-                ></textarea>
-             </div>
-
-             <div class="editor-action-bar">
-                <div class="writing-notice">※ 코드가 아닌 '말(설명)'로 적어주세요. 다음 단계에서 Python 코드로 작성합니다.</div>
-                <button class="btn-execute-large" @click="submitPseudo">
-                    <span class="btn-text">다음 (Python 작성)</span>
-                    <span class="btn-icon">→</span>
-                </button>
-             </div>
-          </div>
+            </div>
+        </div>
       </section>
 
-      <!-- PHASE: IMPLEMENTATION BLUEPRINT (Phase 4) -->
-      <section v-if="gameState.phase === 'PYTHON_FILL'" class="combat-grid">
-         <!-- LEFT: Entity Card -->
-         <div class="panel entity-card">
-              <div class="entity-header">
-                  <span class="entity-label">개체명: 코덕</span>
-                  <span class="entity-status">모니터링 중</span>
-              </div>
-              <div class="visual-frame">
-                  <img src="/assets/characters/coduck_sad.png" class="coduck-portrait" />
-                  <div class="scan-overlay"></div>
-                  <div class="disconnect-tag">! 동기화됨 !</div>
-              </div>
-              <div class="dialogue-box">
-                  <span class="speaker">Coduck</span>
-                  <p class="dialogue-text">"{{ gameState.coduckMessage }}"</p>
-              </div>
-         </div>
-
-         <!-- RIGHT: Implementation Panel -->
-         <div class="panel implementation-panel">
-            <div class="panel-header-row">
-                <span class="p-title">구현 (IMPLEMENTATION)</span>
-                <span class="p-sub">참조: 3단계 로직</span>
-            </div>
-            
-            <!-- 3열 레이아웃: 자연어(25%) + 에디터(60%) + 모듈(15%) -->
-            <div class="phase4-tri-panel">
-                <!-- 1. 자연어 참조 -->
-                <div class="natural-lang-col">
-                    <div class="panel-subheader">
-                        <span class="sub-icon">📋</span>
-                        <span class="sub-title">설계 참조</span>
-                    </div>
-                    <div class="commented-content-scroll">
-                        <div v-for="(line, i) in commentedLogicLines" :key="i" class="code-line comment-style">{{ line }}</div>
-                    </div>
-                </div>
-
-                <!-- 2. Python Monaco Editor -->
-                <div 
-                    class="python-editor-col"
-                    @dragover.prevent
-                    @drop.prevent="handleEditorDrop"
-                >
-                    <div class="panel-subheader">
-                        <span class="sub-icon">🐍</span>
-                        <span class="sub-title">Python 구현</span>
-                        <span class="lang-badge">Python</span>
-                    </div>
-                    <vue-monaco-editor
-                        v-model:value="runnerState.userCode"
-                        language="python"
-                        theme="vs-dark"
-                        :options="monacoOptions"
-                        @mount="handleMonacoMount"
-                        class="monaco-editor-main"
-                    />
-                    <div class="editor-bottom-hint">
-                        💡 오른쪽 모듈을 에디터로 드래그하거나 직접 코드를 작성하세요!
-                    </div>
-                </div>
 
                 <!-- 3. 모듈 (드래그 가능) -->
                 <div class="modules-col">
@@ -355,204 +343,149 @@
          </div>
       </section>
 
-      <!-- PHASE: DEEP DIVE (Phase 5) -->
-      <section v-if="gameState.phase === 'DEEP_QUIZ'" class="combat-grid centered-layout">
-         <div class="panel center-panel">
-           <div class="phase-header-gold">최종 검증</div>
-           <div class="panel-content centered-content">
-             <h1 class="big-question-center">
-                {{ deepQuizQuestion.question }}
-             </h1>
-             
-             <div class="options-list options-wide">
-                <button 
-                  v-for="(opt, idx) in deepQuizQuestion.options" 
-                  :key="idx"
-                  class="option-card gold-hover"
-                  @click="submitDeepQuiz(idx)"
-                >
-                   <div class="opt-index gold-idx">0{{ idx + 1 }}</div>
-                   <div class="opt-content">
-                        <div class="opt-main">{{ opt.text }}</div>
-                   </div>
-                </button>
-             </div>
-           </div>
-         </div>
-      </section>
-      
-       <!-- PHASE: EVALUATION (Refined AI Report System) -->
-       <section v-if="gameState.phase === 'EVALUATION'" class="panel evaluation-view">
-          <div class="report-card">
-             <!-- Top Philosophy Banner -->
-             <div class="philosophy-banner">
-                <span class="p-badge">평가 철학</span>
-                <span class="p-text">정답 채점 ❌ → AI 기반 사고력(Metrics) 평가 ✅</span>
-             </div>
+      <!-- PHASE: STEP 4 (DEEP DIVE / TAIL QUESTION) -->
+      <section v-if="gameState.phase === 'DEEP_QUIZ' || gameState.phase === 'TAIL_QUESTION'" class="w-full h-full overflow-y-auto p-12">
+        <div class="max-w-3xl mx-auto space-y-8">
+            <div class="text-center space-y-4 mb-10">
+                <span class="text-xs font-bold text-blue-500 uppercase tracking-[0.2em]">
+                    Step 04: {{ gameState.phase === 'DEEP_QUIZ' ? 'Deep Dive' : 'Analysis' }}
+                </span>
+                <h3 class="text-3xl font-black">
+                    {{ gameState.phase === 'DEEP_QUIZ' ? '심화 시나리오 검증' : '누락된 로직 진단' }}
+                </h3>
+                <p class="text-slate-400">
+                    {{ gameState.phase === 'DEEP_QUIZ' ? 'AI가 생성한 엣지 케이스 시나리오에 대응해보세요.' : '작성한 코드에서 놓친 부분을 점검합니다.' }}
+                </p>
+            </div>
 
-             <!-- Header Stamp -->
-             <div class="report-header">
-                 <span class="report-title">아키텍처 인텔리전스 리포트</span>
-                 <div class="stamp-box" :class="{ 'stamp-success': evaluationResult.finalScore >= 50, 'stamp-fail': evaluationResult.finalScore < 50 }">
-                     {{ evaluationResult.verdict }}
-                 </div>
-             </div>
-
-             <div class="report-meta">
-                 <span>DATE: 2026.02.09</span>
-                 <span>INSPECTED_BY: CODUCK_ARCHITECT</span>
-                 <span>MISSION: {{ currentMission?.title || 'System Recovery' }}</span>
-             </div>
-
-              <!-- 5D Radar Chart (Pentagon Visualization) -->
-              <div class="radar-chart-section">
-                <div class="chart-container">
-                    <svg viewBox="0 0 200 200" class="radar-svg">
-                        <!-- Background Pentagons (Grid) -->
-                        <polygon v-for="level in 5" :key="level"
-                                 :points="calculatePentagonPoints(level * 20)"
-                                 class="radar-grid" />
-                        
-                        <!-- Axis Lines -->
-                        <line v-for="i in 5" :key="'line-'+i"
-                              x1="100" y1="100"
-                              :x2="calculatePoint(i-1, 80).x"
-                              :y2="calculatePoint(i-1, 80).y"
-                              class="radar-axis" />
-
-                        <!-- Labels -->
-                        <text v-for="(metric, i) in evaluationResult.details" :key="'label-'+i"
-                              :x="calculatePoint(i, 95).x"
-                              :y="calculatePoint(i, 95).y"
-                              class="radar-label-text">
-                            {{ metric.category }}
-                        </text>
-
-                        <!-- The Data Polygon -->
-                        <polygon :points="radarPoints" class="radar-data-poly" />
-                    </svg>
-                </div>
-                <div class="score-summary">
-                    <div class="score-main-group">
-                        <span class="score-main">{{ evaluationResult.finalScore }}</span>
-                        <span class="score-tier">{{ evaluationResult.scoreTier }}</span>
+            <div class="bg-slate-900/50 p-10 rounded-[2.5rem] border border-slate-800 space-y-8 shadow-2xl">
+                <!-- 질문 -->
+                <div class="space-y-4">
+                    <div class="inline-block px-3 py-1 bg-indigo-500/20 text-indigo-400 rounded-lg text-xs font-bold uppercase">
+                        Question
                     </div>
-                    <!-- Score Formula Visualization -->
-                    <div class="score-breakdown">
-                        <div class="formula-item">
-                            <span class="f-label">Game (40%)</span>
-                            <span class="f-val">{{ evaluationResult.gameScore }}</span>
+                    <h4 class="text-xl font-bold leading-relaxed whitespace-pre-line">
+                        {{ deepQuizQuestion.question }}
+                    </h4>
+                </div>
+
+                <!-- 선택지 -->
+                <div class="space-y-4">
+                    <button
+                        v-for="(opt, idx) in deepQuizQuestion.options"
+                        :key="idx"
+                        @click="submitDeepQuiz(idx)"
+                        class="w-full text-left p-6 rounded-2xl border-2 border-slate-800 bg-slate-900/50 hover:border-slate-700 transition-all group"
+                    >
+                        <div class="flex items-start gap-4">
+                            <span class="w-8 h-8 rounded-lg bg-slate-800 text-slate-500 group-hover:bg-slate-700 flex items-center justify-center text-sm font-black shrink-0">
+                                {{ idx + 1 }}
+                            </span>
+                            <div class="flex-1">
+                                <p class="text-sm leading-relaxed text-slate-400 group-hover:text-slate-200">
+                                    {{ opt.text }}
+                                </p>
+                            </div>
                         </div>
-                        <div class="formula-plus">+</div>
-                        <div class="formula-item">
-                            <span class="f-label">AI Logic (60%)</span>
-                            <span class="f-val">{{ evaluationResult.aiScore }}</span>
-                        </div>
-                    </div>
-                </div>
-              </div>
-
-              <!-- Metric Definitions (Evaluation Criteria) -->
-              <div class="criterion-notice">
-                <span class="cn-icon">🔍</span>
-                <span class="cn-text">각 지표를 클릭하여 <b>AI 아키텍트의 상세 비평</b>을 확인하세요.</span>
-              </div>
-
-              <!-- 5D Metrics Grid (Interactive) -->
-              <div class="metrics-grid">
-                  <div v-for="(metric, i) in evaluationResult.details" 
-                       :key="i" 
-                       class="metric-card"
-                       :class="{ 'card-active': activeDetail === i }"
-                       @click="toggleDetail(i)">
-                      <span class="m-label">{{ metric.category }}</span>
-                      <span class="m-value">{{ metric.score }}</span>
-                      <!-- Metric Description Mini -->
-                      <span class="m-desc-mini">
-                        {{ 
-                            metric.category === '정합성' ? '요구사항 충실도' :
-                            metric.category === '추상화' ? '로직 간결성' :
-                            metric.category === '예외처리' ? '위험 대응력' :
-                            metric.category === '구현력' ? '코드 정확도' : '구조 확장성'
-                        }}
-                      </span>
-                  </div>
-              </div>
-
-             <!-- Metric Detail Expansion -->
-             <div v-for="(metric, i) in evaluationResult.details" :key="'detail-'+i">
-                <div v-if="activeDetail === i" class="metric-detail-box">
-                    <div class="detail-row">
-                        <span class="detail-label">상세 분석</span>
-                        <p class="detail-text">"{{ metric.comment }}"</p>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">아키텍트 권고</span>
-                        <ul class="detail-list">
-                            <li v-for="(imp, idx) in metric.improvements" :key="idx">• {{ imp }}</li>
-                        </ul>
-                    </div>
-                </div>
-             </div>
-
-             <!-- Analysis Box (Senior Advice) -->
-             <div class="analysis-box">
-                 <div class="coduck-avatar-small">
-                     <img src="/assets/characters/coduck.png" />
-                 </div>
-                 <div class="analysis-text-wrapper">
-                     <p class="detail-label">AI 아키텍트 분석</p>
-                     <p class="ai-comment">"{{ evaluationResult.aiAnalysis }}"</p>
-                     <p class="senior-tip">💡 Senior Advice: {{ evaluationResult.seniorAdvice }}</p>
-                 </div>
-             </div>
-
-             <!-- Tail Question Section (Deep Dive) -->
-             <div v-if="evaluationResult.tailQuestion" class="tail-question-area">
-                <div class="tq-header">
-                    <span class="tq-icon">🎯</span>
-                    <span class="tq-title">Architect's Tail Question (논리 허점 탐색)</span>
-                </div>
-                <div class="tq-content">
-                    {{ evaluationResult.tailQuestion.question }}
-                </div>
-                <div class="tq-options">
-                    <button v-for="(opt, idx) in evaluationResult.tailQuestion.options" 
-                            :key="idx" 
-                            class="btn-tq-option"
-                            @click="handleTailQuestion(opt)">
-                        {{ opt.text }}
                     </button>
                 </div>
-             </div>
+            </div>
+        </div>
+      </section>
 
-             <!-- YouTube Video Recommendations -->
-             <div v-if="evaluationResult.supplementaryVideos && evaluationResult.supplementaryVideos.length > 0" class="supplement-section">
-                 <div class="s-header">
-                     <span class="s-icon">🎥</span>
-                     <span class="s-title">YouTube Study Session (부족한 개념 보완)</span>
-                 </div>
-                 <div class="s-grid">
-                     <a v-for="(item, i) in evaluationResult.supplementaryVideos" 
-                        :key="i" 
-                        class="s-card youtube-card"
-                        :href="'https://www.youtube.com/results?search_query=' + encodeURIComponent(item.search_query)"
-                        target="_blank">
-                         <div class="yt-thumb">
-                             <span class="yt-play">▶</span>
-                         </div>
-                         <div class="s-card-content">
-                             <div class="s-card-title">{{ item.title }}</div>
-                             <div class="s-card-desc">{{ item.desc }}</div>
-                             <div class="yt-search-tag">Search: {{ item.search_query }}</div>
-                         </div>
-                     </a>
-                 </div>
-             </div>
+      <!-- PHASE: EVALUATION (FINAL REPORT) -->
+      <section v-if="gameState.phase === 'EVALUATION'" class="w-full h-full overflow-y-auto p-12">
+        <div class="max-w-5xl mx-auto space-y-8">
+            <div class="text-center space-y-4 mb-10">
+                <span class="text-xs font-bold text-emerald-500 uppercase tracking-[0.2em]">
+                    Final Report
+                </span>
+                <h3 class="text-3xl font-black">AI 아키텍트 평가 리포트</h3>
+            </div>
 
-             <button class="btn-next-report" @click="exitToHub" :disabled="isEvaluating">미션 완료 및 징검다리로 귀환</button>
-          </div>
-       </section>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- 왼쪽: 방사형 차트 -->
+                <div class="bg-slate-900/50 rounded-[2.5rem] border border-slate-800 p-8 flex flex-col items-center justify-center relative overflow-hidden">
+                    <div class="absolute inset-0 bg-blue-500/5 blur-3xl rounded-full"></div>
+                    
+                    <div class="relative w-full aspect-square max-w-[400px]">
+                        <svg viewBox="0 0 200 200" class="w-full h-full">
+                            <!-- Grid -->
+                            <polygon v-for="level in 5" :key="level"
+                                     :points="calculatePentagonPoints(level * 20)"
+                                     class="fill-none stroke-slate-800"
+                                     stroke-width="1" />
+                            
+                            <!-- Axis -->
+                            <line v-for="i in 5" :key="'line-'+i"
+                                  x1="100" y1="100"
+                                  :x2="calculatePoint(i-1, 100).x"
+                                  :y2="calculatePoint(i-1, 100).y"
+                                  class="stroke-slate-800"
+                                  stroke-width="1" />
+
+                            <!-- Data -->
+                            <polygon :points="radarPoints" 
+                                     class="fill-blue-500/20 stroke-blue-500"
+                                     stroke-width="2" />
+                                     
+                            <!-- Labels -->
+                             <text v-for="(metric, i) in evaluationResult.details" :key="'label-'+i"
+                                   :x="calculatePoint(i, 115).x"
+                                   :y="calculatePoint(i, 115).y"
+                                   class="text-[8px] fill-slate-400 font-bold"
+                                   text-anchor="middle"
+                                   dominant-baseline="middle">
+                                 {{ metric.dimension || metric.category }}
+                             </text>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- 오른쪽: 점수 및 피드백 -->
+                <div class="space-y-6">
+                    <!-- 종합 점수 -->
+                    <div class="bg-slate-900/80 p-8 rounded-[2rem] border border-slate-800 flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Total Score</p>
+                            <h2 class="text-5xl font-black text-white">{{ evaluationResult.finalScore || evaluationResult.totalScore }}</h2>
+                        </div>
+                        <div class="text-right">
+                             <div :class="['px-4 py-2 rounded-xl text-lg font-bold',
+                                          (evaluationResult.finalScore || evaluationResult.totalScore) >= 80 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400']">
+                                {{ (evaluationResult.finalScore || evaluationResult.totalScore) >= 80 ? 'EXCELLENT' : 'NEEDS IMPROVEMENT' }}
+                             </div>
+                        </div>
+                    </div>
+
+                    <!-- 피드백 카드 -->
+                    <div class="bg-slate-900/50 p-8 rounded-[2rem] border border-slate-800 space-y-6">
+                        <div class="space-y-2">
+                             <div class="flex items-center gap-2 text-blue-400 font-bold mb-2">
+                                <Info class="w-4 h-4" /> AI 피드백
+                             </div>
+                             <p class="text-sm text-slate-300 leading-relaxed">
+                                {{ evaluationResult.seniorAdvice }}
+                             </p>
+                        </div>
+                        
+                        <div v-if="evaluationResult.improvementPlan" class="space-y-2 pt-4 border-t border-slate-800">
+                             <div class="flex items-center gap-2 text-amber-400 font-bold mb-2">
+                                <Lightbulb class="w-4 h-4" /> 개선 가이드
+                             </div>
+                             <p class="text-sm text-slate-300 leading-relaxed">
+                                {{ evaluationResult.improvementPlan }}
+                             </p>
+                        </div>
+                    </div>
+
+                    <button @click="resetFlow" class="w-full py-4 bg-slate-800 hover:bg-slate-700 rounded-2xl font-bold text-slate-300 transition-all">
+                        처음으로 돌아가기
+                    </button>
+                </div>
+            </div>
+        </div>
+      </section>
 
        <!-- PHASE: DEFEAT -->
       <section v-if="gameState.phase === 'DEFEAT'" class="panel defeat-view">
@@ -584,198 +517,128 @@ import { useGameStore } from '@/stores/game';
 import { useCoduckWars } from './composables/useCoduckWars.js';
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
 import { useMonacoEditor } from './composables/useMonacoEditor.js';
+import { 
+  AlertOctagon, Info, ArrowRight, Lightbulb, Check, 
+  Code2, Play, CheckCircle, Brain, BarChart3, RotateCcw 
+} from 'lucide-vue-next';
 
 const router = useRouter();
 const gameStore = useGameStore();
 
-const isGuideOpen = ref(false);
-const selectedGuideIdx = ref(0); // Track which guide card is expanded
-
-const toggleGuide = () => {
-    isGuideOpen.value = !isGuideOpen.value;
-};
-
-// Wrapper to handle both local expansion and game logic
-const handleGuideClick = (idx) => {
-    selectedGuideIdx.value = idx;
-    explainStep(idx);
-};
-
-// Writing Guide Toggle (Phase 3)
-const isWritingGuideOpen = ref(false);
-const toggleWritingGuide = () => {
-    isWritingGuideOpen.value = !isWritingGuideOpen.value;
-};
-
-const { 
-    gameState, 
-    runnerState, // ✅ CRITICAL FIX: Extract runnerState
-    diagnosticQuestion1, 
-    diagnosticQuestion2, 
-    deepQuizQuestion,
-    pythonSnippets,
-    evaluationResult,
-    isEvaluating,
-    logicBlocks, // Add this
-    submitDiagnostic1,
-    submitDiagnostic2,
-    submitPseudo,
-    submitPythonFill,
-    submitDeepQuiz,
-    insertSnippet,
-    handleSlotDrop,
-    nextMission,
-    restartMission,
-    initPhase4Scaffolding,
-    handlePseudoInput,
-    addLogicBlock, // Add this
-    explainStep,
-    handleTailQuestion, // ✅ 추가
-    currentMission,
-    missionContext,
-    constraints,
-    selectStage // ✅ 추가: 단계 선택 기능
-} = useCoduckWars();
-
-// Monaco Editor 설정 - ✅ CRITICAL FIX: Pass runnerState instead of gameState
-const { monacoOptions, handleMonacoMount, insertCodeSnippet } = useMonacoEditor(currentMission, runnerState);
-
-// [안전장치 제거] useMonacoEditor 내부에서 이미 템플릿 로드 로직이 통합되어 있으므로 중복 제거 (루프 방지)
-onMounted(() => {
-    // 필요한 초기화 작업만 수행 (현재는 없음)
-});
-
-const activeStepIndex = computed(() => {
-    switch (gameState.phase) {
-        case 'DIAGNOSTIC_1': 
-        case 'DIAGNOSTIC_2': return 0;
-        case 'PSEUDO_WRITE': return 1;
-        case 'PYTHON_FILL': return 2;
-        case 'DEEP_QUIZ': 
-        case 'EVALUATION': 
-        case 'CAMPAIGN_END': return 3;
-        default: return 0;
-    }
-});
-
-// --- Radar Chart Logic (Pentagon) ---
-const radarPoints = computed(() => {
-    if (!evaluationResult.details || evaluationResult.details.length === 0) return "";
-    
-    const center = 100; // Center of SVG (200x200)
-    const radius = 80;  // Max radius for score 100
-    const points = [];
-    
-    evaluationResult.details.forEach((metric, i) => {
-        const angle = (Math.PI * 2 / 5) * i - (Math.PI / 2); // Start from top
-        const r = (metric.score / 100) * radius;
-        const x = center + r * Math.cos(angle);
-        const y = center + r * Math.sin(angle);
-        points.push(`${x},${y}`);
-    });
-    
-    return points.join(" ");
-});
-
-// --- Radar Chart Helpers ---
-const calculatePoint = (i, r) => {
-    const angle = (Math.PI * 2 / 5) * i - (Math.PI / 2);
-    return {
-        x: 100 + r * Math.cos(angle),
-        y: 100 + r * Math.sin(angle)
-    };
-};
-
-const calculatePentagonPoints = (r) => {
-    const pts = [];
-    for (let i = 0; i < 5; i++) {
-        const p = calculatePoint(i, r);
-        pts.push(`${p.x},${p.y}`);
-    }
-    return pts.join(" ");
-};
-
-// Helper to switch questions based on diagnostic phase
-const currentDiagnosticQuestion = computed(() => {
-    if (gameState.phase === 'DIAGNOSTIC_1') return diagnosticQuestion1.value;
-    if (gameState.phase === 'DIAGNOSTIC_2') return diagnosticQuestion2.value;
-    return { question: "", options: [] };
-});
-
-const handleDiagnosticSubmit = (idx) => {
-    if (gameState.phase === 'DIAGNOSTIC_1') submitDiagnostic1(idx);
-    else submitDiagnostic2(idx);
-};
-
-// --- NEW HELPER FOR PHASE 4 ---
-const commentedLogicLines = computed(() => {
-    if (!gameState.phase3Reasoning) return ["# No logic trace found."];
-    // Split by newlines and add Python comment hash
-    return gameState.phase3Reasoning.split('\n').map(line => `# ${line}`);
-});
-
-
-
-// --- Evaluation 상세 보기 제어 ---
+// --- MOCK STATE for Debugging ---
+const gameState = ref({phase: 'DIAGNOSTIC_1', systemLogs: []});
+const currentMission = ref({});
+const runnerState = ref({});
+const evaluationResult = ref({});
+const deepQuizQuestion = ref({});
+const isEvaluating = ref(false);
+const logicBlocks = ref([]);
+const pythonSnippets = ref([]);
 const activeDetail = ref(null);
-const toggleDetail = (idx) => {
-    activeDetail.value = activeDetail.value === idx ? null : idx;
-};
+const isGuideOpen = ref(false);
+const isWritingGuideOpen = ref(false);
+const selectedGuideIdx = ref(0);
 
-const exitToHub = () => {
-    // Unlock next stage (Current Stage ID is 1-based, convert to 0-based index)
-    const currentIdx = gameState.currentStageId - 1;
-    gameStore.unlockNextStage('Pseudo Practice', currentIdx);
-    
-    // Return to hub
-    router.push('/');
-    // emit('close'); // emit is not defined here script setup logic might need defineEmits if used
-};
-
-// Drag and Drop Logic
-const onDragStart = (evt, code) => {
-    evt.dataTransfer.dropEffect = 'copy';
-    evt.dataTransfer.effectAllowed = 'copy';
-    evt.dataTransfer.setData('text/plain', code);
-};
-
-const onDrop = (slotKey, evt) => {
-    const code = evt.dataTransfer.getData('text/plain');
-    if (code) {
-        if (gameState.codeSlots[slotKey]) {
-            gameState.codeSlots[slotKey].content = code;
-        }
+// --- New State for Pseudocode2 UI ---
+const ruleChecklist = ref([
+    {
+        id: 'check_fit',
+        label: 'fit 메서드 호출 감지',
+        patterns: [
+            /\.fit\(/i,
+            /fit\(/i,
+            /scaler.*fit/i,
+            /encoder.*fit/i
+        ],
+        hint: "scaler.fit( 또는 encoder.fit( 패턴 찾기",
+        completed: false
+    },
+    {
+        id: 'check_split',
+        label: '분할 코드 유무 확인',
+        patterns: [
+            /train_test_split/i,
+            /분할/i,
+            /split/i,
+            /\[:/i
+        ],
+        hint: "train_test_split 또는 슬라이싱 체크",
+        completed: false
+    },
+    {
+        id: 'check_order',
+        label: 'fit 이전에 분할 여부 검증',
+        patterns: [
+            /이전/i,
+            /before/i,
+            /앞/i,
+            /먼저/i
+        ],
+        hint: "fit 이전에 분할이 있는지 확인",
+        completed: false
+    },
+    {
+        id: 'check_warning',
+        label: '경고 메시지 명시',
+        patterns: [
+            /경고/i,
+            /warning/i,
+            /알림/i,
+            /THEN/i
+        ],
+        hint: "THEN 경고: '...' 형태로 작성",
+        completed: false
     }
-};
+]);
 
-// Editor Custom Drop Handler
-const handleEditorDrop = (evt) => {
-    const code = evt.dataTransfer.getData('text/plain');
-    if (code) {
-        insertCodeSnippet(code);
-    }
-};
+const completedChecksCount = computed(() => 
+    ruleChecklist.value.filter(c => c.completed).length
+);
 
-// --- LOGGING HELPERS ---
-const getLogTypeClass = (type) => {
-    switch (type) {
-        case 'WARN': return 't-warn';
-        case 'ERROR': return 't-error';
-        case 'SUCCESS': return 't-success';
-        case 'READY': return 't-ready';
-        default: return 't-info';
-    }
-};
+const allChecksPassed = computed(() => 
+    completedChecksCount.value === ruleChecklist.value.length
+);
 
-const getLogLabel = (type) => {
-    switch (type) {
-        case 'WARN': return '경고';
-        case 'ERROR': return '오류';
-        case 'SUCCESS': return '성공';
-        case 'READY': return '준비';
-        default: return '정보';
-    }
-};
+// Watch for pseudocode input to update checklist
+watch(() => gameState.value.phase3Reasoning, (newRules) => {
+    if (!newRules) return;
+    ruleChecklist.value.forEach(check => {
+        check.completed = check.patterns.some(pattern => pattern.test(newRules));
+    });
+});
+
+// --- MOCK FUNCTIONS ---
+const toggleGuide = () => {};
+const toggleWritingGuide = () => {};
+const handleGuideClick = () => {};
+const handleDiagnosticSubmit = () => {};
+const submitPseudo = () => {};
+const submitPythonFill = () => {};
+const submitDeepQuiz = () => {};
+const initPhase4Scaffolding = () => {};
+const handlePseudoInput = () => {};
+const handleEditorDrop = () => {};
+const onDragStart = () => {};
+const onDrop = () => {};
+const handleMonacoMount = () => {};
+const monacoOptions = {};
+const getLogTypeClass = () => {};
+const getLogLabel = () => {};
+const insertCodeSnippet = () => {};
+const handleTailQuestion = () => {};
+const selectStage = () => {};
+const explainStep = () => {};
+const addLogicBlock = () => {};
+const submitDiagnostic1 = () => {};
+const submitDiagnostic2 = () => {};
+const activeStepIndex = computed(() => 0);
+const radarPoints = computed(() => "");
+const currentDiagnosticQuestion = computed(() => ({}));
+const commentedLogicLines = computed(() => []);
+const exitToHub = () => { router.push('/'); };
+const restartMission = () => {};
+
+// --- END MOCK ---
 </script>
 
 <style scoped>

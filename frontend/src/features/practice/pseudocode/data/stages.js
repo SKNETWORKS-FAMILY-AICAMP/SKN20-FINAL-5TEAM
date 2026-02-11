@@ -9,50 +9,56 @@
 export const aiQuests = [
     {
         id: 1,
-        title: "[튜토리얼] 사고 회로 복구: Data Leakage",
+        title: "전처리 데이터 누수 방어 시스템 설계",
         category: "System Reboot",
-        emoji: "💡",
-        desc: "AI 문제를 만났을 때, 코드를 치기 전 무엇을 먼저 생각해야 하는지 훈련합니다.",
+        emoji: "🚨",
+        desc: "AI 모델의 신뢰성을 파괴하는 전처리 데이터 누수를 차단하고 견고한 검증 규칙을 설계합니다.",
         rewardXP: 500,
-        subModuleTitle: "BOOT_PROTOCOL",
+        subModuleTitle: "LEAKAGE_GUARD",
         character: { name: "Coduck", image: "/assets/characters/coduck.png" },
 
         cards: [
-            { icon: "🚨", text: "STEP 1: 위험 감지 (Diagnosis)", coduckMsg: "데이터 파이프라인에서 비정상 신호가 감지되었습니다. 현재 상황을 정확히 진단하는 것이 급선무입니다." },
-            { icon: "📝", text: "STEP 2: 설계 (Architecture)", coduckMsg: "문제를 해결하기 위한 논리적 설계를 수립하세요. 코드를 짜기 전에 글로 먼저 정리해야 합니다." },
-            { icon: "💻", text: "STEP 3: 구현 (Implementation)", coduckMsg: "설계한 논리를 바탕으로 실제 복구 코드를 작성하세요. 빈 칸을 채워 시스템을 정상화하십시오." },
-            { icon: "⚖️", text: "STEP 4: 검증 (Validation)", coduckMsg: "수정된 시스템이 올바르게 작동하는지 테스트 케이스를 통해 검증합니다." }
+            { icon: "🚑", text: "STEP 1: 위험 진단", coduckMsg: "주니어 개발자의 치명적인 실수가 발견되었습니다. 무엇이 문제인지 먼저 파악합시다." },
+            { icon: "📝", text: "STEP 2: 규칙 설계", coduckMsg: "이런 실수가 재발하지 않도록 AI가 자동으로 감지할 수 있는 검증 규칙을 만드세요." },
+            { icon: "💻", text: "STEP 3: 심화 검증", coduckMsg: "단순한 규칙을 넘어, 더 교묘한 누수 패턴도 잡아낼 수 있는지 확인해 봅시다." },
+            { icon: "⚖️", text: "STEP 4: 최종 평가", coduckMsg: "당신의 아키텍처 설계 능력을 AI 아키텍트가 정밀 평가합니다." }
         ],
 
         interviewQuestions: [
             {
-                id: "q1",
-                question: "Step 1-1: 사고 회로 복구를 위한 첫 번째 행동은?",
+                id: "concept_1",
+                question: "전처리 단계에서 'scaler.fit(df)'가 문제인 근본적인 이유는?",
                 options: [
-                    { text: "전체 데이터 흐름(E2E Pipeline)을 먼저 파악한다", value: "flow", correct: true },
-                    { text: "바로 모델과 코드를 수정한다", value: "code" }
+                    { text: "StandardScaler 대신 MinMaxScaler를 써야 해서", correct: false, feedback: "Scaler 종류는 문제가 아닙니다." },
+                    { text: "전체 데이터로 fit하면 Test set의 통계량이 Train 변환에 영향을 주어, 실전에서는 알 수 없는 정보로 학습하기 때문", correct: true, feedback: "정확합니다! 이것이 전처리 누수의 핵심입니다." },
+                    { text: "df가 너무 커서 메모리 오버플로우가 발생해서", correct: false, feedback: "성능 문제와 누수는 다른 개념입니다." }
                 ],
-                coduckComment: "좋아요. 문제를 고치기 전에, 먼저 전체 흐름을 봐야 해요."
+                context: "Train 95% → Test 68% 성능 폭락의 원인"
             },
             {
-                id: "q2",
-                question: "Step 1-2: AI가 환각(Hallucination)에 빠지는 가장 흔한 원인은?",
+                id: "concept_2",
+                question: "전처리 누수를 막기 위한 올바른 코드 순서는?",
                 options: [
-                    { text: "잘못된 학습 기준으로 데이터를 처리했기 때문", value: "leakage", correct: true },
-                    { text: "모델이 충분히 똑똑하지 않아서", value: "model" }
+                    { text: "fit(전체) → 분할 → transform", correct: false, feedback: "이것이 바로 누수 패턴입니다." },
+                    { text: "분할 → fit(Train만) → transform(Train, Test)", correct: true, feedback: "정확합니다! Train 통계량으로만 학습하고, 같은 변환을 Train/Test 모두에 적용합니다." },
+                    { text: "분할 → fit(Train) → transform(Train) + fit(Test) → transform(Test)", correct: false, feedback: "Test도 다시 fit하면 일관성이 깨집니다." }
                 ],
-                coduckComment: "정확해요. 기준이 무너지면 모델도 흔들려요."
+                context: "실전에서 사용 가능한 모델을 만들려면"
             }
         ],
 
         designContext: {
             title: "Step 2: 아키텍처 설계 (자연어 서술)",
             currentIncident: `
-모델 학습 과정에서 테스트 데이터의 통계 정보가
-학습 기준 생성에 사용되는 데이터 누수(Data Leakage)가 발생했습니다.
+🚨 긴급 사고 보고
+주니어 개발자가 작성한 전처리 코드가 Production에 배포되었습니다.
 
-검증 성능은 높게 나왔지만,
-실제 서비스 환경에서는 성능이 재현되지 않는 문제가 확인되었습니다.
+scaler = StandardScaler()
+scaler.fit(df)  # 전체 데이터로 학습
+X_train = scaler.transform(df[:800])
+X_test = scaler.transform(df[800:])
+
+결과: Train 정확도 95% → Test 정확도 68% (27%p 폭락)
             `.trim(),
             engineeringRules: [
                 "Train 데이터로만 fit 한다.",
@@ -61,13 +67,13 @@ export const aiQuests = [
                 "학습과 서빙은 동일한 전처리 흐름을 사용한다."
             ],
             writingGuide: `
-다음 내용을 포함해 사고 과정을 서술하세요.
+다음 질문들에 답하며 본인만의 사고 과정을 서술해 보세요.
 
-- 데이터 누수가 무엇이며 왜 발생했는가
-- 이 문제가 실전 환경에서 왜 위험한가
-- 전처리 파이프라인을 어떤 순서로 설계해야 하는가
+- 현재 코드에서 '학습 데이터'와 '테스트 데이터'의 경계가 무너진 부분은 어디인가요?
+- 이 방식이 유지될 경우, 실제 배포된 환경에서 모델은 어떤 어려움을 겪게 될까요?
+- 데이터 누수를 원천 차단하기 위해, fit과 transform을 각각 어떤 타이밍에 수행해야 할까요?
 
-※ 코드는 작성하지 말고, 사고 흐름만 서술하세요.
+※ 직접적인 정답 코드보다는, 당신이 설계한 파이프라인의 '원칙'을 서술해 주세요.
             `.trim()
         },
 
@@ -370,12 +376,11 @@ export const aiQuests = [
         },
 
         deepDiveQuestion: {
-            question: "다음 중 데이터 누수가 특히 위험한 이유는 무엇입니까?",
+            question: "당신의 검증 규칙을 다른 코드베이스에 적용했더니, Pipeline으로 감싸진 전처리 코드를 통과시켜 버렸습니다. 이유가 무엇일까요?",
             options: [
-                { text: "모델이 미래 정보를 미리 학습해 실전 성능이 붕괴된다", correct: true },
-                { text: "학습 속도가 느려진다", correct: false },
-                { text: "GPU 메모리를 더 많이 사용한다", correct: false },
-                { text: "코드가 복잡해진다", correct: false }
+                { text: "fit_transform()을 사용했기 때문에 단일 메서드라 검출 못 함", correct: true },
+                { text: "Pipeline으로 감싸면 자동으로 안전해지므로 문제없음", correct: false },
+                { text: "df_normalized 변수명 때문에 패턴 매칭 실패", correct: false }
             ],
             correctIdx: 0
         },
