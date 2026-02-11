@@ -107,6 +107,17 @@
         @submit="submitDeepDiveAnswer"
         @submit-explanation="submitUserExplanation"
       />
+
+      <!-- ✅ NEW: 검증 피드백 모달 -->
+      <ValidationFeedback
+        v-if="showValidationFeedback"
+        :validation-result="validationResult"
+        :component-count="droppedComponents.length"
+        :connection-count="connections.length"
+        :show-debug-info="isValidationDebugMode"
+        @close="closeValidationFeedback"
+        @proceed="proceedFromValidation"
+      />
     </template>
   </div>
 </template>
@@ -124,6 +135,8 @@ import GameHeader from './components/GameHeader.vue';
 import IntroScene from './components/IntroScene.vue';
 import CaseFilePanel from './components/CaseFilePanel.vue';
 import TutorialOverlay from './components/TutorialOverlay.vue';
+// ✅ NEW: 검증 피드백 컴포넌트
+import ValidationFeedback from './components/ValidationFeedback.vue';
 
 // Composables
 import { useToast } from './composables/useToast';
@@ -146,7 +159,8 @@ export default {
     GameHeader,
     IntroScene,
     CaseFilePanel,
-    TutorialOverlay
+    TutorialOverlay,
+    ValidationFeedback
   },
   data() {
     return {
@@ -163,7 +177,12 @@ export default {
 
       // Problem State
       currentProblemIndex: 0,
-      problems: []
+      problems: [],
+
+      // ✅ NEW: 검증 상태
+      showValidationFeedback: false,
+      validationResult: null,
+      isValidationDebugMode: false // 개발 환경에서 true로 설정
     };
   },
   setup() {
@@ -211,6 +230,7 @@ export default {
       currentQuestionIndex: evaluation.currentQuestionIndex,
       submitDeepDiveAnswerComposable: evaluation.submitDeepDiveAnswer,
       openEvaluationModalComposable: evaluation.openEvaluationModal,
+      openDeepDiveModalComposable: evaluation.openDeepDiveModal, // ✅ NEW
       directEvaluateComposable: evaluation.directEvaluate,
       handleRetryComposable: evaluation.handleRetry,
       resetEvaluationState: evaluation.resetEvaluationState,
@@ -382,12 +402,63 @@ export default {
 
     // === Evaluation ===
     async openEvaluationModal() {
-      await this.openEvaluationModalComposable(
+      const result = await this.openEvaluationModalComposable(
         this.currentProblem,
         this.droppedComponents,
         this.connections,
         this.mermaidCode
       );
+
+      // ✅ Step 1: 검증 실패 처리
+      if (result.validationFailed) {
+        // ValidationFeedback 모달 표시
+        this.validationResult = result.validationResult;
+        this.showValidationFeedback = true;
+
+        // 토스트 알림
+        this.showToastMessage(
+          '[검증] 아키텍처를 다시 확인해주세요. 꽥!',
+          'warning'
+        );
+
+        // 디버깅용 상세 정보 출력
+        console.log('[Validation Failed]', result.validationResult);
+        return;
+      }
+
+      // ⚠️ Step 2: 검증 경고 처리
+      if (result.validationWarnings && result.validationWarnings.length > 0) {
+        this.validationResult = result.validationResult;
+        this.showValidationFeedback = true;
+
+        // 토스트로도 안내
+        this.showToastMessage('[검증] 통과했습니다. 경고 사항을 확인하세요. 꽥!', 'guide');
+        return;
+      }
+
+      // ✅ Step 3: 검증 통과 후 계속 진행
+      if (result.shouldContinue !== false && result.validationPassed) {
+        this.validationResult = result.validationResult;
+        this.showValidationFeedback = true;
+
+        this.showToastMessage('[검증] 통과했습니다! 꽥!', 'success');
+      }
+    },
+
+    // ✅ ValidationFeedback에서 호출되는 메서드
+    closeValidationFeedback() {
+      this.showValidationFeedback = false;
+      this.validationResult = null;
+    },
+
+    proceedFromValidation() {
+      this.showValidationFeedback = false;
+
+      // ✅ ValidationFeedback 닫은 후 설명 입력 모달 열기
+      this.$nextTick(() => {
+        this.openDeepDiveModalComposable();
+        this.showToastMessage('[PHASE 1] 아키텍처 설명을 입력해주세요. 꽥!', 'guide');
+      });
     },
 
     // === Retry ===

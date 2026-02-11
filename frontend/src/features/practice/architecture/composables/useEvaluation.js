@@ -6,6 +6,8 @@ import {
   buildArchitectureContext,
   generateMockEvaluation
 } from '../utils/architectureUtils';
+// ✅ NEW: 검증 로직 임포트
+import { validateArchitecture, formatValidationResult } from '../utils/architectureValidator';
 
 /**
  * 평가 Composable
@@ -77,26 +79,64 @@ export function useEvaluation() {
   }
 
   async function openEvaluationModal(problem, droppedComponents, connections, mermaidCode) {
+    // ✅ Step 1: 전처리 검증 (필수)
+    const submission = {
+      components: droppedComponents,
+      connections: connections
+    };
+
+    const validationResult = validateArchitecture(submission, problem);
+    const formattedValidation = formatValidationResult(validationResult);
+
+    // 검증 실패 시 설명 입력 모달로 이동하지 않고 검증 결과 반환
+    if (!formattedValidation.passed) {
+      return {
+        needsValidation: true,
+        validationFailed: true,
+        validationResult: formattedValidation,
+        rawValidation: validationResult
+      };
+    }
+
+    // ✅ Step 2: 검증 통과 후 상태 초기화 (ValidationFeedback에서 "계속" 버튼을 누를 때까지 모달 열지 않음)
     if (droppedComponents.length > 0) {
       pendingEvaluationAfterDeepDive.value = true;
-      // Phase 1: 설명 입력 모드로 시작
+      // Phase 1: 설명 입력 모드 준비 (아직 모달은 열지 않음)
       evaluationPhase.value = 'explanation';
-      isDeepDiveModalActive.value = true;
+      isDeepDiveModalActive.value = false; // ← ValidationFeedback이 열릴 때까지 닫아두기
       isGeneratingDeepDive.value = false;
       currentQuestionIndex.value = 0;
       collectedDeepDiveAnswers.value = [];
       userExplanation.value = '';
 
-      // 설명 요청 안내 메시지
+      // 설명 요청 안내 메시지 준비
       deepDiveQuestion.value = '설계한 아키텍처에 대해 설명해주세요. 왜 이런 구조를 선택했는지, 각 컴포넌트의 역할과 데이터 흐름에 대해 자유롭게 작성해주세요.';
       deepDiveQuestions.value = [{ category: '아키텍처 설명', question: deepDiveQuestion.value }];
 
-      return { needsDeepDive: true, phase: 'explanation' };
+      // 경고 포함한 결과 반환
+      const hasWarnings = formattedValidation.warnings && formattedValidation.warnings.length > 0;
+      return {
+        needsValidation: true,
+        validationPassed: true,
+        validationResult: formattedValidation,
+        validationWarnings: hasWarnings ? formattedValidation.warnings : null,
+        shouldContinue: true
+      };
     }
 
     // DeepDive만 사용하므로 EvaluationModal 대신 바로 평가 진행
     await directEvaluate(problem, droppedComponents, connections, mermaidCode);
-    return { needsDeepDive: false };
+    return {
+      needsDeepDive: false,
+      validationPassed: true
+    };
+  }
+
+  /**
+   * ValidationFeedback에서 "계속 진행" 클릭 시 호출
+   */
+  function openDeepDiveModal() {
+    isDeepDiveModalActive.value = true;
   }
 
   /**
@@ -257,6 +297,7 @@ export function useEvaluation() {
     // Methods
     submitDeepDiveAnswer,
     openEvaluationModal,
+    openDeepDiveModal, // ✅ NEW: ValidationFeedback에서 호출
     directEvaluate,
     handleRetry,
     resetEvaluationState,
