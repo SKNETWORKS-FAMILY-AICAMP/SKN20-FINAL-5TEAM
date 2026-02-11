@@ -9,6 +9,23 @@
     <!-- 성운 오버레이 -->
     <div class="nebula-overlay"></div>
 
+    <!-- 데이터 로딩 오버레이 -->
+    <div v-if="loading" class="loading-overlay">
+      <div class="loading-content">
+        <div class="loading-spinner"></div>
+        <p>데이터 로딩 중...</p>
+      </div>
+    </div>
+
+    <!-- 에러 오버레이 -->
+    <div v-if="error && !loading" class="error-overlay">
+      <div class="error-content">
+        <div class="error-icon">⚠️</div>
+        <p>{{ error }}</p>
+        <button @click="fetchProgressiveProblems" class="retry-btn">다시 시도</button>
+      </div>
+    </div>
+
     <!-- 레벨업 이펙트 -->
     <transition name="levelup">
       <div v-if="showLevelUp" class="levelup-overlay">
@@ -101,6 +118,12 @@
           </div>
         </div>
         <div class="header-right">
+          <div class="shake-counter">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shake-icon">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+            <span class="shake-count-text">{{ authStore.userProteinShakes }}</span>
+          </div>
           <div class="remaining-bugs">
             🪱 {{ totalStepsComputed - progressiveCompletedSteps.length }} worms left
           </div>
@@ -899,12 +922,18 @@
                 <span class="label">FINAL SCORE</span>
                 <span class="value">{{ progressiveMissionScore }}</span>
               </div>
+              <div class="shake-earned">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shake-earned-icon">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                </svg>
+                <span class="shake-earned-text">+{{ progressiveMissionScore }} Protein Shake</span>
+              </div>
               <div class="penalty-stats" v-if="hasPenalties">
                  <div class="penalty-item">
                    <span class="p-label">CODE RETRY ({{ codeSubmitFailCount }})</span>
                    <span class="p-value">-{{ codeSubmitFailCount * 2 }}</span>
                  </div>
-                 <div class="penalty-item">
+                 <div v-if="currentProgressiveMission?.id !== 'S1'" class="penalty-item">
                     <span class="p-label">HINTS USED ({{ totalHintCount }})</span>
                     <span class="p-value">-{{ totalHintCount }}</span>
                  </div>
@@ -912,25 +941,8 @@
             </div>
           </div>
 
-          <div class="stats-grid">
-            <div class="stat-box">
-              <div class="stat-icon">⏱️</div>
-              <div class="stat-details">
-                <span class="label">TIME TAKEN</span>
-                <span class="value text-magenta">{{ formatTime(totalDebugTime) }}</span>
-              </div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-icon">💎</div>
-              <div class="stat-details">
-                <span class="label">PERFECT CLEARS</span>
-                <span class="value text-green">{{ evaluationStats.perfectClears }}/{{ totalStepsComputed }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- AI 디버깅 사고 평가 섹션 (standard 모드에서만) -->
-          <div v-if="currentStageMode === 'standard'" class="ai-report-section neon-border">
+          <!-- AI 디버깅 사고 평가 섹션 (S4 이후 stage에서만) -->
+          <div v-if="!isBasicStage" class="ai-report-section neon-border">
             <div class="report-section-title">
               <span class="ai-icon">🧠</span>
               디버깅 사고 평가
@@ -998,15 +1010,8 @@
             </div>
           </div>
 
-          <!-- Tutorial/Guided 모드에서는 간략한 결과 표시 -->
-          <div v-else-if="currentStageMode !== 'standard'" class="simple-evaluation">
-            <div class="eval-summary">
-              <p>Score: {{ progressiveMissionScore }}/100</p>
-              <p>XP Earned: +{{ progressiveMissionXP }}</p>
-            </div>
-          </div>
-
-          <div class="explanations-list">
+          <!-- DEBUGGING LOG & STRATEGY 섹션 (S4 이후에만 표시) -->
+          <div v-if="!isBasicStage" class="explanations-list">
             <div class="list-title">📋 DEBBUGING LOG & STRATEGY</div>
             <div
               v-for="step in totalStepsComputed"
@@ -1084,13 +1089,15 @@ import duckSad from '@/assets/image/duck_sad.png';
 import unitDuck from '@/assets/image/unit_duck.png';
 import { useRoute, useRouter } from 'vue-router';
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
-import progressiveData from './problem_data/progressive-problems.json';
+import axios from 'axios';
 import { evaluateBugHunt, verifyCodeBehavior } from './api/bugHuntApi';
 import BugHuntTutorialOverlay from './composables/BugHuntTutorialOverlay.vue';
+import { useAuthStore } from '@/stores/auth';
 import './BugHunt.css';
 
 const route = useRoute();
 const router = useRouter();
+const authStore = useAuthStore();
 
 // ============================================
 // 게임 상태 저장/로드 (LocalStorage)
@@ -1221,7 +1228,7 @@ const allAchievements = [
   { id: 'bug_hunter', name: 'Bug Hunter', desc: '10개의 버그를 잡았습니다', icon: '🐛', condition: () => gameData.stats.totalBugsFixed >= 10 },
   { id: 'perfectionist', name: 'Perfectionist', desc: '힌트 없이 문제를 해결했습니다', icon: '💎', condition: () => gameData.stats.perfectClears >= 1 },
   { id: 'level_5', name: 'Rising Star', desc: '레벨 5에 도달했습니다', icon: '⭐', condition: () => gameData.level >= 5 },
-  { id: 'mission_master', name: 'Mission Master', desc: '모든 미션을 완료했습니다', icon: '👑', condition: () => getProgressiveMissionsCompleted() >= progressiveProblems.length }
+  { id: 'mission_master', name: 'Mission Master', desc: '모든 미션을 완료했습니다', icon: '👑', condition: () => getProgressiveMissionsCompleted() >= progressiveProblems.value.length }
 ];
 
 const unlockedAchievements = computed(() => {
@@ -1272,7 +1279,9 @@ function showAchievementUnlock(achievement) {
 // ============================================
 // Progressive Mission 시스템
 // ============================================
-const progressiveProblems = progressiveData.progressiveProblems;
+const progressiveProblems = ref([]);
+const loading = ref(true);
+const error = ref(null);
 const currentProgressiveMission = ref(null);
 const currentProgressiveStep = ref(1);
 const currentProgressivePhase = ref('quiz'); // 'quiz', 'debug', 'explain'
@@ -1286,6 +1295,12 @@ const showProgressiveHintPanel = ref(false);
 // ============================================
 const currentStageMode = ref('standard');  // 'tutorial' | 'guided' | 'line_edit' | 'standard'
 const totalStepsComputed = computed(() => currentProgressiveMission.value?.totalSteps || 3);
+
+// Stage 기반 평가 구분 (S1, S2, S3는 간단한 평가 / S4 이후는 LLM 평가 포함)
+const isBasicStage = computed(() => {
+  const stageId = currentProgressiveMission.value?.id;
+  return ['S1', 'S2', 'S3'].includes(stageId);
+});
 
 // Tutorial Mode refs
 const tutorialPhase = ref('explore');     // 'explore' | 'fix' | 'review'
@@ -1546,7 +1561,7 @@ function isStepCompleted(missionId, step) {
 
 // 현재 진행 중인 스텝 가져오기
 function getCurrentStep(missionId) {
-  const mission = progressiveProblems.find(m => m.id === missionId);
+  const mission = progressiveProblems.value.find(m => m.id === missionId);
   const totalSteps = mission?.totalSteps || 3;
 
   for (let step = 1; step <= totalSteps; step++) {
@@ -1559,7 +1574,7 @@ function getCurrentStep(missionId) {
 
 // 완료된 Progressive 미션 수
 function getProgressiveMissionsCompleted() {
-  return progressiveProblems.filter(m => isStepCompleted(m.id, m.totalSteps || 3)).length;
+  return progressiveProblems.value.filter(m => isStepCompleted(m.id, m.totalSteps || 3)).length;
 }
 
 // 스텝 데이터 가져오기 (타입 안정성 강화)
@@ -1808,14 +1823,14 @@ function handleStrategySubmit() {
 async function showEvaluation() {
   currentView.value = 'evaluation';
 
-  // tutorial/guided/line_edit 모드에서는 AI 평가 skip
-  if (currentStageMode.value === 'tutorial' || currentStageMode.value === 'guided' || currentStageMode.value === 'line_edit') {
+  // S1, S2, S3 기본 stage에서는 AI 평가 skip
+  if (isBasicStage.value) {
     aiEvaluationResult.value = null;
     isEvaluatingAI.value = false;
     return;
   }
 
-  // 기존 standard 모드 AI 평가 로직 유지
+  // S4 이후 고급 stage에서만 AI 평가 로직 실행
   if (currentProgressiveMission.value) {
     isEvaluatingAI.value = true;
     try {
@@ -1859,7 +1874,7 @@ function replayMission(mission) {
     id => !id.startsWith(`progressive_${mission.id}`)
   );
 
-  const index = progressiveProblems.findIndex(m => m.id === mission.id);
+  const index = progressiveProblems.value.findIndex(m => m.id === mission.id);
   startProgressiveMission(mission, index);
 }
 
@@ -1891,7 +1906,8 @@ function handleTutorialLineClick(lineNum) {
       tutorialPhase.value = 'fix';
     }, 1500);
   } else {
-    // 틀린 줄 - shake 효과
+    // 틀린 줄 - shake 효과 및 차감
+    codeSubmitFailCount.value++;
     isShaking.value = true;
     scheduleTimeout(() => { isShaking.value = false; }, 500);
     addClue('HINT', '다시 살펴보세요. 코드의 흐름을 따라가며 빠진 것이 없는지 확인해보세요.');
@@ -2345,8 +2361,39 @@ function completeMission() {
   addXP(progressiveMissionXP.value);
   gameData.totalScore += progressiveMissionScore.value;
 
+  // 백엔드 activity API에 점수 제출 (Protein Shake 적립)
+  submitToActivity();
+
   checkAchievements();
   showEvaluation();
+}
+
+// Activity API에 점수 제출 (Protein Shake 적립)
+async function submitToActivity() {
+  try {
+    const detail_id = `bughunt01_${currentProgressiveMission.value.id}`;
+    const score = progressiveMissionScore.value;
+
+    await axios.post('/api/core/activity/submit/', {
+      detail_id: detail_id,
+      score: score,
+      submitted_data: {
+        mission_id: currentProgressiveMission.value.id,
+        completed_steps: progressiveCompletedSteps.value.length,
+        total_steps: currentProgressiveMission.value.totalSteps,
+        hint_used: Object.values(progressiveHintUsed.value).filter(v => v).length,
+        retry_count: codeSubmitFailCount.value
+      }
+    });
+
+    // auth store 업데이트 (세션 새로고침)
+    await authStore.checkSession();
+
+    console.log('✅ Protein Shake 적립 완료:', authStore.userProteinShakes);
+  } catch (error) {
+    console.error('❌ Activity API 제출 실패:', error);
+    // 에러가 나도 게임 진행은 계속되도록 함
+  }
 }
 
 // Progressive 미션 종료
@@ -2715,8 +2762,46 @@ function migrateGameDataToStages() {
   Object.assign(gameData, data);
 }
 
+// ============================================
+// API 데이터 로딩
+// ============================================
+const fetchProgressiveProblems = async () => {
+  try {
+    loading.value = true;
+    error.value = null;
+
+    // Practice API를 사용해서 전체 details를 가져오기
+    const response = await axios.get('/api/core/practices/bughunt01/');
+
+    console.log('🔍 API Response:', response);
+    console.log('📦 Response Data:', response.data);
+    console.log('📄 Details:', response.data.details);
+
+    // details 배열의 각 항목에서 content_data를 추출하여 progressiveProblems 배열 생성
+    // details는 [{ id: 'bughunt01_S1', content_data: {...} }, ...] 형태
+    if (response.data.details && Array.isArray(response.data.details)) {
+      progressiveProblems.value = response.data.details
+        .map(detail => detail.content_data)
+        .filter(data => data && data.id); // id가 있는 유효한 문제만 필터링
+    } else {
+      progressiveProblems.value = [];
+    }
+
+    console.log('✅ Loaded progressive problems from DB:', progressiveProblems.value);
+    console.log('📊 Number of problems:', progressiveProblems.value.length);
+  } catch (err) {
+    console.error('❌ Error fetching progressive problems:', err);
+    console.error('Error details:', err.response?.data);
+    error.value = '데이터를 불러오는 중 오류가 발생했습니다.';
+  } finally {
+    loading.value = false;
+  }
+};
+
 // 라이프사이클
-onMounted(() => {
+onMounted(async () => {
+  // DB에서 데이터 로딩
+  await fetchProgressiveProblems();
   // LocalStorage 마이그레이션 먼저 실행
   migrateGameDataToStages();
 
@@ -2730,10 +2815,10 @@ onMounted(() => {
   // 맵 모드 체크
   if (route.query.missionId) {
     const missionId = route.query.missionId;
-    const missionIndex = progressiveProblems.findIndex(m => m.id === missionId);
+    const missionIndex = progressiveProblems.value.findIndex(m => m.id === missionId);
 
     if (missionIndex !== -1) {
-      const mission = progressiveProblems[missionIndex];
+      const mission = progressiveProblems.value[missionIndex];
       // [수정] 맵에서 미션을 클릭하면 항상 1-1부터 시작하도록 변경하여 순차적 진행 보장
       startProgressiveMission(mission, missionIndex, 1);
     }
@@ -3106,6 +3191,176 @@ onUnmounted(() => {
     opacity: 0;
     transform: scale(0.5) translateY(-20px);
   }
+}
+
+/* ============================================
+   데이터 로딩/에러 오버레이
+   ============================================ */
+.loading-overlay,
+.error-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.loading-content,
+.error-content {
+  text-align: center;
+  color: #fff;
+  font-family: 'Inter', sans-serif;
+}
+
+.loading-spinner {
+  width: 60px;
+  height: 60px;
+  border: 4px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #58cc02;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-content p {
+  font-size: 1.2rem;
+  color: #fff;
+}
+
+.error-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+}
+
+.error-content p {
+  font-size: 1.2rem;
+  margin-bottom: 20px;
+  color: #fa5252;
+}
+
+.retry-btn {
+  padding: 10px 30px;
+  background: #58cc02;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.retry-btn:hover {
+  background: #46a302;
+}
+
+/* ============================================
+   Protein Shake 스타일
+   ============================================ */
+/* 헤더 Shake 카운터 (메인과 동일한 스타일) */
+.shake-counter {
+  background: rgba(56, 189, 248, 0.1);
+  color: #38bdf8;
+  padding: 0.5rem 1rem;
+  border-radius: 99px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  transition: all 0.3s;
+  margin-right: 10px;
+}
+
+.shake-icon {
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px;
+  min-height: 20px;
+  filter: drop-shadow(0 0 5px rgba(56, 187, 248, 0.6));
+  flex-shrink: 0;
+  display: inline-block;
+  color: #38bdf8;
+}
+
+.shake-count-text {
+  color: #38bdf8;
+  font-weight: 700;
+}
+
+/* 미션 완료 화면 - 레이아웃 조정 */
+.report-header .score-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.report-header .score-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+/* 미션 완료 화면 - 획득한 Shake 표시 */
+.shake-earned {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 1rem 2rem;
+  background: rgba(56, 189, 248, 0.15);
+  border: 2px solid rgba(56, 189, 248, 0.4);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(56, 189, 248, 0.2);
+  transition: all 0.3s ease;
+}
+
+.shake-earned:hover {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: rgba(56, 189, 248, 0.6);
+  box-shadow: 0 6px 30px rgba(56, 189, 248, 0.3);
+}
+
+.shake-earned-icon {
+  width: 28px;
+  height: 28px;
+  color: #38bdf8;
+  filter: drop-shadow(0 0 10px rgba(56, 187, 248, 0.8));
+  flex-shrink: 0;
+  animation: shake-pulse 2s ease-in-out infinite;
+}
+
+@keyframes shake-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.shake-earned-text {
+  color: #38bdf8;
+  font-weight: 700;
+  font-size: 1.2rem;
+  text-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+}
+
+/* penalty-stats 중앙 정렬 */
+.penalty-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
 }
 
 </style>
