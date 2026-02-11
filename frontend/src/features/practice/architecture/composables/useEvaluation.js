@@ -1,6 +1,7 @@
 import { ref } from 'vue';
-// 마스터 에이전트 기반 다중 에이전트 평가 사용 (6대 기둥)
-import { evaluateWithMasterAgent, getAvailableSubAgents, getAllQuestionStrategies } from '../services/architectureApiMasterAgent';
+// 🔥 루브릭 기반 평가 (0점부터 시작, 명확한 5등급)
+import { evaluateWithRubric } from '../services/architectureRubricEvaluator';
+import { getAvailableSubAgents, getAllQuestionStrategies } from '../services/architectureApiMasterAgent';
 // ✅ NEW: 하이브리드 질문 생성 (안티패턴 체크 + CoT + 동적 Pillar 선별)
 import { generateFollowUpQuestions } from '../services/architectureHybridQuestionGenerator';
 import {
@@ -370,16 +371,15 @@ export function useEvaluation() {
       }));
 
     try {
-      // 마스터 에이전트 기반 6대 기둥 평가
-      evaluationResult.value = await evaluateWithMasterAgent(
+      // 🔥 루브릭 기반 평가 (0점부터, 명확한 5등급)
+      evaluationResult.value = await evaluateWithRubric(
         problem,
         architectureContext,
-        null, // EvaluationModal 질문 없음
         userExplanation.value, // 사용자 설명 전달
         deepDiveQnA
       );
     } catch (error) {
-      console.error('Master Agent Evaluation error:', error);
+      console.error('Rubric Evaluation error:', error);
       evaluationResult.value = generateMockEvaluation(problem, droppedComponents);
     } finally {
       isEvaluating.value = false;
