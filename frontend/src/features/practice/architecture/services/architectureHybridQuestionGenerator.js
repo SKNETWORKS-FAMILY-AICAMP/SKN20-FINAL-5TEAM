@@ -433,7 +433,7 @@ ${principlesText}
 
 ## 🧠 출력 형식 (JSON만)
 
-**CRITICAL**: 반드시 아래 형식을 따라주세요.
+**CRITICAL**: 반드시 아래 형식을 따라주세요. **반드시 정확히 3개의 질문을 포함해야 합니다.**
 
 {
   "internal_reasoning": {
@@ -453,21 +453,21 @@ ${principlesText}
   },
   "questions": [
     {
-      "category": "부족한 영역 (예: 신뢰성, 성능, 보안, 운영, 비용)",
+      "category": "질문1의 영역 (예: 신뢰성, 성능, 보안, 운영, 비용)",
       "antipattern": "발견된 안티패턴 (해당되는 경우)",
       "gap": "이 질문으로 확인하려는 부족한 부분",
       "failure_scenario": "구체적인 장애 시나리오 (예: RDS 인스턴스 다운)",
       "question": "상황 기반의 날카로운 질문 (배치된 컴포넌트 언급, 설계 의도/대응 방안 물어보기)"
     },
     {
-      "category": "부족한 영역",
+      "category": "질문2의 영역",
       "antipattern": "발견된 안티패턴",
       "gap": "이 질문으로 확인하려는 부족한 부분",
       "failure_scenario": "구체적인 장애 시나리오",
       "question": "상황 기반의 날카로운 질문"
     },
     {
-      "category": "부족한 영역",
+      "category": "질문3의 영역",
       "antipattern": "발견된 안티패턴",
       "gap": "이 질문으로 확인하려는 부족한 부분",
       "failure_scenario": "구체적인 장애 시나리오",
@@ -476,10 +476,12 @@ ${principlesText}
   ]
 }
 
-**주의사항**:
+**주의사항 (MUST FOLLOW)**:
 - internal_reasoning은 내부 처리용이지만, 질문 품질 향상에 필수적입니다
-- 반드시 JSON 형식만 출력하세요 (마크다운 코드블록 불필요)
-- 질문은 정확히 3개만 생성하세요`;
+- **반드시 JSON 형식만 출력하세요** (마크다운 코드블록 불필요)
+- **질문은 정확히 3개만 생성하세요** (MUST: 2개도 안 되고, 4개도 안 됨 → 정확히 3개)
+- 각 질문은 고유한 category를 가져야 합니다
+- questions 배열의 길이는 반드시 3입니다`;
 
   try {
     const response = await callOpenAI(prompt, {
@@ -490,10 +492,10 @@ ${principlesText}
     const jsonMatch = response.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
-      
+
       // internal_reasoning은 로깅용으로만 사용 (사용자에게 노출 X)
       console.log('🧠 AI Reasoning Process:', parsed.internal_reasoning);
-      
+
       // 🔥 질문을 정확히 3개로 보장
       let questions = (parsed.questions || []).slice(0, 3).map(q => ({
         category: q.category,
@@ -503,9 +505,54 @@ ${principlesText}
         scenario: q.failure_scenario || null
       }));
 
+      // 🔴 BUG FIX: 질문이 3개 미만이면 fallback으로 부족한 질문 추가
+      if (questions.length < 3) {
+        console.warn(`⚠️ AI generated only ${questions.length} question(s), adding fallback questions...`);
+
+        // Fallback 질문 풀 (3가지 핵심 영역)
+        const fallbackQuestions = [
+          {
+            category: '신뢰성',
+            gap: 'SPOF (Single Point of Failure)',
+            question: `이 아키텍처에서 가장 중요한 컴포넌트가 갑자기 다운되면 어떻게 되나요? 서비스 전체가 멈추지 않으면서, 어떤 메커니즘으로 계속 작동하도록 설계했나요?`,
+            antipattern: '단일 장애점',
+            scenario: '핵심 컴포넌트 장애'
+          },
+          {
+            category: '성능',
+            gap: '수평 확장 전략',
+            question: `동시 사용자가 평소의 10배로 급증하면, 이 아키텍처가 자동으로 대응하나요? 어떤 확장 전략을 사용했고, 어느 정도까지 확장할 수 있는지 설명해주세요.`,
+            antipattern: '수동 확장',
+            scenario: '트래픽 10배 급증'
+          },
+          {
+            category: '운영',
+            gap: '모니터링/경보 체계',
+            question: `시스템에 문제가 발생했을 때, 운영팀이 사용자 불만 전에 미리 알 수 있는 모니터링 시스템이 있나요? 어떤 지표를 모니터링하고 있으며, 어떻게 경보를 받는지 설명해주세요.`,
+            antipattern: '사후 대응',
+            scenario: '밤중 성능 저하'
+          }
+        ];
+
+        // 이미 있는 질문과 중복되지 않도록 추가
+        const existingCategories = new Set(questions.map(q => q.category));
+        for (const fallback of fallbackQuestions) {
+          if (questions.length >= 3) break;
+          if (!existingCategories.has(fallback.category)) {
+            questions.push(fallback);
+          }
+        }
+
+        // 여전히 3개 미만이면 처음부터 fallback으로 대체
+        if (questions.length < 3) {
+          console.warn(`⚠️ Still less than 3 questions after fallback, using full fallback...`);
+          questions = fallbackQuestions.slice(0, 3);
+        }
+      }
+
       return {
         analysis: parsed.gaps_analysis || { mentioned: [], missing: [] },
-        questions,
+        questions: questions.slice(0, 3), // 최종 검증: 정확히 3개만
         metadata: {
           selectedPillars: relevantPillars.map(p => p.name),
           componentCategorization: {
