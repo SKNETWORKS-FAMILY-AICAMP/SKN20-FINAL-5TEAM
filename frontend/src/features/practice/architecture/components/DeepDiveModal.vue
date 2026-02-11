@@ -86,7 +86,24 @@
 </template>
 
 <script>
-// import mermaid from 'mermaid';
+import mermaid from 'mermaid';
+
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'dark',
+  themeVariables: {
+    primaryColor: '#6b5ce7',
+    primaryTextColor: '#e8eaed',
+    primaryBorderColor: '#6b5ce7',
+    lineColor: '#4fc3f7',
+    secondaryColor: '#f06292',
+    tertiaryColor: '#4fc3f7',
+    background: '#12122a',
+    mainBkg: 'rgba(255, 255, 255, 0.05)',
+    textColor: '#e8eaed'
+  },
+  securityLevel: 'loose'
+});
 
 export default {
   name: 'DeepDiveModal',
@@ -182,6 +199,13 @@ export default {
           this.renderMermaid();
         });
       }
+    },
+    mermaidCode(newVal) {
+      if (newVal && this.isActive && !this.isGenerating) {
+        this.$nextTick(() => {
+          this.renderMermaid();
+        });
+      }
     }
   },
   methods: {
@@ -201,9 +225,10 @@ export default {
       if (!container || !this.mermaidCode) return;
 
       try {
-        // const { svg } = await mermaid.render('deepdive-mermaid-' + Date.now(), this.mermaidCode);
-        container.innerHTML = '<p>Mermaid diagram disabled temporarily.</p>'; // svg;
+        const { svg } = await mermaid.render('deepdive-mermaid-' + Date.now(), this.mermaidCode);
+        container.innerHTML = svg;
       } catch (error) {
+        console.error('Mermaid rendering error:', error);
         container.innerHTML = '<p class="mermaid-error">다이어그램 렌더링 오류</p>';
       }
     }
