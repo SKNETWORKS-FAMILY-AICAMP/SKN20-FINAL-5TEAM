@@ -11,8 +11,10 @@ export function useGameEngine() {
     // --- Game State ---
     const gameState = reactive({
         currentStageId: initialStageId,
-        // Phases: DIAGNOSTIC_1 -> DIAGNOSTIC_2 -> PSEUDO_WRITE -> PYTHON_FILL -> DEEP_QUIZ -> EVALUATION
-        phase: 'DIAGNOSTIC_1',
+        currentStageId: initialStageId,
+        // Phases: INTRO -> DIAGNOSTIC_1 -> DIAGNOSTIC_2 -> PSEUDO_WRITE -> PYTHON_FILL -> DEEP_QUIZ -> EVALUATION
+        phase: 'INTRO',
+        step: 0,
         playerHP: 100,
         score: 0,
         combo: 0,
@@ -20,11 +22,11 @@ export function useGameEngine() {
         // State for Decisions
         selectedStrategyLabel: "", // Set in Phase 2
         // Phase 3 State
-            phase3Reasoning: "",
-            phase3Score: 0,
-            phase3Feedback: "",
-            phase3EvaluationResult: null,
-            showHint: false,
+        phase3Reasoning: "",
+        phase3Score: 0,
+        phase3Feedback: "",
+        phase3EvaluationResult: null,
+        showHint: false,
         // Interactive Messages
         coduckMessage: "경고! 접근하는 모든 데이터는 적입니다!",
         feedbackMessage: null,
@@ -88,6 +90,11 @@ export function useGameEngine() {
 
         try {
             switch (newPhase) {
+                case 'INTRO':
+                    gameState.step = 0;
+                    gameState.coduckMessage = "새로운 보안 위협이 감지되었습니다.";
+                    addSystemLog("새로운 퀘스트 로드 완료", "INFO");
+                    break;
                 case 'DIAGNOSTIC_1':
                     gameState.coduckMessage = "이 선택은 이후 모든 판단에 영향을 줍니다.";
                     addSystemLog("진단 프로토콜 1단계 개시", "INFO");

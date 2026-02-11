@@ -86,17 +86,27 @@ export function useCoduckWars() {
     });
 
     const submitDiagnostic1 = (optionIndex) => {
+        // [Intro] Start Button Logic
+        if (gameState.phase === 'INTRO') {
+            setPhase('DIAGNOSTIC_1');
+            gameState.step = 1;
+            return;
+        }
+
         const q = diagnosticQuestion1.value;
         if (!q.options[optionIndex]) return;
 
         if (q.options[optionIndex].correct) {
             gameState.score += 7.5;
-            gameState.feedbackMessage = "프로토콜 확인.";
+            gameState.feedbackMessage = "정확합니다! 프로토콜 확인.";
             addSystemLog("선택 승인: 프로토콜 재가동", "SUCCESS");
-            setTimeout(() => setPhase('DIAGNOSTIC_2'), 800);
+            setTimeout(() => {
+                setPhase('DIAGNOSTIC_2');
+                gameState.step = 1; // Still Step 1 (Concept)
+            }, 1000);
         } else {
             handleDamage();
-            gameState.feedbackMessage = "판단 오류.";
+            gameState.feedbackMessage = "오답입니다. 다시 시도하세요.";
             addSystemLog("오류: 잘못된 판단입니다", "ERROR");
         }
     };
@@ -161,13 +171,13 @@ export function useCoduckWars() {
         try {
             // [AI Optimization] Single-Pass Call
             const evaluation = await quickCheckPseudocode(
-            {
-                id: currentMission.value.id,
-                title: currentMission.value.title,
-                description: currentMission.value.missionObjective,
-                missionObjective: missionContext.value,
-                validation: currentMission.value.designContext?.validation
-            },
+                {
+                    id: currentMission.value.id,
+                    title: currentMission.value.title,
+                    description: currentMission.value.missionObjective,
+                    missionObjective: missionContext.value,
+                    validation: currentMission.value.designContext?.validation
+                },
                 gameState.phase3Reasoning
             );
 
