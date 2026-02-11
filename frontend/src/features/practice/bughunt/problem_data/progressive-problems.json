@@ -639,12 +639,12 @@
           "bug_type": "A",
           "bug_type_name": "Gradient Bug",
           "file_name": "train_loop.py",
-          "buggy_code": "import torch\nimport torch.nn as nn\nimport torch.optim as optim\n\nmodel = SimpleNet()\ncriterion = nn.CrossEntropyLoss()\noptimizer = optim.Adam(model.parameters(), lr=0.001)\n\nfor epoch in range(10):\n    for batch_idx, (data, target) in enumerate(train_loader):\n        output = model(data)\n        loss = criterion(output, target)\n        \n        loss.backward()\n        optimizer.step()\n        optimizer.zero_grad()\n        \n        print(f\"Epoch {epoch}, Batch {batch_idx}: Loss = {loss.item():.4f}\")",
+          "buggy_code": "import torch\nimport torch.nn as nn\nimport torch.optim as optim\n\nmodel = SimpleNet()\ncriterion = nn.CrossEntropyLoss()\noptimizer = optim.Adam(model.parameters(), lr=0.001)\n\nfor epoch in range(10):\n    for batch_idx, (data, target) in enumerate(train_loader):\n        output = model(data)\n        loss = criterion(output, target)\n\n        loss.backward()\n        optimizer.step()\n\n        print(f\"Epoch {epoch}, Batch {batch_idx}: Loss = {loss.item():.4f}\")",
           "correct_code": "import torch\nimport torch.nn as nn\nimport torch.optim as optim\n\nmodel = SimpleNet()\ncriterion = nn.CrossEntropyLoss()\noptimizer = optim.Adam(model.parameters(), lr=0.001)\n\nfor epoch in range(10):\n    for batch_idx, (data, target) in enumerate(train_loader):\n        optimizer.zero_grad()  # 반드시 backward 전에!\n        \n        output = model(data)\n        loss = criterion(output, target)\n        \n        loss.backward()\n        optimizer.step()\n        \n        print(f\"Epoch {epoch}, Batch {batch_idx}: Loss = {loss.item():.4f}\")",
           "error_log": "=== 학습 로그 ===\nEpoch 0, Batch 0:  Loss = 2.3025\nEpoch 0, Batch 1:  Loss = 4.7891\nEpoch 0, Batch 5:  Loss = 23.4521\nEpoch 0, Batch 10: Loss = 156.2847\nEpoch 0, Batch 50: Loss = inf\nEpoch 1, Batch 0:  Loss = nan\n\n[ALERT] Loss가 수렴하지 않고 기하급수적으로 증가\n[METRIC] 배치 간 Loss 증가율: ~200% (정상: 감소해야 함)",
           "success_log": "Epoch 0, Batch 0: Loss = 2.3025\nEpoch 0, Batch 1: Loss = 2.2891\nEpoch 0, Batch 10: Loss = 1.8542\n[정상] Loss가 점진적으로 감소",
-          "hint": "for batch 루프 안에서 zero_grad가 forward보다 앞에 있는지 순서대로 확인하세요.",
-          "debugging_guide": "루프 내부 순서를 로그처럼 적어보세요: zero_grad -> forward -> loss -> backward -> step",
+          "hint": "학습 루프에서 gradient를 초기화하는 코드가 있는지 확인하세요. 없다면 gradient가 배치마다 누적됩니다.",
+          "debugging_guide": "각 배치에서 param.grad 값을 출력해보세요. 매번 초기화되지 않고 계속 커지고 있다면 zero_grad()가 빠진 것입니다.",
           "solution_check": {
             "type": "regex",
             "value": "for\\s+batch_idx[^\\n]*:[\\s\\S]*?optimizer\\.zero_grad\\(\\)[\\s\\S]*?output\\s*=\\s*model\\(data\\)[\\s\\S]*?loss\\s*=\\s*criterion\\(output,\\s*target\\)[\\s\\S]*?loss\\.backward\\(\\)[\\s\\S]*?optimizer\\.step\\(\\)",
@@ -652,8 +652,8 @@
           },
           "error_info": {
             "type": "Gradient Accumulation Bug",
-            "description": "배치마다 gradient가 초기화되지 않아 업데이트가 누적되고 있습니다.",
-            "suggestion": "optimizer.zero_grad() 호출 위치를 backward 이전으로 이동하세요."
+            "description": "optimizer.zero_grad()가 누락되어 gradient가 매 배치마다 누적되고 있습니다.",
+            "suggestion": "loss.backward() 호출 전에 optimizer.zero_grad()를 추가하세요."
           },
           "coaching": "S4는 실전 시작 단계입니다. 먼저 표준 학습 루프 순서를 몸에 익히세요.",
           "fix_mode": "free_code"
@@ -671,11 +671,9 @@
           "hint": "검증 루프에 들어가기 직전에 모델 모드를 다시 확인해보세요.",
           "debugging_guide": "print(model.training)을 train/validation 각각에서 찍어보세요.",
           "solution_check": {
-            "type": "multi_condition",
-            "required_all": [
-              "model.eval()"
-            ],
-            "forbidden": []
+            "type": "regex",
+            "value": "optimizer\\.step\\(\\)[\\s\\S]*?model\\.eval\\(\\)[\\s\\S]*?with\\s+torch\\.no_grad",
+            "flags": ""
           },
           "error_info": {
             "type": "Mode Mismatch",
@@ -699,7 +697,7 @@
           "debugging_guide": "배치마다 lr를 출력해보고, 에포크마다 한 번만 감소하는지 확인하세요.",
           "solution_check": {
             "type": "regex",
-            "value": "for batch[\\s\\S]*?optimizer\\.step\\(\\)[\\s\\S]*?\\n\\s*scheduler\\.step\\(\\)",
+            "value": "for\\s+batch[\\s\\S]*?optimizer\\.step\\(\\)[\\s\\S]*?\\n\\s{0,4}scheduler\\.step\\(\\)",
             "flags": ""
           },
           "error_info": {

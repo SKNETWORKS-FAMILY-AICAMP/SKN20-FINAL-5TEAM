@@ -3841,14 +3841,17 @@
 
 /* Tutorial: 객관식 */
 .tutorial-coaching {
-  color: #b0b8c4;
-  font-size: 0.9rem;
-  line-height: 1.6;
+  color: #f3f8ff;
+  font-size: 0.96rem;
+  font-weight: 700;
+  line-height: 1.65;
+  letter-spacing: 0.2px;
   padding: 1rem;
-  background: rgba(107, 92, 231, 0.08);
-  border-left: 3px solid var(--nebula-purple);
+  background: rgba(107, 92, 231, 0.16);
+  border-left: 4px solid var(--neon-cyan);
   border-radius: 0 8px 8px 0;
   margin-bottom: 1rem;
+  box-shadow: 0 0 14px rgba(79, 195, 247, 0.15);
 }
 
 .tutorial-fix {
@@ -3871,6 +3874,12 @@
 .tutorial-fix-inline {
   width: min(100%, 1100px);
   margin: 0 auto;
+}
+
+.tutorial-fix-inline > .submit-btn {
+  display: block;
+  margin-left: auto;
+  margin-top: 0.4rem;
 }
 
 .choice-grid {
@@ -3918,9 +3927,9 @@
 }
 
 .choice-btn.selected {
-  border-color: var(--neon-magenta);
-  background: rgba(240, 98, 146, 0.12);
-  box-shadow: 0 0 15px rgba(240, 98, 146, 0.2);
+  border-color: var(--neon-cyan);
+  background: rgba(79, 195, 247, 0.12);
+  box-shadow: 0 0 14px rgba(79, 195, 247, 0.2);
 }
 
 .choice-btn.correct {

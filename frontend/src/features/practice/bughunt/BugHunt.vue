@@ -336,7 +336,7 @@
                     :key="idx"
                     class="choice-btn"
                     :class="{
-                      'selected': selectedChoice === idx,
+                      'selected': !choiceSubmitted && selectedChoice === idx,
                       'correct': choiceSubmitted && tutorialChoiceCorrect && choice.correct,
                       'wrong': choiceSubmitted && selectedChoice === idx && !choice.correct
                     }"
@@ -912,12 +912,12 @@
 
       <div class="evaluation-content">
         <div class="report-card neon-border">
-          <div class="report-header">
+          <div class="report-header mission-summary">
             <div class="project-info">
               <span class="id-badge">CLEAR!</span>
               <h2>{{ currentProgressiveMission?.stage_title }}</h2>
             </div>
-            <div class="score-summary">
+            <div class="score-summary center-focus">
               <div class="score-item">
                 <span class="label">FINAL SCORE</span>
                 <span class="value">{{ progressiveMissionScore }}</span>
@@ -931,7 +931,7 @@
               <div class="penalty-stats" v-if="hasPenalties">
                  <div class="penalty-item">
                    <span class="p-label">CODE RETRY ({{ codeSubmitFailCount }})</span>
-                   <span class="p-value">-{{ codeSubmitFailCount * 2 }}</span>
+                   <span class="p-value">-{{ codeSubmitFailCount * codeRetryPenalty }}</span>
                  </div>
                  <div v-if="currentProgressiveMission?.id !== 'S1'" class="penalty-item">
                     <span class="p-label">HINTS USED ({{ totalHintCount }})</span>
@@ -1332,6 +1332,7 @@ const strategyInput = ref('');             // 전략 입력 내용
 
 // 코드 제출 상태
 const codeSubmitFailCount = ref(0);
+const codeRetryPenalty = 5;
 
 // 설명 및 평가 데이터
 const stepExplanations = reactive({ 1: '', 2: '', 3: '', 4: '', 5: '' });
@@ -2353,7 +2354,7 @@ function completeMission() {
   // 보상 계산 (감점 로직 적용)
   const baseScore = 100;
   const hintCount = Object.values(progressiveHintUsed.value).filter(v => v).length;
-  const penalty = (codeSubmitFailCount.value * 2) + (hintCount * 1);
+  const penalty = (codeSubmitFailCount.value * codeRetryPenalty) + (hintCount * 1);
 
   progressiveMissionXP.value = 100;
   progressiveMissionScore.value = Math.max(0, baseScore - penalty);
@@ -3298,12 +3299,29 @@ onUnmounted(() => {
 }
 
 /* 미션 완료 화면 - 레이아웃 조정 */
-.report-header .score-summary {
+.report-header.mission-summary {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.5rem;
-  margin-top: 1rem;
+  text-align: center;
+  gap: 1rem;
+}
+
+.report-header.mission-summary .project-info {
+  width: 100%;
+}
+
+.report-header.mission-summary .project-info h2 {
+  margin-top: 10px;
+}
+
+.report-header .score-summary.center-focus {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  width: min(100%, 560px);
 }
 
 .report-header .score-item {
@@ -3311,6 +3329,12 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   text-align: center;
+  padding: 0.5rem 1.5rem 0.2rem;
+}
+
+.report-header .score-item .value {
+  font-size: clamp(4rem, 9vw, 5.2rem);
+  line-height: 1;
 }
 
 /* 미션 완료 화면 - 획득한 Shake 표시 */
@@ -3318,12 +3342,12 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 1rem 2rem;
-  background: rgba(56, 189, 248, 0.15);
-  border: 2px solid rgba(56, 189, 248, 0.4);
+  gap: 8px;
+  padding: 0.75rem 1.3rem;
+  background: rgba(56, 189, 248, 0.16);
+  border: 1.5px solid rgba(56, 189, 248, 0.45);
   border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(56, 189, 248, 0.2);
+  box-shadow: 0 4px 18px rgba(56, 189, 248, 0.2);
   transition: all 0.3s ease;
 }
 
@@ -3350,17 +3374,24 @@ onUnmounted(() => {
 .shake-earned-text {
   color: #38bdf8;
   font-weight: 700;
-  font-size: 1.2rem;
+  font-size: 1.05rem;
   text-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
 }
 
-/* penalty-stats 중앙 정렬 */
+/* 실패/감점 정보도 한눈에 보이도록 카드형 정렬 */
 .penalty-stats {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  width: 100%;
   gap: 0.5rem;
-  margin-top: 1rem;
+  margin-top: 0.4rem;
+}
+
+.penalty-item {
+  background: rgba(255, 0, 0, 0.08);
+  border: 1px solid rgba(255, 51, 102, 0.22);
+  border-radius: 10px;
+  padding: 0.55rem 0.7rem;
 }
 
 </style>
