@@ -20,498 +20,381 @@
              <div class="hp-bar-fill" :style="{ width: Math.max(0, gameState.playerHP) + '%' }"></div>
         </div>
         <span class="integrity-val">{{ Math.max(0, gameState.playerHP) }}%</span>
+
+        <!-- [수정일: 2026-02-11] AI 리뷰어 랩 (Rule Lab) 버튼. 배포 시 이 버튼만 주석 처리하면 제거 가능합니다. -->
+        <button class="btn-lab-toggle" @click="toggleLab" title="AI Reviewer Rule Lab">
+          <Brain :class="{ 'anim-pulse': isLabOpen }" class="w-5 h-5" />
+        </button>
       </div>
     </header>
 
-    <!-- MAIN VIEWPORT -->
+    <!-- MAIN VIEWPORT [2026-02-11] UI 레이아웃 2단 구성(Battle Grid) 복원 -->
     <main class="viewport">
         
-      <!-- GUIDE FLOATING BUTTON (Toggle) -->
+      <!-- [2026-02-11] 사이드바 가이드 버튼 -->
       <button class="btn-guide-floating" @click="toggleGuide" :class="{ 'is-open': isGuideOpen }">
           <span class="icon">?</span>
           <span class="label">CHAPTER</span>
       </button>
 
-      <!-- GUIDE SLIDE PANEL -->
+      <!-- [2026-02-11] 사이드바 가이드 패널 -->
       <div class="guide-sidebar" :class="{ 'sidebar-open': isGuideOpen }">
           <div class="sidebar-header">
               <span class="sh-title">MISSION CHAPTERS</span>
               <button class="sh-close" @click="toggleGuide">×</button>
           </div>
           <div class="sidebar-content">
-              <div 
-                  v-for="(card, idx) in currentMission.cards" 
+              <!-- [2026-02-11] 미션 엔지니어링 가이드 (의사코드 작성 원칙) -->
+            <div v-if="currentMission.designContext?.writingGuide" class="guide-step-card g-active mt-4">
+                <div class="gs-header-row">
+                    <div class="gs-icon"><Lightbulb class="w-5 h-5 text-blue-400" /></div>
+                    <div class="gs-info">
+                        <span class="gs-step text-blue-400">ENGINEERING_GUIDE</span>
+                        <p class="gs-text">의사코드 작성 전략</p>
+                    </div>
+                </div>
+                <div class="gs-hint-content border-blue-500/20 bg-blue-500/5 p-2 rounded-lg overflow-hidden">
+                    <p class="text-[10px] text-blue-100 leading-tight whitespace-pre-line">{{ currentMission.designContext.writingGuide }}</p>
+                </div>
+            </div>
+
+            <div v-for="(guide, idx) in currentMission.guides" 
                   :key="idx"
                   class="guide-step-card"
                   :class="{ 'g-active': idx === selectedGuideIdx }"
                   @click="handleGuideClick(idx)"
               >
                   <div class="gs-header-row">
-                      <div class="gs-icon">{{ card.icon }}</div>
+                      <div class="gs-icon">{{ guide.icon }}</div>
                       <div class="gs-info">
                           <div class="gs-step">STEP {{ idx + 1 }}</div>
-                          <div class="gs-text">{{ card.text.split(':')[1] || card.text }}</div>
+                          <div class="gs-text">{{ guide.text.split(':')[1] || guide.text }}</div>
                       </div>
                   </div>
-                  
-                  <!-- EXPANDED HINT AREA -->
                   <div class="gs-hint-content" v-if="idx === selectedGuideIdx">
                       <div class="hint-label">💡 TACTICAL ADVICE</div>
-                      <p class="hint-body">"{{ card.coduckMsg }}"</p>
+                      <p class="hint-body text-[11px] leading-tight">"{{ guide.coduckMsg }}"</p>
                   </div>
               </div>
           </div>
       </div>
 
+      <!-- [2026-02-11] 2단 레이아웃 핵심 컨테이너 (Combat Grid) -->
+      <div class="combat-grid w-full h-full">
+          
+          <!-- LEFT PANEL: ENTITY CARD [2026-02-11] 코덕 캐릭터 및 상태창 -->
+          <aside class="entity-card">
+              <div class="entity-header">
+                  <span class="e-type">ANALYZE_UNIT</span>
+                  <span class="e-status">SYSTEM_ACTIVE</span>
+              </div>
 
-      <!-- PHASE: STEP 0 (INTRO) -->
-      <section v-if="gameState.phase === 'INTRO' || gameState.phase === 'DIAGNOSTIC_1' && gameState.step === 0" class="w-full h-full overflow-y-auto p-12">
-          <div class="max-w-3xl mx-auto space-y-8">
-                <div class="bg-slate-900/50 p-10 rounded-[2.5rem] border border-slate-800 shadow-2xl">
-                    <div class="w-16 h-16 text-red-500 mb-8"><AlertOctagon class="w-full h-full" /></div>
-                    <h2 class="text-3xl font-black mb-6 leading-tight">
-                        Quest 01:<br/>
-                        전처리 데이터 누수 방어 시스템 설계
-                    </h2>
-                    
-                    <!-- 사고 보고서 -->
-                    <div class="bg-red-500/5 border border-red-500/20 p-6 rounded-2xl mb-6">
-                        <p class="text-sm text-red-400 font-bold mb-2">🚨 긴급 사고 보고</p>
-                        <p class="text-slate-300 text-base leading-relaxed mb-3">
-                            주니어 개발자가 작성한 전처리 코드가 Production에 배포되었습니다.
-                        </p>
-                        <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800 mb-3">
-                            <pre class="text-emerald-400 text-xs code-line">scaler = StandardScaler()
-scaler.fit(df)  # 전체 데이터로 학습
-X_train = scaler.transform(df[:800])
-X_test = scaler.transform(df[800:])</pre>
-                        </div>
-                        <p class="text-slate-400 text-sm">
-                            <strong class="text-red-400">결과:</strong> 
-                            Train 정확도 95% → Test 정확도 68% <span class="text-red-400 font-bold">(27%p 폭락)</span>
-                        </p>
-                    </div>
+              <div class="visual-frame">
+                  <!-- [2026-02-11] 코덕 캐릭터 이미지 연결 -->
+                  <img src="@/assets/image/duck_det.png" alt="Coduck Detective" class="coduck-portrait" />
+                  <div class="scan-overlay"></div>
+                  
+                  <!-- [2026-02-11] 손상 시 표시 -->
+                  <div v-if="gameState.playerHP < 40" class="disconnect-tag">INTEGRITY_COMPROMISED</div>
+              </div>
 
-                    <p class="text-slate-400 text-lg leading-relaxed mb-6">
-                        당신은 <strong class="text-blue-400">AI 코드 리뷰어 시스템 설계자</strong>입니다.<br/>
-                        이런 전처리 누수 코드가 다시 작성되지 않도록 <strong>자동 검증 규칙</strong>을 만드세요.
-                    </p>
+              <!-- [2026-02-11] 코덕 실시간 대사창 -->
+              <div class="dialogue-box">
+                  <span class="speaker">CODUCK_ARCHITECT</span>
+                  <p class="dialogue-text">"{{ gameState.coduckMessage || '데이터 흐름을 분석 중입니다...' }}"</p>
+              </div>
 
-                    <div class="flex items-start gap-4 p-5 bg-blue-500/10 rounded-2xl border border-blue-500/20 mb-8">
-                        <Info class="text-blue-400 mt-1 shrink-0 w-5 h-5" />
-                        <div class="text-sm text-blue-100">
-                            <p class="font-bold mb-2">학습 목표</p>
-                            <p class="text-blue-200 leading-relaxed">
-                                코드를 직접 고치는 것이 아닌, <strong>AI가 자동으로 문제를 찾게 만드는 프롬프트</strong>를 개발합니다.
-                            </p>
-                        </div>
-                    </div>
+              <!-- [2026-02-11] 이미지 싱크: 좌측 '작성 가이드' 전술 패널 추가 (PSEUDO_WRITE 단계 전용) -->
+              <div v-if="gameState.phase === 'PSEUDO_WRITE'" class="instruction-guide-panel mt-4">
+                  <div class="ig-header flex items-center gap-3 mb-4">
+                      <!-- [수정일: 2026-02-11] 작성가이드 폰트 및 아이콘 크기 하향 조정 -->
+                      <Lightbulb class="w-6 h-6 text-blue-400" />
+                      <span class="text-blue-400 font-bold tracking-wider text-xs">작성 가이드</span>
+                  </div>
 
-                    <button @click="submitDiagnostic1(0)" 
-                            class="w-full md:w-auto px-10 py-5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-3 shadow-xl active:scale-95">
-                        개념 학습 시작하기 <ArrowRight class="w-5 h-5" />
-                    </button>
-                </div>
-          </div>
-      </section>
+                  <!-- 의사코드 형식 카드 -->
+                  <div class="format-card bg-blue-500/10 border border-blue-500/20 p-3 rounded-xl mb-3">
+                      <p class="text-blue-200 font-bold mb-1">의사코드 형식</p>
+                      <p class="text-blue-100/80 leading-tight font-mono">IF (조건) THEN 경고 형태로 작성하세요</p>
+                  </div>
+ 
+                  <!-- 검증 항목 체크리스트 (폰트 축소) -->
+                  <div class="checklist-section">
+                      <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">검증 항목</p>
+                      <div class="space-y-4">
+                          <div v-for="check in ruleChecklist" :key="check.id" class="checklist-item flex items-start gap-2">
+                              <div class="check-circle" :class="{ 'is-checked': check.completed }">
+                                  <Check v-if="check.completed" class="w-3 h-3 text-white" />
+                              </div>
+                              <div class="check-info">
+                                  <p class="check-label text-[11px] font-bold transition-colors" :class="check.completed ? 'text-slate-200' : 'text-slate-500'">{{ check.label }}</p>
+                                  <p class="check-hint text-[9px] text-slate-600 mt-1">{{ check.hint }}</p>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+              </div>
 
-      <!-- PHASE: STEP 1 (CONCEPTS) -->
-      <section v-if="gameState.phase.startsWith('DIAGNOSTIC') && gameState.step !== 0" class="w-full h-full overflow-y-auto p-12">
-            <div class="max-w-3xl mx-auto space-y-8">
-                <div class="text-center space-y-4 mb-10">
-                    <span class="text-xs font-bold text-blue-500 uppercase tracking-[0.2em]">
-                        Step 01: Concept Foundation
-                    </span>
-                    <h3 class="text-3xl font-black">전처리 누수 개념 이해</h3>
-                    <p class="text-slate-400">
-                        규칙을 설계하기 전, 먼저 <strong>왜 문제인지</strong> 명확히 이해해야 합니다.
-                    </p>
-                </div>
+              <!-- [2026-02-11] 하단 전술 로그 (가이드 패널이 없을 때만 표시하거나 하단으로 밀림) -->
+              <div v-if="gameState.phase !== 'PSEUDO_WRITE'" class="tactical-console mt-6">
+                  <div class="console-header">SUBSYSTEM_LOGS</div>
+                  <div class="console-body">
+                      <div v-for="(log, i) in gameState.systemLogs.slice(-3)" :key="i" class="log-line">
+                          <span class="t-time">[{{ log.time }}]</span>
+                          <span :class="'t-' + log.type.toLowerCase()">{{ log.type }}</span>
+                          <span class="ml-2">{{ log.message }}</span>
+                      </div>
+                  </div>
+              </div>
+          </aside>
 
-                <!-- 진행 상태 -->
-                <div class="flex justify-center gap-3 mb-8">
-                    <div v-for="s in 2" :key="s"
-                         :class="['w-3 h-3 rounded-full transition-all',
-                                  (gameState.phase === 'DIAGNOSTIC_2' && s===1) || gameState.phase === 'DIAGNOSTIC_2' ? 'bg-blue-500 scale-110' : 'bg-slate-700']">
-                    </div>
-                </div>
+          <!-- RIGHT PANEL: DECISION ENGINE [2026-02-11] 단계별 인터랙션 영역 -->
+          <section class="decision-panel relative">
+              
+              <!-- [2026-02-11] PHASE: INTRO / DIAGNOSTIC_1 (Step 0) -->
+              <div v-if="gameState.phase === 'INTRO' || (gameState.phase === 'DIAGNOSTIC_1' && gameState.step === 0)" class="space-y-8">
+                  <div class="system-status-text">INITIALIZING_MISSION_PROTOCOL...</div>
+                  <h2 class="big-question">
+                      Quest 01:<br/>
+                      전처리 데이터 누수 방어 시스템 설계
+                  </h2>
+                  
+                  <div class="bg-red-500/5 border border-red-500/20 p-6 rounded-2xl mb-6">
+                      <p class="text-sm text-red-400 font-bold mb-2">🚨 긴급 사고 보고: 성능 폭락 발생</p>
+                      <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800 mb-3">
+                          <pre class="text-emerald-400 text-xs code-line">scaler = StandardScaler()
+scaler.fit(df)  # 전체 데이터로 학습하는 누수 발생</pre>
+                      </div>
+                      <p class="text-slate-400 text-sm">결과: Train 95% → Test <span class="text-red-400 font-bold">68%</span></p>
+                  </div>
 
-                <!-- 현재 문제 -->
-                <div class="bg-slate-900/50 p-10 rounded-[2.5rem] border border-slate-800 space-y-8">
-                    <!-- 카테고리 -->
-                    <div class="inline-block px-3 py-1 bg-indigo-500/20 text-indigo-400 rounded-lg text-xs font-bold uppercase">
-                        {{ gameState.phase === 'DIAGNOSTIC_1' ? "데이터 누수 정의" : "올바른 해결 방법" }}
-                    </div>
+                  <button @click="submitDiagnostic1(0)" class="btn-execute-large w-fit">
+                      시스템 설계 프로토콜 시작 <ArrowRight class="w-5 h-5" />
+                  </button>
+              </div>
 
-                    <!-- 질문 -->
-                    <div class="space-y-4">
-                        <h4 class="text-2xl font-bold leading-snug">
-                            {{ gameState.phase === 'DIAGNOSTIC_1' ? diagnosticQuestion1.question : diagnosticQuestion2.question }}
-                        </h4>
-                    </div>
+              <!-- [2026-02-11] PHASE: DIAGNOSTIC (Step 1: 개념 확인) -->
+              <div v-else-if="gameState.phase.startsWith('DIAGNOSTIC')" class="space-y-8">
+                  <div class="system-status-text">STEP_01: CONCEPT_FOUNDATION</div>
+                  <h3 class="big-question">{{ gameState.phase === 'DIAGNOSTIC_1' ? diagnosticQuestion1.question : diagnosticQuestion2.question }}</h3>
+                  
+                  <div class="options-list">
+                      <div v-for="(opt, idx) in (gameState.phase === 'DIAGNOSTIC_1' ? diagnosticQuestion1.options : diagnosticQuestion2.options)"
+                           :key="idx"
+                           @click="gameState.phase === 'DIAGNOSTIC_1' ? submitDiagnostic1(idx) : submitDiagnostic2(idx)"
+                           class="option-card">
+                          <div class="opt-index">{{ String.fromCharCode(65 + idx) }}</div>
+                          <div class="opt-content">
+                              <p class="opt-main">{{ opt.text }}</p>
+                          </div>
+                          <div class="opt-arrow"><ArrowRight /></div>
+                      </div>
+                  </div>
+              </div>
 
-                    <!-- 선택지 -->
-                    <div class="space-y-4">
-                        <button
-                            v-for="(opt, idx) in (gameState.phase === 'DIAGNOSTIC_1' ? diagnosticQuestion1.options : diagnosticQuestion2.options)"
-                            :key="idx"
-                            @click="gameState.phase === 'DIAGNOSTIC_1' ? submitDiagnostic1(idx) : submitDiagnostic2(idx)"
-                            class="w-full text-left p-6 rounded-2xl border-2 border-slate-800 bg-slate-900/50 hover:border-slate-700 transition-all group"
-                        >
-                            <div class="flex items-start gap-4">
-                                <span class="w-10 h-10 rounded-xl bg-slate-800 text-slate-500 group-hover:bg-slate-700 flex items-center justify-center text-sm font-black shrink-0">
-                                    {{ String.fromCharCode(65 + idx) }}
-                                </span>
-                                <div class="flex-1">
-                                    <p class="text-base leading-relaxed text-slate-400 group-hover:text-slate-200">
-                                        {{ opt.text }}
-                                    </p>
-                                </div>
-                            </div>
-                        </button>
-                    </div>
-                </div>
-            </div>
-      </section>
+          <!-- [2026-02-11] PHASE: PSEUDO_WRITE (Step 2: 아키텍처 설계) -->
+          <div v-else-if="gameState.phase === 'PSEUDO_WRITE'" class="space-y-4 flex flex-col h-full">
+              <!-- [2026-02-11] 이미지 싱크: 메인 타이틀 및 설명 개편 -->
+              <div class="text-center space-y-1 mb-2">
+                  <h3 class="text-xl font-black text-white">{{ currentMission.designContext?.title || 'AI 리뷰어 검증 규칙 설계' }}</h3>
+                  <p class="text-slate-400 text-xs leading-tight">{{ currentMission.designContext?.description || '이제 개념을 이해했으니, AI가 자동으로 전처리 누수를 찾게 만드는 규칙을 의사코드로 작성하세요.' }}</p>
+              </div>
+              
+              <!-- [2026-02-11] 이미지 싱크: 사고 코드 블록 고도화 (Header-Code-Footer 구조) -->
+              <div v-if="currentMission.designContext?.incidentCode" class="incident-review-block incident-image-sync">
+                  <div class="irs-header">
+                      <p class="text-[10px] font-bold text-red-400 uppercase">막아야 할 패턴</p>
+                  </div>
+                  <div class="irs-body">
+                      <pre class="text-emerald-400 text-xs font-mono leading-tight whitespace-pre-wrap">{{ currentMission.designContext.incidentCode }}</pre>
+                      
+                      <!-- [2026-02-11] '문제' 설명 국문 축소 -->
+                      <p v-if="currentMission.designContext?.incidentProblem" class="irs-problem mt-2 text-[11px]">
+                        <strong class="text-red-400">문제:</strong> {{ currentMission.designContext.incidentProblem }}
+                      </p>
+                  </div>
+              </div>
 
-      <!-- PHASE: STEP 2 (RULE DESIGN) -->
-      <section v-if="gameState.phase === 'PSEUDO_WRITE'" class="w-full h-full overflow-y-auto p-12">
-        <div class="max-w-6xl mx-auto space-y-8">
-            <div class="text-center space-y-4 mb-10">
-                <span class="text-xs font-bold text-blue-500 uppercase tracking-[0.2em]">
-                    Step 02: Rule Design
-                </span>
-                <h3 class="text-3xl font-black">AI 리뷰어 검증 규칙 설계</h3>
-                <p class="text-slate-400 max-w-2xl mx-auto leading-relaxed">
-                    이제 개념을 이해했으니, <strong class="text-blue-400">AI가 자동으로 전처리 누수를 찾게 만드는 규칙</strong>을 의사코드로 작성하세요.
-                </p>
-            </div>
+              <div class="flex-1 flex flex-col min-h-0">
+                  <!-- 의사코드 입력 에디터 -->
+                  <div class="monaco-wrapper flex-1 max-h-[270px]">
+                      <div class="line-numbers">
+                          <span v-for="n in 15" :key="n">{{ n }}</span>
+                      </div>
+                      <textarea 
+                          v-model="gameState.phase3Reasoning"
+                          @input="handlePseudoInput"
+                          :placeholder="gameState.phase3Placeholder"
+                          class="monaco-textarea w-full"
+                      ></textarea>
+                  </div>
 
-            <!-- 사고 코드 복습 -->
-            <div class="bg-red-500/5 border border-red-500/20 rounded-2xl overflow-hidden mb-8">
-                <div class="bg-red-500/10 px-6 py-4 border-b border-red-500/20">
-                    <p class="text-xs font-bold text-red-400 uppercase">막아야 할 패턴</p>
-                </div>
-                <div class="p-6">
-                    <pre class="text-emerald-400 text-sm code-line mb-4">scaler = StandardScaler()
-scaler.fit(df)  # ⚠️ 전체 데이터로 fit
-X_train = scaler.transform(df[:800])
-X_test = scaler.transform(df[800:])</pre>
-                    <p class="text-xs text-slate-500">
-                        <strong class="text-red-400">문제:</strong> fit() 실행 시점에 Train/Test 분할이 되지 않아 Test 통계량이 Train에 영향
-                    </p>
-                </div>
-            </div>
+                      <!-- [2026-02-11] 체크리스트 알림 제거 (좌측 패널로 통합 이전 완료) -->
+                      <div class="action-bar-bottom">
+                          <button 
+                              :disabled="!canSubmitPseudo || isProcessing"
+                              @click="submitPseudo"
+                              class="btn-execute-large"
+                          >
+                              심화 분석 시작 <Play class="w-4 h-4" />
+                          </button>
+                      </div>
+                  </div>
+              </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
-                <!-- 왼쪽: 가이드 -->
-                <div class="lg:col-span-4 space-y-6">
-                    <div class="p-6 bg-slate-900/80 rounded-[2rem] border border-slate-800 sticky top-28">
-                        <h4 class="text-xs font-bold uppercase tracking-widest mb-6 text-blue-500 flex items-center gap-2">
-                            <Lightbulb class="w-4 h-4" /> 작성 가이드
-                        </h4>
-                        
-                        <div class="space-y-4 mb-6">
-                            <div class="p-4 bg-blue-500/5 rounded-xl border border-blue-500/10">
-                                <p class="text-xs text-blue-300 font-bold mb-2">의사코드 형식</p>
-                                <p class="text-xs text-slate-400 leading-relaxed">
-                                    IF (조건) THEN 경고 형태로 작성하세요
-                                </p>
-                            </div>
-                        </div>
+              <!-- [2026-02-11] PHASE: DEEP_QUIZ / TAIL_QUESTION (Step 3: 심화 진단) -->
+              <div v-else-if="gameState.phase === 'DEEP_QUIZ' || gameState.phase === 'TAIL_QUESTION'" class="space-y-8">
+                  <div class="system-status-text">STEP_03: ANALYSIS_SIMULATION</div>
+                  <h3 class="big-question">{{ deepQuizQuestion.question }}</h3>
+                  
+                  <div class="options-list">
+                      <div v-for="(opt, idx) in deepQuizQuestion.options"
+                           :key="idx"
+                           @click="submitDeepQuiz(idx)"
+                           class="option-card gold-hover">
+                          <div class="opt-index gold-idx">{{ idx + 1 }}</div>
+                          <div class="opt-content">
+                              <p class="opt-main">{{ opt.text }}</p>
+                          </div>
+                          <div class="opt-arrow"><ArrowRight /></div>
+                      </div>
+                  </div>
+              </div>
 
-                        <!-- 체크리스트 -->
-                        <div class="space-y-4">
-                            <h5 class="text-[10px] font-black text-slate-500 uppercase tracking-widest">검증 항목</h5>
-                            <div v-for="check in ruleChecklist" :key="check.id" class="space-y-2">
-                                <div class="flex items-start gap-3">
-                                    <div :class="['w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5',
-                                                    check.completed ? 'bg-emerald-500' : 'bg-slate-700']">
-                                        <Check class="w-3 h-3 text-white" />
-                                    </div>
-                                    <span :class="['text-xs font-bold',
-                                                    check.completed ? 'text-emerald-400' : 'text-slate-500']">
-                                        {{ check.label }}
-                                    </span>
-                                </div>
-                                <div v-if="!check.completed" class="ml-8 text-[10px] text-slate-600 italic">
-                                    {{ check.hint }}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+              <!-- [2026-02-11] PHASE: EVALUATION (최종 리포트) -->
+              <div v-else-if="gameState.phase === 'EVALUATION'" class="evaluation-view">
+                  <div class="report-card">
+                      <div class="report-header mb-8">
+                          <span class="text-emerald-400 font-black tracking-widest text-xs uppercase">Mission Complete</span>
+                          <h2 class="text-4xl font-black mt-2">FINAL ARCHITECT REPORT</h2>
+                      </div>
+                      
+                      <div class="grid grid-cols-2 gap-10">
+                          <div class="radar-area bg-black/40 p-6 rounded-2xl border border-white/5">
+                              <svg viewBox="0 0 200 200" class="w-full aspect-square">
+                                  <polygon v-for="level in 5" :key="level" :points="calculatePentagonPoints(level * 20)" class="fill-none stroke-white/10" stroke-width="0.5" />
+                                  <polygon :points="radarPoints" class="fill-emerald-500/20 stroke-emerald-500" stroke-width="1.5" />
+                              </svg>
+                          </div>
+                          <div class="text-left space-y-6">
+                              <div class="score-block">
+                                  <span class="block text-[10px] text-slate-500 uppercase font-black">Overall Fitness</span>
+                                  <span class="text-6xl font-black text-white">{{ evaluationResult.finalScore || evaluationResult.totalScore }}%</span>
+                              </div>
+                              <p class="text-sm text-slate-400 leading-relaxed italic">"{{ evaluationResult.seniorAdvice }}"</p>
+                              <button @click="resetFlow" class="btn-reset-large w-full">REBOOT_SYSTEM</button>
+                          </div>
+                      </div>
+                  </div>
+              </div>
 
-                <!-- 오른쪽: 입력창 -->
-                <div class="lg:col-span-8 space-y-6">
-                    <div class="space-y-2">
-                        <label class="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                            <Code2 class="w-4 h-4" /> 검증 규칙 (의사코드)
-                        </label>
-                        <p class="text-xs text-slate-600 leading-relaxed">
-                            AI가 코드를 스캔할 때 사용할 규칙을 작성하세요. 
-                            <strong>어떤 패턴을 찾고, 어떤 경고를 낼지</strong> 명시하세요.
-                        </p>
-                    </div>
-                    
-                    <textarea 
-                        v-model="gameState.phase3Reasoning"
-                        @input="handlePseudoInput"
-                        placeholder="예시:
-
-IF 코드에 'scaler.fit(' 또는 'encoder.fit(' 패턴이 있음
-AND 그 이전 줄에 'train_test_split' 또는 '[: 슬라이싱]'이 없음
-THEN 
-    경고: '분할 전 통계량 산출 감지'
-    설명: 'Test 데이터 통계량이 Train 학습에 영향을 줍니다'
-    해결책: 'Train/Test 분할 후 scaler.fit(X_train)으로 변경하세요'"
-                        class="w-full h-[500px] bg-slate-900 border-2 border-slate-800 rounded-[2.5rem] 
-                                p-10 text-slate-200 focus:border-blue-600 outline-none transition-all 
-                                resize-none leading-relaxed shadow-2xl text-sm font-mono"
-                    ></textarea>
-                    
-                    <div class="flex items-center justify-between text-xs text-slate-600">
-                        <span>{{ gameState.phase3Reasoning.length }} characters</span>
-                        <span :class="allChecksPassed ? 'text-emerald-400 font-bold' : 'text-slate-500'">
-                            {{ completedChecksCount }}/{{ ruleChecklist.length }} 검증 항목 완료
-                        </span>
-                    </div>
-
-                    <button 
-                        :disabled="!allChecksPassed"
-                        @click="submitPseudo"
-                        :class="['w-full py-6 rounded-3xl font-black flex justify-center items-center gap-3 text-lg transition-all',
-                                    allChecksPassed
-                                    ? 'bg-blue-600 text-white hover:bg-blue-500 shadow-xl active:scale-95' 
-                                    : 'bg-slate-800 text-slate-600 cursor-not-allowed']"
-                    >
-                        <span v-if="!allChecksPassed">
-                            모든 검증 항목 완료 필요 ({{ completedChecksCount }}/{{ ruleChecklist.length }})
-                        </span>
-                        <span v-else>
-                            파이썬 코드 생성 <Play class="w-5 h-5" />
-                        </span>
-                    </button>
-                    <!-- Progress / Feedback Message -->
-                    <div v-if="gameState.feedbackMessage" class="text-center text-sm font-bold text-blue-400 mt-2">
-                        {{ gameState.feedbackMessage }}
-                    </div>
-                </div>
-            </div>
-        </div>
-      </section>
-
-
-                <!-- 3. 모듈 (드래그 가능) -->
-                <div class="modules-col">
-                    <div class="panel-subheader">
-                        <span class="sub-icon">📦</span>
-                        <span class="sub-title">모듈 (Drag)</span>
-                    </div>
-                    <div class="snippet-list-scroll">
-                        <div 
-                            v-for="(snip, idx) in pythonSnippets" 
-                            :key="idx" 
-                            class="snippet-block-draggable"
-                            draggable="true"
-                            @dragstart="onDragStart($event, snip.code)"
-                        >
-                            <span class="s-icon">::</span>
-                            <span class="s-label">{{ snip.label }}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Bottom Action Bar -->
-            <div class="action-bar-bottom">
-                 <div class="error-console" v-if="gameState.feedbackMessage">
-                      <span class="bad-signal">시스템 경고 >></span> {{ gameState.feedbackMessage }}
-                 </div>
-                 <div v-else style="flex:1"></div>
-
-                 <div class="btn-group">
-                      <button class="btn-reset-large" @click="initPhase4Scaffolding">
-                          <span class="btn-text">다시 하기</span>
-                      </button>
-                      <button class="btn-execute-large" @click="submitPythonFill">
-                          <span class="btn-text">코드 배포</span>
-                          <span class="btn-icon">→</span>
-                      </button>
-                 </div>
-            </div>
-         </div>
-      </section>
-
-      <!-- PHASE: STEP 4 (DEEP DIVE / TAIL QUESTION) -->
-      <section v-if="gameState.phase === 'DEEP_QUIZ' || gameState.phase === 'TAIL_QUESTION'" class="w-full h-full overflow-y-auto p-12">
-        <div class="max-w-3xl mx-auto space-y-8">
-            <div class="text-center space-y-4 mb-10">
-                <span class="text-xs font-bold text-blue-500 uppercase tracking-[0.2em]">
-                    Step 04: {{ gameState.phase === 'DEEP_QUIZ' ? 'Deep Dive' : 'Analysis' }}
-                </span>
-                <h3 class="text-3xl font-black">
-                    {{ gameState.phase === 'DEEP_QUIZ' ? '심화 시나리오 검증' : '누락된 로직 진단' }}
-                </h3>
-                <p class="text-slate-400">
-                    {{ gameState.phase === 'DEEP_QUIZ' ? 'AI가 생성한 엣지 케이스 시나리오에 대응해보세요.' : '작성한 코드에서 놓친 부분을 점검합니다.' }}
-                </p>
-            </div>
-
-            <div class="bg-slate-900/50 p-10 rounded-[2.5rem] border border-slate-800 space-y-8 shadow-2xl">
-                <!-- 질문 -->
-                <div class="space-y-4">
-                    <div class="inline-block px-3 py-1 bg-indigo-500/20 text-indigo-400 rounded-lg text-xs font-bold uppercase">
-                        Question
-                    </div>
-                    <h4 class="text-xl font-bold leading-relaxed whitespace-pre-line">
-                        {{ deepQuizQuestion.question }}
-                    </h4>
-                </div>
-
-                <!-- 선택지 -->
-                <div class="space-y-4">
-                    <button
-                        v-for="(opt, idx) in deepQuizQuestion.options"
-                        :key="idx"
-                        @click="submitDeepQuiz(idx)"
-                        class="w-full text-left p-6 rounded-2xl border-2 border-slate-800 bg-slate-900/50 hover:border-slate-700 transition-all group"
-                    >
-                        <div class="flex items-start gap-4">
-                            <span class="w-8 h-8 rounded-lg bg-slate-800 text-slate-500 group-hover:bg-slate-700 flex items-center justify-center text-sm font-black shrink-0">
-                                {{ idx + 1 }}
-                            </span>
-                            <div class="flex-1">
-                                <p class="text-sm leading-relaxed text-slate-400 group-hover:text-slate-200">
-                                    {{ opt.text }}
-                                </p>
-                            </div>
-                        </div>
-                    </button>
-                </div>
-            </div>
-        </div>
-      </section>
-
-      <!-- PHASE: EVALUATION (FINAL REPORT) -->
-      <section v-if="gameState.phase === 'EVALUATION'" class="w-full h-full overflow-y-auto p-12">
-        <div class="max-w-5xl mx-auto space-y-8">
-            <div class="text-center space-y-4 mb-10">
-                <span class="text-xs font-bold text-emerald-500 uppercase tracking-[0.2em]">
-                    Final Report
-                </span>
-                <h3 class="text-3xl font-black">AI 아키텍트 평가 리포트</h3>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <!-- 왼쪽: 방사형 차트 -->
-                <div class="bg-slate-900/50 rounded-[2.5rem] border border-slate-800 p-8 flex flex-col items-center justify-center relative overflow-hidden">
-                    <div class="absolute inset-0 bg-blue-500/5 blur-3xl rounded-full"></div>
-                    
-                    <div class="relative w-full aspect-square max-w-[400px]">
-                        <svg viewBox="0 0 200 200" class="w-full h-full">
-                            <!-- Grid -->
-                            <polygon v-for="level in 5" :key="level"
-                                     :points="calculatePentagonPoints(level * 20)"
-                                     class="fill-none stroke-slate-800"
-                                     stroke-width="1" />
-                            
-                            <!-- Axis -->
-                            <line v-for="i in 5" :key="'line-'+i"
-                                  x1="100" y1="100"
-                                  :x2="calculatePoint(i-1, 100).x"
-                                  :y2="calculatePoint(i-1, 100).y"
-                                  class="stroke-slate-800"
-                                  stroke-width="1" />
-
-                            <!-- Data -->
-                            <polygon :points="radarPoints" 
-                                     class="fill-blue-500/20 stroke-blue-500"
-                                     stroke-width="2" />
-                                     
-                            <!-- Labels -->
-                             <text v-for="(metric, i) in evaluationResult.details" :key="'label-'+i"
-                                   :x="calculatePoint(i, 115).x"
-                                   :y="calculatePoint(i, 115).y"
-                                   class="text-[8px] fill-slate-400 font-bold"
-                                   text-anchor="middle"
-                                   dominant-baseline="middle">
-                                 {{ metric.dimension || metric.category }}
-                             </text>
-                        </svg>
-                    </div>
-                </div>
-
-                <!-- 오른쪽: 점수 및 피드백 -->
-                <div class="space-y-6">
-                    <!-- 종합 점수 -->
-                    <div class="bg-slate-900/80 p-8 rounded-[2rem] border border-slate-800 flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Total Score</p>
-                            <h2 class="text-5xl font-black text-white">{{ evaluationResult.finalScore || evaluationResult.totalScore }}</h2>
-                        </div>
-                        <div class="text-right">
-                             <div :class="['px-4 py-2 rounded-xl text-lg font-bold',
-                                          (evaluationResult.finalScore || evaluationResult.totalScore) >= 80 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400']">
-                                {{ (evaluationResult.finalScore || evaluationResult.totalScore) >= 80 ? 'EXCELLENT' : 'NEEDS IMPROVEMENT' }}
-                             </div>
-                        </div>
-                    </div>
-
-                    <!-- 피드백 카드 -->
-                    <div class="bg-slate-900/50 p-8 rounded-[2rem] border border-slate-800 space-y-6">
-                        <div class="space-y-2">
-                             <div class="flex items-center gap-2 text-blue-400 font-bold mb-2">
-                                <Info class="w-4 h-4" /> AI 피드백
-                             </div>
-                             <p class="text-sm text-slate-300 leading-relaxed">
-                                {{ evaluationResult.seniorAdvice }}
-                             </p>
-                        </div>
-                        
-                        <div v-if="evaluationResult.improvementPlan" class="space-y-2 pt-4 border-t border-slate-800">
-                             <div class="flex items-center gap-2 text-amber-400 font-bold mb-2">
-                                <Lightbulb class="w-4 h-4" /> 개선 가이드
-                             </div>
-                             <p class="text-sm text-slate-300 leading-relaxed">
-                                {{ evaluationResult.improvementPlan }}
-                             </p>
-                        </div>
-                    </div>
-
-                    <button @click="resetFlow" class="w-full py-4 bg-slate-800 hover:bg-slate-700 rounded-2xl font-bold text-slate-300 transition-all">
-                        처음으로 돌아가기
-                    </button>
-                </div>
-            </div>
-        </div>
-      </section>
-
-       <!-- PHASE: DEFEAT -->
-      <section v-if="gameState.phase === 'DEFEAT'" class="panel defeat-view">
-            <h1 class="glitch-text">시스템 실패</h1>
-            <p>치명적인 무결성 손실</p>
-            <button class="btn-retry" @click="restartMission">시스템 재부팅</button>
-      </section>
-
-       <!-- PHASE: CAMPAIGN END -->
-      <section v-if="gameState.phase === 'CAMPAIGN_END'" class="panel victory-view">
-            <h1 class="gold-text">모든 섹터 확보됨</h1>
-            <p>최종 점수: {{ gameState.score }}</p>
-      </section>
-
+          </section>
+      </div>
     </main>
-    
-    <!-- FEEDBACK TOAST -->
-    <div v-if="gameState.feedbackMessage && gameState.phase !== 'PYTHON_FILL' && gameState.phase !== 'EVALUATION' && gameState.phase !== 'DEFEAT' && gameState.phase !== 'CAMPAIGN_END'" class="feedback-toast">
+
+    <!-- [2026-02-11] FEEDBACK TOAST -->
+    <div v-if="gameState.feedbackMessage && gameState.phase !== 'EVALUATION'" class="feedback-toast">
       <span class="toast-icon">!</span> {{ gameState.feedbackMessage }}
     </div>
+
+    <!-- [수정일: 2026-02-11] AI 리뷰어 실험실 (Rule Lab) 오버레이 -->
+    <!-- 나중에 기능 제거 시 아래 transition 블록 전체를 삭제하면 됩니다. -->
+    <transition name="lab-slide">
+      <div v-if="isLabOpen" class="ai-reviewer-lab-overlay">
+        <div class="lab-window">
+          <header class="lab-header">
+            <div class="lh-left">
+              <Brain class="text-emerald-400 w-6 h-6" />
+              <h2 class="lh-title">AI REVIEWER_RULE_LAB <span class="text-[10px] opacity-40 ml-2">VERIFICATION_SANDBOX</span></h2>
+            </div>
+            <div class="flex items-center gap-4">
+              <div class="lab-tabs">
+                <button v-for="tab in ['RULES', 'GUIDE', 'TEST']" :key="tab" 
+                        @click="activeLabTab = tab" 
+                        :class="{ 'active': activeLabTab === tab }" class="lab-tab-btn">{{ tab }}</button>
+              </div>
+              <button class="lh-close" @click="toggleLab">×</button>
+            </div>
+          </header>
+
+          <div class="lab-container">
+            <!-- TAB 1: RULES (JSON) -->
+            <div v-if="activeLabTab === 'RULES'" class="lab-full-section">
+              <div class="sec-header">
+                <Code2 class="w-4 h-4" /> <span>AI 정밀 평가 규칙 (JSON)</span>
+              </div>
+              <div class="json-editor-wrapper">
+                <textarea v-model="labState.jsonRules" @input="onLabJsonInput" class="lab-json-textarea" spellcheck="false"></textarea>
+                <div v-if="labState.jsonError" class="json-error-msg"><AlertOctagon class="w-3 h-3" /> {{ labState.jsonError }}</div>
+              </div>
+              <div class="sec-footer">
+                <p class="text-[11px] text-slate-500">※ criticalPatterns 및 requiredConcepts의 정규식을 수정하여 AI의 감점/가점 기준을 제어합니다.</p>
+                <button @click="applyLabData('rules')" :disabled="!!labState.jsonError" class="btn-apply-lab">규칙 즉시 적용</button>
+              </div>
+            </div>
+
+            <!-- TAB 2: GUIDE (Instruction Panel) -->
+            <div v-if="activeLabTab === 'GUIDE'" class="lab-full-section">
+              <div class="sec-header">
+                <Lightbulb class="w-4 h-4" /> <span>인스트럭션 가이드 소스 수정</span>
+              </div>
+              <div class="lab-guide-grid">
+                <div class="guide-edit-box">
+                  <label class="lab-label">의사코드 작성 원칙 (Writing Guide)</label>
+                  <textarea v-model="labState.writingGuide" class="lab-guide-textarea"></textarea>
+                </div>
+                <div class="guide-edit-box">
+                  <label class="lab-label">체크리스트 편집 (Checklist JSON)</label>
+                  <textarea v-model="labState.checklistJson" @input="onChecklistJsonInput" class="lab-json-textarea text-[12px]"></textarea>
+                  <div v-if="labState.checklistError" class="json-error-msg bottom-[-25px]"><AlertOctagon class="w-3 h-3" /> {{ labState.checklistError }}</div>
+                </div>
+              </div>
+              <div class="sec-footer mt-auto">
+                <p class="text-[11px] text-slate-500">※ 가이드 문구와 체크리스트 정규식을 변경하여 학습자에게 제공되는 실시간 피드백을 조정합니다.</p>
+                <button @click="applyLabData('guide')" :disabled="!!labState.checklistError" class="btn-apply-lab">가이드 즉시 반영</button>
+              </div>
+            </div>
+
+            <!-- TAB 3: TEST (Sandbox) -->
+            <div v-if="activeLabTab === 'TEST'" class="lab-full-section flex-row gap-8">
+              <div class="flex-1 flex flex-col">
+                <div class="sec-header"><Play class="w-4 h-4" /> <span>테스트 로직 입력</span></div>
+                <textarea v-model="labState.testInput" class="lab-test-textarea flex-1 mb-4" placeholder="검증할 의사코드를 입력하세요..."></textarea>
+                <button @click="runLabTest" :disabled="labState.isTesting" class="btn-run-test w-full">
+                  <Brain class="w-4 h-4" /> 샌드박스 검증 실행
+                </button>
+              </div>
+              <div class="flex-1 flex flex-col">
+                <div class="sec-header"><BarChart3 class="w-4 h-4" /> <span>실시간 분석 결과</span></div>
+                <div class="test-result-group flex-1">
+                   <div v-if="labState.testResult" class="result-body">
+                      <div class="result-score-row">
+                        <div class="rs-item"><span class="rs-label">SCORE</span><span class="rs-val" :class="getScoreColor(labState.testResult.score)">{{ labState.testResult.score }}점</span></div>
+                        <div class="rs-item"><span class="rs-label">PASSED</span><span class="rs-val" :class="labState.testResult.passed ? 'text-emerald-400' : 'text-red-400'">{{ labState.testResult.passed ? 'YES' : 'NO' }}</span></div>
+                      </div>
+                      <div class="result-detail-list">
+                        <div v-for="(err, i) in labState.testResult.criticalErrors" :key="i" class="rd-item is-error">
+                          <AlertOctagon class="w-4 h-4" /> <p class="rd-msg">{{ err.message }}</p>
+                        </div>
+                        <div v-for="(warn, i) in labState.testResult.warnings" :key="i" class="rd-item is-warn">
+                          <Info class="w-4 h-4" /> <p class="rd-msg">{{ warn }}</p>
+                        </div>
+                      </div>
+                   </div>
+                   <div v-else class="result-placeholder"><Brain class="w-12 h-12 opacity-10" /><p>로직을 입력하고 검증을 시작하세요.</p></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
 
   </div>
 </template>
 
 <script setup>
-import { computed, ref, onMounted, watch, nextTick } from 'vue';
+import { computed, ref, reactive, onMounted, watch, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { useGameStore } from '@/stores/game';
 import { useCoduckWars } from './composables/useCoduckWars.js';
@@ -525,120 +408,164 @@ import {
 const router = useRouter();
 const gameStore = useGameStore();
 
-// --- MOCK STATE for Debugging ---
-const gameState = ref({phase: 'DIAGNOSTIC_1', systemLogs: []});
-const currentMission = ref({});
-const runnerState = ref({});
-const evaluationResult = ref({});
-const deepQuizQuestion = ref({});
-const isEvaluating = ref(false);
-const logicBlocks = ref([]);
-const pythonSnippets = ref([]);
-const activeDetail = ref(null);
-const isGuideOpen = ref(false);
-const isWritingGuideOpen = ref(false);
-const selectedGuideIdx = ref(0);
+const {
+    gameState,
+    currentMission,
+    runnerState,
+    evaluationResult,
+    deepQuizQuestion,
+    isEvaluating,
+    pythonSnippets,
+    ruleChecklist,
+    completedChecksCount,
+    allChecksPassed,
+    canSubmitPseudo,
+    isProcessing,
+    isGuideOpen,
+    selectedGuideIdx,
 
-// --- New State for Pseudocode2 UI ---
-const ruleChecklist = ref([
-    {
-        id: 'check_fit',
-        label: 'fit 메서드 호출 감지',
-        patterns: [
-            /\.fit\(/i,
-            /fit\(/i,
-            /scaler.*fit/i,
-            /encoder.*fit/i
-        ],
-        hint: "scaler.fit( 또는 encoder.fit( 패턴 찾기",
-        completed: false
-    },
-    {
-        id: 'check_split',
-        label: '분할 코드 유무 확인',
-        patterns: [
-            /train_test_split/i,
-            /분할/i,
-            /split/i,
-            /\[:/i
-        ],
-        hint: "train_test_split 또는 슬라이싱 체크",
-        completed: false
-    },
-    {
-        id: 'check_order',
-        label: 'fit 이전에 분할 여부 검증',
-        patterns: [
-            /이전/i,
-            /before/i,
-            /앞/i,
-            /먼저/i
-        ],
-        hint: "fit 이전에 분할이 있는지 확인",
-        completed: false
-    },
-    {
-        id: 'check_warning',
-        label: '경고 메시지 명시',
-        patterns: [
-            /경고/i,
-            /warning/i,
-            /알림/i,
-            /THEN/i
-        ],
-        hint: "THEN 경고: '...' 형태로 작성",
-        completed: false
-    }
-]);
+    toggleGuide,
+    handleGuideClick,
+    submitDiagnostic1,
+    submitDiagnostic2,
+    handlePseudoInput,
+    submitPseudo,
+    resetFlow,
+    handlePracticeClose
+} = useCoduckWars();
 
-const completedChecksCount = computed(() => 
-    ruleChecklist.value.filter(c => c.completed).length
-);
+// --- Computed for Step 01 (diagnosticQuestion1) 오류 해결 ---
+const diagnosticQuestion1 = computed(() => currentMission.value.interviewQuestions?.[0] || {});
+const diagnosticQuestion2 = computed(() => currentMission.value.interviewQuestions?.[1] || {});
 
-const allChecksPassed = computed(() => 
-    completedChecksCount.value === ruleChecklist.value.length
-);
+// --- Functions for missing refs in template ---
+const restartMission = () => resetFlow();
 
-// Watch for pseudocode input to update checklist
-watch(() => gameState.value.phase3Reasoning, (newRules) => {
-    if (!newRules) return;
-    ruleChecklist.value.forEach(check => {
-        check.completed = check.patterns.some(pattern => pattern.test(newRules));
-    });
+const radarPoints = computed(() => {
+    if (!evaluationResult?.details) return "";
+    return evaluationResult.details.map((d, i) => {
+        const score = d.score || 0;
+        const p = calculatePoint(i, score);
+        return `${p.x},${p.y}`;
+    }).join(' ');
 });
 
-// --- MOCK FUNCTIONS ---
-const toggleGuide = () => {};
-const toggleWritingGuide = () => {};
-const handleGuideClick = () => {};
-const handleDiagnosticSubmit = () => {};
-const submitPseudo = () => {};
-const submitPythonFill = () => {};
-const submitDeepQuiz = () => {};
-const initPhase4Scaffolding = () => {};
-const handlePseudoInput = () => {};
-const handleEditorDrop = () => {};
-const onDragStart = () => {};
-const onDrop = () => {};
-const handleMonacoMount = () => {};
-const monacoOptions = {};
-const getLogTypeClass = () => {};
-const getLogLabel = () => {};
-const insertCodeSnippet = () => {};
-const handleTailQuestion = () => {};
-const selectStage = () => {};
-const explainStep = () => {};
-const addLogicBlock = () => {};
-const submitDiagnostic1 = () => {};
-const submitDiagnostic2 = () => {};
-const activeStepIndex = computed(() => 0);
-const radarPoints = computed(() => "");
-const currentDiagnosticQuestion = computed(() => ({}));
-const commentedLogicLines = computed(() => []);
-const exitToHub = () => { router.push('/'); };
-const restartMission = () => {};
+// Helper for Radar Chart
+const calculatePoint = (index, value) => {
+    const angle = (Math.PI * 2) / 5 * index - (Math.PI / 2);
+    const radius = (value / 100) * 80;
+    return {
+        x: 100 + radius * Math.cos(angle),
+        y: 100 + radius * Math.sin(angle)
+    };
+};
 
-// --- END MOCK ---
+const calculatePentagonPoints = (radius) => {
+    return Array.from({length: 5}).map((_, i) => {
+        const p = calculatePoint(i, (radius / 80) * 100);
+        return `${p.x},${p.y}`;
+    }).join(' ');
+};
+
+// --- AI 리뷰어 실험실 (Rule Lab) 로직 [수정일: 2026-02-11] ---
+const isLabOpen = ref(false);
+const activeLabTab = ref('RULES');
+const labState = reactive({
+    jsonRules: '',
+    jsonError: null,
+    writingGuide: '',
+    checklistJson: '',
+    checklistError: null,
+    testInput: '',
+    testResult: null,
+    isTesting: false
+});
+
+const toggleLab = () => {
+    if (!isLabOpen.value) {
+        // 미션의 현재 상태 로드
+        const mission = currentMission.value;
+        const validation = mission.designContext?.validation || {};
+        labState.jsonRules = JSON.stringify(validation, (k, v) => v instanceof RegExp ? v.toString() : v, 2);
+        labState.writingGuide = mission.designContext?.writingGuide || '';
+        
+        // Checklist도 JSON으로 편집 가능하게 변환
+        const checklist = ruleChecklist.value || [];
+        labState.checklistJson = JSON.stringify(checklist, (k, v) => v instanceof RegExp ? v.toString() : v, 2);
+        
+        labState.testInput = gameState.phase3Reasoning || '';
+    }
+    isLabOpen.value = !isLabOpen.value;
+};
+
+const onLabJsonInput = () => {
+    try { JSON.parse(labState.jsonRules); labState.jsonError = null; }
+    catch (e) { labState.jsonError = "JSON 형식이 올바르지 않습니다."; }
+};
+
+const onChecklistJsonInput = () => {
+    try { JSON.parse(labState.checklistJson); labState.checklistError = null; }
+    catch (e) { labState.checklistError = "Checklist JSON 형식이 올바르지 않습니다."; }
+};
+
+const applyLabData = (type) => {
+    try {
+        const reviver = (k, v) => {
+            if (typeof v === 'string' && v.startsWith('/') && v.lastIndexOf('/') > 0) {
+                const parts = v.match(/\/(.*)\/(.*)/);
+                if (parts) return new RegExp(parts[1], parts[2]);
+            }
+            return v;
+        };
+
+        if (type === 'rules') {
+            const parsed = JSON.parse(labState.jsonRules, reviver);
+            if (currentMission.value.designContext) {
+                currentMission.value.designContext.validation = parsed;
+            }
+        } else if (type === 'guide') {
+            if (currentMission.value.designContext) {
+                currentMission.value.designContext.writingGuide = labState.writingGuide;
+            }
+            const parsedChecklist = JSON.parse(labState.checklistJson, reviver);
+            // useCoduckWars에서 관리하는 ruleChecklist에 반영
+            ruleChecklist.value = parsedChecklist;
+        }
+        
+        gameStore.addSystemLog(`실험실 데이터(${type.toUpperCase()})가 즉시 적용되었습니다.`, "SUCCESS");
+        gameState.feedbackMessage = `✅ ${type.toUpperCase()} 업데이트 완료`;
+    } catch (e) {
+        alert("적용 중 오류 발생: " + e.message);
+    }
+};
+
+const runLabTest = async () => {
+    if (labState.isTesting) return;
+    labState.isTesting = true;
+    try {
+        const { PseudocodeValidator } = await import('./utils/PseudocodeValidator.js');
+        const reviver = (k, v) => {
+            if (typeof v === 'string' && v.startsWith('/') && v.lastIndexOf('/') > 0) {
+                const parts = v.match(/\/(.*)\/(.*)/);
+                if (parts) return new RegExp(parts[1], parts[2]);
+            }
+            return v;
+        };
+        const mockMission = {
+            ...currentMission.value,
+            validation: JSON.parse(labState.jsonRules, reviver)
+        };
+        const validator = new PseudocodeValidator(mockMission);
+        labState.testResult = validator.validate(labState.testInput);
+    } catch (e) {
+        console.error("Sandbox Test Error:", e);
+    } finally { labState.isTesting = false; }
+};
+
+const getScoreColor = (s) => (s >= 80 ? 'text-emerald-400' : s >= 50 ? 'text-amber-400' : 'text-red-400');
+// --- END Rule Lab Logic ---
+
+// --- END INTEGRATION ---
 </script>
 
 <style scoped>
@@ -725,28 +652,8 @@ const restartMission = () => {};
     gap: 20px; /* LAYOUT GRID */
 }
 .viewport { flex: 1; position: relative; z-index: 50; padding: 0; display: flex; }
-.combat-grid {
-    display: flex;
-    flex-wrap: nowrap; /* CRITICAL: Force side-by-side */
-    width: 100%;
-    height: 100%;
-    overflow: hidden; /* Prevent scroll */
-}
-
-/* LEFT PANEL - ENTITY CARD */
-.entity-card {
-    /* Fixed width to preserve "Coduck" card ratio */
-    flex: 0 0 450px; 
-    max-width: 450px;
-    height: 100%; /* Fill Text/Image Logic Height */
-    background: #0a0a0a;
-    border-right: 1px solid #333;
-    padding: 30px; /* Fixed padding for consistent look */
-    display: flex;
-    flex-direction: column;
-}
-
-/* ... existing styles ... */
+/* [2026-02-11] 중복 스타일 제거 함으로써 monaco-styles.css의 전술적 레이아웃 설정이 우선 적용되도록 함 */
+/* .combat-grid, .entity-card, .visual-frame, .coduck-portrait 등은 monaco-styles.css에서 관리 */
 
 .hp-bar-bg {
     width: 15vw; /* Relative width */
@@ -768,132 +675,10 @@ const restartMission = () => {};
     display:flex; 
     flex-direction:column; 
 }
-.entity-header {
-    display: flex;
-    justify-content: space-between;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.9rem;
-    color: #fbbf24; /* Amber Warning */
-    margin-bottom: 30px;
-    border-bottom: 2px solid #fbbf24;
-    padding-bottom: 10px;
-}
-.visual-frame {
-    position: relative;
-    border: 2px solid #333;
-    flex: 1; /* Fill vertical space */
-    max-height: 500px;
-    background: #000;
-    margin-bottom: 30px;
-    overflow: hidden;
-}
-.coduck-portrait { width: 100%; height: 100%; object-fit: cover; filter: grayscale(100%) sepia(20%) hue-rotate(50deg) saturate(300%) contrast(1.2); opacity: 0.9; }
-.scan-overlay {
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: repeating-linear-gradient(
-        0deg,
-        rgba(0, 0, 0, 0.2),
-        rgba(0, 0, 0, 0.2) 2px,
-        transparent 2px,
-        transparent 4px
-    );
-    pointer-events: none;
-}
-.disconnect-tag {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background: #ef4444; /* Red */
-    color: #000;
-    font-weight: 900;
-    padding: 10px;
-    text-align: center;
-    font-size: 1rem;
-    letter-spacing: 2px;
-}
-.dialogue-box {
-    background: #111;
-    border: 1px solid #333;
-    padding: 25px;
-    border-left: 4px solid #3b82f6; /* Blue Accent */
-}
-.speaker { color: #3b82f6; font-size: 0.9rem; font-weight: bold; display: block; margin-bottom: 10px; text-transform: uppercase; }
-.dialogue-text { color: #e5e7eb; font-style: italic; line-height: 1.6; font-size: 1.1rem; }
+/* .visual-frame, .coduck-portrait, .dialogue-box 등은 monaco-styles.css에서 통합 관리 (2026-02-11) */
 
 
-/* RIGHT PANEL - DECISION ENGINE */
-.decision-panel {
-    flex: 1;
-    min-width: 0; /* CRITICAL: Allow shrinking */
-    padding: 4vw 6vw; /* Responsive padding (was 60px 100px) */
-    display: flex;
-    flex-direction: column;
-    justify-content: center; /* Center Vertically */
-    background: rgba(10, 10, 10, 0.3); /* Slight tint */
-    overflow-y: auto;
-}
-.system-status-text {
-    color: #6b7280;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 1rem;
-    margin-bottom: 30px;
-    letter-spacing: 1px;
-}
-.big-question {
-    font-size: 3.5rem; /* Massive Font */
-    font-weight: 900;
-    letter-spacing: -2px;
-    line-height: 1.2;
-    color: #fff;
-    margin-bottom: 60px;
-    text-shadow: 0 0 50px rgba(0,0,0,0.8); /* Shadow for readability */
-}
-
-/* Stretched Options to Fill Space */
-.options-list { 
-    display: flex; 
-    flex-direction: column; 
-    gap: 30px; /* Big Gap */
-    width: 100%; 
-}
-
-.option-card {
-    background: rgba(20, 20, 20, 0.6);
-    border: 1px solid rgba(255,255,255,0.1);
-    display: flex;
-    align-items: stretch;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    height: 140px; /* Taller Cards */
-    text-align: left;
-    padding: 0;
-    position: relative;
-    z-index: 60;
-    pointer-events: auto;
-    overflow: hidden;
-}
-.option-card:hover {
-    background: rgba(74, 222, 128, 0.05);
-    border-color: #4ade80;
-    transform: translateX(10px); /* Slide effect */
-}
-.opt-index {
-    width: 100px;
-    background: #1f2937; /* Default Dark Grey */
-    color: #9ca3af;
-    font-weight: 900;
-    font-size: 2.2rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.2s, color 0.2s;
-}
-.option-card:hover .opt-index {
-    background: #4ade80; /* Neon Green on Hover */
-    color: #000;
-}
+/* .decision-panel, .big-question, .options-list, .option-card 등은 monaco-styles.css에서 통합 관리 (2026-02-11) */
 /* --- GUIDE FLOATING BUTTON & SIDEBAR --- */
 .btn-guide-floating {
     position: fixed;
@@ -1202,73 +987,108 @@ const restartMission = () => {};
 .h-text { font-size: 1rem; line-height: 1.4; }
 .h-highlight { color: #4ade80; font-weight: 900; } /* Text Highlight instead of background */
 
-/* MONACO STYLE EDITOR WRAPPER */
-.monaco-wrapper {
-    flex: 1;
-    background: #1e1e1e; /* VS Code Logic Background */
-    border: 1px solid #333;
-    display: flex;
-    position: relative;
-    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-    overflow: hidden;
-    margin-bottom: 20px;
+/* .monaco-wrapper, .line-numbers, .monaco-textarea, .action-bar-bottom 등은 monaco-styles.css에서 통합 관리 (2026-02-11) */
+
+/* [수정일: 2026-02-11] AI REVIEWER LAB STYLES (Premium Interface) */
+.btn-lab-toggle {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #10b981;
+  padding: 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 20px;
 }
-.line-numbers {
-    width: 50px; /* Slightly wider */
-    background: #1e1e1e;
-    border-right: 1px solid #333;
-    color: #858585;
-    text-align: right;
-    padding: 20px 10px;
-    font-size: 14px;
-    line-height: 1.5;
-    user-select: none;
-    display: flex; /* Flex column for vertical numbers */
-    flex-direction: column;
-}
-.monaco-textarea {
-    flex: 1;
-    background: transparent;
-    border: none;
-    color: #d4d4d4;
-    padding: 20px;
-    font-family: inherit;
-    font-size: 14px;
-    line-height: 1.5;
-    resize: none;
-    outline: none;
-    white-space: pre;
+.btn-lab-toggle:hover {
+  background: rgba(16, 185, 129, 0.2);
+  transform: scale(1.1) rotate(10deg);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
 }
 
-.editor-action-bar {
-    display: flex;
-    justify-content: space-between; /* Changed to space-between to align notice left, button right */
-    align-items: center;
-    padding-top: 10px;
+.ai-reviewer-lab-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(20px);
+  z-index: 5000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2vw;
 }
 
-.btn-execute-large {
-    background: #4ade80; /* Neon Green */
-    color: #000;
-    font-weight: 900;
-    padding: 10px 30px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    transition: all 0.2s;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+.lab-window {
+  width: 95vw;
+  max-width: 1400px;
+  height: 90vh;
+  background: #0d0d0f;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 0.9);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-.btn-execute-large:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0 20px rgba(74, 222, 128, 0.5);
-    background: #22c55e;
+.lab-header {
+  padding: 25px 40px;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
+.lh-title { font-weight: 900; letter-spacing: 3px; font-size: 1.2rem; color: #fff; text-shadow: 0 0 20px rgba(74, 222, 128, 0.3); }
+
+.lab-tabs { display: flex; gap: 8px; background: #000; padding: 4px; border-radius: 10px; border: 1px solid #222; }
+.lab-tab-btn {
+  padding: 8px 20px; border: none; background: none; color: #555; font-weight: 800; font-size: 0.75rem;
+  border-radius: 6px; cursor: pointer; transition: all 0.3s;
+}
+.lab-tab-btn.active { background: #111; color: #4ade80; box-shadow: 0 0 10px rgba(74, 222, 128, 0.1); }
+
+.lab-container { flex: 1; overflow: hidden; display: flex; }
+.lab-full-section { flex: 1; padding: 40px; display: flex; flex-direction: column; animation: lab-fade-in 0.4s ease; }
+
+.sec-header { display: flex; align-items: center; gap: 12px; color: #64748b; font-size: 0.8rem; font-weight: 800; text-transform: uppercase; margin-bottom: 25px; letter-spacing: 1px; }
+
+.json-editor-wrapper { flex: 1; position: relative; margin-bottom: 25px; }
+.lab-json-textarea {
+  width: 100%; height: 100%; background: #050505; border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 16px;
+  padding: 25px; color: #4ade80; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; resize: none; outline: none; line-height: 1.6;
+}
+
+.lab-guide-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; flex: 1; }
+.guide-edit-box { display: flex; flex-direction: column; gap: 12px; }
+.lab-label { font-size: 0.75rem; font-weight: 900; color: #94a3b8; }
+.lab-guide-textarea {
+  flex: 1; background: #050505; border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 16px;
+  padding: 20px; color: #e2e8f0; font-size: 0.95rem; line-height: 1.7; resize: none; outline: none;
+}
+
+.btn-apply-lab {
+  padding: 16px 32px; background: #4ade80; color: #000; font-weight: 900; font-size: 0.9rem;
+  border-radius: 12px; cursor: pointer; border: none; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1);
+}
+.btn-apply-lab:hover:not(:disabled) { transform: translateY(-4px); box-shadow: 0 15px 30px rgba(74, 222, 128, 0.3); }
+
+.btn-run-test {
+  padding: 16px; background: #111; color: #fff; font-weight: 900; border: 1px solid #333;
+  border-radius: 14px; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 12px;
+}
+
+.test-result-group { background: #000; border-radius: 20px; border: 1px solid #1a1a1a; overflow-y: auto; }
+
+.anim-pulse { animation: lab-glow 2s infinite ease-in-out; }
+@keyframes lab-glow { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.5) drop-shadow(0 0 10px #4ade80); } }
+@keyframes lab-fade-in { from { opacity: 0; transform: scale(0.99); } to { opacity: 1; transform: scale(1); } }
+
+.lab-slide-enter-active, .lab-slide-leave-active { transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+.lab-slide-enter-from, .lab-slide-leave-to { opacity: 0; transform: translateY(40px) scale(0.95); }
 
 
 /* PHASE 4, 5, etc preserved */

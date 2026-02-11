@@ -1,455 +1,428 @@
-/* Phase 3: 40% 자연어 + 60% Python 에디터 레이아웃 */
-.pseudo-dual-panel {
-  display: flex;
-  gap: 20px;
-  width: 100%;
-  height: calc(100vh - 180px);
-  /* Use viewport height minus header/footer */
-  min-height: 400px;
-  margin-top: 10px;
-  /* Ensure it doesn't overflow parent */
-  box-sizing: border-box;
+/* [2026-02-11] Coduck Wars 전술 레이아웃 (Combat Grid) 확장 스타일 */
+
+/* 2단 그리드 시스템: [2026-02-11] 에디터 공간 극대화를 위해 3:7 비율로 조정 */
+.combat-grid {
+  display: grid;
+  grid-template-columns: 3fr 7fr;
+  /* 좌측 캐릭터 패널 고정, 우측 인터랙션 확장 */
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.pseudo-natural-lang {
-  flex: 4;
-  /* Ratio 4 */
-  display: flex;
-  flex-direction: column;
-  background: rgba(30, 30, 30, 0.7);
-  border: 1px solid rgba(74, 222, 128, 0.3);
-  border-radius: 8px;
-  overflow: hidden;
-  min-width: 0;
-  /* Prevent flex item from overflowing */
-}
-
-.pseudo-python-editor {
-  flex: 6;
-  /* Ratio 6 */
+/* 좌측 캐릭터 시각화 패널 */
+.entity-card {
+  background: rgba(10, 15, 25, 0.95);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 30px;
   display: flex;
   flex-direction: column;
-  background: rgba(30, 30, 30, 0.7);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 8px;
-  overflow: hidden;
-  min-width: 0;
-  /* Prevent flex item from overflowing */
-}
-
-.panel-subheader {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  background: rgba(0, 0, 0, 0.3);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.sub-icon {
-  font-size: 16px;
-}
-
-.sub-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: #4ade80;
-  flex: 1;
-}
-
-.lang-badge {
-  font-size: 11px;
-  padding: 2px 8px;
-  background: rgba(59, 130, 246, 0.2);
-  border: 1px solid rgba(59, 130, 246, 0.5);
-  border-radius: 4px;
-  color: #60a5fa;
-}
-
-.monaco-wrapper-natural {
-  flex: 1;
-  display: flex;
   position: relative;
   overflow: hidden;
 }
 
-.monaco-python-editor {
-  flex: 1;
-  min-height: 400px;
-}
-
-/* Monaco Editor 기본 오버라이드 */
-.monaco-python-editor .monaco-editor {
-  background: transparent !important;
-}
-
-.monaco-python-editor .monaco-editor .margin {
-  background: rgba(0, 0, 0, 0.2) !important;
-}
-
-/* Phase 4: Monaco Editor Container (Phase 4용) */
-.monaco-editor-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background: rgba(30, 30, 30, 0.7);
-  border: 1px solid rgba(74, 222, 128, 0.3);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.editor-header {
+.entity-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  background: rgba(0, 0, 0, 0.3);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.editor-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #4ade80;
-}
-
-.editor-lang {
-  font-size: 11px;
-  padding: 2px 8px;
-  background: rgba(74, 222, 128, 0.2);
-  border: 1px solid rgba(74, 222, 128, 0.5);
-  border-radius: 4px;
-  color: #4ade80;
-}
-
-.monaco-editor-instance {
-  flex: 1;
-  min-height: 400px;
-}
-
-.editor-hint {
-  padding: 10px 16px;
-  background: rgba(59, 130, 246, 0.1);
-  border-top: 1px solid rgba(59, 130, 246, 0.3);
-  font-size: 12px;
-  color: #60a5fa;
-}
-
-/* Snippet blocks - Reference style (no drag) */
-.snippet-block-ref {
-  padding: 10px 12px;
-  margin-bottom: 8px;
-  background: rgba(74, 222, 128, 0.1);
-  border: 1px solid rgba(74, 222, 128, 0.3);
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.snippet-block-ref:hover {
-  background: rgba(74, 222, 128, 0.2);
-  border-color: rgba(74, 222, 128, 0.5);
-  transform: translateX(2px);
-}
-
-.snippet-block-ref .s-label {
-  font-size: 12px;
-  color: #d1d5db;
-}
-
-/* Phase 4: 3열 레이아웃 (자연어 25% + 에디터 60% + 모듈 15%) */
-.phase4-tri-panel {
-  display: flex;
-  gap: 12px;
-  width: 100%;
-  height: calc(100vh - 220px);
-  /* Dynamic height based on viewport */
-  min-height: 400px;
-  margin-top: 10px;
-  box-sizing: border-box;
-}
-
-.natural-lang-col {
-  flex: 25;
-  /* 25% */
-  display: flex;
-  flex-direction: column;
-  background: rgba(30, 30, 30, 0.7);
-  border: 1px solid rgba(156, 163, 175, 0.3);
-  border-radius: 8px;
-  overflow: hidden;
-  min-width: 0;
-}
-
-.python-editor-col {
-  flex: 60;
-  /* 60% */
-  /* 나머지 공간 차지 */
-  display: flex;
-  flex-direction: column;
-  background: rgba(30, 30, 30, 0.7);
-  border: 1px solid rgba(74, 222, 128, 0.3);
-  border-radius: 8px;
-  overflow: hidden;
-  min-width: 0;
-}
-
-.modules-col {
-  flex: 15;
-  /* 15% */
-  min-width: 12vw;
-  /* Relative min-width */
-  max-width: 20vw;
-  display: flex;
-  flex-direction: column;
-  background: rgba(30, 30, 30, 0.7);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.commented-content-scroll {
-  flex: 1;
-  padding: 16px;
-  overflow-y: auto;
-  background: rgba(0, 0, 0, 0.2);
+  margin-bottom: 30px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  line-height: 1.6;
-  color: #9ca3af;
-}
-
-.monaco-editor-main {
-  flex: 1;
-  min-height: 400px;
-}
-
-.editor-bottom-hint {
-  padding: 8px 16px;
-  background: rgba(74, 222, 128, 0.1);
-  border-top: 1px solid rgba(74, 222, 128, 0.3);
-  font-size: 12px;
-  color: #4ade80;
-  text-align: center;
-}
-
-.snippet-list-scroll {
-  flex: 1;
-  padding: 10px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.snippet-block-draggable {
-  padding: 10px 12px;
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 4px;
-  cursor: grab;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  user-select: none;
-}
-
-.snippet-block-draggable:hover {
-  background: rgba(59, 130, 246, 0.2);
-  border-color: rgba(59, 130, 246, 0.5);
-  transform: translateX(2px);
-}
-
-.snippet-block-draggable:active {
-  cursor: grabbing;
-}
-
-.s-icon {
   font-size: 10px;
-  color: #60a5fa;
-  opacity: 0.7;
+  letter-spacing: 2px;
+  color: rgba(255, 255, 255, 0.4);
 }
 
-.s-label {
-  font-size: 12px;
-  color: #d1d5db;
-  font-family: 'JetBrains Mono', monospace;
-}
-
-/* 네모 박스 효과 (TODO 강조 - 프리미엄 글로우 & 애니메이션) */
-.todo-highlight {
-  background: linear-gradient(90deg, rgba(234, 179, 8, 0.1) 0%, rgba(234, 179, 8, 0.2) 50%, rgba(234, 179, 8, 0.1) 100%);
-  border: 1px solid rgba(234, 179, 8, 0.5);
-  border-radius: 4px;
-  box-shadow: 0 0 15px rgba(234, 179, 8, 0.2);
-  cursor: pointer;
-  animation: todo-pulsar 2s infinite ease-in-out;
+/* [2026-02-11] 이미지 영역 축소: 가이드 패널 가독성 확보를 위해 콤팩트하게 조정 */
+.visual-frame {
   position: relative;
+  width: 70%;
+  /* 100%에서 70%로 축소 */
+  aspect-ratio: 1 / 0.9;
+  margin: 0 auto 16px;
+  /* 하단 여백 축소 */
+  background: radial-gradient(circle at center, rgba(59, 130, 246, 0.15) 0%, transparent 70%);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
 }
 
-/* 스캔라인 효과 추가 */
-.todo-highlight::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 50%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-  animation: todo-scan 3s infinite linear;
+/* [2026-02-11] 캐릭터 이미지 크기 동반 축소 */
+.coduck-portrait {
+  width: 80%;
+  height: 80%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 15px rgba(59, 130, 246, 0.3));
+  /* [2026-02-11] 미세하게 숨쉬는 듯한 애니메이션 */
+  animation: coduck-float 3s infinite ease-in-out;
 }
 
-.todo-highlight::after {
-  content: " [INPUT REQUIRED] 👈";
-  font-size: 10px;
-  font-weight: bold;
-  color: #eab308;
-  margin-left: 10px;
-  text-shadow: 0 0 5px rgba(234, 179, 8, 0.5);
-}
-
-/* 좌측 마진 아이콘 */
-.todo-glyph {
-  background: #eab308;
-  border-radius: 50%;
-  width: 8px !important;
-  height: 8px !important;
-  margin-left: 5px;
-  box-shadow: 0 0 8px #eab308;
-}
-
-@keyframes todo-pulsar {
+@keyframes coduck-float {
 
   0%,
   100% {
-    border-color: rgba(234, 179, 8, 0.4);
-    box-shadow: 0 0 5px rgba(234, 179, 8, 0.1);
+    transform: translateY(0) scale(1);
   }
 
   50% {
-    border-color: rgba(234, 179, 8, 1);
-    box-shadow: 0 0 15px rgba(234, 179, 8, 0.4);
-    background-color: rgba(234, 179, 8, 0.25);
+    transform: translateY(-10px) scale(1.02);
   }
 }
 
-@keyframes todo-scan {
-  0% {
-    left: -100%;
-  }
-
-  100% {
-    left: 200%;
-  }
+.dialogue-box {
+  background: rgba(0, 0, 0, 0.4);
+  border-left: 3px solid #3b82f6;
+  padding: 20px;
+  border-radius: 4px 16px 16px 4px;
 }
 
-/* RESPONSIVE MEDIA QUERIES */
-
-/* Laptop / Smaller Desktop (max-width: 1280px) */
-@media (max-width: 1280px) {
-  .pseudo-dual-panel {
-    gap: 10px;
-  }
-
-  .phase4-tri-panel {
-    gap: 8px;
-  }
-
-  .modules-col {
-    flex: 0 0 160px;
-    /* Shrink modules column */
-    min-width: 140px;
-  }
+.speaker {
+  display: block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: #3b82f6;
+  font-weight: 800;
+  margin-bottom: 8px;
+  letter-spacing: 1px;
 }
 
-/* Tablet / Portrait (max-width: 1024px) */
-@media (max-width: 1024px) {
-
-  /* Phase 3: Stack panels vertically if needed or adjust ratios */
-  .pseudo-dual-panel {
-    flex-direction: column;
-    height: auto;
-    min-height: 800px;
-    /* Allow scrolling */
-  }
-
-  .pseudo-natural-lang,
-  .pseudo-python-editor {
-    flex: 0 0 auto;
-    width: 100%;
-    height: 400px;
-  }
-
-  /* Phase 4: Shift modules to bottom or stack */
-  .phase4-tri-panel {
-    flex-wrap: wrap;
-    height: auto;
-    overflow-y: visible;
-  }
-
-  .natural-lang-col {
-    flex: 0 0 100%;
-    /* Full width top */
-    height: 150px;
-    margin-bottom: 10px;
-  }
-
-  .python-editor-col {
-    flex: 1 1 60%;
-    min-height: 500px;
-  }
-
-  .modules-col {
-    flex: 1 1 30%;
-    max-width: none;
-    min-width: 200px;
-    height: 500px;
-  }
+.dialogue-text {
+  font-size: 15px;
+  color: #e2e8f0;
+  line-height: 1.6;
+  font-weight: 500;
 }
 
-/* Mobile (max-width: 768px) */
-@media (max-width: 768px) {
-  .coduck-wars-container {
-    overflow-y: auto;
-    /* Allow window scroll on mobile */
+/* 우측 전술 결정 패널 */
+.decision-panel {
+  background: rgba(5, 8, 15, 0.8);
+  padding: 60px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.system-status-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #3b82f6;
+  font-weight: 700;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.system-status-text::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  background: #3b82f6;
+  border-radius: 50%;
+  box-shadow: 0 0 10px #3b82f6;
+}
+
+.big-question {
+  font-size: 32px;
+  font-weight: 900;
+  color: white;
+  line-height: 1.3;
+  letter-spacing: -0.5px;
+  margin-bottom: 40px;
+}
+
+/* 선택지 카드 프리미엄 스타일 */
+.options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.option-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.option-card:hover {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.4);
+  transform: translateX(10px);
+}
+
+.opt-index {
+  width: 44px;
+  height: 44px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 18px;
+  transition: all 0.3s;
+}
+
+.option-card:hover .opt-index {
+  background: #3b82f6;
+  color: white;
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+}
+
+.opt-main {
+  font-size: 17px;
+  font-weight: 600;
+  color: #94a3b8;
+  transition: color 0.3s;
+}
+
+.option-card:hover .opt-main {
+  color: white;
+}
+
+.opt-arrow {
+  margin-left: auto;
+  opacity: 0;
+  transform: translateX(-10px);
+  transition: all 0.3s;
+  color: #3b82f6;
+}
+
+.option-card:hover .opt-arrow {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* 의사코드 에디터 특화 스타일 */
+.monaco-textarea {
+  background: transparent;
+  color: #e2e8f0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  line-height: 1.4;
+  border: none;
+  outline: none;
+  resize: none;
+  padding: 10px;
+}
+
+.monaco-textarea::placeholder {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.2);
+  white-space: pre-wrap;
+}
+
+.monaco-wrapper {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  display: flex;
+  overflow: hidden;
+}
+
+.line-numbers {
+  width: 50px;
+  background: rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  padding: 8px 0;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.1);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  user-select: none;
+}
+
+.action-bar-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding-top: 20px;
+}
+
+/* 실행 버튼 프리미엄 스타일 */
+.btn-execute-large {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  padding: 18px 40px;
+  border-radius: 16px;
+  font-weight: 800;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
+  transition: all 0.3s;
+}
+
+.btn-execute-large:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 30px rgba(37, 99, 235, 0.5);
+  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+}
+
+.btn-execute-large:disabled {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.1);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* 2단 그리드 시스템: [2026-02-11] 줌 저항성 강화를 위해 min-width 및 절대 단위(px) 적용 */
+.combat-grid {
+  display: grid;
+  grid-template-columns: minmax(350px, 3fr) minmax(600px, 7fr);
+  /* 고정폭 제약 추가 */
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* [2026-02-11] 의사코드 단계(PSEUDO_WRITE) 가독성 고도화: Standard px 적용 */
+
+/* 메인 사고 코드 블록 컨테이너: 이미지의 어두운 붉은색 테마 반영 */
+.incident-review-block.incident-image-sync {
+  background: #1a0f12;
+  /* 이미지의 딥 레드 배경 */
+  border: 1px solid rgba(239, 68, 68, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* 사고 코드 헤더: "막아야 할 패턴" */
+.irs-header {
+  background: rgba(239, 68, 68, 0.15);
+  /* 이미지의 상단 옅은 붉은색 바 */
+  padding: 10px 20px;
+  border-bottom: 1px solid rgba(239, 68, 68, 0.1);
+}
+
+.irs-header p {
+  color: #f87171 !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  margin: 0;
+}
+
+/* 사고 코드 본문 */
+.irs-body {
+  padding: 24px 20px;
+}
+
+.irs-body pre {
+  color: #4ade80 !important;
+  /* 이미지의 밝은 연두색 코드 */
+  font-size: 15px !important;
+  line-height: 1.6 !important;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace !important;
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* 하단 문제 설명 */
+.irs-problem {
+  font-size: 13px !important;
+  color: #94a3b8 !important;
+  margin-top: 16px !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 12px;
+}
+
+.irs-problem strong {
+  color: #f87171 !important;
+  /* "문제:" 부분 빨간색 */
+}
+
+/* [2026-02-11] 좌측 '작성 가이드' 패널: Zoom-Independent 폰트 (px 기준) */
+
+.instruction-guide-panel {
+  animation: fadeInRight 0.5s ease-out;
+}
+
+.ig-header span {
+  font-size: 16px !important;
+  letter-spacing: 0.05em;
+  text-shadow: 0 0 10px rgba(96, 165, 250, 0.3);
+}
+
+/* 의사코드 형식 카드: [2026-02-11] 폰트 및 패딩 축소 */
+.format-card {
+  padding: 12px !important;
+  box-shadow: inset 0 0 10px rgba(59, 130, 246, 0.05);
+}
+
+.format-card p:first-child {
+  font-size: 12px !important;
+  letter-spacing: -0.01em;
+}
+
+.format-card p:last-child {
+  font-size: 11px !important;
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+/* 검증 항목 체크리스트: [2026-02-11] 폰트 및 간격 축소 */
+.checklist-item {
+  gap: 8px !important;
+  transition: transform 0.2s ease;
+}
+
+.checklist-item:hover {
+  transform: translateX(2px);
+}
+
+.check-circle {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid #334155;
+  background: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  margin-top: 2px;
+}
+
+.check-circle.is-checked {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.3);
+}
+
+.check-label {
+  font-size: 12px !important;
+  line-height: 1.2;
+}
+
+.check-hint {
+  font-size: 10px !important;
+  line-height: 1.4;
+  opacity: 0.7;
+  margin-top: 2px;
+}
+
+@keyframes fadeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(-15px);
   }
 
-  .viewport {
-    height: auto;
-    min-height: 100vh;
-    padding-bottom: 50px;
-  }
-
-  .combat-grid {
-    grid-template-columns: 1fr;
-    /* Stack left/right panels */
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-  }
-
-  .panel.entity-card {
-    width: 100%;
-    height: auto;
-    flex-direction: row;
-    /* Horizontal card on mobile */
-    align-items: center;
-    padding: 10px;
-  }
-
-  .visual-frame {
-    width: 80px;
-    height: 80px;
-  }
-
-  .dialogue-box {
-    flex: 1;
-    margin-top: 0;
-    margin-left: 10px;
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }

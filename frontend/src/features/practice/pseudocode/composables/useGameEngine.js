@@ -12,7 +12,7 @@ export function useGameEngine() {
     const gameState = reactive({
         currentStageId: initialStageId,
         currentStageId: initialStageId,
-        // Phases: INTRO -> DIAGNOSTIC_1 -> DIAGNOSTIC_2 -> PSEUDO_WRITE -> PYTHON_FILL -> DEEP_QUIZ -> EVALUATION
+        // Phases: INTRO -> DIAGNOSTIC_1 -> DIAGNOSTIC_2 -> PSEUDO_WRITE -> DEEP_QUIZ -> EVALUATION
         phase: 'INTRO',
         step: 0,
         playerHP: 100,
@@ -23,6 +23,19 @@ export function useGameEngine() {
         selectedStrategyLabel: "", // Set in Phase 2
         // Phase 3 State
         phase3Reasoning: "",
+        phase3Placeholder: `IF 코드에 'scaler.fit(' 또는 'encoder.fit(' 패턴이 있음
+AND 그 이전 줄에 'train_test_split' 또는 '[: 슬라이싱]'이 없음
+THEN
+  경고: '분할 전 통계량 산출 감지'
+  설명: 'Test 데이터 통계량이 Train 학습에 영향을 줍니다'
+  해결책: 'Train/Test 분할 후 scaler.fit(X_train)으로 변경하세요'
+
+또는:
+
+규칙 1: fit() 메서드 호출 검사
+- 탐지: StandardScaler().fit(), MinMaxScaler().fit(), LabelEncoder().fit()
+- 조건: fit() 이전에 데이터 분할 코드가 없는 경우
+- 경고 메시지: 'Train set으로만 fit 해야 합니다'`,
         phase3Score: 0,
         phase3Feedback: "",
         phase3EvaluationResult: null,
@@ -106,10 +119,6 @@ export function useGameEngine() {
                 case 'PSEUDO_WRITE':
                     gameState.coduckMessage = "어떤 순서로 생각하는지 보여주세요.";
                     addSystemLog("자연어 처리 에디터 로드됨", "SUCCESS");
-                    break;
-                case 'PYTHON_FILL':
-                    gameState.coduckMessage = "사고와 코드가 일치하는지 확인하십시오.";
-                    addSystemLog("구현 환경 동기화 완료", "SUCCESS");
                     break;
                 case 'DEEP_QUIZ':
                     gameState.coduckMessage = "설명할 수 있다면, 이해한 것입니다.";

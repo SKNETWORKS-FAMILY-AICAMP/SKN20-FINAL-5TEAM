@@ -1,10 +1,12 @@
 import { ref, computed, reactive, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import axios from 'axios';
 import { quickCheckPseudocode } from '../api/pseudocodeApi.js';
 import { useGameEngine } from './useGameEngine.js';
 import { useCodeRunner } from './useCodeRunner.js';
 
 export function useCoduckWars() {
+    const router = useRouter();
     const DEBUG_MODE = true;
 
     // --- 1. Game Logic Core ---
@@ -36,6 +38,74 @@ export function useCoduckWars() {
     const isProcessing = ref(false);
 
     // --- 3. Additional State specific to Composable ---
+    const ruleChecklist = ref([
+        {
+            id: 'check_fit',
+            label: 'fit 메서드 호출 감지',
+            patterns: [
+                /\.fit\(/i,
+                /fit\(/i,
+                /scaler.*fit/i,
+                /encoder.*fit/i
+            ],
+            hint: "scaler.fit( 또는 encoder.fit( 패턴 찾기",
+            completed: false
+        },
+        {
+            id: 'check_split',
+            label: '분할 코드 유무 확인',
+            patterns: [
+                /train_test_split/i,
+                /분할/i,
+                /split/i,
+                /\[:/i
+            ],
+            hint: "train_test_split 또는 슬라이싱 체크",
+            completed: false
+        },
+        {
+            id: 'check_order',
+            label: 'fit 이전에 분할 여부 검증',
+            patterns: [
+                /이전/i,
+                /before/i,
+                /앞/i,
+                /먼저/i
+            ],
+            hint: "fit 이전에 분할이 있는지 확인",
+            completed: false
+        },
+        {
+            id: 'check_warning',
+            label: '경고 메시지 명시',
+            patterns: [
+                /경고/i,
+                /warning/i,
+                /알림/i,
+                /THEN/i
+            ],
+            hint: "THEN 경고: '...' 형태로 작성",
+            completed: false
+        }
+    ]);
+
+    const completedChecksCount = computed(() =>
+        ruleChecklist.value.filter(c => c.completed).length
+    );
+
+    const allChecksPassed = computed(() =>
+        completedChecksCount.value === ruleChecklist.value.length
+    );
+
+    const canSubmitPseudo = computed(() =>
+        gameState.phase3Reasoning.trim().length > 0
+    );
+
+    const isGuideOpen = ref(false);
+    const selectedGuideIdx = ref(0);
+    const toggleGuide = () => { isGuideOpen.value = !isGuideOpen.value; };
+    const handleGuideClick = (idx) => { selectedGuideIdx.value = idx; };
+
     // Hint Timer Logic (Could be in GameEngine, but kept here for now)
     let hintTimer = null;
 
@@ -64,7 +134,26 @@ export function useCoduckWars() {
     // For now, we manually handle it or rely on the UI to call startHintTimer
 
     const handlePseudoInput = (e) => {
-        gameState.phase3Reasoning = e.target.value;
+        if (!e || !e.target) return;
+        const val = e.target.value ?? "";
+        if (typeof val !== 'string') return;
+
+        gameState.phase3Reasoning = val;
+
+        // Update checklist safely
+        if (ruleChecklist.value && Array.isArray(ruleChecklist.value)) {
+            ruleChecklist.value.forEach(check => {
+                if (check && Array.isArray(check.patterns)) {
+                    check.completed = check.patterns.some(pattern => {
+                        if (pattern instanceof RegExp) {
+                            return pattern.test(val);
+                        }
+                        return false;
+                    });
+                }
+            });
+        }
+
         resetHintTimer();
     };
 
@@ -207,10 +296,9 @@ export function useCoduckWars() {
                 console.log("[Deep Dive Candidates]", evaluation.questions);
             }
 
-            // 점수와 관계없이 다음 단계로 (학습 기회 제공)
+            // 점수와 관계없이 다음 단계로 (Step 03 건너뛰고 Step 04로 바로 이동)
             setTimeout(() => {
-                setPhase('PYTHON_FILL');
-                initPhase4Scaffolding();
+                setPhase('DEEP_QUIZ');
             }, 2000);
 
         } catch (error) {
@@ -219,8 +307,7 @@ export function useCoduckWars() {
             gameState.score += 8;
             addSystemLog("평가 시스템 오류, 기본 점수 부여", "WARN");
             setTimeout(() => {
-                setPhase('PYTHON_FILL');
-                initPhase4Scaffolding();
+                setPhase('DEEP_QUIZ');
             }, 800);
         } finally {
             isProcessing.value = false;
@@ -405,6 +492,17 @@ export function useCoduckWars() {
 
         // Misc
         handlePseudoInput,
+        ruleChecklist,
+        completedChecksCount,
+        allChecksPassed,
+        canSubmitPseudo,
+        isProcessing,
+        isGuideOpen,
+        selectedGuideIdx,
+        toggleGuide,
+        handleGuideClick,
+        resetFlow: () => startGame(),
+        handlePracticeClose: () => router.push('/practice'),
         logicBlocks: [
             { id: 1, text: "StandardScaler 객체를 생성한다." },
             { id: 2, text: "Train 데이터만을 사용하여 스케일러를 학습(fit)시킨다." },

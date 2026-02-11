@@ -48,15 +48,20 @@ export const aiQuests = [
         ],
 
         designContext: {
-            title: "Step 2: 아키텍처 설계 (자연어 서술)",
-            currentIncident: `
-🚨 긴급 사고 보고
-주니어 개발자가 작성한 전처리 코드가 Production에 배포되었습니다.
-
+            title: "AI 리뷰어 검증 규칙 설계",
+            description: "이제 개념을 이해했으니, AI가 자동으로 전처리 누수를 찾게 만드는 규칙을 의사코드로 작성하세요.",
+            // [2026-02-11] 사고 코드 및 문제 설명 데이터 (이미지 반영)
+            incidentCode: `
 scaler = StandardScaler()
-scaler.fit(df)  # 전체 데이터로 학습
+scaler.fit(df)  # ⚠️ 전체 데이터로 fit
 X_train = scaler.transform(df[:800])
 X_test = scaler.transform(df[800:])
+            `.trim(),
+            incidentProblem: "fit() 실행 시점에 Train/Test 분할이 되지 않아 Test 통계량이 Train에 영향",
+            currentIncident: `
+🚨 긴급 사고 보고: 전처리 데이터 누수 감지
+주니어 개발자가 작성한 전처리 코드가 Production에 배포되었습니다.
+fit() 실행 시점에 Train/Test 분할이 되지 않아 Test 통계량이 Train에 영향을 주었습니다.
 
 결과: Train 정확도 95% → Test 정확도 68% (27%p 폭락)
             `.trim(),
@@ -66,14 +71,13 @@ X_test = scaler.transform(df[800:])
                 "미래 데이터의 정보는 사용하지 않는다.",
                 "학습과 서빙은 동일한 전처리 흐름을 사용한다."
             ],
+            // [2026-02-11] 작성 가이드 강화
             writingGuide: `
-다음 질문들에 답하며 본인만의 사고 과정을 서술해 보세요.
+AI가 코드를 스캔할 때 사용할 규칙을 작성하세요.
+어떤 패턴을 찾고, 어떤 경고를 낼지 명시하세요.
 
-- 현재 코드에서 '학습 데이터'와 '테스트 데이터'의 경계가 무너진 부분은 어디인가요?
-- 이 방식이 유지될 경우, 실제 배포된 환경에서 모델은 어떤 어려움을 겪게 될까요?
-- 데이터 누수를 원천 차단하기 위해, fit과 transform을 각각 어떤 타이밍에 수행해야 할까요?
-
-※ 직접적인 정답 코드보다는, 당신이 설계한 파이프라인의 '원칙'을 서술해 주세요.
+IF (조건) THEN 경고 형태로 작성하세요.
+- 예: IF 코드에 'scaler.fit(' 패턴이 있음 AND 그 이전 줄에 'split'이 없음 THEN 경고: '분할 전 통계량 산출 감지'
             `.trim()
         },
 
@@ -795,8 +799,7 @@ def prevent_serving_skew(data):
         cards: [
             { icon: "📊", text: "STEP 1: 로그 분석 (Log Analysis)", coduckMsg: "현장의 데이터 흐름을 실시간으로 감시해야 합니다." },
             { icon: "📈", text: "STEP 2: 지표 설계 (Metric)", coduckMsg: "변화를 감지할 수 있는 핵심 지표(MSE 등)를 정의하세요." },
-            { icon: "⚖️", text: "STEP 3: 구현 (Monitor)", coduckMsg: "오차가 기준치를 넘으면 경보를 울리는 로직을 작성합니다." },
-            { icon: "🏁", text: "STEP 4: 대응 (Action)", coduckMsg: "드리프트 발생 시 재학습 프로세스로 연결합니다." }
+            { icon: "🏁", text: "STEP 3: 대응 (Action)", coduckMsg: "드리프트 발생 시 재학습 프로세스로 연결합니다." }
         ],
 
         interviewQuestions: [
