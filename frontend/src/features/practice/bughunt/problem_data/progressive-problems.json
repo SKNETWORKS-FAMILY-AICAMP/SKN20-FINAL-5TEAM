@@ -2,95 +2,440 @@
   "progressiveProblems": [
     {
       "id": "S1",
-      "source_id": "P1",
+      "source_id": "PY_BASICS_1",
       "mode": "tutorial",
-      "project_title": "GPU 추론의 함정",
-      "scenario": "학습된 모델을 GPU로 옮겨서 추론 성능을 높이려고 합니다. 그런데 실행하자마자 RuntimeError가 발생하며 텐서 디바이스가 다르다는 에러가 발생합니다.",
+      "project_title": "Python 디버깅 워밍업 1",
+      "scenario": "서비스 점수 집계 스크립트가 배포 직후 실패했습니다. 에러 로그를 읽고 문제가 되는 줄을 찾아 올바른 수정 방법을 고르세요.",
       "difficulty": 1,
-      "totalSteps": 1,
+      "totalSteps": 5,
       "steps": [
         {
           "step": 1,
-          "title": "모델과 데이터의 위치가 일치하지 않아요",
-          "bug_type": "D",
-          "bug_type_name": "Device Mismatch",
-          "file_name": "gpu_inference.py",
+          "title": "문자열 점수와 정수 보너스를 더하면?",
+          "bug_type": "A",
+          "bug_type_name": "Type Error",
+          "file_name": "score_aggregator.py",
           "fix_mode": "choice",
-          "bug_line": 21,
-          "buggy_code": "import torch\nimport torch.nn as nn\n\n# 1. 모델 정의 및 로드\nmodel = nn.Sequential(\n    nn.Linear(10, 50),\n    nn.ReLU(),\n    nn.Linear(50, 2)\n)\n\n# 2. 모델을 GPU로 이동\ndevice = \"cuda\" if torch.cuda.is_available() else \"cpu\"\nmodel.to(device)\nmodel.eval()\n\n# 3. 입력 데이터 준비 (CPU 상태)\ninput_data = torch.randn(1, 10)\n\n# 4. 추론 실행\nwith torch.no_grad():\n    output = model(input_data)  # 여기서 에러 발생!\n    print(\"추론 성공:\", output)",
-          "correct_code": "import torch\nimport torch.nn as nn\n\n# 1. 모델 정의 및 로드\nmodel = nn.Sequential(\n    nn.Linear(10, 50),\n    nn.ReLU(),\n    nn.Linear(50, 2)\n)\n\n# 2. 모델을 GPU로 이동\ndevice = \"cuda\" if torch.cuda.is_available() else \"cpu\"\nmodel.to(device)\nmodel.eval()\n\n# 3. 입력 데이터 준비 (GPU로 이동 필요)\ninput_data = torch.randn(1, 10).to(device)\n\n# 4. 추론 실행\nwith torch.no_grad():\n    output = model(input_data)\n    print(\"추론 성공:\", output)",
-          "error_log": "=== 런타임 에러 로그 ===\nRuntimeError: Expected all tensors to be on the same device, \nbut found at least two devices, cuda:0 and cpu!\n\n[ERROR] forward pass 중 연산 불가\n[DETAIL] layer weights: cuda:0 / input tensor: cpu",
-          "success_log": "=== 추론 실행 결과 ===\n추론 성공: tensor([[-0.1234,  0.5678]], device='cuda:0')\n\n[정상] 모든 텐서가 cuda:0 디바이스에서 연산됨",
-          "hint": "모델을 GPU(cuda)로 보냈다면, 모델이 먹는 '밥'(데이터)도 같은 곳에 있어야 하지 않을까요?",
-          "debugging_guide": "print(next(model.parameters()).device)와 print(input_data.device)를 비교해보세요.",
+          "bug_line": 7,
+          "buggy_code": "import json\n\nraw_score = \"100\"\nbonus = 50\n\n# 사용자 최종 점수 계산\nfinal_score = raw_score + bonus\n\npayload = {\"final_score\": final_score}\nprint(json.dumps(payload, ensure_ascii=False))",
+          "correct_code": "import json\n\nraw_score = \"100\"\nbonus = 50\n\n# 사용자 최종 점수 계산\nfinal_score = int(raw_score) + bonus\n\npayload = {\"final_score\": final_score}\nprint(json.dumps(payload, ensure_ascii=False))",
+          "error_log": "TypeError: can only concatenate str (not \"int\") to str\nFile \"score_aggregator.py\", line 7",
+          "success_log": "{\"final_score\": 150}\n[정상] 점수 집계 완료",
+          "hint": "raw_score와 bonus의 타입을 각각 확인해보세요.",
+          "debugging_guide": "print(type(raw_score), type(bonus))를 출력해 타입을 확인하세요.",
           "solution_check": {
             "type": "multi_condition",
             "required_all": [
-              "input_data.to(device)"
+              "int(raw_score)"
             ],
             "forbidden": []
           },
           "error_info": {
-            "type": "Device Mismatch Error",
-            "description": "모델 파라미터는 GPU 메모리에 있는데, 입력 데이터는 CPU 메모리에 있어 연산이 불가능한 상태입니다.",
-            "suggestion": "입력 데이터를 모델과 동일한 디바이스로 이동시켜야 합니다."
+            "type": "Type Mismatch",
+            "description": "문자열(str)과 정수(int)를 직접 더하고 있어 TypeError가 발생합니다.",
+            "suggestion": "연산 전에 문자열 숫자를 정수로 변환하세요."
           },
-          "coaching": "주니어 단계에서 가장 많이 하는 실수 중 하나입니다. .to(device)는 텐서를 복사하므로 반드시 'input = input.to(device)'와 같이 할당해주어야 한다는 점도 잊지 마세요!",
+          "coaching": "실무에서 로그 숫자가 문자열로 들어오는 경우가 흔합니다. 계산 전 타입 확인을 습관화하세요.",
           "choices": [
             {
-              "label": "input_data = input_data.to(device)",
-              "code": "input_data = input_data.to(device)",
+              "label": "final_score = int(raw_score) + bonus",
+              "code": "final_score = int(raw_score) + bonus",
               "correct": true
             },
             {
-              "label": "model.cpu()",
-              "code": "model.cpu()",
+              "label": "final_score = raw_score + str(bonus)",
+              "code": "final_score = raw_score + str(bonus)",
               "correct": false
             },
             {
-              "label": "torch.set_default_tensor_type('torch.cuda.FloatTensor')",
-              "code": "torch.set_default_tensor_type('torch.cuda.FloatTensor')",
+              "label": "final_score = raw_score.append(bonus)",
+              "code": "final_score = raw_score.append(bonus)",
               "correct": false
             },
             {
-              "label": "input_data.cuda()",
-              "code": "input_data.cuda()",
+              "label": "final_score = bonus(raw_score)",
+              "code": "final_score = bonus(raw_score)",
               "correct": false
             }
           ],
           "review_card": {
-            "title": "Device Management - 텐서 위치 관리",
-            "explanation": "PyTorch 연산은 모든 텐서가 동일한 디바이스(CPU 또는 동일한 GPU)에 있을 때만 가능합니다. .to(device)를 사용하여 항상 위치를 일치시켜주세요.",
-            "correct_pattern": "device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\nmodel.to(device)\n\ndata = data.to(device)  # 데이터를 모델과 같은 곳으로!\noutput = model(data)"
+            "title": "TypeError 기본 패턴",
+            "explanation": "에러 메시지에서 str/int 같은 타입 키워드를 먼저 찾으면 원인 파악이 빨라집니다.",
+            "correct_pattern": "raw = '100'\nbonus = 50\nfinal = int(raw) + bonus"
+          }
+        },
+        {
+          "step": 2,
+          "title": "리스트 마지막 인덱스를 벗어났어요",
+          "bug_type": "B",
+          "bug_type_name": "Index Error",
+          "file_name": "data_processor.py",
+          "fix_mode": "choice",
+          "bug_line": 6,
+          "buggy_code": "data = [10, 20, 30, 40, 50]\ntotal = 0\n\n# 모든 원소를 더함\nfor i in range(len(data)):\n    total += data[len(data)]\n\nprint(f\"Total: {total}\")",
+          "correct_code": "data = [10, 20, 30, 40, 50]\ntotal = 0\n\n# 모든 원소를 더함\nfor i in range(len(data)):\n    total += data[i]\n\nprint(f\"Total: {total}\")",
+          "error_log": "IndexError: list index out of range\nFile \"data_processor.py\", line 6\n[DEBUG] data length: 5, tried to access: data[5]",
+          "success_log": "Total: 150\n[정상] 리스트 합계 계산 완료",
+          "hint": "루프에서 인덱스 변수 i를 사용하고 있나요?",
+          "debugging_guide": "print(i, len(data))를 루프 안에서 찍어 범위를 확인하세요.",
+          "solution_check": {
+            "type": "multi_condition",
+            "required_all": [
+              "data[i]"
+            ],
+            "forbidden": [
+              "data[len(data)]"
+            ]
+          },
+          "error_info": {
+            "type": "Index Out of Range",
+            "description": "리스트 인덱스가 범위를 벗어났습니다. len(data)는 5이지만, 인덱스는 0부터 4까지입니다.",
+            "suggestion": "루프 변수를 올바르게 사용하세요."
+          },
+          "coaching": "인덱스 에러는 종종 변수명 실수에서 발생합니다. 루프 변수를 일관되게 사용하세요.",
+          "choices": [
+            {
+              "label": "total += data[i]",
+              "code": "total += data[i]",
+              "correct": true
+            },
+            {
+              "label": "total += data[len(data) - 1]",
+              "code": "total += data[len(data) - 1]",
+              "correct": false
+            },
+            {
+              "label": "total += data.get(i)",
+              "code": "total += data.get(i)",
+              "correct": false
+            },
+            {
+              "label": "total += data[i + 1]",
+              "code": "total += data[i + 1]",
+              "correct": false
+            }
+          ],
+          "review_card": {
+            "title": "IndexError 기본 패턴",
+            "explanation": "리스트 길이가 N이면 유효 인덱스는 0~N-1입니다. 루프 변수를 항상 확인하세요.",
+            "correct_pattern": "for i in range(len(data)):\n    value = data[i]"
+          }
+        },
+        {
+          "step": 3,
+          "title": "딕셔너리에 없는 키를 접근했어요",
+          "bug_type": "C",
+          "bug_type_name": "Key Error",
+          "file_name": "user_profile.py",
+          "fix_mode": "choice",
+          "bug_line": 6,
+          "buggy_code": "user = {\n    \"name\": \"Alice\",\n    \"age\": 30\n}\n\nemail = user[\"email\"]\nprint(f\"Email: {email}\")",
+          "correct_code": "user = {\n    \"name\": \"Alice\",\n    \"age\": 30\n}\n\nemail = user.get(\"email\", \"no-email@example.com\")\nprint(f\"Email: {email}\")",
+          "error_log": "KeyError: 'email'\nFile \"user_profile.py\", line 6\n[힌트] 딕셔너리에 키가 없을 때 안전하게 접근하는 방법은?",
+          "success_log": "Email: no-email@example.com\n[정상] 기본값으로 안전하게 처리",
+          "hint": "딕셔너리에 키가 없을 때 기본값을 반환하는 메서드를 사용하세요.",
+          "debugging_guide": "print(user.keys())로 사용 가능한 키 목록을 확인하세요.",
+          "solution_check": {
+            "type": "multi_condition",
+            "required_all": [
+              ".get("
+            ],
+            "forbidden": []
+          },
+          "error_info": {
+            "type": "Key Not Found",
+            "description": "딕셔너리에 'email' 키가 존재하지 않습니다.",
+            "suggestion": "dict.get() 메서드를 사용해 안전하게 접근하세요."
+          },
+          "coaching": "실무에서는 외부 데이터가 항상 완전하지 않습니다. .get()으로 방어적 코딩을 습관화하세요.",
+          "choices": [
+            {
+              "label": "email = user.get(\"email\", \"no-email@example.com\")",
+              "code": "email = user.get(\"email\", \"no-email@example.com\")",
+              "correct": true
+            },
+            {
+              "label": "email = user[\"email\"] or \"default\"",
+              "code": "email = user[\"email\"] or \"default\"",
+              "correct": false
+            },
+            {
+              "label": "email = user.fetch(\"email\")",
+              "code": "email = user.fetch(\"email\")",
+              "correct": false
+            },
+            {
+              "label": "email = user.email",
+              "code": "email = user.email",
+              "correct": false
+            }
+          ],
+          "review_card": {
+            "title": "KeyError 방어 패턴",
+            "explanation": "dict.get(key, default)는 키가 없을 때 예외 대신 기본값을 반환합니다.",
+            "correct_pattern": "value = data.get(\"key\", \"default\")"
+          }
+        },
+        {
+          "step": 4,
+          "title": "None을 반환받아서 메서드를 호출했어요",
+          "bug_type": "A",
+          "bug_type_name": "Attribute Error",
+          "file_name": "text_parser.py",
+          "fix_mode": "choice",
+          "bug_line": 9,
+          "buggy_code": "def find_keyword(text, keyword):\n    if keyword in text:\n        return text.upper()\n    # 찾지 못하면 None 반환\n\ninput_text = \"hello world\"\nresult = find_keyword(input_text, \"python\")\n\nwords = result.split()\nprint(words)",
+          "correct_code": "def find_keyword(text, keyword):\n    if keyword in text:\n        return text.upper()\n    return \"\"  # 빈 문자열 반환\n\ninput_text = \"hello world\"\nresult = find_keyword(input_text, \"python\")\n\nwords = result.split()\nprint(words)",
+          "error_log": "AttributeError: 'NoneType' object has no attribute 'split'\nFile \"text_parser.py\", line 9\n[DEBUG] result = None",
+          "success_log": "[]\n[정상] 빈 결과 처리 완료",
+          "hint": "함수가 암묵적으로 None을 반환하는 경우를 확인하세요.",
+          "debugging_guide": "print(result, type(result))로 반환값을 확인하세요.",
+          "solution_check": {
+            "type": "multi_condition",
+            "required_all": [
+              "return \"\""
+            ],
+            "forbidden": []
+          },
+          "error_info": {
+            "type": "None Return",
+            "description": "함수가 조건을 만족하지 못하면 암묵적으로 None을 반환합니다.",
+            "suggestion": "모든 경로에서 적절한 값을 반환하도록 하세요."
+          },
+          "coaching": "함수 끝에 명시적 return을 두면 None 관련 버그를 예방할 수 있습니다.",
+          "choices": [
+            {
+              "label": "return \"\"  (빈 문자열 반환)",
+              "code": "return \"\"",
+              "correct": true
+            },
+            {
+              "label": "return None",
+              "code": "return None",
+              "correct": false
+            },
+            {
+              "label": "pass",
+              "code": "pass",
+              "correct": false
+            },
+            {
+              "label": "return result.split()",
+              "code": "return result.split()",
+              "correct": false
+            }
+          ],
+          "review_card": {
+            "title": "None 처리 패턴",
+            "explanation": "함수의 모든 실행 경로에서 적절한 값을 반환하는지 확인하세요.",
+            "correct_pattern": "def func():\n    if condition:\n        return value\n    return default"
+          }
+        },
+        {
+          "step": 5,
+          "title": "함수 기본 인자가 호출 간 공유되고 있어요",
+          "bug_type": "B",
+          "bug_type_name": "Mutable Default",
+          "file_name": "task_manager.py",
+          "fix_mode": "choice",
+          "bug_line": 1,
+          "buggy_code": "def add_task(task, tasks=[]):\n    tasks.append(task)\n    return tasks\n\nprint(add_task(\"Write report\"))\nprint(add_task(\"Send email\"))",
+          "correct_code": "def add_task(task, tasks=None):\n    if tasks is None:\n        tasks = []\n    tasks.append(task)\n    return tasks\n\nprint(add_task(\"Write report\"))\nprint(add_task(\"Send email\"))",
+          "error_log": "Run1: ['Write report']\nRun2: ['Write report', 'Send email']  # 새 호출인데 이전 값이 남음\n[힌트] 기본 인자가 함수 정의 시점에 한 번만 생성됩니다",
+          "success_log": "Run1: ['Write report']\nRun2: ['Send email']\n[정상] 호출 간 독립적인 리스트",
+          "hint": "기본 인자에 리스트나 딕셔너리 같은 mutable 객체를 직접 두면 함정에 빠집니다.",
+          "debugging_guide": "print(id(tasks))로 각 호출에서 리스트 객체의 메모리 주소를 확인하세요.",
+          "solution_check": {
+            "type": "multi_condition",
+            "required_all": [
+              "tasks=None",
+              "if tasks is None:"
+            ],
+            "forbidden": [
+              "tasks=[]"
+            ]
+          },
+          "error_info": {
+            "type": "Mutable Default Argument",
+            "description": "리스트 기본값이 함수 호출 간 재사용되고 있습니다.",
+            "suggestion": "기본값을 None으로 두고 함수 내부에서 새 리스트를 생성하세요."
+          },
+          "coaching": "Python의 유명한 함정입니다. 면접에서도 자주 나오므로 None 패턴을 기억하세요.",
+          "choices": [
+            {
+              "label": "def add_task(task, tasks=None):",
+              "code": "def add_task(task, tasks=None):\n    if tasks is None:\n        tasks = []\n    tasks.append(task)\n    return tasks",
+              "correct": true
+            },
+            {
+              "label": "def add_task(task, tasks=[].copy()):",
+              "code": "def add_task(task, tasks=[].copy()):\n    tasks.append(task)\n    return tasks",
+              "correct": false
+            },
+            {
+              "label": "tasks = []  # 함수 밖에서",
+              "code": "tasks = []\ndef add_task(task, tasks=tasks):\n    tasks.append(task)\n    return tasks",
+              "correct": false
+            },
+            {
+              "label": "def add_task(task, tasks=list()):",
+              "code": "def add_task(task, tasks=list()):\n    tasks.append(task)\n    return tasks",
+              "correct": false
+            }
+          ],
+          "review_card": {
+            "title": "Mutable Default 함정",
+            "explanation": "기본 인자는 함수 정의 시 한 번만 평가됩니다. Mutable 객체는 None으로 받으세요.",
+            "correct_pattern": "def func(items=None):\n    if items is None:\n        items = []"
           }
         }
       ]
     },
     {
       "id": "S2",
-      "source_id": "P1",
+      "source_id": "PY_MIX_1",
       "mode": "guided",
-      "project_title": "추론 파이프라인 실전",
-      "scenario": "학습된 모델을 배포했는데, 추론 결과가 학습 시와 다르게 나옵니다. 동일한 입력인데도 매번 결과가 달라지거나, 메모리가 계속 증가하는 문제가 발생합니다.",
+      "project_title": "기초 디버깅 워밍업 2",
+      "scenario": "빈칸 채우기로 자주 발생하는 기초 버그를 빠르게 고쳐봅니다. Python 데이터 처리와 PyTorch 추론 설정을 다룹니다.",
       "difficulty": 1,
-      "totalSteps": 2,
+      "totalSteps": 5,
       "steps": [
         {
           "step": 1,
-          "title": "추론하면 할수록 메모리가 터져요",
+          "title": "다음 원소 비교 루프가 마지막에서 터져요",
           "bug_type": "B",
-          "bug_type_name": "Memory Leak",
-          "file_name": "batch_inference.py",
+          "bug_type_name": "Index Error",
+          "file_name": "neighbor_diff.py",
           "fix_mode": "fill_blank",
-          "blank_template": "import torch\n\nmodel = Model()\nmodel.load_state_dict(torch.load('model.pth'))\nmodel.eval()\nmodel.cuda()\n\nresults = []\n\n# 대량 배치 추론\n_______________:  # 여기를 채우세요\n    for batch in data_loader:\n        images = batch['image'].cuda()\n        outputs = model(images)\n        predictions = torch.argmax(outputs, dim=1)\n        results.extend(predictions.cpu().tolist())",
-          "blank_answer": "with torch.no_grad()",
-          "blank_placeholder": "with ___________",
-          "buggy_code": "import torch\n\nmodel = Model()\nmodel.load_state_dict(torch.load('model.pth'))\nmodel.eval()\nmodel.cuda()\n\nresults = []\n\n# 대량 배치 추론\nfor batch in data_loader:\n    images = batch['image'].cuda()\n    \n    # 추론 실행\n    outputs = model(images)\n    predictions = torch.argmax(outputs, dim=1)\n    \n    results.extend(predictions.cpu().tolist())\n    \n    # 매 100배치마다 메모리 확인\n    if len(results) % 100 == 0:\n        print(f\"Processed: {len(results)}, GPU Memory: {torch.cuda.memory_allocated() / 1e9:.2f}GB\")",
-          "correct_code": "import torch\n\nmodel = Model()\nmodel.load_state_dict(torch.load('model.pth'))\nmodel.eval()\nmodel.cuda()\n\nresults = []\n\n# 대량 배치 추론\nwith torch.no_grad():  # 그래디언트 계산 비활성화\n    for batch in data_loader:\n        images = batch['image'].cuda()\n        \n        # 추론 실행\n        outputs = model(images)\n        predictions = torch.argmax(outputs, dim=1)\n        \n        results.extend(predictions.cpu().tolist())\n        \n        # 매 100배치마다 메모리 확인\n        if len(results) % 100 == 0:\n            print(f\"Processed: {len(results)}, GPU Memory: {torch.cuda.memory_allocated() / 1e9:.2f}GB\")",
-          "error_log": "=== GPU 메모리 모니터링 ===\n[Batch 100]   GPU Memory: 2.15 GB\n[Batch 500]   GPU Memory: 4.82 GB\n[Batch 1000]  GPU Memory: 7.93 GB\n[Batch 1500]  GPU Memory: 11.24 GB\n[Batch 1847]  RuntimeError: CUDA out of memory.\n\n[METRIC] 배치당 메모리 증가량: ~5.2 MB/batch\n[ALERT] 메모리가 선형으로 증가 중 - 해제되지 않는 무언가가 쌓이고 있음",
-          "success_log": "Processed: 100, GPU Memory: 1.23GB\nProcessed: 500, GPU Memory: 1.24GB\nProcessed: 1000, GPU Memory: 1.23GB\nProcessed: 5000, GPU Memory: 1.25GB\n[정상] 메모리 사용량 일정하게 유지",
-          "hint": "메모리가 '선형으로 증가'한다는 건, 매 배치마다 해제되지 않는 무언가가 쌓인다는 뜻입니다. 추론 시 꼭 필요하지 않은 것이 생성되고 있지는 않나요?",
-          "debugging_guide": "print(outputs.grad_fn)으로 텐서에 연산 그래프가 연결되어 있는지 확인하세요. None이 아니면 그래프가 메모리를 점유합니다.",
+          "blank_template": "data = [3, 5, 8, 13, 21]\n\nnext_diffs = []\nfor i in ______________:\n    current = data[i]\n    next_val = data[i + 1]\n    next_diffs.append(next_val - current)",
+          "blank_answer": "range(len(data) - 1)",
+          "blank_placeholder": "range(________)",
+          "buggy_code": "data = [3, 5, 8, 13, 21]\n\nnext_diffs = []\nfor i in range(len(data)):\n    current = data[i]\n    next_val = data[i + 1]\n    next_diffs.append(next_val - current)\n\nprint(next_diffs)",
+          "correct_code": "data = [3, 5, 8, 13, 21]\n\nnext_diffs = []\nfor i in range(len(data) - 1):\n    current = data[i]\n    next_val = data[i + 1]\n    next_diffs.append(next_val - current)\n\nprint(next_diffs)",
+          "error_log": "IndexError: list index out of range\nFile \"neighbor_diff.py\", line 6\n[DEBUG] 마지막 i=4일 때 data[5]를 접근 시도",
+          "success_log": "[2, 3, 5, 8]\n[정상] 인접 차이 계산 완료",
+          "hint": "i+1을 접근한다면 루프의 마지막 인덱스 범위를 조정해야 합니다.",
+          "debugging_guide": "len(data)와 실제 접근하는 최대 인덱스를 비교해보세요.",
+          "solution_check": {
+            "type": "multi_condition",
+            "required_all": [
+              "range(len(data) - 1)"
+            ],
+            "forbidden": []
+          },
+          "error_info": {
+            "type": "Off-by-one",
+            "description": "루프 마지막에서 data[i+1]이 범위를 벗어납니다.",
+            "suggestion": "한 칸 앞을 읽는 루프는 반복 횟수를 1 줄이세요."
+          },
+          "coaching": "오프바이원은 가장 흔한 버그입니다. 인덱스 범위를 먼저 종이에 써보세요."
+        },
+        {
+          "step": 2,
+          "title": "추론 결과가 실행마다 미세하게 달라져요",
+          "bug_type": "C",
+          "bug_type_name": "Inference Mode",
+          "file_name": "inference_entry.py",
+          "fix_mode": "fill_blank",
+          "blank_template": "import torch\n\nmodel = MyModel()\nmodel.load_state_dict(torch.load('model.pth'))\n_______________\nmodel.cuda()\n\nx = torch.randn(1, 128).cuda()\nwith torch.no_grad():\n    y = model(x)",
+          "blank_answer": "model.eval()",
+          "blank_placeholder": "model.______()",
+          "buggy_code": "import torch\n\nmodel = MyModel()\nmodel.load_state_dict(torch.load('model.pth'))\nmodel.cuda()\n\n# 추론 단계\nx = torch.randn(1, 128).cuda()\nwith torch.no_grad():\n    y = model(x)\nprint(y)",
+          "correct_code": "import torch\n\nmodel = MyModel()\nmodel.load_state_dict(torch.load('model.pth'))\nmodel.eval()\nmodel.cuda()\n\n# 추론 단계\nx = torch.randn(1, 128).cuda()\nwith torch.no_grad():\n    y = model(x)\nprint(y)",
+          "error_log": "=== Inference 진단 로그 ===\nmodel.training = True\nDropout active = True\nBatchNorm running stats update = True\n\n[WARN] 추론 단계인데 train 모드로 실행 중입니다.\n[IMPACT] 동일 입력에서도 출력이 흔들릴 수 있습니다.",
+          "success_log": "=== Inference 진단 로그 ===\nmodel.training = False\nDropout active = False\nBatchNorm running stats update = False\n[정상] 추론 모드 고정 완료",
+          "hint": "model.training 값을 먼저 확인해보세요. 추론에서는 False여야 합니다.",
+          "debugging_guide": "추론 직전에 print(model.training)을 찍어 True/False를 확인하세요.",
+          "solution_check": {
+            "type": "multi_condition",
+            "required_all": [
+              "model.eval()"
+            ],
+            "forbidden": []
+          },
+          "error_info": {
+            "type": "Inference Mode Missing",
+            "description": "모델이 추론 모드가 아니어서 레이어 동작이 불안정합니다.",
+            "suggestion": "추론 시작 전에 model.eval()을 호출하세요."
+          },
+          "coaching": "PyTorch 추론 코드 템플릿은 eval + no_grad 조합으로 외워두는 것이 좋습니다."
+        },
+        {
+          "step": 3,
+          "title": "루프 안에서만 변수를 정의했어요",
+          "bug_type": "A",
+          "bug_type_name": "Name Error",
+          "file_name": "score_calc.py",
+          "fix_mode": "fill_blank",
+          "blank_template": "scores = [85, 92, 78, 95]\n_______________\n\nfor score in scores:\n    if score >= 90:\n        result = \"Excellent\"\n\nprint(f\"Result: {result}\")",
+          "blank_answer": "result = \"Unknown\"",
+          "blank_placeholder": "result = ________",
+          "buggy_code": "scores = [85, 92, 78, 95]\n\nfor score in scores:\n    if score >= 90:\n        result = \"Excellent\"\n\nprint(f\"Result: {result}\")",
+          "correct_code": "scores = [85, 92, 78, 95]\nresult = \"Unknown\"\n\nfor score in scores:\n    if score >= 90:\n        result = \"Excellent\"\n\nprint(f\"Result: {result}\")",
+          "error_log": "NameError: name 'result' is not defined\nFile \"score_calc.py\", line 7\n[DEBUG] result는 if 블록 안에서만 정의됨",
+          "success_log": "Result: Excellent\n[정상] 변수 초기화 완료",
+          "hint": "변수를 조건문 밖에서 미리 초기화해야 합니다.",
+          "debugging_guide": "변수가 어느 스코프에서 처음 정의되는지 확인하세요.",
+          "solution_check": {
+            "type": "multi_condition",
+            "required_all": [
+              "result ="
+            ],
+            "forbidden": []
+          },
+          "error_info": {
+            "type": "Variable Initialization",
+            "description": "변수가 조건문 안에서만 선언되어 외부에서 사용할 수 없습니다.",
+            "suggestion": "변수를 루프 시작 전에 초기화하세요."
+          },
+          "coaching": "변수를 사용하기 전에 항상 초기값을 설정하는 습관을 들이세요."
+        },
+        {
+          "step": 4,
+          "title": "모델은 GPU인데 입력은 CPU예요",
+          "bug_type": "C",
+          "bug_type_name": "Device Mismatch",
+          "file_name": "device_input.py",
+          "fix_mode": "fill_blank",
+          "blank_template": "import torch\n\ndevice = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\nmodel = MyModel().to(device)\n\nbatch = [0.3, 0.1, -0.2]\nx = torch.tensor(batch)_______________\nout = model(x)",
+          "blank_answer": ".to(device)",
+          "blank_placeholder": ".______()",
+          "buggy_code": "import torch\n\ndevice = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\nmodel = MyModel().to(device)\n\nbatch = [0.3, 0.1, -0.2]\nx = torch.tensor(batch)\nout = model(x)",
+          "correct_code": "import torch\n\ndevice = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\nmodel = MyModel().to(device)\n\nbatch = [0.3, 0.1, -0.2]\nx = torch.tensor(batch).to(device)\nout = model(x)",
+          "error_log": "RuntimeError: Expected all tensors to be on the same device\n[DEBUG] model device: cuda:0, input device: cpu",
+          "success_log": "[정상] 입력 텐서와 모델 디바이스 일치",
+          "hint": "모델이 있는 device로 입력 텐서도 이동해야 합니다.",
+          "debugging_guide": "print(next(model.parameters()).device, x.device)로 비교하세요.",
+          "solution_check": {
+            "type": "multi_condition",
+            "required_all": [
+              "to(device)"
+            ],
+            "forbidden": []
+          },
+          "error_info": {
+            "type": "Device Mismatch",
+            "description": "입력 텐서와 모델 파라미터의 디바이스가 다릅니다.",
+            "suggestion": "입력 텐서를 model과 동일한 device로 이동하세요."
+          },
+          "coaching": "PyTorch 추론/학습에서 가장 흔한 런타임 에러 중 하나입니다."
+        },
+        {
+          "step": 5,
+          "title": "추론 시 메모리가 계속 쌓여요",
+          "bug_type": "C",
+          "bug_type_name": "Memory Error",
+          "file_name": "inference_loop.py",
+          "fix_mode": "fill_blank",
+          "blank_template": "import torch\n\nmodel = MyModel().cuda()\nmodel.eval()\n\n_______________\n    for batch in test_loader:\n        x = batch['data'].cuda()\n        y = model(x)\n        predictions.append(y.cpu())",
+          "blank_answer": "with torch.no_grad():",
+          "blank_placeholder": "_______________",
+          "buggy_code": "import torch\n\nmodel = MyModel().cuda()\nmodel.eval()\n\nfor batch in test_loader:\n    x = batch['data'].cuda()\n    y = model(x)\n    predictions.append(y.cpu())",
+          "correct_code": "import torch\n\nmodel = MyModel().cuda()\nmodel.eval()\n\nwith torch.no_grad():\n    for batch in test_loader:\n        x = batch['data'].cuda()\n        y = model(x)\n        predictions.append(y.cpu())",
+          "error_log": "=== 메모리 프로파일링 ===\nBatch 1: GPU Memory 1.2 GB\nBatch 10: GPU Memory 2.8 GB\nBatch 50: GPU Memory 8.4 GB\nBatch 100: RuntimeError: CUDA out of memory\n\n[ALERT] eval() 모드인데 메모리가 계속 증가",
+          "success_log": "Batch 1: GPU Memory 1.2 GB\nBatch 100: GPU Memory 1.2 GB\n[정상] 메모리 사용량 고정",
+          "hint": "model.eval()만으로는 gradient 계산 자체를 끄지 못합니다.",
+          "debugging_guide": "torch.cuda.memory_allocated()로 배치마다 메모리를 확인하세요.",
           "solution_check": {
             "type": "multi_condition",
             "required_all": [
@@ -99,56 +444,192 @@
             "forbidden": []
           },
           "error_info": {
-            "type": "Memory Leak",
-            "description": "매 forward마다 메모리에 누적되는 객체가 있습니다. 추론에서는 필요 없는 것이 계속 생성되면서 OOM이 발생합니다.",
-            "suggestion": "추론 시 불필요하게 생성되는 것이 무엇인지 확인하세요."
+            "type": "Gradient Accumulation",
+            "description": "추론 시에도 gradient가 누적되어 메모리가 증가합니다.",
+            "suggestion": "with torch.no_grad(): 블록으로 gradient 계산을 비활성화하세요."
           },
-          "coaching": "대규모 배치 추론에서 OOM은 흔한 문제입니다. model.eval()은 레이어 동작을 바꾸고, torch.no_grad()는 메모리를 절약합니다. 둘은 다른 역할이므로 함께 사용해야 합니다."
-        },
-        {
-          "step": 2,
-          "title": "CPU에서 만든 텐서가 GPU 모델을 만나면?",
-          "bug_type": "C",
-          "bug_type_name": "Device Error",
-          "file_name": "multi_device.py",
-          "fix_mode": "fill_blank",
-          "blank_template": "class PositionalEncoding(nn.Module):\n    def __init__(self, d_model, max_len=512):\n        super().__init__()\n        pe = torch.zeros(max_len, d_model)\n        position = torch.arange(0, max_len).unsqueeze(1).float()\n        div_term = torch.exp(...)\n        pe[:, 0::2] = torch.sin(position * div_term)\n        pe[:, 1::2] = torch.cos(position * div_term)\n        self._______________('pe', pe.unsqueeze(0))  # 여기를 채우세요",
-          "blank_answer": "register_buffer",
-          "blank_placeholder": "self.___________('pe', ...)",
-          "buggy_code": "import torch\nimport torch.nn as nn\nimport math\n\nclass PositionalEncoding(nn.Module):\n    def __init__(self, d_model, max_len=512):\n        super().__init__()\n        pe = torch.zeros(max_len, d_model)\n        position = torch.arange(0, max_len).unsqueeze(1).float()\n        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))\n        pe[:, 0::2] = torch.sin(position * div_term)\n        pe[:, 1::2] = torch.cos(position * div_term)\n        self.pe = pe.unsqueeze(0)  # [1, max_len, d_model]\n    \n    def forward(self, x):\n        return x + self.pe[:, :x.size(1), :]\n\nmodel = PositionalEncoding(d_model=512)\nmodel.cuda()\n\nx = torch.randn(32, 100, 512).cuda()\noutput = model(x)",
-          "correct_code": "import torch\nimport torch.nn as nn\nimport math\n\nclass PositionalEncoding(nn.Module):\n    def __init__(self, d_model, max_len=512):\n        super().__init__()\n        pe = torch.zeros(max_len, d_model)\n        position = torch.arange(0, max_len).unsqueeze(1).float()\n        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))\n        pe[:, 0::2] = torch.sin(position * div_term)\n        pe[:, 1::2] = torch.cos(position * div_term)\n        self.register_buffer('pe', pe.unsqueeze(0))  # buffer로 등록\n    \n    def forward(self, x):\n        return x + self.pe[:, :x.size(1), :]\n\nmodel = PositionalEncoding(d_model=512)\nmodel.cuda()\n\nx = torch.randn(32, 100, 512).cuda()\noutput = model(x)",
-          "error_log": "=== 에러 로그 ===\nmodel = PositionalEncoding(d_model=512)\nmodel.cuda()\nx = torch.randn(1, 10, 512).cuda()\noutput = model(x)\n\nRuntimeError: Expected all tensors to be on the same device,\nbut found at least two devices, cuda:0 and cpu!\n\n[DEBUG] model.parameters() → 모두 cuda:0\n[DEBUG] 에러 발생 위치: forward() 내 덧셈 연산",
-          "success_log": "Model device: cuda:0\nInput device: cuda:0\nPositional encoding device: cuda:0\nOutput shape: torch.Size([32, 100, 512])\n[정상] 모든 텐서가 같은 device에 있음",
-          "hint": "model.cuda()를 했는데도 cpu에 남아있는 텐서가 있다면, 그 텐서는 어떤 방식으로 모델에 저장된 걸까요? nn.Module이 관리하는 텐서와 그렇지 않은 텐서의 차이를 생각해보세요.",
-          "debugging_guide": "print(model.pe.device)와 print(x.device)로 각 텐서의 device를 비교해보세요.",
-          "solution_check": {
-            "type": "multi_condition",
-            "required_all": [
-              "register_buffer"
-            ],
-            "forbidden": [
-              "self.pe = pe"
-            ]
-          },
-          "error_info": {
-            "type": "Device Mismatch",
-            "description": "model.cuda() 호출 시 함께 이동하는 텐서와 이동하지 않는 텐서가 있습니다. 저장 방식에 따라 다릅니다.",
-            "suggestion": "nn.Module이 텐서를 관리하는 방법들의 차이를 확인하세요."
-          },
-          "coaching": "Positional Encoding, 마스크 텐서 등 학습되지 않는 상수 텐서를 다룰 때 register_buffer를 사용하세요."
+          "coaching": "eval()은 레이어 동작만 바꿉니다. 메모리 절약은 no_grad()의 역할입니다."
         }
       ]
     },
     {
       "id": "S3",
-      "project_title": "학습 루프 치명적 버그",
-      "scenario": "모델 학습 코드를 작성했는데, loss가 이상하게 동작합니다. 감소해야 할 loss가 증가하거나, 학습이 전혀 안 되거나, 갑자기 NaN이 되어버립니다.",
+      "source_id": "PYTORCH_BRIDGE_1",
+      "mode": "line_edit",
+      "project_title": "직접 수정 워밍업 3",
+      "scenario": "버그 줄을 직접 찾아 수정하는 연습 단계입니다. Python 함정과 PyTorch 장치 설정을 해결합니다.",
+      "difficulty": 1,
+      "totalSteps": 5,
+      "steps": [
+        {
+          "step": 1,
+          "title": "함수를 두 번 호출했더니 이전 값이 남아요",
+          "bug_type": "B",
+          "bug_type_name": "Mutable Default",
+          "file_name": "default_arg.py",
+          "fix_mode": "line_edit",
+          "bug_line": 1,
+          "correct_line": "def add_item(item, items=None):",
+          "click_tolerance": 0,
+          "buggy_code": "def add_item(item, items=[]):\n    items.append(item)\n    return items\n\nprint(add_item('A'))\nprint(add_item('B'))",
+          "correct_code": "def add_item(item, items=None):\n    if items is None:\n        items = []\n    items.append(item)\n    return items\n\nprint(add_item('A'))\nprint(add_item('B'))",
+          "error_log": "Run1: ['A']\nRun2: ['A', 'B']  # 새 호출인데 이전 값이 남음",
+          "success_log": "Run1: ['A']\nRun2: ['B']\n[정상] 호출 간 상태 분리 완료\n[포인트] 기본 인자에 mutable 객체를 직접 두지 않습니다.",
+          "hint": "함수 시그니처에서 기본 인자를 None으로 두는 패턴을 먼저 적용해보세요.",
+          "debugging_guide": "함수 정의부의 기본 인자를 먼저 확인해보세요.",
+          "solution_check": {
+            "type": "multi_condition",
+            "required_all": [
+              "def add_item(item, items=None):"
+            ],
+            "forbidden": [
+              "item=None",
+              "items=[]"
+            ]
+          },
+          "error_info": {
+            "type": "Mutable Default Argument",
+            "description": "리스트 기본값이 함수 호출 간 재사용되고 있습니다.",
+            "suggestion": "기본값을 None으로 두고 함수 내부에서 새 리스트를 생성하세요."
+          },
+          "coaching": "Python 실무/면접에서 매우 자주 나오는 패턴입니다."
+        },
+        {
+          "step": 2,
+          "title": "모델은 GPU인데 입력 텐서는 CPU예요",
+          "bug_type": "C",
+          "bug_type_name": "Device Mismatch",
+          "file_name": "device_input.py",
+          "fix_mode": "line_edit",
+          "bug_line": 7,
+          "correct_line": "x = torch.tensor(batch).to(device)",
+          "click_tolerance": 0,
+          "buggy_code": "import torch\n\ndevice = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\nmodel = MyModel().to(device)\n\nbatch = [0.3, 0.1, -0.2]\nx = torch.tensor(batch)\nout = model(x)",
+          "correct_code": "import torch\n\ndevice = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\nmodel = MyModel().to(device)\n\nbatch = [0.3, 0.1, -0.2]\nx = torch.tensor(batch).to(device)\nout = model(x)",
+          "error_log": "RuntimeError: Expected all tensors to be on the same device\n[DEBUG] model: cuda:0, input: cpu",
+          "success_log": "[정상] 입력 텐서와 모델 디바이스 일치",
+          "hint": "모델이 있는 device로 입력 텐서도 이동해야 합니다.",
+          "debugging_guide": "print(next(model.parameters()).device, x.device)로 비교하세요.",
+          "solution_check": {
+            "type": "multi_condition",
+            "required_all": [
+              "to(device)"
+            ],
+            "forbidden": []
+          },
+          "error_info": {
+            "type": "Device Mismatch",
+            "description": "입력 텐서와 모델 파라미터의 디바이스가 다릅니다.",
+            "suggestion": "입력 텐서를 model과 동일한 device로 이동하세요."
+          },
+          "coaching": "PyTorch 추론/학습에서 가장 흔한 런타임 에러 중 하나입니다."
+        },
+        {
+          "step": 3,
+          "title": "정수 레이블인데 float 텐서로 만들었어요",
+          "bug_type": "A",
+          "bug_type_name": "Type Error",
+          "file_name": "label_type.py",
+          "fix_mode": "line_edit",
+          "bug_line": 5,
+          "correct_line": "labels = torch.tensor([0, 1, 2], dtype=torch.long)",
+          "click_tolerance": 0,
+          "buggy_code": "import torch\nimport torch.nn as nn\n\nlogits = torch.randn(3, 3)\nlabels = torch.tensor([0, 1, 2], dtype=torch.float)\n\ncriterion = nn.CrossEntropyLoss()\nloss = criterion(logits, labels)",
+          "correct_code": "import torch\nimport torch.nn as nn\n\nlogits = torch.randn(3, 3)\nlabels = torch.tensor([0, 1, 2], dtype=torch.long)\n\ncriterion = nn.CrossEntropyLoss()\nloss = criterion(logits, labels)",
+          "error_log": "RuntimeError: expected scalar type Long but found Float\n[DEBUG] CrossEntropyLoss requires Long dtype for target",
+          "success_log": "tensor(1.2345)\n[정상] Loss 계산 완료",
+          "hint": "분류 문제의 레이블은 정수(Long) 타입이어야 합니다.",
+          "debugging_guide": "print(labels.dtype)로 레이블 타입을 확인하세요.",
+          "solution_check": {
+            "type": "multi_condition",
+            "required_all": [
+              "torch.long"
+            ],
+            "forbidden": [
+              "torch.float"
+            ]
+          },
+          "error_info": {
+            "type": "Dtype Mismatch",
+            "description": "CrossEntropyLoss는 Long 타입 레이블을 요구합니다.",
+            "suggestion": "레이블을 torch.long으로 변환하세요."
+          },
+          "coaching": "분류 레이블은 Long, 회귀 타겟은 Float입니다. 용도에 맞게 구분하세요."
+        },
+        {
+          "step": 4,
+          "title": "전역 변수를 수정하려는데 인식이 안 돼요",
+          "bug_type": "B",
+          "bug_type_name": "Scope Error",
+          "file_name": "counter.py",
+          "fix_mode": "line_edit",
+          "bug_line": 4,
+          "correct_line": "    global count",
+          "click_tolerance": 0,
+          "buggy_code": "count = 0\n\ndef increment():\n    count += 1\n    return count\n\nprint(increment())\nprint(increment())",
+          "correct_code": "count = 0\n\ndef increment():\n    global count\n    count += 1\n    return count\n\nprint(increment())\nprint(increment())",
+          "error_log": "UnboundLocalError: local variable 'count' referenced before assignment\nFile \"counter.py\", line 4",
+          "success_log": "1\n2\n[정상] 전역 변수 수정 완료",
+          "hint": "함수 안에서 전역 변수를 수정하려면 선언이 필요합니다.",
+          "debugging_guide": "전역 변수를 수정하는 함수에서 global 키워드를 확인하세요.",
+          "solution_check": {
+            "type": "multi_condition",
+            "required_all": [
+              "global count"
+            ],
+            "forbidden": []
+          },
+          "error_info": {
+            "type": "UnboundLocalError",
+            "description": "함수 안에서 전역 변수를 수정하려면 global 선언이 필요합니다.",
+            "suggestion": "함수 첫 줄에 global count를 추가하세요."
+          },
+          "coaching": "전역 변수 수정은 가능하면 피하고, 필요하면 명시적으로 global 선언하세요."
+        },
+        {
+          "step": 5,
+          "title": "비교 연산자를 쓸 곳에 할당 연산자를 썼어요",
+          "bug_type": "A",
+          "bug_type_name": "Syntax Error",
+          "file_name": "condition.py",
+          "fix_mode": "line_edit",
+          "bug_line": 3,
+          "correct_line": "if x == 5:",
+          "click_tolerance": 0,
+          "buggy_code": "x = 5\n\nif x = 5:\n    print(\"x is 5\")\nelse:\n    print(\"x is not 5\")",
+          "correct_code": "x = 5\n\nif x == 5:\n    print(\"x is 5\")\nelse:\n    print(\"x is not 5\")",
+          "error_log": "SyntaxError: invalid syntax. Maybe you meant '==' or ':=' instead of '='?\nFile \"condition.py\", line 3",
+          "success_log": "x is 5\n[정상] 조건문 실행 완료",
+          "hint": "조건문에서는 비교 연산자 ==를 사용해야 합니다.",
+          "debugging_guide": "Python은 구문 에러 메시지에서 해결책을 제안합니다.",
+          "solution_check": {
+            "type": "multi_condition",
+            "required_all": [
+              "if x == 5:"
+            ],
+            "forbidden": [
+              "if x = 5:"
+            ]
+          },
+          "error_info": {
+            "type": "Syntax Error",
+            "description": "조건문에서 할당 연산자(=)를 사용할 수 없습니다.",
+            "suggestion": "비교 연산자(==)를 사용하세요."
+          },
+          "coaching": "= (할당)과 == (비교)를 명확히 구분하세요. 이는 가장 흔한 타이핑 실수입니다."
+        }
+      ]
+    },
+    {
+      "id": "S4",
+      "project_title": "학습 루프 실전 입문",
+      "scenario": "이제부터는 자유코딩 실전입니다. 학습 루프에서 현업에서 자주 발생하는 핵심 버그를 단계적으로 해결해봅니다.",
       "difficulty": 2,
       "totalSteps": 3,
       "steps": [
         {
           "step": 1,
-          "title": "Loss가 배치마다 폭발해요",
+          "title": "Loss가 배치마다 폭발해요 (실전 입문)",
           "bug_type": "A",
           "bug_type_name": "Gradient Bug",
           "file_name": "train_loop.py",
@@ -156,48 +637,46 @@
           "correct_code": "import torch\nimport torch.nn as nn\nimport torch.optim as optim\n\nmodel = SimpleNet()\ncriterion = nn.CrossEntropyLoss()\noptimizer = optim.Adam(model.parameters(), lr=0.001)\n\nfor epoch in range(10):\n    for batch_idx, (data, target) in enumerate(train_loader):\n        optimizer.zero_grad()  # 반드시 backward 전에!\n        \n        output = model(data)\n        loss = criterion(output, target)\n        \n        loss.backward()\n        optimizer.step()\n        \n        print(f\"Epoch {epoch}, Batch {batch_idx}: Loss = {loss.item():.4f}\")",
           "error_log": "=== 학습 로그 ===\nEpoch 0, Batch 0:  Loss = 2.3025\nEpoch 0, Batch 1:  Loss = 4.7891\nEpoch 0, Batch 5:  Loss = 23.4521\nEpoch 0, Batch 10: Loss = 156.2847\nEpoch 0, Batch 50: Loss = inf\nEpoch 1, Batch 0:  Loss = nan\n\n[ALERT] Loss가 수렴하지 않고 기하급수적으로 증가\n[METRIC] 배치 간 Loss 증가율: ~200% (정상: 감소해야 함)",
           "success_log": "Epoch 0, Batch 0: Loss = 2.3025\nEpoch 0, Batch 1: Loss = 2.2891\nEpoch 0, Batch 10: Loss = 1.8542\n[정상] Loss가 점진적으로 감소",
-          "hint": "Loss가 '누적'되듯 증가하고 있습니다. 매 배치마다 깨끗하게 시작해야 하는 것이 그러지 못하고 있지는 않나요?",
-          "debugging_guide": "첫 번째 파라미터의 gradient를 출력해보세요: print(list(model.parameters())[0].grad)",
+          "hint": "for batch 루프 안에서 zero_grad가 forward보다 앞에 있는지 순서대로 확인하세요.",
+          "debugging_guide": "루프 내부 순서를 로그처럼 적어보세요: zero_grad -> forward -> loss -> backward -> step",
           "solution_check": {
             "type": "regex",
-            "value": "zero_grad\\(\\)[\\s\\S]*?forward|zero_grad\\(\\)[\\s\\S]*?output\\s*=\\s*model",
+            "value": "for\\s+batch_idx[^\\n]*:[\\s\\S]*?optimizer\\.zero_grad\\(\\)[\\s\\S]*?output\\s*=\\s*model\\(data\\)[\\s\\S]*?loss\\s*=\\s*criterion\\(output,\\s*target\\)[\\s\\S]*?loss\\.backward\\(\\)[\\s\\S]*?optimizer\\.step\\(\\)",
             "flags": ""
           },
           "error_info": {
             "type": "Gradient Accumulation Bug",
-            "description": "매 배치마다 초기화되어야 하는 것이 누적되면서 Loss가 폭발합니다.",
-            "suggestion": "학습 루프의 각 단계가 올바른 순서로 실행되는지 확인하세요."
+            "description": "배치마다 gradient가 초기화되지 않아 업데이트가 누적되고 있습니다.",
+            "suggestion": "optimizer.zero_grad() 호출 위치를 backward 이전으로 이동하세요."
           },
-          "coaching": "학습 코드의 표준 순서를 외워두세요. zero_grad → forward → loss → backward → step.",
+          "coaching": "S4는 실전 시작 단계입니다. 먼저 표준 학습 루프 순서를 몸에 익히세요.",
           "fix_mode": "free_code"
         },
         {
           "step": 2,
-          "title": "Loss는 줄어드는데 모델이 안 바뀌어요",
+          "title": "검증 성능이 들쭉날쭉해요",
           "bug_type": "B",
-          "bug_type_name": "Graph Break",
-          "file_name": "custom_loss.py",
-          "buggy_code": "import torch\nimport torch.nn as nn\n\ndef custom_loss(pred, target, model):\n    mse_loss = nn.MSELoss()(pred, target)\n    \n    l2_reg = 0\n    for param in model.parameters():\n        l2_reg += torch.norm(param)\n    \n    total_loss = mse_loss.detach() + 0.01 * l2_reg\n    return total_loss\n\nfor epoch in range(100):\n    optimizer.zero_grad()\n    pred = model(x)\n    loss = custom_loss(pred, y, model)\n    \n    print(f\"Loss grad_fn: {loss.grad_fn}\")\n    \n    loss.backward()\n    optimizer.step()\n    print(f\"Loss: {loss.item():.4f}\")",
-          "correct_code": "import torch\nimport torch.nn as nn\n\ndef custom_loss(pred, target, model):\n    mse_loss = nn.MSELoss()(pred, target)\n    \n    l2_reg = 0\n    for param in model.parameters():\n        l2_reg += torch.norm(param)\n    \n    total_loss = mse_loss + 0.01 * l2_reg  # detach 제거!\n    return total_loss\n\nfor epoch in range(100):\n    optimizer.zero_grad()\n    pred = model(x)\n    loss = custom_loss(pred, y, model)\n    \n    print(f\"Loss grad_fn: {loss.grad_fn}\")\n    \n    loss.backward()\n    optimizer.step()\n    print(f\"Loss: {loss.item():.4f}\")",
-          "error_log": "=== 학습 로그 ===\nEpoch 1: Loss = 0.6931, Train Acc = 51.2%\nEpoch 5: Loss = 0.4523, Train Acc = 51.3%\nEpoch 10: Loss = 0.2184, Train Acc = 51.2%\nEpoch 20: Loss = 0.0891, Train Acc = 51.3%\n\n[ANOMALY] Loss는 정상적으로 감소하지만 Accuracy가 전혀 변하지 않음\n[DEBUG] print(loss.grad_fn) → <AddBackward0>",
-          "success_log": "Loss grad_fn: <AddBackward0>\n  ├── <MseLossBackward0>  # MSE 연결됨!\n  └── <MulBackward0>\n\nTrain Accuracy: 98.2%\n[정상] Loss 감소와 함께 성능도 향상",
-          "hint": "Loss는 줄어드는데 모델은 안 변한다? loss.grad_fn을 출력해보세요. 연산 그래프가 모델까지 연결되어 있나요?",
-          "debugging_guide": "print(mse_loss.grad_fn), print(mse_loss.detach().grad_fn)을 비교해보세요.",
+          "bug_type_name": "Train/Eval Mode",
+          "file_name": "validation_loop.py",
+          "buggy_code": "import torch\nimport torch.nn as nn\n\nmodel = MyModel().cuda()\ncriterion = nn.CrossEntropyLoss()\noptimizer = torch.optim.Adam(model.parameters(), lr=1e-3)\n\nfor epoch in range(5):\n    model.train()\n    for x, y in train_loader:\n        x, y = x.cuda(), y.cuda()\n        optimizer.zero_grad()\n        logits = model(x)\n        loss = criterion(logits, y)\n        loss.backward()\n        optimizer.step()\n\n    # validation\n    val_loss = 0.0\n    with torch.no_grad():\n        for x_val, y_val in val_loader:\n            x_val, y_val = x_val.cuda(), y_val.cuda()\n            val_logits = model(x_val)\n            val_loss += criterion(val_logits, y_val).item()\n\n    print(f\"Epoch {epoch}: val_loss={val_loss:.4f}\")",
+          "correct_code": "import torch\nimport torch.nn as nn\n\nmodel = MyModel().cuda()\ncriterion = nn.CrossEntropyLoss()\noptimizer = torch.optim.Adam(model.parameters(), lr=1e-3)\n\nfor epoch in range(5):\n    model.train()\n    for x, y in train_loader:\n        x, y = x.cuda(), y.cuda()\n        optimizer.zero_grad()\n        logits = model(x)\n        loss = criterion(logits, y)\n        loss.backward()\n        optimizer.step()\n\n    # validation\n    model.eval()\n    val_loss = 0.0\n    with torch.no_grad():\n        for x_val, y_val in val_loader:\n            x_val, y_val = x_val.cuda(), y_val.cuda()\n            val_logits = model(x_val)\n            val_loss += criterion(val_logits, y_val).item()\n\n    print(f\"Epoch {epoch}: val_loss={val_loss:.4f}\")",
+          "error_log": "=== Validation 로그 ===\nEpoch 0: val_loss=1.9231\nEpoch 1: val_loss=2.1042\nEpoch 2: val_loss=1.8873\n\n[ALERT] validation 결과 변동이 비정상적으로 큼\n[SUSPECT] 검증 단계에서 모델 모드가 학습 상태로 남아있음",
+          "success_log": "Epoch 0: val_loss=1.9231\nEpoch 1: val_loss=1.7542\nEpoch 2: val_loss=1.6028\n[정상] validation loss가 안정적으로 감소",
+          "hint": "검증 루프에 들어가기 직전에 모델 모드를 다시 확인해보세요.",
+          "debugging_guide": "print(model.training)을 train/validation 각각에서 찍어보세요.",
           "solution_check": {
             "type": "multi_condition",
             "required_all": [
-              "mse_loss + 0.01"
+              "model.eval()"
             ],
-            "forbidden": [
-              "mse_loss.detach()"
-            ]
+            "forbidden": []
           },
           "error_info": {
-            "type": "Computational Graph Break",
-            "description": "Loss 값은 줄어들지만 그 gradient가 모델 파라미터까지 전달되지 않고 있습니다.",
-            "suggestion": "loss 계산 과정에서 연산 그래프가 끊기는 지점이 있는지 확인하세요."
+            "type": "Mode Mismatch",
+            "description": "검증 단계에서도 train 모드로 동작해 Dropout/BatchNorm이 불안정합니다.",
+            "suggestion": "검증 루프 시작 전에 model.eval()을 호출하세요."
           },
-          "coaching": "'Loss가 줄어드는데 성능이 안 오른다'면 print(loss.grad_fn)으로 연산 그래프를 확인하세요.",
+          "coaching": "학습(train)과 검증(eval) 모드 분리는 실전에서 성능 재현성의 기본입니다.",
           "fix_mode": "free_code"
         },
         {
@@ -210,8 +689,8 @@
           "correct_code": "import torch\nimport torch.optim as optim\nfrom torch.optim.lr_scheduler import StepLR\n\nmodel = MyModel()\noptimizer = optim.Adam(model.parameters(), lr=0.001)\nscheduler = StepLR(optimizer, step_size=10, gamma=0.1)\n\nfor epoch in range(100):\n    for batch in train_loader:\n        optimizer.zero_grad()\n        output = model(batch['x'])\n        loss = criterion(output, batch['y'])\n        loss.backward()\n        optimizer.step()\n    \n    scheduler.step()  # 에포크 끝에서 한 번만 호출\n    print(f\"Epoch {epoch}: LR = {scheduler.get_last_lr()[0]:.6f}\")",
           "error_log": "=== 학습 로그 ===\nEpoch 0, Batch 0:  LR = 0.000100\nEpoch 0, Batch 1:  LR = 0.000100\n...\nEpoch 0, Batch 99: LR = 0.000010  (첫 에포크 끝나기 전에 이미 감소!)\nEpoch 1: LR = 0.000001\nEpoch 2: LR = 0.000000\n\n[ALERT] 학습률이 예상보다 훨씬 빠르게 감소\n[METRIC] step_size=10인데, 10 에포크가 아니라 10 배치 만에 LR 변경됨",
           "success_log": "Epoch 0: LR = 0.001000\nEpoch 10: LR = 0.000100\nEpoch 20: LR = 0.000010\n[정상] 10에포크마다 LR이 1/10로 감소",
-          "hint": "scheduler.step()이 한 에포크에 몇 번 호출되는지 세어보세요. step_size의 단위가 무엇인지 생각해보세요.",
-          "debugging_guide": "매 배치마다 scheduler.get_last_lr()를 출력해보세요.",
+          "hint": "scheduler.step() 호출 빈도를 먼저 세어보세요. step_size는 에포크 기준입니다.",
+          "debugging_guide": "배치마다 lr를 출력해보고, 에포크마다 한 번만 감소하는지 확인하세요.",
           "solution_check": {
             "type": "regex",
             "value": "for batch[\\s\\S]*?optimizer\\.step\\(\\)[\\s\\S]*?\\n\\s*scheduler\\.step\\(\\)",
@@ -222,7 +701,7 @@
             "description": "스케줄러의 step()이 의도한 것보다 훨씬 자주 호출되고 있습니다.",
             "suggestion": "스케줄러의 step() 호출 위치와 빈도를 확인하세요."
           },
-          "coaching": "스케줄러 버그는 찾기 어렵습니다. get_last_lr()로 현재 학습률을 로깅하세요.",
+          "coaching": "실전에서는 LR 로그를 항상 남겨야 스케줄러 버그를 빠르게 찾을 수 있습니다.",
           "fix_mode": "free_code"
         }
       ],
@@ -230,7 +709,7 @@
       "mode": "standard"
     },
     {
-      "id": "S4",
+      "id": "S5",
       "project_title": "데이터 로더 & 전처리 함정",
       "scenario": "데이터 파이프라인을 구축했는데, 학습 속도가 너무 느리거나, 예상치 못한 에러가 발생하거나, 재현이 안 되는 문제가 생깁니다.",
       "difficulty": 2,
@@ -331,7 +810,7 @@
       "mode": "standard"
     },
     {
-      "id": "S5",
+      "id": "S6",
       "project_title": "모델 저장 & 배포 실수",
       "scenario": "학습이 완료된 모델을 저장하고 나중에 다시 불러왔는데, 성능이 다르거나 에러가 발생합니다.",
       "difficulty": 3,
@@ -431,7 +910,7 @@
       "mode": "standard"
     },
     {
-      "id": "S6",
+      "id": "S7",
       "project_title": "LLM & Transformer 디버깅",
       "scenario": "Transformer 기반 모델(BERT, GPT 등)을 Fine-tuning하거나 추론하는데, 예상과 다른 결과가 나오거나 에러가 발생합니다.",
       "difficulty": 3,
