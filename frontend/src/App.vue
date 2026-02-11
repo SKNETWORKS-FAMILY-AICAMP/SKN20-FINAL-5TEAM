@@ -218,7 +218,7 @@ const displayProblems = computed(() => {
 
 const displayLabelsCount = computed(() => {
   const currentCount = displayProblems.value?.length || 0;
-  const targetCount = game.activeUnit?.name === 'Debug Practice' ? 8 : 10;
+  const targetCount = game.activeUnit?.name === 'Debug Practice' ? 9 : 10;
   return Math.max(0, targetCount - currentCount);
 });
 
