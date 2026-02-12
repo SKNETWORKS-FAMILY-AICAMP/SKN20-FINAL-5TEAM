@@ -429,7 +429,8 @@ ${axisRubricFormat}
 2. 사용자 설명과 Q&A 답변을 검토
 3. 각 기둥별로 위 루브릭 기준을 적용
 4. 0-100 범위에서 점수 부여 (정수)
-5. **반드시 정확히 6개 기둥 평가**
+5. **각 기둥마다 정확히 5-7문장의 modelAnswer 작성**
+6. **반드시 정확히 6개 기둥 평가**
 
 ### 3. 구체적 평가 항목
 각 기둥마다:
@@ -439,10 +440,12 @@ ${axisRubricFormat}
 - ✅ 트레이드오프를 이해하고 있는가?
 - ✅ 제약조건을 반영했는가?
 
-### 4. 모범답안
+### 4. 모범답안 (필수: 정확히 5-7문장)
 - 이 시나리오와 아키텍처에 맞는 구체적 답변
-- 실제 기술/서비스 이름 포함
+- 실제 기술/서비스 이름과 설정값 포함 (예: Redis 일관된 해싱, 100ms latency 목표)
+- 트레이드오프와 선택 이유를 명시적으로 설명
 - 사용자가 배울 수 있도록 상세하게
+- **반드시 정확히 5-7문장으로 작성** (너무 짧으면 안됨, 예: 2-3문장 X)
 
 ### 5. 최종 점수 계산
 \`\`\`
@@ -471,7 +474,7 @@ ${axisRubricFormat}
       "score": 82,
       "reasoning": "아키텍처에서 Redis 캐시와 인덱싱이 명시되었고, 응답 지연 최적화를 고려한 설계입니다. 다만 캐시 샤딩 전략과 구체적인 latency 목표값이 부족합니다.",
       "feedback": "캐시 전략은 잘 설계되었으나, 응답 시간 목표(SLA)와 샤딩 방법을 명시해야 합니다.",
-      "modelAnswer": "Redis 캐시를 일관된 해싱으로 샤딩하여 읽기 지연을 100ms 이하로 유지하고, DB 인덱스 전략으로 조회 성능을 최적화합니다.",
+      "modelAnswer": "Redis 캐시를 일관된 해싱으로 샤딩하여 읽기 지연을 100ms 이하로 유지합니다. DB 인덱스 전략으로 조회 성능을 최적화하고, 핫 데이터는 L1 캐시에 보관합니다. 트레이드오프로 캐시 일관성 관리 비용이 증가하지만, 쓰기 작업은 비동기로 처리하여 성능을 보장합니다. SLA는 95 percentile 기준 150ms 이내로 설정하여 사용자 경험을 최우선으로 합니다.",
       "improvements": [
         "latency 목표값(SLA) 명시",
         "캐시 샤딩 전략 추가",
@@ -526,6 +529,7 @@ ${axisRubricFormat}
 - 반드시 정확히 6개 기둥 (performance_optimization, reliability, operational_excellence, cost_optimization, security, sustainability)
 - 각 기둥 점수는 0-100 정수
 - 각 기둥에 grade 포함 (excellent, good, fair, poor, failing)
+- **각 기둥의 modelAnswer는 반드시 정확히 5-7문장** (너무 짧으면 안됨, 구체적 기술명과 트레이드오프 포함)
 - weightedScores = score × weight / 100
 - overallScore = Σ weightedScores (정수로 반올림)
 - 반드시 JSON 형식만 출력`;
