@@ -547,8 +547,8 @@ class BugHuntEvaluationView(APIView):
                     {"role": "system", "content": system_message},
                     {"role": "user", "content": prompt}
                 ],
-                max_tokens=2500,
-                temperature=0.3
+                max_tokens=4000,
+                temperature=0.5
             )
 
             response_text = response.choices[0].message.content.strip()

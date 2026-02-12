@@ -3,7 +3,7 @@
 from .user_view import UserProfileViewSet
 from .dashboard_view import DashboardLogViewSet
 from .common_view import CommonViewSet
-from .practice_view import PracticeViewSet
+from .practice_view import PracticeViewSet, PracticeDetailViewSet
 from .auth_view import LoginView, LogoutView, SessionCheckView
 from .ai_view import AIEvaluationView, BugHuntEvaluationView
 from .code_execution_view import CodeExecutionView, BehaviorVerificationView

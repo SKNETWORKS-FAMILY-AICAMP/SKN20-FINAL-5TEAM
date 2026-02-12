@@ -7,6 +7,7 @@ from core.views import (
     DashboardLogViewSet,
     CommonViewSet,
     PracticeViewSet,
+    PracticeDetailViewSet,
     LoginView,
     LogoutView,
     SessionCheckView,
@@ -27,6 +28,7 @@ router.register(r'users', UserProfileViewSet, basename='users')
 router.register(r'dashboard-logs', DashboardLogViewSet)
 router.register(r'commons', CommonViewSet)
 router.register(r'practices', PracticeViewSet)
+router.register(r'practice-details', PracticeDetailViewSet, basename='practice-details')
 
 urlpatterns = [
     path('', include(router.urls)),
