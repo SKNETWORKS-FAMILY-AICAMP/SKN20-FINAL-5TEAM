@@ -496,6 +496,14 @@ ${axisRubricFormat}
       const endTime = Date.now();
       console.log(`✅ 루브릭 평가 완료 (${((endTime - startTime) / 1000).toFixed(1)}s)`);
 
+      // 🔥 questionEvaluations 구성: deepDiveQnA와 evaluations 매칭
+      const questionEvaluations = (result.evaluations || []).slice(0, 3).map((ev, idx) => ({
+        ...ev,
+        question: qnaArray[idx]?.question || '',
+        userAnswer: qnaArray[idx]?.answer || '',
+        category: qnaArray[idx]?.category || ev.axisName || ''
+      }));
+
       // 결과 포맷팅 (루브릭 정보 포함)
       return {
         // 최종 점수
@@ -513,8 +521,8 @@ ${axisRubricFormat}
         // 기둥별 가중치 적용 점수
         weightedScores: result.weightedScores || {},
 
-        // 기존 호환성 유지
-        questionEvaluations: (result.evaluations || []).slice(0, 3),
+        // 기존 호환성 유지 (question, userAnswer 포함)
+        questionEvaluations,
         pillarScores: buildPillarScores(result.evaluations || []),
         nfrScores: buildNfrScores(result.evaluations || []),
 
@@ -625,6 +633,14 @@ function generateFallbackResult(qnaArray, axisWeights) {
     };
   });
 
+  // 🔥 questionEvaluations 구성: qnaArray와 매칭
+  const questionEvaluations = baseEvaluations.slice(0, 3).map((ev, idx) => ({
+    ...ev,
+    question: qnaArray[idx]?.question || '',
+    userAnswer: qnaArray[idx]?.answer || '',
+    category: qnaArray[idx]?.category || ev.axisName || ''
+  }));
+
   const weightedScores = {};
   let totalWeightedScore = 0;
   let totalWeight = 0;
@@ -647,6 +663,7 @@ function generateFallbackResult(qnaArray, axisWeights) {
     weaknesses: [],
     suggestions: ['다시 시도해주세요'],
     evaluations: baseEvaluations,
+    questionEvaluations,
     weightedScores,
     metadata: {
       method: 'fallback',
