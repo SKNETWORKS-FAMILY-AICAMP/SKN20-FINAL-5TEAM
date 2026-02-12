@@ -20,6 +20,7 @@ from core.views import (
     activity_view
 )
 from core.views.pseudocode_execution import execute_python_code
+from core.views import pseudocode_evaluation
 
 router = DefaultRouter()
 router.register(r'users', UserProfileViewSet, basename='users')
@@ -60,4 +61,6 @@ urlpatterns = [
     path('management/user-answers/<str:practice_id>/<int:user_id>/', UserAnswersView.as_view(), name='user_answers_detail'),
 
     path('pseudocode/execute/', execute_python_code, name='pseudocode_execute'),
+    path('pseudocode/evaluate-5d', pseudocode_evaluation.evaluate_pseudocode_5d),
+    path('ai-proxy/', pseudocode_evaluation.ai_proxy),
 ]

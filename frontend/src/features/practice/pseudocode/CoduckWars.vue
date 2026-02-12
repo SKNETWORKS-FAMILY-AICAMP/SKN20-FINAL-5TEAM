@@ -151,6 +151,7 @@
           <!-- RIGHT PANEL: DECISION ENGINE [2026-02-11] 단계별 인터랙션 영역 -->
           <section class="decision-panel relative">
               
+
               <!-- [2026-02-11] PHASE: INTRO / DIAGNOSTIC_1 (Step 0) -->
               <div v-if="gameState.phase === 'INTRO' || (gameState.phase === 'DIAGNOSTIC_1' && gameState.step === 0)" class="space-y-8">
                   <div class="system-status-text">INITIALIZING_MISSION_PROTOCOL...</div>
@@ -358,6 +359,7 @@ scaler.fit(df)  # 전체 데이터로 학습하는 누수 발생</pre>
             <!-- TAB 3: TEST (Sandbox) -->
             <div v-if="activeLabTab === 'TEST'" class="lab-full-section flex-row gap-8">
               <div class="flex-1 flex flex-col">
+
                 <div class="sec-header"><Play class="w-4 h-4" /> <span>테스트 로직 입력</span></div>
                 <textarea v-model="labState.testInput" class="lab-test-textarea flex-1 mb-4" placeholder="검증할 의사코드를 입력하세요..."></textarea>
                 <button @click="runLabTest" :disabled="labState.isTesting" class="btn-run-test w-full">
@@ -429,7 +431,7 @@ const {
     submitDiagnostic1,
     submitDiagnostic2,
     handlePseudoInput,
-    submitPseudo,
+    submitDeepQuiz,
     resetFlow,
     handlePracticeClose
 } = useCoduckWars();
@@ -442,9 +444,20 @@ const diagnosticQuestion2 = computed(() => currentMission.value.interviewQuestio
 const restartMission = () => resetFlow();
 
 const radarPoints = computed(() => {
-    if (!evaluationResult?.details) return "";
-    return evaluationResult.details.map((d, i) => {
-        const score = d.score || 0;
+    if (!evaluationResult?.details || evaluationResult.details.length === 0) return "";
+    
+    // Fixed Order for Radar Chart (Standardized 5-Dim)
+    const fixedCategories = ['Consistency', 'Abstraction', 'Exception Handling', 'Implementation', 'Design'];
+    
+    const scores = fixedCategories.map(cat => {
+        // Find matching category (handle potential space nuances)
+        const found = evaluationResult.details.find(d => 
+            d.category === cat || d.category === cat.replace(' ', '')
+        );
+        return found ? found.score : 0;
+    });
+
+    return scores.map((score, i) => {
         const p = calculatePoint(i, score);
         return `${p.x},${p.y}`;
     }).join(' ');

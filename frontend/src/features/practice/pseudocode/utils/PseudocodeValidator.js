@@ -7,6 +7,7 @@
  * 6. 코드 검증 시 주석 제거
  * 
  * [2026-02-09] Rule Engine 리팩토링 (Antigravity + Claude)
+ * [2026-02-12] Bug Fix: PRAISE 패턴 필터 + normalize 개선
  */
 
 export class PseudocodeValidator {
@@ -43,6 +44,7 @@ export class PseudocodeValidator {
 
     /**
      * ✨ 5번 해결: 부정어를 고려한 치명적 오류 체크
+     * [2026-02-12] Bug Fix: severity가 'PRAISE'인 패턴은 오류에서 제외
      */
     checkCriticalErrors(pseudocode) {
         const errors = [];
@@ -51,7 +53,11 @@ export class PseudocodeValidator {
         if (!this.rules.criticalPatterns) return errors;
 
         for (const patternDef of this.rules.criticalPatterns) {
-            // 새로운 구조: { pattern: { positive, negatives }, message, ... }
+            // ✅ [FIX] PRAISE 패턴은 에러 체크에서 완전히 스킵
+            if (patternDef.severity === 'PRAISE' || patternDef.severity === 'INFO') {
+                continue;
+            }
+
             const { pattern, message, correctExample, explanation } = patternDef;
             
             let isError = false;
@@ -61,23 +67,32 @@ export class PseudocodeValidator {
                 isError = pattern.test(normalized);
             }
             // 부정어 포함 객체 구조
-            else if (typeof pattern === 'object') {
+            else if (typeof pattern === 'object' && pattern !== null) {
                 const { positive, negatives = [] } = pattern;
                 
-                // 1. 양성 패턴 체크
-                if (positive.test(normalized)) {
-                    // 2. 부정어가 있는지 체크
-                    const hasNegative = negatives.some(neg => neg.test(normalized));
-                    
-                    // 부정어 없으면 오류
-                    if (!hasNegative) {
-                        isError = true;
+                // positive가 RegExp인지 확인
+                if (positive && typeof positive.test === 'function') {
+                    // 1. 양성 패턴 체크
+                    if (positive.test(normalized)) {
+                        // 2. 부정어가 있는지 체크
+                        const hasNegative = negatives.length > 0 && 
+                            negatives.some(neg => neg && typeof neg.test === 'function' && neg.test(normalized));
+                        
+                        // 부정어 없으면 오류
+                        if (!hasNegative) {
+                            isError = true;
+                        }
                     }
                 }
             }
             // 함수형 (최대 유연성)
             else if (typeof pattern === 'function') {
-                isError = pattern(normalized);
+                try {
+                    isError = pattern(normalized);
+                } catch (e) {
+                    console.warn('[Validator] Pattern function error:', e);
+                    isError = false;
+                }
             }
 
             if (isError) {
@@ -170,18 +185,26 @@ export class PseudocodeValidator {
 
     /**
      * ✨ 3번 해결: 규칙 기반 개념 추출 (가중치 반영)
+     * [2026-02-12] Bug Fix: normalize 대신 softNormalize 사용
      */
     extractConcepts(pseudocode) {
-        const normalized = this.normalize(pseudocode);
+        // ✅ [FIX] 개념 추출 시에는 원문에 더 가까운 softNormalize 사용
+        const normalized = this.softNormalize(pseudocode);
         const concepts = new Set();
 
         if (!this.rules.requiredConcepts) return concepts;
 
         for (const concept of this.rules.requiredConcepts) {
+            if (!concept.patterns || !Array.isArray(concept.patterns)) continue;
+            
             for (const pattern of concept.patterns) {
-                if (pattern.test(normalized)) {
-                    concepts.add(concept.id);
-                    break;
+                try {
+                    if (pattern && typeof pattern.test === 'function' && pattern.test(normalized)) {
+                        concepts.add(concept.id);
+                        break;
+                    }
+                } catch (e) {
+                    console.warn(`[Validator] Pattern test error for concept ${concept.id}:`, e);
                 }
             }
         }
@@ -213,7 +236,10 @@ export class PseudocodeValidator {
             }
         }
 
-        const score = Math.round(maxScore * (foundWeight / totalWeight));
+        // totalWeight가 0이면 분모 에러 방지
+        const score = totalWeight > 0 
+            ? Math.round(maxScore * (foundWeight / totalWeight))
+            : 0;
         
         if (foundWeight === totalWeight) {
             feedback.push('✅ 모든 핵심 개념 포함');
@@ -229,18 +255,23 @@ export class PseudocodeValidator {
 
     /**
      * 논리적 흐름 분석 (규칙 주입)
+     * [2026-02-12] Bug Fix: softNormalize 사용
      */
     analyzeLogicalFlow(pseudocode, concepts, maxScore) {
-        const lines = pseudocode.toLowerCase().split('\n');
+        const lines = this.softNormalize(pseudocode).split('\n');
         let score = 0;
         const feedback = [];
 
-        if (!this.rules.dependencies) {
+        if (!this.rules.dependencies || this.rules.dependencies.length === 0) {
             return { score: maxScore, feedback: ['(흐름 검증 규칙 없음)'] };
         }
 
         // 총 포인트 계산
-        const totalPoints = this.rules.dependencies.reduce((sum, dep) => sum + dep.points, 0);
+        const totalPoints = this.rules.dependencies.reduce((sum, dep) => sum + (dep.points || 0), 0);
+        
+        if (totalPoints === 0) {
+            return { score: maxScore, feedback: ['(흐름 포인트 미설정)'] };
+        }
 
         for (const dep of this.rules.dependencies) {
             const beforeIdx = this.findConceptLine(lines, dep.before);
@@ -251,7 +282,7 @@ export class PseudocodeValidator {
             }
 
             if (beforeIdx < afterIdx) {
-                score += (dep.points / totalPoints) * maxScore;
+                score += ((dep.points || 0) / totalPoints) * maxScore;
                 feedback.push(`✅ ${dep.name} 순서 정확`);
             } else {
                 // Strictness 체크
@@ -259,7 +290,7 @@ export class PseudocodeValidator {
                     feedback.push(`❌ ${dep.name}: 순서 오류 (필수)`);
                 } else {
                     feedback.push(`⚠️ ${dep.name}: 순서 권장됨`);
-                    score += ((dep.points / 2) / totalPoints) * maxScore;  // 부분 점수
+                    score += (((dep.points || 0) / 2) / totalPoints) * maxScore;  // 부분 점수
                 }
             }
         }
@@ -272,12 +303,16 @@ export class PseudocodeValidator {
      */
     findConceptLine(lines, conceptId) {
         const concept = this.rules.requiredConcepts?.find(c => c.id === conceptId);
-        if (!concept) return -1;
+        if (!concept || !concept.patterns) return -1;
 
         for (let i = 0; i < lines.length; i++) {
             for (const pattern of concept.patterns) {
-                if (pattern.test(lines[i])) {
-                    return i;
+                try {
+                    if (pattern && typeof pattern.test === 'function' && pattern.test(lines[i])) {
+                        return i;
+                    }
+                } catch (e) {
+                    // skip invalid pattern
                 }
             }
         }
@@ -285,20 +320,34 @@ export class PseudocodeValidator {
     }
 
     /**
-     * 정규화
+     * [2026-02-12] 정규화 (수정됨)
+     * 
+     * ✅ [FIX] 밑줄(_), 하이픈(-), 콜론(:), 세미콜론(;), 등호(=), 
+     *          화살표(>), 느낌표(!), 물음표(?) 등 의사코드에 필요한 문자 유지
      */
     normalize(text) {
+        if (!text || typeof text !== 'string') return '';
         let normalized = text.toLowerCase();
         normalized = normalized.replace(/\s+/g, ' ');
-        normalized = normalized.replace(/[^a-z0-9가-힣\s\.\,\(\)]/g, ' ');
-        return normalized;
+        // ✅ [FIX] 밑줄, 하이픈 등 의사코드 핵심 문자 유지
+        normalized = normalized.replace(/[^a-z0-9가-힣\s\.\,\(\)\_\-\:\;\=\>\<\!\?\/]/g, ' ');
+        return normalized.trim();
+    }
+
+    /**
+     * [2026-02-12] NEW: 소프트 정규화 (원문 최대 보존)
+     * 개념 추출 및 흐름 분석에서 사용
+     */
+    softNormalize(text) {
+        if (!text || typeof text !== 'string') return '';
+        return text.toLowerCase().replace(/\s+/g, ' ').trim();
     }
 
     /**
      * 완성도 체크 (규칙 반영)
      */
     checkCompleteness(pseudocode) {
-        const wordCount = pseudocode.split(/\s+/).length;
+        const wordCount = pseudocode.split(/\s+/).filter(w => w.length > 0).length;
         const recommendations = this.rules.recommendations || {};
         const minWords = recommendations.minWords || 20;
         const maxWords = recommendations.maxWords || 200;
@@ -328,7 +377,7 @@ export class PseudocodeValidator {
 
         // 예외 처리 권장
         if (recommendations.exceptionHandling) {
-            const normalized = this.normalize(pseudocode);
+            const normalized = this.softNormalize(pseudocode);
             const hasExceptionHandling = /예외|오류|체크|검증|확인|validation|error|check/.test(normalized);
             
             if (!hasExceptionHandling) {
