@@ -61,10 +61,15 @@
               <div class="testimony-label">{{ isExplanationPhase ? '[EXPLANATION]' : '[ANSWER]' }}</div>
               <textarea
                 class="testimony-input"
-                :class="{ 'explanation-mode': isExplanationPhase }"
+                :class="{ 'explanation-mode': isExplanationPhase, 'error': validationError }"
                 v-model="answer"
                 :placeholder="placeholderText"
               ></textarea>
+              <!-- 🔥 NEW: 검증 실패 메시지 표시 -->
+              <div v-if="validationError" class="validation-error-message">
+                <span class="error-icon">⚠️</span>
+                {{ validationError }}
+              </div>
             </div>
           </div>
         </template>
@@ -140,6 +145,11 @@ export default {
     phase: {
       type: String,
       default: 'questioning'
+    },
+    // 🔥 NEW: 검증 에러 메시지
+    validationError: {
+      type: String,
+      default: ''
     }
   },
   emits: ['submit', 'submit-explanation'],
@@ -214,11 +224,11 @@ export default {
       if (this.isExplanationPhase) {
         // 설명 Phase: 설명 제출 이벤트
         this.$emit('submit-explanation', trimmedAnswer);
+        // 🔥 검증 통과 시에만 답변 초기화 (부모에서 성공 확인 후)
       } else {
         // 질문 Phase: 기존 답변 제출 이벤트
         this.$emit('submit', trimmedAnswer);
       }
-      this.answer = '';
     },
     async renderMermaid() {
       const container = this.$refs.mermaidPreview;
@@ -681,6 +691,42 @@ export default {
 .testimony-input.explanation-mode:focus {
   border-color: var(--nebula-blue);
   box-shadow: 0 0 20px rgba(79, 195, 247, 0.3);
+}
+
+/* 🔥 NEW: 검증 에러 상태 */
+.testimony-input.error {
+  border-color: #ff6b6b !important;
+  background: rgba(255, 107, 107, 0.08);
+}
+
+.testimony-input.error:focus {
+  box-shadow: 0 0 20px rgba(255, 107, 107, 0.4);
+}
+
+.validation-error-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(255, 107, 107, 0.12);
+  border: 1px solid #ff6b6b;
+  border-radius: 8px;
+  color: #ff6b6b;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  animation: shake 0.4s ease;
+}
+
+.error-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  75% { transform: translateX(8px); }
 }
 
 .btn-explanation {

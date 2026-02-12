@@ -274,9 +274,11 @@ export function useEvaluation() {
     const validation = validateExplanation(explanation);
     if (!validation.valid) {
       answerValidationError.value = validation.message;
+      // ⚠️ 검증 실패 - 모달에 메시지 표시하고 반환 (진행 막기)
       return {
         success: false,
-        error: validation.message
+        error: validation.message,
+        validationFailed: true
       };
     }
 
@@ -317,7 +319,10 @@ export function useEvaluation() {
         // 질문이 없으면 바로 평가로
         evaluationPhase.value = 'evaluating';
         isDeepDiveModalActive.value = false;
-        return true; // 평가 진행 가능
+        return {
+          success: true,
+          finished: true // 평가 진행 가능
+        };
       }
     } catch (error) {
       console.error('Failed to generate follow-up questions:', error);
@@ -343,7 +348,10 @@ export function useEvaluation() {
       isGeneratingDeepDive.value = false;
     }
 
-    return false; // 아직 질문 단계
+    return {
+      success: true,
+      finished: false // 아직 질문 단계
+    };
   }
 
   /**

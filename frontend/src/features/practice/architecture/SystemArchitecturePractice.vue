@@ -104,6 +104,7 @@
         :category="deepDiveQuestions[currentQuestionIndex]?.category || ''"
         :mermaid-code="mermaidCode"
         :phase="evaluationPhase"
+        :validation-error="answerValidationError"
         @submit="submitDeepDiveAnswer"
         @submit-explanation="submitUserExplanation"
       />
@@ -239,7 +240,10 @@ export default {
 
       // NEW: 설명 Phase
       evaluationPhase: evaluation.evaluationPhase,
-      submitUserExplanationComposable: evaluation.submitUserExplanation
+      submitUserExplanationComposable: evaluation.submitUserExplanation,
+
+      // 🔥 검증 에러 메시지
+      answerValidationError: evaluation.answerValidationError
     };
   },
   computed: {
@@ -364,7 +368,7 @@ export default {
     async submitUserExplanation(explanation) {
       this.showToastMessage('[PROCESSING] 아키텍처 분석 및 질문 생성 중... 꽥!', 'guide');
 
-      const allDone = await this.submitUserExplanationComposable(
+      const result = await this.submitUserExplanationComposable(
         explanation,
         this.currentProblem,
         this.droppedComponents,
@@ -372,7 +376,14 @@ export default {
         this.mermaidCode
       );
 
-      if (allDone && this.isPendingEvaluation()) {
+      // 🔥 검증 실패 감지 - 모달에 메시지 표시되도록 함
+      if (result.validationFailed) {
+        this.showToastMessage('[검증] 더 구체적인 설명을 입력해주세요. 꽥!', 'warning');
+        return; // 여기서 멈춤 - 모달에 에러메시지 표시
+      }
+
+      // ✅ 검증 통과
+      if (result.finished && this.isPendingEvaluation()) {
         // 질문 없이 바로 평가로 진행
         this.clearPendingEvaluation();
         await this.directEvaluateComposable(
@@ -381,13 +392,21 @@ export default {
           this.connections,
           this.mermaidCode
         );
-      } else {
+      } else if (result.success) {
         this.showToastMessage('[READY] 검증 질문에 응답해주세요. 꽥!', 'guide');
       }
     },
 
     async submitDeepDiveAnswer(answer) {
       const result = await this.submitDeepDiveAnswerComposable(answer);
+
+      // 🔥 검증 실패 감지
+      if (result.success === false) {
+        this.showToastMessage('[검증] 더 구체적인 답변을 입력해주세요. 꽥!', 'warning');
+        return; // 여기서 멈춤 - 모달에 에러메시지 표시
+      }
+
+      // ✅ 검증 통과 후 진행
       if (result.finished && this.isPendingEvaluation()) {
         this.clearPendingEvaluation();
         // EvaluationModal 없이 바로 평가 진행
