@@ -30,16 +30,25 @@ const getApiKey = () => import.meta.env.VITE_OPENAI_API_KEY;
  * - 다음 섹션 시작 또는 파일 끝
  */
 function extractPrinciples(txtContent) {
-  // Step 1: "핵심 원칙" 제목 찾기
-  const headerMatch = txtContent.match(/핵심 원칙\n(.*?)\n/);
-  if (!headerMatch) {
+  // Step 1: "핵심 원칙" 제목 찾기 (줄바꿈 처리 개선)
+  const headerIndex = txtContent.indexOf('핵심 원칙');
+  if (headerIndex === -1) {
     console.warn('⚠️ "핵심 원칙" 섹션을 찾을 수 없습니다.');
     return '';
   }
 
-  // Step 2: 설명 줄 다음부터 추출 시작
-  const headerEnd = headerMatch.index + headerMatch[0].length;
-  const remainingText = txtContent.substring(headerEnd);
+  // Step 2: "핵심 원칙" 다음 줄부터 시작
+  // 첫 번째 줄바꿈 찾기 (제목 줄)
+  const firstNewline = txtContent.indexOf('\n', headerIndex);
+  if (firstNewline === -1) return '';
+
+  // 두 번째 줄바꿈 찾기 (설명 줄)
+  const secondNewline = txtContent.indexOf('\n', firstNewline + 1);
+  if (secondNewline === -1) return '';
+
+  // 세 번째 줄바꿈 이후부터 추출 (빈 줄 다음)
+  const startIndex = secondNewline + 1;
+  const remainingText = txtContent.substring(startIndex);
 
   // Step 3: 다음 섹션 시작 전까지 추출
   // 종료 패턴: 새로운 주요 섹션이 시작되는 부분
