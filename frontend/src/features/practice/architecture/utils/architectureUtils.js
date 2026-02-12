@@ -77,11 +77,16 @@ export function transformProblems(data) {
 
   return data.map((item) => {
     // engineering_spec을 요구사항 배열로 변환
-    const requirementsArray = [];
+    let requirementsArray = [];
     if (item.engineering_spec) {
-      Object.entries(item.engineering_spec).forEach(([key, value]) => {
-        requirementsArray.push(`${key}: ${value}`);
-      });
+      // engineering_spec이 배열이면 그대로 사용, 객체면 변환
+      if (Array.isArray(item.engineering_spec)) {
+        requirementsArray = item.engineering_spec;
+      } else {
+        Object.entries(item.engineering_spec).forEach(([key, value]) => {
+          requirementsArray.push(`${key}: ${value}`);
+        });
+      }
     }
 
     // mission 배열 추가 (missions 또는 mission 필드 지원)

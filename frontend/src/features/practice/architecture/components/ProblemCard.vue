@@ -24,10 +24,10 @@
         </div>
 
         <!-- 제약조건 (CONSTRAINTS) -->
-        <div class="case-section constraints" v-if="problem.requirements && problem.requirements.length">
+        <div class="case-section constraints" v-if="problem.constraints && problem.constraints.length">
           <strong class="section-label">[CONSTRAINTS]</strong>
           <ul>
-            <li v-for="(req, i) in problem.requirements" :key="i">{{ req }}</li>
+            <li v-for="(constraint, i) in problem.constraints" :key="i">{{ constraint }}</li>
           </ul>
         </div>
       </div>

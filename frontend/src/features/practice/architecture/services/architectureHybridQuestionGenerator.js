@@ -13,8 +13,6 @@
  * 4. 질문만 생성 → 사고 과정(CoT) 먼저 작성 후 질문 생성
  */
 
-import architectureProblems from '@/data/architecture_advanced_gcp.json';
-
 // 6대 기둥 txt 파일 import
 import reliabilityTxt from '@/data/신뢰성.txt?raw';
 import performanceTxt from '@/data/최적화.txt?raw';
@@ -314,13 +312,6 @@ async function callOpenAI(prompt, options = {}) {
   if (!response.ok) throw new Error(`API Error: ${response.status}`);
   const data = await response.json();
   return data.choices[0].message.content.trim();
-}
-
-/**
- * 문제 데이터 로드
- */
-export async function fetchProblems() {
-  return architectureProblems;
 }
 
 /**
