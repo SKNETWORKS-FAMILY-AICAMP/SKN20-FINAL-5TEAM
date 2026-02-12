@@ -84,8 +84,8 @@ export function transformProblems(data) {
       });
     }
 
-    // mission 배열 추가
-    const missions = item.mission || [];
+    // mission 배열 추가 (missions 또는 mission 필드 지원)
+    const missions = item.missions || item.mission || [];
 
     // rubric_functional에서 필수 컴포넌트 추출
     const rubricFunctional = item.rubric_functional || {};
@@ -123,7 +123,7 @@ export function transformProblems(data) {
       title: item.title,
       scenario: item.scenario,
       description: item.scenario, // 기존 호환성
-      constraints: item.constraints || [], // API 호환용
+      constraints: item.constraints || item.engineering_spec || [], // DB constraints 또는 engineering_spec 지원
       requirements: requirementsArray,
       missions: missions,
       engineeringSpec: item.engineering_spec,
