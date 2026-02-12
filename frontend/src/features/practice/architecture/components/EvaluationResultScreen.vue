@@ -1,14 +1,8 @@
 <template>
   <div class="space-screen">
-    <!-- 별 배경 -->
-    <div class="stars-container">
-      <div class="stars"></div>
-      <div class="stars2"></div>
-      <div class="stars3"></div>
-    </div>
-
-    <!-- 성운 오버레이 -->
-    <div class="nebula-overlay"></div>
+    <!-- 네온 그리드 배경 -->
+    <div class="bg-grid"></div>
+    <div class="scanline"></div>
 
     <div class="result-container">
       <!-- Loading State -->
@@ -254,11 +248,11 @@ export default {
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@400;500;600;700&display=swap');
 
 .space-screen {
-  --space-deep: #0a0a1a;
-  --space-dark: #12122a;
-  --nebula-purple: #6b5ce7;
-  --nebula-blue: #4fc3f7;
-  --nebula-pink: #f06292;
+  --bg-deep: #090910;
+  --bg-panel: #121223;
+  --neon-purple: #bc13fe;
+  --neon-cyan: #00f3ff;
+  --neon-pink: #ff00ff;
   --star-white: #ffffff;
   --text-primary: #e8eaed;
   --text-secondary: rgba(232, 234, 237, 0.7);
@@ -270,100 +264,45 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, var(--space-deep) 0%, var(--space-dark) 50%, #1a1a3a 100%);
+  background: linear-gradient(135deg, var(--bg-deep) 0%, var(--bg-panel) 50%, #1a1a3a 100%);
   z-index: 2000;
   overflow-y: auto;
   font-family: 'Rajdhani', sans-serif;
 }
 
 /* 별 배경 애니메이션 */
-.stars-container {
+/* 네온 그리드 배경 */
+.bg-grid {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.2) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.2) 1px, transparent 1px);
+  background-size: 40px 40px;
   pointer-events: none;
-  overflow: hidden;
+  z-index: 0;
 }
 
-.stars, .stars2, .stars3 {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: transparent;
-}
-
-.stars {
-  background-image:
-    radial-gradient(2px 2px at 20px 30px, var(--star-white), transparent),
-    radial-gradient(2px 2px at 40px 70px, rgba(255,255,255,0.8), transparent),
-    radial-gradient(1px 1px at 90px 40px, var(--star-white), transparent),
-    radial-gradient(2px 2px at 160px 120px, rgba(255,255,255,0.9), transparent),
-    radial-gradient(1px 1px at 230px 80px, var(--star-white), transparent),
-    radial-gradient(2px 2px at 300px 150px, rgba(255,255,255,0.7), transparent),
-    radial-gradient(1px 1px at 350px 200px, var(--star-white), transparent),
-    radial-gradient(2px 2px at 420px 50px, rgba(255,255,255,0.8), transparent),
-    radial-gradient(1px 1px at 500px 180px, var(--star-white), transparent),
-    radial-gradient(2px 2px at 580px 100px, rgba(255,255,255,0.9), transparent);
-  background-size: 600px 300px;
-  animation: twinkle 4s ease-in-out infinite;
-}
-
-.stars2 {
-  background-image:
-    radial-gradient(1px 1px at 100px 150px, var(--nebula-blue), transparent),
-    radial-gradient(2px 2px at 200px 250px, rgba(79, 195, 247, 0.6), transparent),
-    radial-gradient(1px 1px at 350px 100px, var(--nebula-blue), transparent),
-    radial-gradient(2px 2px at 450px 300px, rgba(79, 195, 247, 0.7), transparent),
-    radial-gradient(1px 1px at 550px 200px, var(--nebula-blue), transparent);
-  background-size: 600px 400px;
-  animation: twinkle 6s ease-in-out infinite 1s;
-}
-
-.stars3 {
-  background-image:
-    radial-gradient(1px 1px at 50px 200px, var(--nebula-purple), transparent),
-    radial-gradient(2px 2px at 150px 50px, rgba(107, 92, 231, 0.6), transparent),
-    radial-gradient(1px 1px at 280px 180px, var(--nebula-purple), transparent),
-    radial-gradient(2px 2px at 400px 120px, rgba(107, 92, 231, 0.7), transparent),
-    radial-gradient(1px 1px at 520px 280px, var(--nebula-purple), transparent);
-  background-size: 600px 400px;
-  animation: twinkle 5s ease-in-out infinite 2s;
-}
-
-@keyframes twinkle {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-/* 성운 오버레이 */
-.nebula-overlay {
+.scanline {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background:
-    radial-gradient(ellipse at 20% 20%, rgba(107, 92, 231, 0.15) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 80%, rgba(240, 98, 146, 0.1) 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 50%, rgba(79, 195, 247, 0.08) 0%, transparent 60%);
+  background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1));
+  background-size: 100% 4px;
   pointer-events: none;
-  animation: nebulaPulse 10s ease-in-out infinite;
-}
-
-@keyframes nebulaPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+  z-index: 0;
 }
 
 /* 스크롤바 */
 .space-screen::-webkit-scrollbar { width: 6px; }
 .space-screen::-webkit-scrollbar-track { background: transparent; }
 .space-screen::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, var(--nebula-purple), var(--nebula-blue));
+  background: linear-gradient(180deg, var(--neon-purple), var(--neon-cyan));
   border-radius: 10px;
 }
 
@@ -397,9 +336,9 @@ export default {
   width: 30px;
   height: 30px;
   margin: -15px 0 0 -15px;
-  background: linear-gradient(135deg, var(--nebula-purple), var(--nebula-blue));
+  background: linear-gradient(135deg, var(--neon-purple), var(--neon-cyan));
   border-radius: 50%;
-  box-shadow: 0 0 30px rgba(107, 92, 231, 0.5);
+  box-shadow: 0 0 30px rgba(188, 19, 254, 0.5);
 }
 
 .orbit {
@@ -409,7 +348,7 @@ export default {
   width: 100%;
   height: 100%;
   border: 2px solid transparent;
-  border-top-color: var(--nebula-blue);
+  border-top-color: var(--neon-cyan);
   border-radius: 50%;
   animation: orbit 1.5s linear infinite;
 }
@@ -422,9 +361,9 @@ export default {
   width: 8px;
   height: 8px;
   margin-left: -4px;
-  background: var(--nebula-blue);
+  background: var(--neon-cyan);
   border-radius: 50%;
-  box-shadow: 0 0 15px var(--nebula-blue);
+  box-shadow: 0 0 15px var(--neon-cyan);
 }
 
 @keyframes orbit {
@@ -434,9 +373,9 @@ export default {
 .loading-text {
   font-family: 'Orbitron', sans-serif;
   font-size: 0.9rem;
-  color: var(--nebula-blue);
+  color: var(--neon-cyan);
   letter-spacing: 3px;
-  text-shadow: 0 0 20px rgba(79, 195, 247, 0.5);
+  text-shadow: 0 0 20px rgba(0, 243, 255, 0.5);
 }
 
 /* Result Report */
@@ -448,7 +387,7 @@ export default {
   padding: 40px;
   position: relative;
   box-shadow:
-    0 0 40px rgba(107, 92, 231, 0.1),
+    0 0 40px rgba(188, 19, 254, 0.1),
     inset 0 0 60px rgba(255, 255, 255, 0.02);
 }
 
@@ -475,19 +414,19 @@ export default {
 }
 
 .stamp-mark.excellent {
-  border-color: var(--nebula-blue);
-  color: var(--nebula-blue);
-  box-shadow: 0 0 20px rgba(79, 195, 247, 0.4);
+  border-color: var(--neon-cyan);
+  color: var(--neon-cyan);
+  box-shadow: 0 0 20px rgba(0, 243, 255, 0.4);
 }
 .stamp-mark.good {
-  border-color: var(--nebula-purple);
-  color: var(--nebula-purple);
-  box-shadow: 0 0 20px rgba(107, 92, 231, 0.4);
+  border-color: var(--neon-purple);
+  color: var(--neon-purple);
+  box-shadow: 0 0 20px rgba(188, 19, 254, 0.4);
 }
 .stamp-mark.poor {
-  border-color: var(--nebula-pink);
-  color: var(--nebula-pink);
-  box-shadow: 0 0 20px rgba(240, 98, 146, 0.4);
+  border-color: var(--neon-pink);
+  color: var(--neon-pink);
+  box-shadow: 0 0 20px rgba(255, 0, 255, 0.4);
 }
 
 /* Header */
@@ -497,7 +436,7 @@ export default {
   font-weight: 900;
   text-align: center;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, var(--nebula-blue), var(--nebula-purple), var(--nebula-pink));
+  background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple), var(--neon-pink));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -512,7 +451,7 @@ export default {
 
 .report-meta p { margin: 6px 0; }
 .report-meta .label {
-  color: var(--nebula-blue);
+  color: var(--neon-cyan);
   font-weight: 600;
   margin-right: 8px;
 }
@@ -529,7 +468,7 @@ export default {
   font-size: 0.85rem;
   font-weight: 700;
   margin-bottom: 20px;
-  color: var(--nebula-purple);
+  color: var(--neon-purple);
   letter-spacing: 3px;
   text-align: center;
 }
@@ -545,16 +484,16 @@ export default {
 }
 
 .verdict-box.excellent {
-  border-color: rgba(79, 195, 247, 0.3);
-  box-shadow: 0 0 30px rgba(79, 195, 247, 0.1);
+  border-color: rgba(0, 243, 255, 0.3);
+  box-shadow: 0 0 30px rgba(0, 243, 255, 0.1);
 }
 .verdict-box.good {
-  border-color: rgba(107, 92, 231, 0.3);
-  box-shadow: 0 0 30px rgba(107, 92, 231, 0.1);
+  border-color: rgba(188, 19, 254, 0.3);
+  box-shadow: 0 0 30px rgba(188, 19, 254, 0.1);
 }
 .verdict-box.poor {
-  border-color: rgba(240, 98, 146, 0.3);
-  box-shadow: 0 0 30px rgba(240, 98, 146, 0.1);
+  border-color: rgba(255, 0, 255, 0.3);
+  box-shadow: 0 0 30px rgba(255, 0, 255, 0.1);
 }
 
 .verdict-text {
@@ -595,10 +534,10 @@ export default {
   transition: stroke-dashoffset 1s ease;
 }
 
-.score-ring.excellent .score-progress { stroke: var(--nebula-blue); filter: drop-shadow(0 0 10px var(--nebula-blue)); }
-.score-ring.good .score-progress { stroke: var(--nebula-purple); filter: drop-shadow(0 0 10px var(--nebula-purple)); }
+.score-ring.excellent .score-progress { stroke: var(--neon-cyan); filter: drop-shadow(0 0 10px var(--neon-cyan)); }
+.score-ring.good .score-progress { stroke: var(--neon-purple); filter: drop-shadow(0 0 10px var(--neon-purple)); }
 .score-ring.moderate .score-progress { stroke: #ffc107; filter: drop-shadow(0 0 10px #ffc107); }
-.score-ring.poor .score-progress { stroke: var(--nebula-pink); filter: drop-shadow(0 0 10px var(--nebula-pink)); }
+.score-ring.poor .score-progress { stroke: var(--neon-pink); filter: drop-shadow(0 0 10px var(--neon-pink)); }
 
 .score-value {
   position: absolute;
@@ -637,10 +576,10 @@ export default {
   border-color: rgba(255, 255, 255, 0.2);
 }
 
-.accordion-item.excellent.expanded { box-shadow: 0 0 25px rgba(79, 195, 247, 0.15); border-color: rgba(79, 195, 247, 0.3); }
-.accordion-item.good.expanded { box-shadow: 0 0 25px rgba(107, 92, 231, 0.15); border-color: rgba(107, 92, 231, 0.3); }
+.accordion-item.excellent.expanded { box-shadow: 0 0 25px rgba(0, 243, 255, 0.15); border-color: rgba(0, 243, 255, 0.3); }
+.accordion-item.good.expanded { box-shadow: 0 0 25px rgba(188, 19, 254, 0.15); border-color: rgba(188, 19, 254, 0.3); }
 .accordion-item.moderate.expanded { box-shadow: 0 0 25px rgba(255, 193, 7, 0.15); border-color: rgba(255, 193, 7, 0.3); }
-.accordion-item.poor.expanded { box-shadow: 0 0 25px rgba(240, 98, 146, 0.15); border-color: rgba(240, 98, 146, 0.3); }
+.accordion-item.poor.expanded { box-shadow: 0 0 25px rgba(255, 0, 255, 0.15); border-color: rgba(255, 0, 255, 0.3); }
 
 .accordion-header {
   display: flex;
@@ -679,10 +618,10 @@ export default {
   font-weight: 700;
 }
 
-.accordion-item.excellent .accordion-score { color: var(--nebula-blue); }
-.accordion-item.good .accordion-score { color: var(--nebula-purple); }
+.accordion-item.excellent .accordion-score { color: var(--neon-cyan); }
+.accordion-item.good .accordion-score { color: var(--neon-purple); }
 .accordion-item.moderate .accordion-score { color: #ffc107; }
-.accordion-item.poor .accordion-score { color: var(--nebula-pink); }
+.accordion-item.poor .accordion-score { color: var(--neon-pink); }
 
 .accordion-arrow {
   font-size: 0.9rem;
@@ -733,8 +672,8 @@ export default {
   border: 1px solid var(--glass-border);
 }
 
-.accordion-answer-box.user-answer { border-left: 3px solid var(--nebula-purple); }
-.accordion-answer-box.model-answer { border-left: 3px solid var(--nebula-blue); }
+.accordion-answer-box.user-answer { border-left: 3px solid var(--neon-purple); }
+.accordion-answer-box.model-answer { border-left: 3px solid var(--neon-cyan); }
 
 .answer-label {
   font-family: 'Orbitron', sans-serif;
@@ -754,10 +693,10 @@ export default {
 }
 
 .accordion-feedback {
-  background: rgba(107, 92, 231, 0.1);
+  background: rgba(188, 19, 254, 0.1);
   padding: 14px;
   border-radius: 10px;
-  border: 1px solid rgba(107, 92, 231, 0.2);
+  border: 1px solid rgba(188, 19, 254, 0.2);
   margin-bottom: 12px;
 }
 
@@ -765,7 +704,7 @@ export default {
   font-family: 'Orbitron', sans-serif;
   font-size: 0.65rem;
   font-weight: 700;
-  color: var(--nebula-purple);
+  color: var(--neon-purple);
   margin-bottom: 8px;
   letter-spacing: 1px;
 }
@@ -778,13 +717,13 @@ export default {
 }
 
 .accordion-improvements {
-  background: rgba(79, 195, 247, 0.1);
+  background: rgba(0, 243, 255, 0.1);
   padding: 14px;
   border-radius: 10px;
-  border: 1px solid rgba(79, 195, 247, 0.2);
+  border: 1px solid rgba(0, 243, 255, 0.2);
 }
 
-.improvements-label { color: var(--nebula-blue); }
+.improvements-label { color: var(--neon-cyan); }
 
 .accordion-improvements ul { margin: 0; padding-left: 20px; }
 .accordion-improvements li {
@@ -816,8 +755,8 @@ export default {
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  border: 2px solid var(--nebula-purple);
-  box-shadow: 0 0 20px rgba(107, 92, 231, 0.3);
+  border: 2px solid var(--neon-purple);
+  box-shadow: 0 0 20px rgba(188, 19, 254, 0.3);
 }
 
 .detective-comment p {
@@ -836,8 +775,8 @@ export default {
   border: 1px solid var(--glass-border);
 }
 
-.feedback-card.strengths { border-color: rgba(79, 195, 247, 0.3); }
-.feedback-card.weaknesses { border-color: rgba(240, 98, 146, 0.3); }
+.feedback-card.strengths { border-color: rgba(0, 243, 255, 0.3); }
+.feedback-card.weaknesses { border-color: rgba(255, 0, 255, 0.3); }
 
 .feedback-card h4 {
   font-family: 'Orbitron', sans-serif;
@@ -846,8 +785,8 @@ export default {
   letter-spacing: 2px;
 }
 
-.feedback-card.strengths h4 { color: var(--nebula-blue); }
-.feedback-card.weaknesses h4 { color: var(--nebula-pink); }
+.feedback-card.strengths h4 { color: var(--neon-cyan); }
+.feedback-card.weaknesses h4 { color: var(--neon-pink); }
 
 .feedback-card ul { margin: 0; padding-left: 18px; }
 .feedback-card li {
@@ -860,7 +799,7 @@ export default {
 /* Suggestions */
 .suggestions-section {
   background: var(--glass-bg);
-  border: 1px solid rgba(107, 92, 231, 0.3);
+  border: 1px solid rgba(188, 19, 254, 0.3);
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 25px;
@@ -870,7 +809,7 @@ export default {
   font-family: 'Orbitron', sans-serif;
   margin: 0 0 15px 0;
   font-size: 0.75rem;
-  color: var(--nebula-purple);
+  color: var(--neon-purple);
   letter-spacing: 2px;
 }
 
@@ -894,7 +833,7 @@ export default {
   font-size: 0.8rem;
   font-weight: 700;
   padding: 16px 40px;
-  background: linear-gradient(135deg, var(--nebula-purple), var(--nebula-blue));
+  background: linear-gradient(135deg, var(--neon-purple), var(--neon-cyan));
   color: white;
   border: none;
   border-radius: 30px;
@@ -921,7 +860,7 @@ export default {
 
 .btn-retry:hover {
   transform: translateY(-3px);
-  box-shadow: 0 10px 30px rgba(107, 92, 231, 0.4);
+  box-shadow: 0 10px 30px rgba(188, 19, 254, 0.4);
 }
 
 .btn-retry:hover .btn-glow {

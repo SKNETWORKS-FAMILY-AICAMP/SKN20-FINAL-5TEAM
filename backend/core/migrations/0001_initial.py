@@ -209,6 +209,8 @@ class Migration(migrations.Migration):
                 ('submitted_data', models.JSONField(blank=True, help_text='사용자가 제출한 최종 데이터/코드', null=True)),
                 ('is_perfect', models.BooleanField(default=False, help_text='만점 해결 여부')),
                 ('solved_date', models.DateTimeField(auto_now_add=True)),
+                ('attempt_number', models.IntegerField(default=1, help_text='문제 제출 시도 횟수')),
+                ('is_best_score', models.BooleanField(default=True, help_text='최고 점수 기록 여부')),
                 ('practice_detail', models.ForeignKey(help_text='해결한 세부 문제', on_delete=django.db.models.deletion.CASCADE, to='core.practicedetail')),
                 ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='solved_problems', to='core.userprofile')),
             ],

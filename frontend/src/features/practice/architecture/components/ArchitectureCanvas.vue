@@ -273,7 +273,7 @@ export default {
 @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&display=swap');
 
 .canvas {
-  --accent-neon: #4fc3f7;
+  --accent-neon: #00f3ff;
   --accent-cyan: #00f3ff;
   --accent-pink: #ec4899;
   --terminal-font: 'Fira Code', monospace;
@@ -290,7 +290,7 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid rgba(79, 195, 247, 0.2);
+  border-bottom: 1px solid rgba(0, 243, 255, 0.2);
   background: rgba(5, 7, 10, 0.8);
   backdrop-filter: blur(10px);
 }
@@ -301,7 +301,7 @@ export default {
   color: var(--accent-neon);
   margin: 0;
   letter-spacing: 2px;
-  text-shadow: 0 0 10px rgba(79, 195, 247, 0.5);
+  text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
 }
 
 .btn-group {
@@ -311,8 +311,8 @@ export default {
 
 .btn {
   padding: 8px 16px;
-  border: 1px solid rgba(79, 195, 247, 0.3);
-  background: rgba(79, 195, 247, 0.1);
+  border: 1px solid rgba(0, 243, 255, 0.3);
+  background: rgba(0, 243, 255, 0.1);
   font-family: var(--terminal-font);
   font-size: 0.75rem;
   color: var(--accent-neon);
@@ -321,15 +321,15 @@ export default {
 }
 
 .btn-mode {
-  background: rgba(79, 195, 247, 0.1);
+  background: rgba(0, 243, 255, 0.1);
   color: var(--accent-neon);
-  border: 1px solid rgba(79, 195, 247, 0.3);
+  border: 1px solid rgba(0, 243, 255, 0.3);
 }
 
 .btn-mode.active {
   background: var(--accent-neon);
   color: #000;
-  box-shadow: 0 0 15px rgba(79, 195, 247, 0.4);
+  box-shadow: 0 0 15px rgba(0, 243, 255, 0.4);
 }
 
 .btn-clear {
@@ -360,13 +360,13 @@ export default {
   min-width: 130px;
   text-align: center;
   transition: box-shadow 0.2s ease, transform 0.1s ease;
-  border: 1px solid rgba(79, 195, 247, 0.4);
+  border: 1px solid rgba(0, 243, 255, 0.4);
   user-select: none;
 }
 
 .dropped-component:hover {
   transform: scale(1.02);
-  box-shadow: 0 0 20px rgba(79, 195, 247, 0.3);
+  box-shadow: 0 0 20px rgba(0, 243, 255, 0.3);
 }
 
 .dropped-component:hover .delete-btn {
@@ -401,13 +401,13 @@ export default {
 
 .dropped-component.selected {
   border-color: var(--accent-neon);
-  box-shadow: 0 0 25px rgba(79, 195, 247, 0.6);
+  box-shadow: 0 0 25px rgba(0, 243, 255, 0.6);
   animation: pulse 1.5s infinite;
 }
 
 @keyframes pulse {
-  0%, 100% { box-shadow: 0 0 25px rgba(79, 195, 247, 0.6); }
-  50% { box-shadow: 0 0 40px rgba(79, 195, 247, 0.9); }
+  0%, 100% { box-shadow: 0 0 25px rgba(0, 243, 255, 0.6); }
+  50% { box-shadow: 0 0 40px rgba(0, 243, 255, 0.9); }
 }
 
 /* Component type styles - Terminal 2077 Theme */
@@ -415,7 +415,7 @@ export default {
 .dropped-component.loadbalancer { background: rgba(0, 243, 255, 0.9); color: #000; border-color: #00f3ff; }
 .dropped-component.gateway { background: rgba(100, 181, 246, 0.9); color: #000; border-color: #64b5f6; }
 .dropped-component.server { background: rgba(171, 71, 188, 0.9); color: #fff; border-color: #ab47bc; }
-.dropped-component.rdbms { background: rgba(79, 195, 247, 0.9); color: #000; border-color: #4fc3f7; }
+.dropped-component.rdbms { background: rgba(0, 243, 255, 0.9); color: #000; border-color: #00f3ff; }
 .dropped-component.nosql { background: rgba(77, 182, 172, 0.9); color: #000; border-color: #4db6ac; }
 .dropped-component.cache { background: rgba(255, 193, 7, 0.9); color: #000; border-color: #ffc107; }
 .dropped-component.search { background: rgba(124, 77, 255, 0.9); color: #fff; border-color: #7c4dff; }
@@ -444,7 +444,7 @@ export default {
   background: var(--accent-neon);
   transform-origin: left center;
   pointer-events: none;
-  box-shadow: 0 0 10px rgba(79, 195, 247, 0.6);
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.6);
   z-index: 5;
 }
 
@@ -457,7 +457,7 @@ export default {
   border-bottom: 8px solid transparent;
   transform-origin: left center;
   pointer-events: none;
-  filter: drop-shadow(0 0 6px rgba(79, 195, 247, 0.8));
+  filter: drop-shadow(0 0 6px rgba(0, 243, 255, 0.8));
   z-index: 6;
 }
 </style>
