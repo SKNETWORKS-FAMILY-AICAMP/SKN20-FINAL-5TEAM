@@ -125,6 +125,10 @@ THEN
                     gameState.feedbackMessage = null; // 초기화
                     addSystemLog("진단 프로토콜 2단계 진입", "INFO");
                     break;
+                case 'DIAGNOSTIC_3':
+                    gameState.coduckMessage = "전술 시퀀스의 무결성을 검증하세요.";
+                    addSystemLog("진단 프로토콜 3단계 진입", "INFO");
+                    break;
                 case 'PSEUDO_WRITE':
                     gameState.coduckMessage = "어떤 순서로 생각하는지 보여주세요.";
                     addSystemLog("자연어 처리 에디터 로드됨", "SUCCESS");

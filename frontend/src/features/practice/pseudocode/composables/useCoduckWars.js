@@ -9,7 +9,7 @@
  * [2026-02-12] 전면 개편
  */
 
-import { ref, computed, reactive } from 'vue';
+import { ref, computed, reactive, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
 import { evaluatePseudocode5D, generateSeniorAdvice, evaluateDiagnosticAnswer } from '../api/pseudocodeApi.js';
@@ -59,31 +59,24 @@ export function useCoduckWars() {
     // Checklist (규칙 기반 실시간 피드백)
     const ruleChecklist = ref([
         {
-            id: 'check_fit',
-            label: 'fit 메서드 호출 감지',
-            patterns: [/\.fit\(/i, /fit\(/i, /scaler.*fit/i, /encoder.*fit/i],
-            hint: "scaler.fit( 또는 encoder.fit( 패턴 찾기",
+            id: 'check_isolation',
+            label: '격리 (Isolation) 포함',
+            patterns: [/격리|분리|나누|나눔|isolation|split/i],
+            hint: "데이터를 나누는 '격리' 개념이 포함되어야 합니다.",
             completed: false
         },
         {
-            id: 'check_split',
-            label: '분할 코드 유무 확인',
-            patterns: [/train_test_split/i, /분할/i, /split/i, /\[:/i],
-            hint: "train_test_split 또는 슬라이싱 체크",
+            id: 'check_anchor',
+            label: '기준점 (Anchor) 정의',
+            patterns: [/기준점|기준|통계량|fit|anchor|학습/i],
+            hint: "통계량을 추출할 대상인 '기준점'이 명시되어야 합니다.",
             completed: false
         },
         {
-            id: 'check_order',
-            label: 'fit 이전에 분할 여부 검증',
-            patterns: [/이전/i, /before/i, /앞/i, /먼저/i],
-            hint: "fit 이전에 분할이 있는지 확인",
-            completed: false
-        },
-        {
-            id: 'check_warning',
-            label: '경고 메시지 명시',
-            patterns: [/경고/i, /warning/i, /알림/i, /THEN/i],
-            hint: "THEN 경고: '...' 형태로 작성",
+            id: 'check_consistency',
+            label: '일관성 (Consistency) 확보',
+            patterns: [/일관성|동일|변환|consistency|transform/i],
+            hint: "학습과 운영 환경의 '일관성' 있는 변환 방식이 포함되어야 합니다.",
             completed: false
         }
     ]);
@@ -120,6 +113,24 @@ export function useCoduckWars() {
             addSystemLog("힌트 프로토콜 자동 활성화", "INFO");
         }, 30000);
     };
+
+    // [2026-02-12] 에디터 내용 변경 시 실시간 체크리스트 업데이트 (Monaco 전용)
+    watch(() => gameState.phase3Reasoning, (val) => {
+        if (!val) return;
+        if (ruleChecklist.value && Array.isArray(ruleChecklist.value)) {
+            ruleChecklist.value.forEach(check => {
+                if (check && Array.isArray(check.patterns)) {
+                    check.completed = check.patterns.some(pattern => {
+                        if (pattern instanceof RegExp) {
+                            return pattern.test(val);
+                        }
+                        return false;
+                    });
+                }
+            });
+        }
+        resetHintTimer();
+    });
 
     const handlePseudoInput = (e) => {
         if (!e || !e.target) return;
@@ -221,9 +232,9 @@ export function useCoduckWars() {
                         gameState.feedbackMessage = null;
                         addSystemLog(`다음 문항 진행: ${nextQIdx + 1}번`, "INFO");
                     } else {
-                        setPhase('DIAGNOSTIC_2');
-                        gameState.diagnosticStep = nextQIdx;
-                        gameState.step = 1;
+                        // [2026-02-12] 서술형 및 정렬형 단계 제거로 인해 즉시 의사코드 설계(PSEUDO_WRITE) 단계로 전이
+                        setPhase('PSEUDO_WRITE');
+                        gameState.step = 2; // STEP_02: PSEUDO_ARCHITECTURE
                     }
                 }, 1000);
             } else {

@@ -1,5 +1,364 @@
 /* [2026-02-11] Coduck Wars 전술 레이아웃 (Combat Grid) 확장 스타일 */
 
+/* ===== GLOBAL CONTAINER ===== */
+.coduck-wars-container {
+  width: 100%;
+  height: 100vh;
+  background-color: #050505;
+  color: #E5E7EB;
+  font-family: 'Inter', sans-serif;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.coduck-wars-container *,
+.coduck-wars-container *::before,
+.coduck-wars-container *::after {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+/* BACKGROUND WATERMARK */
+.bg-watermark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-15deg);
+  font-size: 15rem;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.03);
+  white-space: nowrap;
+  z-index: 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+.scan-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 5px;
+  background: rgba(74, 222, 128, 0.05);
+  animation: scan 4s linear infinite;
+  z-index: 10;
+  pointer-events: none;
+}
+
+@keyframes scan {
+  0% { top: -10%; }
+  100% { top: 110%; }
+}
+
+/* HEADER - TERMINAL STYLE */
+.war-room-header {
+  height: 80px;
+  background: transparent;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 40px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  z-index: 100;
+  position: relative;
+}
+
+.chapter-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.chapter-title {
+  color: #4ade80;
+  font-weight: 900;
+  font-size: 1.4rem;
+  font-style: italic;
+  letter-spacing: 1px;
+}
+
+.sub-info {
+  color: #6b7280;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9rem;
+  margin-top: 5px;
+}
+
+.integrity-monitor {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.integrity-label {
+  color: #6b7280;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.integrity-val {
+  color: #4ade80;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.1rem;
+  font-weight: 900;
+}
+
+.hp-bar-bg {
+  width: 15vw;
+  max-width: 250px;
+  min-width: 100px;
+  height: 10px;
+  background: #1f2937;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.hp-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4ade80, #22c55e);
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.viewport {
+  flex: 1;
+  position: relative;
+  z-index: 50;
+  padding: 0;
+  display: flex;
+}
+
+/* --- GUIDE FLOATING BUTTON & SIDEBAR --- */
+.btn-guide-floating {
+  position: fixed;
+  left: 0;
+  top: 20%;
+  z-index: 2000;
+  background: #000;
+  border: 1px solid #333;
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+  padding: 15px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  box-shadow: 4px 0 15px rgba(0,0,0,0.5);
+  transition: all 0.3s;
+}
+
+.btn-guide-floating:hover {
+  background: #111;
+  border-color: #4ade80;
+  transform: translateX(5px);
+}
+
+.btn-guide-floating .icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #222;
+  color: #4ade80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.1rem;
+  border: 1px solid #333;
+}
+
+.btn-guide-floating .label {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  color: #fff;
+  font-weight: 900;
+  font-size: 1.0rem;
+  letter-spacing: 2px;
+}
+
+.btn-guide-floating.is-open {
+  transform: translateX(320px);
+  border-color: #4ade80;
+  background: #000;
+}
+
+.guide-sidebar {
+  position: fixed;
+  top: 0;
+  left: -320px;
+  width: 320px;
+  height: 100%;
+  background: rgba(10, 10, 10, 0.95);
+  backdrop-filter: blur(10px);
+  border-right: 1px solid #333;
+  z-index: 1999;
+  padding: 30px 20px;
+  transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 10px 0 30px rgba(0,0,0,0.8);
+}
+
+.guide-sidebar.sidebar-open {
+  transform: translateX(320px);
+}
+
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 15px;
+}
+
+.sh-title {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: #4ade80;
+  letter-spacing: 2px;
+}
+
+.sh-close {
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.sh-close:hover {
+  color: #fff;
+}
+
+.sidebar-content {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  overflow-y: auto;
+}
+
+.guide-step-card {
+  background: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 8px;
+  padding: 15px;
+  display: flex;
+  gap: 15px;
+  cursor: pointer;
+  transition: all 0.2s;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 0;
+}
+
+.gs-header-row {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  width: 100%;
+}
+
+.guide-step-card:hover {
+  background: #27272a;
+  border-color: #52525b;
+}
+
+.guide-step-card.g-active {
+  background: rgba(74, 222, 128, 0.05);
+  border-color: #4ade80;
+}
+
+.gs-icon {
+  font-size: 1.5rem;
+  background: #222;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.gs-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.gs-step {
+  font-size: 1.0rem;
+  color: #4ade80;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+.gs-text {
+  font-size: 1.2rem;
+  color: #d4d4d4;
+  line-height: 1.4;
+}
+
+.gs-hint-content {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px dashed #333;
+  width: 100%;
+  animation: fadeIn 0.3s ease;
+}
+
+.hint-label {
+  font-size: 1.0rem;
+  color: #4ade80;
+  font-weight: 900;
+  margin-bottom: 5px;
+  display: block;
+}
+
+.hint-body {
+  font-size: 1.2rem;
+  color: #a1a1aa;
+  line-height: 1.6;
+  font-style: italic;
+}
+
+/* FEEDBACK TOAST */
+.feedback-toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.9);
+  border: 1px solid #4ade80;
+  padding: 15px 30px;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  animation: fadeInUp 0.3s ease;
+}
+
+.toast-icon {
+  width: 24px;
+  height: 24px;
+  background: #4ade80;
+  color: #000;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+}
+
 /* 2단 그리드 시스템: [2026-02-11] 에디터 공간 극대화를 위해 3:7 비율로 조정 */
 .combat-grid {
   display: grid;
@@ -94,10 +453,10 @@
   font-weight: 500;
 }
 
-/* 우측 전술 결정 패널 */
+/* 우측 전술 결정 패널 [2026-02-12] 하단 버튼 가시성 및 왼쪽 패널과의 높이 균형을 위해 패딩 축소 (60px -> 40px) */
 .decision-panel {
   background: rgba(5, 8, 15, 0.8);
-  padding: 60px;
+  padding: 40px;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -292,6 +651,105 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* [2026-02-12] 의사코드 작성 영역 레이아웃 및 체크리스트 스타일 */
+.editor-body {
+  display: flex;
+  flex-direction: row;
+  height: 100%;
+  overflow: hidden;
+}
+
+.rule-checklist-sidebar {
+  width: 200px;
+  background: rgba(15, 23, 42, 0.6);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  flex-shrink: 0;
+}
+
+.rcs-header {
+  padding: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.rcs-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.rcs-count {
+  font-size: 11px;
+  font-weight: 700;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.rcs-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rcs-item {
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  display: flex;
+  gap: 10px;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.rcs-item.completed {
+  background: rgba(16, 185, 129, 0.05);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.rcs-check {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.rcs-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rcs-item-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.rcs-item.completed .rcs-item-label {
+  color: #10b981;
+}
+
+.rcs-hint {
+  font-size: 10px;
+  color: #64748b;
+  line-height: 1.3;
 }
 
 /* [2026-02-12] 아키텍트 모범 답안 박스 */
