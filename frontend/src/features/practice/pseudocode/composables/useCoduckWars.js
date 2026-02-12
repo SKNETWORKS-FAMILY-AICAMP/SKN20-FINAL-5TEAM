@@ -132,53 +132,28 @@ export function useCoduckWars() {
         resetHintTimer();
     });
 
-    const handlePseudoInput = (e) => {
-        if (!e || !e.target) return;
-        const val = e.target.value ?? "";
-        if (typeof val !== 'string') return;
-
-        gameState.phase3Reasoning = val;
-
-        // 실시간 체크리스트 업데이트
-        if (ruleChecklist.value && Array.isArray(ruleChecklist.value)) {
-            ruleChecklist.value.forEach(check => {
-                if (check && Array.isArray(check.patterns)) {
-                    check.completed = check.patterns.some(pattern => {
-                        if (pattern instanceof RegExp) {
-                            return pattern.test(val);
-                        }
-                        return false;
-                    });
-                }
-            });
+    // [2026-02-13] 설계 단계 진입 시 힌트 타이머 즉시 기동
+    watch(() => gameState.phase, (newPhase) => {
+        if (newPhase === 'PSEUDO_WRITE') {
+            startHintTimer();
         }
-
-        resetHintTimer();
-    };
+    });
 
     // --- Diagnostic Logic ---
     // [2026-02-12] 현재 진행 중인 진담 문항 통합 접근
-    const currentDiagnosticQuestion = computed(() => {
-        const mission = currentMission.value;
-        const step = gameState.diagnosticStep ?? 0;
-        if (!mission || !mission.interviewQuestions || !mission.interviewQuestions[step]) {
-            return { question: "로딩 중...", options: [], type: 'CHOICE' };
-        }
-        return mission.interviewQuestions[step];
+    const diagnosticQuestion = computed(() => {
+        const q = currentMission.value.interviewQuestions?.[gameState.diagnosticStep || 0];
+        return q || { type: 'CHOICE', question: '로딩 중...', options: [] };
     });
 
-    const diagnosticQuestion1 = currentDiagnosticQuestion;
-    const diagnosticQuestion2 = currentDiagnosticQuestion;
-    const diagnosticQuestion3 = currentDiagnosticQuestion;
-
-    const submitDiagnostic1 = async (optionIndex) => {
-        const q = diagnosticQuestion1.value;
+    const submitDiagnostic = async (optionIndex) => {
+        const q = diagnosticQuestion.value;
 
         // [2026-02-12] 서술형(DESCRIPTIVE) 타입 처리
         if (q.type === 'DESCRIPTIVE') {
             if (gameState.diagnosticResult && !gameState.isEvaluatingDiagnostic) {
-                setPhase('DIAGNOSTIC_2');
-                gameState.step = 1;
+                setPhase('PSEUDO_WRITE');
+                gameState.step = 2; // Step 2 is Pseudocode
                 return;
             }
 
@@ -189,13 +164,15 @@ export function useCoduckWars() {
             }
 
             gameState.isEvaluatingDiagnostic = true;
-            gameState.feedbackMessage = "AI 아키텍트가 분석 중입니다...";
-            addSystemLog("진단 1단계 AI 분석 개시...", "INFO");
+            gameState.feedbackMessage = "AI 아키텍트가 분석 내용을 검토하고 있습니다...";
+            addSystemLog("진단 1단계 AI 정밀 분석 개시...", "INFO");
 
             try {
                 const result = await evaluateDiagnosticAnswer(q, gameState.diagnosticAnswer);
                 gameState.diagnosticResult = result;
-                gameState.score += Math.round(result.score * 0.2);
+                gameState.diagnosticScores.push(result.score);
+                // [2026-02-13] gameState.score 직접 가산 제거 (가중치 기반 자동 계산)
+                updateFinalScore();
 
                 if (result.is_correct) {
                     gameState.feedbackMessage = "분석이 완료되었습니다. 다음 단계로 진행하세요.";
@@ -208,7 +185,8 @@ export function useCoduckWars() {
             } catch (error) {
                 console.error("Diagnostic 1 Evaluation Fail:", error);
                 gameState.isEvaluatingDiagnostic = false;
-                setPhase('DIAGNOSTIC_2');
+                setPhase('PSEUDO_WRITE');
+                gameState.step = 2;
             }
             return;
         }
@@ -218,173 +196,27 @@ export function useCoduckWars() {
             if (optionIndex === undefined || !q.options[optionIndex]) return;
             const selected = q.options[optionIndex];
             if (selected.correct) {
-                gameState.score += 7.5;
-                gameState.feedbackMessage = selected.feedback || "정확합니다! 다음 레벨로.";
-                addSystemLog("선택 승인: 정답입니다.", "SUCCESS");
-
-                // [2026-02-12] 다음 문항이 있는지 확인
+                gameState.diagnosticScores.push(100);
+                // [2026-02-13] gameState.score 직접 가산 제거
+                updateFinalScore();
+                gameState.feedbackMessage = "진단 완료! 설계 단계로 진입합니다.";
+                addSystemLog("진단 완료: 설계 단계 이동", "SUCCESS");
                 setTimeout(() => {
-                    const nextQIdx = gameState.diagnosticStep + 1;
-                    const nextQ = currentMission.value.interviewQuestions[nextQIdx];
-
-                    if (nextQ && nextQ.type === 'CHOICE') {
-                        gameState.diagnosticStep = nextQIdx;
+                    // [2026-02-13] 다음 문항이 있는지 확인
+                    const nextStep = gameState.diagnosticStep + 1;
+                    if (currentMission.value.interviewQuestions?.[nextStep]) {
+                        gameState.diagnosticStep = nextStep;
                         gameState.feedbackMessage = null;
-                        addSystemLog(`다음 문항 진행: ${nextQIdx + 1}번`, "INFO");
+                        addSystemLog(`다음 문항 진행: ${nextStep + 1}번`, "INFO");
                     } else {
-                        // [2026-02-12] 서술형 및 정렬형 단계 제거로 인해 즉시 의사코드 설계(PSEUDO_WRITE) 단계로 전이
                         setPhase('PSEUDO_WRITE');
-                        gameState.step = 2; // STEP_02: PSEUDO_ARCHITECTURE
+                        gameState.step = 2;
                     }
                 }, 1000);
             } else {
                 handleDamage();
                 gameState.feedbackMessage = selected.feedback || "잘못된 분석입니다. 다시 시도하세요.";
                 addSystemLog("오류: 잘못된 판단입니다", "ERROR");
-            }
-            return;
-        }
-    };
-
-    const toggleOrderingItem = (optionId) => {
-        if (gameState.isEvaluatingDiagnostic || gameState.diagnosticResult3) return;
-
-        const index = gameState.diagnosticOrder3.indexOf(optionId);
-        if (index > -1) {
-            gameState.diagnosticOrder3.splice(index, 1);
-        } else {
-            if (gameState.diagnosticOrder3.length < 4) {
-                gameState.diagnosticOrder3.push(optionId);
-            }
-        }
-    };
-
-    const submitDiagnostic2 = async (optionIndex) => {
-        const q = diagnosticQuestion2.value;
-
-        // [2026-02-12] 서술형(DESCRIPTIVE) 타입 처리
-        if (q.type === 'DESCRIPTIVE') {
-            if (gameState.diagnosticResult2 && !gameState.isEvaluatingDiagnostic) {
-                setPhase('DIAGNOSTIC_3');
-                gameState.step = 2;
-                return;
-            }
-
-            if (!gameState.diagnosticAnswer2 || gameState.diagnosticAnswer2.trim().length < 5) {
-                gameState.feedbackMessage = "설계 내용을 조금 더 구체적으로 적어주세요.";
-                addSystemLog("입력 부족: 설계 내용이 부족합니다.", "WARN");
-                return;
-            }
-
-            gameState.isEvaluatingDiagnostic = true;
-            gameState.feedbackMessage = "AI 아키텍트가 설계안을 검토 중입니다...";
-            addSystemLog("진단 2단계 AI 검토 개시...", "INFO");
-
-            try {
-                const result = await evaluateDiagnosticAnswer(q, gameState.diagnosticAnswer2);
-                gameState.diagnosticResult2 = result;
-                gameState.score += Math.round(result.score * 0.2);
-
-                if (result.is_correct) {
-                    gameState.feedbackMessage = "설계가 전술적으로 타당합니다. 다음 단계로 진행하세요.";
-                    addSystemLog("설계 완료: 전술적 유효성 확인", "SUCCESS");
-                } else {
-                    gameState.feedbackMessage = "설계안에 보안 허점이 있습니다. 분석을 확인하세요.";
-                    addSystemLog("설계 미흡: 예외 상황 고려 부족", "WARN");
-                }
-                gameState.isEvaluatingDiagnostic = false;
-            } catch (error) {
-                console.error("Diagnostic 2 Evaluation Fail:", error);
-                gameState.isEvaluatingDiagnostic = false;
-                setPhase('DIAGNOSTIC_3');
-            }
-            return;
-        }
-
-        // [2026-02-12] 선택형(CHOICE) 타입 처리
-        if (q.type === 'CHOICE') {
-            const selected = q.options[optionIndex];
-            if (!selected) return;
-            if (selected.correct) {
-                gameState.score += 7.5;
-                gameState.feedbackMessage = "정확합니다! 전술 구체화 단계로.";
-                addSystemLog("선택 승인: 다음 진단 단계로 이동", "SUCCESS");
-                setTimeout(() => {
-                    setPhase('DIAGNOSTIC_3');
-                    gameState.step = 2;
-                }, 1000);
-            } else {
-                handleDamage();
-                gameState.feedbackMessage = "비효율적인 전술입니다.";
-                addSystemLog("경고: 전술 분석 오류", "ERROR");
-            }
-            return;
-        }
-    };
-
-    const submitDiagnostic3 = async (optionIndex) => {
-        const q = diagnosticQuestion3.value;
-
-        // [2026-02-12] 정렬형(ORDERING) 타입 처리
-        if (q.type === 'ORDERING') {
-            if (gameState.diagnosticOrder3.length < 4) {
-                gameState.feedbackMessage = "모든 항목의 순서를 정해 주세요.";
-                return;
-            }
-
-            gameState.isEvaluatingDiagnostic = true;
-            gameState.feedbackMessage = "전술 시퀀스 정합성 분석 중...";
-            addSystemLog("진단 3단계 순서 정합성 분석 개시...", "INFO");
-
-            try {
-                const orderedTexts = gameState.diagnosticOrder3.map((id, i) => {
-                    const opt = q.options.find(o => o.id === id);
-                    return `${i + 1}단계: ${opt ? opt.text : id}`;
-                }).join('\n');
-
-                const result = await evaluateDiagnosticAnswer(q, orderedTexts);
-                gameState.diagnosticResult3 = result;
-
-                if (result.is_correct) {
-                    gameState.score += 20;
-                    gameState.feedbackMessage = "완벽한 전술 시퀀스입니다. 설계 단계로 진행하세요.";
-                    addSystemLog("정렬 성공: 논리 시퀀스 검증 완료", "SUCCESS");
-                } else {
-                    handleDamage();
-                    gameState.feedbackMessage = "시퀀스에 논리적 허점이 발견되었습니다.";
-                    addSystemLog("정렬 분석 완료: 일부 보완 필요", "WARN");
-                }
-                gameState.isEvaluatingDiagnostic = false;
-            } catch (error) {
-                console.error("Diagnostic 3 Evaluation Fail:", error);
-                gameState.isEvaluatingDiagnostic = false;
-                // Fallback
-                const isCorrect = JSON.stringify(q.correctOrder) === JSON.stringify(gameState.diagnosticOrder3);
-                gameState.diagnosticResult3 = {
-                    score: isCorrect ? 100 : 40,
-                    is_correct: isCorrect,
-                    feedback: isCorrect ? "서버 지연으로 로컬 검증 완료." : "순서가 논리적이지 않습니다.",
-                    analysis: "로컬 엔진에 의한 분석 결과입니다."
-                };
-            }
-            return;
-        }
-
-        // [2026-02-12] 선택형(CHOICE) 대응
-        if (q.type === 'CHOICE') {
-            const selected = q.options[optionIndex];
-            if (!selected) return;
-            if (selected.correct) {
-                gameState.score += 7.5;
-                gameState.feedbackMessage = "진단 완료! 설계 단계로 진입합니다.";
-                setTimeout(() => {
-                    setPhase('PSEUDO_WRITE');
-                    gameState.step = 3;
-                }, 1000);
-            } else {
-                handleDamage();
-                gameState.feedbackMessage = "잘못된 판단입니다.";
-                addSystemLog("경고: 비효율적 전략입니다", "ERROR");
             }
             return;
         }
@@ -412,7 +244,7 @@ export function useCoduckWars() {
             console.error('[submitPseudo] Safety timeout triggered - forcing phase transition');
             isProcessing.value = false;
             gameState.feedbackMessage = "평가 시간 초과. 다음 단계로 진행합니다.";
-            gameState.score += 5;
+            // [2026-02-13] gameState.score 직접 가산 제거
             addSystemLog("평가 시간 초과 - 기본 점수 부여", "WARN");
             setPhase('DEEP_QUIZ');
         }, 30000);
@@ -425,22 +257,17 @@ export function useCoduckWars() {
             console.log('[submitPseudo] Mission:', currentMission.value?.id);
             console.log('[submitPseudo] Pseudocode:', gameState.phase3Reasoning.substring(0, 100));
 
-            // ✅ [2026-02-12] 진단 데이터를 텍스트 형태로 정제하여 전달
-            const phase3Q = diagnosticQuestion3.value;
-            const phase3Sequence = gameState.diagnosticOrder3.map((id, i) => {
-                const opt = phase3Q.options?.find(o => o.id === id);
-                return `${i + 1}단계: ${opt ? opt.text : id}`;
-            }).join(', ');
+            // ✅ [2026-02-13] 통합된 진단 데이터 기반으로 컨텍스트 구성 (레거시 변수 제거)
+            const diagnosticContext = {
+                answers: [gameState.diagnosticAnswer],
+                scores: gameState.diagnosticScores
+            };
 
-            // ✅ 새로운 5차원 평가 API 호출 ([2026-02-12] 진단 컨텍스트 3단계까지 확장)
+            // ✅ 새로운 5차원 평가 API 호출
             const evaluation = await evaluatePseudocode5D(
                 currentMission.value,
                 gameState.phase3Reasoning,
-                {
-                    phase1: gameState.diagnosticAnswer,
-                    phase2: gameState.diagnosticAnswer2,
-                    phase3: phase3Sequence || '순서 지정되지 않음'
-                }
+                diagnosticContext
             );
 
             console.log('[submitPseudo] Evaluation result:', evaluation);
@@ -452,8 +279,9 @@ export function useCoduckWars() {
             }
 
             // 평가 결과 저장
-            gameState.phase3Score = evaluation.overall_score || 0;
             gameState.phase3EvaluationResult = evaluation;
+            gameState.phase3Score = evaluation.overall_score || 0; // [2026-02-13] 총점 합산을 위해 필수 저장
+            updateFinalScore();
 
             // ✅ Python 변환 결과 저장 (Visualizer용)
             // evaluationResult는 reactive 객체이므로 직접 속성 할당 가능
@@ -462,6 +290,9 @@ export function useCoduckWars() {
             }
             if (evaluation.python_feedback) {
                 evaluationResult.python_feedback = evaluation.python_feedback;
+            }
+            if (evaluation.tail_question) {
+                evaluationResult.tailQuestion = evaluation.tail_question;
             }
             evaluationResult.overall_score = evaluation.overall_score || 0;
 
@@ -475,9 +306,11 @@ export function useCoduckWars() {
             dimKeys.forEach((key, i) => {
                 const dim = dims[key];
                 if (dim) {
-                    const score = Math.round(dim.score || 0);
-                    const basis = dim.basis ? dim.basis.substring(0, 30) : '분석 완료';
-                    addSystemLog(`${dimLabels[i]}: ${score}점 - ${basis}...`, "INFO");
+                    // [2026-02-13] API에서 이미 12점 스케일링이 되었을 수 있으므로 100점으로 복구하여 저장
+                    // api.js에서 dim.score = (dim.score / 100) * 12 를 수행함.
+                    // UI와 일관성을 위해 여기서는 100점 만점 원본 점수를 사용하거나 역산함.
+                    const displayScore = dim.original_score || (dim.score * 100 / 12);
+                    addSystemLog(`${dimLabels[i]}: ${Math.round(displayScore)}점 - ${dim.basis || '분석 완료'}`, "INFO");
                 }
             });
 
@@ -492,10 +325,8 @@ export function useCoduckWars() {
 
             gameState.feedbackMessage = `5차원 평균: ${Math.round(avgDimScore)}점 | 종합: ${evaluation.overall_score || 0}점`;
 
-            // ✅ 실제 점수 기반 보상 (최대 20점)
-            const reward = Math.round((evaluation.overall_score || 0) * 0.2);
-            gameState.score += reward;
-            addSystemLog(`아키텍처 평가 보상: +${reward}점`, "SUCCESS");
+            // [2026-02-13] gameState.score 직접 가산 제거 (Phase 3 점수는 gameState.phase3Score에 보관)
+            addSystemLog(`아키텍처 평가 완료: ${evaluation.overall_score || 0}점`, "SUCCESS");
 
             // ✅ 강점/약점 요약
             if (evaluation.strengths && evaluation.strengths.length > 0) {
@@ -521,10 +352,18 @@ export function useCoduckWars() {
 
             // ✅ [FIX] 에러 발생해도 반드시 다음 단계로 전환
             gameState.feedbackMessage = "평가 중 오류 발생. 다음 단계로 진행합니다.";
-            gameState.score += 8;
+            // [2026-02-13] gameState.score 직접 가산 제거
 
             // ✅ [FIX] 기본 evaluation 결과 생성 (EVALUATION 단계에서 사용)
             if (!gameState.phase3EvaluationResult) {
+                const fallbackTail = {
+                    question: "작성하신 로직이 설계 요구사항을 충족하는지 다시 한 번 점검이 필요합니다.",
+                    options: [
+                        { text: "아키텍처를 다시 살펴보겠습니다.", is_correct: true, reason: "꼼꼼한 검증은 필수입니다." },
+                        { text: "이대로 결과를 확인하겠습니다.", is_correct: false, reason: "보완이 필요한 부분이 있을 수 있습니다." }
+                    ]
+                };
+
                 gameState.phase3EvaluationResult = {
                     overall_score: 50,
                     dimensions: {
@@ -536,13 +375,17 @@ export function useCoduckWars() {
                     },
                     strengths: [],
                     weaknesses: ['평가 시스템 오류'],
-                    grade: 'fair'
+                    grade: 'fair',
+                    tail_question: fallbackTail
                 };
                 gameState.phase3Score = 50;
+                evaluationResult.tailQuestion = fallbackTail;
+                evaluationResult.overall_score = 50;
             }
 
             addSystemLog("평가 시스템 오류, 기본 점수 부여 후 심화 검증으로 이동", "WARN");
-            setTimeout(() => setPhase('DEEP_QUIZ'), 800);
+            // ✅ 기존: setTimeout(() => setPhase('DEEP_QUIZ'), 800);
+            // ✅ 개선: 화면 전환을 막고 듀얼 뷰에서 질문을 보여주기 위해 setPhase 제거
         } finally {
             // ✅ [FIX] 안전 타임아웃 클리어
             clearTimeout(safetyTimeout);
@@ -552,27 +395,72 @@ export function useCoduckWars() {
 
     // --- Deep Quiz & Tail Question ---
     const deepQuizQuestion = computed(() => {
-        // [2026-02-12] Tail Question 우선 처리
-        if (gameState.phase === 'TAIL_QUESTION' && evaluationResult.tailQuestion) {
+        const isVisualization = gameState.phase === 'PYTHON_VISUALIZATION';
+        const isTailQuestion = gameState.phase === 'TAIL_QUESTION';
+        const isDeepQuiz = gameState.phase === 'DEEP_QUIZ';
+        const rawScore = evaluationResult.overall_score || gameState.phase3Score || 0;
+        const score = Number(rawScore);
+
+        // 로깅 추가
+        console.log('[deepQuizQuestion DEBUG]', {
+            phase: gameState.phase,
+            score,
+            hasTail: !!evaluationResult.tailQuestion,
+            hasDeep: !!currentMission.value?.deepDiveQuestion
+        });
+
+        // 1. PYTHON_VISUALIZATION 또는 TAIL_QUESTION 단계 (저득점 보완)
+        if ((isVisualization || isTailQuestion) && score < 80) {
             const tq = evaluationResult.tailQuestion;
+
+            // 데이터가 없거나 형식이 잘못된 경우 하드코딩된 폴백 제공
+            if (!tq || !tq.question) {
+                return {
+                    question: "작성하신 의사코드의 전체적인 논리 구조를 다시 한 번 검토해볼까요?",
+                    options: [
+                        { text: "네, 로직의 선후 관계를 명확히 다듬겠습니다.", is_correct: true, reason: "안정적인 코드 구현을 위해 구조적 탄탄함은 필수입니다." },
+                        { text: "현재 로직으로도 충분해 보입니다.", is_correct: false, reason: "보이지 않는 에지 케이스가 있을 수 있습니다." }
+                    ]
+                };
+            }
+
             return {
-                question: `[추가 검증] ${tq.question}`,
+                question: tq.question.startsWith('[') ? tq.question : `[추가 보완] ${tq.question}`,
                 options: (tq.options || []).map(opt => ({
                     text: opt.text,
-                    is_correct: opt.is_correct,
-                    reason: opt.reason
+                    is_correct: opt.is_correct || opt.correct,
+                    reason: opt.reason || '개선이 필요한 지점입니다.'
                 }))
             };
         }
 
-        const mission = currentMission.value;
-        if (!mission || !mission.deepDiveQuestion) {
-            return { question: "로딩 중...", options: [] };
+        // 2. PYTHON_VISUALIZATION 또는 DEEP_QUIZ 단계 (고득점 심화)
+        if ((isVisualization || isDeepQuiz) && score >= 80) {
+            const mission = currentMission.value;
+            const dq = mission?.deepDiveQuestion;
+
+            if (!dq || !dq.question) {
+                // 심화 퀴즈가 없는 미션일 경우의 폴백
+                return {
+                    question: "완벽한 설계입니다! 이 로직을 더 확장한다면 어떤 점을 고려할까요?",
+                    options: [
+                        { text: "더 효율적인 시간 복잡도를 고민하겠습니다.", is_correct: true, reason: "최적화는 아키텍트의 다음 목표입니다." },
+                        { text: "현재 성능으로 충분히 만족합니다.", is_correct: false, reason: "성능 한계에 부딪힐 수 있습니다." }
+                    ]
+                };
+            }
+
+            return {
+                question: dq.question.startsWith('[') ? dq.question : `[심화 챌린지] ${dq.question}`,
+                options: dq.options.map(opt => ({
+                    text: opt.text,
+                    is_correct: opt.is_correct || opt.correct,
+                    reason: opt.reason || '심화 개념 확인이 필요합니다.'
+                }))
+            };
         }
-        return {
-            question: mission.deepDiveQuestion.question,
-            options: mission.deepDiveQuestion.options
-        };
+
+        return null;
     });
 
     const submitDeepQuiz = (optionIndex) => {
@@ -583,19 +471,23 @@ export function useCoduckWars() {
 
         // Tail Question 처리 분기
         if (gameState.phase === 'TAIL_QUESTION') {
-            handleTailQuestion(selected);
+            handleTailSelection(selected);
             return;
         }
 
         // Deep Quiz 처리
-        if (selected && selected.correct) {
-            gameState.score += 20;
+        if (selected && selected.is_correct) {
+            gameState.iterativeScore = 100;
+            // [2026-02-13] gameState.score 직접 가산 제거
+            updateFinalScore();
             addSystemLog("심화 검증 통과", "SUCCESS");
             handleVictory();
         } else {
+            gameState.iterativeScore = 0;
             handleDamage();
             gameState.feedbackMessage = "개념 오인.";
             addSystemLog("검증 실패: 개념 재확인 필요", "ERROR");
+            setTimeout(() => handleVictory(), 1500); // 실패해도 종료
         }
     };
 
@@ -604,10 +496,13 @@ export function useCoduckWars() {
         if (!option) return;
 
         if (option.is_correct) {
-            gameState.score += 5;
-            gameState.feedbackMessage = "정확합니다! (+5점)";
+            gameState.iterativeScore = 100;
+            // [2026-02-13] gameState.score 직접 가산 제거
+            updateFinalScore();
+            gameState.feedbackMessage = "정확합니다!";
             addSystemLog(`보완 성공: ${option.reason} (+5점)`, "SUCCESS");
         } else {
+            gameState.iterativeScore = 0;
             gameState.feedbackMessage = "아쉽습니다. 다음에는 더 꼼꼼히 확인해보세요.";
             addSystemLog(`보완 실패: ${option.reason}`, "WARN");
         }
@@ -622,30 +517,9 @@ export function useCoduckWars() {
      * [STEP 3] Python 시각화 완료 후 분기 (Deep Dive or Tail Question)
      */
     const handlePythonVisualizationNext = () => {
-        const score = evaluationResult.overall_score || 0;
-        const evaluation = gameState.phase3EvaluationResult;
-
-        if (score >= 80) {
-            addSystemLog("설계 우수. 심화 검증(Deep Dive) 챌린지 시작!", "SUCCESS");
-            setPhase('DEEP_QUIZ');
-        } else {
-            // Tail Question 설정 (없으면 Fallback)
-            if (evaluation && evaluation.tail_question) {
-                evaluationResult.tailQuestion = evaluation.tail_question;
-            } else {
-                // Fallback Question
-                evaluationResult.tailQuestion = {
-                    question: "작성하신 코드의 실행 흐름을 다시 한 번 점검해보세요.",
-                    options: [
-                        { text: "네, 다시 확인하겠습니다.", is_correct: true, reason: "꼼꼼한 검증이 중요합니다." },
-                        { text: "확인할 필요 없습니다.", is_correct: false, reason: "오류 가능성이 있습니다." }
-                    ]
-                };
-            }
-
-            addSystemLog("추가 검증이 필요합니다. (Tail Question)", "WARN");
-            setPhase('TAIL_QUESTION');
-        }
+        // 2026-02-13: 이 함수는 이제 CodeFlowVisualizer 내에서 질문이 없을 때만 호출되거나, 
+        // 최종 버튼 클릭 시 handleVictory로 바로 연결되도록 CoduckWars.vue에서 직접 호출합니다.
+        handleVictory();
     };
 
     // [STEP 4] 최종 평가 단계로 이동
@@ -653,8 +527,35 @@ export function useCoduckWars() {
         gameState.feedbackMessage = "모든 분석이 완료되었습니다.";
         setPhase('EVALUATION');
 
-        // 최종 점수 저장 및 리포트 생성 요청 (필요 시 백엔드 전송)
+        // [2026-02-13] 최종 점수 동적 계산 및 동기화
+        updateFinalScore();
+
+        // [2026-02-13] 최종 리포트 데이터 생성 자동 호출 (빈 화면 방지)
+        generateEvaluation();
+
         addSystemLog("최종 리포트 생성 중...", "INFO");
+    };
+
+    /**
+     * [2026-02-13] 실시간 및 최종 가중 점수 계산 로직 일원화
+     * Diagnostic (20%) + Design (70%) + Iterative (10%)
+     */
+    const updateFinalScore = () => {
+        const diagAvg = gameState.diagnosticScores.length > 0
+            ? gameState.diagnosticScores.reduce((a, b) => a + b, 0) / gameState.diagnosticScores.length
+            : 0;
+
+        const designScore = gameState.phase3Score || 0;
+        const iterativeScore = gameState.iterativeScore || 0;
+
+        const weighted = Math.round(
+            (diagAvg / 100) * 20 +
+            (designScore / 100) * 70 +
+            (iterativeScore / 100) * 10
+        );
+
+        gameState.score = weighted;
+        gameState.finalWeightedScore = weighted;
     };
 
 
@@ -666,8 +567,6 @@ export function useCoduckWars() {
         verdict: "",
         details: [],
         aiAnalysis: "분석 중...",
-        seniorAdvice: "분석 중...",
-        scoreTier: "Junior",
         seniorAdvice: "분석 중...",
         scoreTier: "Junior",
         supplementaryVideos: [],
@@ -695,44 +594,64 @@ export function useCoduckWars() {
                 throw new Error('Phase 3 evaluation not found');
             }
 
-            console.log('[generateEvaluation] Reusing Phase 3 result:', phase3Result);
+            // [2026-02-13] 통합 가중 점수 계산 함수 재사용
+            updateFinalScore();
+            const finalScore = gameState.finalWeightedScore;
 
-            // ✅ 게임 점수 (40%)
-            const maxScore = 1300;
-            const gamePerformanceScore = Math.min(100, Math.floor((gameState.score / maxScore) * 100));
+            evaluationResult.finalScore = finalScore;
 
-            // ✅ AI 5차원 점수 (60%)
-            const aiScore = phase3Result.overall_score;
+            // 상세 비중 리포트용 개별 가중치 재계산 (표시용)
+            const diagAvg = gameState.diagnosticScores.length > 0
+                ? gameState.diagnosticScores.reduce((a, b) => a + b, 0) / gameState.diagnosticScores.length
+                : 0;
+            const designScore = phase3Result.overall_score || 0;
+            const iterativeScore = gameState.iterativeScore || 0;
 
-            // ✅ 최종 점수 = 게임 40% + AI 60%
-            evaluationResult.finalScore = Math.floor((gamePerformanceScore * 0.4) + (aiScore * 0.6));
-            evaluationResult.gameScore = gamePerformanceScore;
-            evaluationResult.finalScore = Math.floor((gamePerformanceScore * 0.4) + (aiScore * 0.6));
-            evaluationResult.gameScore = gamePerformanceScore;
-            evaluationResult.aiScore = aiScore;
+            evaluationResult.diagnosticScoreWeighted = Math.round((diagAvg / 100) * 20 * 10) / 10;
+            evaluationResult.designScoreWeighted = Math.round((designScore / 100) * 70 * 10) / 10;
+            evaluationResult.iterativeScoreWeighted = Math.round((iterativeScore / 100) * 10 * 10) / 10;
+
+            evaluationResult.gameScore = Math.round(diagAvg);
+            evaluationResult.aiScore = Math.round(designScore);
             evaluationResult.rule_score = phase3Result.rule_score || 0;
-            evaluationResult.dimensions = phase3Result.dimensions || {};
-            evaluationResult.overall_score = phase3Result.overall_score || 0;
 
-            addSystemLog(`게임 점수: ${gamePerformanceScore}/100 (40%)`, "INFO");
-            addSystemLog(`AI 점수: ${aiScore}/100 (60%)`, "INFO");
-            addSystemLog(`최종 점수: ${evaluationResult.finalScore}/100`, "SUCCESS");
+            // [2026-02-13] 모든 점수를 100점 만점 기준으로 정규화하여 저장 (Radar Chart 좌표 계산 용이성)
+            evaluationResult.dimensions = {};
+            Object.keys(phase3Result.dimensions || {}).forEach(key => {
+                const d = phase3Result.dimensions[key];
+                evaluationResult.dimensions[key] = {
+                    ...d,
+                    score: d.original_score || (d.score * 100 / 12) || 0
+                };
+            });
 
-            // ✅ 5차원 메트릭 매핑
+            evaluationResult.overall_score = designScore;
+
+            addSystemLog(`진단 점수: ${evaluationResult.diagnosticScoreWeighted}/20`, "INFO");
+            addSystemLog(`설계 점수: ${evaluationResult.designScoreWeighted}/70`, "INFO");
+            addSystemLog(`최종 검증: ${evaluationResult.iterativeScoreWeighted}/10`, "INFO");
+            addSystemLog(`최종 미션 스코어: ${finalScore}/100`, "SUCCESS");
+
+            // ✅ 5차원 메트릭 매핑 (한글화)
             const DIMENSION_NAMES = {
-                coherence: 'Consistency',
-                abstraction: 'Abstraction',
-                exception_handling: 'Exception Handling',
-                implementation: 'Implementation',
-                architecture: 'Design'
+                coherence: '정합성',
+                abstraction: '추상화',
+                exception_handling: '예외처리',
+                implementation: '구현력',
+                architecture: '설계력'
             };
 
             evaluationResult.details = Object.entries(phase3Result.dimensions).map(([key, data]) => ({
+                id: key,
                 category: DIMENSION_NAMES[key] || key,
                 score: Math.round(data.score),
-                comment: data.basis || '분석 완료',
-                improvement: data.improvement || ''
+                comment: data.basis || '적절한 논리 전개입니다.',
+                improvement: data.improvement || '특별한 보완 사항이 없습니다.'
             }));
+
+            // [2026-02-13] 코드 블루프린트 데이터 복사
+            evaluationResult.converted_python = phase3Result.converted_python || "";
+            evaluationResult.python_feedback = phase3Result.python_feedback || "";
 
             console.log('[generateEvaluation] Details:', evaluationResult.details);
 
@@ -743,7 +662,9 @@ export function useCoduckWars() {
                 addSystemLog("시니어 아키텍트 조언 생성 완료", "SUCCESS");
             } catch (error) {
                 console.error('[Senior Advice Error]', error);
-                evaluationResult.seniorAdvice = "훌륭한 시도였습니다. 실전에서 적용하며 계속 발전시켜 나가세요.";
+                evaluationResult.seniorAdvice = evaluationResult.finalScore >= 50
+                    ? "훌륭한 시도였습니다. 실전에서 적용하며 계속 발전시켜 나가세요."
+                    : "로직의 기초를 더 탄탄히 다져야 합니다. 가이드라인을 참고하여 다시 설계해보세요.";
             }
 
             // ✅ 등급 결정
@@ -755,6 +676,12 @@ export function useCoduckWars() {
                 evaluationResult.scoreTier = "Mid-Level";
             } else {
                 evaluationResult.scoreTier = "Junior";
+            }
+
+            // ✅ [2026-02-13] 유튜브 추천 영상 매핑
+            if (phase3Result.recommended_videos) {
+                evaluationResult.supplementaryVideos = phase3Result.recommended_videos;
+                addSystemLog(`추천 강의 ${evaluationResult.supplementaryVideos.length}건 준비 완료`, "INFO");
             }
 
         } catch (error) {
@@ -828,23 +755,18 @@ export function useCoduckWars() {
         // From GameEngine
         gameState,
         enemyThreat,
-        diagnosticQuestion1,
-        diagnosticQuestion2,
-        diagnosticQuestion3,
-        submitDiagnostic1,
-        submitDiagnostic2,
-        submitDiagnostic3,
+        diagnosticQuestion,
+        submitDiagnostic,
         isEvaluating,
         currentMission,
+        evaluationResult,
+        deepQuizQuestion,
         missionContext,
         constraints,
 
         // Methods
         startGame,
         selectStage,
-        submitDiagnostic1,
-        submitDiagnostic2,
-        toggleOrderingItem,
         submitPseudo,
         submitDeepQuiz,
 
@@ -865,7 +787,6 @@ export function useCoduckWars() {
         pythonSnippets,
 
         // Misc
-        handlePseudoInput,
         ruleChecklist,
         completedChecksCount,
         allChecksPassed,
@@ -879,19 +800,6 @@ export function useCoduckWars() {
         handlePythonVisualizationNext,
         handleTailSelection,
         resetFlow: () => startGame(),
-        handlePracticeClose: () => router.push('/practice'),
-        logicBlocks: [
-            { id: 1, text: "StandardScaler 객체를 생성한다." },
-            { id: 2, text: "Train 데이터만을 사용하여 스케일러를 학습(fit)시킨다." },
-            { id: 3, text: "학습된 스케일러로 Train 데이터를 변환(transform)한다." },
-            { id: 4, text: "동일한 스케일러로 Test 데이터를 변환(transform)하여 누수를 방지한다." },
-            { id: 5, text: "Test 데이터에는 절대로 fit을 사용하지 않는다." }
-        ],
-        addLogicBlock: (text) => {
-            if (!gameState.phase3Reasoning.includes(text)) {
-                gameState.phase3Reasoning += (gameState.phase3Reasoning ? "\n" : "") + "- " + text;
-            }
-        },
-        explainStep: (idx) => console.log(`Step ${idx}`)
+        handlePracticeClose: () => router.push('/practice')
     };
 }

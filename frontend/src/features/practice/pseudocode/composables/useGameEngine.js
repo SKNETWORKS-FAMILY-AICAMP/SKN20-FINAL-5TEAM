@@ -13,7 +13,7 @@ export function useGameEngine() {
         currentStageId: initialStageId,
         // [2026-02-12] 인트로 단계 제거 및 즉시 진단 시작
         phase: 'DIAGNOSTIC_1',
-        diagnosticStep: 0, // [2026-02-12] 현재 풀고 있는 진담 문항 인덱스
+        diagnosticStep: 0, // [2026-02-13] 현재 풀고 있는 진담 문항 인덱스 복구
         step: 1,
         playerHP: 100,
         score: 0,
@@ -23,11 +23,6 @@ export function useGameEngine() {
         selectedStrategyLabel: "", // Set in Phase 2
         diagnosticAnswer: "",
         diagnosticResult: null,
-        diagnosticAnswer2: "", // [2026-02-12] 2단계 답변 추가
-        diagnosticResult2: null, // [2026-02-12] 2단계 결과 추가
-        diagnosticAnswer3: "", // [2026-02-12] 3단계 답변 추가
-        diagnosticOrder3: [], // [2026-02-12] 3단계 정렬 순서 저장
-        diagnosticResult3: null, // [2026-02-12] 3단계 결과 추가
         isEvaluatingDiagnostic: false,
 
         // Phase 3 State
@@ -49,6 +44,12 @@ THEN
         phase3Feedback: "",
         phase3EvaluationResult: null,
         showHint: false,
+
+        // [2026-02-13] 통합 채점 시스템 (3-Stage Scoring)
+        diagnosticScores: [],       // 각 진단 문항 점수 저장
+        iterativeScore: 0,          // 꼬리 질문/심화 퀴즈 성공 여부 (0-100)
+        finalWeightedScore: 0,      // 최종 가중 합산 점수
+
         // Interactive Messages
         coduckMessage: "경고! 접근하는 모든 데이터는 적입니다!",
         feedbackMessage: null,
@@ -119,15 +120,6 @@ THEN
                 case 'DIAGNOSTIC_1':
                     gameState.coduckMessage = "이 선택은 이후 모든 판단에 영향을 줍니다.";
                     addSystemLog("진단 프로토콜 1단계 개시", "INFO");
-                    break;
-                case 'DIAGNOSTIC_2':
-                    gameState.coduckMessage = "무엇을 신뢰할지 결정해야 합니다.";
-                    gameState.feedbackMessage = null; // 초기화
-                    addSystemLog("진단 프로토콜 2단계 진입", "INFO");
-                    break;
-                case 'DIAGNOSTIC_3':
-                    gameState.coduckMessage = "전술 시퀀스의 무결성을 검증하세요.";
-                    addSystemLog("진단 프로토콜 3단계 진입", "INFO");
                     break;
                 case 'PSEUDO_WRITE':
                     gameState.coduckMessage = "어떤 순서로 생각하는지 보여주세요.";

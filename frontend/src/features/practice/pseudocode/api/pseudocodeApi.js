@@ -25,11 +25,11 @@ const ongoingRequests = new Map();
  * 차원 이름 매핑
  */
 const DIMENSION_NAMES = {
-    coherence: 'Consistency',
-    abstraction: 'Abstraction',
-    exception_handling: 'Exception Handling',
-    implementation: 'Implementation',
-    architecture: 'Design'
+    coherence: '정합성',
+    abstraction: '추상화',
+    exception_handling: '예외처리',
+    implementation: '구현력',
+    architecture: '설계력'
 };
 
 /**
@@ -184,7 +184,7 @@ export async function evaluatePseudocode5D(problem, pseudocode, userContext = nu
             });
 
             // STEP 4: Tail Question 생성 (80점 미만 시)
-            const tailQuestion = generateTailQuestion(aiResult.dimensions, combinedScore);
+            const tailQuestion = generateTailQuestion(aiResult.dimensions, combinedScore, problem);
 
             // STEP 5: 다음 단계 결정
             // 80점 이상 -> DEEP_QUIZ
@@ -235,7 +235,9 @@ export async function evaluatePseudocode5D(problem, pseudocode, userContext = nu
                 fallback: false,
                 // ✅ Python 변환 결과 포함
                 converted_python: aiResult.converted_python || "",
-                python_feedback: aiResult.python_feedback || ""
+                python_feedback: aiResult.python_feedback || "",
+                // ✅ [2026-02-13] 유튜브 추천 영상 포함
+                recommended_videos: getRecommendedVideos(aiResult.dimensions, problem)
             };
 
             // 캐시 저장
@@ -262,15 +264,15 @@ function generateRuleBasedDimensions(ruleResult, pseudocode) {
     return {
         coherence: {
             score: concepts.length >= 4 ? Math.min(baseScore + 10, 100) : baseScore * 0.7,
-            basis: `필수 개념 ${concepts.length}개 포함 (규칙 기반 추정)`,
+            basis: concepts.length > 0 ? `필수 개념 ${concepts.length}개 포함` : '핵심 로직이 명시되지 않음',
             specific_issue: concepts.length < 4 ? '핵심 개념 일부 누락' : null,
-            improvement: concepts.length < 4 ? '데이터 분리, fit, transform 개념을 모두 포함하세요' : null
+            improvement: concepts.length < 4 ? '데이터 분리, fit, transform 개념을 모두 포함하세요' : '적절한 논리 흐름이 필요합니다'
         },
         abstraction: {
             score: /IF.*THEN/i.test(pseudocode) ? baseScore : baseScore * 0.6,
             basis: /IF.*THEN/i.test(pseudocode) ?
-                '조건-행동 구조 사용 (규칙 기반 추정)' :
-                '단순 나열 형태 (규칙 기반 추정)',
+                '조건-행동 구조 사용' :
+                '단순 나열 또는 미완성 구조',
             specific_issue: /IF.*THEN/i.test(pseudocode) ? null : '단순 키워드 나열',
             improvement: /IF.*THEN/i.test(pseudocode) ? null :
                 'IF-THEN 구조로 조건과 행동을 분리하세요'
@@ -278,8 +280,8 @@ function generateRuleBasedDimensions(ruleResult, pseudocode) {
         exception_handling: {
             score: /예외|검증|체크|확인|validation|check|error/i.test(pseudocode) ? 60 : 30,
             basis: /예외|검증|체크/i.test(pseudocode) ?
-                '예외 처리 키워드 포함 (규칙 기반 추정)' :
-                '예외 처리 누락 (규칙 기반 추정)',
+                '예외 처리 키워드 포함' :
+                '예외 처리 로직 부재',
             specific_issue: /예외|검증|체크/i.test(pseudocode) ? null : '엣지 케이스 처리 누락',
             improvement: /예외|검증|체크/i.test(pseudocode) ? null :
                 '데이터 검증 단계를 추가하세요 (예: IF 데이터가 None THEN 예외 발생)'
@@ -300,10 +302,57 @@ function generateRuleBasedDimensions(ruleResult, pseudocode) {
     };
 }
 
-/**
- * Tail Question 생성
- */
-function generateTailQuestion(dimensions, overallScore) {
+const CONCEPTUAL_FALLBACKS = {
+    // 🚩 미션 1 & 2: Data Leakage / Security
+    leakage: [
+        {
+            question: "작성하신 로직에서 '데이터 누수(Data Leakage)'를 방지하기 위해 가장 주의해야 할 단계는 무엇인가요?",
+            options: [
+                { text: "Train 데이터에만 fit을 적용하고 Test 데이터에는 적용하지 않는다.", is_correct: true, reason: "Test 데이터 정보가 학습에 포함되면 성능이 과대평가됩니다." },
+                { text: "모든 데이터(Train+Test)를 합쳐서 한 번에 fit 시킨다.", is_correct: false, reason: "이것이 전형적인 데이터 누수 상황입니다." }
+            ]
+        },
+        {
+            question: "시계열(Time-series) 데이터 보안 섹터에서 미래 정보를 보호하기 위한 가장 올바른 분할 방식은?",
+            options: [
+                { text: "과거와 미래를 시점 기준으로 나누는 Time-based Split을 사용한다.", is_correct: true, reason: "과거 정보로 학습하고 미래를 예측하는 것이 실제 상황과 일치합니다." },
+                { text: "데이터의 순서를 무작위로 섞은 후 랜덤하게 나눈다(Shuffle).", is_correct: false, reason: "미래의 정보가 과거 학습에 포함되어 '타겟 누수'가 발생합니다." }
+            ]
+        }
+    ],
+    // 🚩 미션 3: Bias Control / Skew
+    skew: [
+        {
+            question: "학습 환경(Training)과 전술 환경(Serving)의 데이터 분포 차이(Skew)를 방지하기 위한 핵심 전략은?",
+            options: [
+                { text: "학습과 서빙 시 동일한 전처리 파이프라인(Function)을 공용으로 사용한다.", is_correct: true, reason: "로직이 단 1%만 달라도 예측 성능에 치명적인 왜곡이 발생합니다." },
+                { text: "서빙 환경의 특성에 맞춰 실시간으로 전처리 로직을 따로 제작한다.", is_correct: false, reason: "이것이 바로 '학습-서빙 불일치(Skew)'를 유발하는 주원인입니다." }
+            ]
+        }
+    ],
+    // 🚩 미션 4: Evaluation / Policy
+    policy: [
+        {
+            question: "비즈니스 리스크가 큰 상황(예: 질병 진단)에서 모델의 임계값(Threshold)을 설정하는 올바른 아키텍처적 판단은?",
+            options: [
+                { text: "미탐지(False Negative) 리스크를 줄이기 위해 임계값을 낮추어 재현율(Recall)을 높인다.", is_correct: true, reason: "위험 감지가 우선인 시스템에서는 정밀도보다 재현율이 전략적으로 더 중요합니다." },
+                { text: "시스템 신뢰도를 위해 항상 임계값 0.5를 유지한다.", is_correct: false, reason: "비즈니스 비용(오판 비용)을 고려하지 않은 기계적 판단입니다." }
+            ]
+        }
+    ],
+    // 🚩 기타 기본 차원별 퀴즈 (Fallback of fallback)
+    abstraction: [
+        {
+            question: "의사코드의 추상화 수준을 높이기 위해, 상세 구현 코드를 나열하는 것보다 더 권장되는 방식은?",
+            options: [
+                { text: "논리적 선후 관계를 나타내는 키워드(IF-THEN, STEP)를 기반으로 작성한다.", is_correct: true, reason: "의사코드는 구체적인 코드보다 시스템의 '설계 의도'를 보여줘야 합니다." },
+                { text: "파이썬 문법을 최대한 섞어서 구체적으로 작성한다.", is_correct: false, reason: "그것은 단순한 코드 초안이지 설계도가 아닙니다." }
+            ]
+        }
+    ]
+};
+
+function generateTailQuestion(dimensions, overallScore, problem = null) {
     if (overallScore >= 80) {
         return {
             should_show: false,
@@ -311,48 +360,68 @@ function generateTailQuestion(dimensions, overallScore) {
         };
     }
 
+    // 미션 카테고리 식별 (주제별 질문 매칭용)
+    const category = problem?.category?.toLowerCase() || '';
+    const missionId = problem?.id || 0;
+
     // 가장 약한 차원 찾기
     const dimEntries = Object.entries(dimensions);
     const weakestDim = dimEntries.sort((a, b) => a[1].score - b[1].score)[0];
 
-    if (!weakestDim) {
+    // 메타 피드백 필터링 (의미 없는 피드백 제거)
+    const isGenericIssue = (issue) => {
+        if (!issue) return true;
+        const metaKeywords = ['짧습니다', '부족합니다', '길이', '비어', '입력', '의사코드'];
+        return metaKeywords.some(k => issue.includes(k)) || issue.length < 5;
+    };
+
+    if (weakestDim) {
+        const [dimKey, dimData] = weakestDim;
+        const dimName = DIMENSION_NAMES[dimKey] || dimKey;
+
+        // 실제 개념 질문이 필요한 상황인지 체크
+        if (isGenericIssue(dimData.specific_issue)) {
+            // 1순위: 미션 주제에 맞는 풀 선택
+            let pool = null;
+            if (missionId === 1 || missionId === 2 || category.includes('leakage') || category.includes('security')) pool = CONCEPTUAL_FALLBACKS.leakage;
+            else if (missionId === 3 || category.includes('skew') || category.includes('bias')) pool = CONCEPTUAL_FALLBACKS.skew;
+            else if (missionId === 4 || category.includes('policy') || category.includes('evaluation')) pool = CONCEPTUAL_FALLBACKS.policy;
+
+            // 2순위: 차원별 폴백
+            if (!pool) pool = CONCEPTUAL_FALLBACKS[dimKey] || CONCEPTUAL_FALLBACKS.leakage;
+
+            const fallback = pool[Math.floor(Math.random() * pool.length)];
+
+            return {
+                should_show: true,
+                reason: `${dimName} 영역 개념 보안 필요`,
+                question: fallback.question,
+                hint: "해당 도메인의 핵심 설계 원칙입니다.",
+                options: fallback.options
+            };
+        }
+
+        // AI 질문이 존재할 경우 가공
         return {
             should_show: true,
-            reason: "논리 검증 필요",
-            question: "작성하신 의사코드의 논리적 흐름을 재점검해보세요.",
-            hint: "핵심 개념을 더 구체적으로 표현하세요",
+            reason: `${dimName} 점수 낮음 (${Math.round(dimData.score)}점)`,
+            question: dimData.specific_issue,
+            hint: dimData.improvement || '기술적 정밀함을 확보하세요.',
             options: [
-                { text: "논리 흐름을 보완하겠습니다.", is_correct: true, reason: "구체적인 흐름 정의가 필요합니다." },
-                { text: "현재 로직이 완벽합니다.", is_correct: false, reason: "개선할 여지가 있습니다." }
+                { text: dimData.improvement || '로직을 보완하겠습니다.', is_correct: true, reason: "적극적인 가이드 수용" },
+                { text: "현재 설계를 유지하겠습니다.", is_correct: false, reason: "보완이 필요한 설계 허점입니다." }
             ]
         };
     }
 
-    const [dimKey, dimData] = weakestDim;
-    const dimName = DIMENSION_NAMES[dimKey] || dimKey;
-
+    // 정보 전무 시 최종 폴백
+    const finalFallback = CONCEPTUAL_FALLBACKS.leakage[0];
     return {
         should_show: true,
-        reason: `${dimName} 점수 낮음 (${Math.round(dimData.score)}점)`,
-        question: `${dimName} 영역에서 문제가 발견되었습니다: ${dimData.specific_issue || '개선 필요'}`,
-        hint: dimData.improvement || '핵심 개념을 더 명확히 표현하세요',
-        options: [
-            {
-                text: dimData.improvement || '현재 로직을 개선하겠습니다',
-                is_correct: true,
-                reason: "AI가 제시한 개선 방안"
-            },
-            {
-                text: "현재 로직이 완벽합니다",
-                is_correct: false,
-                reason: `${dimName} 영역 개선이 필요합니다`
-            },
-            {
-                text: "이 부분은 중요하지 않습니다",
-                is_correct: false,
-                reason: `${dimName}은 설계의 핵심 요소입니다`
-            }
-        ]
+        reason: "논리 검증 필요",
+        question: finalFallback.question,
+        hint: "아키텍처의 기본 무결성 검증입니다.",
+        options: finalFallback.options
     };
 }
 
@@ -364,6 +433,69 @@ function getGrade(score) {
     if (score >= 70) return 'good';
     if (score >= 50) return 'fair';
     return 'needs-improvement';
+}
+
+/**
+ * 📺 [2026-02-13] 아키텍트 학습 라이브러리 (YouTube)
+ * 개념별 엄선된 강의 영상 데이터베이스
+ */
+const YOUTUBE_LIBRARY = {
+    leakage: [
+        { id: 'w_A5M9In9I0', title: 'Data Leakage in Machine Learning', desc: '데이터 누수의 정의와 실전 방지 전략을 배웁니다.', reason: '데이터 분할 전 통계량 산출 로직 보완이 필요합니다.' },
+        { id: 'nBaL9nTrkr4', title: 'ML Pipelines Simplified', desc: 'Pipeline으로 데이터 누수를 원천 차단하는 방법을 확인하세요.', reason: '전처리 파이프라인의 구조적 설계 교육용입니다.' }
+    ],
+    skew: [
+        { id: 'uF_fS65B_j4', title: 'Training-Serving Skew & Bias', desc: '학습과 서빙 환경의 데이터 불일치를 잡는 노하우.', reason: '수집 환경과 실제 추론 환경의 정합성을 검토해보세요.' }
+    ],
+    exception_handling: [
+        { id: '94_MhWqj1vM', title: 'Robust Python Error Handling', desc: 'Try-Except를 넘어서는 견고한 에러 핸들링 설계.', reason: '에지 케이스 및 비정상 데이터에 대한 방어 로직이 부족합니다.' }
+    ],
+    architecture: [
+        { id: 'H0S_995S_jA', title: 'System Design: Separation of Concerns', desc: '복잡한 비즈니스 로직을 구조화하는 아키텍트의 시선.', reason: '전체적인 컴포넌트 간의 책임 분리(Separation of Concerns)를 연구해보세요.' }
+    ],
+    abstraction: [
+        { id: '3fA2E4I_m88', title: 'Clean Code: Logic vs Implementation', desc: '더 유연한 시스템을 위한 추상화 도입 타이밍.', reason: '하드코딩된 로직을 일반화하여 확장성을 높여보세요.' }
+    ]
+};
+
+/**
+ * 약점 기반 유튜브 영상 추천 로직
+ */
+function getRecommendedVideos(dimensions, problem = null) {
+    const dimEntries = Object.entries(dimensions);
+    // 가장 점수가 낮은 차원 찾기 (80점 미만 대상)
+    const weakDims = dimEntries
+        .filter(([_, d]) => d.score < 80)
+        .sort((a, b) => a[1].score - b[1].score);
+
+    const recommendations = [];
+    const usedIds = new Set();
+
+    // 1. 미션별 특수 약점 (Leakage 등) 우선 체크
+    const category = problem?.category?.toLowerCase() || '';
+    if (category.includes('leakage') || category.includes('security')) {
+        YOUTUBE_LIBRARY.leakage.forEach(v => {
+            if (!usedIds.has(v.id)) { recommendations.push(v); usedIds.add(v.id); }
+        });
+    }
+
+    // 2. 가장 약한 차원 1~2개 추가
+    weakDims.slice(0, 2).forEach(([key, _]) => {
+        const pool = YOUTUBE_LIBRARY[key] || [];
+        pool.forEach(v => {
+            if (recommendations.length < 3 && !usedIds.has(v.id)) {
+                recommendations.push(v);
+                usedIds.add(v.id);
+            }
+        });
+    });
+
+    // 3. 만약 추천이 너무 적으면 기본 아키텍처 영상 추가
+    if (recommendations.length < 1) {
+        recommendations.push(YOUTUBE_LIBRARY.architecture[0]);
+    }
+
+    return recommendations.slice(0, 2); // 최대 2개 추천
 }
 
 /**
@@ -405,10 +537,11 @@ export async function generateSeniorAdvice(evaluation, gameState) {
 후배에게 따뜻하지만 정확한 피드백을 제공하세요.
 
 규칙:
-- 100자 이내로 간결하게
+- 100자 이내로 간결하게 작성
 - 구체적인 개선점 제시
-- 격려와 조언의 균형
-- "~한 부분은 훌륭합니다. 다만 ~를 개선하면 더욱 견고한 설계가 될 것입니다." 형식`;
+- 종합 점수가 50점 미만이면 칭찬보다는 '엄격한 경고와 근본적인 재작성 권고' 위주로 작성
+- 종합 점수가 80점 이상이면 '격려와 심화 조언' 위주로 작성
+- 말투: 시니어 아키텍트다운 전문적이고 직설적인 어조`;
 
     const userPrompt = `학생 평가 결과:
 - 종합 점수: ${evaluation.overall_score}/100
@@ -431,7 +564,9 @@ export async function generateSeniorAdvice(evaluation, gameState) {
         }, { timeout: 10000 });
 
         const advice = response.data.content?.trim() ||
-            "훌륭한 시도였습니다. 실전에서 적용하며 계속 발전시켜 나가세요.";
+            (evaluation.overall_score >= 50
+                ? "훌륭한 시도였습니다. 실전에서 적용하며 계속 발전시켜 나가세요."
+                : "로직의 설계 의도가 명확하지 않습니다. 구성 요소를 다시 검토하고 뼈대부터 다시 작성해보세요.");
 
         // 캐시 저장
         setCache(cacheKey, advice);
