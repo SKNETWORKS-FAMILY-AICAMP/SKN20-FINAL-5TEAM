@@ -7,7 +7,7 @@
  * txt 파일에서 [핵심 분석 원칙] 섹션만 파싱하여 사용
  */
 
-import architectureProblems from '@/data/architecture.json';
+import architectureProblems from '@/data/architecture_advanced_gcp.json';
 
 // 6대 기둥 txt 파일 import (Vite ?raw 쿼리 사용)
 import reliabilityTxt from '@/data/신뢰성.txt?raw';
