@@ -387,8 +387,8 @@ export default {
     },
 
     async submitDeepDiveAnswer(answer) {
-      const allDone = await this.submitDeepDiveAnswerComposable(answer);
-      if (allDone && this.isPendingEvaluation()) {
+      const result = await this.submitDeepDiveAnswerComposable(answer);
+      if (result.finished && this.isPendingEvaluation()) {
         this.clearPendingEvaluation();
         // EvaluationModal 없이 바로 평가 진행
         await this.directEvaluateComposable(
