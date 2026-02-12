@@ -54,13 +54,7 @@ export function useCoduckWars() {
     const toggleGuide = () => { isGuideOpen.value = !isGuideOpen.value; };
     const handleGuideClick = (idx) => { selectedGuideIdx.value = idx; };
 
-    // [2026-02-12] 미션 시작 (INTRO -> DIAGNOSTIC_1)
-    const startMission = () => {
-        setPhase('DIAGNOSTIC_1');
-        gameState.diagnosticStep = 0;
-        gameState.step = 1;
-        addSystemLog("아키텍트 진단 프로세스 시작", "INFO");
-    };
+    // [2026-02-12] INTRO 단계 제거로 인한 startMission 삭제
 
     // Checklist (규칙 기반 실시간 피드백)
     const ruleChecklist = ref([
@@ -829,7 +823,6 @@ export function useCoduckWars() {
         submitDiagnostic1,
         submitDiagnostic2,
         submitDiagnostic3,
-        startMission, // [2026-02-12] 추가
         isEvaluating,
         currentMission,
         missionContext,

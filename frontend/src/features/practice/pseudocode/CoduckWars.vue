@@ -100,8 +100,8 @@
 
               <!-- [2026-02-11] 코덕 실시간 대사창 -->
               <div class="dialogue-box">
-                  <span class="speaker">CODUCK_ARCHITECT</span>
-                  <p class="dialogue-text">"{{ gameState.coduckMessage || '데이터 흐름을 분석 중입니다...' }}"</p>
+                  <span class="speaker">문제 시나리오</span>
+                  <p class="dialogue-text">"{{ (gameState.phase.startsWith('DIAGNOSTIC') && currentMission.scenario) ? currentMission.scenario : (gameState.coduckMessage || '데이터 흐름을 분석 중입니다...') }}"</p>
               </div>
 
               <!-- [2026-02-11] 이미지 싱크: 좌측 '작성 가이드' 전술 패널 추가 (PSEUDO_WRITE 단계 전용) -->
@@ -135,57 +135,10 @@
                   </div>
               </div>
 
-              <!-- [2026-02-11] 하단 전술 로그 (가이드 패널이 없을 때만 표시하거나 하단으로 밀림) -->
-              <div v-if="gameState.phase !== 'PSEUDO_WRITE'" class="tactical-console mt-6">
-                  <div class="console-header">SUBSYSTEM_LOGS</div>
-                  <div class="console-body">
-                      <div v-for="(log, i) in gameState.systemLogs.slice(-3)" :key="i" class="log-line">
-                          <span class="t-time">[{{ log.time }}]</span>
-                          <span :class="'t-' + log.type.toLowerCase()">{{ log.type }}</span>
-                          <span class="t-msg">{{ log.message }}</span>
-                      </div>
-                  </div>
-              </div>
           </aside>
 
           <!-- RIGHT PANEL: DECISION ENGINE [2026-02-11] 단계별 인터랙션 영역 -->
           <section class="decision-panel relative">
-              
-
-              <!-- [2026-02-12] PHASE: INTRO (미션 브리핑) -->
-              <div v-if="gameState.phase === 'INTRO'" class="intro-phase-container animate-fadeIn">
-                  <div class="intro-card">
-                      <div class="intro-visual">
-                          <img :src="currentMission.character?.image || '/assets/characters/coduck.png'" alt="Mission Lead" class="mission-lead-img" />
-                          <div class="visual-glow"></div>
-                      </div>
-                      <div class="intro-content">
-                          <div class="mission-category">{{ currentMission.category }}</div>
-                          <h2 class="mission-title">{{ currentMission.title }}</h2>
-                          <div class="mission-desc">{{ currentMission.desc }}</div>
-                          
-                          <div class="incident-report mt-6">
-                              <div class="ir-header"><TriangleAlert class="w-4 h-4 text-red-500" /> <span>INCIDENT_REPORT</span></div>
-                              <p class="ir-text">{{ currentMission.designContext?.currentIncident }}</p>
-                          </div>
-
-                          <div class="mission-goals mt-6">
-                              <div class="mg-header"><Target class="w-4 h-4 text-cyan-400" /> <span>MISSION_GOALS</span></div>
-                              <ul class="mg-list">
-                                  <li v-for="(card, i) in currentMission.cards" :key="i">
-                                      <span class="mg-icon">{{ card.icon }}</span>
-                                      <span class="mg-text">{{ card.text }}</span>
-                                  </li>
-                              </ul>
-                          </div>
-
-                          <button @click="startMission" class="btn-start-mission mt-8">
-                              진단 프로토콜 개시 <ArrowRight class="w-5 h-5 ml-2" />
-                          </button>
-                      </div>
-                  </div>
-              </div>
-
               <!-- [2026-02-12] PHASE: DIAGNOSTIC (3단계 심화 진단 시스템) -->
               <div v-if="gameState.phase.startsWith('DIAGNOSTIC')" class="space-y-6">
                   <div class="system-status-text">
@@ -662,7 +615,6 @@ const {
     submitDiagnostic1,
     submitDiagnostic2,
     submitDiagnostic3,
-    startMission, // [2026-02-12] 추가
     toggleOrderingItem,
     diagnosticQuestion1,
     diagnosticQuestion2,
@@ -1166,7 +1118,7 @@ const getScoreColor = (s) => (s >= 80 ? 'text-emerald-400' : s >= 50 ? 'text-amb
     text-orientation: mixed;
     color: #fff;
     font-weight: 900;
-    font-size: 0.8rem;
+    font-size: 1.0rem;
     letter-spacing: 2px;
 }
 .btn-guide-floating.is-open {
@@ -1204,7 +1156,7 @@ const getScoreColor = (s) => (s >= 80 ? 'text-emerald-400' : s >= 50 ? 'text-amb
     padding-bottom: 15px;
 }
 .sh-title {
-    font-size: 1.2rem;
+    font-size: 1.5rem;
     font-weight: 900;
     color: #4ade80;
     letter-spacing: 2px;
@@ -1269,13 +1221,13 @@ const getScoreColor = (s) => (s >= 80 ? 'text-emerald-400' : s >= 50 ? 'text-amb
     gap: 5px;
 }
 .gs-step {
-    font-size: 0.75rem;
+    font-size: 1.0rem;
     color: #4ade80;
     font-weight: 900;
     letter-spacing: 1px;
 }
 .gs-text {
-    font-size: 0.9rem;
+    font-size: 1.2rem;
     color: #d4d4d4;
     line-height: 1.4;
 }
@@ -1288,14 +1240,14 @@ const getScoreColor = (s) => (s >= 80 ? 'text-emerald-400' : s >= 50 ? 'text-amb
     animation: fadeIn 0.3s ease;
 }
 .hint-label {
-    font-size: 0.7rem;
+    font-size: 1.0rem;
     color: #4ade80;
     font-weight: 900;
     margin-bottom: 5px;
     display: block;
 }
 .hint-body {
-    font-size: 0.9rem;
+    font-size: 1.2rem;
     color: #a1a1aa;
     line-height: 1.6;
     font-style: italic;
@@ -1336,12 +1288,12 @@ const getScoreColor = (s) => (s >= 80 ? 'text-emerald-400' : s >= 50 ? 'text-amb
     border-top: 1px solid rgba(255,255,255,0.1);
     padding: 20px;
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.9rem;
-    height: 150px; /* Fixed height for scrolling */
+    font-size: 1.2rem;
+    height: 180px; /* Fixed height for scrolling */
     display: flex;
     flex-direction: column;
 }
-.console-header { color: #4b5563; font-size: 0.8rem; margin-bottom: 10px; font-weight: bold; }
+.console-header { color: #4b5563; font-size: 1.1rem; margin-bottom: 10px; font-weight: bold; }
 .console-body { 
     flex: 1; 
     overflow-y: auto; 
@@ -1396,7 +1348,7 @@ const getScoreColor = (s) => (s >= 80 ? 'text-emerald-400' : s >= 50 ? 'text-amb
 }
 
 .report-header h2 {
-  font-size: 2rem;
+  font-size: 2.5rem;
   font-weight: 900;
   color: #fff;
   letter-spacing: -0.05em;

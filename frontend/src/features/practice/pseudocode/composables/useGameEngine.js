@@ -11,10 +11,10 @@ export function useGameEngine() {
     // --- Game State ---
     const gameState = reactive({
         currentStageId: initialStageId,
-        // [2026-02-12] 인트로 단계 복원
-        phase: 'INTRO',
+        // [2026-02-12] 인트로 단계 제거 및 즉시 진단 시작
+        phase: 'DIAGNOSTIC_1',
         diagnosticStep: 0, // [2026-02-12] 현재 풀고 있는 진담 문항 인덱스
-        step: 0,
+        step: 1,
         playerHP: 100,
         score: 0,
         combo: 0,

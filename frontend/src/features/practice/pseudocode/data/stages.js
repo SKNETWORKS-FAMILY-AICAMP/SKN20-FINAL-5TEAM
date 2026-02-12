@@ -16,6 +16,7 @@ export const aiQuests = [
         rewardXP: 500,
         subModuleTitle: "LEAKAGE_GUARD",
         character: { name: "Coduck", image: "/assets/characters/coduck.png" },
+        scenario: "신입 개발자가 작성한 이탈 예측 모델이 검증(Validation) 정확도 95%를 기록하며 배포되었으나, 실제 고객 데이터가 들어오는 운영(Serving) 환경에서는 68%의 성능을 보이며 비즈니스에 큰 손실을 입혔습니다. 조사 결과, 데이터 전처리 단계에서 '정보 유출(Leakage)'이 발생한 것으로 파악되었습니다.",
 
         cards: [
             { icon: "🚑", text: "STEP 1: 위험 진단", coduckMsg: "주니어 개발자의 치명적인 실수가 발견되었습니다. 무엇이 문제인지 먼저 파악합시다." },
@@ -28,24 +29,26 @@ export const aiQuests = [
             {
                 id: "concept_1_choice",
                 type: "CHOICE",
-                question: "전처리 단계에서 'scaler.fit(df)'가 문제인 근본적인 이유는?",
+                question: "Q1. [격리의 시점] 데이터 오염을 막는 첫 번째 방어선\n신입 개발자가 범한 가장 큰 실수는 scaler.fit(df)를 통해 전체 데이터의 정보를 섞어버린 것입니다. 이를 방지하기 위한 가장 우선적인 조치는 무엇인가요?",
                 options: [
-                    { text: "StandardScaler 대신 MinMaxScaler를 써야 해서", correct: false, feedback: "Scaler 종류는 문제가 아닙니다." },
-                    { text: "전체 데이터로 fit하면 Test set의 통계량이 Train 변환에 영향을 주어, 실전에서는 알 수 없는 정보로 학습하기 때문", correct: true, feedback: "정확합니다! 이것이 전처리 누수의 핵심입니다." },
-                    { text: "df가 너무 커서 메모리 오버플로우가 발생해서", correct: false, feedback: "성능 문제와 누수는 다른 개념입니다." }
+                    { text: "더 많은 데이터를 수집하여 모델을 복잡하게 만든다.", correct: false, feedback: "데이터 양을 늘리는 것과 정보 유출 방지는 무관합니다." },
+                    { text: "전처리(Scaling)를 모두 마친 후 데이터를 나눈다.", correct: false, feedback: "이것이 바로 신입 개발자가 범한 실수(누수 발생)입니다." },
+                    { text: "데이터 전처리 프로세스가 시작되기 전, 학습(Train)과 테스트(Test) 데이터를 물리적으로 분리(격리)한다.", correct: true, feedback: "정답입니다! 전처리 전 분리가 가장 확실한 방어선입니다." },
+                    { text: "운영 환경에서는 전처리를 생략한다.", correct: false, feedback: "학습 때와 동일한 전처리가 운영 환경에서도 반드시 필요합니다." }
                 ],
-                context: "Train 95% → Test 68% 성능 폭락의 원인"
+                context: "데이터 전처리 누수(Leakage) 원천 차단 전략"
             },
             {
                 id: "concept_2_choice",
                 type: "CHOICE",
-                question: "전처리 누수를 막기 위한 올바른 코드 순서는?",
+                question: "Q2. [기준점의 설정] '저울'은 무엇으로 만들어야 하는가?\n데이터를 분리한 후, 표준화(Standardization)를 위한 평균과 표준편차 값은 어느 데이터셋에서 추출해야 하나요?",
                 options: [
-                    { text: "fit(전체) → 분할 → transform", correct: false, feedback: "이것이 바로 누수 패턴입니다." },
-                    { text: "분할 → fit(Train만) → transform(Train, Test)", correct: true, feedback: "정확합니다! Train 통계량으로만 학습하고, 같은 변환을 Train/Test 모두에 적용합니다." },
-                    { text: "분할 → fit(Train) → transform(Train) + fit(Test) → transform(Test)", correct: false, feedback: "Test도 다시 fit하면 일관성이 깨집니다." }
+                    { text: "전체 데이터셋: 데이터가 많을수록 통계량이 정확하기 때문이다.", correct: false, feedback: "전체 데이터를 사용하면 테스트 데이터의 정보가 스며들어 '데이터 누수'가 발생합니다." },
+                    { text: "테스트 데이터셋: 실제 운영 환경과 유사한 분포를 가져야 하기 때문이다.", correct: false, feedback: "테스트 데이터는 미래의 데이터 역할을 해야 하며, 이를 기준으로 삼아서는 안 됩니다." },
+                    { text: "학습 데이터셋: 모델이 '이미 알고 있는 과거의 정보'만을 기준으로 삼아야 하기 때문이다.", correct: true, feedback: "정답입니다! 학습 데이터에서 얻은 '저울(평균/표준편차)'로 모든 데이터를 측정해야 정보 유출이 없습니다." },
+                    { text: "무작위 추출: 편향을 방지하기 위해 매번 새로 계산해야 한다.", correct: false, feedback: "기준점(저울)이 매번 바뀌면 모델의 판단 기준이 흔들리게 됩니다." }
                 ],
-                context: "실전에서 사용 가능한 모델을 만들려면"
+                context: "신뢰할 수 있는 모델 평가 기준 확립"
             },
             {
                 id: "concept_1",
