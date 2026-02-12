@@ -1,9 +1,8 @@
-# 수정일: 2026-01-25
-# 수정내용: Antigravity - 'Practice'를 서비스의 핵심 마스터로 설정 (명칭 및 구조 통일)
+# 수정일: 2026-02-12
+# 수정내용: BaseModel에서 Audit 필드(create_id 등)를 자동 관리하므로 AuditLogMixin 상속 제거
 
 from rest_framework import viewsets, serializers
 from core.models import Practice, PracticeDetail
-from .mixins import AuditLogMixin
 
 class PracticeDetailSerializer(serializers.ModelSerializer):
     """
@@ -26,7 +25,7 @@ class PracticeSerializer(serializers.ModelSerializer):
         model = Practice
         fields = '__all__'
 
-class PracticeViewSet(AuditLogMixin, viewsets.ModelViewSet):
+class PracticeViewSet(viewsets.ModelViewSet):
     """
     [Practice 뷰셋]
     - 역할: 서비스 전체의 연습 과정 마스터 데이터를 관리하는 중심 API 엔드포인트

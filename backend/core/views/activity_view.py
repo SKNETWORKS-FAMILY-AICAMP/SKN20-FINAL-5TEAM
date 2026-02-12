@@ -4,7 +4,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
-from django.db.models import Sum, Count
+from django.db.models import Sum, Count, Max
 from core.models import UserActivity, UserSolvedProblem, UserProgress, UserAvatar, Practice, PracticeDetail
 from django.shortcuts import get_object_or_404
 from core.nanobanana_utils import generate_nano_banana_avatar # [수정일: 2026-02-06] 추가
@@ -102,29 +102,38 @@ class SubmitProblemView(APIView):
         
         detail = get_object_or_404(PracticeDetail, id=detail_id)
         
-        # 1. 문제 해결 기록 저장/업데이트
-        solved, created = UserSolvedProblem.objects.update_or_create(
+        # [2026-02-12] 1. 문제 해결 기록 저장 (항상 누적 저장)
+        solved = UserSolvedProblem.objects.create(
             user=profile,
             practice_detail=detail,
-            defaults={
-                'score': max(score, 0),
-                'submitted_data': submitted_data,
-                'is_perfect': score >= 90 # 기준점 이상일 때 만점 처리 (기획에 따라 변경 가능)
-            }
+            score=max(score, 0),
+            submitted_data=submitted_data,
+            is_perfect=score >= 90
         )
         
-        # 2. 유저 전체 활동(포인트) 업데이트
+        # [2026-02-12] 2. 유저 전체 활동(포인트) 업데이트
+        # 로직 변경: 모든 기록의 단순 합산이 아닌, '각 문제별 최고 점수의 합'으로 계산하여 중복 점수 합산 방지
         activity, _ = UserActivity.objects.get_or_create(user=profile)
-        # 전체 점수 재계산 (모든 해결 문제 점수 합산)
-        total_points = UserSolvedProblem.objects.filter(user=profile).aggregate(Sum('score'))['score__sum'] or 0
+        
+        # [단계별 해석]
+        # 1. filter(user=profile): 해당 사용자의 모든 해결 기록 수집
+        # 2. values('practice_detail'): 문제별(GROUP BY)로 묶음
+        # 3. annotate(max_score=Max('score')): 각 문제 그룹 내 최고 점수 추출
+        # 4. aggregate(total=Sum('max_score')): 추출된 최고 점수들을 최종 합산
+        total_points_data = UserSolvedProblem.objects.filter(user=profile) \
+            .values('practice_detail') \
+            .annotate(max_score=Max('score')) \
+            .aggregate(total=Sum('max_score'))
+            
+        total_points = total_points_data['total'] or 0
         activity.total_points = total_points
         
         # [2026-02-10] 랭킹(등급) 업데이트 로직 최적화
-        if total_points > 8000:
+        if total_points > 3000:
             activity.current_rank = 'ENGINEER'
-        elif total_points > 3000:
-            activity.current_rank = 'GOLD'
         elif total_points > 1000:
+            activity.current_rank = 'GOLD'
+        elif total_points > 500:
             activity.current_rank = 'SILVER'
         else:
             activity.current_rank = 'BRONZE'

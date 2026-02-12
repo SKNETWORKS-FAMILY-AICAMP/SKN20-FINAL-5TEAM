@@ -1,5 +1,5 @@
-# 수정일: 2026-02-06
-# 수정내용: AI-Arcade 아바타 시스템 및 사용자 활동 추적을 위한 신규 모델 정의
+# 수정일: 2026-02-12
+# 수정내용: UserSolvedProblem의 unique_together 제약 조건 제거 (모든 제출 이력 보존)
 
 from django.db import models
 from .base_model import BaseModel
@@ -86,7 +86,6 @@ class UserSolvedProblem(BaseModel):
 
     class Meta:
         db_table = 'gym_user_solved_problem'
-        unique_together = ('user', 'practice_detail')  # 한 유저는 한 문제당 하나의 최종 기록만 가짐
         verbose_name = '문제 해결 기록'
         verbose_name_plural = '문제 해결 기록 목록'
 
