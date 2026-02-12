@@ -162,7 +162,7 @@ export default {
   data() {
     return {
       // Intro State
-      showIntro: true,
+      showIntro: false,
       showTutorial: false,
       introLines: [
         "[SYSTEM ALERT] 아키텍트님, 마더 서버에 이상 징후가 감지되었습니다. 꽥!",
@@ -272,6 +272,20 @@ export default {
     }
 
     await this.loadProblems();
+
+    // 인트로 건너뛰는 경우 가이드 메시지 표시
+    if (!this.showIntro) {
+      if (!localStorage.getItem('arch-tutorial-done')) {
+        this.$nextTick(() => {
+          this.showTutorial = true;
+        });
+      } else {
+        this.showToastMessage(
+          '[GUIDE] 팔레트에서 컴포넌트를 드래그하여 캔버스에 배치하세요. 꽥!',
+          'guide'
+        );
+      }
+    }
   },
   beforeUnmount() {
     this.cleanupToast();

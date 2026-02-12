@@ -442,7 +442,7 @@ export function formatValidationResult(result) {
   if (result.status === 'PASS') {
     return {
       passed: true,
-      headline: '✅ 검증 통과!',
+      headline: '검증 통과!',
       mainMessage: result.message,
       details: formatValidationDetails(result.validation),
       warnings: result.warnings.length > 0 ? result.warnings : null,
@@ -451,7 +451,7 @@ export function formatValidationResult(result) {
   } else {
     return {
       passed: false,
-      headline: '❌ 검증 실패',
+      headline: '검증 실패',
       stage: result.stage,
       mainMessage: result.message,
       suggestion: result.suggestion,
