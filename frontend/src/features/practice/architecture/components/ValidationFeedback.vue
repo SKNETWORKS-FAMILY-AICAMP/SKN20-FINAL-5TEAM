@@ -161,9 +161,9 @@ export default {
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
 
 .validation-feedback-container {
-  --nebula-purple: #6b5ce7;
-  --nebula-blue: #4fc3f7;
-  --nebula-pink: #f06292;
+  --neon-purple: #bc13fe;
+  --neon-cyan: #00f3ff;
+  --neon-pink: #ff00ff;
   --success-color: #4ade80;
   --error-color: #ff6b6b;
   --warning-color: #fbbf24;
@@ -171,7 +171,7 @@ export default {
   --text-secondary: rgba(232, 234, 237, 0.7);
   --glass-bg: rgba(255, 255, 255, 0.05);
   --glass-border: rgba(255, 255, 255, 0.1);
-  --space-deep: #0a0a1a;
+  --bg-deep: #090910;
 
   position: fixed;
   top: 0;
@@ -197,7 +197,7 @@ export default {
 }
 
 .validation-card {
-  background: var(--space-deep);
+  background: var(--bg-deep);
   border: 2px solid var(--glass-border);
   border-radius: 16px;
   backdrop-filter: blur(20px);
@@ -231,7 +231,7 @@ export default {
 }
 
 .validation-header.passed {
-  background: linear-gradient(135deg, rgba(74, 222, 128, 0.1), rgba(79, 195, 247, 0.1));
+  background: linear-gradient(135deg, rgba(74, 222, 128, 0.1), rgba(0, 243, 255, 0.1));
   border-bottom-color: rgba(74, 222, 128, 0.3);
 }
 
@@ -326,7 +326,7 @@ export default {
 }
 
 .details-title {
-  color: var(--nebula-blue);
+  color: var(--neon-cyan);
   font-family: 'Orbitron', sans-serif;
   font-size: 0.85rem;
   font-weight: 700;
@@ -369,11 +369,11 @@ export default {
 }
 
 .stage-badge.stage-1 {
-  background: linear-gradient(135deg, #6b5ce7, #4fc3f7);
+  background: linear-gradient(135deg, #bc13fe, #00f3ff);
 }
 
 .stage-badge.stage-2 {
-  background: linear-gradient(135deg, #f06292, #ff7043);
+  background: linear-gradient(135deg, #ff00ff, #ff7043);
 }
 
 .stage-badge.stage-3 {
@@ -398,7 +398,7 @@ export default {
 }
 
 .stage-status.info {
-  color: var(--nebula-blue);
+  color: var(--neon-cyan);
 }
 
 .stage-body {
@@ -477,7 +477,7 @@ export default {
 
 .debug-info summary {
   cursor: pointer;
-  color: var(--nebula-purple);
+  color: var(--neon-purple);
   font-size: 0.8rem;
   font-family: 'Rajdhani', sans-serif;
   user-select: none;
@@ -485,7 +485,7 @@ export default {
 }
 
 .debug-info summary:hover {
-  color: var(--nebula-blue);
+  color: var(--neon-cyan);
 }
 
 .debug-info pre {
@@ -493,7 +493,7 @@ export default {
   border: 1px solid var(--glass-border);
   border-radius: 8px;
   padding: 12px;
-  color: var(--nebula-blue);
+  color: var(--neon-cyan);
   font-size: 0.75rem;
   overflow-x: auto;
   margin: 12px 0 0 0;
@@ -534,12 +534,12 @@ export default {
 
 .btn-secondary {
   background: transparent;
-  color: var(--nebula-blue);
-  border: 2px solid var(--nebula-blue);
+  color: var(--neon-cyan);
+  border: 2px solid var(--neon-cyan);
 }
 
 .btn-secondary:hover {
-  background: rgba(79, 195, 247, 0.1);
+  background: rgba(0, 243, 255, 0.1);
   transform: translateY(-2px);
 }
 
@@ -553,12 +553,12 @@ export default {
 }
 
 .validation-card::-webkit-scrollbar-thumb {
-  background: rgba(107, 92, 231, 0.3);
+  background: rgba(188, 19, 254, 0.3);
   border-radius: 10px;
 }
 
 .validation-card::-webkit-scrollbar-thumb:hover {
-  background: rgba(107, 92, 231, 0.5);
+  background: rgba(188, 19, 254, 0.5);
 }
 
 /* ===== 반응형 ===== */

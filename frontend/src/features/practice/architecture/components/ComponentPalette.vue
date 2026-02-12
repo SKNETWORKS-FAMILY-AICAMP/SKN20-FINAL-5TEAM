@@ -129,10 +129,10 @@ export default {
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
 
 .palette {
-  --space-deep: #0a0a1a;
-  --nebula-purple: #6b5ce7;
-  --nebula-blue: #4fc3f7;
-  --nebula-pink: #f06292;
+  --bg-deep: #090910;
+  --neon-purple: #bc13fe;
+  --neon-cyan: #00f3ff;
+  --neon-pink: #ff00ff;
   --text-primary: #e8eaed;
   --text-secondary: rgba(232, 234, 237, 0.7);
   --glass-bg: rgba(255, 255, 255, 0.05);
@@ -152,11 +152,11 @@ export default {
 }
 
 .palette::-webkit-scrollbar-track {
-  background: var(--space-deep);
+  background: var(--bg-deep);
 }
 
 .palette::-webkit-scrollbar-thumb {
-  background: rgba(107, 92, 231, 0.4);
+  background: rgba(188, 19, 254, 0.4);
   border-radius: 10px;
 }
 
@@ -164,7 +164,7 @@ export default {
   font-family: 'Orbitron', sans-serif;
   font-size: 0.6rem;
   font-weight: 700;
-  color: var(--nebula-blue);
+  color: var(--neon-cyan);
   margin: 0 0 8px 0;
   text-align: center;
   padding-bottom: 8px;
@@ -174,8 +174,8 @@ export default {
 
 /* Hint Guide - Compact */
 .hint-guide {
-  background: rgba(79, 195, 247, 0.1);
-  border: 1px solid rgba(79, 195, 247, 0.3);
+  background: rgba(0, 243, 255, 0.1);
+  border: 1px solid rgba(0, 243, 255, 0.3);
   border-radius: 12px;
   padding: 6px;
   display: flex;
@@ -184,7 +184,7 @@ export default {
   gap: 4px;
   font-size: 0.6rem;
   font-weight: 600;
-  color: var(--nebula-blue);
+  color: var(--neon-cyan);
   font-family: 'Rajdhani', sans-serif;
   animation: hint-fade-in 0.3s ease;
 }
@@ -212,7 +212,7 @@ export default {
   padding: 6px 8px;
   text-align: left;
   background: var(--glass-bg);
-  border-left: 2px solid var(--nebula-purple);
+  border-left: 2px solid var(--neon-purple);
   border-radius: 0 6px 6px 0;
   letter-spacing: 2px;
 }
@@ -249,25 +249,25 @@ export default {
 }
 
 .component:hover {
-  border-color: var(--nebula-purple);
+  border-color: var(--neon-purple);
   transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(107, 92, 231, 0.3);
-  background: rgba(107, 92, 231, 0.1);
+  box-shadow: 0 4px 15px rgba(188, 19, 254, 0.3);
+  background: rgba(188, 19, 254, 0.1);
 }
 
 /* Required component hint styles */
 .component.required-hint {
-  border-color: var(--nebula-blue) !important;
-  background: rgba(79, 195, 247, 0.1);
+  border-color: var(--neon-cyan) !important;
+  background: rgba(0, 243, 255, 0.1);
   animation: required-glow 1.5s ease-in-out infinite;
 }
 
 @keyframes required-glow {
   0%, 100% {
-    box-shadow: 0 0 10px rgba(79, 195, 247, 0.3);
+    box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
   }
   50% {
-    box-shadow: 0 0 25px rgba(79, 195, 247, 0.6);
+    box-shadow: 0 0 25px rgba(0, 243, 255, 0.6);
   }
 }
 
@@ -275,7 +275,7 @@ export default {
   position: absolute;
   top: -8px;
   right: -8px;
-  background: linear-gradient(135deg, #6b5ce7, #4fc3f7);
+  background: linear-gradient(135deg, #bc13fe, #00f3ff);
   color: white;
   font-size: 0.5rem;
   padding: 3px 8px;

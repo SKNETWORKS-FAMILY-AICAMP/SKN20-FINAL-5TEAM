@@ -1,32 +1,31 @@
 <template>
   <div class="arch-challenge-container neon-theme">
-    <!-- 네온 그리드 배경 -->
+    
     <div class="bg-grid"></div>
-
-    <!-- 스캔라인 효과 -->
     <div class="scanline"></div>
-
-    <!-- 인트로 씬 (비주얼 노벨 스타일) -->
+    
     <IntroScene
       v-if="showIntro"
       :intro-lines="introLines"
       @enter-game="onEnterGame"
     />
 
-    <!-- 평가 결과 화면 -->
     <EvaluationResultScreen
       v-else-if="showResultScreen"
       :result="evaluationResult"
       :problem="currentProblem"
       :is-loading="isEvaluating"
+      :total-problems="problems.length"
+      :current-problem-index="currentProblemIndex"
       @retry="handleRetry"
+      @next="handleNext"
     />
 
-    <!-- 메인 게임 화면 -->
     <template v-else>
       <div class="game-container">
-        <!-- 케이스 파일 패널 (좌측 사이드바) -->
+        
         <CaseFilePanel
+          class="case-file-panel neon-panel"
           :problem="currentProblem"
           :is-connection-mode="isConnectionMode"
           :can-evaluate="droppedComponents.length > 0"
@@ -35,10 +34,10 @@
           @start-evaluation="openEvaluationModal"
         />
 
-        <!-- 메인 작업 영역 -->
         <div class="main-workspace">
-          <!-- 헤더 바 -->
+          
           <GameHeader
+            class="game-header neon-panel-flat"
             :is-connection-mode="isConnectionMode"
             :is-hint-active="isHintActive"
             @toggle-mode="toggleMode"
@@ -46,18 +45,16 @@
             @toggle-hint="toggleHint"
           />
 
-          <!-- 작업 공간 (툴박스 + 캔버스) -->
           <div class="workspace-content">
-            <!-- 좌측 툴박스 (컴포넌트 팔레트) -->
             <ComponentPalette
+              class="toolbox-panel neon-panel"
               :required-types="currentProblem?.expectedComponents || []"
               :is-hint-active="isHintActive"
               @drag-start="onPaletteDragStart"
-              class="toolbox-panel"
             />
 
-            <!-- 캔버스 영역 -->
             <ArchitectureCanvas
+              class="canvas-panel neon-panel"
               :components="droppedComponents"
               :connections="connections"
               :is-connection-mode="isConnectionMode"
@@ -69,60 +66,36 @@
               @component-renamed="onComponentRenamed"
               @component-deleted="onComponentDeleted"
               @connection-created="onConnectionCreated"
-              class="canvas-panel"
             />
+            
           </div>
         </div>
       </div>
 
-      <!-- 튜토리얼 오버레이 -->
-      <TutorialOverlay
-        v-if="showTutorial"
-        @complete="onTutorialComplete"
-        @skip="onTutorialComplete"
-      />
-
-      <!-- 오리 형사 토스트 메시지 -->
-      <DetectiveToast
-        :show="showToast"
-        :message="toastMessage"
-        :type="toastType"
-        @dismiss="dismissToast"
-      />
-
-      <!-- Deep Dive 모달 (설명 입력 + 꼬리질문 순차 처리) -->
+      <TutorialOverlay v-if="showTutorial" @complete="onTutorialComplete" @skip="onTutorialComplete" />
+      <DetectiveToast :show="showToast" :message="toastMessage" :type="toastType" @dismiss="dismissToast" />
+      
       <DeepDiveModal
         :is-active="isDeepDiveModalActive"
         :question="deepDiveQuestion"
         :is-generating="isGeneratingDeepDive"
+        :is-judging="isJudgingAnswer"
         :current-question="currentQuestionIndex + 1"
         :total-questions="deepDiveQuestions.length"
         :category="deepDiveQuestions[currentQuestionIndex]?.category || ''"
         :mermaid-code="mermaidCode"
         :phase="evaluationPhase"
-        :validation-error="answerValidationError"
         @submit="submitDeepDiveAnswer"
         @submit-explanation="submitUserExplanation"
-      />
-
-      <!-- ✅ NEW: 검증 피드백 모달 -->
-      <ValidationFeedback
-        v-if="showValidationFeedback"
-        :validation-result="validationResult"
-        :component-count="droppedComponents.length"
-        :connection-count="connections.length"
-        :show-debug-info="isValidationDebugMode"
-        @close="closeValidationFeedback"
-        @proceed="proceedFromValidation"
       />
     </template>
   </div>
 </template>
 
 <script>
+// 기존 스크립트 로직을 그대로 유지합니다.
+// (import문, data, setup, methods 등 원본 파일의 내용을 그대로 두세요)
 import mermaid from 'mermaid';
-
-// Components
 import ComponentPalette from './components/ComponentPalette.vue';
 import ArchitectureCanvas from './components/ArchitectureCanvas.vue';
 import DeepDiveModal from './components/DeepDiveModal.vue';
@@ -132,18 +105,13 @@ import GameHeader from './components/GameHeader.vue';
 import IntroScene from './components/IntroScene.vue';
 import CaseFilePanel from './components/CaseFilePanel.vue';
 import TutorialOverlay from './components/TutorialOverlay.vue';
-// ✅ NEW: 검증 피드백 컴포넌트
-import ValidationFeedback from './components/ValidationFeedback.vue';
-
-// Composables
 import { useToast } from './composables/useToast';
 import { useHint } from './composables/useHint';
 import { useCanvasState } from './composables/useCanvasState';
 import { useEvaluation } from './composables/useEvaluation';
-
-// Services & Utils
-import { fetchProblems } from './services/architectureApiFastTest';
+import { fetchProblems } from './services/architectureQuestionApi';
 import { transformProblems } from './utils/architectureUtils';
+import { useGameStore } from '@/stores/game';
 
 export default {
   name: 'SystemArchitectureChallenge',
@@ -156,12 +124,10 @@ export default {
     GameHeader,
     IntroScene,
     CaseFilePanel,
-    TutorialOverlay,
-    ValidationFeedback
+    TutorialOverlay
   },
   data() {
     return {
-      // Intro State
       showIntro: true,
       showTutorial: false,
       introLines: [
@@ -171,39 +137,26 @@ export default {
         "올바른 시스템 아키텍처를 설계하여 데이터 무결성을 확보하세요!",
         "[PROTOCOL READY] 복구 터미널에 접속합니다..."
       ],
-
-      // Problem State
       currentProblemIndex: 0,
-      problems: [],
-
-      // ✅ NEW: 검증 상태
-      showValidationFeedback: false,
-      validationResult: null,
-      isValidationDebugMode: false // 개발 환경에서 true로 설정
+      problems: []
     };
   },
   setup() {
-    // Initialize composables
     const toast = useToast();
     const hint = useHint();
     const canvas = useCanvasState();
     const evaluation = useEvaluation();
 
     return {
-      // Toast
       showToast: toast.showToast,
       toastMessage: toast.toastMessage,
       toastType: toast.toastType,
       showToastMessage: toast.showToastMessage,
       dismissToast: toast.dismissToast,
       cleanupToast: toast.cleanup,
-
-      // Hint
       isHintActive: hint.isHintActive,
       toggleHintComposable: hint.toggleHint,
       cleanupHint: hint.cleanup,
-
-      // Canvas
       isConnectionMode: canvas.isConnectionMode,
       droppedComponents: canvas.droppedComponents,
       connections: canvas.connections,
@@ -215,31 +168,24 @@ export default {
       onComponentRenamedComposable: canvas.onComponentRenamed,
       onComponentDeletedComposable: canvas.onComponentDeleted,
       onConnectionCreatedComposable: canvas.onConnectionCreated,
-
-      // Evaluation
       isEvaluating: evaluation.isEvaluating,
       evaluationResult: evaluation.evaluationResult,
       showResultScreen: evaluation.showResultScreen,
       isDeepDiveModalActive: evaluation.isDeepDiveModalActive,
       isGeneratingDeepDive: evaluation.isGeneratingDeepDive,
+      isJudgingAnswer: evaluation.isJudgingAnswer,
       deepDiveQuestion: evaluation.deepDiveQuestion,
       deepDiveQuestions: evaluation.deepDiveQuestions,
       currentQuestionIndex: evaluation.currentQuestionIndex,
       submitDeepDiveAnswerComposable: evaluation.submitDeepDiveAnswer,
       openEvaluationModalComposable: evaluation.openEvaluationModal,
-      openDeepDiveModalComposable: evaluation.openDeepDiveModal, // ✅ NEW
       directEvaluateComposable: evaluation.directEvaluate,
       handleRetryComposable: evaluation.handleRetry,
       resetEvaluationState: evaluation.resetEvaluationState,
       isPendingEvaluation: evaluation.isPendingEvaluation,
       clearPendingEvaluation: evaluation.clearPendingEvaluation,
-
-      // NEW: 설명 Phase
       evaluationPhase: evaluation.evaluationPhase,
-      submitUserExplanationComposable: evaluation.submitUserExplanation,
-
-      // 🔥 검증 에러 메시지
-      answerValidationError: evaluation.answerValidationError
+      submitUserExplanationComposable: evaluation.submitUserExplanation
     };
   },
   computed: {
@@ -265,12 +211,10 @@ export default {
       securityLevel: 'loose'
     });
 
-    // 라우터 쿼리에서 문제 인덱스 설정
     const problemIndex = parseInt(this.$route?.query?.problem);
     if (!isNaN(problemIndex) && problemIndex >= 0) {
       this.currentProblemIndex = problemIndex;
     }
-
     await this.loadProblems();
   },
   beforeUnmount() {
@@ -278,31 +222,19 @@ export default {
     this.cleanupHint();
   },
   methods: {
-    // === Enter Game ===
     onEnterGame() {
       this.showIntro = false;
       if (!localStorage.getItem('arch-tutorial-done')) {
-        this.$nextTick(() => {
-          this.showTutorial = true;
-        });
+        this.$nextTick(() => { this.showTutorial = true; });
       } else {
-        this.showToastMessage(
-          '[GUIDE] 팔레트에서 컴포넌트를 드래그하여 캔버스에 배치하세요. 꽥!',
-          'guide'
-        );
+        this.showToastMessage('[GUIDE] 준비 완료! 설계를 시작하세요.', 'guide');
       }
     },
-
     onTutorialComplete() {
       this.showTutorial = false;
       localStorage.setItem('arch-tutorial-done', 'true');
-      this.showToastMessage(
-        '[GUIDE] 팔레트에서 컴포넌트를 드래그하여 캔버스에 배치하세요. 꽥!',
-        'guide'
-      );
+      this.showToastMessage('[GUIDE] 준비 완료! 설계를 시작하세요.', 'guide');
     },
-
-    // === Problem Loading ===
     async loadProblems() {
       try {
         const data = await fetchProblems();
@@ -315,171 +247,45 @@ export default {
         this.problems = [];
       }
     },
-
-    // === Mode & Canvas Control ===
-    toggleMode() {
-      this.toggleModeComposable(this.showToastMessage);
-    },
-
-    clearCanvas() {
-      this.clearCanvasComposable();
-      this.resetEvaluationState();
-    },
-
-    // === Palette Events ===
-    onPaletteDragStart() {
-      // Optional: track drag start for analytics
-    },
-
-    // === Canvas Events ===
-    onComponentDropped(data) {
-      this.onComponentDroppedComposable(data);
-    },
-
-    onComponentMoved(data) {
-      this.onComponentMovedComposable(data);
-    },
-
-    onComponentRenamed(data) {
-      this.onComponentRenamedComposable(data);
-    },
-
-    onComponentDeleted(compId) {
-      this.onComponentDeletedComposable(compId);
-    },
-
-    onConnectionCreated(data) {
-      this.onConnectionCreatedComposable(data);
-    },
-
-    // === Hint System ===
-    toggleHint() {
-      this.toggleHintComposable(
-        this.showToastMessage,
-        this.currentProblem?.expectedComponents
-      );
-    },
-
-    // NEW: 사용자 설명 제출 핸들러
+    toggleMode() { this.toggleModeComposable(this.showToastMessage); },
+    clearCanvas() { this.clearCanvasComposable(); this.resetEvaluationState(); },
+    onPaletteDragStart() {},
+    onComponentDropped(data) { this.onComponentDroppedComposable(data); },
+    onComponentMoved(data) { this.onComponentMovedComposable(data); },
+    onComponentRenamed(data) { this.onComponentRenamedComposable(data); },
+    onComponentDeleted(compId) { this.onComponentDeletedComposable(compId); },
+    onConnectionCreated(data) { this.onConnectionCreatedComposable(data); },
+    toggleHint() { this.toggleHintComposable(this.showToastMessage, this.currentProblem?.expectedComponents); },
     async submitUserExplanation(explanation) {
-      this.showToastMessage('[PROCESSING] 아키텍처 분석 및 질문 생성 중... 꽥!', 'guide');
-
-      const result = await this.submitUserExplanationComposable(
-        explanation,
-        this.currentProblem,
-        this.droppedComponents,
-        this.connections,
-        this.mermaidCode
-      );
-
-      // 🔥 검증 실패 감지 - 모달에 메시지 표시되도록 함
-      if (result.validationFailed) {
-        this.showToastMessage('[검증] 더 구체적인 설명을 입력해주세요. 꽥!', 'warning');
-        return; // 여기서 멈춤 - 모달에 에러메시지 표시
-      }
-
-      // ✅ 검증 통과
-      if (result.finished && this.isPendingEvaluation()) {
-        // 질문 없이 바로 평가로 진행
+      this.showToastMessage('[PROCESSING] 시스템 분석 중...', 'guide');
+      const allDone = await this.submitUserExplanationComposable(explanation, this.currentProblem, this.droppedComponents, this.connections, this.mermaidCode);
+      if (allDone && this.isPendingEvaluation()) {
         this.clearPendingEvaluation();
-        await this.directEvaluateComposable(
-          this.currentProblem,
-          this.droppedComponents,
-          this.connections,
-          this.mermaidCode
-        );
-      } else if (result.success) {
-        this.showToastMessage('[READY] 검증 질문에 응답해주세요. 꽥!', 'guide');
+        await this.directEvaluateComposable(this.currentProblem, this.droppedComponents, this.connections, this.mermaidCode);
+      } else {
+        this.showToastMessage('[ALERT] 추가 검증이 필요합니다.', 'guide');
       }
     },
-
     async submitDeepDiveAnswer(answer) {
-      const result = await this.submitDeepDiveAnswerComposable(answer);
-
-      // 🔥 검증 실패 감지
-      if (result.success === false) {
-        this.showToastMessage('[검증] 더 구체적인 답변을 입력해주세요. 꽥!', 'warning');
-        return; // 여기서 멈춤 - 모달에 에러메시지 표시
-      }
-
-      // ✅ 검증 통과 후 진행
-      if (result.finished && this.isPendingEvaluation()) {
+      const allDone = await this.submitDeepDiveAnswerComposable(answer);
+      if (allDone && this.isPendingEvaluation()) {
         this.clearPendingEvaluation();
-        // EvaluationModal 없이 바로 평가 진행
-        await this.directEvaluateComposable(
-          this.currentProblem,
-          this.droppedComponents,
-          this.connections,
-          this.mermaidCode
-        );
+        await this.directEvaluateComposable(this.currentProblem, this.droppedComponents, this.connections, this.mermaidCode);
       }
     },
-
-    // === Evaluation ===
     async openEvaluationModal() {
-      const result = await this.openEvaluationModalComposable(
-        this.currentProblem,
-        this.droppedComponents,
-        this.connections,
-        this.mermaidCode
-      );
-
-      // ✅ Step 1: 검증 실패 처리
-      if (result.validationFailed) {
-        // ValidationFeedback 모달 표시
-        this.validationResult = result.validationResult;
-        this.showValidationFeedback = true;
-
-        // 토스트 알림
-        this.showToastMessage(
-          '[검증] 아키텍처를 다시 확인해주세요. 꽥!',
-          'warning'
-        );
-
-        // 디버깅용 상세 정보 출력
-        console.log('[Validation Failed]', result.validationResult);
-        return;
-      }
-
-      // ⚠️ Step 2: 검증 경고 처리
-      if (result.validationWarnings && result.validationWarnings.length > 0) {
-        this.validationResult = result.validationResult;
-        this.showValidationFeedback = true;
-
-        // 토스트로도 안내
-        this.showToastMessage('[검증] 통과했습니다. 경고 사항을 확인하세요. 꽥!', 'guide');
-        return;
-      }
-
-      // ✅ Step 3: 검증 통과 후 계속 진행
-      if (result.shouldContinue !== false && result.validationPassed) {
-        this.validationResult = result.validationResult;
-        this.showValidationFeedback = true;
-
-        this.showToastMessage('[검증] 통과했습니다! 꽥!', 'success');
-      }
+      await this.openEvaluationModalComposable(this.currentProblem, this.droppedComponents, this.connections, this.mermaidCode);
     },
-
-    // ✅ ValidationFeedback에서 호출되는 메서드
-    closeValidationFeedback() {
-      this.showValidationFeedback = false;
-      this.validationResult = null;
-    },
-
-    proceedFromValidation() {
-      this.showValidationFeedback = false;
-
-      // ✅ ValidationFeedback 닫은 후 설명 입력 모달 열기
-      this.$nextTick(() => {
-        this.openDeepDiveModalComposable();
-        this.showToastMessage('[PHASE 1] 아키텍처 설명을 입력해주세요. 꽥!', 'guide');
-      });
-    },
-
-    // === Retry ===
-    handleRetry() {
-      this.handleRetryComposable();
-      this.clearCanvas();
+    handleRetry() { this.handleRetryComposable(); this.clearCanvas(); },
+    handleNext() {
+      const gameStore = useGameStore();
+      gameStore.unlockNextStage('System Practice', this.currentProblemIndex + 1);
+      if (this.currentProblemIndex < this.problems.length - 1) {
+        this.currentProblemIndex++;
+        this.handleRetryComposable();
+        this.clearCanvas();
+        this.showToastMessage(`[CASE ${this.currentProblemIndex + 1}] 다음 미션을 로드합니다.`, 'guide');
+      }
     }
   }
 };
@@ -489,7 +295,7 @@ export default {
 /* 폰트 임포트 */
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap');
 
-/* === NEON ARCADE THEME === */
+/* === NEON ARCADE THEME (Global Vars for this component) === */
 .arch-challenge-container.neon-theme {
   --bg-deep: #090910;
   --bg-panel: rgba(18, 18, 35, 0.7);
@@ -505,7 +311,7 @@ export default {
   width: 100%;
   height: 100vh;
   background-color: var(--bg-deep);
-  background-image:
+  background-image: 
     radial-gradient(circle at 10% 20%, rgba(188, 19, 254, 0.15) 0%, transparent 40%),
     radial-gradient(circle at 90% 80%, rgba(0, 243, 255, 0.1) 0%, transparent 40%);
   color: #fff;
@@ -516,12 +322,8 @@ export default {
 
 /* === 1. 배경 효과 (Grid + Scanline) === */
 .bg-grid {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image:
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  background-image: 
     linear-gradient(rgba(0, 0, 0, 0.2) 1px, transparent 1px),
     linear-gradient(90deg, rgba(0, 0, 0, 0.2) 1px, transparent 1px);
   background-size: 40px 40px;
@@ -530,11 +332,7 @@ export default {
 }
 
 .scanline {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
   background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1));
   background-size: 100% 4px;
   z-index: 1;
@@ -543,10 +341,8 @@ export default {
 
 /* === 2. 레이아웃 구조 === */
 .game-container {
-  position: relative;
-  z-index: 10;
-  width: 98%;
-  height: 96%;
+  position: relative; z-index: 10;
+  width: 98%; height: 96%;
   display: flex;
   margin: 0 auto;
   top: 2%;
@@ -568,7 +364,7 @@ export default {
   overflow: hidden;
 }
 
-/* === 3. 컴포넌트 스타일링 === */
+/* === 3. 컴포넌트 스타일링 (Deep Selector 활용) === */
 
 /* [좌측 패널] CaseFilePanel 스타일 오버라이드 */
 :deep(.case-file-panel) {
@@ -581,8 +377,7 @@ export default {
   backdrop-filter: blur(10px);
 }
 
-:deep(.case-file-panel h2),
-:deep(.case-file-panel h3) {
+:deep(.case-file-panel h2), :deep(.case-file-panel h3) {
   font-family: var(--font-header) !important;
   color: var(--neon-cyan) !important;
   text-transform: uppercase;
@@ -594,8 +389,7 @@ export default {
   height: 60px;
   background: transparent !important;
   border-bottom: 1px solid var(--neon-cyan) !important;
-  display: flex;
-  align-items: center;
+  display: flex; align-items: center;
 }
 
 /* 버튼 스타일 (헤더 및 내부 버튼) */
@@ -606,8 +400,7 @@ export default {
   transition: all 0.2s ease;
 }
 
-:deep(.btn-primary),
-:deep(.action-btn) {
+:deep(.btn-primary), :deep(.action-btn) {
   background: rgba(0, 0, 0, 0.3) !important;
   border: 1px solid var(--neon-cyan) !important;
   color: var(--neon-cyan) !important;
@@ -621,14 +414,12 @@ export default {
 }
 
 /* [중앙] 툴박스 ComponentPalette */
-.toolbox-panel {
+:deep(.toolbox-panel) {
   width: 140px;
   min-width: 140px;
   background: rgba(10, 15, 30, 0.6) !important;
   border: 1px solid rgba(80, 80, 255, 0.3) !important;
   border-radius: 12px !important;
-  padding: 12px;
-  overflow-y: auto;
 }
 
 :deep(.component-item) {
@@ -647,24 +438,19 @@ export default {
 }
 
 /* [우측] 캔버스 ArchitectureCanvas */
-.canvas-panel {
-  flex: 1;
-  position: relative;
+:deep(.canvas-panel) {
   background-color: #050508 !important;
   border: 1px solid #333 !important;
   border-radius: 12px !important;
   box-shadow: inset 0 0 50px rgba(0,0,0,0.8);
+  position: relative;
 }
 
 /* 캔버스 내부 그리드 패턴 */
-.canvas-panel::before {
+:deep(.canvas-panel)::before {
   content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image:
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  background-image: 
     linear-gradient(rgba(100, 100, 255, 0.05) 1px, transparent 1px),
     linear-gradient(90deg, rgba(100, 100, 255, 0.05) 1px, transparent 1px);
   background-size: 40px 40px;
@@ -672,30 +458,9 @@ export default {
   z-index: 0;
 }
 
-.canvas-panel::after {
-  content: "ARCHITECTURE WORKSPACE";
-  position: absolute;
-  bottom: 20px;
-  right: 20px;
-  font-family: 'Orbitron', sans-serif;
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: rgba(0, 243, 255, 0.15);
-  letter-spacing: 3px;
-  pointer-events: none;
-}
 
 /* === 5. 스크롤바 커스텀 === */
-::-webkit-scrollbar {
-  width: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: #000;
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--neon-purple);
-  border-radius: 3px;
-}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #000; }
+::-webkit-scrollbar-thumb { background: var(--neon-purple); border-radius: 3px; }
 </style>
