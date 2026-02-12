@@ -61,7 +61,7 @@ function getCache(key) {
  * ✅ 핵심 함수: 5차원 메트릭 기반 의사코드 평가
  * LLM 60% + Rule 40% 하이브리드
  */
-export async function evaluatePseudocode5D(problem, pseudocode) {
+export async function evaluatePseudocode5D(problem, pseudocode, userContext = null) {
     console.log('[5D Evaluation] Starting evaluation...');
 
     // 레이스 컨디션 방지
@@ -119,6 +119,8 @@ export async function evaluatePseudocode5D(problem, pseudocode) {
                         concepts: Array.from(ruleResult.details.concepts || []),
                         warnings: ruleResult.warnings
                     },
+                    // [2026-02-12] 진단 단계 답변 데이터 추가 송신
+                    user_diagnostic: userContext,
                     // [STEP 3] Python 변환 요청 플래그 추가
                     request_python_conversion: true
                 }, { timeout: 35000 }); // 타임아웃 35초로 연장 (변환 시간 고려)
@@ -469,8 +471,9 @@ export function getAICacheStats() {
  */
 export async function evaluateDiagnosticAnswer(question, userAnswer) {
     const rubric = question.evaluationRubric || {};
+    const isOrdering = question.type === 'ORDERING';
 
-    const systemPrompt = `당신은 데이터 과학 교육 전문가입니다.
+    let systemPrompt = `당신은 데이터 과학 교육 전문가입니다.
 학생의 진단 문제 답변을 평가하고 JSON으로 응답하세요.
 
 # 정답 논리
@@ -488,12 +491,38 @@ ${rubric.correctAnswer || "데이터 누수 차이 설명"}
   "analysis": "어떤 부분이 맞고 틀렸는지에 대한 간략한 분석"
 }`;
 
+    if (isOrdering) {
+        systemPrompt = `당신은 데이터 과학 교육 전문가입니다.
+학생이 제출한 '정렬 순서'의 논리적 타당성을 평가하고 JSON으로 응답하세요.
+
+# 정답 순서 설명
+${rubric.correctAnswer || ""}
+${rubric.modelAnswerExplanation || ""}
+
+# 채점 가이드
+- 학생은 여러 개의 단계(options)를 특정 순서로 정렬했습니다.
+- 단순히 순서가 틀렸다고 감점하기보다, 그 순서가 가질 수 있는 위험성(예: 데이터 누수 탐지 실패)을 지적해 주세요.
+- 모든 순서가 완벽하면 100점, 논리적 허점이 있다면 그에 비례해 감점하세요.
+
+# 출력 형식 (JSON)
+{
+  "score": 0-100,
+  "is_correct": boolean,
+  "feedback": "순서에 대한 논리적 피드백 (한글, 150자 이내)",
+  "analysis": "왜 이 순서가 위험하거나 비효율적인지에 대한 단계별 분석"
+}`;
+    }
+
     try {
         const response = await axios.post('/api/core/ai-proxy/', {
             model: 'gpt-4o-mini',
             messages: [
                 { role: 'system', content: systemPrompt },
-                { role: 'user', content: `학생의 답변: "${userAnswer}"` }
+                {
+                    role: 'user', content: isOrdering
+                        ? `학생이 제출한 정렬 결과: ${userAnswer}\n\n이 순서가 논리적인지 분석해 주세요.`
+                        : `학생의 답변: "${userAnswer}"`
+                }
             ],
             response_format: { type: "json_object" }
         }, { timeout: 15000 });

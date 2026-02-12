@@ -325,13 +325,17 @@
   margin: 0;
 }
 
-/* [2026-02-12] 1단계 답변 참고 영역 */
+/* [2026-02-12] 1단계 답변 참고 영역 (크기 및 폰트 확대) */
 .previous-answer-ref {
   background: rgba(6, 182, 212, 0.05);
   border: 1px solid rgba(6, 182, 212, 0.2);
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 24px;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 30px;
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .ref-header {
@@ -343,16 +347,16 @@
 
 .ref-label {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: 12px;
   color: #22d3ee;
   font-weight: 700;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
 }
 
 .ref-content {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.6);
-  line-height: 1.5;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.82);
+  line-height: 1.6;
   margin: 0;
   font-style: italic;
 }
@@ -661,4 +665,285 @@
 .diagnostic-code {
   color: #94a3b8;
   opacity: 0.9;
+}
+
+/* [2026-02-12] 정렬형(ORDERING) 과제 전용 스타일 (괄호형) */
+.ordering-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 32px;
+  /* 제출 버튼과의 간격 확보 */
+}
+
+.ordering-item {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 24px 28px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: left;
+  width: 100%;
+}
+
+.ordering-item:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateX(8px);
+}
+
+.ordering-item.active {
+  background: rgba(34, 211, 238, 0.1);
+  border-color: #22d3ee;
+  box-shadow: 0 0 25px rgba(34, 211, 238, 0.25);
+}
+
+.ordering-item.correct {
+  background: rgba(74, 222, 128, 0.1);
+  border-color: #4ade80;
+}
+
+.ordering-item.wrong {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: #ef4444;
+}
+
+.order-parenthesis {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 24px;
+  color: #22d3ee;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  min-width: 65px;
+  justify-content: center;
+}
+
+.order-number {
+  display: inline-block;
+  min-width: 20px;
+  text-align: center;
+  color: #fbbf24;
+  text-shadow: 0 0 10px rgba(251, 191, 36, 0.6);
+  font-size: 22px;
+}
+
+.order-text {
+  flex: 1;
+  font-size: 18px;
+  color: #e5e7eb;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.ordering-item.active .order-text {
+  color: #fff;
+}
+
+.ordering-item.correct .order-parenthesis {
+  color: #4ade80;
+}
+
+.ordering-item.wrong .order-parenthesis {
+  color: #ef4444;
+}
+
+/* [2026-02-12] 진단 결과 및 모범 답안 상세 해설 섹션 */
+.diagnostic-result-card {
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.dr-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.dr-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: #3b82f6;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.dr-score {
+  font-family: 'Inter', sans-serif;
+  font-weight: 900;
+  font-size: 20px;
+}
+
+.dr-analysis {
+  font-size: 17px;
+  color: #fff;
+  font-weight: 600;
+  line-height: 1.5;
+  margin-bottom: 12px;
+  font-style: italic;
+}
+
+.dr-feedback {
+  font-size: 15px;
+  color: #94a3b8;
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.model-answer-section {
+  border-top: 1px dashed rgba(255, 255, 255, 0.1);
+  padding-top: 20px;
+}
+
+.btn-toggle-ma {
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  color: #a78bfa;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+  width: fit-content;
+}
+
+.btn-toggle-ma:hover {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: rgba(139, 92, 246, 0.5);
+}
+
+.model-answer-box {
+  margin-top: 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.ma-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.ma-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #c084fc;
+}
+
+.ma-content {
+  font-size: 14px;
+  color: #e2e8f0;
+  line-height: 1.6;
+  font-weight: 600;
+}
+
+.ma-explanation-box {
+  margin-top: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  padding: 16px;
+  font-size: 13px;
+  color: #94a3b8;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+/* [2026-02-12] 객관식 문제 상단 코덕 비주얼 & 말풍선 스타일 */
+.choice-visual-frame {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  animation: fadeInUp 0.5s ease-out;
+}
+
+.choice-coduck {
+  width: 100px;
+  height: 100px;
+  flex-shrink: 0;
+  background: rgba(30, 41, 59, 0.4);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 20px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3), inset 0 0 20px rgba(59, 130, 246, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.choice-coduck img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: transform 0.3s ease;
+}
+
+.choice-coduck:hover img {
+  transform: scale(1.1) rotate(5deg);
+}
+
+.choice-speech-bubble {
+  flex: 1;
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 24px;
+  padding: 24px 30px;
+  position: relative;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+}
+
+.bubble-tail {
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-top: 10px solid transparent;
+  border-bottom: 10px solid transparent;
+  border-right: 12px solid rgba(30, 41, 59, 0.8);
+}
+
+.bubble-text {
+  color: #f1f5f9;
+  font-size: 1.15rem;
+  line-height: 1.6;
+  font-weight: 500;
+  margin: 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

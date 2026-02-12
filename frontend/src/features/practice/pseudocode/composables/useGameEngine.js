@@ -11,9 +11,10 @@ export function useGameEngine() {
     // --- Game State ---
     const gameState = reactive({
         currentStageId: initialStageId,
-        // [2026-02-12] 인트로 단계 제거: 바로 진단 1단계로 시작
-        phase: 'DIAGNOSTIC_1',
-        step: 1,
+        // [2026-02-12] 인트로 단계 복원
+        phase: 'INTRO',
+        diagnosticStep: 0, // [2026-02-12] 현재 풀고 있는 진담 문항 인덱스
+        step: 0,
         playerHP: 100,
         score: 0,
         combo: 0,
@@ -24,6 +25,9 @@ export function useGameEngine() {
         diagnosticResult: null,
         diagnosticAnswer2: "", // [2026-02-12] 2단계 답변 추가
         diagnosticResult2: null, // [2026-02-12] 2단계 결과 추가
+        diagnosticAnswer3: "", // [2026-02-12] 3단계 답변 추가
+        diagnosticOrder3: [], // [2026-02-12] 3단계 정렬 순서 저장
+        diagnosticResult3: null, // [2026-02-12] 3단계 결과 추가
         isEvaluatingDiagnostic: false,
 
         // Phase 3 State
@@ -108,6 +112,10 @@ THEN
 
         try {
             switch (newPhase) {
+                case 'INTRO':
+                    gameState.coduckMessage = "당신의 아키텍처 역량을 증명할 준비가 되었나요?";
+                    addSystemLog("미션 브리핑 프로토콜 활성화", "READY");
+                    break;
                 case 'DIAGNOSTIC_1':
                     gameState.coduckMessage = "이 선택은 이후 모든 판단에 영향을 줍니다.";
                     addSystemLog("진단 프로토콜 1단계 개시", "INFO");

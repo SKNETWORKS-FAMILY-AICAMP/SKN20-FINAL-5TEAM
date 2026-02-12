@@ -141,6 +141,7 @@ def evaluate_pseudocode_5d(request):
             pseudocode=pseudocode,
             rule_score=rule_result.get('score', 0),
             rule_concepts=rule_result.get('concepts', []),
+            user_diagnostic=request.data.get('user_diagnostic', {}),
             request_python_conversion=request_python_conversion
         )
         
@@ -175,7 +176,7 @@ def evaluate_pseudocode_5d(request):
         )
 
 
-def call_llm_evaluation(quest_title: str, pseudocode: str, rule_score: int, rule_concepts: list, request_python_conversion: bool = False) -> Dict[str, Any]:
+def call_llm_evaluation(quest_title: str, pseudocode: str, rule_score: int, rule_concepts: list, user_diagnostic: dict = None, request_python_conversion: bool = False) -> Dict[str, Any]:
     """
     OpenAI API를 호출하여 5차원 평가 수행
     """
@@ -190,12 +191,18 @@ def call_llm_evaluation(quest_title: str, pseudocode: str, rule_score: int, rule
 # 학생이 작성한 의사코드
 {pseudocode}
 
+# 학생이 직접 분석한 진단 결과 (학습 일관성 평가용)
+- Phase 1 (원인 분석 - 서술/객관): {user_diagnostic.get('phase1', '없음') if user_diagnostic else '없음'}
+- Phase 2 (전술 설계 - 서술/객관): {user_diagnostic.get('phase2', '없음') if user_diagnostic else '없음'}
+- Phase 3 (전술 시퀀스 - 정렬형): {user_diagnostic.get('phase3', '없음') if user_diagnostic else '없음'}
+
 # 규칙 기반 사전 검증 결과 (참고용)
 - 규칙 점수: {rule_score}/100점
 - 포함된 개념: {', '.join(rule_concepts) if rule_concepts else '없음'}
 
 # 평가 요청
 위 의사코드를 5차원 메트릭으로 평가하고, 반드시 JSON 형식으로만 출력하세요.
+특히 **Coherence (정합성)** 차원에서는 '학생이 진단 단계(Phase 1~3)에서 도출한 결론/전술이 의사코드에 일관되게 반영되었는지'를 최우선으로 검증하세요. 진단 단계와 의사코드가 모순될 경우 Coherence 점수를 대폭 감점하고 상세 이유를 basis에 적어주세요.
 
 JSON 형식:
 {{

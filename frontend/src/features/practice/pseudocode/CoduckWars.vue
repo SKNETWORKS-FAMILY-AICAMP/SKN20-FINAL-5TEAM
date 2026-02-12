@@ -152,139 +152,204 @@
           <section class="decision-panel relative">
               
 
-              <!-- [2026-02-11] PHASE: DIAGNOSTIC (Step 1: 개념 확인) -->
+              <!-- [2026-02-12] PHASE: INTRO (미션 브리핑) -->
+              <div v-if="gameState.phase === 'INTRO'" class="intro-phase-container animate-fadeIn">
+                  <div class="intro-card">
+                      <div class="intro-visual">
+                          <img :src="currentMission.character?.image || '/assets/characters/coduck.png'" alt="Mission Lead" class="mission-lead-img" />
+                          <div class="visual-glow"></div>
+                      </div>
+                      <div class="intro-content">
+                          <div class="mission-category">{{ currentMission.category }}</div>
+                          <h2 class="mission-title">{{ currentMission.title }}</h2>
+                          <div class="mission-desc">{{ currentMission.desc }}</div>
+                          
+                          <div class="incident-report mt-6">
+                              <div class="ir-header"><TriangleAlert class="w-4 h-4 text-red-500" /> <span>INCIDENT_REPORT</span></div>
+                              <p class="ir-text">{{ currentMission.designContext?.currentIncident }}</p>
+                          </div>
+
+                          <div class="mission-goals mt-6">
+                              <div class="mg-header"><Target class="w-4 h-4 text-cyan-400" /> <span>MISSION_GOALS</span></div>
+                              <ul class="mg-list">
+                                  <li v-for="(card, i) in currentMission.cards" :key="i">
+                                      <span class="mg-icon">{{ card.icon }}</span>
+                                      <span class="mg-text">{{ card.text }}</span>
+                                  </li>
+                              </ul>
+                          </div>
+
+                          <button @click="startMission" class="btn-start-mission mt-8">
+                              진단 프로토콜 개시 <ArrowRight class="w-5 h-5 ml-2" />
+                          </button>
+                      </div>
+                  </div>
+              </div>
+
+              <!-- [2026-02-12] PHASE: DIAGNOSTIC (3단계 심화 진단 시스템) -->
               <div v-if="gameState.phase.startsWith('DIAGNOSTIC')" class="space-y-6">
-                  <div class="system-status-text">STEP_01: CONCEPT_FOUNDATION</div>
+                  <div class="system-status-text">
+                      <span v-if="gameState.phase === 'DIAGNOSTIC_1'">STEP_01: CONCEPT_IDENTIFICATION</span>
+                      <span v-else-if="gameState.phase === 'DIAGNOSTIC_2'">STEP_02: ARCHITECTURE_ANALYSIS</span>
+                      <span v-else>STEP_03: STRATEGY_SEQUENCE</span>
+                  </div>
                   
-                  <!-- [2026-02-12] 신규: 지문 내 코드 블록 렌더링 영역 (설명부 강조형) -->
-                  <div v-if="gameState.phase === 'DIAGNOSTIC_1' && diagnosticProblemParts" class="diagnostic-code-box">
+                  <!-- 지문 내 코드 블록 렌더링 영역 [2026-02-12] 페이즈 무관하게 컨텍스트가 있으면 표시 -->
+                  <div v-if="diagnosticProblemParts" class="diagnostic-code-box">
                       <div class="diagnostic-instruction">{{ diagnosticProblemParts.instruction }}</div>
                       <div class="diagnostic-code">{{ diagnosticProblemParts.code }}</div>
                   </div>
 
-                  <h3 class="big-question !mb-6">{{ gameState.phase === 'DIAGNOSTIC_1' ? diagnosticQuestion1.question : diagnosticQuestion2.question }}</h3>
+                  <h3 v-if="gameState.phase === 'DIAGNOSTIC_1' ? diagnosticQuestion1.type !== 'CHOICE' : (gameState.phase === 'DIAGNOSTIC_2' ? diagnosticQuestion2.type !== 'CHOICE' : diagnosticQuestion3.type !== 'CHOICE')" class="big-question !mb-6">
+                      {{ gameState.phase === 'DIAGNOSTIC_1' ? diagnosticQuestion1.question : (gameState.phase === 'DIAGNOSTIC_2' ? diagnosticQuestion2.question : diagnosticQuestion3.question) }}
+                  </h3>
                   
-                  <!-- [2026-02-12] 신규: 서술형(DESCRIPTIVE) 타입 대응 UI (단계 1) -->
-                  <div v-if="gameState.phase === 'DIAGNOSTIC_1' && diagnosticQuestion1.type === 'DESCRIPTIVE'" class="space-y-6">
-                      <!-- AI 분석 결과 출력 영역 -->
-                      <div v-if="gameState.diagnosticResult && !gameState.isEvaluatingDiagnostic" class="diagnostic-result-card animate-fadeIn">
-                          <div class="dr-header">
-                              <span class="dr-label">AI_ARCHITECT_VERDICT</span>
-                              <span class="dr-score" :class="gameState.diagnosticResult.score >= 70 ? 'text-green-400' : 'text-yellow-400'">
-                                  {{ gameState.diagnosticResult.score }} PTS
-                              </span>
-                          </div>
-                          <div class="dr-analysis">"{{ gameState.diagnosticResult.analysis }}"</div>
-                          <div class="dr-feedback">{{ gameState.diagnosticResult.feedback }}</div>
-
-                          <!-- [2026-02-12] 신규: 아키텍트 모범 답안 섹션 -->
-                          <div v-if="diagnosticQuestion1.evaluationRubric?.correctAnswer" class="model-answer-box animate-fadeIn">
-                              <div class="ma-header">
-                                  <Brain class="w-4 h-4 text-purple-400" />
-                                  <span class="ma-label">모범 답안</span>
+                  <!-- [2026-02-12] PHASE 1 전용 블록 -->
+                  <div v-if="gameState.phase === 'DIAGNOSTIC_1'" class="space-y-6">
+                      <!-- 서술형 UI -->
+                      <div v-if="diagnosticQuestion1.type === 'DESCRIPTIVE'" class="space-y-6">
+                          <div v-if="gameState.diagnosticResult && !gameState.isEvaluatingDiagnostic" class="diagnostic-result-card animate-fadeIn">
+                              <div class="dr-header">
+                                  <span class="dr-label">AI_ARCHITECT_VERDICT</span>
+                                  <span class="dr-score" :class="gameState.diagnosticResult.score >= 70 ? 'text-green-400' : 'text-yellow-400'">{{ gameState.diagnosticResult.score }} PTS</span>
                               </div>
-                              <p class="ma-content">{{ diagnosticQuestion1.evaluationRubric.correctAnswer }}</p>
+                              <div class="dr-analysis">"{{ gameState.diagnosticResult.analysis }}"</div>
+                              <div class="dr-feedback">{{ gameState.diagnosticResult.feedback }}</div>
+                              <div v-if="diagnosticQuestion1.evaluationRubric?.correctAnswer" class="model-answer-box animate-fadeIn">
+                                  <div class="ma-header"><Brain class="w-4 h-4 text-purple-400" /><span class="ma-label">모범 답안</span></div>
+                                  <p class="ma-content">{{ diagnosticQuestion1.evaluationRubric.correctAnswer }}</p>
+                              </div>
+                          </div>
+                          <textarea v-model="gameState.diagnosticAnswer" class="diagnostic-textarea" placeholder="분석 내용을 입력하세요..." :disabled="gameState.isEvaluatingDiagnostic"></textarea>
+                          <button @click="submitDiagnostic1()" class="btn-execute-large w-full justify-center" :disabled="(!gameState.diagnosticAnswer || gameState.diagnosticAnswer.trim().length < 5) && !gameState.diagnosticResult || gameState.isEvaluatingDiagnostic">
+                              <template v-if="gameState.isEvaluatingDiagnostic">분석 중... <RotateCcw class="w-5 h-5 ml-2 animate-spin" /></template>
+                              <template v-else-if="gameState.diagnosticResult">다음 단계 진행 <ArrowRight class="w-5 h-5 ml-2" /></template>
+                              <template v-else>분석 완료 제출 <CheckCircle class="w-5 h-5 ml-2" /></template>
+                          </button>
+                      </div>
+                      <!-- 객관식 UI (CHOICE) [2026-02-12] 코덕 비주얼 복구 -->
+                      <div v-else-if="diagnosticQuestion1.type === 'CHOICE'" class="choice-interaction-area">
+                          <div class="choice-visual-frame mb-8">
+                              <div class="choice-coduck">
+                                  <img :src="currentMission.character?.image || '@/assets/image/duck_det.png'" alt="Coduck Interviewer" />
+                              </div>
+                              <div class="choice-speech-bubble">
+                                  <div class="bubble-tail"></div>
+                                  <p class="bubble-text">{{ diagnosticQuestion1.question }}</p>
+                              </div>
+                          </div>
+                          <div class="options-list">
+                              <div v-for="(opt, idx) in diagnosticQuestion1.options" :key="idx" @click="submitDiagnostic1(idx)" class="option-card">
+                                  <div class="opt-index">{{ idx + 1 }}</div>
+                                  <div class="opt-main text-lg">{{ opt.text }}</div>
+                                  <div class="opt-arrow"><ArrowRight /></div>
+                              </div>
                           </div>
                       </div>
-
-                      <textarea 
-                          v-model="gameState.diagnosticAnswer"
-                          class="diagnostic-textarea"
-                          placeholder="데이터 누수가 발생하는 이유를 2~3문장으로 설명해 주세요..."
-                          spellcheck="false"
-                          :disabled="gameState.isEvaluatingDiagnostic"
-                      ></textarea>
-                      <button 
-                          @click="submitDiagnostic1" 
-                          class="btn-execute-large w-full justify-center"
-                          :disabled="(!gameState.diagnosticAnswer || gameState.diagnosticAnswer.trim().length < 5) && !gameState.diagnosticResult || gameState.isEvaluatingDiagnostic"
-                      >
-                          <template v-if="gameState.isEvaluatingDiagnostic">
-                              시스템 분석 중... <RotateCcw class="w-5 h-5 ml-2 animate-spin" />
-                          </template>
-                          <template v-else-if="gameState.diagnosticResult">
-                              다음 단계로 진행 <ArrowRight class="w-5 h-5 ml-2" />
-                          </template>
-                          <template v-else>
-                              분석 결과 제출 <CheckCircle class="w-5 h-5 ml-2" />
-                          </template>
-                      </button>
                   </div>
 
-                  <!-- [2026-02-12] 신규: 서술형(DESCRIPTIVE) 타입 대응 UI (단계 2) -->
-                  <div v-if="gameState.phase === 'DIAGNOSTIC_2' && diagnosticQuestion2.type === 'DESCRIPTIVE'" class="space-y-6">
-                      <!-- [유저 요청 반영] 1단계 답변 참고 영역 -->
+                  <!-- [2026-02-12] PHASE 2 전용 블록 -->
+                  <div v-else-if="gameState.phase === 'DIAGNOSTIC_2'" class="space-y-6">
                       <div class="previous-answer-ref">
-                          <div class="ref-header">
-                              <Info class="w-3 h-3 text-cyan-400" />
-                              <span class="ref-label">PHASE 1 ANALYSIS REFERENCE</span>
-                          </div>
-                          <p class="ref-content">"{{ gameState.diagnosticAnswer }}"</p>
+                          <div class="ref-header"><Info class="w-3 h-3 text-cyan-400" /><span class="ref-label">PHASE 1 CONTEXT</span></div>
+                          <p class="ref-content">"{{ gameState.diagnosticAnswer || '개념 파악 완료' }}"</p>
                       </div>
-
-                      <!-- AI 분석 결과 출력 영역 -->
-                      <div v-if="gameState.diagnosticResult2 && !gameState.isEvaluatingDiagnostic" class="diagnostic-result-card animate-fadeIn">
-                          <div class="dr-header">
-                              <span class="dr-label">AI_ARCHITECT_VERDICT</span>
-                              <span class="dr-score" :class="gameState.diagnosticResult2.score >= 70 ? 'text-green-400' : 'text-yellow-400'">
-                                  {{ gameState.diagnosticResult2.score }} PTS
-                              </span>
-                          </div>
-                          <div class="dr-analysis">"{{ gameState.diagnosticResult2.analysis }}"</div>
-                          <div class="dr-feedback">{{ gameState.diagnosticResult2.feedback }}</div>
-
-                          <!-- 아키텍트 모범 답안 섹션 -->
-                          <div v-if="diagnosticQuestion2.evaluationRubric?.correctAnswer" class="model-answer-box animate-fadeIn">
-                              <div class="ma-header">
-                                  <Brain class="w-4 h-4 text-purple-400" />
-                                  <span class="ma-label">모범 답안</span>
+                      <!-- 서술형 UI -->
+                      <div v-if="diagnosticQuestion2.type === 'DESCRIPTIVE'" class="space-y-6">
+                          <div v-if="gameState.diagnosticResult2 && !gameState.isEvaluatingDiagnostic" class="diagnostic-result-card animate-fadeIn">
+                              <div class="dr-header">
+                                  <span class="dr-label">AI_ARCHITECT_VERDICT</span>
+                                  <span class="dr-score" :class="gameState.diagnosticResult2.score >= 70 ? 'text-green-400' : 'text-yellow-400'">{{ gameState.diagnosticResult2.score }} PTS</span>
                               </div>
-                              <p class="ma-content">{{ diagnosticQuestion2.evaluationRubric.correctAnswer }}</p>
+                              <div class="dr-analysis">"{{ gameState.diagnosticResult2.analysis }}"</div>
+                              <div class="dr-feedback">{{ gameState.diagnosticResult2.feedback }}</div>
+                          </div>
+                          <textarea v-model="gameState.diagnosticAnswer2" class="diagnostic-textarea" placeholder="상세 전술을 설계하세요..." :disabled="gameState.isEvaluatingDiagnostic"></textarea>
+                          <button @click="submitDiagnostic2()" class="btn-execute-large w-full justify-center" :disabled="(!gameState.diagnosticAnswer2 || gameState.diagnosticAnswer2.trim().length < 5) && !gameState.diagnosticResult2 || gameState.isEvaluatingDiagnostic">
+                              <template v-if="gameState.isEvaluatingDiagnostic">검토 중... <RotateCcw class="w-5 h-5 ml-2 animate-spin" /></template>
+                              <template v-else-if="gameState.diagnosticResult2">다음 단계 진행 <ArrowRight class="w-5 h-5 ml-2" /></template>
+                              <template v-else>설계 결과 제출 <CheckCircle class="w-5 h-5 ml-2" /></template>
+                          </button>
+                      </div>
+                      <!-- 객관식 UI (CHOICE) [2026-02-12] 코덕 비주얼 복구 -->
+                      <div v-else-if="diagnosticQuestion2.type === 'CHOICE'" class="choice-interaction-area">
+                          <div class="choice-visual-frame mb-8">
+                              <div class="choice-coduck">
+                                  <img src="@/assets/image/duck_det.png" alt="Coduck Interviewer" />
+                              </div>
+                              <div class="choice-speech-bubble">
+                                  <div class="bubble-tail"></div>
+                                  <p class="bubble-text">{{ diagnosticQuestion2.question }}</p>
+                              </div>
+                          </div>
+                          <div class="options-list">
+                              <div v-for="(opt, idx) in diagnosticQuestion2.options" :key="idx" @click="submitDiagnostic2(idx)" class="option-card">
+                                  <div class="opt-index">{{ idx + 1 }}</div>
+                                  <div class="opt-main text-lg">{{ opt.text }}</div>
+                                  <div class="opt-arrow"><ArrowRight /></div>
+                              </div>
                           </div>
                       </div>
-
-                      <textarea 
-                          v-model="gameState.diagnosticAnswer2"
-                          class="diagnostic-textarea"
-                          placeholder="어떤 조건들을 확인해야 할까요? 목록 형식으로 나열해 보세요...
-- 확인 1: ...
-- 확인 2: ..."
-                          spellcheck="false"
-                          :disabled="gameState.isEvaluatingDiagnostic"
-                      ></textarea>
-                      <button 
-                          @click="submitDiagnostic2" 
-                          class="btn-execute-large w-full justify-center"
-                          :disabled="(!gameState.diagnosticAnswer2 || gameState.diagnosticAnswer2.trim().length < 5) && !gameState.diagnosticResult2 || gameState.isEvaluatingDiagnostic"
-                      >
-                          <template v-if="gameState.isEvaluatingDiagnostic">
-                              시스템 분석 중... <RotateCcw class="w-5 h-5 ml-2 animate-spin" />
-                          </template>
-                          <template v-else-if="gameState.diagnosticResult2">
-                              설계 단계로 진행 <ArrowRight class="w-5 h-5 ml-2" />
-                          </template>
-                          <template v-else>
-                              탐지 규칙 제출 <CheckCircle class="w-5 h-5 ml-2" />
-                          </template>
-                      </button>
                   </div>
 
-                  <!-- [2026-02-12] AI 아키텍트 분석 오버레이 -->
-                  <div v-if="gameState.isEvaluatingDiagnostic" class="ai-loading-overlay">
-                      <LoadingDuck message="데이터 누수 여부를 정밀 분석 중입니다..." />
-                  </div>
-
-                  <div v-else class="options-list">
-                      <div 
-                          v-for="(opt, idx) in (gameState.phase === 'DIAGNOSTIC_1' ? diagnosticQuestion1.options : diagnosticQuestion2.options)" 
-                          :key="idx"
-                          @click="gameState.phase === 'DIAGNOSTIC_1' ? submitDiagnostic1(idx) : submitDiagnostic2(idx)"
-                          class="option-card"
-                      >
-                          <div class="opt-index">{{ idx + 1 }}</div>
-                          <div class="opt-main text-lg">{{ opt.text }}</div>
-                          <div class="opt-arrow"><ArrowRight /></div>
+                  <!-- [2026-02-12] PHASE 3 전용 블록 (정렬형 위주) -->
+                  <div v-else-if="gameState.phase === 'DIAGNOSTIC_3'" class="space-y-6">
+                      <!-- 정렬형 UI (ORDERING) -->
+                      <div v-if="diagnosticQuestion3.type === 'ORDERING'" class="space-y-6">
+                          <div v-if="gameState.diagnosticResult3 && !gameState.isEvaluatingDiagnostic" class="diagnostic-result-card animate-fadeIn">
+                              <div class="dr-header">
+                                  <span class="dr-label">SEQUENCE_VALIDATION_RESULT</span>
+                                  <span class="dr-score" :class="gameState.diagnosticResult3.score >= 70 ? 'text-green-400' : 'text-yellow-400'">{{ gameState.diagnosticResult3.score }} PTS</span>
+                              </div>
+                              <div class="dr-analysis">"{{ gameState.diagnosticResult3.analysis }}"</div>
+                              <div class="dr-feedback">{{ gameState.diagnosticResult3.feedback }}</div>
+                              <div class="model-answer-section">
+                                  <button @click="showModelAnswer = !showModelAnswer" class="btn-toggle-ma">
+                                      <Brain class="w-4 h-4" /> {{ showModelAnswer ? '해설 숨기기' : '모범 순서 및 해설 확인' }}
+                                      <ChevronDown class="w-4 h-4 transition-transform" :class="{ 'rotate-180': showModelAnswer }" />
+                                  </button>
+                                  <div v-if="showModelAnswer" class="model-answer-box animate-fadeIn">
+                                      <p class="ma-content">{{ diagnosticQuestion3.evaluationRubric?.correctAnswer }}</p>
+                                      <div v-if="diagnosticQuestion3.evaluationRubric?.modelAnswerExplanation" class="ma-explanation-box" v-html="diagnosticQuestion3.evaluationRubric.modelAnswerExplanation"></div>
+                                  </div>
+                              </div>
+                          </div>
+                          <div class="ordering-container space-y-3">
+                              <button v-for="opt in diagnosticQuestion3.options" :key="opt.id" class="ordering-item" :class="{'active': gameState.diagnosticOrder3.includes(opt.id), 'correct': gameState.diagnosticResult3?.is_correct && gameState.diagnosticOrder3.includes(opt.id), 'wrong': gameState.diagnosticResult3 && !gameState.diagnosticResult3.is_correct && gameState.diagnosticOrder3.includes(opt.id)}" @click="toggleOrderingItem(opt.id)" :disabled="gameState.isEvaluatingDiagnostic || gameState.diagnosticResult3">
+                                  <div class="order-parenthesis">( <span class="order-number" v-html="gameState.diagnosticOrder3.includes(opt.id) ? gameState.diagnosticOrder3.indexOf(opt.id) + 1 : '&nbsp;&nbsp;'"></span> )</div>
+                                  <span class="order-text">{{ opt.text }}</span>
+                              </button>
+                          </div>
+                          <button @click="submitDiagnostic3" class="btn-execute-large w-full justify-center" :disabled="(gameState.diagnosticOrder3.length < 4 && !gameState.diagnosticResult3) || gameState.isEvaluatingDiagnostic">
+                              <template v-if="gameState.isEvaluatingDiagnostic">시퀀스 분석 중... <RotateCcw class="w-5 h-5 ml-2 animate-spin" /></template>
+                              <template v-else-if="gameState.diagnosticResult3">최종 설계 진입 <ArrowRight class="w-5 h-5 ml-2" /></template>
+                              <template v-else>순서 검증 제출 <CheckCircle class="w-5 h-5 ml-2" /></template>
+                          </button>
                       </div>
+                      <!-- 객관식 UI (CHOICE) [2026-02-12] 코덕 비주얼 복구 -->
+                      <div v-else-if="diagnosticQuestion3.type === 'CHOICE'" class="choice-interaction-area">
+                          <div class="choice-visual-frame mb-8">
+                              <div class="choice-coduck">
+                                  <img src="@/assets/image/duck_det.png" alt="Coduck Interviewer" />
+                              </div>
+                              <div class="choice-speech-bubble">
+                                  <div class="bubble-tail"></div>
+                                  <p class="bubble-text">{{ diagnosticQuestion3.question }}</p>
+                              </div>
+                          </div>
+                          <div class="options-list">
+                              <div v-for="(opt, idx) in diagnosticQuestion3.options" :key="idx" @click="submitDiagnostic3(idx)" class="option-card">
+                                  <div class="opt-index">{{ idx + 1 }}</div>
+                                  <div class="opt-main text-lg">{{ opt.text }}</div>
+                                  <div class="opt-arrow"><ArrowRight /></div>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+
+                  <!-- AI 아키텍트 분석 오버레이 -->
+                  <div v-if="gameState.isEvaluatingDiagnostic" class="ai-loading-overlay">
+                      <LoadingDuck message="데이터 흐름 및 논리적 타당성을 정밀 분석 중입니다..." />
                   </div>
               </div>
 
@@ -566,7 +631,8 @@ import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
 import { useMonacoEditor } from './composables/useMonacoEditor.js';
 import { 
   AlertOctagon, Info, ArrowRight, Lightbulb, Check, 
-  Code2, Play, CheckCircle, Brain, BarChart3, RotateCcw 
+  Code2, Play, CheckCircle, Brain, BarChart3, RotateCcw, ChevronDown,
+  TriangleAlert, Target
 } from 'lucide-vue-next';
 import CodeFlowVisualizer from './components/CodeFlowVisualizer.vue';
 import LoadingDuck from '../components/LoadingDuck.vue';
@@ -589,13 +655,18 @@ const {
     isProcessing,
     isGuideOpen,
     selectedGuideIdx,
+    showModelAnswer,
 
     toggleGuide,
     handleGuideClick,
     submitDiagnostic1,
     submitDiagnostic2,
+    submitDiagnostic3,
+    startMission, // [2026-02-12] 추가
+    toggleOrderingItem,
     diagnosticQuestion1,
     diagnosticQuestion2,
+    diagnosticQuestion3,
     handlePseudoInput,
     submitDeepQuiz,
     submitPseudo,
@@ -608,6 +679,7 @@ const {
 
 // [2026-02-12] 지문(problemContext)을 설명부와 코드부로 분리하여 가독성 증대
 const diagnosticProblemParts = computed(() => {
+    // 모든 진단 프로퍼티가 동일한 문항을 가리키므로 diagnosticQuestion1 유지 (또는 currentDiagnosticQuestion)
     const context = diagnosticQuestion1.value.problemContext || "";
     if (!context) return null;
     
@@ -862,6 +934,181 @@ const getScoreColor = (s) => (s >= 80 ? 'text-emerald-400' : s >= 50 ? 'text-amb
     border-radius: 4px;
     overflow: hidden;
 }
+
+/* [2026-02-12] INTRO Phase Styles */
+  .intro-phase-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      padding: 20px;
+  }
+
+  .intro-card {
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      border-radius: 32px;
+      display: flex;
+      max-width: 900px;
+      width: 100%;
+      overflow: hidden;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 50px rgba(59, 130, 246, 0.1);
+  }
+
+  .intro-visual {
+      flex: 0 0 350px;
+      position: relative;
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.5) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+  }
+
+  .mission-lead-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      z-index: 2;
+      filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.3));
+  }
+
+  .visual-glow {
+      position: absolute;
+      width: 200px;
+      height: 200px;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, transparent 70%);
+      border-radius: 50%;
+      z-index: 1;
+      animation: pulse 4s infinite;
+  }
+
+  .intro-content {
+      flex: 1;
+      padding: 50px;
+      display: flex;
+      flex-direction: column;
+  }
+
+  .mission-category {
+      font-size: 11px;
+      font-weight: 800;
+      color: #3b82f6;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      margin-bottom: 8px;
+  }
+
+  .mission-title {
+      font-size: 32px;
+      font-weight: 950;
+      color: white;
+      margin-bottom: 16px;
+      line-height: 1.2;
+  }
+
+  .mission-desc {
+      font-size: 15px;
+      color: #94a3b8;
+      line-height: 1.6;
+  }
+
+  .incident-report {
+      background: rgba(239, 68, 68, 0.05);
+      border-left: 3px solid #ef4444;
+      padding: 16px 20px;
+      border-radius: 0 12px 12px 0;
+  }
+
+  .ir-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 800;
+      color: #ef4444;
+      margin-bottom: 8px;
+  }
+
+  .ir-text {
+      font-size: 13px;
+      color: #f1f5f9;
+      line-height: 1.5;
+  }
+
+  .mission-goals {
+      background: rgba(34, 211, 238, 0.05);
+      padding: 16px 20px;
+      border-radius: 12px;
+  }
+
+  .mg-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 800;
+      color: #22d3ee;
+      margin-bottom: 12px;
+  }
+
+  .mg-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      list-style: none;
+      padding: 0;
+  }
+
+  .mg-list li {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+  }
+
+  .mg-text {
+      font-size: 12px;
+      color: #cbd5e1;
+      line-height: 1.5;
+  }
+
+  .btn-start-mission {
+      background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+      color: white;
+      border: none;
+      padding: 18px 32px;
+      border-radius: 16px;
+      font-weight: 800;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+  }
+
+  .btn-start-mission:hover {
+      transform: translateY(-5px) scale(1.02);
+      box-shadow: 0 15px 30px rgba(59, 130, 246, 0.4);
+      filter: brightness(1.1);
+  }
+
+  .btn-start-mission:active {
+      transform: translateY(-2px);
+  }
+
+  @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 0.2; }
+      50% { transform: scale(1.5); opacity: 0.4; }
+  }
+
+  @media (max-width: 1024px) {
+      .intro-card { flex-direction: column; }
+      .intro-visual { flex: 0 0 250px; }
+      .intro-content { padding: 30px; }
+  }
 
 /* ... existing styles ... */
 

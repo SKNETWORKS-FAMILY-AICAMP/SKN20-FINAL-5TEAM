@@ -26,6 +26,28 @@ export const aiQuests = [
 
         interviewQuestions: [
             {
+                id: "concept_1_choice",
+                type: "CHOICE",
+                question: "전처리 단계에서 'scaler.fit(df)'가 문제인 근본적인 이유는?",
+                options: [
+                    { text: "StandardScaler 대신 MinMaxScaler를 써야 해서", correct: false, feedback: "Scaler 종류는 문제가 아닙니다." },
+                    { text: "전체 데이터로 fit하면 Test set의 통계량이 Train 변환에 영향을 주어, 실전에서는 알 수 없는 정보로 학습하기 때문", correct: true, feedback: "정확합니다! 이것이 전처리 누수의 핵심입니다." },
+                    { text: "df가 너무 커서 메모리 오버플로우가 발생해서", correct: false, feedback: "성능 문제와 누수는 다른 개념입니다." }
+                ],
+                context: "Train 95% → Test 68% 성능 폭락의 원인"
+            },
+            {
+                id: "concept_2_choice",
+                type: "CHOICE",
+                question: "전처리 누수를 막기 위한 올바른 코드 순서는?",
+                options: [
+                    { text: "fit(전체) → 분할 → transform", correct: false, feedback: "이것이 바로 누수 패턴입니다." },
+                    { text: "분할 → fit(Train만) → transform(Train, Test)", correct: true, feedback: "정확합니다! Train 통계량으로만 학습하고, 같은 변환을 Train/Test 모두에 적용합니다." },
+                    { text: "분할 → fit(Train) → transform(Train) + fit(Test) → transform(Test)", correct: false, feedback: "Test도 다시 fit하면 일관성이 깨집니다." }
+                ],
+                context: "실전에서 사용 가능한 모델을 만들려면"
+            },
+            {
                 id: "concept_1",
                 type: "DESCRIPTIVE",
                 question: "어느 쪽이 더 신뢰할 수 있는 결과인가요? 그 이유를 2-3문장으로 설명하세요.",
@@ -60,21 +82,30 @@ model.fit(X_train, y_train)`,
             },
             {
                 id: "concept_2",
-                type: "DESCRIPTIVE",
-                question: "Stage 1에서 발견한 문제를 감지하려면 어떤 조건들을 확인해야 하는지 목록으로 나열하세요.",
-                problemContext: `[예시 형식]
-- 확인 1: ___을(를) 찾는다
-- 확인 2: ___이(가) ___보다 먼저인지 본다
-- 확인 3: ...`,
-                options: [],
+                type: "ORDERING",
+                question: "Stage1에서 발생할 수 있는 문제를 자동 감지하려면 아래 조건들을 어떤 순서로 확인해야 할까요? 순서대로 클릭하여 번호를 매기세요.",
+                options: [
+                    { id: "opt_compare", text: "fit 호출이 분할보다 먼저 실행되는지 비교" },
+                    { id: "opt_check", text: "코드에 train_test_split 또는 슬라이싱이 있는지 확인" },
+                    { id: "opt_detect", text: "scaler.fit() 또는 encoder.fit() 호출이 있는지 탐지" },
+                    { id: "opt_judge", text: "결과에 따라 경고 또는 통과 판정" }
+                ],
+                // 논리적 순서: 탐지(detect) -> 확인(check) -> 비교(compare) -> 판정(judge)
+                correctOrder: ["opt_detect", "opt_check", "opt_compare", "opt_judge"],
                 context: "검증 엔진 규칙 설계 기초",
                 evaluationRubric: {
-                    correctAnswer: "1. fit() 함수 호출을 찾는다. 2. fit()에 들어가는 데이터가 전체(df)인지 확인한다. 3. fit()이 데이터 분할(df[:800])보다 먼저 일어나는지 체크한다.",
-                    keyKeywords: ["fit", "데이터 분할", "순서", "df", "먼저", "찾는다"],
+                    correctAnswer: "1. 탐지(scaler.fit) -> 2. 확인(분할 로직) -> 3. 비교(선후 관계) -> 4. 판정 순서가 자동 감지 논리에 부합합니다.",
+                    modelAnswerExplanation: `
+1. **탐지**: 먼저 코드 내에서 'fit' 기능을 수행하는 객체(Scaler, Encoder 등)가 있는지 찾아야 합니다.
+2. **확인**: 그 다음 데이터 분할(split) 로직이 어디에 위치하는지 확인합니다.
+3. **비교**: 찾아낸 'fit' 호출 시점이 '분할' 시점보다 앞서 있는지(Leakage) 선후 관계를 비교합니다.
+4. **판정**: 비교 결과에 따라 사용자에게 경고를 줄지, 통과시킬지 최종 판정을 내립니다.
+                    `,
+                    keyKeywords: ["탐지", "확인", "비교", "판정", "순서"],
                     gradingCriteria: [
-                        { criteria: "fit 함수와 대상 데이터를 체크해야 함을 명시했는가?", score: 40 },
-                        { criteria: "분할 시점과 fit 시점의 순서 관계를 언급했는가?", score: 40 },
-                        { criteria: "목록 형식으로 논리적으로 나열했는가?", score: 20 }
+                        { criteria: "모든 순서를 정확히 맞혔는가?", score: 60 },
+                        { criteria: "판정(결과)을 가장 마지막에 두었는가?", score: 20 },
+                        { criteria: "함수 탐지를 먼저 수행했는가?", score: 20 }
                     ]
                 }
             }

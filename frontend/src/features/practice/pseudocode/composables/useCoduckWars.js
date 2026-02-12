@@ -50,8 +50,17 @@ export function useCoduckWars() {
     // UI State
     const isGuideOpen = ref(false);
     const selectedGuideIdx = ref(0);
+    const showModelAnswer = ref(false); // [NEW] 모범 답안 노출 여부
     const toggleGuide = () => { isGuideOpen.value = !isGuideOpen.value; };
     const handleGuideClick = (idx) => { selectedGuideIdx.value = idx; };
+
+    // [2026-02-12] 미션 시작 (INTRO -> DIAGNOSTIC_1)
+    const startMission = () => {
+        setPhase('DIAGNOSTIC_1');
+        gameState.diagnosticStep = 0;
+        gameState.step = 1;
+        addSystemLog("아키텍트 진단 프로세스 시작", "INFO");
+    };
 
     // Checklist (규칙 기반 실시간 피드백)
     const ruleChecklist = ref([
@@ -143,20 +152,25 @@ export function useCoduckWars() {
     };
 
     // --- Diagnostic Logic ---
-    const diagnosticQuestion1 = computed(() => {
+    // [2026-02-12] 현재 진행 중인 진담 문항 통합 접근
+    const currentDiagnosticQuestion = computed(() => {
         const mission = currentMission.value;
-        if (!mission || !mission.interviewQuestions || !mission.interviewQuestions[0]) {
+        const step = gameState.diagnosticStep ?? 0;
+        if (!mission || !mission.interviewQuestions || !mission.interviewQuestions[step]) {
             return { question: "로딩 중...", options: [], type: 'CHOICE' };
         }
-        return mission.interviewQuestions[0];
+        return mission.interviewQuestions[step];
     });
+
+    const diagnosticQuestion1 = currentDiagnosticQuestion;
+    const diagnosticQuestion2 = currentDiagnosticQuestion;
+    const diagnosticQuestion3 = currentDiagnosticQuestion;
 
     const submitDiagnostic1 = async (optionIndex) => {
         const q = diagnosticQuestion1.value;
 
-        // [2026-02-12] 서술형(DESCRIPTIVE) 타입 처리 (AI 평가 연동)
+        // [2026-02-12] 서술형(DESCRIPTIVE) 타입 처리
         if (q.type === 'DESCRIPTIVE') {
-            // 이미 평가 결과가 있는 경우: 다음 단계로 진행 (수동 진행)
             if (gameState.diagnosticResult && !gameState.isEvaluatingDiagnostic) {
                 setPhase('DIAGNOSTIC_2');
                 gameState.step = 1;
@@ -164,130 +178,210 @@ export function useCoduckWars() {
             }
 
             if (!gameState.diagnosticAnswer || gameState.diagnosticAnswer.trim().length < 5) {
-                gameState.feedbackMessage = "추론 내용을 조금 더 자세히 적어주세요 (최소 5자).";
+                gameState.feedbackMessage = "분석 내용을 조금 더 자세히 적어주세요 (최소 5자).";
                 addSystemLog("입력 부족: 분석 내용이 너무 짧습니다.", "WARN");
                 return;
             }
 
-            gameState.isEvaluatingDiagnostic = true; // 로딩 시작
+            gameState.isEvaluatingDiagnostic = true;
             gameState.feedbackMessage = "AI 아키텍트가 분석 중입니다...";
-            addSystemLog("진단 답변 AI 분석 개시...", "INFO");
+            addSystemLog("진단 1단계 AI 분석 개시...", "INFO");
 
             try {
                 const result = await evaluateDiagnosticAnswer(q, gameState.diagnosticAnswer);
-
                 gameState.diagnosticResult = result;
-                gameState.score += Math.round(result.score * 0.2); // 점수 비례 보상
+                gameState.score += Math.round(result.score * 0.2);
 
                 if (result.is_correct) {
-                    gameState.feedbackMessage = "분석이 완료되었습니다. 결과를 확인하고 계속 진행하세요.";
-                    addSystemLog("진단 성공: 데이터 누수 원리 파악 완료", "SUCCESS");
+                    gameState.feedbackMessage = "분석이 완료되었습니다. 다음 단계로 진행하세요.";
+                    addSystemLog("진단 성공: 핵심 패턴 파악 완료", "SUCCESS");
                 } else {
-                    gameState.feedbackMessage = "분석이 완료되었습니다. 보완할 점을 확인해 보세요.";
-                    addSystemLog("진단 미흡: 핵심 원리 파악 부족", "WARN");
+                    gameState.feedbackMessage = "일부 누락된 관점이 있습니다. 분석을 확인해 보세요.";
+                    addSystemLog("진단 미흡: 추론 보완 필요", "WARN");
                 }
-
-                // 자동 전환 제거: 사용자가 결과를 충분히 읽을 시간을 확보함
                 gameState.isEvaluatingDiagnostic = false;
-
             } catch (error) {
-                console.error("Diagnostic Evaluation Fail:", error);
+                console.error("Diagnostic 1 Evaluation Fail:", error);
                 gameState.isEvaluatingDiagnostic = false;
                 setPhase('DIAGNOSTIC_2');
             }
             return;
         }
 
-        // 기존 선택형 로직
-        if (optionIndex === undefined || !q.options[optionIndex]) return;
+        // [2026-02-12] 선택형(CHOICE) 타입 처리
+        if (q.type === 'CHOICE') {
+            if (optionIndex === undefined || !q.options[optionIndex]) return;
+            const selected = q.options[optionIndex];
+            if (selected.correct) {
+                gameState.score += 7.5;
+                gameState.feedbackMessage = selected.feedback || "정확합니다! 다음 레벨로.";
+                addSystemLog("선택 승인: 정답입니다.", "SUCCESS");
 
-        if (q.options[optionIndex].correct) {
-            gameState.score += 7.5;
-            gameState.feedbackMessage = "정확합니다! 프로토콜 확인.";
-            addSystemLog("선택 승인: 프로토콜 재가동", "SUCCESS");
-            setTimeout(() => {
-                setPhase('DIAGNOSTIC_2');
-                gameState.step = 1;
-            }, 1000);
-        } else {
-            handleDamage();
-            gameState.feedbackMessage = "오답입니다. 다시 시도하세요.";
-            addSystemLog("오류: 잘못된 판단입니다", "ERROR");
+                // [2026-02-12] 다음 문항이 있는지 확인
+                setTimeout(() => {
+                    const nextQIdx = gameState.diagnosticStep + 1;
+                    const nextQ = currentMission.value.interviewQuestions[nextQIdx];
+
+                    if (nextQ && nextQ.type === 'CHOICE') {
+                        gameState.diagnosticStep = nextQIdx;
+                        gameState.feedbackMessage = null;
+                        addSystemLog(`다음 문항 진행: ${nextQIdx + 1}번`, "INFO");
+                    } else {
+                        setPhase('DIAGNOSTIC_2');
+                        gameState.diagnosticStep = nextQIdx;
+                        gameState.step = 1;
+                    }
+                }, 1000);
+            } else {
+                handleDamage();
+                gameState.feedbackMessage = selected.feedback || "잘못된 분석입니다. 다시 시도하세요.";
+                addSystemLog("오류: 잘못된 판단입니다", "ERROR");
+            }
+            return;
         }
     };
 
-    const diagnosticQuestion2 = computed(() => {
-        const mission = currentMission.value;
-        if (!mission || !mission.interviewQuestions || !mission.interviewQuestions[1]) {
-            return { question: "로딩 중...", options: [], type: 'CHOICE' };
+    const toggleOrderingItem = (optionId) => {
+        if (gameState.isEvaluatingDiagnostic || gameState.diagnosticResult3) return;
+
+        const index = gameState.diagnosticOrder3.indexOf(optionId);
+        if (index > -1) {
+            gameState.diagnosticOrder3.splice(index, 1);
+        } else {
+            if (gameState.diagnosticOrder3.length < 4) {
+                gameState.diagnosticOrder3.push(optionId);
+            }
         }
-        return mission.interviewQuestions[1];
-    });
+    };
 
     const submitDiagnostic2 = async (optionIndex) => {
         const q = diagnosticQuestion2.value;
 
-        // [2026-02-12] 서술형(DESCRIPTIVE) 타입 처리 (AI 평가 연동)
+        // [2026-02-12] 서술형(DESCRIPTIVE) 타입 처리
         if (q.type === 'DESCRIPTIVE') {
-            // 이미 평가 결과가 있는 경우: 다음 단계로 진행 (수동 진행)
             if (gameState.diagnosticResult2 && !gameState.isEvaluatingDiagnostic) {
-                setPhase('PSEUDO_WRITE');
-                gameState.step = 1;
+                setPhase('DIAGNOSTIC_3');
+                gameState.step = 2;
                 return;
             }
 
             if (!gameState.diagnosticAnswer2 || gameState.diagnosticAnswer2.trim().length < 5) {
-                gameState.feedbackMessage = "체크리스트 내용을 조금 더 자세히 적어주세요 (최소 5자).";
-                addSystemLog("입력 부족: 규칙 나열이 부족합니다.", "WARN");
+                gameState.feedbackMessage = "설계 내용을 조금 더 구체적으로 적어주세요.";
+                addSystemLog("입력 부족: 설계 내용이 부족합니다.", "WARN");
                 return;
             }
 
-            gameState.isEvaluatingDiagnostic = true; // 로딩 시작
-            gameState.feedbackMessage = "AI 아키텍트가 체크리스트를 검증 중입니다...";
-            addSystemLog("진단 2단계 AI 검증 개시...", "INFO");
+            gameState.isEvaluatingDiagnostic = true;
+            gameState.feedbackMessage = "AI 아키텍트가 설계안을 검토 중입니다...";
+            addSystemLog("진단 2단계 AI 검토 개시...", "INFO");
 
             try {
                 const result = await evaluateDiagnosticAnswer(q, gameState.diagnosticAnswer2);
-
                 gameState.diagnosticResult2 = result;
-                gameState.score += Math.round(result.score * 0.2); // 점수 비례 보상
+                gameState.score += Math.round(result.score * 0.2);
 
                 if (result.is_correct) {
-                    gameState.feedbackMessage = "검증 규칙이 논리적입니다. 결과를 확인하고 계속 진행하세요.";
-                    addSystemLog("검증 성공: 논리적 체크리스트 확보", "SUCCESS");
+                    gameState.feedbackMessage = "설계가 전술적으로 타당합니다. 다음 단계로 진행하세요.";
+                    addSystemLog("설계 완료: 전술적 유효성 확인", "SUCCESS");
                 } else {
-                    gameState.feedbackMessage = "일부 누락된 조건이 있습니다. 보완할 점을 확인해 보세요.";
-                    addSystemLog("검증 미흡: 체크리스트 보완 필요", "WARN");
+                    gameState.feedbackMessage = "설계안에 보안 허점이 있습니다. 분석을 확인하세요.";
+                    addSystemLog("설계 미흡: 예외 상황 고려 부족", "WARN");
                 }
-
                 gameState.isEvaluatingDiagnostic = false;
-
             } catch (error) {
                 console.error("Diagnostic 2 Evaluation Fail:", error);
                 gameState.isEvaluatingDiagnostic = false;
-                setPhase('PSEUDO_WRITE');
+                setPhase('DIAGNOSTIC_3');
             }
             return;
         }
 
-        // 기존 선택형 로직
-        const selected = q.options[optionIndex];
-        if (!selected) return;
+        // [2026-02-12] 선택형(CHOICE) 타입 처리
+        if (q.type === 'CHOICE') {
+            const selected = q.options[optionIndex];
+            if (!selected) return;
+            if (selected.correct) {
+                gameState.score += 7.5;
+                gameState.feedbackMessage = "정확합니다! 전술 구체화 단계로.";
+                addSystemLog("선택 승인: 다음 진단 단계로 이동", "SUCCESS");
+                setTimeout(() => {
+                    setPhase('DIAGNOSTIC_3');
+                    gameState.step = 2;
+                }, 1000);
+            } else {
+                handleDamage();
+                gameState.feedbackMessage = "비효율적인 전술입니다.";
+                addSystemLog("경고: 전술 분석 오류", "ERROR");
+            }
+            return;
+        }
+    };
 
-        gameState.selectedStrategyLabel = selected.text;
+    const submitDiagnostic3 = async (optionIndex) => {
+        const q = diagnosticQuestion3.value;
 
-        if (selected.correct) {
-            gameState.score += 7.5;
-            gameState.feedbackMessage = "전략 선택 완료.";
-            addSystemLog("전략 채택: 아키텍처 분석 단계로 이동", "SUCCESS");
-            setTimeout(() => {
-                setPhase('PSEUDO_WRITE');
-                gameState.step = 2;
-            }, 1000);
-        } else {
-            handleDamage();
-            gameState.feedbackMessage = "비효율적 전략입니다.";
-            addSystemLog("경고: 비효율적 전략입니다", "ERROR");
+        // [2026-02-12] 정렬형(ORDERING) 타입 처리
+        if (q.type === 'ORDERING') {
+            if (gameState.diagnosticOrder3.length < 4) {
+                gameState.feedbackMessage = "모든 항목의 순서를 정해 주세요.";
+                return;
+            }
+
+            gameState.isEvaluatingDiagnostic = true;
+            gameState.feedbackMessage = "전술 시퀀스 정합성 분석 중...";
+            addSystemLog("진단 3단계 순서 정합성 분석 개시...", "INFO");
+
+            try {
+                const orderedTexts = gameState.diagnosticOrder3.map((id, i) => {
+                    const opt = q.options.find(o => o.id === id);
+                    return `${i + 1}단계: ${opt ? opt.text : id}`;
+                }).join('\n');
+
+                const result = await evaluateDiagnosticAnswer(q, orderedTexts);
+                gameState.diagnosticResult3 = result;
+
+                if (result.is_correct) {
+                    gameState.score += 20;
+                    gameState.feedbackMessage = "완벽한 전술 시퀀스입니다. 설계 단계로 진행하세요.";
+                    addSystemLog("정렬 성공: 논리 시퀀스 검증 완료", "SUCCESS");
+                } else {
+                    handleDamage();
+                    gameState.feedbackMessage = "시퀀스에 논리적 허점이 발견되었습니다.";
+                    addSystemLog("정렬 분석 완료: 일부 보완 필요", "WARN");
+                }
+                gameState.isEvaluatingDiagnostic = false;
+            } catch (error) {
+                console.error("Diagnostic 3 Evaluation Fail:", error);
+                gameState.isEvaluatingDiagnostic = false;
+                // Fallback
+                const isCorrect = JSON.stringify(q.correctOrder) === JSON.stringify(gameState.diagnosticOrder3);
+                gameState.diagnosticResult3 = {
+                    score: isCorrect ? 100 : 40,
+                    is_correct: isCorrect,
+                    feedback: isCorrect ? "서버 지연으로 로컬 검증 완료." : "순서가 논리적이지 않습니다.",
+                    analysis: "로컬 엔진에 의한 분석 결과입니다."
+                };
+            }
+            return;
+        }
+
+        // [2026-02-12] 선택형(CHOICE) 대응
+        if (q.type === 'CHOICE') {
+            const selected = q.options[optionIndex];
+            if (!selected) return;
+            if (selected.correct) {
+                gameState.score += 7.5;
+                gameState.feedbackMessage = "진단 완료! 설계 단계로 진입합니다.";
+                setTimeout(() => {
+                    setPhase('PSEUDO_WRITE');
+                    gameState.step = 3;
+                }, 1000);
+            } else {
+                handleDamage();
+                gameState.feedbackMessage = "잘못된 판단입니다.";
+                addSystemLog("경고: 비효율적 전략입니다", "ERROR");
+            }
+            return;
         }
     };
 
@@ -326,10 +420,22 @@ export function useCoduckWars() {
             console.log('[submitPseudo] Mission:', currentMission.value?.id);
             console.log('[submitPseudo] Pseudocode:', gameState.phase3Reasoning.substring(0, 100));
 
-            // ✅ 새로운 5차원 평가 API 호출
+            // ✅ [2026-02-12] 진단 데이터를 텍스트 형태로 정제하여 전달
+            const phase3Q = diagnosticQuestion3.value;
+            const phase3Sequence = gameState.diagnosticOrder3.map((id, i) => {
+                const opt = phase3Q.options?.find(o => o.id === id);
+                return `${i + 1}단계: ${opt ? opt.text : id}`;
+            }).join(', ');
+
+            // ✅ 새로운 5차원 평가 API 호출 ([2026-02-12] 진단 컨텍스트 3단계까지 확장)
             const evaluation = await evaluatePseudocode5D(
                 currentMission.value,
-                gameState.phase3Reasoning
+                gameState.phase3Reasoning,
+                {
+                    phase1: gameState.diagnosticAnswer,
+                    phase2: gameState.diagnosticAnswer2,
+                    phase3: phase3Sequence || '순서 지정되지 않음'
+                }
             );
 
             console.log('[submitPseudo] Evaluation result:', evaluation);
@@ -719,8 +825,11 @@ export function useCoduckWars() {
         enemyThreat,
         diagnosticQuestion1,
         diagnosticQuestion2,
-        deepQuizQuestion,
-        evaluationResult,
+        diagnosticQuestion3,
+        submitDiagnostic1,
+        submitDiagnostic2,
+        submitDiagnostic3,
+        startMission, // [2026-02-12] 추가
         isEvaluating,
         currentMission,
         missionContext,
@@ -731,6 +840,7 @@ export function useCoduckWars() {
         selectStage,
         submitDiagnostic1,
         submitDiagnostic2,
+        toggleOrderingItem,
         submitPseudo,
         submitDeepQuiz,
 
@@ -759,6 +869,7 @@ export function useCoduckWars() {
         isProcessing,
         isGuideOpen,
         selectedGuideIdx,
+        showModelAnswer,
         toggleGuide,
         handleGuideClick,
         handlePythonVisualizationNext,
