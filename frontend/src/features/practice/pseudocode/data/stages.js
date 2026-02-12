@@ -27,23 +27,56 @@ export const aiQuests = [
         interviewQuestions: [
             {
                 id: "concept_1",
-                question: "전처리 단계에서 'scaler.fit(df)'가 문제인 근본적인 이유는?",
-                options: [
-                    { text: "StandardScaler 대신 MinMaxScaler를 써야 해서", correct: false, feedback: "Scaler 종류는 문제가 아닙니다." },
-                    { text: "전체 데이터로 fit하면 Test set의 통계량이 Train 변환에 영향을 주어, 실전에서는 알 수 없는 정보로 학습하기 때문", correct: true, feedback: "정확합니다! 이것이 전처리 누수의 핵심입니다." },
-                    { text: "df가 너무 커서 메모리 오버플로우가 발생해서", correct: false, feedback: "성능 문제와 누수는 다른 개념입니다." }
-                ],
-                context: "Train 95% → Test 68% 성능 폭락의 원인"
+                type: "DESCRIPTIVE",
+                question: "어느 쪽이 더 신뢰할 수 있는 결과인가요? 그 이유를 2-3문장으로 설명하세요.",
+                problemContext: `[문제]
+아래 두 코드는 동일한 데이터로 동일한 모델을 학습했습니다. 그런데 정확도가 다릅니다. 왜 그런지 추론하세요.
+
+# 코드 A → 정확도 95%
+scaler = StandardScaler()
+scaler.fit(df)
+X_train = scaler.transform(df[:800])
+X_test = scaler.transform(df[800:])
+model.fit(X_train, y_train)
+
+# 코드 B → 정확도 89%
+X_train, X_test = df[:800], df[800:]
+scaler = StandardScaler()
+scaler.fit(X_train)
+X_train = scaler.transform(X_train)
+X_test = scaler.transform(X_test)
+model.fit(X_train, y_train)`,
+                options: [], // 서술형으로 전환되어 선택지 제거
+                context: "데이터 누수 발생 여부에 따른 신뢰도 분석",
+                evaluationRubric: {
+                    correctAnswer: "코드 B가 더 신뢰할 수 있습니다. 코드 A는 fit(df)를 통해 전체 데이터의 통계량을 계산하여 테스트 세트의 정보가 학습에 포함되는 '데이터 누수(Data Leakage)'가 발생했기 때문입니다.",
+                    keyKeywords: ["데이터 누수", "Data Leakage", "fit", "B", "신뢰", "분할 전"],
+                    gradingCriteria: [
+                        { criteria: "코드 B를 정답으로 선택했는가?", score: 40 },
+                        { criteria: "'데이터 누수' 또는 이와 유사한 개념을 언급했는가?", score: 30 },
+                        { criteria: "fit(df)와 fit(X_train)의 차이를 논리적으로 설명했는가?", score: 30 }
+                    ]
+                }
             },
             {
                 id: "concept_2",
-                question: "전처리 누수를 막기 위한 올바른 코드 순서는?",
-                options: [
-                    { text: "fit(전체) → 분할 → transform", correct: false, feedback: "이것이 바로 누수 패턴입니다." },
-                    { text: "분할 → fit(Train만) → transform(Train, Test)", correct: true, feedback: "정확합니다! Train 통계량으로만 학습하고, 같은 변환을 Train/Test 모두에 적용합니다." },
-                    { text: "분할 → fit(Train) → transform(Train) + fit(Test) → transform(Test)", correct: false, feedback: "Test도 다시 fit하면 일관성이 깨집니다." }
-                ],
-                context: "실전에서 사용 가능한 모델을 만들려면"
+                type: "DESCRIPTIVE",
+                question: "Stage 1에서 발견한 문제를 감지하려면 어떤 조건들을 확인해야 하는지 목록으로 나열하세요.",
+                problemContext: `[예시 형식]
+- 확인 1: ___을(를) 찾는다
+- 확인 2: ___이(가) ___보다 먼저인지 본다
+- 확인 3: ...`,
+                options: [],
+                context: "검증 엔진 규칙 설계 기초",
+                evaluationRubric: {
+                    correctAnswer: "1. fit() 함수 호출을 찾는다. 2. fit()에 들어가는 데이터가 전체(df)인지 확인한다. 3. fit()이 데이터 분할(df[:800])보다 먼저 일어나는지 체크한다.",
+                    keyKeywords: ["fit", "데이터 분할", "순서", "df", "먼저", "찾는다"],
+                    gradingCriteria: [
+                        { criteria: "fit 함수와 대상 데이터를 체크해야 함을 명시했는가?", score: 40 },
+                        { criteria: "분할 시점과 fit 시점의 순서 관계를 언급했는가?", score: 40 },
+                        { criteria: "목록 형식으로 논리적으로 나열했는가?", score: 20 }
+                    ]
+                }
             }
         ],
 

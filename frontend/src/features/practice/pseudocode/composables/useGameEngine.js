@@ -11,16 +11,21 @@ export function useGameEngine() {
     // --- Game State ---
     const gameState = reactive({
         currentStageId: initialStageId,
-        currentStageId: initialStageId,
-        // Phases: INTRO -> DIAGNOSTIC_1 -> DIAGNOSTIC_2 -> PSEUDO_WRITE -> DEEP_QUIZ -> EVALUATION
-        phase: 'INTRO',
-        step: 0,
+        // [2026-02-12] 인트로 단계 제거: 바로 진단 1단계로 시작
+        phase: 'DIAGNOSTIC_1',
+        step: 1,
         playerHP: 100,
         score: 0,
         combo: 0,
 
         // State for Decisions
         selectedStrategyLabel: "", // Set in Phase 2
+        diagnosticAnswer: "",
+        diagnosticResult: null,
+        diagnosticAnswer2: "", // [2026-02-12] 2단계 답변 추가
+        diagnosticResult2: null, // [2026-02-12] 2단계 결과 추가
+        isEvaluatingDiagnostic: false,
+
         // Phase 3 State
         phase3Reasoning: "",
         phase3Placeholder: `IF 코드에 'scaler.fit(' 또는 'encoder.fit(' 패턴이 있음
@@ -103,17 +108,13 @@ THEN
 
         try {
             switch (newPhase) {
-                case 'INTRO':
-                    gameState.step = 0;
-                    gameState.coduckMessage = "새로운 보안 위협이 감지되었습니다.";
-                    addSystemLog("새로운 퀘스트 로드 완료", "INFO");
-                    break;
                 case 'DIAGNOSTIC_1':
                     gameState.coduckMessage = "이 선택은 이후 모든 판단에 영향을 줍니다.";
                     addSystemLog("진단 프로토콜 1단계 개시", "INFO");
                     break;
                 case 'DIAGNOSTIC_2':
                     gameState.coduckMessage = "무엇을 신뢰할지 결정해야 합니다.";
+                    gameState.feedbackMessage = null; // 초기화
                     addSystemLog("진단 프로토콜 2단계 진입", "INFO");
                     break;
                 case 'PSEUDO_WRITE':

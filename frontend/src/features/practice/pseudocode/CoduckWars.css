@@ -124,12 +124,14 @@
 }
 
 .big-question {
-  font-size: 32px;
+  /* [2026-02-12] 폰트 크기 축소 (32px -> 24px) */
+  font-size: 24px;
   font-weight: 900;
   color: white;
   line-height: 1.3;
   letter-spacing: -0.5px;
-  margin-bottom: 40px;
+  margin-bottom: 30px;
+  /* 여백도 살짝 줄임 */
 }
 
 /* 선택지 카드 프리미엄 스타일 */
@@ -201,6 +203,160 @@
   transform: translateX(0);
 }
 
+/* [2026-02-12] 진단 문제 AI 평가 결과 카드 */
+.diagnostic-result-card {
+  background: rgba(0, 255, 157, 0.05);
+  border: 1px solid rgba(0, 255, 157, 0.2);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.diagnostic-result-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: #00ff9d;
+  box-shadow: 0 0 10px rgba(0, 255, 157, 0.5);
+}
+
+.dr-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.dr-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #00ff9d;
+  letter-spacing: 1px;
+}
+
+.dr-score {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.dr-analysis {
+  font-size: 15px;
+  color: #e0e0e0;
+  line-height: 1.6;
+  margin-bottom: 12px;
+  font-style: italic;
+}
+
+.dr-feedback {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+/* AI 로딩 오버레이 */
+.ai-loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* [2026-02-12] 아키텍트 모범 답안 박스 */
+.model-answer-box {
+  margin-top: 16px;
+  background: rgba(168, 85, 247, 0.08);
+  border: 1px solid rgba(168, 85, 247, 0.2);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.ma-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.ma-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #a855f7;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.ma-content {
+  font-size: 14px;
+  color: #d1d5db;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* [2026-02-12] 1단계 답변 참고 영역 */
+.previous-answer-ref {
+  background: rgba(6, 182, 212, 0.05);
+  border: 1px solid rgba(6, 182, 212, 0.2);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 24px;
+}
+
+.ref-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.ref-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: #22d3ee;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.ref-content {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.5;
+  margin: 0;
+  font-style: italic;
+}
+
 /* 의사코드 에디터 특화 스타일 */
 .monaco-textarea {
   background: transparent;
@@ -220,25 +376,35 @@
   white-space: pre-wrap;
 }
 
+/* [2026-02-12] 이미지 싱크: 에디터 영역을 프리미엄 딥 네이비 스타일로 변경 */
 .monaco-wrapper {
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 16px;
+  background: #0a1220;
+  /* 이미지의 깊이감 있는 딥 네이비 배경 */
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  /* 은은하게 빛나는 블루 테두리 */
+  border-radius: 20px;
+  /* 더 부드러운 라운딩 적용 */
   display: flex;
   overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(0, 0, 0, 0.2);
+  /* 안팎으로 깊이감 추가 */
 }
 
 .line-numbers {
   width: 50px;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.25);
+  /* 살짝 더 어두운 배경으로 구분감 강화 */
   display: flex;
   flex-direction: column;
-  padding: 8px 0;
+  padding: 12px 0;
   align-items: center;
-  color: rgba(255, 255, 255, 0.1);
+  color: rgba(59, 130, 246, 0.4);
+  /* 번호 색상을 테마에 맞춰 블루톤으로 변경 */
   font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
   user-select: none;
+  border-right: 1px solid rgba(59, 130, 246, 0.1);
+  /* 에디터 본문과의 미세한 구분선 */
 }
 
 .action-bar-bottom {
@@ -425,4 +591,74 @@
     opacity: 1;
     transform: translateX(0);
   }
+}
+
+/* [2026-02-12] 진단 단계 서술형 UI 스타일 */
+.diagnostic-code-box {
+  background: #05080f;
+  /* 딥 블랙 배경으로 코드 가독성 극대화 */
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #94a3b8;
+  white-space: pre-wrap;
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+.diagnostic-textarea {
+  width: 100%;
+  min-height: 140px;
+  /* 2~3문장을 적기에 넉넉한 높이 */
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 20px;
+  color: #e2e8f0;
+  font-size: 15px;
+  line-height: 1.6;
+  resize: vertical;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+}
+
+.diagnostic-textarea:focus {
+  background: rgba(59, 130, 246, 0.05);
+  /* 포커스 시 은은한 블루 배경 */
+  border-color: rgba(59, 130, 246, 0.4);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+}
+
+.diagnostic-textarea::placeholder {
+  color: rgba(255, 255, 255, 0.15);
+  font-size: 14px;
+}
+
+/* 코드 내 하이라이트 색상 (선택사항) */
+.diagnostic-code-box .code-comment {
+  color: #64748b;
+  font-style: italic;
+}
+
+.diagnostic-code-box .code-highlight {
+  color: #f87171;
+  font-weight: bold;
+}
+
+/* [2026-02-12] 진단 지문 내 설명부 강조 */
+.diagnostic-instruction {
+  font-weight: 800;
+  /* 매우 굵게 */
+  color: #ffffff;
+  /* 완전한 화이트 */
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.diagnostic-code {
+  color: #94a3b8;
+  opacity: 0.9;
 }

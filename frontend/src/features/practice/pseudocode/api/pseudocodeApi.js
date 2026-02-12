@@ -167,14 +167,6 @@ export async function evaluatePseudocode5D(problem, pseudocode) {
                 aiScoreScaled = (aiResult.overall_score / 100) * 60;
             }
 
-            // 치명적 오류 시 AI 점수 페널티 로직 삭제 - 사용자 요청 반영 (사고 흐름 중심 평가)
-            /*
-            if (hasCriticalErrors) {
-                aiScoreScaled = aiScoreScaled * 0.5;
-                console.log('[5D Evaluation] Penalty applied due to critical errors');
-            }
-            */
-
             aiScoreScaled = Math.round(aiScoreScaled);
 
             // 3. 최종 점수 합산
@@ -473,6 +465,56 @@ export function getAICacheStats() {
 }
 
 /**
+ * ✅ [2026-02-12] 신규: 서술형 진단 문제 AI 평가
+ */
+export async function evaluateDiagnosticAnswer(question, userAnswer) {
+    const rubric = question.evaluationRubric || {};
+
+    const systemPrompt = `당신은 데이터 과학 교육 전문가입니다.
+학생의 진단 문제 답변을 평가하고 JSON으로 응답하세요.
+
+# 정답 논리
+${rubric.correctAnswer || "데이터 누수 차이 설명"}
+
+# 루브릭
+- 키워드: ${rubric.keyKeywords?.join(', ') || "leakage, fit"}
+- 채점 기준: ${JSON.stringify(rubric.gradingCriteria || [])}
+
+# 출력 형식 (JSON)
+{
+  "score": 0-100,
+  "is_correct": boolean,
+  "feedback": "전문적이고 친절한 피드백 (한글, 150자 이내)",
+  "analysis": "어떤 부분이 맞고 틀렸는지에 대한 간략한 분석"
+}`;
+
+    try {
+        const response = await axios.post('/api/core/ai-proxy/', {
+            model: 'gpt-4o-mini',
+            messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: `학생의 답변: "${userAnswer}"` }
+            ],
+            response_format: { type: "json_object" }
+        }, { timeout: 15000 });
+
+        let result = response.data.content;
+        if (typeof result === 'string') {
+            result = safeJSONParse(result);
+        }
+        return result || { score: 50, is_correct: false, feedback: "분석을 완료하지 못했습니다." };
+
+    } catch (error) {
+        console.error('[Diagnostic Evaluation Error]', error);
+        return {
+            score: 70,
+            is_correct: true,
+            feedback: "진지한 추론 시도에 감사드립니다. (서버 연결 지연으로 기본 통과 처리)"
+        };
+    }
+}
+
+/**
  * 정합성 체크 (Reasoning vs Implementation)
  * [2026-02-12] Added to support useCodeRunner.js
  */
@@ -535,27 +577,4 @@ Return JSON:
             gaps: []
         };
     }
-}
-
-/**
- * 기존 호환성 유지용 래퍼
- */
-export async function quickCheckPseudocode(problem, pseudocode) {
-    console.warn('[Deprecated] quickCheckPseudocode is deprecated. Use evaluatePseudocode5D instead.');
-    const result = await evaluatePseudocode5D(problem, pseudocode);
-
-    // 기존 형식으로 변환
-    return {
-        passed: result.overall_score >= 50,
-        score: result.overall_score,
-        grade: result.grade,
-        criticalErrors: result.weaknesses,
-        feedback: result.dimensions.coherence?.basis || '평가 완료',
-        encouragement: result.overall_score >= 70 ? '잘하고 있습니다! 👍' : '개선해봅시다! 💪',
-        improvements: result.weaknesses,
-        details: {
-            concepts: Object.keys(result.dimensions).filter(k => result.dimensions[k].score > 50)
-        },
-        aiTutorAvailable: !result.fallback
-    };
 }
