@@ -1,7 +1,6 @@
 import { ref } from 'vue';
 // 🔥 루브릭 기반 평가 (0점부터 시작, 명확한 5등급)
 import { evaluateWithRubric } from '../services/architectureRubricEvaluator';
-import { getAvailableSubAgents, getAllQuestionStrategies } from '../services/architectureApiMasterAgent';
 // ✅ NEW: 하이브리드 질문 생성 (안티패턴 체크 + CoT + 동적 Pillar 선별)
 import { generateFollowUpQuestions } from '../services/architectureHybridQuestionGenerator';
 import {
@@ -42,10 +41,6 @@ export function useEvaluation() {
 
   // Chat messages for evaluation context
   const chatMessages = ref([]);
-
-  // 6대 기둥 정보 (평가지표)
-  const sixPillars = ref(getAvailableSubAgents());
-  const allQuestionStrategies = ref(getAllQuestionStrategies());
 
   // 에러 메시지 상태
   const answerValidationError = ref('');
@@ -441,10 +436,6 @@ export function useEvaluation() {
 
     // 🔥 검증 상태
     answerValidationError,
-
-    // 6대 기둥 정보
-    sixPillars,
-    allQuestionStrategies,
 
     // Methods
     submitDeepDiveAnswer,
