@@ -7,7 +7,7 @@
  * txt 파일에서 [핵심 분석 원칙] 섹션만 파싱하여 사용
  */
 
-import architectureProblems from '@/data/architecture_advanced_gcp.json';
+import axios from 'axios';
 
 // 6대 기둥 txt 파일 import (Vite ?raw 쿼리 사용)
 import reliabilityTxt from '@/data/신뢰성.txt?raw';
@@ -143,10 +143,24 @@ async function callOpenAI(prompt, options = {}) {
 }
 
 /**
- * 문제 데이터 로드
+ * 문제 데이터 로드 (DB에서 가져오기)
  */
 export async function fetchProblems() {
-  return architectureProblems;
+  try {
+    const response = await axios.get('/api/core/practices/unit03/');
+    const practiceData = response.data;
+
+    // details 배열에서 content_data 추출하고 practice_detail_id 추가
+    const problems = practiceData.details.map(detail => ({
+      ...detail.content_data,
+      practice_detail_id: detail.id  // DB ID를 추가로 저장 (제출 시 사용)
+    }));
+
+    return problems;
+  } catch (error) {
+    console.error('문제 데이터 로드 실패:', error);
+    throw new Error('아키텍처 문제를 불러올 수 없습니다.');
+  }
 }
 
 /**

@@ -118,9 +118,12 @@ export function transformProblems(data) {
 
     return {
       problemId: item.problem_id,
+      practice_detail_id: item.practice_detail_id, // DB 제출용 ID
+      problem_id: item.problem_id, // API 호환용
       title: item.title,
       scenario: item.scenario,
       description: item.scenario, // 기존 호환성
+      constraints: item.constraints || [], // API 호환용
       requirements: requirementsArray,
       missions: missions,
       engineeringSpec: item.engineering_spec,

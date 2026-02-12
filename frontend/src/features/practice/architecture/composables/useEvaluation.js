@@ -1,4 +1,5 @@
 import { ref } from 'vue';
+import axios from 'axios';
 // 🔥 루브릭 기반 평가 (0점부터 시작, 명확한 5등급)
 import { evaluateWithRubric } from '../services/architectureRubricEvaluator';
 // ✅ NEW: 하이브리드 질문 생성 (안티패턴 체크 + CoT + 동적 Pillar 선별)
@@ -350,6 +351,48 @@ export function useEvaluation() {
   }
 
   /**
+   * DB에 제출하는 함수
+   */
+  async function submitToDatabase(problem, droppedComponents, connections, mermaidCode, evaluationResult) {
+    try {
+      // practice_detail_id가 있는지 확인
+      if (!problem.practice_detail_id) {
+        console.warn('⚠️ practice_detail_id가 없어서 제출을 건너뜁니다.');
+        return;
+      }
+
+      const submitData = {
+        detail_id: problem.practice_detail_id,
+        score: evaluationResult.totalScore || 0,
+        submitted_data: {
+          problem_id: problem.problem_id,
+          components: droppedComponents,
+          connections: connections,
+          mermaid_code: mermaidCode,
+          user_explanation: userExplanation.value,
+          deep_dive_answers: collectedDeepDiveAnswers.value,
+          evaluation_result: {
+            totalScore: evaluationResult.totalScore,
+            pillarScores: evaluationResult.pillarScores,
+            summary: evaluationResult.summary,
+            evaluatedAt: new Date().toISOString()
+          }
+        }
+      };
+
+      console.log('📤 제출 데이터:', submitData);
+
+      const response = await axios.post('/api/core/activity/submit/', submitData);
+
+      console.log('✅ 제출 성공:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ 제출 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
    * 직접 평가 실행
    */
   async function directEvaluate(problem, droppedComponents, connections, mermaidCode) {
@@ -380,6 +423,15 @@ export function useEvaluation() {
         architectureContext,
         userExplanation.value, // 사용자 설명 전달
         deepDiveQnA
+      );
+
+      // ✅ 평가 완료 후 자동으로 DB에 제출
+      await submitToDatabase(
+        problem,
+        droppedComponents,
+        connections,
+        mermaidCode,
+        evaluationResult.value
       );
     } catch (error) {
       console.error('Rubric Evaluation error:', error);
