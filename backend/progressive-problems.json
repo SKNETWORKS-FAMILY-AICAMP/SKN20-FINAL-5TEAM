@@ -647,7 +647,7 @@
           "debugging_guide": "각 배치에서 param.grad 값을 출력해보세요. 매번 초기화되지 않고 계속 커지고 있다면 zero_grad()가 빠진 것입니다.",
           "solution_check": {
             "type": "regex",
-            "value": "for\\s+batch_idx[^\\n]*:[\\s\\S]*?optimizer\\.zero_grad\\(\\)[\\s\\S]*?output\\s*=\\s*model\\(data\\)[\\s\\S]*?loss\\s*=\\s*criterion\\(output,\\s*target\\)[\\s\\S]*?loss\\.backward\\(\\)[\\s\\S]*?optimizer\\.step\\(\\)",
+            "value": "for\\s+batch_idx[^\\n]*:[\\s\\S]*?\\n {8}optimizer\\.zero_grad\\(\\)[\\s\\S]*?\\n {8}output\\s*=\\s*model\\(data\\)[\\s\\S]*?loss\\.backward\\(\\)[\\s\\S]*?optimizer\\.step\\(\\)",
             "flags": ""
           },
           "error_info": {
@@ -672,7 +672,7 @@
           "debugging_guide": "print(model.training)을 train/validation 각각에서 찍어보세요.",
           "solution_check": {
             "type": "regex",
-            "value": "optimizer\\.step\\(\\)[\\s\\S]*?model\\.eval\\(\\)[\\s\\S]*?with\\s+torch\\.no_grad",
+            "value": "optimizer\\.step\\(\\)[\\s\\S]*?\\n {4}model\\.eval\\(\\)[\\s\\S]*?with\\s+torch\\.no_grad",
             "flags": ""
           },
           "error_info": {
@@ -697,7 +697,7 @@
           "debugging_guide": "배치마다 lr를 출력해보고, 에포크마다 한 번만 감소하는지 확인하세요.",
           "solution_check": {
             "type": "regex",
-            "value": "for\\s+batch[\\s\\S]*?optimizer\\.step\\(\\)[\\s\\S]*?\\n\\s{0,4}scheduler\\.step\\(\\)",
+            "value": "for\\s+batch[\\s\\S]*?optimizer\\.step\\(\\)[\\s\\S]*?\\n {4}scheduler\\.step\\(\\)",
             "flags": ""
           },
           "error_info": {
