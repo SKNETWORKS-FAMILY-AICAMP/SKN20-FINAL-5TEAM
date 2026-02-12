@@ -13,7 +13,7 @@
  * 4. 질문만 생성 → 사고 과정(CoT) 먼저 작성 후 질문 생성
  */
 
-import architectureProblems from '@/data/architecture.json';
+import architectureProblems from '@/data/architecture_advanced_gcp.json';
 
 // 6대 기둥 txt 파일 import
 import reliabilityTxt from '@/data/신뢰성.txt?raw';

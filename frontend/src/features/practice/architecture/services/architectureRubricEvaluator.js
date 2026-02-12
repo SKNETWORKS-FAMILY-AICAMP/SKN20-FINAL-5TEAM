@@ -75,38 +75,38 @@ function extractPrinciples(txtContent) {
 }
 
 /**
- * 6대 기둥 매핑
+ * 6대 기둥 매핑 (Well-Architected Framework)
  */
 const AXIS_TO_PILLAR = {
-  scalability: {
-    name: '확장성 (Scalability)',
-    emoji: '📈',
-    principles: extractPrinciples(performanceTxt)
-  },
-  performance: {
-    name: '성능 (Performance)',
+  performance_optimization: {
+    name: '성능 최적화 (Performance Optimization)',
     emoji: '⚡',
     principles: extractPrinciples(performanceTxt)
-  },
-  availability: {
-    name: '가용성 (Availability)',
-    emoji: '🔄',
-    principles: extractPrinciples(reliabilityTxt)
   },
   reliability: {
     name: '신뢰성 (Reliability)',
     emoji: '🏗️',
     principles: extractPrinciples(reliabilityTxt)
   },
-  consistency: {
-    name: '일관성 (Consistency)',
-    emoji: '🔀',
-    principles: extractPrinciples(securityTxt)
+  operational_excellence: {
+    name: '운영 우수성 (Operational Excellence)',
+    emoji: '⚙️',
+    principles: extractPrinciples(operationalTxt)
+  },
+  cost_optimization: {
+    name: '비용 최적화 (Cost Optimization)',
+    emoji: '💰',
+    principles: extractPrinciples(costTxt)
   },
   security: {
     name: '보안 (Security)',
     emoji: '🔐',
     principles: extractPrinciples(securityTxt)
+  },
+  sustainability: {
+    name: '지속가능성 (Sustainability)',
+    emoji: '🌱',
+    principles: extractPrinciples(sustainabilityTxt)
   }
 };
 
@@ -183,47 +183,47 @@ const RUBRIC_GRADES = {
  * 문제에 따라 특정 기준을 강조
  */
 const AXIS_SPECIFIC_RUBRICS = {
-  scalability: {
-    excellent: '캐시 샤딩, 로드 밸런싱, 동적 스케일링 전략 상세 설명',
-    good: '수평 확장 전략 언급, 일부 구체적 기술 제시',
-    fair: '확장성 고려 있으나 구체성 부족',
-    poor: '확장성 방안 미흡',
-    failing: '확장성 무시 또는 완전 오류'
-  },
-  performance: {
-    excellent: 'latency 목표값, 캐싱 전략, 인덱싱 등 구체적 최적화 방안',
-    good: '성능 고려, 캐시/인덱싱 등 1-2개 기술 언급',
-    fair: '성능 최적화 인식 있으나 미흡',
-    poor: '성능 방안 불충분',
-    failing: '성능 무시'
-  },
-  availability: {
-    excellent: 'RTO/RPO 정의, Failover, 다중화 전략 상세',
-    good: '가용성 방안 기본 수준 설명',
-    fair: '가용성 고려 있으나 구체성 부족',
-    poor: '가용성 방안 미흡',
-    failing: '가용성 무시'
+  performance_optimization: {
+    excellent: 'latency 목표값, 캐싱 전략, 인덱싱, 샤딩 등 구체적 최적화 방안과 트레이드오프 설명',
+    good: '성능 최적화 고려, 캐시/인덱싱 등 1-2개 기술 언급',
+    fair: '성능 최적화 인식 있으나 구체성 부족',
+    poor: '성능 최적화 방안 불충분',
+    failing: '성능 최적화 무시'
   },
   reliability: {
-    excellent: '데이터 무결성, 트랜잭션, 멱등성, 모니터링 전략 상세',
-    good: '신뢰성 방안 기본 수준 설명',
+    excellent: '데이터 무결성, 트랜잭션, 멱등성, RTO/RPO, Failover, 모니터링 전략 상세',
+    good: '신뢰성 방안 기본 수준 설명 (복제, 백업 등)',
     fair: '신뢰성 고려 있으나 구체성 부족',
     poor: '신뢰성 방안 미흡',
     failing: '신뢰성 무시'
   },
-  consistency: {
-    excellent: '강한/약한 일관성 선택 및 정당화, 조정 전략 상세',
-    good: '일관성 수준 언급, 기본 방안 설명',
-    fair: '일관성 고려 있으나 모호',
-    poor: '일관성 방안 불명확',
-    failing: '일관성 무시'
+  operational_excellence: {
+    excellent: '자동화, 모니터링, 로깅, 배포 전략, IaC, 장애 대응 프로세스 상세',
+    good: '운영 측면 고려, 모니터링/로깅 등 기본 방안 언급',
+    fair: '운영 고려 있으나 구체성 부족',
+    poor: '운영 방안 미흡',
+    failing: '운영 측면 무시'
+  },
+  cost_optimization: {
+    excellent: '리소스 최적화, 예약 인스턴스, 스팟 인스턴스, 스토리지 계층화, 비용 모니터링 상세',
+    good: '비용 고려, 리소스 효율화 등 1-2개 방안 언급',
+    fair: '비용 인식 있으나 구체성 부족',
+    poor: '비용 최적화 방안 미흡',
+    failing: '비용 측면 무시'
   },
   security: {
-    excellent: '암호화, IAM, VPC, 감사 로깅 등 다층 보안 전략',
+    excellent: '암호화(전송/저장), IAM, VPC, 최소 권한, 감사 로깅, 규정 준수 등 다층 보안 전략',
     good: '보안 고려, 1-2개 기술 (암호화, IAM 등) 언급',
     fair: '보안 인식 있으나 미흡',
     poor: '보안 방안 불충분',
     failing: '보안 무시'
+  },
+  sustainability: {
+    excellent: '에너지 효율, 리소스 활용 최적화, 탄소 배출 최소화, 지역 선택 전략 상세',
+    good: '지속가능성 고려, 리소스 효율화 등 기본 방안 언급',
+    fair: '지속가능성 인식 있으나 구체성 부족',
+    poor: '지속가능성 방안 미흡',
+    failing: '지속가능성 무시'
   }
 };
 
@@ -464,23 +464,23 @@ ${axisRubricFormat}
 {
   "evaluations": [
     {
-      "axis": "scalability",
-      "axisName": "확장성",
-      "weight": 35,
+      "axis": "performance_optimization",
+      "axisName": "성능 최적화",
+      "weight": 30,
       "grade": "good",
       "score": 82,
-      "reasoning": "아키텍처에서 Redis 캐시와 로드 밸런싱이 명시되었고, 수평 확장을 고려한 설계입니다. 다만 일관된 해싱(Consistent Hashing)과 샤딩 전략의 구체적 설명이 부족합니다.",
-      "feedback": "수평 확장은 잘 설계되었으나, 새로운 캐시 노드 추가 시 기존 데이터 재분배 방법을 명시해야 합니다.",
-      "modelAnswer": "확장성을 위해 Redis를 일관된 해싱으로 샤딩하여 신규 노드 추가 시 재해싱 비용을 최소화합니다. 각 서버는 CircuitBreaker 패턴으로 캐시 장애를 격리하고, 부하에 따라 자동으로 인스턴스를 증설합니다.",
+      "reasoning": "아키텍처에서 Redis 캐시와 인덱싱이 명시되었고, 응답 지연 최적화를 고려한 설계입니다. 다만 캐시 샤딩 전략과 구체적인 latency 목표값이 부족합니다.",
+      "feedback": "캐시 전략은 잘 설계되었으나, 응답 시간 목표(SLA)와 샤딩 방법을 명시해야 합니다.",
+      "modelAnswer": "Redis 캐시를 일관된 해싱으로 샤딩하여 읽기 지연을 100ms 이하로 유지하고, DB 인덱스 전략으로 조회 성능을 최적화합니다.",
       "improvements": [
-        "일관된 해싱 구현 방식 명시",
-        "캐시 워밍 전략 추가",
-        "최대 동시 연결 수 정의"
+        "latency 목표값(SLA) 명시",
+        "캐시 샤딩 전략 추가",
+        "핫 데이터 관리 방안 정의"
       ]
     },
     {
-      "axis": "performance",
-      "axisName": "성능",
+      "axis": "reliability",
+      "axisName": "신뢰성",
       "weight": 25,
       "grade": "good",
       "score": 78,
@@ -488,17 +488,17 @@ ${axisRubricFormat}
     },
     ...반드시 정확히 6개...
     {
-      "axis": "security",
-      "axisName": "보안",
-      "weight": 0,
+      "axis": "sustainability",
+      "axisName": "지속가능성",
+      "weight": 5,
       "grade": "fair",
       "score": 65,
       ...
     }
   ],
   "weightedScores": {
-    "scalability": 28.7,
-    "performance": 19.5,
+    "performance_optimization": 24.6,
+    "reliability": 19.5,
     ...
   },
   "overallScore": 76,
@@ -523,7 +523,7 @@ ${axisRubricFormat}
 \`\`\`
 
 **주의사항**:
-- 반드시 정확히 6개 기둥 (scalability, performance, availability, reliability, consistency, security)
+- 반드시 정확히 6개 기둥 (performance_optimization, reliability, operational_excellence, cost_optimization, security, sustainability)
 - 각 기둥 점수는 0-100 정수
 - 각 기둥에 grade 포함 (excellent, good, fair, poor, failing)
 - weightedScores = score × weight / 100
@@ -594,21 +594,21 @@ ${axisRubricFormat}
  */
 function buildPillarScores(evaluations) {
   const axisToPillar = {
-    scalability: 'scalability',
-    performance: 'performanceOptimization',
-    availability: 'availability',
+    performance_optimization: 'performanceOptimization',
     reliability: 'reliability',
-    consistency: 'consistency',
-    security: 'securityPrivacyCompliance'
+    operational_excellence: 'operationalExcellence',
+    cost_optimization: 'costOptimization',
+    security: 'security',
+    sustainability: 'sustainability'
   };
 
   const scores = {
-    scalability: 0,
     performanceOptimization: 0,
-    availability: 0,
     reliability: 0,
-    consistency: 0,
-    securityPrivacyCompliance: 0
+    operationalExcellence: 0,
+    costOptimization: 0,
+    security: 0,
+    sustainability: 0
   };
 
   evaluations.forEach(ev => {
@@ -626,11 +626,12 @@ function buildPillarScores(evaluations) {
  */
 function buildNfrScores(evaluations) {
   const scores = {
-    scalability: { score: 0, feedback: '', grade: 'fair' },
-    availability: { score: 0, feedback: '', grade: 'fair' },
-    performance: { score: 0, feedback: '', grade: 'fair' },
-    consistency: { score: 0, feedback: '', grade: 'fair' },
-    reliability: { score: 0, feedback: '', grade: 'fair' }
+    performance_optimization: { score: 0, feedback: '', grade: 'fair' },
+    reliability: { score: 0, feedback: '', grade: 'fair' },
+    operational_excellence: { score: 0, feedback: '', grade: 'fair' },
+    cost_optimization: { score: 0, feedback: '', grade: 'fair' },
+    security: { score: 0, feedback: '', grade: 'fair' },
+    sustainability: { score: 0, feedback: '', grade: 'fair' }
   };
 
   evaluations.forEach(ev => {
