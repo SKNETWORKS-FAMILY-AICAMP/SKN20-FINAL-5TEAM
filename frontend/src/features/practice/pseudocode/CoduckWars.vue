@@ -142,7 +142,7 @@
                       <div v-for="(log, i) in gameState.systemLogs.slice(-3)" :key="i" class="log-line">
                           <span class="t-time">[{{ log.time }}]</span>
                           <span :class="'t-' + log.type.toLowerCase()">{{ log.type }}</span>
-                          <span class="ml-2">{{ log.message }}</span>
+                          <span class="t-msg">{{ log.message }}</span>
                       </div>
                   </div>
               </div>
@@ -216,22 +216,15 @@ scaler.fit(df)  # 전체 데이터로 학습하는 누수 발생</pre>
                   </div>
               </div>
 
-              <div class="flex-1 flex flex-col min-h-0">
-                  <!-- 의사코드 입력 에디터 -->
-                  <div class="monaco-wrapper flex-1 max-h-[270px]">
-                      <div class="line-numbers">
-                          <span v-for="n in 15" :key="n">{{ n }}</span>
+              <div class="editor-layout">
+                  <div class="editor-header">
+                      <div class="tabs">
+                          <button class="tab active">
+                              <Code2 class="w-4 h-4 mr-2" />
+                              의사코드 작성
+                          </button>
                       </div>
-                      <textarea 
-                          v-model="gameState.phase3Reasoning"
-                          @input="handlePseudoInput"
-                          :placeholder="gameState.phase3Placeholder"
-                          class="monaco-textarea w-full"
-                      ></textarea>
-                  </div>
-
-                      <!-- [2026-02-11] 체크리스트 알림 제거 (좌측 패널로 통합 이전 완료) -->
-                      <div class="action-bar-bottom">
+                      <div class="actions">
                           <button 
                               :disabled="!canSubmitPseudo || isProcessing"
                               @click="submitPseudo"
@@ -241,54 +234,140 @@ scaler.fit(df)  # 전체 데이터로 학습하는 누수 발생</pre>
                           </button>
                       </div>
                   </div>
-              </div>
-
-              <!-- [2026-02-11] PHASE: DEEP_QUIZ / TAIL_QUESTION (Step 3: 심화 진단) -->
-              <div v-else-if="gameState.phase === 'DEEP_QUIZ' || gameState.phase === 'TAIL_QUESTION'" class="space-y-8">
-                  <div class="system-status-text">STEP_03: ANALYSIS_SIMULATION</div>
-                  <h3 class="big-question">{{ deepQuizQuestion.question }}</h3>
                   
-                  <div class="options-list">
-                      <div v-for="(opt, idx) in deepQuizQuestion.options"
-                           :key="idx"
-                           @click="submitDeepQuiz(idx)"
-                           class="option-card gold-hover">
-                          <div class="opt-index gold-idx">{{ idx + 1 }}</div>
-                          <div class="opt-content">
-                              <p class="opt-main">{{ opt.text }}</p>
+                  <div class="editor-body">
+                      <!-- 의사코드 입력 에디터 -->
+                      <div class="monaco-wrapper flex-1 max-h-[270px]">
+                          <div class="line-numbers">
+                              <span v-for="n in 15" :key="n">{{ n }}</span>
                           </div>
-                          <div class="opt-arrow"><ArrowRight /></div>
-                      </div>
-                  </div>
-              </div>
-
-              <!-- [2026-02-11] PHASE: EVALUATION (최종 리포트) -->
-              <div v-else-if="gameState.phase === 'EVALUATION'" class="evaluation-view">
-                  <div class="report-card">
-                      <div class="report-header mb-8">
-                          <span class="text-emerald-400 font-black tracking-widest text-xs uppercase">Mission Complete</span>
-                          <h2 class="text-4xl font-black mt-2">FINAL ARCHITECT REPORT</h2>
+                          <textarea 
+                              v-model="gameState.phase3Reasoning"
+                              @input="handlePseudoInput"
+                              class="monaco-textarea w-full"
+                              placeholder="// 여기에 의사코드를 작성하세요..."
+                              spellcheck="false"
+                          ></textarea>
                       </div>
                       
-                      <div class="grid grid-cols-2 gap-10">
-                          <div class="radar-area bg-black/40 p-6 rounded-2xl border border-white/5">
-                              <svg viewBox="0 0 200 200" class="w-full aspect-square">
-                                  <polygon v-for="level in 5" :key="level" :points="calculatePentagonPoints(level * 20)" class="fill-none stroke-white/10" stroke-width="0.5" />
-                                  <polygon :points="radarPoints" class="fill-emerald-500/20 stroke-emerald-500" stroke-width="1.5" />
-                              </svg>
+                      <!-- 실시간 가이드라인 체크리스트 -->
+                      <div class="guideline-overlay">
+                          <div class="guide-header">
+                              <CheckCircle class="w-4 h-4 text-green-400" />
+                              <span>작성 가이드</span>
                           </div>
-                          <div class="text-left space-y-6">
-                              <div class="score-block">
-                                  <span class="block text-[10px] text-slate-500 uppercase font-black">Overall Fitness</span>
-                                  <span class="text-6xl font-black text-white">{{ evaluationResult.finalScore || evaluationResult.totalScore }}%</span>
+                          <div class="guide-list">
+                              <div 
+                                  v-for="(rule, idx) in ruleChecklist" 
+                                  :key="idx"
+                                  class="guide-item"
+                                  :class="{ 'checked': rule.checked }"
+                              >
+                                  <div class="checkbox">
+                                      <Check v-if="rule.checked" class="w-3 h-3" />
+                                  </div>
+                                  <span>{{ rule.label }}</span>
                               </div>
-                              <p class="text-sm text-slate-400 leading-relaxed italic">"{{ evaluationResult.seniorAdvice }}"</p>
-                              <button @click="resetFlow" class="btn-reset-large w-full">REBOOT_SYSTEM</button>
                           </div>
                       </div>
                   </div>
               </div>
+          </div>
 
+        <!-- [STEP 3] Python 시각화 및 분기 단계 -->
+        <section v-else-if="gameState.phase === 'PYTHON_VISUALIZATION'" class="visualization-phase">
+            <CodeFlowVisualizer
+                :python-code="evaluationResult?.converted_python"
+                :score="evaluationResult?.overall_score"
+                :feedback="evaluationResult?.python_feedback"
+                @next="handlePythonVisualizationNext"
+            />
+        </section>
+
+        <!-- [STEP 3-1] Tail Question 단계 (80점 미만) -->
+        <section v-else-if="gameState.phase === 'TAIL_QUESTION'" class="tail-question-phase">
+            <div class="tail-question-area">
+                <div class="tq-header">
+                    <span class="tq-icon">💡</span>
+                    <span class="tq-title">개념 보완이 필요해요 (Score: {{ evaluationResult?.overall_score }})</span>
+                </div>
+                
+                <div class="tq-content">
+                    {{ deepQuizQuestion?.question }}
+                </div>
+                
+                <div class="tq-options">
+                    <button 
+                        v-for="(option, idx) in deepQuizQuestion?.options" 
+                        :key="idx"
+                        @click="handleTailSelection(option)"
+                        class="btn-tq-option"
+                    >
+                        {{ option.text }}
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- [STEP 3-2] Deep Dive 단계 (80점 이상) -->
+        <section v-else-if="gameState.phase === 'DEEP_QUIZ'" class="deep-dive-phase">
+             <!-- 기존 Deep Dive UI 유지 또는 개선 -->
+             <div class="deep-dive-container">
+                <h3>🚀 심화 학습 (Deep Dive)</h3>
+                <!-- Deep Dive 컴포넌트나 내용 -->
+             </div>
+        </section>
+
+          <!-- [STEP 4] 최종 리포트 (EVALUATION) -->
+        <section v-else-if="gameState.phase === 'EVALUATION'" class="evaluation-phase">
+            <div class="report-card">
+                <div class="report-header">
+                    <h2>MISSION REPORT</h2>
+                    <div class="total-score">
+                        <span class="score-val">{{ evaluationResult?.overall_score || 0 }}</span>
+                        <span class="score-label">TOTAL SCORE</span>
+                    </div>
+                </div>
+
+                <div class="score-breakdown">
+                    <!-- Rule-based Score (40%) -->
+                    <div class="score-item rule-score">
+                        <div class="si-label">RULE ADHERENCE (40%)</div>
+                        <div class="progress-bar">
+                            <div class="fill" :style="{ width: (evaluationResult?.rule_score || 0) + '%' }"></div>
+                        </div>
+                        <span class="si-val">{{ evaluationResult?.rule_score || 0 }}/40</span>
+                    </div>
+
+                    <!-- AI Metric Score (60%) -->
+                    <div class="score-item ai-score">
+                        <div class="metrics-grid">
+                            <div v-for="(dim, key) in evaluationResult?.dimensions" :key="key" class="metric-box">
+                                <span class="m-label">{{ key.toUpperCase() }}</span>
+                                <span class="m-score">{{ dim.score }}/12</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mentor-feedback">
+                    <h3>🤖 AI MENTOR FEEDBACK</h3>
+                    <p class="feedback-text">"{{ evaluationResult?.strengths?.[0] || '분석 결과가 없습니다.' }}"</p>
+                    <p class="feedback-sub" v-if="evaluationResult?.weaknesses?.[0]">
+                        보완점: {{ evaluationResult?.weaknesses[0] }}
+                    </p>
+                </div>
+                
+                <div class="actions">
+                    <button @click="resetFlow" class="btn-restart">
+                        <RotateCcw class="w-4 h-4 mr-2" /> RESTART MISSION
+                    </button>
+                    <button @click="handlePracticeClose" class="btn-close">
+                        MISSION COMPLETE
+                    </button>
+                </div>
+            </div>
+        </section>
           </section>
       </div>
     </main>
@@ -406,6 +485,7 @@ import {
   AlertOctagon, Info, ArrowRight, Lightbulb, Check, 
   Code2, Play, CheckCircle, Brain, BarChart3, RotateCcw 
 } from 'lucide-vue-next';
+import CodeFlowVisualizer from './components/CodeFlowVisualizer.vue';
 
 const router = useRouter();
 const gameStore = useGameStore();
@@ -432,6 +512,9 @@ const {
     submitDiagnostic2,
     handlePseudoInput,
     submitDeepQuiz,
+    submitPseudo,
+    handlePythonVisualizationNext,
+    handleTailSelection, // [Import]
     resetFlow,
     handlePracticeClose
 } = useCoduckWars();
@@ -525,8 +608,13 @@ const applyLabData = (type) => {
     try {
         const reviver = (k, v) => {
             if (typeof v === 'string' && v.startsWith('/') && v.lastIndexOf('/') > 0) {
-                const parts = v.match(/\/(.*)\/(.*)/);
-                if (parts) return new RegExp(parts[1], parts[2]);
+                try {
+                    const parts = v.match(/\/(.*)\/(.*)/);
+                    if (parts) return new RegExp(parts[1], parts[2]);
+                } catch (e) {
+                    console.warn('[Validator] Failed to parse regex:', v);
+                    return v; // Return as string if parsing fails
+                }
             }
             return v;
         };
@@ -927,6 +1015,210 @@ const getScoreColor = (s) => (s >= 80 ? 'text-emerald-400' : s >= 50 ? 'text-amb
 .t-ready { color: #4ade80; font-weight: bold; animation: pulse 2s infinite; }
 .cursor-blink { animation: blink 1s step-end infinite; color: #4ade80; margin-left: 5px; }
 
+/* [STEP 4] Evaluation UI Styles */
+.evaluation-phase {
+  width: 100%;
+  height: 100%;
+  padding: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 50;
+}
+
+.report-card {
+  width: 800px;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 16px;
+  padding: 40px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #334155;
+  padding-bottom: 20px;
+}
+
+.report-header h2 {
+  font-size: 2rem;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: -0.05em;
+  margin: 0;
+}
+
+.total-score {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.total-score .score-val {
+  font-size: 3rem;
+  font-weight: 900;
+  color: #10b981;
+  line-height: 1;
+}
+
+.total-score .score-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 0.1em;
+}
+
+.score-breakdown {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 30px;
+}
+
+.score-item {
+  background: #1e293b;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid #334155;
+}
+
+.si-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #94a3b8;
+  margin-bottom: 15px;
+  letter-spacing: 0.05em;
+}
+
+.rule-score .progress-bar {
+  height: 24px;
+  background: #334155;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.rule-score .fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  transition: width 1s ease-out;
+}
+
+.si-val {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #fff;
+  display: block;
+  text-align: right;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+
+.metric-box {
+  background: #0f172a;
+  padding: 10px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #334155;
+}
+
+.m-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #64748b;
+  margin-bottom: 5px;
+}
+
+.m-score {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #10b981;
+}
+
+.mentor-feedback {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 25px;
+  border-radius: 12px;
+}
+
+.mentor-feedback h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #10b981;
+  margin: 0 0 10px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.feedback-text {
+  font-size: 1.1rem;
+  color: #fff;
+  font-style: italic;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.feedback-sub {
+  font-size: 0.9rem;
+  color: #94a3b8;
+  margin-top: 10px;
+}
+
+.actions {
+  display: flex;
+  gap: 15px;
+  justify-content: flex-end;
+}
+
+.btn-restart, .btn-close {
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+}
+
+.btn-restart {
+  background: #334155;
+  color: #fff;
+  border: none;
+}
+
+.btn-restart:hover {
+  background: #475569;
+}
+
+.btn-close {
+  background: #10b981;
+  color: #0f172a;
+  border: none;
+}
+
+.btn-close:hover {
+  background: #34d399;
+}
 @keyframes blink { 50% { opacity: 0; } }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 

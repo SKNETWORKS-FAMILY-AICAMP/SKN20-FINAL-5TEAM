@@ -133,12 +133,15 @@ def evaluate_pseudocode_5d(request):
                 status=status.HTTP_200_OK
             )
         
-        # LLM 평가 호출
+        # LLM 평가 및 Python 변환 호출
+        request_python_conversion = request.data.get('request_python_conversion', False)
+        
         llm_result = call_llm_evaluation(
             quest_title=quest_title,
             pseudocode=pseudocode,
             rule_score=rule_result.get('score', 0),
-            rule_concepts=rule_result.get('concepts', [])
+            rule_concepts=rule_result.get('concepts', []),
+            request_python_conversion=request_python_conversion
         )
         
         # 규칙 점수와 LLM 점수 혼합 (Rule 40% + LLM 60%)
@@ -172,7 +175,7 @@ def evaluate_pseudocode_5d(request):
         )
 
 
-def call_llm_evaluation(quest_title: str, pseudocode: str, rule_score: int, rule_concepts: list) -> Dict[str, Any]:
+def call_llm_evaluation(quest_title: str, pseudocode: str, rule_score: int, rule_concepts: list, request_python_conversion: bool = False) -> Dict[str, Any]:
     """
     OpenAI API를 호출하여 5차원 평가 수행
     """
@@ -210,13 +213,16 @@ JSON 형식:
     "architecture": {{ ... }}
   }},
   "strengths": ["강점1", "강점2"],
-  "weaknesses": ["약점1", "약점2"]
+  "weaknesses": ["약점1", "약점2"],
+  "converted_python": "변환된 Python 코드 (문자열)",
+  "python_feedback": "Python 변환 관련 피드백 (80점 미만일 때 꼬리질문 힌트용)"
 }}
 
 **중요**: 
 - overall_score는 5개 차원 점수의 평균
 - 키워드만 나열한 경우 abstraction은 40점 이하
 - 구체적인 개선 방법을 제시하세요
+- 의사코드를 기반으로 실행 가능한 Python 코드로 변환하여 converted_python에 담아주세요.
 """
     
     # OpenAI API 호출 (최대 3회 재시도)

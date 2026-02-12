@@ -62,5 +62,4 @@ urlpatterns = [
 
     path('pseudocode/execute/', execute_python_code, name='pseudocode_execute'),
     path('pseudocode/evaluate-5d', pseudocode_evaluation.evaluate_pseudocode_5d),
-    path('ai-proxy/', pseudocode_evaluation.ai_proxy),
 ]

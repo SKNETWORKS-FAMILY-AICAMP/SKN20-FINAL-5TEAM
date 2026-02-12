@@ -73,50 +73,23 @@ export async function evaluatePseudocode5D(problem, pseudocode) {
 
     const evaluationPromise = (async () => {
         try {
-            // STEP 1: 규칙 기반 사전 검증 (40%)
+            // STEP 1: 규칙 기반 사전 검증 (40점 만점)
             console.log('[5D Evaluation] Step 1: Rule-based validation...');
             const validator = new PseudocodeValidator(problem);
             const ruleResult = validator.validate(pseudocode);
 
-            // 치명적 오류가 있으면 즉시 반환 (AI 호출 불필요)
-            if (!ruleResult.passed) {
-                console.log('[5D Evaluation] Critical errors found, skipping AI');
-                return {
-                    overall_score: Math.min(ruleResult.score, 40),
-                    rule_score: ruleResult.score,
-                    ai_score: 0,
-                    dimensions: {
-                        coherence: {
-                            score: 0,
-                            basis: "치명적 오류로 평가 불가",
-                            specific_issue: ruleResult.criticalErrors[0].message,
-                            improvement: ruleResult.criticalErrors[0].example
-                        },
-                        abstraction: { score: 0, basis: "치명적 오류로 평가 불가" },
-                        exception_handling: { score: 0, basis: "치명적 오류로 평가 불가" },
-                        implementation: { score: 0, basis: "치명적 오류로 평가 불가" },
-                        architecture: { score: 0, basis: "치명적 오류로 평가 불가" }
-                    },
-                    grade: 'critical-error',
-                    strengths: [],
-                    weaknesses: ruleResult.criticalErrors.map(e => e.message),
-                    tail_question: {
-                        should_show: true,
-                        reason: "치명적 오류 수정 필요",
-                        question: "치명적인 문법 오류가 발견되었습니다. 수정하시겠습니까?",
-                        hint: "의사코드 형식을 다시 확인하세요.",
-                        options: [
-                            { text: "네, 수정하겠습니다.", is_correct: true, reason: "오류 수정이 우선입니다." },
-                            { text: "아니요, 그대로 제출합니다.", is_correct: false, reason: "오류가 있는 코드는 실행될 수 없습니다." }
-                        ]
-                    },
-                    next_phase: 'TAIL_QUESTION',
-                    hybrid: true,
-                    fallback: false
-                };
+            // 치명적 오류가 있어도 AI 평가는 진행하되, 플래그 설정 및 감점
+            let hasCriticalErrors = false;
+            if (ruleResult && typeof ruleResult.passed === 'boolean') {
+                hasCriticalErrors = !ruleResult.passed;
             }
 
-            // STEP 2: AI 5차원 평가 (60%)
+            if (hasCriticalErrors) {
+                console.warn('[5D Evaluation] Critical errors found, but proceeding to AI for feedback');
+                // 감점 로직은 후술
+            }
+
+            // STEP 2: AI 5차원 평가 (60점 만점)
             console.log('[5D Evaluation] Step 2: AI 5D metrics evaluation...');
 
             // 캐시 확인
@@ -134,6 +107,8 @@ export async function evaluatePseudocode5D(problem, pseudocode) {
             let aiResult;
 
             try {
+                // 백엔드에 5차원 평가 및 Python 변환 요청
+                // 주의: 백엔드는 0-100점 스케일로 반환한다고 가정
                 const response = await axios.post('/api/core/pseudocode/evaluate-5d', {
                     quest_id: problem.id,
                     quest_title: problem.title || problem.missionObjective,
@@ -143,8 +118,10 @@ export async function evaluatePseudocode5D(problem, pseudocode) {
                         score: ruleResult.score,
                         concepts: Array.from(ruleResult.details.concepts || []),
                         warnings: ruleResult.warnings
-                    }
-                }, { timeout: 15000 });
+                    },
+                    // [STEP 3] Python 변환 요청 플래그 추가
+                    request_python_conversion: true
+                }, { timeout: 35000 }); // 타임아웃 35초로 연장 (변환 시간 고려)
 
                 aiResult = response.data;
                 console.log('[5D Evaluation] AI response received:', aiResult.overall_score);
@@ -155,7 +132,7 @@ export async function evaluatePseudocode5D(problem, pseudocode) {
                 // Fallback: 규칙 기반으로 5차원 생성
                 console.log('[5D Evaluation] Fallback to rule-based dimensions');
                 aiResult = {
-                    overall_score: ruleResult.score,
+                    overall_score: ruleResult.score, // 0-100
                     dimensions: generateRuleBasedDimensions(ruleResult, pseudocode),
                     strengths: ruleResult.details.structure?.feedback?.filter(f => f.includes('✅')) || [],
                     weaknesses: ruleResult.warnings,
@@ -163,35 +140,108 @@ export async function evaluatePseudocode5D(problem, pseudocode) {
                 };
             }
 
-            // STEP 3: 하이브리드 점수 계산 (Rule 40% + AI 60%)
-            const combinedScore = Math.round(
-                (ruleResult.score * 0.4) + (aiResult.overall_score * 0.6)
-            );
+            // STEP 3: 점수 통합 및 스케일링
+            // 요구사항: AI 5지표 각 12점씩 총 60점 + Rule 40점 = 100점
 
-            console.log('[5D Evaluation] Scores:', {
-                rule: ruleResult.score,
-                ai: aiResult.overall_score,
-                combined: combinedScore
+            // 1. Rule 점수 (0-100) -> 40점 만점으로 변환
+            const ruleScoreScaled = Math.round(ruleResult.score * 0.4);
+
+            // 2. AI 점수 (0-100) -> 60점 만점으로 변환
+            let aiScoreScaled = 0;
+
+            // AI Dimensions 스케일링 (100점 -> 12점)
+            if (aiResult.dimensions) {
+                Object.keys(aiResult.dimensions).forEach(key => {
+                    const dim = aiResult.dimensions[key];
+                    // 원본 점수(100만점)를 12점으로 변환
+                    dim.original_score = dim.score; // 백업
+                    dim.score = (dim.score / 100) * 12;
+
+                    // 소수점 1자리까지 (UI 표시용)
+                    dim.score = Math.round(dim.score * 10) / 10;
+
+                    aiScoreScaled += dim.score;
+                });
+            } else {
+                // Dimensions가 없는 경우 overall_score 기반으로 배분
+                aiScoreScaled = (aiResult.overall_score / 100) * 60;
+            }
+
+            // 치명적 오류 시 AI 점수 페널티 로직 삭제 - 사용자 요청 반영 (사고 흐름 중심 평가)
+            /*
+            if (hasCriticalErrors) {
+                aiScoreScaled = aiScoreScaled * 0.5;
+                console.log('[5D Evaluation] Penalty applied due to critical errors');
+            }
+            */
+
+            aiScoreScaled = Math.round(aiScoreScaled);
+
+            // 3. 최종 점수 합산
+            const combinedScore = ruleScoreScaled + aiScoreScaled;
+
+            console.log('[5D Evaluation] Final Scores:', {
+                rule_raw: ruleResult.score,
+                rule_scaled_40: ruleScoreScaled,
+                ai_raw: aiResult.overall_score,
+                ai_scaled_60: aiScoreScaled,
+                total: combinedScore,
+                hasCriticalErrors
             });
 
-            // STEP 4: Tail Question 생성
+            // STEP 4: Tail Question 생성 (80점 미만 시)
             const tailQuestion = generateTailQuestion(aiResult.dimensions, combinedScore);
 
             // STEP 5: 다음 단계 결정
+            // 80점 이상 -> DEEP_QUIZ
+            // 80점 미만 -> TAIL_QUESTION
             const nextPhase = combinedScore >= 80 ? 'DEEP_QUIZ' : 'TAIL_QUESTION';
+
+            // 치명적 오류가 있었다면 강제로 TAIL_QUESTION 및 안내
+            let finalTailQuestion = tailQuestion;
+            if (hasCriticalErrors) {
+                const firstError = ruleResult.criticalErrors[0]?.message || "필수 개념 누락";
+                finalTailQuestion = {
+                    should_show: true,
+                    reason: "규칙 위반 (Rule Critical Error)",
+                    question: `설계에서 치명적인 문제가 발견되었습니다: "${firstError}". 이를 해결하기 위해 어떤 수정이 필요할까요?`,
+                    hint: "문제 조건을 다시 한 번 꼼꼼히 읽어보세요.",
+                    options: [
+                        { text: "네, 수정하겠습니다.", is_correct: true, reason: "규칙 준수 필요" },
+                        { text: "아니요, 이대로 진행합니다.", is_correct: false, reason: "규칙 위반 시 감점 요인" }
+                    ]
+                };
+            }
+
+            // [STEP 4-1] Python 피드백이 있다면 이를 우선 반영 (규칙 오류가 없을 때)
+            if (!hasCriticalErrors && combinedScore < 80 && aiResult.python_feedback) {
+                finalTailQuestion = {
+                    should_show: true,
+                    reason: "Python 변환 중 논리 허점 발견",
+                    question: `작성하신 의사코드를 Python으로 변환하는 과정에서 다음 이슈가 발견되었습니다: "${aiResult.python_feedback}". 이를 보완하시겠습니까?`,
+                    hint: "구체적인 로직(예: fit 호출 전 데이터 분리 등)을 명시하세요.",
+                    options: [
+                        { text: "네, 보완하겠습니다.", is_correct: true, reason: "논리적 완성도 향상" },
+                        { text: "현재 로직으로 충분합니다.", is_correct: false, reason: "잠재적 오류 위험" }
+                    ]
+                };
+            }
 
             const result = {
                 overall_score: combinedScore,
-                rule_score: ruleResult.score,
-                ai_score: aiResult.overall_score,
-                dimensions: aiResult.dimensions,
+                rule_score: ruleScoreScaled,
+                ai_score: aiScoreScaled,
+                dimensions: aiResult.dimensions, // 이제 12점 스케일
                 grade: getGrade(combinedScore),
                 strengths: aiResult.strengths || [],
-                weaknesses: aiResult.weaknesses || [],
-                tail_question: tailQuestion,
-                next_phase: nextPhase,
+                weaknesses: [...(aiResult.weaknesses || []), ...(ruleResult.criticalErrors.map(e => e.message))],
+                tail_question: finalTailQuestion,
+                next_phase: hasCriticalErrors ? 'TAIL_QUESTION' : nextPhase,
                 hybrid: true,
-                fallback: false
+                fallback: false,
+                // ✅ Python 변환 결과 포함
+                converted_python: aiResult.converted_python || "",
+                python_feedback: aiResult.python_feedback || ""
             };
 
             // 캐시 저장
