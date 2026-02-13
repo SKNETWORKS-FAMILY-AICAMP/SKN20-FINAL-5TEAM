@@ -24,6 +24,7 @@ class AIProxyView(APIView):
             model = request.data.get('model', 'gpt-4o-mini')
             max_tokens = request.data.get('max_tokens', 1500)
             temperature = request.data.get('temperature', 0.7)
+            response_format = request.data.get('response_format')
 
             if not messages:
                 return Response({"error": "Messages are required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -34,20 +35,27 @@ class AIProxyView(APIView):
                 print("[AIProxy] Error: OPENAI_API_KEY is missing in settings.", flush=True)
                 return Response({"error": "OpenAI API Key is missing on server"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-            print(f"[AIProxy] Loaded API Key: {api_key[:10]}...{api_key[-4:]} (Length: {len(api_key)})", flush=True)
-
             client = openai.OpenAI(api_key=api_key)
 
             # 3. OpenAI API 호출
-            # [수정일: 2026-02-09] 모델 명시 (gpt-4o-mini) 및 로그 추가 (Antigravity)
             print(f"[AIProxy] Calling OpenAI ({model})...", flush=True)
-            # print(f"[AIProxy] Messages: {messages}", flush=True) # Too verbose
-            response = client.chat.completions.create(
-                model="gpt-4o-mini", # Force gpt-4o-mini for now to be sure
-                messages=messages,
-                max_tokens=max_tokens,
-                temperature=temperature
-            )
+            
+            call_params = {
+                "model": model,
+                "messages": messages,
+                "max_tokens": max_tokens,
+                "temperature": temperature
+            }
+            
+            if response_format:
+                call_params["response_format"] = response_format
+
+            response = client.chat.completions.create(**call_params)
+
+            # 4. 응답 반환
+            ai_content = response.choices[0].message.content
+            print(f"[AIProxy] OpenAI Call Success! (Model: {model})", flush=True)
+            return Response({"content": ai_content}, status=status.HTTP_200_OK)
 
             # 4. 응답 반환
             ai_content = response.choices[0].message.content

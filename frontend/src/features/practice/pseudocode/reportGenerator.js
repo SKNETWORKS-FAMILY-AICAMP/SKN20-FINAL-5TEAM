@@ -4,9 +4,8 @@
  */
 
 export class ReportGenerator {
-  constructor(apiKey) {
-    this.apiKey = apiKey;
-    this.baseUrl = 'https://api.anthropic.com/v1/messages';
+  constructor(apiKey = null) {
+    this.baseUrl = '/api/core/ai-proxy/';
   }
 
   /**
@@ -14,9 +13,9 @@ export class ReportGenerator {
    */
   async generateFinalReport(metrics, totalScore) {
     const prompt = this.buildReportPrompt(metrics, totalScore);
-    
+
     try {
-      const response = await this.callClaude(prompt, 1500);
+      const response = await this.callGPT(prompt, 1500);
       return this.parseReport(response);
     } catch (error) {
       console.error('리포트 생성 실패:', error);
@@ -123,24 +122,22 @@ export class ReportGenerator {
   }
 
   /**
-   * Claude API 호출
+   * GPT API 호출 (백엔드 프록시 경유)
    */
-  async callClaude(prompt, maxTokens = 1500) {
+  async callGPT(prompt, maxTokens = 1500) {
     const response = await fetch(this.baseUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': this.apiKey,
-        'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: maxTokens,
-        temperature: 0.3,  // 일관성 향상
-        messages: [{
-          role: 'user',
-          content: prompt
-        }]
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: 'You are a veteran AI architect providing final reports. Respond strictly in the requested format.' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.3,
+        max_tokens: maxTokens
       })
     });
 
@@ -149,7 +146,7 @@ export class ReportGenerator {
     }
 
     const data = await response.json();
-    return data.content[0].text;
+    return data.content;
   }
 
   /**
@@ -192,7 +189,7 @@ export class ReportGenerator {
    */
   getFallbackReport(metrics, totalScore) {
     const { strongest, weakest } = this.analyzeMetrics(metrics);
-    
+
     let persona = '기초를 다지는 성장기 분석가';
     if (totalScore >= 80) {
       persona = '완벽한 방어기제의 철옹성 설계자';
@@ -265,7 +262,7 @@ export class ReportGenerator {
  */
 export async function generateCompleteLearningReport(evaluationResults, apiKey) {
   const generator = new ReportGenerator(apiKey);
-  
+
   // 1. 최종 진단 리포트
   const finalReport = await generator.generateFinalReport(
     evaluationResults.metrics,

@@ -931,7 +931,12 @@ export function useCoduckWars() {
         handlePythonVisualizationNext,
         handleTailSelection,
         resetFlow: () => startGame(),
-        handlePracticeClose: () => router.push('/practice')
+        handlePracticeClose: () => router.push('/practice'),
+
+        // [2026-02-14] Hint Duck State
+        showHintDuck,
+        toggleHintDuck,
+        dynamicHintMessage
     };
 
 }

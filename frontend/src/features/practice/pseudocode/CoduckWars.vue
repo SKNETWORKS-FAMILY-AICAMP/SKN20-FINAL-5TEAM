@@ -20,6 +20,10 @@
       </div>
       <!-- [2026-02-14 수정] 듀토리얼 버튼 및 실습 종료 버튼 분리 -->
       <div class="header-actions">
+        <!-- [2026-02-14] 힌트보기 버튼 헤더(붉은색 위치) 배치 -->
+        <button v-if="isNaturalLanguagePhase" class="btn-hint-header" @click="toggleHintDuck" :class="{ 'is-active': showHintDuck }">
+           <Lightbulb class="w-4 h-4 mr-1.5" /> 힌트보기
+        </button>
         <button class="btn-tutorial-trigger" @click="startTutorial">
           <BookOpen class="w-4 h-4 mr-2" /> 사용법(튜토리얼)
         </button>
@@ -143,11 +147,24 @@
                               </div>
                           </div>
                           <textarea v-model="gameState.diagnosticAnswer" class="diagnostic-textarea" placeholder="분석 내용을 입력하세요..." :disabled="gameState.isEvaluatingDiagnostic"></textarea>
-                          <button @click="submitDiagnostic()" class="btn-execute-large w-full-btn" :disabled="(!gameState.diagnosticAnswer || gameState.diagnosticAnswer.trim().length < 5) && !gameState.diagnosticResult || gameState.isEvaluatingDiagnostic">
-                              <template v-if="gameState.isEvaluatingDiagnostic">분석 중... <RotateCcw class="w-5 h-5 ml-2 animate-spin" /></template>
-                              <template v-else-if="gameState.diagnosticResult">다음 단계 진행 <ArrowRight class="w-5 h-5 ml-2" /></template>
-                              <template v-else>분석 완료 제출 <CheckCircle class="w-5 h-5 ml-2" /></template>
-                          </button>
+                          
+                          <div class="actions relative mt-4">
+                              <Transition name="fade-slide">
+                                <div v-if="showHintDuck" class="hint-duck-wrapper" @click="toggleHintDuck" title="클릭하면 다시 숨깁니다">
+                                    <div class="hint-bubble">
+                                        <div class="hb-content">{{ dynamicHintMessage || '분석 중입니다...' }}</div>
+                                        <div class="hb-tail"></div>
+                                    </div>
+                                    <img src="@/assets/image/unit_duck.png" alt="Hint Duck" class="hint-unit-img clickable-duck" />
+                                </div>
+                              </Transition>
+
+                              <button @click="submitDiagnostic()" class="btn-execute-large w-full-btn" :disabled="(!gameState.diagnosticAnswer || gameState.diagnosticAnswer.trim().length < 5) && !gameState.diagnosticResult || gameState.isEvaluatingDiagnostic">
+                                  <template v-if="gameState.isEvaluatingDiagnostic">분석 중... <RotateCcw class="w-5 h-5 ml-2 animate-spin" /></template>
+                                  <template v-else-if="gameState.diagnosticResult">다음 단계 진행 <ArrowRight class="w-5 h-5 ml-2" /></template>
+                                  <template v-else>분석 완료 제출 <CheckCircle class="w-5 h-5 ml-2" /></template>
+                              </button>
+                          </div>
                       </div>
                       <!-- 객관식 UI (CHOICE) [2026-02-12] 코덕 비주얼 복구 -->
                       <div v-else-if="diagnosticQuestion.type === 'CHOICE'" class="choice-interaction-area">
@@ -222,26 +239,17 @@
                               </div>
                           </div>
 
-                          <div class="actions flex items-center gap-4 relative">
-                              <!-- [2026-02-14 수정] 실시간 힌트 오리 & 말풍선 (유동적 위치) [유닛 오리 이미지 경로 수정] -->
+                          <div class="actions flex items-center justify-end gap-4 relative">
+                              <!-- [2026-02-14] 실시간 힌트 오리 & 말풍선 (버튼 왼쪽 위치) -->
                               <Transition name="fade-slide">
-                                <div v-if="showHintDuck" class="hint-duck-wrapper">
+                                <div v-if="showHintDuck" class="hint-duck-wrapper" @click="toggleHintDuck" title="클릭하면 다시 숨깁니다">
                                     <div class="hint-bubble">
                                         <div class="hb-content">{{ dynamicHintMessage || '분석 중입니다...' }}</div>
                                         <div class="hb-tail"></div>
                                     </div>
-                                    <img src="@/assets/image/unit_duck.png" alt="Hint Duck" class="hint-unit-img" />
+                                    <img src="@/assets/image/unit_duck.png" alt="Hint Duck" class="hint-unit-img clickable-duck" />
                                 </div>
                               </Transition>
-
-                              <!-- [2026-02-14 수정] 힌트보기 버튼 추가 (심화분석 시작 왼쪽에 배치) -->
-                              <button 
-                                  class="btn-hint-toggle"
-                                  @click="toggleHintDuck"
-                                  :class="{ 'is-active': showHintDuck }"
-                              >
-                                  <Lightbulb class="w-4 h-4 mr-1.5" /> 힌트보기
-                              </button>
 
                               <button 
                                   :disabled="!canSubmitPseudo || isProcessing"
@@ -256,7 +264,7 @@
               </div>
 
               <!-- [STEP 3] Python 시각화 및 분기 단계 [2026-02-13] decision-panel 내부로 이동 -->
-              <div v-else-if="gameState.phase === 'PYTHON_VISUALIZATION'" class="visualization-phase h-full">
+              <div v-else-if="gameState.phase === 'PYTHON_VISUALIZATION'" class="visualization-phase flex-1 flex flex-col min-h-0">
                   <CodeFlowVisualizer
                       :pseudo-code="gameState.phase3Reasoning"
                       :python-code="evaluationResult?.converted_python"
@@ -275,7 +283,7 @@
               </div>
 
               <!-- [STEP 3-1] Tail Question 단계 (80점 미만) [2026-02-13] decision-panel 내부로 이동 -->
-              <div v-else-if="gameState.phase === 'TAIL_QUESTION'" class="tail-question-phase">
+              <div v-else-if="gameState.phase === 'TAIL_QUESTION'" class="tail-question-phase flex-1 flex flex-col min-h-0">
                   <div class="tail-question-area">
                       <div class="tq-header">
                           <span class="tq-icon">💡</span>
@@ -300,7 +308,7 @@
               </div>
 
               <!-- [STEP 3-2] Deep Dive 단계 (80점 이상) [2026-02-13] decision-panel 내부로 이동 -->
-              <div v-else-if="gameState.phase === 'DEEP_QUIZ'" class="deep-dive-phase">
+              <div v-else-if="gameState.phase === 'DEEP_QUIZ'" class="deep-dive-phase flex-1 flex flex-col min-h-0">
                    <div class="deep-dive-container">
                       <h3 class="deep-dive-title">🚀 심화 학습 (Deep Dive)</h3>
                       <div class="deep-dive-content">
@@ -321,7 +329,7 @@
               </div>
 
               <!-- [STEP 4] 최종 리포트 (EVALUATION) [2026-02-13] decision-panel 내부로 이동 -->
-              <div v-else-if="gameState.phase === 'EVALUATION'" class="evaluation-phase relative">
+              <div v-else-if="gameState.phase === 'EVALUATION'" class="evaluation-phase relative flex-1 flex flex-col min-h-[700px]">
                   <!-- [2026-02-13] 복기 학습 모드 시 미션 정보 재노출 -->
                   <div v-if="evaluationResult?.is_low_effort || gameState.hasUsedBlueprint" class="mission-instruction-compact animate-slideDownFade mb-6">
                       <div class="mi-section">
@@ -333,7 +341,7 @@
                           <p class="mi-desc-small">{{ currentMission?.designContext?.writingGuide?.replace('[필수 포함 조건 (Constraint)]\n', '') }}</p>
                       </div>
                   </div>
-                  <div v-if="tutorialAnalyzing" class="ai-analysis-simulation absolute inset-0 z-[100] bg-[#0a1220] flex flex-col items-center justify-center rounded-2xl border border-blue-500/30">
+                  <div v-if="tutorialAnalyzing || (isProcessing && gameState.phase === 'EVALUATION')" class="ai-analysis-simulation absolute inset-0 z-[100] bg-[#0a1220] flex flex-col items-center justify-center rounded-2xl border border-blue-500/30">
                       <LoadingDuck message="AI 아키텍트가 전체 설계의 정합성과 설계 패턴을 심층 분석 중입니다..." />
                       <div class="analysis-progress-bar w-64 h-1.5 bg-slate-800 rounded-full mt-4 overflow-hidden">
                           <div class="analysis-progress-fill h-full bg-blue-500 animate-loading-bar"></div>
@@ -387,16 +395,17 @@
                               <div class="neo-glass-card h-full">
                                   <h3 class="neo-card-title"><Layers size="14" /> Dimension Matrix</h3>
                                   <div class="metric-progress-list">
-                                      <div v-for="(metric, key) in finalReport.metrics" :key="key" class="metric-row-neo">
-                                          <div class="m-top-row">
+                                      <div v-for="(metric, key) in finalReport.metrics" :key="key" class="metric-row-neo premium-feedback">
+                                          <div class="m-header">
                                               <span class="m-name">{{ metric.name }}</span>
-                                              <span class="m-val">{{ metric.score }}%</span>
+                                              <span class="m-score-tag" :style="{ color: getMetricColor(metric.percentage) }">{{ metric.percentage }}%</span>
                                           </div>
-                                          <div class="m-bar-base">
-                                              <div class="m-bar-inner" :style="{ 
-                                                  width: metric.percentage + '%',
-                                                  backgroundColor: getMetricColor(metric.percentage)
-                                              }"></div>
+                                          <div class="m-comment-box">
+                                              <p class="m-comment-text">
+                                                  <span class="quote-icon">"</span>
+                                                  {{ metric.comment }}
+                                                  <span class="quote-icon">"</span>
+                                              </p>
                                           </div>
                                       </div>
                                   </div>
@@ -679,6 +688,16 @@ const {
     handlePracticeClose
 } = coduckWarsComposable;
 
+// [2026-02-14] 자연어 서술 단계 여부 판단 (힌트 버튼 노출용)
+const isNaturalLanguagePhase = computed(() => {
+    // 분석 중이거나 결과가 표시된 상태면 힌트 버튼 숨김
+    if (isProcessing.value || showMetrics.value || tutorialAnalyzing.value) return false;
+    
+    if (gameState.phase === 'PSEUDO_WRITE') return true;
+    if (gameState.phase === 'DIAGNOSTIC_1' && diagnosticQuestion.value?.type === 'DESCRIPTIVE') return true;
+    return false;
+});
+
 
 // ==================== [2026-02-14] 5대 지표 평가 시스템 추가 ====================
 
@@ -689,28 +708,23 @@ const radarChartCanvas = ref(null);
 let radarChartInstance = null;
 
 /**
- * submitPseudo 래퍼 - 5대 지표 평가 통합
+ * 5대 지표 평가 시작
+ * (EVALUATION 단계 진입 시 자동으로 호출됨)
  */
-async function submitPseudoEnhanced() {
+async function runComprehensiveEvaluation() {
+  if (finalReport.value || isProcessing.value) return;
+  
   try {
-    // 1. 기존 평가 실행
-    await originalSubmitPseudo();
-
-    // 2. EVALUATION phase로 전환 대기
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    if (gameState.phase !== 'EVALUATION') {
-      console.warn('[5D] Not in EVALUATION phase yet');
-      return;
-    }
-
-    // 3. 5대 지표 평가 시작
+    isProcessing.value = true;
     console.log('[5D] Starting comprehensive evaluation...');
+    
+    // 로딩 상태 시뮬레이션 (선택적)
+    gameState.feedbackMessage = "시니어 아키텍트가 최종 검토 중입니다...";
     
     const evaluator = new ComprehensiveEvaluator(getApiKey());
     
     const evaluationResults = await evaluator.evaluate({
-      pseudocode: gameState.pseudocode,
+      pseudocode: gameState.phase3Reasoning,
       pythonCode: evaluationResult.value?.converted_python || '',
       deepdive: gameState.deepQuizAnswer || '',
       deepdiveScenario: deepQuizQuestion.value || {}
@@ -730,7 +744,22 @@ async function submitPseudoEnhanced() {
     
   } catch (error) {
     console.error('[5D] Evaluation error:', error);
-    showMetrics.value = false;
+    // 폴백: 최소한 화면은 보여줌
+    showMetrics.value = true;
+  } finally {
+    isProcessing.value = false;
+  }
+}
+
+/**
+ * submitPseudo 래퍼 - 기존 로직만 실행
+ */
+async function submitPseudoEnhanced() {
+  try {
+    // 기존 평가 실행 (PYTHON_VISUALIZATION 단계로 이동함)
+    await originalSubmitPseudo();
+  } catch (error) {
+    console.error('Submission error:', error);
   }
 }
 
@@ -922,8 +951,13 @@ const radarPoints = computed(() => {
     }).join(' ');
 });
 
-watch(() => gameState.phase, () => {
+watch(() => gameState.phase, (newPhase) => {
     gameState.showHint = false;
+    
+    // [2026-02-14] EVALUATION 단계 진입 시 5D 평가 자동 트리거
+    if (newPhase === 'EVALUATION' && !showTutorial.value) {
+        runComprehensiveEvaluation();
+    }
 });
 
 const { monacoOptions, handleMonacoMount } = useMonacoEditor(
@@ -995,6 +1029,84 @@ const { monacoOptions, handleMonacoMount } = useMonacoEditor(
   border-color: #ef4444;
   color: #fff;
   box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+}
+
+/* [2026-02-14] 헤더용 힌트 버튼 (붉은색 위치) */
+.btn-hint-header {
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  color: #fbbf24;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  transition: all 0.2s;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  margin-right: 8px;
+}
+
+.btn-hint-header:hover, .btn-hint-header.is-active {
+  background: rgba(251, 191, 36, 0.25);
+  border-color: #f59e0b;
+  color: #fff;
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+}
+
+.hint-duck-wrapper {
+  position: relative !important;
+  right: auto !important;
+  bottom: auto !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: auto !important;
+  z-index: 1000;
+  cursor: pointer;
+  margin-right: 15px; /* 버튼과의 간격 */
+  align-self: flex-end; /* 버튼 하단 라인에 맞춤 */
+}
+
+.hint-unit-img.clickable-duck {
+  width: 70px;
+  height: 70px;
+  filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.3));
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.hint-duck-wrapper:hover .clickable-duck {
+  transform: scale(1.1);
+  filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.6));
+}
+
+.hint-bubble {
+  position: absolute !important;
+  bottom: 80px !important; /* 오리 머리 위쪽 */
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  width: 380px !important; 
+  min-width: 320px;
+  margin-bottom: 0 !important;
+  z-index: 1001;
+  animation: bubble-bounce 0.4s ease-out;
+}
+
+.hb-tail {
+  position: absolute;
+  bottom: -7px;
+  left: 50% !important;
+  transform: translateX(-50%) rotate(45deg) !important;
+  width: 14px;
+  height: 14px;
+  background: rgba(10, 20, 40, 0.98);
+  border-right: 1.5px solid #3b82f6;
+  border-bottom: 1.5px solid #3b82f6;
+}
+
+@keyframes bubble-bounce {
+  0% { transform: scale(0.8) translateY(10px); opacity: 0; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
 }
 
 .btn-hint-toggle {
@@ -1673,23 +1785,53 @@ const { monacoOptions, handleMonacoMount } = useMonacoEditor(
   margin-bottom: 0.5rem;
 }
 
+.metric-row-neo.premium-feedback {
+    padding: 1rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.m-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.6rem;
+}
+
 .m-name {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #e2e8f0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #f1f5f9;
 }
 
-.m-val {
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: #3b82f6;
+.m-score-tag {
+    font-size: 0.8rem;
+    font-weight: 900;
+    font-family: 'JetBrains Mono', monospace;
+    background: rgba(15, 23, 42, 0.5);
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.m-bar-base {
-  height: 6px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 3px;
-  overflow: hidden;
+.m-comment-box {
+    position: relative;
+    padding-left: 0.5rem;
+}
+
+.m-comment-text {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  line-height: 1.5;
+  margin: 0;
+  font-style: italic;
+  font-weight: 500;
+}
+
+.quote-icon {
+    color: #3b82f6;
+    font-family: serif;
+    font-weight: 900;
+    opacity: 0.6;
 }
 
 .m-bar-inner {

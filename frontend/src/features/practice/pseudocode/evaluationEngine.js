@@ -100,7 +100,7 @@ export class RuleBasedEvaluator {
    */
   getMissingKeywords(pseudocode) {
     const missing = [];
-    
+
     if (!/(격리|분리|split|나누)/i.test(pseudocode)) {
       missing.push('isolation');
     }
@@ -117,9 +117,40 @@ export class RuleBasedEvaluator {
 
 // ==================== LLM 평가 (85점) ====================
 export class LLMEvaluator {
-  constructor(apiKey) {
-    this.apiKey = apiKey;
-    this.baseUrl = 'https://api.anthropic.com/v1/messages';
+  constructor(apiKey = null) {
+    // 백엔드 프록시를 사용하므로 클라이언트 API 키는 부차적입니다.
+    this.baseUrl = '/api/core/ai-proxy/';
+  }
+
+  /**
+   * GPT API 호출 (백엔드 프록시 경유)
+   */
+  async callGPT(prompt, maxTokens = 1000) {
+    const response = await fetch(this.baseUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // 세션 인증이 필요할 경우를 대비해 기존 인증 정보를 포함할 수 있음
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: 'You are an expert AI Architect. Respond ONLY with valid JSON.' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.2,
+        max_tokens: maxTokens,
+        response_format: { type: 'json_object' }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Proxy AI Error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    // 백엔드 프록시는 { content: "..." } 형식으로 반환함
+    return data.content;
   }
 
   /**
@@ -143,10 +174,11 @@ ${pseudocode}
   "anchor_score": 0-5,
   "consistency_score": 0-5,
   "total_score": 0-15,
-  "feedback": "간결한 피드백 1-2문장"
+  "one_line_comment": "논리 구조에 대한 15자 내외의 아주 짧은 총평",
+  "feedback": "상세 피드백 1문장"
 }`;
 
-    const response = await this.callClaude(prompt, 500);
+    const response = await this.callGPT(prompt, 500);
     return this.parseJSON(response);
   }
 
@@ -174,10 +206,11 @@ ${pythonCode}
   "fit_transform_separation": 0-8,
   "production_consistency": 0-9,
   "total_score": 0-25,
-  "feedback": "엔지니어링 관점 피드백 2문장"
+  "one_line_comment": "설계 타당성에 대한 15자 내외의 아주 짧은 총평",
+  "feedback": "상세 피드백 1문장"
 }`;
 
-    const response = await this.callClaude(prompt, 600);
+    const response = await this.callGPT(prompt, 600);
     return this.parseJSON(response);
   }
 
@@ -205,10 +238,11 @@ ${pythonCode}
   "library_usage": 0-4,
   "executability": 0-3,
   "total_score": 0-10,
-  "feedback": "코드 품질 피드백 1문장"
+  "one_line_comment": "코드 품질에 대한 15자 내외의 아주 짧은 총평",
+  "feedback": "상세 피드백 1문장"
 }`;
 
-    const response = await this.callClaude(prompt, 400);
+    const response = await this.callGPT(prompt, 400);
     return this.parseJSON(response);
   }
 
@@ -226,17 +260,18 @@ ${deepDiveAnswer}
 
 [평가 기준]
 ${scenario.intent} (15점)
-핵심 키워드: ${scenario.scoringKeywords.join(', ')}
+핵심 키워드: ${scenario.scoringKeywords?.join(', ') || '관련 키워드'}
 
 [출력 형식 - JSON만]
 {
   "keyword_match_score": 0-8,
   "practical_insight_score": 0-7,
   "total_score": 0-15,
-  "feedback": "실무 적용력 피드백 2문장"
+  "one_line_comment": "위기 대응력에 대한 15자 내외의 아주 짧은 총평",
+  "feedback": "상세 피드백 1문장"
 }`;
 
-    const response = await this.callClaude(prompt, 500);
+    const response = await this.callGPT(prompt, 500);
     return this.parseJSON(response);
   }
 
@@ -261,37 +296,14 @@ Deep Dive: ${allAnswers.deepdive}
   "principle_consistency": 0-10,
   "logical_coherence": 0-10,
   "total_score": 0-20,
-  "feedback": "전체 정합성 평가 2문장"
+  "one_line_comment": "전체 조화에 대한 15자 내외의 아주 짧은 총평",
+  "feedback": "상세 피드백 1문장"
 }`;
 
-    const response = await this.callClaude(prompt, 500);
+    const response = await this.callGPT(prompt, 500);
     return this.parseJSON(response);
   }
 
-  /**
-   * Claude API 호출
-   */
-  async callClaude(prompt, maxTokens = 1000) {
-    const response = await fetch(this.baseUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': this.apiKey,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: maxTokens,
-        messages: [{
-          role: 'user',
-          content: prompt
-        }]
-      })
-    });
-
-    const data = await response.json();
-    return data.content[0].text;
-  }
 
   /**
    * JSON 파싱 (안전)
@@ -402,31 +414,36 @@ export class ComprehensiveEvaluator {
         name: '추상화 (Abstraction)',
         score: results.stage2.abstraction,
         max: 15,
-        percentage: Math.round((results.stage2.abstraction / 15) * 100)
+        percentage: Math.round((results.stage2.abstraction / 15) * 100),
+        comment: results.stage2.one_line_comment || results.stage2.feedback?.abstraction || '논리 구조의 명확성 분석'
       },
       implementation: {
         name: '구현력 (Implementation)',
         score: results.stage3.implementation,
         max: 10,
-        percentage: Math.round((results.stage3.implementation / 10) * 100)
+        percentage: Math.round((results.stage3.implementation / 10) * 100),
+        comment: results.stage3.one_line_comment || results.stage3.feedback?.implementation || '파이썬 코드 변환 정확도'
       },
       design: {
         name: '설계력 (Design)',
         score: results.stage3.design,
         max: 25,
-        percentage: Math.round((results.stage3.design / 25) * 100)
+        percentage: Math.round((results.stage3.design / 25) * 100),
+        comment: results.stage3.one_line_comment || results.stage3.feedback?.design || '파이프라인 흐름의 타당성'
       },
       edgeCase: {
         name: '예외처리 (Edge Case)',
         score: results.stage3.edgeCase,
         max: 15,
-        percentage: Math.round((results.stage3.edgeCase / 15) * 100)
+        percentage: Math.round((results.stage3.edgeCase / 15) * 100),
+        comment: results.stage3.one_line_comment || results.stage3.feedback?.edgeCase || '심화 시나리오 대응 능력'
       },
       consistency: {
         name: '정합성 (Consistency)',
         score: results.stage5.consistency,
         max: 20,
-        percentage: Math.round((results.stage5.consistency / 20) * 100)
+        percentage: Math.round((results.stage5.consistency / 20) * 100),
+        comment: results.stage5.one_line_comment || results.stage5.feedback || '전체 설계의 일관성 유지'
       }
     };
   }
