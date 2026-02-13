@@ -25,11 +25,11 @@ const ongoingRequests = new Map();
  * 차원 이름 매핑
  */
 const DIMENSION_NAMES = {
-    coherence: '정합성',
-    abstraction: '추상화',
-    exception_handling: '예외처리',
+    design: '설계력',
+    consistency: '정합성',
     implementation: '구현력',
-    architecture: '설계력'
+    edge_case: '예외처리',
+    abstraction: '추상화'
 };
 
 /**
@@ -123,7 +123,7 @@ export async function evaluatePseudocode5D(problem, pseudocode, userContext = nu
                     user_diagnostic: userContext,
                     // [STEP 3] Python 변환 요청 플래그 추가
                     request_python_conversion: true
-                }, { timeout: 35000 }); // 타임아웃 35초로 연장 (변환 시간 고려)
+                }, { timeout: 45000 }); // 타임아웃 45초로 연장 (변환 시간 고려)
 
                 aiResult = response.data;
                 console.log('[5D Evaluation] AI response received:', aiResult.overall_score);
@@ -134,51 +134,32 @@ export async function evaluatePseudocode5D(problem, pseudocode, userContext = nu
                 // Fallback: 규칙 기반으로 5차원 생성
                 console.log('[5D Evaluation] Fallback to rule-based dimensions');
                 aiResult = {
-                    overall_score: ruleResult.score, // 0-100
+                    overall_score: Math.round(ruleResult.score * 0.85),
                     dimensions: generateRuleBasedDimensions(ruleResult, pseudocode),
                     strengths: ruleResult.details.structure?.feedback?.filter(f => f.includes('✅')) || [],
                     weaknesses: ruleResult.warnings,
-                    tail_question: null
+                    tail_question: null,
+                    converted_python: "# [오류] AI 분석 중 시간 초과가 발생했습니다.\n# 룰 기반 점수로 우선 평가를 진행합니다.",
+                    python_feedback: "의사코드의 핵심 키워드(격리, 기준점, 일관성)를 포함했는지 확인해 주세요."
                 };
             }
 
-            // STEP 3: 점수 통합 및 스케일링
-            // 요구사항: AI 5지표 각 12점씩 총 60점 + Rule 40점 = 100점
+            // STEP 3: 점수 통합 및 스케일링 (2026-02-13 수정: Rule 15 + AI 85 = 100)
 
-            // 1. Rule 점수 (0-100) -> 40점 만점으로 변환
-            const ruleScoreScaled = Math.round(ruleResult.score * 0.4);
+            // 1. Rule 점수 (0-100) -> 15점 만점으로 변환
+            const ruleScoreScaled = Math.round(ruleResult.score * 0.15);
 
-            // 2. AI 점수 (0-100) -> 60점 만점으로 변환
-            let aiScoreScaled = 0;
-
-            // AI Dimensions 스케일링 (100점 -> 12점)
-            if (aiResult.dimensions) {
-                Object.keys(aiResult.dimensions).forEach(key => {
-                    const dim = aiResult.dimensions[key];
-                    // 원본 점수(100만점)를 12점으로 변환
-                    dim.original_score = dim.score; // 백업
-                    dim.score = (dim.score / 100) * 12;
-
-                    // 소수점 1자리까지 (UI 표시용)
-                    dim.score = Math.round(dim.score * 10) / 10;
-
-                    aiScoreScaled += dim.score;
-                });
-            } else {
-                // Dimensions가 없는 경우 overall_score 기반으로 배분
-                aiScoreScaled = (aiResult.overall_score / 100) * 60;
-            }
-
-            aiScoreScaled = Math.round(aiScoreScaled);
+            // 2. AI 점수 (이미 백엔드에서 각 지표 가중치 합산하여 85점 만점으로 옴)
+            let aiScoreScaled = Math.round(aiResult.overall_score || 0);
 
             // 3. 최종 점수 합산
             const combinedScore = ruleScoreScaled + aiScoreScaled;
 
             console.log('[5D Evaluation] Final Scores:', {
                 rule_raw: ruleResult.score,
-                rule_scaled_40: ruleScoreScaled,
+                rule_scaled_15: ruleScoreScaled,
                 ai_raw: aiResult.overall_score,
-                ai_scaled_60: aiScoreScaled,
+                ai_scaled_85: aiScoreScaled,
                 total: combinedScore,
                 hasCriticalErrors
             });
@@ -191,9 +172,10 @@ export async function evaluatePseudocode5D(problem, pseudocode, userContext = nu
             // 80점 미만 -> TAIL_QUESTION
             const nextPhase = combinedScore >= 80 ? 'DEEP_QUIZ' : 'TAIL_QUESTION';
 
-            // 치명적 오류가 있었다면 강제로 TAIL_QUESTION 및 안내
+            // 치명적 오류가 있었다면 기본적으로 TAIL_QUESTION 권장
+            // 단, 사용자가 입력을 포기한 'is_low_effort' 상태라면 복기 질문을 더 우선함
             let finalTailQuestion = tailQuestion;
-            if (hasCriticalErrors) {
+            if (hasCriticalErrors && !aiResult.is_low_effort) {
                 const firstError = ruleResult.criticalErrors[0]?.message || "필수 개념 누락";
                 finalTailQuestion = {
                     should_show: true,
@@ -207,17 +189,30 @@ export async function evaluatePseudocode5D(problem, pseudocode, userContext = nu
                 };
             }
 
-            // [STEP 4-1] Python 피드백이 있다면 이를 우선 반영 (규칙 오류가 없을 때)
-            if (!hasCriticalErrors && combinedScore < 80 && aiResult.python_feedback) {
+            // [STEP 4-1] AI가 직접 생성한 질문(tail_question 또는 deep_dive)이 있다면 우선 노출
+            // 백엔드의 is_low_effort 모드 대응용
+            if (aiResult.tail_question && aiResult.tail_question.question) {
+                finalTailQuestion = {
+                    ...aiResult.tail_question,
+                    should_show: true,
+                    // 백엔드에서 온 형식이 다를 수 있으므로 매핑 보완
+                    options: (aiResult.tail_question.options || []).map(opt => ({
+                        text: opt.text,
+                        is_correct: opt.is_correct ?? opt.correct ?? false,
+                        reason: opt.reason ?? opt.feedback ?? (opt.is_correct ? '정답입니다!' : '오답입니다.')
+                    }))
+                };
+            } else if ((!hasCriticalErrors || aiResult.deep_dive?.question) && aiResult.deep_dive && aiResult.deep_dive.question) {
                 finalTailQuestion = {
                     should_show: true,
-                    reason: "Python 변환 중 논리 허점 발견",
-                    question: `작성하신 의사코드를 Python으로 변환하는 과정에서 다음 이슈가 발견되었습니다: "${aiResult.python_feedback}". 이를 보완하시겠습니까?`,
-                    hint: "구체적인 로직(예: fit 호출 전 데이터 분리 등)을 명시하세요.",
-                    options: [
-                        { text: "네, 보완하겠습니다.", is_correct: true, reason: "논리적 완성도 향상" },
-                        { text: "현재 로직으로 충분합니다.", is_correct: false, reason: "잠재적 오류 위험" }
-                    ]
+                    reason: aiResult.is_low_effort ? "아키텍처 복기 학습" : "아키텍처 심화 검증",
+                    question: aiResult.deep_dive.question,
+                    hint: aiResult.python_feedback || "제공된 모범 답안(청사진)을 보고 논리를 분석해 보세요.",
+                    options: (aiResult.deep_dive.options || []).map(opt => ({
+                        text: opt.text,
+                        is_correct: opt.is_correct ?? opt.correct ?? false,
+                        reason: opt.reason ?? opt.feedback ?? (opt.is_correct ? '정답입니다!' : '오답입니다.')
+                    }))
                 };
             }
 
@@ -236,9 +231,16 @@ export async function evaluatePseudocode5D(problem, pseudocode, userContext = nu
                 // ✅ Python 변환 결과 포함
                 converted_python: aiResult.converted_python || "",
                 python_feedback: aiResult.python_feedback || "",
+                // ✅ 포기/무성의 응답 플래그
+                is_low_effort: aiResult.is_low_effort || false,
                 // ✅ 백엔드에서 생성된 조언 우선 사용
                 senior_advice: aiResult.senior_advice || "",
                 // ✅ [2026-02-13] 유튜브 추천 영상 포함
+                persona_name: aiResult.persona_name || "분석 중인 아키텍트",
+                one_line_review: aiResult.one_line_review || "전반적으로 양호한 설계입니다.",
+                one_point_lesson: aiResult.one_point_lesson || "격리 수준을 더 높여보세요.",
+                // ✅ 동적 Deep Dive 포함
+                deep_dive: aiResult.deep_dive || null,
                 recommended_videos: getRecommendedVideos(aiResult.dimensions, problem)
             };
 
@@ -260,46 +262,37 @@ export async function evaluatePseudocode5D(problem, pseudocode, userContext = nu
  * Fallback: 규칙 기반으로 5차원 점수 생성
  */
 function generateRuleBasedDimensions(ruleResult, pseudocode) {
-    const baseScore = ruleResult.score;
+    const baseScore = ruleResult.score; // 0-100
     const concepts = Array.from(ruleResult.details.concepts || []);
 
+    // 85점 만점 기준 각 가중치
+    const scale = 0.85;
+
     return {
-        coherence: {
-            score: concepts.length >= 4 ? Math.min(baseScore + 10, 100) : baseScore * 0.7,
-            basis: concepts.length > 0 ? `필수 개념 ${concepts.length}개 포함` : '핵심 로직이 명시되지 않음',
-            specific_issue: concepts.length < 4 ? '핵심 개념 일부 누락' : null,
-            improvement: concepts.length < 4 ? '데이터 분리, fit, transform 개념을 모두 포함하세요' : '적절한 논리 흐름이 필요합니다'
+        design: {
+            score: Math.round((concepts.length >= 4 ? 25 : 15) * scale),
+            basis: concepts.length >= 4 ? '핵심 단계 구성 요소 포함' : '설계 구성 요소 일부 누락',
+            improvement: '전처리 및 학습 흐름을 명확히 하세요.'
         },
-        abstraction: {
-            score: /IF.*THEN/i.test(pseudocode) ? baseScore : baseScore * 0.6,
-            basis: /IF.*THEN/i.test(pseudocode) ?
-                '조건-행동 구조 사용' :
-                '단순 나열 또는 미완성 구조',
-            specific_issue: /IF.*THEN/i.test(pseudocode) ? null : '단순 키워드 나열',
-            improvement: /IF.*THEN/i.test(pseudocode) ? null :
-                'IF-THEN 구조로 조건과 행동을 분리하세요'
-        },
-        exception_handling: {
-            score: /예외|검증|체크|확인|validation|check|error/i.test(pseudocode) ? 60 : 30,
-            basis: /예외|검증|체크/i.test(pseudocode) ?
-                '예외 처리 키워드 포함' :
-                '예외 처리 로직 부재',
-            specific_issue: /예외|검증|체크/i.test(pseudocode) ? null : '엣지 케이스 처리 누락',
-            improvement: /예외|검증|체크/i.test(pseudocode) ? null :
-                '데이터 검증 단계를 추가하세요 (예: IF 데이터가 None THEN 예외 발생)'
+        consistency: {
+            score: Math.round((ruleResult.passed ? 20 : 10) * scale),
+            basis: ruleResult.passed ? '데이터 누수 방지 원칙 준수' : '교차 오염 가능성 발견',
+            improvement: '분할과 변환의 순서를 다시 확인하세요.'
         },
         implementation: {
-            score: baseScore,
-            basis: '구조 점수 기반 (규칙 기반 추정)',
-            specific_issue: baseScore < 70 ? '실행 가능성 낮음' : null,
-            improvement: baseScore < 70 ? '각 단계를 더 구체화하세요' : null
+            score: Math.round((baseScore >= 70 ? 10 : 5) * scale),
+            basis: '가독성 및 논리 전개 수준 기반',
+            improvement: '더 구체적인 동작을 작성하세요.'
         },
-        architecture: {
-            score: ruleResult.details.flow?.score || baseScore * 0.9,
-            basis: '논리적 순서 분석 (규칙 기반 추정)',
-            specific_issue: (ruleResult.details.flow?.score || 0) < 70 ? '단계 간 연결성 부족' : null,
-            improvement: (ruleResult.details.flow?.score || 0) < 70 ?
-                '순서를 번호로 명시하세요 (예: 1. 분할 → 2. fit → 3. transform)' : null
+        edge_case: {
+            score: Math.round((/예외|검증|체크|확인|validation|check|error/i.test(pseudocode) ? 15 : 5) * scale),
+            basis: /예외|검증|체크/i.test(pseudocode) ? '예외 처리 키워드 포함' : '예외 처리 로직 부재',
+            improvement: '데이터 검증 단계를 추가하세요 (예: IF 데이터가 None THEN 예외 발생)'
+        },
+        abstraction: {
+            score: Math.round((/IF.*THEN/i.test(pseudocode) ? 15 : 8) * scale),
+            basis: /IF.*THEN/i.test(pseudocode) ? '조건-행동 구조 사용' : '단순 나열형 구조',
+            improvement: 'IF-THEN 구조로 시스템 아키텍처를 표현해 보세요.'
         }
     };
 }
@@ -545,7 +538,7 @@ export async function generateSeniorAdvice(evaluation, gameState) {
 - 종합 점수가 50점 미만이면 '엄격한 경고와 근본적인 재작성 권고' 위주로 작성
 - 종합 점수가 50점 이상 70점 미만이면 '격려와 구체적인 보완점 제시' 위주로 작성
 - 종합 점수가 80점 이상이면 '격려와 심화 조언' 위주로 작성
-- 말투: 시니어 아키텍트다운 전문적이고 신뢰감 있는 어조 (무조건적인 비난 금지)`; ㅉㅉㅉ
+- 말투: 시니어 아키텍트다운 전문적이고 신뢰감 있는 어조 (무조건적인 비난 금지)`;
 
     const userPrompt = `학생 평가 결과:
 - 종합 점수: ${evaluation.overall_score}/100

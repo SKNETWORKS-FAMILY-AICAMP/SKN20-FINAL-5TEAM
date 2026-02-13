@@ -12,30 +12,15 @@
     <header class="war-room-header">
       <div class="chapter-info">
         <span class="chapter-title">CHAPTER {{ gameState.currentStageId }}: {{ currentMission.title || '로딩 중...' }}</span>
-        <span class="sub-info">{{ currentMission.subModuleTitle || 'BOOT_PROTOCOL' }}</span>
+        <span class="sub-info">{{ currentMission.subModuleTitle || 'LEAKAGE_GUARD' }}</span>
       </div>
-
-      <div class="header-right-group">
-        <div class="integrity-monitor">
-          <span class="integrity-label">정화 무결성</span>
-          <div class="hp-bar-bg">
-               <div class="hp-bar-fill" :style="{ width: Math.max(0, gameState.playerHP) + '%' }"></div>
-          </div>
-          <span class="integrity-val">{{ Math.max(0, gameState.playerHP) }}%</span>
+      <div class="integrity-monitor">
+        <span class="integrity-label">정화 무결성</span>
+        <div class="hp-bar-bg">
+             <div class="hp-bar-fill" :style="{ width: Math.max(0, gameState.playerHP) + '%' }"></div>
         </div>
+        <span class="integrity-val">{{ Math.max(0, gameState.playerHP) }}%</span>
 
-        <div class="war-room-actions">
-          <button class="btn-terminal-action tutorial-btn" @click="toggleGuide">
-            <span class="dot-icon">■</span>
-            튜토리얼
-          </button>
-          <button v-if="gameState.phase === 'PSEUDO_WRITE'" class="btn-terminal-action hint-btn" @click="toggleHint">
-             HINT
-          </button>
-          <button class="btn-terminal-action exit-btn" @click="handlePracticeClose">
-            EXIT
-          </button>
-        </div>
       </div>
     </header>
 
@@ -203,10 +188,9 @@
                       </div>
                   </div>
 
-
                   <div class="editor-layout w-full flex flex-col flex-1">
                       <div class="editor-body w-full flex-1 flex flex-col">
-                          <!-- 의사코드 입력 에디터 [2026-02-12] :value 제거하여 완전 수동 동기화로 전환 (삭제/입력 프리징 근본 해결) -->
+                          <!-- 의사코드 입력 에디터 -->
                           <div class="monaco-wrapper w-full h-[320px] border border-slate-700/50 rounded-xl overflow-hidden shadow-2xl">
                               <VueMonacoEditor
                                   theme="vs-dark"
@@ -218,9 +202,9 @@
                           </div>
                       </div>
 
-                      <div class="editor-header w-full mt-4 flex justify-between items-center">
-                          <!-- [2026-02-13] 실시간 규칙 체크리스트 UI: 버튼 바 왼쪽으로 이동 -->
-                          <div class="rule-checklist-bar flex flex-wrap gap-2">
+                       <div class="editor-header w-full mt-4 flex justify-between items-end">
+                          <!-- [2026-02-13] 실시간 규칙 체크리스트 UI: 하단 배치 -->
+                          <div class="rule-checklist-bar flex flex-wrap gap-2 mb-2">
                               <div 
                                   v-for="rule in ruleChecklist" 
                                   :key="rule.id"
@@ -233,7 +217,18 @@
                               </div>
                           </div>
 
-                          <div class="actions">
+                          <div class="actions flex items-center gap-6 relative">
+                              <!-- [2026-02-13] 실시간 힌트 오리 & 말풍선 (유동적 위치) -->
+                              <Transition name="fade-slide">
+                                <div v-if="showHintDuck" class="hint-duck-wrapper">
+                                    <div class="hint-bubble">
+                                        <div class="hb-content">{{ dynamicHintMessage || '분석 중입니다...' }}</div>
+                                        <div class="hb-tail"></div>
+                                    </div>
+                                    <img src="/image/unit_duck.png" alt="Hint Duck" class="hint-unit-img" />
+                                </div>
+                              </Transition>
+
                               <button 
                                   :disabled="!canSubmitPseudo || isProcessing"
                                   @click="submitPseudo"
@@ -253,9 +248,15 @@
                       :python-code="evaluationResult?.converted_python"
                       :score="evaluationResult?.overall_score"
                       :feedback="evaluationResult?.python_feedback"
+                      :senior-advice="evaluationResult?.senior_advice"
+                      :is-low-effort="evaluationResult?.is_low_effort"
+                      :mission-title="currentMission?.title"
+                      :mission-desc="currentMission?.designContext?.description"
+                      :mission-constraints="currentMission?.designContext?.writingGuide"
                       :question-data="deepQuizQuestion"
                       @next="handlePythonVisualizationNext"
                       @select-option="submitDeepQuiz"
+                      @retry="retryDesign"
                   />
               </div>
 
@@ -307,6 +308,17 @@
 
               <!-- [STEP 4] 최종 리포트 (EVALUATION) [2026-02-13] decision-panel 내부로 이동 -->
               <div v-else-if="gameState.phase === 'EVALUATION'" class="evaluation-phase">
+                  <!-- [2026-02-13] 복기 학습 모드 시 미션 정보 재노출 -->
+                  <div v-if="evaluationResult?.is_low_effort || gameState.hasUsedBlueprint" class="mission-instruction-compact animate-slideDownFade mb-6">
+                      <div class="mi-section">
+                          <h4 class="mi-title text-blue-400">[미션]</h4>
+                          <p class="mi-desc">{{ currentMission?.designContext?.description }}</p>
+                      </div>
+                      <div class="mi-section mi-border-top">
+                          <h4 class="mi-title text-amber-400">[필수 포함 조건 (Constraint)]</h4>
+                          <p class="mi-desc-small">{{ currentMission?.designContext?.writingGuide?.replace('[필수 포함 조건 (Constraint)]\n', '') }}</p>
+                      </div>
+                  </div>
                   <div class="report-card full-width-report">
                       <div class="report-header">
                           <div class="medal-area">
@@ -319,21 +331,33 @@
                           </div>
                       </div>
 
-                      <!-- [2026-02-13] 3-Phase Weights Breakdown -->
+                      <!-- [2026-02-13] 3-Phase Weights Breakdown: 백분율 및 가중치 병기로 명확성 확보 -->
+                      <!-- [2026-02-13] 유저 요청: 상세 점수 내역(integrated-score-belt) 숨김 처리 -->
+                      <!--
                       <div class="integrated-score-belt">
                           <div class="step-summary">
                               <span class="step-label">DIAGNOSTIC (20%)</span>
-                              <span class="step-val">{{ evaluationResult?.diagnosticScoreWeighted }}/20</span>
+                              <div class="step-val-group">
+                                  <span class="step-val-main">{{ Math.round(evaluationResult?.gameScore || 0) }}%</span>
+                                  <span class="step-val-sub">(+{{ evaluationResult?.diagnosticScoreWeighted }}pts)</span>
+                              </div>
                           </div>
                           <div class="step-summary">
                               <span class="step-label">ARCHITECTURE (70%)</span>
-                              <span class="step-val">{{ evaluationResult?.designScoreWeighted }}/70</span>
+                              <div class="step-val-group">
+                                  <span class="step-val-main">{{ Math.round(evaluationResult?.aiScore || 0) }}%</span>
+                                  <span class="step-val-sub">(+{{ evaluationResult?.designScoreWeighted }}pts)</span>
+                              </div>
                           </div>
                           <div class="step-summary">
                               <span class="step-label">ITERATIVE (10%)</span>
-                              <span class="step-val">{{ evaluationResult?.iterativeScoreWeighted }}/10</span>
+                              <div class="step-val-group">
+                                  <span class="step-val-main">{{ Math.round(gameState?.iterativeScore || 0) }}%</span>
+                                  <span class="step-val-sub">(+{{ evaluationResult?.iterativeScoreWeighted }}pts)</span>
+                              </div>
                           </div>
                       </div>
+                      -->
 
                       <div class="evaluation-main-grid">
                           <!-- Radar Chart (5D Metrics) -->
@@ -369,46 +393,72 @@
                                       <span class="dim-val">{{ dim.score }}%</span>
                                   </div>
                                   <div class="dim-progress-mini"><div class="dim-fill-mini" :style="{ width: dim.score + '%' }"></div></div>
-                                  <p class="dim-comment">{{ dim.comment }}</p>
-                                  <p class="dim-improvement" v-if="dim.score < 80">💡 {{ dim.improvement }}</p>
+                                  <p class="dim-comment">Verdict: {{ dim.comment }}</p>
+                                  <p class="dim-improvement" v-if="dim.score < 80">🎯 {{ dim.improvement }}</p>
                               </div>
                           </div>
                       </div>
 
                       <div class="mentor-feedback">
-                          <h3>🤖 AI MENTOR FEEDBACK</h3>
+                          <h3>🤖 AI MONITOR FEEDBACK</h3>
                           <p class="feedback-text">"{{ evaluationResult?.seniorAdvice }}"</p>
                           <div class="blueprint-section" v-if="evaluationResult?.converted_python">
                               <div class="blueprint-header">
                                   <Brain size="16" />
-                                  <span>LOGIC BLUEPRINT (PYTHON)</span>
+                                  <span>YOUR LOGIC MAPPED TO PYTHON</span>
                               </div>
                               <pre class="blueprint-code"><code>{{ evaluationResult.converted_python }}</code></pre>
+                              <div v-if="evaluationResult?.python_feedback" class="python-feedback-mini">
+                                  💡 <b>Logic Probe:</b> {{ evaluationResult.python_feedback }}
+                              </div>
+                          </div>
+                      </div>
+
+                      <!-- [2026-02-13] Integrated Tail Question (꼬리질문) / Deep Dive -->
+                      <div v-if="evaluationResult?.tailQuestion || evaluationResult?.deepDive" class="integrated-question-section">
+                          <div class="iq-container">
+                              <h3 class="iq-title">
+                                  <AlertOctagon v-if="evaluationResult?.tailQuestion" class="iq-icon text-amber-500" />
+                                  <Lightbulb v-else class="iq-icon text-cyan-400" />
+                                  {{ evaluationResult?.tailQuestion ? "🧐 Architect's Tail Question (꼬리질문)" : "🚀 Architecture Deep Dive (심화질문)" }}
+                              </h3>
+                              <p class="iq-question">{{ (evaluationResult?.tailQuestion || evaluationResult?.deepDive)?.question }}</p>
+                              
+                              <div class="iq-options-grid">
+                                  <button v-for="(opt, idx) in (evaluationResult?.tailQuestion || evaluationResult?.deepDive)?.options" 
+                                          :key="idx"
+                                          @click="handleTailSelection(opt)"
+                                          class="iq-option-btn"
+                                          :disabled="gameState.iterativeScore !== null"
+                                          :class="{ 
+                                            'correct': gameState.iterativeScore === 100 && opt.is_correct,
+                                            'wrong': gameState.iterativeScore === 0 && !opt.is_correct && activeSelectedOption === opt
+                                          }"
+                                  >
+                                      <span class="opt-id">{{ String.fromCharCode(65 + idx) }}</span>
+                                      <span class="opt-txt">{{ opt.text }}</span>
+                                  </button>
+                              </div>
+                              
+                              <div v-if="gameState.feedbackMessage" class="iq-feedback-alert" :class="gameState.iterativeScore === 100 ? 'success' : 'warn'">
+                                 {{ gameState.feedbackMessage }}
+                              </div>
                           </div>
                       </div>
 
                       <!-- [2026-02-13] Recommended Lectures (YouTube) -->
-                      <div v-if="evaluationResult?.supplementaryVideos?.length" class="youtube-recommendations">
+                      <div v-if="evaluationResult?.recommendedLecture" class="youtube-recommendations">
                           <div class="yr-header">
                               <Play size="18" class="text-blue-400" />
                               <h3>ARCHITECT'S LEARNING LIBRARY</h3>
                           </div>
-                          <div class="yr-grid">
-                              <div v-for="video in evaluationResult.supplementaryVideos" 
-                                   :key="video.id" 
-                                   class="video-card"
-                                   @click="activeYoutubeId = video.id">
-                                  <div class="video-thumb">
-                                      <img :src="`https://img.youtube.com/vi/${video.id}/mqdefault.jpg`" alt="thumb" />
-                                      <div class="play-overlay"><Play fill="white" /></div>
-                                  </div>
-                                  <div class="video-info">
-                                      <h4 class="v-title">{{ video.title }}</h4>
-                                      <p class="v-desc">{{ video.desc }}</p>
-                                      <span class="v-tag">{{ video.reason }}</span>
-                                  </div>
+                          <a :href="evaluationResult.recommendedLecture.url" target="_blank" class="video-card-single">
+                              <div class="video-info">
+                                  <h4 class="v-title">{{ evaluationResult.recommendedLecture.title }}</h4>
+                                  <p class="v-desc">{{ evaluationResult.recommendedLecture.reason }}</p>
+                                  <span class="v-cta">강의 보러가기 →</span>
                               </div>
-                          </div>
+                          </a>
                       </div>
 
                       <!-- [2026-02-13] YouTube Embed Player Modal -->
@@ -476,6 +526,7 @@ import {
   RotateCcw, Play, X, Brain, CheckCircle
 } from 'lucide-vue-next';
 
+const activeYoutubeId = ref(null);
 import CodeFlowVisualizer from './components/CodeFlowVisualizer.vue';
 import LoadingDuck from '../components/LoadingDuck.vue';
 
@@ -492,6 +543,10 @@ const {
     isProcessing,
     isGuideOpen,
     selectedGuideIdx,
+    showHintDuck,
+    toggleHintDuck,
+    dynamicHintMessage,
+    retryDesign,
 
     toggleGuide,
     handleGuideClick,
@@ -500,14 +555,11 @@ const {
     submitPseudo,
     submitDeepQuiz,
     handlePythonVisualizationNext,
-    handleTailSelection,
+    handleTailSelection: originalHandleTailSelection,
     resetFlow,
     toggleHint,
     handlePracticeClose
 } = useCoduckWars();
-
-// [2026-02-13] YouTube 추천 영상 모달 상태
-const activeYoutubeId = ref(null);
 
 
 // [2026-02-13] 인트로를 제외한 실질적 학습/상호작용 단계 여부 (가독성 개선)
@@ -584,7 +636,7 @@ const radarLabels = computed(() => {
 
 const radarPoints = computed(() => {
     const dims = evaluationResult.dimensions || {};
-    const keys = ['coherence', 'abstraction', 'exception_handling', 'implementation', 'architecture'];
+    const keys = ['design', 'consistency', 'edge_case', 'implementation', 'abstraction'];
     const center = 100;
     const maxRadius = 80;
     
@@ -617,3 +669,68 @@ const { monacoOptions, handleMonacoMount } = useMonacoEditor(
 </script>
 
 <style scoped src="./CoduckWars.css"></style>
+
+<style scoped>
+/* [2026-02-13] Blueprint Reference Card (Retry Mode) */
+.blueprint-reference-card {
+  z-index: 5;
+  margin-bottom: 2rem;
+}
+
+.brc-header {
+  border-bottom: none;
+}
+
+.brc-body {
+  box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+  border-bottom-left-radius: 0.75rem;
+  border-bottom-right-radius: 0.75rem;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Retry Button Styling */
+:deep(.btn-retry-action) {
+  background: rgba(30, 41, 59, 0.6);
+  border: 2px solid #3b82f6;
+  color: #3b82f6;
+  padding: 24px 60px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+:deep(.btn-retry-action:hover) {
+  background: #3b82f6;
+  color: white;
+  transform: translateY(-5px) scale(1.05);
+  box-shadow: 0 15px 35px rgba(59, 130, 246, 0.4);
+}
+
+.animate-slideIn {
+  animation: slideInDown 0.5s ease-out;
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+</style>
