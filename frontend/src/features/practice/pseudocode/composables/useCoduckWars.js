@@ -615,13 +615,14 @@ export function useCoduckWars() {
             evaluationResult.aiScore = Math.round(designScore);
             evaluationResult.rule_score = phase3Result.rule_score || 0;
 
-            // [2026-02-13] 모든 점수를 100점 만점 기준으로 정규화하여 저장 (Radar Chart 좌표 계산 용이성)
             evaluationResult.dimensions = {};
             Object.keys(phase3Result.dimensions || {}).forEach(key => {
                 const d = phase3Result.dimensions[key];
+                // [2026-02-13] API에서 12점 스케일링(60%비중)된 것을 다시 100% 비율로 변환하여 표시
+                const rawScore = d.original_score || (d.score * 100 / 12) || 0;
                 evaluationResult.dimensions[key] = {
                     ...d,
-                    score: d.original_score || (d.score * 100 / 12) || 0
+                    score: Math.round(rawScore)
                 };
             });
 
@@ -641,13 +642,18 @@ export function useCoduckWars() {
                 architecture: '설계력'
             };
 
-            evaluationResult.details = Object.entries(phase3Result.dimensions).map(([key, data]) => ({
+            evaluationResult.details = Object.entries(evaluationResult.dimensions).map(([key, data]) => ({
                 id: key,
                 category: DIMENSION_NAMES[key] || key,
-                score: Math.round(data.score),
+                score: data.score,
                 comment: data.basis || '적절한 논리 전개입니다.',
                 improvement: data.improvement || '특별한 보완 사항이 없습니다.'
             }));
+
+            // ✅ [2026-02-13] 연동 최적화: 백엔드 통합 조언 우선 사용
+            evaluationResult.seniorAdvice = phase3Result.senior_advice || "탁월한 설계 역량을 보여주셨습니다.";
+
+            addSystemLog("최종 리포트 생성 완료", "SUCCESS");
 
             // [2026-02-13] 코드 블루프린트 데이터 복사
             evaluationResult.converted_python = phase3Result.converted_python || "";

@@ -210,14 +210,14 @@ fit() 실행 시점에 Train/Test 분할이 되지 않아 Test 통계량이 Trai
             dependencies: [
                 {
                     name: '분리 → 스케일러 생성',
-                    before: 'data_split',
-                    after: 'scaler_create',
+                    before: 'isolation',
+                    after: 'anchor',
                     points: 5,
                     strictness: 'RECOMMENDED'
                 },
                 {
                     name: 'fit → transform(train)',
-                    before: 'fit_train',
+                    before: 'anchor',
                     after: 'transform_train',
                     points: 20,
                     strictness: 'REQUIRED',  // 🔥 필수!
@@ -225,7 +225,7 @@ fit() 실행 시점에 Train/Test 분할이 되지 않아 Test 통계량이 Trai
                 },
                 {
                     name: 'fit → transform(test)',
-                    before: 'fit_train',
+                    before: 'anchor',
                     after: 'transform_test',
                     points: 20,
                     strictness: 'REQUIRED',  // 🔥 필수!

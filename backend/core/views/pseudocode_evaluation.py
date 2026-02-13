@@ -73,7 +73,8 @@ SYSTEM_PROMPT = """당신은 AI 기반 의사코드 평가 전문가입니다.
     "architecture": { ... }
   },
   "strengths": ["강점1", "강점2"],
-  "weaknesses": ["약점1"]
+  "weaknesses": ["약점1"],
+  "senior_advice": "20년 경력 아키텍트의 격려와 구체적 조언 (한글, 100자 이내)"
 }
 """
 
@@ -222,7 +223,8 @@ JSON 형식:
   "strengths": ["강점1", "강점2"],
   "weaknesses": ["약점1", "약점2"],
   "converted_python": "변환된 Python 코드 (문자열)",
-  "python_feedback": "Python 변환 관련 피드백 (80점 미만일 때 꼬리질문 힌트용)"
+  "python_feedback": "Python 변환 관련 피드백 (80점 미만일 때 꼬리질문 힌트용)",
+  "senior_advice": "시니어 아키텍트의 전문적인 조언 (한글, 100자 이내. 따뜻하지만 냉철한 피드백)"
 }}
 
 **중요**: 

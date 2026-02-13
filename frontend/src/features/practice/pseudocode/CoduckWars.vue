@@ -164,14 +164,18 @@
                           </div>
                       </div>
                   </div>
-                  <!-- AI 아키텍트 분석 오버레이 -->
+                  <!-- AI 아키텍트 분석 오버레이 (진단 단계) -->
                   <div v-if="gameState.isEvaluatingDiagnostic" class="ai-loading-overlay">
                       <LoadingDuck message="데이터 흐름 및 논리적 타당성을 정밀 분석 중입니다..." />
                   </div>
               </div>
 
-              <!-- [2026-02-11] PHASE: PSEUDO_WRITE (Step 2: 아키텍처 설계) [2026-02-12] 폭 맞춤 및 중앙 정렬 -->
+              <!-- [2026-02-11] PHASE: PSEUDO_WRITE (Step 2: 아키텍처 설계) -->
               <div v-else-if="gameState.phase === 'PSEUDO_WRITE'" class="space-y-4 flex flex-col h-full max-w-5xl mx-auto w-full">
+                  <!-- AI 아키텍트 분석 오버레이 (의사코드 심화 분석 단계) [추가: 2026-02-13] -->
+                  <div v-if="isProcessing" class="ai-loading-overlay">
+                      <LoadingDuck message="작성하신 설계의 5차원 아키텍처 정밀 분석 및 Python 코드 변환 중입니다..." />
+                  </div>
                   <!-- [2026-02-12] 이미지 싱크: 메인 타이틀 및 설명 개편 (미션/제약조건 노출) [폰트 상향 및 중복 제거] -->
                   <div class="mission-instruction-compact">
                       <div class="mi-section">

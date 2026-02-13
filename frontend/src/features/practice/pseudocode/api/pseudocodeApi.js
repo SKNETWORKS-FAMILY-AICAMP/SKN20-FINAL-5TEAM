@@ -236,6 +236,8 @@ export async function evaluatePseudocode5D(problem, pseudocode, userContext = nu
                 // ✅ Python 변환 결과 포함
                 converted_python: aiResult.converted_python || "",
                 python_feedback: aiResult.python_feedback || "",
+                // ✅ 백엔드에서 생성된 조언 우선 사용
+                senior_advice: aiResult.senior_advice || "",
                 // ✅ [2026-02-13] 유튜브 추천 영상 포함
                 recommended_videos: getRecommendedVideos(aiResult.dimensions, problem)
             };
@@ -539,9 +541,10 @@ export async function generateSeniorAdvice(evaluation, gameState) {
 규칙:
 - 100자 이내로 간결하게 작성
 - 구체적인 개선점 제시
-- 종합 점수가 50점 미만이면 칭찬보다는 '엄격한 경고와 근본적인 재작성 권고' 위주로 작성
+- 종합 점수가 50점 미만이면 '엄격한 경고와 근본적인 재작성 권고' 위주로 작성
+- 종합 점수가 50점 이상 70점 미만이면 '격려와 구체적인 보완점 제시' 위주로 작성
 - 종합 점수가 80점 이상이면 '격려와 심화 조언' 위주로 작성
-- 말투: 시니어 아키텍트다운 전문적이고 직설적인 어조`;
+- 말투: 시니어 아키텍트다운 전문적이고 신뢰감 있는 어조 (무조건적인 비난 금지)`; ㅉㅉㅉ
 
     const userPrompt = `학생 평가 결과:
 - 종합 점수: ${evaluation.overall_score}/100
