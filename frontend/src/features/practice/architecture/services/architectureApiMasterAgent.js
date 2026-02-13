@@ -18,11 +18,58 @@ import sustainabilityTxt from '@/data/지속가능성.txt?raw';
 const getApiKey = () => import.meta.env.VITE_OPENAI_API_KEY;
 
 /**
- * txt 파일에서 [핵심 분석 원칙] 섹션만 추출
+ * 원본 txt 파일에서 "핵심 원칙" 섹션 추출
+ *
+ * 원본 문서 구조:
+ * - "핵심 원칙" 제목
+ * - 설명 줄 (Well-Architected Framework의...)
+ * - 빈 줄
+ * - 핵심 원칙들 (콜론으로 구분된 제목과 설명)
+ * - 다음 섹션 시작 또는 파일 끝
  */
 function extractPrinciples(txtContent) {
-  const match = txtContent.match(/### \[핵심 분석 원칙[^\]]*\]\s*([\s\S]*?)(?=### \[|$)/);
-  return match ? match[1].trim() : '';
+  // Step 1: "핵심 원칙" 제목 찾기
+  const headerMatch = txtContent.match(/핵심 원칙\n(.*?)\n/);
+  if (!headerMatch) {
+    console.warn('⚠️ "핵심 원칙" 섹션을 찾을 수 없습니다.');
+    return '';
+  }
+
+  // Step 2: 설명 줄 다음부터 추출 시작
+  const headerEnd = headerMatch.index + headerMatch[0].length;
+  const remainingText = txtContent.substring(headerEnd);
+
+  // Step 3: 다음 섹션 시작 전까지 추출
+  // 종료 패턴: 새로운 주요 섹션이 시작되는 부분
+  const endPatterns = [
+    '\n이러한',      // "이러한 원칙은..." (비용.txt)
+    '\n조직',        // "조직 보안 마인드셋" (보안.txt)
+    '\nGoogle',      // 새 섹션
+    '\n파트너',      // 새 섹션
+    '\nAI 및',       // 새 섹션
+    '\n설계',        // "설계 단계부터..." (지속가능성.txt)
+    '\n클라우드 거버넌스',
+    '\n안정성 중점',
+    '\n성능 최적화 프로세스',
+    '\n책임 공유'    // "책임 공유 및..." (지속가능성.txt)
+  ];
+
+  let content = remainingText;
+  let minIndex = content.length;
+
+  for (const pattern of endPatterns) {
+    const idx = content.indexOf(pattern);
+    if (idx !== -1 && idx < minIndex) {
+      minIndex = idx;
+    }
+  }
+
+  content = content.substring(0, minIndex).trim();
+
+  // 추가 정리: 불필요한 빈 줄 제거
+  content = content.replace(/\n{3,}/g, '\n\n');
+
+  return content;
 }
 
 /**

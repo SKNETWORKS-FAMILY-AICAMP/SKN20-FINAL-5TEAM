@@ -1,10 +1,8 @@
 <template>
   <div class="modal-overlay" :class="{ active: isActive }">
-    <!-- Star layers -->
-    <div class="stars"></div>
-    <div class="stars2"></div>
-    <div class="stars3"></div>
-    <div class="nebula-overlay"></div>
+    <!-- 네온 그리드 배경 -->
+    <div class="bg-grid"></div>
+    <div class="scanline"></div>
 
     <div class="interrogation-frame">
       <!-- 헤더 -->
@@ -61,10 +59,15 @@
               <div class="testimony-label">{{ isExplanationPhase ? '[EXPLANATION]' : '[ANSWER]' }}</div>
               <textarea
                 class="testimony-input"
-                :class="{ 'explanation-mode': isExplanationPhase }"
+                :class="{ 'explanation-mode': isExplanationPhase, 'error': validationError }"
                 v-model="answer"
                 :placeholder="placeholderText"
               ></textarea>
+              <!-- 🔥 NEW: 검증 실패 메시지 표시 -->
+              <div v-if="validationError" class="validation-error-message">
+                <span class="error-icon">⚠️</span>
+                {{ validationError }}
+              </div>
             </div>
           </div>
         </template>
@@ -86,7 +89,24 @@
 </template>
 
 <script>
-// import mermaid from 'mermaid';
+import mermaid from 'mermaid';
+
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'dark',
+  themeVariables: {
+    primaryColor: '#bc13fe',
+    primaryTextColor: '#e8eaed',
+    primaryBorderColor: '#bc13fe',
+    lineColor: '#00f3ff',
+    secondaryColor: '#ff00ff',
+    tertiaryColor: '#00f3ff',
+    background: '#121223',
+    mainBkg: 'rgba(255, 255, 255, 0.05)',
+    textColor: '#e8eaed'
+  },
+  securityLevel: 'loose'
+});
 
 export default {
   name: 'DeepDiveModal',
@@ -123,6 +143,11 @@ export default {
     phase: {
       type: String,
       default: 'questioning'
+    },
+    // 🔥 NEW: 검증 에러 메시지
+    validationError: {
+      type: String,
+      default: ''
     }
   },
   emits: ['submit', 'submit-explanation'],
@@ -182,6 +207,13 @@ export default {
           this.renderMermaid();
         });
       }
+    },
+    mermaidCode(newVal) {
+      if (newVal && this.isActive && !this.isGenerating) {
+        this.$nextTick(() => {
+          this.renderMermaid();
+        });
+      }
     }
   },
   methods: {
@@ -190,20 +222,21 @@ export default {
       if (this.isExplanationPhase) {
         // 설명 Phase: 설명 제출 이벤트
         this.$emit('submit-explanation', trimmedAnswer);
+        // 🔥 검증 통과 시에만 답변 초기화 (부모에서 성공 확인 후)
       } else {
         // 질문 Phase: 기존 답변 제출 이벤트
         this.$emit('submit', trimmedAnswer);
       }
-      this.answer = '';
     },
     async renderMermaid() {
       const container = this.$refs.mermaidPreview;
       if (!container || !this.mermaidCode) return;
 
       try {
-        // const { svg } = await mermaid.render('deepdive-mermaid-' + Date.now(), this.mermaidCode);
-        container.innerHTML = '<p>Mermaid diagram disabled temporarily.</p>'; // svg;
+        const { svg } = await mermaid.render('deepdive-mermaid-' + Date.now(), this.mermaidCode);
+        container.innerHTML = svg;
       } catch (error) {
+        console.error('Mermaid rendering error:', error);
         container.innerHTML = '<p class="mermaid-error">다이어그램 렌더링 오류</p>';
       }
     }
@@ -218,11 +251,11 @@ export default {
    CSS VARIABLES
 ===================== */
 .modal-overlay {
-  --space-deep: #0a0a1a;
-  --space-dark: #12122a;
-  --nebula-purple: #6b5ce7;
-  --nebula-blue: #4fc3f7;
-  --nebula-pink: #f06292;
+  --bg-deep: #090910;
+  --bg-panel: #121223;
+  --neon-purple: #bc13fe;
+  --neon-cyan: #00f3ff;
+  --neon-pink: #ff00ff;
   --star-white: #ffffff;
   --text-primary: #e8eaed;
   --text-secondary: rgba(232, 234, 237, 0.7);
@@ -239,7 +272,7 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, var(--space-deep) 0%, var(--space-dark) 50%, #1a1a3a 100%);
+  background: linear-gradient(135deg, var(--bg-deep) 0%, var(--bg-panel) 50%, #1a1a3a 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -256,65 +289,32 @@ export default {
 }
 
 /* =====================
-   STAR LAYERS
+   NEON GRID & SCANLINE
 ===================== */
-.stars, .stars2, .stars3 {
+.bg-grid {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.2) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.2) 1px, transparent 1px);
+  background-size: 40px 40px;
   pointer-events: none;
+  z-index: 0;
 }
 
-.stars {
-  background-image: radial-gradient(1px 1px at 20px 30px, rgba(255,255,255,0.5) 50%, transparent 50%),
-    radial-gradient(1px 1px at 40px 70px, rgba(255,255,255,0.4) 50%, transparent 50%),
-    radial-gradient(1px 1px at 50px 160px, rgba(255,255,255,0.5) 50%, transparent 50%),
-    radial-gradient(1px 1px at 90px 40px, rgba(255,255,255,0.4) 50%, transparent 50%),
-    radial-gradient(1px 1px at 130px 80px, rgba(255,255,255,0.5) 50%, transparent 50%),
-    radial-gradient(1px 1px at 160px 120px, rgba(255,255,255,0.3) 50%, transparent 50%);
-  background-size: 200px 200px;
-  animation: twinkle 50s linear infinite;
-  opacity: 0.5;
-}
-
-.stars2 {
-  background-image: radial-gradient(2px 2px at 100px 50px, rgba(255,255,255,0.3) 50%, transparent 50%),
-    radial-gradient(2px 2px at 200px 150px, rgba(255,255,255,0.2) 50%, transparent 50%),
-    radial-gradient(2px 2px at 300px 250px, rgba(255,255,255,0.3) 50%, transparent 50%);
-  background-size: 400px 400px;
-  animation: twinkle 100s linear infinite;
-  opacity: 0.3;
-}
-
-.stars3 {
-  background-image: radial-gradient(3px 3px at 150px 100px, rgba(255,255,255,0.2) 50%, transparent 50%),
-    radial-gradient(3px 3px at 350px 300px, rgba(255,255,255,0.15) 50%, transparent 50%);
-  background-size: 600px 600px;
-  animation: twinkle 150s linear infinite;
-  opacity: 0.2;
-}
-
-@keyframes twinkle {
-  0%, 100% { opacity: 0.3; transform: translateY(0); }
-  50% { opacity: 0.8; transform: translateY(-5px); }
-}
-
-/* =====================
-   NEBULA OVERLAY
-===================== */
-.nebula-overlay {
+.scanline {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background:
-    radial-gradient(ellipse at 20% 80%, rgba(107, 92, 231, 0.15) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 20%, rgba(79, 195, 247, 0.1) 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 50%, rgba(240, 98, 146, 0.05) 0%, transparent 70%);
+  background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1));
+  background-size: 100% 4px;
   pointer-events: none;
+  z-index: 0;
 }
 
 /* =====================
@@ -329,8 +329,8 @@ export default {
   border-radius: 16px;
   backdrop-filter: blur(20px);
   box-shadow:
-    0 0 40px rgba(107, 92, 231, 0.2),
-    0 0 80px rgba(107, 92, 231, 0.1),
+    0 0 40px rgba(188, 19, 254, 0.2),
+    0 0 80px rgba(188, 19, 254, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   position: relative;
   overflow-y: auto;
@@ -349,7 +349,7 @@ export default {
 }
 
 .interrogation-frame::-webkit-scrollbar-thumb {
-  background: rgba(107, 92, 231, 0.3);
+  background: rgba(188, 19, 254, 0.3);
   border-radius: 10px;
 }
 
@@ -366,17 +366,17 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: rgba(107, 92, 231, 0.08);
+  background: rgba(188, 19, 254, 0.08);
 }
 
 .header-title {
   font-family: 'Orbitron', sans-serif;
   font-size: 0.85rem;
-  color: var(--nebula-blue);
+  color: var(--neon-cyan);
   letter-spacing: 3px;
   font-weight: 700;
   margin-bottom: 6px;
-  text-shadow: 0 0 15px rgba(79, 195, 247, 0.5);
+  text-shadow: 0 0 15px rgba(0, 243, 255, 0.5);
 }
 
 .header-meta {
@@ -389,7 +389,7 @@ export default {
 }
 
 .rec {
-  color: var(--nebula-pink);
+  color: var(--neon-pink);
   font-weight: bold;
   animation: pulse-opacity 1.5s infinite;
 }
@@ -410,17 +410,17 @@ export default {
 .progress-bar {
   width: 100%;
   height: 6px;
-  background: rgba(107, 92, 231, 0.15);
-  border: 1px solid rgba(107, 92, 231, 0.3);
+  background: rgba(188, 19, 254, 0.15);
+  border: 1px solid rgba(188, 19, 254, 0.3);
   border-radius: 3px;
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--nebula-purple), var(--nebula-blue));
+  background: linear-gradient(90deg, var(--neon-purple), var(--neon-cyan));
   transition: width 0.3s ease;
-  box-shadow: 0 0 10px rgba(79, 195, 247, 0.5);
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
   border-radius: 3px;
 }
 
@@ -455,9 +455,9 @@ export default {
 .orbit-ring {
   position: absolute;
   inset: 0;
-  border: 3px solid rgba(107, 92, 231, 0.2);
-  border-top-color: var(--nebula-blue);
-  border-right-color: var(--nebula-purple);
+  border: 3px solid rgba(188, 19, 254, 0.2);
+  border-top-color: var(--neon-cyan);
+  border-right-color: var(--neon-purple);
   border-radius: 50%;
   animation: orbit 1.2s linear infinite;
 }
@@ -468,10 +468,10 @@ export default {
   left: 50%;
   width: 12px;
   height: 12px;
-  background: linear-gradient(135deg, var(--nebula-purple), var(--nebula-blue));
+  background: linear-gradient(135deg, var(--neon-purple), var(--neon-cyan));
   border-radius: 50%;
   transform: translate(-50%, -50%);
-  box-shadow: 0 0 20px rgba(107, 92, 231, 0.6);
+  box-shadow: 0 0 20px rgba(188, 19, 254, 0.6);
   animation: pulse-glow 2s ease-in-out infinite;
 }
 
@@ -481,16 +481,16 @@ export default {
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 15px rgba(107, 92, 231, 0.4); }
-  50% { box-shadow: 0 0 30px rgba(79, 195, 247, 0.7); }
+  0%, 100% { box-shadow: 0 0 15px rgba(188, 19, 254, 0.4); }
+  50% { box-shadow: 0 0 30px rgba(0, 243, 255, 0.7); }
 }
 
 .loading-section p {
-  color: var(--nebula-blue);
+  color: var(--neon-cyan);
   font-family: 'Orbitron', sans-serif;
   font-size: 0.8rem;
   letter-spacing: 2px;
-  text-shadow: 0 0 10px rgba(79, 195, 247, 0.4);
+  text-shadow: 0 0 10px rgba(0, 243, 255, 0.4);
 }
 
 /* =====================
@@ -518,7 +518,7 @@ export default {
 .diagram-container {
   flex: 1;
   min-height: 220px;
-  border: 1px dashed rgba(107, 92, 231, 0.25);
+  border: 1px dashed rgba(188, 19, 254, 0.25);
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -540,7 +540,7 @@ export default {
 }
 
 .mermaid-error {
-  color: var(--nebula-pink);
+  color: var(--neon-pink);
   font-family: 'Rajdhani', sans-serif;
   font-size: 0.85rem;
 }
@@ -568,15 +568,15 @@ export default {
 .det-avatar {
   width: 70px;
   height: 70px;
-  border: 2px solid var(--nebula-purple);
+  border: 2px solid var(--neon-purple);
   border-radius: 50%;
-  background: rgba(107, 92, 231, 0.1);
+  background: rgba(188, 19, 254, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   overflow: hidden;
-  box-shadow: 0 0 20px rgba(107, 92, 231, 0.3);
+  box-shadow: 0 0 20px rgba(188, 19, 254, 0.3);
 }
 
 .det-avatar img {
@@ -592,11 +592,11 @@ export default {
 .det-name {
   font-family: 'Orbitron', sans-serif;
   font-size: 0.7rem;
-  color: var(--nebula-blue);
+  color: var(--neon-cyan);
   margin-bottom: 6px;
   letter-spacing: 2px;
   font-weight: 700;
-  text-shadow: 0 0 8px rgba(79, 195, 247, 0.5);
+  text-shadow: 0 0 8px rgba(0, 243, 255, 0.5);
 }
 
 .det-question {
@@ -618,7 +618,7 @@ export default {
 .testimony-label {
   font-family: 'Orbitron', sans-serif;
   font-size: 0.65rem;
-  color: var(--nebula-purple);
+  color: var(--neon-purple);
   letter-spacing: 2px;
 }
 
@@ -626,7 +626,7 @@ export default {
   flex: 1;
   min-height: 80px;
   background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(107, 92, 231, 0.3);
+  border: 1px solid rgba(188, 19, 254, 0.3);
   border-radius: 12px;
   padding: 12px;
   color: var(--text-primary);
@@ -638,8 +638,8 @@ export default {
 
 .testimony-input:focus {
   outline: none;
-  border-color: var(--nebula-purple);
-  box-shadow: 0 0 20px rgba(107, 92, 231, 0.3);
+  border-color: var(--neon-purple);
+  box-shadow: 0 0 20px rgba(188, 19, 254, 0.3);
 }
 
 .testimony-input::placeholder {
@@ -650,21 +650,57 @@ export default {
 /* 설명 모드 스타일 */
 .testimony-input.explanation-mode {
   min-height: 150px;
-  border-color: rgba(79, 195, 247, 0.4);
+  border-color: rgba(0, 243, 255, 0.4);
 }
 
 .testimony-input.explanation-mode:focus {
-  border-color: var(--nebula-blue);
-  box-shadow: 0 0 20px rgba(79, 195, 247, 0.3);
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 20px rgba(0, 243, 255, 0.3);
+}
+
+/* 🔥 NEW: 검증 에러 상태 */
+.testimony-input.error {
+  border-color: #ff6b6b !important;
+  background: rgba(255, 107, 107, 0.08);
+}
+
+.testimony-input.error:focus {
+  box-shadow: 0 0 20px rgba(255, 107, 107, 0.4);
+}
+
+.validation-error-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(255, 107, 107, 0.12);
+  border: 1px solid #ff6b6b;
+  border-radius: 8px;
+  color: #ff6b6b;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  animation: shake 0.4s ease;
+}
+
+.error-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  75% { transform: translateX(8px); }
 }
 
 .btn-explanation {
-  background: linear-gradient(135deg, var(--nebula-blue), #81d4fa) !important;
-  color: var(--space-deep) !important;
+  background: linear-gradient(135deg, var(--neon-cyan), #81d4fa) !important;
+  color: var(--bg-deep) !important;
 }
 
 .btn-explanation:hover:not(:disabled) {
-  box-shadow: 0 10px 30px rgba(79, 195, 247, 0.4) !important;
+  box-shadow: 0 10px 30px rgba(0, 243, 255, 0.4) !important;
 }
 
 /* =====================
@@ -676,7 +712,7 @@ export default {
   display: flex;
   justify-content: flex-end;
   gap: 15px;
-  background: rgba(107, 92, 231, 0.05);
+  background: rgba(188, 19, 254, 0.05);
 }
 
 .btn {
@@ -686,21 +722,21 @@ export default {
   font-family: 'Orbitron', sans-serif;
   font-size: 0.75rem;
   cursor: pointer;
-  border: 1px solid rgba(107, 92, 231, 0.3);
+  border: 1px solid rgba(188, 19, 254, 0.3);
   border-radius: 30px;
   transition: all 0.3s ease;
   letter-spacing: 2px;
 }
 
 .btn-submit {
-  background: linear-gradient(135deg, var(--nebula-purple), var(--nebula-blue));
+  background: linear-gradient(135deg, var(--neon-purple), var(--neon-cyan));
   color: #fff;
   font-weight: 700;
   border: none;
 }
 
 .btn-submit:hover:not(:disabled) {
-  box-shadow: 0 10px 30px rgba(107, 92, 231, 0.4);
+  box-shadow: 0 10px 30px rgba(188, 19, 254, 0.4);
   transform: translateY(-3px);
 }
 

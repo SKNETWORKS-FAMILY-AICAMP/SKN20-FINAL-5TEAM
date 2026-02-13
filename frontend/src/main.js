@@ -14,7 +14,7 @@ axios.defaults.xsrfHeaderName = 'X-CSRFToken'
 
 // 새로운 퀘스트 기반 Logic Mirror 임포트
 import CoduckWars from './features/practice/pseudocode/CoduckWars.vue'
-import SystemArchitecturePractice from './features/practice/SystemArchitecturePractice.vue'
+import SystemArchitecturePractice from './features/practice/architecture/SystemArchitecturePractice.vue'
 import BugHunt from './features/practice/bughunt/BugHunt.vue'
 // import OpsPractice from './features/practice/OpsPractice.vue'
 import ManagementView from './features/dashboard/ManagementView.vue'

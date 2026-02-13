@@ -45,13 +45,13 @@ export default {
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
 
 .workspace-header {
-  --space-deep: #0a0a1a;
-  --space-dark: #12122a;
-  --nebula-purple: #6b5ce7;
-  --nebula-blue: #4fc3f7;
-  --nebula-pink: #f06292;
-  --text-primary: #e8eaed;
-  --text-secondary: rgba(232, 234, 237, 0.7);
+  --bg-deep: #090910;
+  --bg-panel: rgba(18, 18, 35, 0.7);
+  --neon-cyan: #00f3ff;
+  --neon-purple: #bc13fe;
+  --neon-pink: #ff00ff;
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.7);
   --glass-bg: rgba(255, 255, 255, 0.05);
   --glass-border: rgba(255, 255, 255, 0.1);
 
@@ -69,7 +69,7 @@ export default {
   font-family: 'Orbitron', sans-serif;
   font-size: 0.75rem;
   font-weight: 700;
-  color: var(--nebula-blue);
+  color: var(--neon-cyan);
   letter-spacing: 2px;
   display: flex;
   align-items: center;
@@ -79,15 +79,15 @@ export default {
 .rec-dot {
   width: 10px;
   height: 10px;
-  background: var(--nebula-pink);
+  background: var(--neon-pink);
   border-radius: 50%;
   animation: pulse-glow 1.5s infinite;
-  box-shadow: 0 0 8px rgba(240, 98, 146, 0.6);
+  box-shadow: 0 0 8px rgba(255, 0, 255, 0.6);
 }
 
 @keyframes pulse-glow {
-  0%, 100% { opacity: 1; box-shadow: 0 0 8px rgba(240, 98, 146, 0.6); }
-  50% { opacity: 0.4; box-shadow: 0 0 16px rgba(240, 98, 146, 0.9); }
+  0%, 100% { opacity: 1; box-shadow: 0 0 8px rgba(255, 0, 255, 0.6); }
+  50% { opacity: 0.4; box-shadow: 0 0 16px rgba(255, 0, 255, 0.9); }
 }
 
 .header-controls {
@@ -113,44 +113,44 @@ export default {
 }
 
 .ctrl-btn:hover {
-  border-color: var(--nebula-purple);
+  border-color: var(--neon-purple);
   transform: translateY(-2px);
-  box-shadow: 0 0 20px rgba(107, 92, 231, 0.3);
+  box-shadow: 0 0 20px rgba(188, 19, 254, 0.3);
 }
 
 .ctrl-btn.active {
-  background: linear-gradient(135deg, #6b5ce7, #4fc3f7);
+  background: linear-gradient(135deg, #bc13fe, #00f3ff);
   color: white;
   border-color: transparent;
-  box-shadow: 0 0 20px rgba(107, 92, 231, 0.4);
+  box-shadow: 0 0 20px rgba(188, 19, 254, 0.4);
 }
 
 .ctrl-btn.danger {
   background: var(--glass-bg);
-  border-color: rgba(240, 98, 146, 0.4);
-  color: var(--nebula-pink);
+  border-color: rgba(255, 0, 255, 0.4);
+  color: var(--neon-pink);
 }
 
 .ctrl-btn.danger:hover {
-  background: rgba(240, 98, 146, 0.15);
-  border-color: var(--nebula-pink);
-  box-shadow: 0 0 20px rgba(240, 98, 146, 0.3);
+  background: rgba(255, 0, 255, 0.15);
+  border-color: var(--neon-pink);
+  box-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
 }
 
 .ctrl-btn.hint {
-  border-color: rgba(79, 195, 247, 0.4);
-  color: var(--nebula-blue);
+  border-color: rgba(0, 243, 255, 0.4);
+  color: var(--neon-cyan);
 }
 
 .ctrl-btn.hint.active {
-  background: linear-gradient(135deg, #4fc3f7, #6b5ce7);
+  background: linear-gradient(135deg, #00f3ff, #bc13fe);
   color: white;
   border-color: transparent;
   animation: hint-pulse 1.5s infinite;
 }
 
 @keyframes hint-pulse {
-  0%, 100% { box-shadow: 0 0 15px rgba(79, 195, 247, 0.4); }
-  50% { box-shadow: 0 0 30px rgba(79, 195, 247, 0.7); }
+  0%, 100% { box-shadow: 0 0 15px rgba(0, 243, 255, 0.4); }
+  50% { box-shadow: 0 0 30px rgba(0, 243, 255, 0.7); }
 }
 </style>

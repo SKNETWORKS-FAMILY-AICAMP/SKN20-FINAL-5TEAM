@@ -227,7 +227,7 @@ export default {
   position: fixed;
   border-radius: 10px;
   box-shadow: 0 0 0 9999px rgba(5, 5, 20, 0.75);
-  border: 2px solid rgba(79, 195, 247, 0.7);
+  border: 2px solid rgba(0, 243, 255, 0.7);
   pointer-events: none;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 10000;
@@ -236,12 +236,12 @@ export default {
 
 @keyframes highlightPulse {
   0%, 100% {
-    border-color: rgba(79, 195, 247, 0.7);
-    box-shadow: 0 0 0 9999px rgba(5, 5, 20, 0.75), 0 0 20px rgba(79, 195, 247, 0.3);
+    border-color: rgba(0, 243, 255, 0.7);
+    box-shadow: 0 0 0 9999px rgba(5, 5, 20, 0.75), 0 0 20px rgba(0, 243, 255, 0.3);
   }
   50% {
-    border-color: rgba(107, 92, 231, 0.9);
-    box-shadow: 0 0 0 9999px rgba(5, 5, 20, 0.75), 0 0 35px rgba(107, 92, 231, 0.5);
+    border-color: rgba(188, 19, 254, 0.9);
+    box-shadow: 0 0 0 9999px rgba(5, 5, 20, 0.75), 0 0 35px rgba(188, 19, 254, 0.5);
   }
 }
 
@@ -249,15 +249,15 @@ export default {
 .tutorial-card {
   position: fixed;
   z-index: 10001;
-  background: linear-gradient(135deg, rgba(18, 18, 42, 0.95) 0%, rgba(26, 26, 58, 0.95) 100%);
+  background: linear-gradient(135deg, rgba(18, 18, 35, 0.95) 0%, rgba(26, 26, 58, 0.95) 100%);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(107, 92, 231, 0.4);
+  border: 1px solid rgba(188, 19, 254, 0.4);
   border-radius: 16px;
   padding: 24px;
   color: #e8eaed;
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.4),
-    0 0 60px rgba(107, 92, 231, 0.15),
+    0 0 60px rgba(188, 19, 254, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   animation: cardSlideIn 0.4s ease;
@@ -285,9 +285,9 @@ export default {
   font-family: 'Orbitron', sans-serif;
   font-size: 0.65rem;
   font-weight: 700;
-  color: #4fc3f7;
-  background: rgba(79, 195, 247, 0.12);
-  border: 1px solid rgba(79, 195, 247, 0.3);
+  color: #00f3ff;
+  background: rgba(0, 243, 255, 0.12);
+  border: 1px solid rgba(0, 243, 255, 0.3);
   border-radius: 20px;
   padding: 4px 12px;
   letter-spacing: 1px;
@@ -329,15 +329,15 @@ export default {
 }
 
 .dot.active {
-  background: #4fc3f7;
-  border-color: #4fc3f7;
-  box-shadow: 0 0 8px rgba(79, 195, 247, 0.6);
+  background: #00f3ff;
+  border-color: #00f3ff;
+  box-shadow: 0 0 8px rgba(0, 243, 255, 0.6);
   transform: scale(1.3);
 }
 
 .dot.done {
-  background: #6b5ce7;
-  border-color: #6b5ce7;
+  background: #bc13fe;
+  border-color: #bc13fe;
 }
 
 /* === 버튼 === */
@@ -372,15 +372,15 @@ export default {
 }
 
 .btn-next {
-  background: linear-gradient(135deg, #6b5ce7, #4fc3f7);
+  background: linear-gradient(135deg, #bc13fe, #00f3ff);
   color: #ffffff;
   border: none;
-  box-shadow: 0 0 20px rgba(107, 92, 231, 0.3);
+  box-shadow: 0 0 20px rgba(188, 19, 254, 0.3);
 }
 
 .btn-next:hover {
   transform: translateY(-2px);
-  box-shadow: 0 0 30px rgba(107, 92, 231, 0.5);
+  box-shadow: 0 0 30px rgba(188, 19, 254, 0.5);
 }
 
 .btn-next:active {

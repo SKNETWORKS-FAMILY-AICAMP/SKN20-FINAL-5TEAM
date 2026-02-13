@@ -62,13 +62,13 @@ export default {
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
 
 .case-file-panel {
-  --space-deep: #0a0a1a;
-  --space-dark: #12122a;
-  --nebula-purple: #6b5ce7;
-  --nebula-blue: #4fc3f7;
-  --nebula-pink: #f06292;
-  --text-primary: #e8eaed;
-  --text-secondary: rgba(232, 234, 237, 0.7);
+  --bg-deep: #090910;
+  --bg-panel: rgba(18, 18, 35, 0.7);
+  --neon-cyan: #00f3ff;
+  --neon-purple: #bc13fe;
+  --neon-pink: #ff00ff;
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.7);
   --glass-bg: rgba(255, 255, 255, 0.05);
   --glass-border: rgba(255, 255, 255, 0.1);
 
@@ -91,11 +91,11 @@ export default {
 }
 
 .case-file-panel::-webkit-scrollbar-track {
-  background: var(--space-deep);
+  background: var(--bg-deep);
 }
 
 .case-file-panel::-webkit-scrollbar-thumb {
-  background: rgba(107, 92, 231, 0.4);
+  background: rgba(188, 19, 254, 0.4);
   border-radius: 10px;
 }
 
@@ -116,15 +116,15 @@ export default {
 .detective-avatar {
   width: 70px;
   height: 70px;
-  border: 2px solid var(--nebula-purple);
+  border: 2px solid var(--neon-purple);
   border-radius: 50%;
   object-fit: contain;
-  background: var(--space-deep);
-  box-shadow: 0 0 15px rgba(107, 92, 231, 0.3);
+  background: var(--bg-deep);
+  box-shadow: 0 0 15px rgba(188, 19, 254, 0.3);
 }
 
 .detective-name {
-  color: var(--nebula-blue);
+  color: var(--neon-cyan);
   margin: 12px 0 0 0;
   font-family: 'Orbitron', sans-serif;
   font-size: 0.7rem;
@@ -147,7 +147,7 @@ export default {
   position: absolute;
   top: -10px;
   right: 15px;
-  background: linear-gradient(135deg, #6b5ce7, #4fc3f7);
+  background: linear-gradient(135deg, #bc13fe, #00f3ff);
   color: white;
   font-size: 0.6rem;
   padding: 4px 12px;
@@ -155,6 +155,6 @@ export default {
   font-weight: 700;
   letter-spacing: 2px;
   border-radius: 20px;
-  box-shadow: 0 0 12px rgba(107, 92, 231, 0.4);
+  box-shadow: 0 0 12px rgba(188, 19, 254, 0.4);
 }
 </style>

@@ -77,15 +77,20 @@ export function transformProblems(data) {
 
   return data.map((item) => {
     // engineering_spec을 요구사항 배열로 변환
-    const requirementsArray = [];
+    let requirementsArray = [];
     if (item.engineering_spec) {
-      Object.entries(item.engineering_spec).forEach(([key, value]) => {
-        requirementsArray.push(`${key}: ${value}`);
-      });
+      // engineering_spec이 배열이면 그대로 사용, 객체면 변환
+      if (Array.isArray(item.engineering_spec)) {
+        requirementsArray = item.engineering_spec;
+      } else {
+        Object.entries(item.engineering_spec).forEach(([key, value]) => {
+          requirementsArray.push(`${key}: ${value}`);
+        });
+      }
     }
 
-    // mission 배열 추가
-    const missions = item.mission || [];
+    // mission 배열 추가 (missions 또는 mission 필드 지원)
+    const missions = item.missions || item.mission || [];
 
     // rubric_functional에서 필수 컴포넌트 추출
     const rubricFunctional = item.rubric_functional || {};
@@ -118,9 +123,12 @@ export function transformProblems(data) {
 
     return {
       problemId: item.problem_id,
+      practice_detail_id: item.practice_detail_id, // DB 제출용 ID
+      problem_id: item.problem_id, // API 호환용
       title: item.title,
       scenario: item.scenario,
       description: item.scenario, // 기존 호환성
+      constraints: item.constraints || item.engineering_spec || [], // DB constraints 또는 engineering_spec 지원
       requirements: requirementsArray,
       missions: missions,
       engineeringSpec: item.engineering_spec,

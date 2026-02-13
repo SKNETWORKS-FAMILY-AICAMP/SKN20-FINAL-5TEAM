@@ -7,7 +7,7 @@
  * txt 파일에서 [핵심 분석 원칙] 섹션만 파싱하여 사용
  */
 
-import architectureProblems from '@/data/architecture.json';
+import axios from 'axios';
 
 // 6대 기둥 txt 파일 import (Vite ?raw 쿼리 사용)
 import reliabilityTxt from '@/data/신뢰성.txt?raw';
@@ -20,17 +20,67 @@ import sustainabilityTxt from '@/data/지속가능성.txt?raw';
 const getApiKey = () => import.meta.env.VITE_OPENAI_API_KEY;
 
 /**
- * txt 파일에서 [핵심 분석 원칙] 섹션만 추출
- * - 질문 예시는 제외 (LLM이 복사하는 것 방지)
- * - 원칙만 제공하여 맞춤형 질문 생성 유도
+ * 원본 txt 파일에서 "핵심 원칙" 섹션 추출
+ *
+ * 원본 문서 구조:
+ * - "핵심 원칙" 제목
+ * - 설명 줄 (Well-Architected Framework의...)
+ * - 빈 줄
+ * - 핵심 원칙들 (콜론으로 구분된 제목과 설명)
+ * - 다음 섹션 시작 또는 파일 끝
  */
 function extractPrinciples(txtContent) {
-  // [핵심 분석 원칙 으로 시작해서 다음 ### 까지 추출
-  const match = txtContent.match(/### \[핵심 분석 원칙[^\]]*\]\s*([\s\S]*?)(?=### \[|$)/);
-  if (match) {
-    return match[1].trim();
+  // Step 1: "핵심 원칙" 제목 찾기 (줄바꿈 처리 개선)
+  const headerIndex = txtContent.indexOf('핵심 원칙');
+  if (headerIndex === -1) {
+    console.warn('⚠️ "핵심 원칙" 섹션을 찾을 수 없습니다.');
+    return '';
   }
-  return '';
+
+  // Step 2: "핵심 원칙" 다음 줄부터 시작
+  // 첫 번째 줄바꿈 찾기 (제목 줄)
+  const firstNewline = txtContent.indexOf('\n', headerIndex);
+  if (firstNewline === -1) return '';
+
+  // 두 번째 줄바꿈 찾기 (설명 줄)
+  const secondNewline = txtContent.indexOf('\n', firstNewline + 1);
+  if (secondNewline === -1) return '';
+
+  // 세 번째 줄바꿈 이후부터 추출 (빈 줄 다음)
+  const startIndex = secondNewline + 1;
+  const remainingText = txtContent.substring(startIndex);
+
+  // Step 3: 다음 섹션 시작 전까지 추출
+  // 종료 패턴: 새로운 주요 섹션이 시작되는 부분
+  const endPatterns = [
+    '\n이러한',      // "이러한 원칙은..." (비용.txt)
+    '\n조직',        // "조직 보안 마인드셋" (보안.txt)
+    '\nGoogle',      // 새 섹션
+    '\n파트너',      // 새 섹션
+    '\nAI 및',       // 새 섹션
+    '\n설계',        // "설계 단계부터..." (지속가능성.txt)
+    '\n클라우드 거버넌스',
+    '\n안정성 중점',
+    '\n성능 최적화 프로세스',
+    '\n책임 공유'    // "책임 공유 및..." (지속가능성.txt)
+  ];
+
+  let content = remainingText;
+  let minIndex = content.length;
+
+  for (const pattern of endPatterns) {
+    const idx = content.indexOf(pattern);
+    if (idx !== -1 && idx < minIndex) {
+      minIndex = idx;
+    }
+  }
+
+  content = content.substring(0, minIndex).trim();
+
+  // 추가 정리: 불필요한 빈 줄 제거
+  content = content.replace(/\n{3,}/g, '\n\n');
+
+  return content;
 }
 
 /**
@@ -93,10 +143,24 @@ async function callOpenAI(prompt, options = {}) {
 }
 
 /**
- * 문제 데이터 로드
+ * 문제 데이터 로드 (DB에서 가져오기)
  */
 export async function fetchProblems() {
-  return architectureProblems;
+  try {
+    const response = await axios.get('/api/core/practices/unit03/');
+    const practiceData = response.data;
+
+    // details 배열에서 content_data 추출하고 practice_detail_id 추가
+    const problems = practiceData.details.map(detail => ({
+      ...detail.content_data,
+      practice_detail_id: detail.id  // DB ID를 추가로 저장 (제출 시 사용)
+    }));
+
+    return problems;
+  } catch (error) {
+    console.error('문제 데이터 로드 실패:', error);
+    throw new Error('아키텍처 문제를 불러올 수 없습니다.');
+  }
 }
 
 /**

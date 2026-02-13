@@ -1,14 +1,10 @@
 <template>
-  <div class="arch-challenge-container among-theme">
-    <!-- 별 배경 -->
-    <div class="stars-container">
-      <div class="stars"></div>
-      <div class="stars2"></div>
-      <div class="stars3"></div>
-    </div>
+  <div class="arch-challenge-container neon-theme">
+    <!-- 네온 그리드 배경 -->
+    <div class="bg-grid"></div>
 
-    <!-- 성운 오버레이 -->
-    <div class="nebula-overlay"></div>
+    <!-- 스캔라인 효과 -->
+    <div class="scanline"></div>
 
     <!-- 인트로 씬 (비주얼 노벨 스타일) -->
     <IntroScene
@@ -104,8 +100,20 @@
         :category="deepDiveQuestions[currentQuestionIndex]?.category || ''"
         :mermaid-code="mermaidCode"
         :phase="evaluationPhase"
+        :validation-error="answerValidationError"
         @submit="submitDeepDiveAnswer"
         @submit-explanation="submitUserExplanation"
+      />
+
+      <!-- ✅ NEW: 검증 피드백 모달 -->
+      <ValidationFeedback
+        v-if="showValidationFeedback"
+        :validation-result="validationResult"
+        :component-count="droppedComponents.length"
+        :connection-count="connections.length"
+        :show-debug-info="isValidationDebugMode"
+        @close="closeValidationFeedback"
+        @proceed="proceedFromValidation"
       />
     </template>
   </div>
@@ -124,6 +132,8 @@ import GameHeader from './components/GameHeader.vue';
 import IntroScene from './components/IntroScene.vue';
 import CaseFilePanel from './components/CaseFilePanel.vue';
 import TutorialOverlay from './components/TutorialOverlay.vue';
+// ✅ NEW: 검증 피드백 컴포넌트
+import ValidationFeedback from './components/ValidationFeedback.vue';
 
 // Composables
 import { useToast } from './composables/useToast';
@@ -146,12 +156,13 @@ export default {
     GameHeader,
     IntroScene,
     CaseFilePanel,
-    TutorialOverlay
+    TutorialOverlay,
+    ValidationFeedback
   },
   data() {
     return {
       // Intro State
-      showIntro: true,
+      showIntro: false,
       showTutorial: false,
       introLines: [
         "[SYSTEM ALERT] 아키텍트님, 마더 서버에 이상 징후가 감지되었습니다. 꽥!",
@@ -163,7 +174,12 @@ export default {
 
       // Problem State
       currentProblemIndex: 0,
-      problems: []
+      problems: [],
+
+      // ✅ NEW: 검증 상태
+      showValidationFeedback: false,
+      validationResult: null,
+      isValidationDebugMode: false // 개발 환경에서 true로 설정
     };
   },
   setup() {
@@ -211,6 +227,7 @@ export default {
       currentQuestionIndex: evaluation.currentQuestionIndex,
       submitDeepDiveAnswerComposable: evaluation.submitDeepDiveAnswer,
       openEvaluationModalComposable: evaluation.openEvaluationModal,
+      openDeepDiveModalComposable: evaluation.openDeepDiveModal, // ✅ NEW
       directEvaluateComposable: evaluation.directEvaluate,
       handleRetryComposable: evaluation.handleRetry,
       resetEvaluationState: evaluation.resetEvaluationState,
@@ -219,7 +236,10 @@ export default {
 
       // NEW: 설명 Phase
       evaluationPhase: evaluation.evaluationPhase,
-      submitUserExplanationComposable: evaluation.submitUserExplanation
+      submitUserExplanationComposable: evaluation.submitUserExplanation,
+
+      // 🔥 검증 에러 메시지
+      answerValidationError: evaluation.answerValidationError
     };
   },
   computed: {
@@ -232,15 +252,15 @@ export default {
       startOnLoad: false,
       theme: 'dark',
       themeVariables: {
-        primaryColor: '#6b5ce7',
-        primaryTextColor: '#e8eaed',
-        primaryBorderColor: '#6b5ce7',
-        lineColor: '#4fc3f7',
-        secondaryColor: '#f06292',
-        tertiaryColor: '#4fc3f7',
-        background: '#12122a',
-        mainBkg: 'rgba(255, 255, 255, 0.05)',
-        textColor: '#e8eaed'
+        primaryColor: '#00f3ff',     // Neon Cyan
+        primaryTextColor: '#ffffff',
+        primaryBorderColor: '#00f3ff',
+        lineColor: '#bc13fe',        // Neon Purple
+        secondaryColor: '#ff0055',   // Neon Pink
+        tertiaryColor: '#050510',
+        background: '#050510',
+        mainBkg: 'rgba(20, 20, 35, 0.8)',
+        textColor: '#e0f7fa'
       },
       securityLevel: 'loose'
     });
@@ -252,6 +272,20 @@ export default {
     }
 
     await this.loadProblems();
+
+    // 인트로 건너뛰는 경우 가이드 메시지 표시
+    if (!this.showIntro) {
+      if (!localStorage.getItem('arch-tutorial-done')) {
+        this.$nextTick(() => {
+          this.showTutorial = true;
+        });
+      } else {
+        this.showToastMessage(
+          '[GUIDE] 팔레트에서 컴포넌트를 드래그하여 캔버스에 배치하세요. 꽥!',
+          'guide'
+        );
+      }
+    }
   },
   beforeUnmount() {
     this.cleanupToast();
@@ -344,7 +378,7 @@ export default {
     async submitUserExplanation(explanation) {
       this.showToastMessage('[PROCESSING] 아키텍처 분석 및 질문 생성 중... 꽥!', 'guide');
 
-      const allDone = await this.submitUserExplanationComposable(
+      const result = await this.submitUserExplanationComposable(
         explanation,
         this.currentProblem,
         this.droppedComponents,
@@ -352,7 +386,14 @@ export default {
         this.mermaidCode
       );
 
-      if (allDone && this.isPendingEvaluation()) {
+      // 🔥 검증 실패 감지 - 모달에 메시지 표시되도록 함
+      if (result.validationFailed) {
+        this.showToastMessage('[검증] 더 구체적인 설명을 입력해주세요. 꽥!', 'warning');
+        return; // 여기서 멈춤 - 모달에 에러메시지 표시
+      }
+
+      // ✅ 검증 통과
+      if (result.finished && this.isPendingEvaluation()) {
         // 질문 없이 바로 평가로 진행
         this.clearPendingEvaluation();
         await this.directEvaluateComposable(
@@ -361,14 +402,22 @@ export default {
           this.connections,
           this.mermaidCode
         );
-      } else {
+      } else if (result.success) {
         this.showToastMessage('[READY] 검증 질문에 응답해주세요. 꽥!', 'guide');
       }
     },
 
     async submitDeepDiveAnswer(answer) {
-      const allDone = await this.submitDeepDiveAnswerComposable(answer);
-      if (allDone && this.isPendingEvaluation()) {
+      const result = await this.submitDeepDiveAnswerComposable(answer);
+
+      // 🔥 검증 실패 감지
+      if (result.success === false) {
+        this.showToastMessage('[검증] 더 구체적인 답변을 입력해주세요. 꽥!', 'warning');
+        return; // 여기서 멈춤 - 모달에 에러메시지 표시
+      }
+
+      // ✅ 검증 통과 후 진행
+      if (result.finished && this.isPendingEvaluation()) {
         this.clearPendingEvaluation();
         // EvaluationModal 없이 바로 평가 진행
         await this.directEvaluateComposable(
@@ -382,12 +431,63 @@ export default {
 
     // === Evaluation ===
     async openEvaluationModal() {
-      await this.openEvaluationModalComposable(
+      const result = await this.openEvaluationModalComposable(
         this.currentProblem,
         this.droppedComponents,
         this.connections,
         this.mermaidCode
       );
+
+      // ✅ Step 1: 검증 실패 처리
+      if (result.validationFailed) {
+        // ValidationFeedback 모달 표시
+        this.validationResult = result.validationResult;
+        this.showValidationFeedback = true;
+
+        // 토스트 알림
+        this.showToastMessage(
+          '[검증] 아키텍처를 다시 확인해주세요. 꽥!',
+          'warning'
+        );
+
+        // 디버깅용 상세 정보 출력
+        console.log('[Validation Failed]', result.validationResult);
+        return;
+      }
+
+      // ⚠️ Step 2: 검증 경고 처리
+      if (result.validationWarnings && result.validationWarnings.length > 0) {
+        this.validationResult = result.validationResult;
+        this.showValidationFeedback = true;
+
+        // 토스트로도 안내
+        this.showToastMessage('[검증] 통과했습니다. 경고 사항을 확인하세요. 꽥!', 'guide');
+        return;
+      }
+
+      // ✅ Step 3: 검증 통과 후 계속 진행
+      if (result.shouldContinue !== false && result.validationPassed) {
+        this.validationResult = result.validationResult;
+        this.showValidationFeedback = true;
+
+        this.showToastMessage('[검증] 통과했습니다! 꽥!', 'success');
+      }
+    },
+
+    // ✅ ValidationFeedback에서 호출되는 메서드
+    closeValidationFeedback() {
+      this.showValidationFeedback = false;
+      this.validationResult = null;
+    },
+
+    proceedFromValidation() {
+      this.showValidationFeedback = false;
+
+      // ✅ ValidationFeedback 닫은 후 설명 입력 모달 열기
+      this.$nextTick(() => {
+        this.openDeepDiveModalComposable();
+        this.showToastMessage('[PHASE 1] 아키텍처 설명을 입력해주세요. 꽥!', 'guide');
+      });
     },
 
     // === Retry ===
@@ -400,190 +500,190 @@ export default {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
+/* 폰트 임포트 */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap');
 
-/* === Space Mission Report 테마 변수 === */
-.arch-challenge-container.among-theme {
-  --space-deep: #0a0a1a;
-  --space-dark: #12122a;
+/* === NEON ARCADE THEME === */
+.arch-challenge-container.neon-theme {
+  --bg-deep: #090910;
+  --bg-panel: rgba(18, 18, 35, 0.7);
+  --neon-cyan: #00f3ff;
+  --neon-purple: #bc13fe;
+  --neon-pink: #ff00ff;
+  --neon-lime: #ccf381;
+  --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+  --font-header: 'Orbitron', sans-serif;
+  --font-body: 'Rajdhani', sans-serif;
 
-  --nebula-purple: #6b5ce7;
-  --nebula-blue: #4fc3f7;
-  --nebula-pink: #f06292;
-  --star-white: #ffffff;
-
-  --text-primary: #e8eaed;
-  --text-secondary: rgba(232, 234, 237, 0.7);
-
-  --glass-bg: rgba(255, 255, 255, 0.05);
-  --glass-border: rgba(255, 255, 255, 0.1);
-
-  font-family: 'Rajdhani', sans-serif;
-  background: linear-gradient(135deg, var(--space-deep) 0%, var(--space-dark) 50%, #1a1a3a 100%);
-  color: var(--text-primary);
-  height: 100vh;
-  overflow: hidden;
-  position: relative;
-  user-select: none;
-}
-
-/* === 별 배경 애니메이션 === */
-.stars-container {
-  position: fixed;
-  top: 0;
-  left: 0;
+  /* 컨테이너 스타일 */
   width: 100%;
-  height: 100%;
-  pointer-events: none;
+  height: 100vh;
+  background-color: var(--bg-deep);
+  background-image:
+    radial-gradient(circle at 10% 20%, rgba(188, 19, 254, 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(0, 243, 255, 0.1) 0%, transparent 40%);
+  color: #fff;
+  font-family: var(--font-body);
+  position: relative;
   overflow: hidden;
-  z-index: 0;
 }
 
-.stars, .stars2, .stars3 {
+/* === 1. 배경 효과 (Grid + Scanline) === */
+.bg-grid {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: transparent;
-}
-
-.stars {
   background-image:
-    radial-gradient(2px 2px at 20px 30px, var(--star-white), transparent),
-    radial-gradient(2px 2px at 40px 70px, rgba(255,255,255,0.8), transparent),
-    radial-gradient(1px 1px at 90px 40px, var(--star-white), transparent),
-    radial-gradient(2px 2px at 160px 120px, rgba(255,255,255,0.9), transparent),
-    radial-gradient(1px 1px at 230px 80px, var(--star-white), transparent),
-    radial-gradient(2px 2px at 300px 150px, rgba(255,255,255,0.7), transparent),
-    radial-gradient(1px 1px at 350px 200px, var(--star-white), transparent),
-    radial-gradient(2px 2px at 420px 50px, rgba(255,255,255,0.8), transparent),
-    radial-gradient(1px 1px at 500px 180px, var(--star-white), transparent),
-    radial-gradient(2px 2px at 580px 100px, rgba(255,255,255,0.9), transparent);
-  background-size: 600px 300px;
-  animation: twinkle 4s ease-in-out infinite;
+    linear-gradient(rgba(0, 0, 0, 0.2) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.2) 1px, transparent 1px);
+  background-size: 40px 40px;
+  z-index: 0;
+  pointer-events: none;
 }
 
-.stars2 {
-  background-image:
-    radial-gradient(1px 1px at 100px 150px, var(--nebula-blue), transparent),
-    radial-gradient(2px 2px at 200px 250px, rgba(79, 195, 247, 0.6), transparent),
-    radial-gradient(1px 1px at 350px 100px, var(--nebula-blue), transparent),
-    radial-gradient(2px 2px at 450px 300px, rgba(79, 195, 247, 0.7), transparent),
-    radial-gradient(1px 1px at 550px 200px, var(--nebula-blue), transparent);
-  background-size: 600px 400px;
-  animation: twinkle 6s ease-in-out infinite 1s;
-}
-
-.stars3 {
-  background-image:
-    radial-gradient(1px 1px at 50px 200px, var(--nebula-purple), transparent),
-    radial-gradient(2px 2px at 150px 50px, rgba(107, 92, 231, 0.6), transparent),
-    radial-gradient(1px 1px at 280px 180px, var(--nebula-purple), transparent),
-    radial-gradient(2px 2px at 400px 120px, rgba(107, 92, 231, 0.7), transparent),
-    radial-gradient(1px 1px at 520px 280px, var(--nebula-purple), transparent);
-  background-size: 600px 400px;
-  animation: twinkle 5s ease-in-out infinite 2s;
-}
-
-@keyframes twinkle {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-/* 성운 오버레이 */
-.nebula-overlay {
-  position: fixed;
+.scanline {
+  position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background:
-    radial-gradient(ellipse at 20% 20%, rgba(107, 92, 231, 0.15) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 80%, rgba(240, 98, 146, 0.1) 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 50%, rgba(79, 195, 247, 0.08) 0%, transparent 60%);
-  pointer-events: none;
-  animation: nebulaPulse 10s ease-in-out infinite;
-  z-index: 0;
-}
-
-@keyframes nebulaPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-
-@keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 20px rgba(107, 92, 231, 0.3); }
-  50% { box-shadow: 0 0 40px rgba(107, 92, 231, 0.6); }
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
-}
-
-/* === MAIN GAME === */
-.game-container {
-  display: flex;
-  width: 100%;
-  height: 100%;
-  position: relative;
+  background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1));
+  background-size: 100% 4px;
   z-index: 1;
-  background: transparent;
+  pointer-events: none;
 }
 
-/* === MAIN WORKSPACE === */
+/* === 2. 레이아웃 구조 === */
+.game-container {
+  position: relative;
+  z-index: 10;
+  width: 98%;
+  height: 96%;
+  display: flex;
+  margin: 0 auto;
+  top: 2%;
+  gap: 15px;
+}
+
 .main-workspace {
   flex: 1;
   display: flex;
   flex-direction: column;
+  gap: 15px;
   overflow: hidden;
-  position: relative;
 }
 
-/* === WORKSPACE CONTENT === */
 .workspace-content {
   flex: 1;
   display: flex;
+  gap: 15px;
   overflow: hidden;
-  background: transparent;
 }
 
-.toolbox-panel {
-  width: 150px;
-  min-width: 150px;
-  background: rgba(255, 255, 255, 0.05);
-  border-right: 1px solid var(--glass-border);
+/* === 3. 컴포넌트 스타일링 === */
+
+/* [좌측 패널] CaseFilePanel 스타일 오버라이드 */
+:deep(.case-file-panel) {
+  width: 320px;
+  min-width: 320px;
+  background: var(--bg-panel) !important;
+  border: 1px solid var(--neon-purple) !important;
+  border-radius: 16px !important;
+  box-shadow: inset 0 0 30px rgba(188, 19, 254, 0.1), 0 0 15px rgba(188, 19, 254, 0.2) !important;
   backdrop-filter: blur(10px);
+}
+
+:deep(.case-file-panel h2),
+:deep(.case-file-panel h3) {
+  font-family: var(--font-header) !important;
+  color: var(--neon-cyan) !important;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* [상단 헤더] GameHeader 스타일 오버라이드 */
+:deep(.game-header) {
+  height: 60px;
+  background: transparent !important;
+  border-bottom: 1px solid var(--neon-cyan) !important;
+  display: flex;
+  align-items: center;
+}
+
+/* 버튼 스타일 (헤더 및 내부 버튼) */
+:deep(button) {
+  font-family: var(--font-header) !important;
+  border-radius: 20px !important;
+  text-transform: uppercase;
+  transition: all 0.2s ease;
+}
+
+:deep(.btn-primary),
+:deep(.action-btn) {
+  background: rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid var(--neon-cyan) !important;
+  color: var(--neon-cyan) !important;
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+}
+
+:deep(.btn-primary:hover) {
+  background: var(--neon-cyan) !important;
+  color: #000 !important;
+  box-shadow: 0 0 20px rgba(0, 243, 255, 0.6);
+}
+
+/* [중앙] 툴박스 ComponentPalette */
+.toolbox-panel {
+  width: 140px;
+  min-width: 140px;
+  background: rgba(10, 15, 30, 0.6) !important;
+  border: 1px solid rgba(80, 80, 255, 0.3) !important;
+  border-radius: 12px !important;
   padding: 12px;
   overflow-y: auto;
 }
 
-/* 스크롤바 커스텀 */
-.toolbox-panel::-webkit-scrollbar {
-  width: 6px;
+:deep(.component-item) {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 8px !important;
+  color: #ccc !important;
+  transition: all 0.2s;
 }
 
-.toolbox-panel::-webkit-scrollbar-track {
-  background: var(--space-deep);
+:deep(.component-item:hover) {
+  border-color: var(--neon-cyan) !important;
+  background: rgba(0, 243, 255, 0.1) !important;
+  box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+  transform: translateX(5px);
 }
 
-.toolbox-panel::-webkit-scrollbar-thumb {
-  background: rgba(107, 92, 231, 0.4);
-  border-radius: 10px;
-}
-
-.toolbox-panel::-webkit-scrollbar-thumb:hover {
-  background: var(--nebula-purple);
-}
-
+/* [우측] 캔버스 ArchitectureCanvas */
 .canvas-panel {
   flex: 1;
   position: relative;
-  background-color: rgba(10, 10, 26, 0.85);
+  background-color: #050508 !important;
+  border: 1px solid #333 !important;
+  border-radius: 12px !important;
+  box-shadow: inset 0 0 50px rgba(0,0,0,0.8);
+}
+
+/* 캔버스 내부 그리드 패턴 */
+.canvas-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   background-image:
-    radial-gradient(rgba(107, 92, 231, 0.04) 1px, transparent 1px);
-  background-size: 30px 30px;
+    linear-gradient(rgba(100, 100, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(100, 100, 255, 0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
 }
 
 .canvas-panel::after {
@@ -594,8 +694,22 @@ export default {
   font-family: 'Orbitron', sans-serif;
   font-size: 0.7rem;
   font-weight: 700;
-  color: rgba(107, 92, 231, 0.15);
+  color: rgba(0, 243, 255, 0.15);
   letter-spacing: 3px;
   pointer-events: none;
+}
+
+/* === 5. 스크롤바 커스텀 === */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #000;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--neon-purple);
+  border-radius: 3px;
 }
 </style>
