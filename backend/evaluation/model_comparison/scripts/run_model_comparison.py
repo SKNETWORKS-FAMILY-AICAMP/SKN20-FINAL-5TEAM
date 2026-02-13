@@ -16,7 +16,7 @@ sys.path.insert(0, str(backend_dir))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
-from model_evaluator import get_evaluator
+from backend.evaluation.data.validation.model_comparison.scripts.model_evaluator import get_evaluator
 
 
 class ModelComparisonRunner:
@@ -259,10 +259,23 @@ class ModelComparisonRunner:
                       f"경과: {elapsed / 60:.1f}분")
 
             # 모델별 결과 저장
+            # evaluator가 없는 경우 (초기화 실패) 빈 stats 사용
+            if model in self.evaluators:
+                stats = self.evaluators[model].get_stats()
+            else:
+                stats = {
+                    'model': model,
+                    'total_cost': 0,
+                    'total_tokens': 0,
+                    'avg_time': 0,
+                    'total_evaluations': 0,
+                    'error': 'Evaluator initialization failed'
+                }
+
             all_results[model] = {
                 'model_name': model,
                 'results': model_results,
-                'stats': self.evaluators[model].get_stats()
+                'stats': stats
             }
 
             # 개별 모델 결과 파일 저장
@@ -272,7 +285,7 @@ class ModelComparisonRunner:
 
             print(f"\n✅ {model} 평가 완료")
             print(f"   📁 저장: {model_file}")
-            print(f"   📊 통계: {self.evaluators[model].get_stats()}")
+            print(f"   📊 통계: {stats}")
 
         # 전체 결과 저장
         summary_file = self.output_dir / 'model_comparison_results.json'

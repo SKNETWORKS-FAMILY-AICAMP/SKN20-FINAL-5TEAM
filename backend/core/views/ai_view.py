@@ -576,3 +576,110 @@ class BugHuntEvaluationView(APIView):
         except Exception as e:
             print(f"Bug Hunt Evaluation Exception: {e}")
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class FollowUpIntentCheckView(APIView):
+    """
+    [추가일: 2026-02-12]
+    버그헌트 꼬리질문에 대한 사용자 답변의 의도를 파악합니다.
+    사용자가 "모르겠다", "넘어가고 싶다" 등의 의도를 표현했는지 LLM이 판단합니다.
+    """
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        question = request.data.get('question', '')
+        answer = request.data.get('answer', '')
+
+        if not question or not answer:
+            return Response({"error": "Question and answer are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            api_key = settings.OPENAI_API_KEY
+            if not api_key:
+                return Response({"error": "API Key not configured"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            client = openai.OpenAI(api_key=api_key)
+
+            system_prompt = """당신은 사용자의 답변 의도를 파악하는 전문가입니다.
+사용자가 꼬리질문에 답변했을 때, 그 답변이 다음 중 어떤 의도인지 판단하세요:
+
+1. "모르겠다" - 사용자가 질문에 답할 수 없거나 모르겠다는 의도
+   예시: "모르겠어요", "잘 모르겠습니다", "???", "글쎄요...", "어렵네요", "이해가 안 가요"
+
+2. "넘어가고 싶다" - 사용자가 이 질문을 건너뛰고 싶어하는 의도
+   예시: "넘어갈게요", "다음으로", "패스", "skip", "이거 안 할래요"
+
+3. "유의미한 답변" - 사용자가 질문에 대해 진지하게 답변하려는 시도
+
+**판단 기준**:
+- 답변이 5자 이하로 너무 짧으면 대부분 의미 없음
+- 온점, 물음표만 있거나 의미없는 기호만 있으면 의미 없음
+- "모르다", "넘어가다" 등의 키워드가 있으면 해당 의도로 분류
+- 질문과 관련된 실질적인 내용이 있으면 유의미한 답변
+
+**반드시 JSON 형식으로만 응답하세요**:
+{{
+  "intent": "dont_know" | "skip" | "meaningful",
+  "confidence": 0.0-1.0,
+  "reason": "판단 이유를 간단히 설명",
+  "showSkipButton": true/false
+}}
+
+showSkipButton 규칙:
+- intent가 "dont_know" 또는 "skip"이면 true
+- intent가 "meaningful"이면 false
+"""
+
+            user_prompt = f"""질문: {question}
+
+사용자 답변: {answer}
+
+위 답변의 의도를 파악하여 JSON으로 응답하세요."""
+
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.3,
+                max_tokens=300
+            )
+
+            content = response.choices[0].message.content.strip()
+
+            # JSON 파싱
+            try:
+                if "```" in content:
+                    content = content.split("```")[1]
+                    if content.startswith("json"):
+                        content = content[4:]
+
+                result = json.loads(content.strip())
+
+                return Response({
+                    "intent": result.get("intent", "meaningful"),
+                    "confidence": result.get("confidence", 0.5),
+                    "reason": result.get("reason", ""),
+                    "showSkipButton": result.get("showSkipButton", False)
+                }, status=status.HTTP_200_OK)
+
+            except json.JSONDecodeError as parse_e:
+                print(f"[DEBUG] Intent JSON Parse Fail: {parse_e}", flush=True)
+                # 파싱 실패 시 안전한 기본값
+                return Response({
+                    "intent": "meaningful",
+                    "confidence": 0.5,
+                    "reason": "파싱 실패, 안전을 위해 유의미한 답변으로 처리",
+                    "showSkipButton": False
+                }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            print(f"[ERROR] Follow-up Intent Check: {e}", flush=True)
+            return Response({
+                "error": str(e),
+                "intent": "meaningful",
+                "showSkipButton": False
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
