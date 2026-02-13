@@ -11,20 +11,45 @@ export function useGameEngine() {
     // --- Game State ---
     const gameState = reactive({
         currentStageId: initialStageId,
-        // Phases: DIAGNOSTIC_1 -> DIAGNOSTIC_2 -> PSEUDO_WRITE -> PYTHON_FILL -> DEEP_QUIZ -> EVALUATION
+        // [2026-02-12] 인트로 단계 제거 및 즉시 진단 시작
         phase: 'DIAGNOSTIC_1',
+        diagnosticStep: 0, // [2026-02-13] 현재 풀고 있는 진담 문항 인덱스 복구
+        step: 1,
         playerHP: 100,
         score: 0,
         combo: 0,
 
         // State for Decisions
         selectedStrategyLabel: "", // Set in Phase 2
+        diagnosticAnswer: "",
+        diagnosticResult: null,
+        isEvaluatingDiagnostic: false,
+
         // Phase 3 State
-            phase3Reasoning: "",
-            phase3Score: 0,
-            phase3Feedback: "",
-            phase3EvaluationResult: null,
-            showHint: false,
+        phase3Reasoning: "",
+        phase3Placeholder: `IF 코드에 'scaler.fit(' 또는 'encoder.fit(' 패턴이 있음
+AND 그 이전 줄에 'train_test_split' 또는 '[: 슬라이싱]'이 없음
+THEN
+  경고: '분할 전 통계량 산출 감지'
+  설명: 'Test 데이터 통계량이 Train 학습에 영향을 줍니다'
+  해결책: 'Train/Test 분할 후 scaler.fit(X_train)으로 변경하세요'
+
+또는:
+
+규칙 1: fit() 메서드 호출 검사
+- 탐지: StandardScaler().fit(), MinMaxScaler().fit(), LabelEncoder().fit()
+- 조건: fit() 이전에 데이터 분할 코드가 없는 경우
+- 경고 메시지: 'Train set으로만 fit 해야 합니다'`,
+        phase3Score: 0,
+        phase3Feedback: "",
+        phase3EvaluationResult: null,
+        showHint: false,
+
+        // [2026-02-13] 통합 채점 시스템 (3-Stage Scoring)
+        diagnosticScores: [],       // 각 진단 문항 점수 저장
+        iterativeScore: 0,          // 꼬리 질문/심화 퀴즈 성공 여부 (0-100)
+        finalWeightedScore: 0,      // 최종 가중 합산 점수
+
         // Interactive Messages
         coduckMessage: "경고! 접근하는 모든 데이터는 적입니다!",
         feedbackMessage: null,
@@ -88,21 +113,17 @@ export function useGameEngine() {
 
         try {
             switch (newPhase) {
+                case 'INTRO':
+                    gameState.coduckMessage = "당신의 아키텍처 역량을 증명할 준비가 되었나요?";
+                    addSystemLog("미션 브리핑 프로토콜 활성화", "READY");
+                    break;
                 case 'DIAGNOSTIC_1':
                     gameState.coduckMessage = "이 선택은 이후 모든 판단에 영향을 줍니다.";
                     addSystemLog("진단 프로토콜 1단계 개시", "INFO");
                     break;
-                case 'DIAGNOSTIC_2':
-                    gameState.coduckMessage = "무엇을 신뢰할지 결정해야 합니다.";
-                    addSystemLog("진단 프로토콜 2단계 진입", "INFO");
-                    break;
                 case 'PSEUDO_WRITE':
                     gameState.coduckMessage = "어떤 순서로 생각하는지 보여주세요.";
                     addSystemLog("자연어 처리 에디터 로드됨", "SUCCESS");
-                    break;
-                case 'PYTHON_FILL':
-                    gameState.coduckMessage = "사고와 코드가 일치하는지 확인하십시오.";
-                    addSystemLog("구현 환경 동기화 완료", "SUCCESS");
                     break;
                 case 'DEEP_QUIZ':
                     gameState.coduckMessage = "설명할 수 있다면, 이해한 것입니다.";

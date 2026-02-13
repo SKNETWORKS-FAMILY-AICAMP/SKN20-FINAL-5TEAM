@@ -22,6 +22,7 @@ from core.views import (
     PseudocodeAgentView
 )
 from core.views.pseudocode_execution import execute_python_code
+from core.views import pseudocode_evaluation
 
 router = DefaultRouter()
 router.register(r'users', UserProfileViewSet, basename='users')
@@ -64,4 +65,5 @@ urlpatterns = [
 
     path('pseudocode/execute/', execute_python_code, name='pseudocode_execute'),
     path('pseudo-agent/', PseudocodeAgentView.as_view(), name='pseudo_agent'),
+    path('pseudocode/evaluate-5d', pseudocode_evaluation.evaluate_pseudocode_5d),
 ]

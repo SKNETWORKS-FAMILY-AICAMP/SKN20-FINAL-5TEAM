@@ -2,14 +2,14 @@
 import { ref, watch, onBeforeUnmount } from 'vue';
 
 export function useMonacoEditor(currentMission, editorState) {
-    // [최적화] Monaco 인스턴스는 Vue 반응형 시스템(ref)에 넣지 않는 것이 좋음 (성능 저하 및 루프 원인)
+    // [최적화] Monaco 인스턴스 및 데코레이션은 Vue 반응형 시스템(ref)에 넣지 않음
     let monacoEditorRaw = null;
-    const decorationsCollection = ref(null);
-    let debounceTimer = null;
-    let resizeObserver = null;
+    let decorationsCollection = null;
+    let stateUpdateTimer = null;
+    let decorationTimer = null;
 
     const monacoOptions = {
-        automaticLayout: false, // [중요] 자동 레이아웃 비활성화 (무한 루프 방지)
+        automaticLayout: true, // [2026-02-12] 필수: 멈춤 및 입력 불가 현상 방지
         fontSize: 14,
         minimap: { enabled: false },
         scrollBeyondLastLine: false,
@@ -25,21 +25,21 @@ export function useMonacoEditor(currentMission, editorState) {
             horizontal: 'visible'
         },
         dragAndDrop: false,
-        dropIntoEditor: { enabled: false }
+        dropIntoEditor: { enabled: false },
+        readOnly: false,
+        contextmenu: true
     };
 
-    // 네모 박스 (TODO 하이라이트) 업데이트 함수 (디바운스 적용)
+    // 네모 박스 (TODO 하이라이트) 업데이트 함수
     const updateDecorations = () => {
         if (!monacoEditorRaw) return;
+        if (decorationTimer) clearTimeout(decorationTimer);
 
-        if (debounceTimer) clearTimeout(debounceTimer);
-
-        debounceTimer = setTimeout(() => {
+        decorationTimer = setTimeout(() => {
             const model = monacoEditorRaw.getModel();
             if (!model) return;
 
             const matches = model.findMatches('#\\s*TODO', false, true, false, null, true);
-
             const newDecorations = (matches || []).map(match => ({
                 range: match.range,
                 options: {
@@ -49,20 +49,17 @@ export function useMonacoEditor(currentMission, editorState) {
                 }
             }));
 
-            if (decorationsCollection.value) {
-                decorationsCollection.value.clear();
+            if (decorationsCollection) {
+                decorationsCollection.clear();
             }
-            decorationsCollection.value = monacoEditorRaw.createDecorationsCollection(newDecorations);
-        }, 300);
+            decorationsCollection = monacoEditorRaw.createDecorationsCollection(newDecorations);
+        }, 1000);
     };
 
     // 코드 삽입 함수
     const insertCodeSnippet = (code) => {
-        const currentCode = editorState.userCode;
-        if (!currentCode) {
-            editorState.userCode = code;
-            return;
-        }
+        if (!monacoEditorRaw) return;
+        const currentCode = editorState.userCode || "";
 
         const todoLineRegex = /^(\s*)#\s*todo.*$/mi;
         const match = currentCode.match(todoLineRegex);
@@ -71,80 +68,94 @@ export function useMonacoEditor(currentMission, editorState) {
             const fullMatch = match[0];
             const indent = match[1] || "";
             const indentedCode = code.split('\n').map(line => indent + line).join('\n');
-            editorState.userCode = currentCode.replace(fullMatch, indentedCode);
+            const newTotalCode = currentCode.replace(fullMatch, indentedCode);
+            editorState.userCode = newTotalCode;
+            monacoEditorRaw.setValue(newTotalCode); // 즉시 적용
         } else {
-            editorState.userCode = currentCode + "\n" + code;
+            const newTotalCode = currentCode + "\n" + code;
+            editorState.userCode = newTotalCode;
+            monacoEditorRaw.setValue(newTotalCode);
         }
     };
 
     // 에디터 마운트 시 설정
     const handleMonacoMount = (editor) => {
+        console.log("[Monaco] Mounted successfully");
         monacoEditorRaw = editor;
 
-        // [추가] 수동 레이아웃 설정을 위한 ResizeObserver 등록
-        const container = editor.getDomNode()?.parentElement;
-        if (container) {
-            resizeObserver = new ResizeObserver(() => {
-                editor.layout();
-            });
-            resizeObserver.observe(container);
-        }
-
-        // [중요] Native Drop 이벤트 리스너 등록 (옵션 비활성화 상태에서도 동작하도록)
+        // 드롭 이벤트 (순수 DOM 방식 유지)
         const domNode = editor.getDomNode();
         if (domNode) {
-            domNode.addEventListener('dragover', (e) => {
-                e.preventDefault(); // Drop 허용
-                e.stopPropagation();
-                e.dataTransfer.dropEffect = 'copy';
-            }, true);
-
+            domNode.addEventListener('dragover', (e) => e.preventDefault());
             domNode.addEventListener('drop', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
                 const code = e.dataTransfer.getData('text/plain');
                 if (code) {
+                    e.preventDefault();
                     insertCodeSnippet(code);
                 }
-            }, true);
+            });
         }
 
-        if ((!editorState.userCode || editorState.userCode.length < 5) && currentMission.value?.implementation?.codeFrame?.template) {
-            editorState.userCode = currentMission.value.implementation.codeFrame.template;
+        // 초기값 결정 (undefined/null 체크)
+        const currentVal = editorState.userCode;
+        const templateVal = currentMission.value?.implementation?.codeFrame?.template || "";
+
+        const finalInitialValue = (currentVal !== undefined && currentVal !== null) ? currentVal : templateVal;
+
+        editor.setValue(finalInitialValue);
+        if (editorState.userCode === undefined || editorState.userCode === null) {
+            editorState.userCode = finalInitialValue;
         }
 
+        // 내용 변경 감지 (300ms 디바운스)
         editor.onDidChangeModelContent(() => {
-            // [CRITICAL FIX] Manual two-way binding: Editor -> State
-            // v-model might be failing, so we force update state from editor content.
-            editorState.userCode = editor.getValue();
-            updateDecorations();
+            if (stateUpdateTimer) clearTimeout(stateUpdateTimer);
+
+            stateUpdateTimer = setTimeout(() => {
+                const editorValue = editor.getValue();
+                // [2026-02-12] 상태값과 에디터값이 다를 때만 업데이트 (루프 차단)
+                if (editorState.userCode !== editorValue) {
+                    editorState.userCode = editorValue;
+                }
+                updateDecorations();
+            }, 300);
         });
 
         updateDecorations();
+        editor.focus(); // 마운트 시 포커스
     };
 
-    // 언마운트 시 옵저버 해제
+    // 언마운트 시 정리
     onBeforeUnmount(() => {
-        if (resizeObserver) {
-            resizeObserver.disconnect();
-        }
+        if (stateUpdateTimer) clearTimeout(stateUpdateTimer);
+        if (decorationTimer) clearTimeout(decorationTimer);
     });
 
     // 스테이지 변경 시 템플릿 리로드
     watch(() => currentMission.value?.id, (newId) => {
-        if (newId && currentMission.value?.implementation?.codeFrame?.template) {
-            editorState.userCode = currentMission.value.implementation.codeFrame.template;
-            setTimeout(updateDecorations, 500);
+        if (newId && monacoEditorRaw) {
+            const template = currentMission.value?.implementation?.codeFrame?.template || "";
+            editorState.userCode = template;
+            monacoEditorRaw.setValue(template);
+            setTimeout(() => monacoEditorRaw.layout(), 100);
         }
     });
 
-    // [CRITICAL FIX] 상태 변화를 에디터에 강제 동기화 (v-model이 반응하지 않을 때를 대비)
+    // [CRITICAL FIX] 외부 상태 변화 동기화 (포커스 없을 때만)
     watch(() => editorState.userCode, (newCode) => {
-        if (monacoEditorRaw && newCode !== monacoEditorRaw.getValue()) {
-            monacoEditorRaw.setValue(newCode);
-            // 커서를 맨 앞으로 이동시키거나 상태 유지 (선택사항)
+        if (!monacoEditorRaw) return;
+
+        const normalize = (s) => (s || "").replace(/\r\n/g, '\n');
+        const normalizedNew = normalize(newCode);
+        const normalizedOld = normalize(monacoEditorRaw.getValue());
+
+        if (normalizedNew !== normalizedOld) {
+            // 사용자가 입력 중이 아닐 때만 setValue (커서 튐 방지)
+            if (!monacoEditorRaw.hasTextFocus()) {
+                monacoEditorRaw.setValue(newCode || "");
+            }
         }
-    });
+    }, { immediate: false });
 
     return {
         monacoOptions,

@@ -9,50 +9,66 @@
 export const aiQuests = [
     {
         id: 1,
-        title: "[튜토리얼] 사고 회로 복구: Data Leakage",
+        title: "전처리 데이터 누수 방어 시스템 설계",
         category: "System Reboot",
-        emoji: "💡",
-        desc: "AI 문제를 만났을 때, 코드를 치기 전 무엇을 먼저 생각해야 하는지 훈련합니다.",
+        emoji: "🚨",
+        desc: "AI 모델의 신뢰성을 파괴하는 전처리 데이터 누수를 차단하고 견고한 검증 규칙을 설계합니다.",
         rewardXP: 500,
-        subModuleTitle: "BOOT_PROTOCOL",
+        subModuleTitle: "LEAKAGE_GUARD",
         character: { name: "Coduck", image: "/assets/characters/coduck.png" },
+        scenario: "신입 개발자가 작성한 이탈 예측 모델이 검증(Validation) 정확도 95%를 기록하며 배포되었으나, 실제 고객 데이터가 들어오는 운영(Serving) 환경에서는 68%의 성능을 보이며 비즈니스에 큰 손실을 입혔습니다. 조사 결과, 데이터 전처리 단계에서 '정보 유출(Leakage)'이 발생한 것으로 파악되었습니다.",
 
         cards: [
-            { icon: "🚨", text: "STEP 1: 위험 감지 (Diagnosis)", coduckMsg: "데이터 파이프라인에서 비정상 신호가 감지되었습니다. 현재 상황을 정확히 진단하는 것이 급선무입니다." },
-            { icon: "📝", text: "STEP 2: 설계 (Architecture)", coduckMsg: "문제를 해결하기 위한 논리적 설계를 수립하세요. 코드를 짜기 전에 글로 먼저 정리해야 합니다." },
-            { icon: "💻", text: "STEP 3: 구현 (Implementation)", coduckMsg: "설계한 논리를 바탕으로 실제 복구 코드를 작성하세요. 빈 칸을 채워 시스템을 정상화하십시오." },
-            { icon: "⚖️", text: "STEP 4: 검증 (Validation)", coduckMsg: "수정된 시스템이 올바르게 작동하는지 테스트 케이스를 통해 검증합니다." }
+            { icon: "🚑", text: "STEP 1: 위험 진단", coduckMsg: "주니어 개발자의 치명적인 실수가 발견되었습니다. 무엇이 문제인지 먼저 파악합시다." },
+            { icon: "📝", text: "STEP 2: 규칙 설계", coduckMsg: "이런 실수가 재발하지 않도록 AI가 자동으로 감지할 수 있는 검증 규칙을 만드세요." },
+            { icon: "💻", text: "STEP 3: 심화 검증", coduckMsg: "단순한 규칙을 넘어, 더 교묘한 누수 패턴도 잡아낼 수 있는지 확인해 봅시다." },
+            { icon: "⚖️", text: "STEP 4: 최종 평가", coduckMsg: "당신의 아키텍처 설계 능력을 AI 아키텍트가 정밀 평가합니다." }
         ],
 
         interviewQuestions: [
             {
-                id: "q1",
-                question: "Step 1-1: 사고 회로 복구를 위한 첫 번째 행동은?",
+                id: "concept_1_choice",
+                type: "CHOICE",
+                question: "Q1. [격리의 시점] 데이터 오염을 막는 첫 번째 방어선\n신입 개발자가 범한 가장 큰 실수는 scaler.fit(df)를 통해 전체 데이터의 정보를 섞어버린 것입니다. 이를 방지하기 위한 가장 우선적인 조치는 무엇인가요?",
                 options: [
-                    { text: "전체 데이터 흐름(E2E Pipeline)을 먼저 파악한다", value: "flow", correct: true },
-                    { text: "바로 모델과 코드를 수정한다", value: "code" }
+                    { text: "더 많은 데이터를 수집하여 모델을 복잡하게 만든다.", correct: false, feedback: "데이터 양을 늘리는 것과 정보 유출 방지는 무관합니다." },
+                    { text: "전처리(Scaling)를 모두 마친 후 데이터를 나눈다.", correct: false, feedback: "이것이 바로 신입 개발자가 범한 실수(누수 발생)입니다." },
+                    { text: "데이터 전처리 프로세스가 시작되기 전, 학습(Train)과 테스트(Test) 데이터를 물리적으로 분리(격리)한다.", correct: true, feedback: "정답입니다! 전처리 전 분리가 가장 확실한 방어선입니다." },
+                    { text: "운영 환경에서는 전처리를 생략한다.", correct: false, feedback: "학습 때와 동일한 전처리가 운영 환경에서도 반드시 필요합니다." }
                 ],
-                coduckComment: "좋아요. 문제를 고치기 전에, 먼저 전체 흐름을 봐야 해요."
+                context: "데이터 전처리 누수(Leakage) 원천 차단 전략"
             },
             {
-                id: "q2",
-                question: "Step 1-2: AI가 환각(Hallucination)에 빠지는 가장 흔한 원인은?",
+                id: "concept_2_choice",
+                type: "CHOICE",
+                question: "Q2. [기준점의 설정] '저울'은 무엇으로 만들어야 하는가?\n데이터를 분리한 후, 표준화(Standardization)를 위한 평균과 표준편차 값은 어느 데이터셋에서 추출해야 하나요?",
                 options: [
-                    { text: "잘못된 학습 기준으로 데이터를 처리했기 때문", value: "leakage", correct: true },
-                    { text: "모델이 충분히 똑똑하지 않아서", value: "model" }
+                    { text: "전체 데이터셋: 데이터가 많을수록 통계량이 정확하기 때문이다.", correct: false, feedback: "전체 데이터를 사용하면 테스트 데이터의 정보가 스며들어 '데이터 누수'가 발생합니다." },
+                    { text: "테스트 데이터셋: 실제 운영 환경과 유사한 분포를 가져야 하기 때문이다.", correct: false, feedback: "테스트 데이터는 미래의 데이터 역할을 해야 하며, 이를 기준으로 삼아서는 안 됩니다." },
+                    { text: "학습 데이터셋: 모델이 '이미 알고 있는 과거의 정보'만을 기준으로 삼아야 하기 때문이다.", correct: true, feedback: "정답입니다! 학습 데이터에서 얻은 '저울(평균/표준편차)'로 모든 데이터를 측정해야 정보 유출이 없습니다." },
+                    { text: "무작위 추출: 편향을 방지하기 위해 매번 새로 계산해야 한다.", correct: false, feedback: "기준점(저울)이 매번 바뀌면 모델의 판단 기준이 흔들리게 됩니다." }
                 ],
-                coduckComment: "정확해요. 기준이 무너지면 모델도 흔들려요."
-            }
+                context: "신뢰할 수 있는 모델 평가 기준 확립"
+            },
         ],
 
         designContext: {
-            title: "Step 2: 아키텍처 설계 (자연어 서술)",
+            title: "[미션] 데이터 오염 원천 차단 설계",
+            description: "실제 운영 환경에서 이 모델이 '바보'가 되지 않도록, 데이터 오염을 원천 차단하는 전처리 파이프라인의 설계 원칙과 그 순서를 '의사코드(Pseudo Code)' 형태로 서술하세요.",
+            // [2026-02-11] 사고 코드 및 문제 설명 데이터 (이미지 반영)
+            incidentCode: `
+scaler = StandardScaler()
+scaler.fit(df)  # ⚠️ 전체 데이터로 fit
+X_train = scaler.transform(df[:800])
+X_test = scaler.transform(df[800:])
+            `.trim(),
+            incidentProblem: "fit() 실행 시점에 Train/Test 분할이 되지 않아 Test 통계량이 Train에 영향",
             currentIncident: `
-모델 학습 과정에서 테스트 데이터의 통계 정보가
-학습 기준 생성에 사용되는 데이터 누수(Data Leakage)가 발생했습니다.
+🚨 긴급 사고 보고: 전처리 데이터 누수 감지
+주니어 개발자가 작성한 전처리 코드가 Production에 배포되었습니다.
+fit() 실행 시점에 Train/Test 분할이 되지 않아 Test 통계량이 Train에 영향을 주었습니다.
 
-검증 성능은 높게 나왔지만,
-실제 서비스 환경에서는 성능이 재현되지 않는 문제가 확인되었습니다.
+결과: Train 정확도 95% → Test 정확도 68% (27%p 폭락)
             `.trim(),
             engineeringRules: [
                 "Train 데이터로만 fit 한다.",
@@ -60,14 +76,13 @@ export const aiQuests = [
                 "미래 데이터의 정보는 사용하지 않는다.",
                 "학습과 서빙은 동일한 전처리 흐름을 사용한다."
             ],
+            // [2026-02-12] 사용자 요청: 필수 포함 조건 및 미션 상세 반영
             writingGuide: `
-다음 내용을 포함해 사고 과정을 서술하세요.
-
-- 데이터 누수가 무엇이며 왜 발생했는가
-- 이 문제가 실전 환경에서 왜 위험한가
-- 전처리 파이프라인을 어떤 순서로 설계해야 하는가
-
-※ 코드는 작성하지 말고, 사고 흐름만 서술하세요.
+[필수 포함 조건 (Constraint)]
+답이 여러 갈래로 튀지 않도록 다음 3가지 키워드를 반드시 사용하여 논리를 구성하게 합니다:
+격리 (Isolation): 데이터를 나누는 시점
+기준점 (Anchor): 통계량(fit)을 추출할 대상
+일관성 (Consistency): 학습과 운영 환경의 동일한 변환 방식
             `.trim()
         },
 
@@ -130,45 +145,31 @@ export const aiQuests = [
                     studyKeywords: ['Correct Preprocessing Pipeline']
                 }
             ],
-
             // ✅ 필수 개념 (가중치 포함)
             requiredConcepts: [
                 {
-                    id: 'data_split',
-                    name: '데이터 분리',
-                    weight: 15,
-                    patterns: [
-                        /분리|나누|나눔|split|separate|divide/i,
-                        /train.*test|학습.*테스트/i,
-                        /train_test_split/i
-                    ],
-                    hints: [
-                        '데이터를 학습용과 테스트용으로 나누는 단계가 필요합니다.',
-                        'train_test_split 같은 함수를 사용할 수 있습니다.'
-                    ],
-                    studyKeywords: ['train_test_split', 'Data Partitioning']
+                    id: 'isolation',
+                    name: '격리 (Isolation)',
+                    weight: 20,
+                    patterns: [/격리|분리|나누|나눔|isolation|split|separate/i],
+                    hints: ['데이터를 나누는 시점인 "격리" 개념이 포함되어야 합니다.'],
+                    studyKeywords: ['Data Isolation', 'Sampling Bias']
                 },
                 {
-                    id: 'scaler_create',
-                    name: '스케일러 생성',
-                    weight: 10,
-                    patterns: [
-                        /scaler|스케일러|standardscaler|정규화.*객체/i,
-                        /정규화.*도구|normalization.*tool/i,
-                        /StandardScaler|MinMaxScaler|Normalizer/i
-                    ],
-                    studyKeywords: ['StandardScaler', 'Normalization']
+                    id: 'anchor',
+                    name: '기준점 (Anchor)',
+                    weight: 20,
+                    patterns: [/기준점|기준|통계량|fit|anchor|baseline/i],
+                    hints: ['통계량을 추출할 대상인 "기준점" 개념이 포함되어야 합니다.'],
+                    studyKeywords: ['Fit Strategy', 'Baseline Statistics']
                 },
                 {
-                    id: 'fit_train',
-                    name: '학습 데이터로 fit',
-                    weight: 30,  // 🔥 가장 중요!
-                    patterns: [
-                        /(train|학습).*(fit|학습시|fitting)/i,
-                        /fit.*(train|학습)/i,
-                        /(학습|train).*데이터.*만.*fit/i
-                    ],
-                    studyKeywords: ['fit on training data', 'Learn statistics']
+                    id: 'consistency',
+                    name: '일관성 (Consistency)',
+                    weight: 20,
+                    patterns: [/일관성|동일|변환|consistency|uniformity/i],
+                    hints: ['학습과 운영 환경의 동일한 변환 방식인 "일관성" 개념이 포함되어야 합니다.'],
+                    studyKeywords: ['Deployment Consistency', 'Pipeline Integrity']
                 },
                 {
                     id: 'transform_train',
@@ -209,14 +210,14 @@ export const aiQuests = [
             dependencies: [
                 {
                     name: '분리 → 스케일러 생성',
-                    before: 'data_split',
-                    after: 'scaler_create',
+                    before: 'isolation',
+                    after: 'anchor',
                     points: 5,
                     strictness: 'RECOMMENDED'
                 },
                 {
                     name: 'fit → transform(train)',
-                    before: 'fit_train',
+                    before: 'anchor',
                     after: 'transform_train',
                     points: 20,
                     strictness: 'REQUIRED',  // 🔥 필수!
@@ -224,7 +225,7 @@ export const aiQuests = [
                 },
                 {
                     name: 'fit → transform(test)',
-                    before: 'fit_train',
+                    before: 'anchor',
                     after: 'transform_test',
                     points: 20,
                     strictness: 'REQUIRED',  // 🔥 필수!
@@ -370,12 +371,11 @@ export const aiQuests = [
         },
 
         deepDiveQuestion: {
-            question: "다음 중 데이터 누수가 특히 위험한 이유는 무엇입니까?",
+            question: "당신의 검증 규칙을 다른 코드베이스에 적용했더니, Pipeline으로 감싸진 전처리 코드를 통과시켜 버렸습니다. 이유가 무엇일까요?",
             options: [
-                { text: "모델이 미래 정보를 미리 학습해 실전 성능이 붕괴된다", correct: true },
-                { text: "학습 속도가 느려진다", correct: false },
-                { text: "GPU 메모리를 더 많이 사용한다", correct: false },
-                { text: "코드가 복잡해진다", correct: false }
+                { text: "fit_transform()을 사용했기 때문에 단일 메서드라 검출 못 함", correct: true },
+                { text: "Pipeline으로 감싸면 자동으로 안전해지므로 문제없음", correct: false },
+                { text: "df_normalized 변수명 때문에 패턴 매칭 실패", correct: false }
             ],
             correctIdx: 0
         },
@@ -790,8 +790,7 @@ def prevent_serving_skew(data):
         cards: [
             { icon: "📊", text: "STEP 1: 로그 분석 (Log Analysis)", coduckMsg: "현장의 데이터 흐름을 실시간으로 감시해야 합니다." },
             { icon: "📈", text: "STEP 2: 지표 설계 (Metric)", coduckMsg: "변화를 감지할 수 있는 핵심 지표(MSE 등)를 정의하세요." },
-            { icon: "⚖️", text: "STEP 3: 구현 (Monitor)", coduckMsg: "오차가 기준치를 넘으면 경보를 울리는 로직을 작성합니다." },
-            { icon: "🏁", text: "STEP 4: 대응 (Action)", coduckMsg: "드리프트 발생 시 재학습 프로세스로 연결합니다." }
+            { icon: "🏁", text: "STEP 3: 대응 (Action)", coduckMsg: "드리프트 발생 시 재학습 프로세스로 연결합니다." }
         ],
 
         interviewQuestions: [

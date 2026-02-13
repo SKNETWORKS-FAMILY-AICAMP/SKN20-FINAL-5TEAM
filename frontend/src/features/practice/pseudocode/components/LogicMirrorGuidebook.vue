@@ -1,4 +1,5 @@
 <template>
+  <!-- [2026-02-12] Restored Component -->
   <transition name="guidebook-fade">
     <div v-if="isOpen" class="guidebook-overlay" @click.self="$emit('close')">
       <div class="guidebook-container">

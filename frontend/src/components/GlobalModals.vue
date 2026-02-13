@@ -114,6 +114,7 @@
 </template>
 
 <script setup>
+// [2026-02-12] Global Modals Container
 import { useUiStore } from '@/stores/ui';
 import { useAuthStore } from '@/stores/auth';
 import { useGameStore } from '@/stores/game';
