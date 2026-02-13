@@ -19,8 +19,24 @@
       :result="evaluationResult"
       :problem="currentProblem"
       :is-loading="isEvaluating"
+      :is-passed="evaluationResult && evaluationResult.totalScore >= 60"
+      :has-next-problem="currentProblemIndex < problems.length - 1"
       @retry="handleRetry"
+      @next="handleNextProblem"
+      @complete="handleComplete"
     />
+
+    <!-- ✅ NEW: 잠금 화면 -->
+    <div v-else-if="!isProblemUnlocked" class="locked-screen">
+      <div class="locked-content">
+        <div class="lock-icon">🔒</div>
+        <h2>MISSION LOCKED</h2>
+        <p>이전 미션을 60점 이상으로 완료해야 해금됩니다.</p>
+        <button class="unlock-btn" @click="currentProblemIndex = getFirstUncompletedProblemIndex()">
+          진행 가능한 미션으로 이동
+        </button>
+      </div>
+    </div>
 
     <!-- 메인 게임 화면 -->
     <template v-else>
@@ -179,7 +195,11 @@ export default {
       // ✅ NEW: 검증 상태
       showValidationFeedback: false,
       validationResult: null,
-      isValidationDebugMode: false // 개발 환경에서 true로 설정
+      isValidationDebugMode: false, // 개발 환경에서 true로 설정
+
+      // ✅ NEW: 진행 상태 관리
+      completedProblems: [], // 완료된 문제 ID 목록
+      problemScores: {} // 문제별 점수 저장
     };
   },
   setup() {
@@ -245,6 +265,19 @@ export default {
   computed: {
     currentProblem() {
       return this.problems[this.currentProblemIndex];
+    },
+    isProblemUnlocked() {
+      // 첫 번째 문제는 항상 해금
+      if (this.currentProblemIndex === 0) return true;
+
+      // 이전 문제가 완료되어야 현재 문제 해금
+      const prevProblem = this.problems[this.currentProblemIndex - 1];
+      if (!prevProblem) return false;
+
+      return this.isProblemCompleted(prevProblem.problem_id);
+    },
+    allProblemsCompleted() {
+      return this.problems.every(p => this.isProblemCompleted(p.problem_id));
     }
   },
   async mounted() {
@@ -265,6 +298,9 @@ export default {
       securityLevel: 'loose'
     });
 
+    // ✅ 진행 상태 불러오기
+    this.loadProgress();
+
     // 라우터 쿼리에서 문제 인덱스 설정
     const problemIndex = parseInt(this.$route?.query?.problem);
     if (!isNaN(problemIndex) && problemIndex >= 0) {
@@ -272,6 +308,11 @@ export default {
     }
 
     await this.loadProblems();
+
+    // ✅ 해금되지 않은 문제라면 첫 번째 미완료 문제로 이동
+    if (!this.isProblemUnlocked) {
+      this.currentProblemIndex = this.getFirstUncompletedProblemIndex();
+    }
 
     // 인트로 건너뛰는 경우 가이드 메시지 표시
     if (!this.showIntro) {
@@ -494,6 +535,135 @@ export default {
     handleRetry() {
       this.handleRetryComposable();
       this.clearCanvas();
+    },
+
+    // ✅ NEW: 다음 문제로 이동
+    handleNextProblem() {
+      this.moveToNextProblem();
+      this.handleRetryComposable(); // 평가 상태 리셋
+    },
+
+    // ✅ NEW: 모든 문제 완료
+    handleComplete() {
+      this.showToastMessage(
+        '[MISSION COMPLETE] 모든 미션을 완료했습니다! 꽥! 🎉',
+        'success'
+      );
+      // 필요시 메인 화면으로 이동
+      // this.$router.push('/');
+    },
+
+    // ✅ NEW: 진행 상태 관리
+    loadProgress() {
+      try {
+        const saved = localStorage.getItem('arch-practice-progress');
+        if (saved) {
+          const data = JSON.parse(saved);
+          this.completedProblems = data.completedProblems || [];
+          this.problemScores = data.problemScores || {};
+        }
+      } catch (error) {
+        console.error('Failed to load progress:', error);
+        this.completedProblems = [];
+        this.problemScores = {};
+      }
+    },
+
+    saveProgress() {
+      try {
+        const data = {
+          completedProblems: this.completedProblems,
+          problemScores: this.problemScores
+        };
+        localStorage.setItem('arch-practice-progress', JSON.stringify(data));
+      } catch (error) {
+        console.error('Failed to save progress:', error);
+      }
+    },
+
+    isProblemCompleted(problemId) {
+      return this.completedProblems.includes(problemId);
+    },
+
+    getFirstUncompletedProblemIndex() {
+      for (let i = 0; i < this.problems.length; i++) {
+        if (!this.isProblemCompleted(this.problems[i].problem_id)) {
+          return i;
+        }
+      }
+      return 0; // 모두 완료되었으면 첫 번째로
+    },
+
+    completeProblem(problemId, score) {
+      // 완료 목록에 추가
+      if (!this.completedProblems.includes(problemId)) {
+        this.completedProblems.push(problemId);
+      }
+
+      // 점수 저장 (최고 점수만 저장)
+      if (!this.problemScores[problemId] || this.problemScores[problemId] < score) {
+        this.problemScores[problemId] = score;
+      }
+
+      // 로컬 스토리지에 저장
+      this.saveProgress();
+    },
+
+    moveToNextProblem() {
+      if (this.currentProblemIndex < this.problems.length - 1) {
+        this.currentProblemIndex++;
+        this.clearCanvas();
+        this.showToastMessage(
+          `[NEXT MISSION] ${this.currentProblem.title} 시작! 꽥!`,
+          'guide'
+        );
+      } else {
+        this.showToastMessage(
+          '[MISSION COMPLETE] 모든 미션을 완료했습니다! 꽥! 🎉',
+          'success'
+        );
+      }
+    },
+
+    checkEvaluationComplete() {
+      // 평가 결과가 있고, 결과 화면이 보이고 있을 때
+      if (this.showResultScreen && this.evaluationResult) {
+        const score = this.evaluationResult.totalScore || 0;
+        const problemId = this.currentProblem.problem_id;
+
+        // ✅ 60점 이상이면 통과
+        if (score >= 60) {
+          this.completeProblem(problemId, score);
+
+          // 다음 문제가 있으면 자동으로 이동 안내
+          if (this.currentProblemIndex < this.problems.length - 1) {
+            this.showToastMessage(
+              `[PASS] 통과! 다음 단계가 해금되었습니다. 꽥! (${score}점)`,
+              'success'
+            );
+          } else {
+            this.showToastMessage(
+              `[ALL CLEAR] 모든 미션 완료! 최종 점수: ${score}점 꽥! 🎉`,
+              'success'
+            );
+          }
+        } else {
+          this.showToastMessage(
+            `[RETRY] 60점 이상 필요합니다. (현재: ${score}점) 꽥!`,
+            'warning'
+          );
+        }
+      }
+    }
+  },
+  watch: {
+    // ✅ 평가 결과 변경 감지
+    evaluationResult(newValue) {
+      if (newValue) {
+        this.$nextTick(() => {
+          this.checkEvaluationComplete();
+        });
+      }
     }
   }
 };
@@ -697,6 +867,78 @@ export default {
   color: rgba(0, 243, 255, 0.15);
   letter-spacing: 3px;
   pointer-events: none;
+}
+
+/* ✅ NEW: 잠금 화면 */
+.locked-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: var(--bg-deep);
+  z-index: 100;
+}
+
+.locked-content {
+  text-align: center;
+  padding: 60px;
+  background: var(--bg-panel);
+  border: 2px solid var(--neon-purple);
+  border-radius: 20px;
+  box-shadow: 0 0 50px rgba(188, 19, 254, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+.lock-icon {
+  font-size: 5rem;
+  margin-bottom: 20px;
+  animation: shake 2s infinite;
+}
+
+@keyframes shake {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-10deg); }
+  75% { transform: rotate(10deg); }
+}
+
+.locked-content h2 {
+  font-family: var(--font-header);
+  font-size: 2.5rem;
+  color: var(--neon-cyan);
+  margin-bottom: 15px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.locked-content p {
+  font-size: 1.2rem;
+  color: #ccc;
+  margin-bottom: 30px;
+  line-height: 1.6;
+}
+
+.unlock-btn {
+  padding: 15px 40px;
+  background: linear-gradient(135deg, var(--neon-purple), var(--neon-cyan));
+  color: white;
+  border: none;
+  border-radius: 30px;
+  font-family: var(--font-header);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+}
+
+.unlock-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(188, 19, 254, 0.5);
 }
 
 /* === 5. 스크롤바 커스텀 === */

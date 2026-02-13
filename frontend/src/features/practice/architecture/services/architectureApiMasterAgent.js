@@ -7,110 +7,84 @@
  * - 모범답안 제공으로 학습 효과 증대
  */
 
-// txt 파일에서 핵심 원칙 추출 (architectureApiFastTest.js와 동일한 방식)
-import reliabilityTxt from '@/data/신뢰성.txt?raw';
-import performanceTxt from '@/data/최적화.txt?raw';
-import operationalTxt from '@/data/운영유용성.txt?raw';
-import costTxt from '@/data/비용.txt?raw';
-import securityTxt from '@/data/보안.txt?raw';
-import sustainabilityTxt from '@/data/지속가능성.txt?raw';
+// JSON 파일에서 핵심 원칙 import
+import reliabilityJson from '../data/Reliability.json';
+import performanceJson from '../data/Performance_Optimization.json';
+import operationalJson from '../data/Operational_Excellence.json';
+import costJson from '../data/Cost_Optimization.json';
+import securityJson from '../data/Security.json';
+import sustainabilityJson from '../data/Sustainability.json';
 
 const getApiKey = () => import.meta.env.VITE_OPENAI_API_KEY;
 
 /**
- * 원본 txt 파일에서 "핵심 원칙" 섹션 추출
- *
- * 원본 문서 구조:
- * - "핵심 원칙" 제목
- * - 설명 줄 (Well-Architected Framework의...)
- * - 빈 줄
- * - 핵심 원칙들 (콜론으로 구분된 제목과 설명)
- * - 다음 섹션 시작 또는 파일 끝
+ * JSON 파일에서 "핵심 원칙" 섹션 추출
  */
-function extractPrinciples(txtContent) {
-  // Step 1: "핵심 원칙" 제목 찾기
-  const headerMatch = txtContent.match(/핵심 원칙\n(.*?)\n/);
-  if (!headerMatch) {
-    console.warn('⚠️ "핵심 원칙" 섹션을 찾을 수 없습니다.');
+function extractPrinciples(jsonData) {
+  try {
+    const sections = jsonData?.content?.sections || [];
+    const principleSection = sections.find(section => section.heading === '핵심 원칙');
+
+    if (!principleSection) {
+      console.warn('⚠️ "핵심 원칙" 섹션을 찾을 수 없습니다.');
+      return '';
+    }
+
+    const listContent = principleSection.content.find(c => c.type === 'list');
+
+    if (!listContent || !listContent.items) {
+      console.warn('⚠️ 핵심 원칙 목록을 찾을 수 없습니다.');
+      return '';
+    }
+
+    return listContent.items
+      .map(item => `- ${item}`)
+      .join('\n\n');
+  } catch (error) {
+    console.error('❌ 핵심 원칙 추출 실패:', error);
     return '';
   }
-
-  // Step 2: 설명 줄 다음부터 추출 시작
-  const headerEnd = headerMatch.index + headerMatch[0].length;
-  const remainingText = txtContent.substring(headerEnd);
-
-  // Step 3: 다음 섹션 시작 전까지 추출
-  // 종료 패턴: 새로운 주요 섹션이 시작되는 부분
-  const endPatterns = [
-    '\n이러한',      // "이러한 원칙은..." (비용.txt)
-    '\n조직',        // "조직 보안 마인드셋" (보안.txt)
-    '\nGoogle',      // 새 섹션
-    '\n파트너',      // 새 섹션
-    '\nAI 및',       // 새 섹션
-    '\n설계',        // "설계 단계부터..." (지속가능성.txt)
-    '\n클라우드 거버넌스',
-    '\n안정성 중점',
-    '\n성능 최적화 프로세스',
-    '\n책임 공유'    // "책임 공유 및..." (지속가능성.txt)
-  ];
-
-  let content = remainingText;
-  let minIndex = content.length;
-
-  for (const pattern of endPatterns) {
-    const idx = content.indexOf(pattern);
-    if (idx !== -1 && idx < minIndex) {
-      minIndex = idx;
-    }
-  }
-
-  content = content.substring(0, minIndex).trim();
-
-  // 추가 정리: 불필요한 빈 줄 제거
-  content = content.replace(/\n{3,}/g, '\n\n');
-
-  return content;
 }
 
 /**
- * 6대 기둥 데이터 (txt 파일에서 원칙 추출)
+ * 6대 기둥 데이터 (JSON 파일에서 원칙 추출)
  */
 const PILLAR_DATA = {
   '신뢰성': {
     id: 'reliability',
     name: '신뢰성 (Reliability)',
     emoji: '🏗️',
-    principles: extractPrinciples(reliabilityTxt)
+    principles: extractPrinciples(reliabilityJson)
   },
   '성능': {
     id: 'performance',
     name: '성능 최적화 (Performance)',
     emoji: '⚡',
-    principles: extractPrinciples(performanceTxt)
+    principles: extractPrinciples(performanceJson)
   },
   '운영': {
     id: 'operational',
     name: '운영 우수성 (Operational Excellence)',
     emoji: '🤖',
-    principles: extractPrinciples(operationalTxt)
+    principles: extractPrinciples(operationalJson)
   },
   '비용': {
     id: 'cost',
     name: '비용 최적화 (Cost)',
     emoji: '💰',
-    principles: extractPrinciples(costTxt)
+    principles: extractPrinciples(costJson)
   },
   '보안': {
     id: 'security',
     name: '보안 (Security)',
     emoji: '🔐',
-    principles: extractPrinciples(securityTxt)
+    principles: extractPrinciples(securityJson)
   },
   '지속가능성': {
     id: 'sustainability',
     name: '지속 가능성 (Sustainability)',
     emoji: '🌱',
-    principles: extractPrinciples(sustainabilityTxt)
+    principles: extractPrinciples(sustainabilityJson)
   }
 };
 

@@ -145,6 +145,17 @@
 
         <!-- 버튼 -->
         <div class="action-buttons">
+          <!-- ✅ 60점 이상이고 다음 문제가 있으면 다음 단계 버튼 표시 -->
+          <button v-if="isPassed && hasNextProblem" class="btn-next" @click="$emit('next')">
+            <span class="btn-text">NEXT MISSION</span>
+            <span class="btn-glow"></span>
+          </button>
+          <!-- ✅ 60점 이상이고 마지막 문제면 완료 버튼 -->
+          <button v-else-if="isPassed && !hasNextProblem" class="btn-complete" @click="$emit('complete')">
+            <span class="btn-text">ALL CLEAR!</span>
+            <span class="btn-glow"></span>
+          </button>
+          <!-- 재시도 버튼 -->
           <button class="btn-retry" @click="$emit('retry')">
             <span class="btn-text">TRY AGAIN</span>
             <span class="btn-glow"></span>
@@ -170,9 +181,19 @@ export default {
     isLoading: {
       type: Boolean,
       default: false
+    },
+    // ✅ NEW: 60점 이상 통과 여부
+    isPassed: {
+      type: Boolean,
+      default: false
+    },
+    // ✅ NEW: 다음 문제 존재 여부
+    hasNextProblem: {
+      type: Boolean,
+      default: false
     }
   },
-  emits: ['retry'],
+  emits: ['retry', 'next', 'complete'],
   data() {
     return {
       showStamp: false,
@@ -823,17 +844,22 @@ export default {
 
 /* Button */
 .action-buttons {
-  text-align: center;
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  align-items: center;
   margin-top: 30px;
+  flex-wrap: wrap;
 }
 
-.btn-retry {
+.btn-retry,
+.btn-next,
+.btn-complete {
   position: relative;
   font-family: 'Orbitron', sans-serif;
   font-size: 0.8rem;
   font-weight: 700;
   padding: 16px 40px;
-  background: linear-gradient(135deg, var(--neon-purple), var(--neon-cyan));
   color: white;
   border: none;
   border-radius: 30px;
@@ -858,12 +884,41 @@ export default {
   transition: left 0.5s ease;
 }
 
-.btn-retry:hover {
+/* ✅ 버튼별 배경색 */
+.btn-retry {
+  background: linear-gradient(135deg, var(--neon-purple), var(--neon-cyan));
+}
+
+.btn-next {
+  background: linear-gradient(135deg, #00ff88, #00ccff);
+}
+
+.btn-complete {
+  background: linear-gradient(135deg, #ffd700, #ff8800);
+}
+
+/* 호버 효과 */
+.btn-retry:hover,
+.btn-next:hover,
+.btn-complete:hover {
   transform: translateY(-3px);
+}
+
+.btn-retry:hover {
   box-shadow: 0 10px 30px rgba(188, 19, 254, 0.4);
 }
 
-.btn-retry:hover .btn-glow {
+.btn-next:hover {
+  box-shadow: 0 10px 30px rgba(0, 255, 136, 0.4);
+}
+
+.btn-complete:hover {
+  box-shadow: 0 10px 30px rgba(255, 215, 0, 0.4);
+}
+
+.btn-retry:hover .btn-glow,
+.btn-next:hover .btn-glow,
+.btn-complete:hover .btn-glow {
   left: 100%;
 }
 

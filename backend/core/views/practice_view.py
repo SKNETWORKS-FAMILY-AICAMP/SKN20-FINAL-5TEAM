@@ -34,7 +34,7 @@ class PracticeViewSet(viewsets.ModelViewSet):
     queryset = Practice.objects.all().order_by('display_order', 'unit_number')
     serializer_class = PracticeSerializer
 
-class PracticeDetailViewSet(AuditLogMixin, viewsets.ModelViewSet):
+class PracticeDetailViewSet(viewsets.ModelViewSet):
     """
     [PracticeDetail 뷰셋]
     - 역할: 개별 연습 상세 데이터를 조회하는 API 엔드포인트

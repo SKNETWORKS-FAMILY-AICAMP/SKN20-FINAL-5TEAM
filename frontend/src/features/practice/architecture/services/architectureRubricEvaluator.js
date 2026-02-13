@@ -10,83 +10,62 @@
  * 효과: 높은 구분력 + 명확한 피드백
  */
 
-import reliabilityTxt from '@/data/신뢰성.txt?raw';
-import performanceTxt from '@/data/최적화.txt?raw';
-import operationalTxt from '@/data/운영유용성.txt?raw';
-import costTxt from '@/data/비용.txt?raw';
-import securityTxt from '@/data/보안.txt?raw';
-import sustainabilityTxt from '@/data/지속가능성.txt?raw';
+// JSON 파일에서 핵심 원칙 import
+import reliabilityJson from '../data/Reliability.json';
+import performanceJson from '../data/Performance_Optimization.json';
+import operationalJson from '../data/Operational_Excellence.json';
+import costJson from '../data/Cost_Optimization.json';
+import securityJson from '../data/Security.json';
+import sustainabilityJson from '../data/Sustainability.json';
 
 const getApiKey = () => import.meta.env.VITE_OPENAI_API_KEY;
 
 /**
- * 원본 txt 파일에서 "핵심 원칙" 섹션 추출
+ * JSON 파일에서 "핵심 원칙" 섹션 추출
  *
- * 원본 문서 구조:
- * - "핵심 원칙" 제목
- * - 설명 줄 (Well-Architected Framework의...)
- * - 빈 줄
- * - 핵심 원칙들 (콜론으로 구분된 제목과 설명)
- * - 다음 섹션 시작 또는 파일 끝
+ * JSON 구조:
+ * {
+ *   "content": {
+ *     "sections": [
+ *       {
+ *         "heading": "핵심 원칙",
+ *         "content": [
+ *           {
+ *             "type": "list",
+ *             "items": ["원칙1...", "원칙2...", ...]
+ *           }
+ *         ]
+ *       }
+ *     ]
+ *   }
+ * }
  */
-function extractPrinciples(txtContent) {
-  // Step 1: "핵심 원칙" 제목 찾기 (줄바꿈 처리 개선)
-  const headerIndex = txtContent.indexOf('핵심 원칙');
-  if (headerIndex === -1) {
-    console.warn('⚠️ "핵심 원칙" 섹션을 찾을 수 없습니다.');
+function extractPrinciples(jsonData) {
+  try {
+    const sections = jsonData?.content?.sections || [];
+    const principleSection = sections.find(section => section.heading === '핵심 원칙');
+
+    if (!principleSection) {
+      console.warn('⚠️ "핵심 원칙" 섹션을 찾을 수 없습니다.');
+      return '';
+    }
+
+    // content 배열에서 type이 "list"인 항목 찾기
+    const listContent = principleSection.content.find(c => c.type === 'list');
+
+    if (!listContent || !listContent.items) {
+      console.warn('⚠️ 핵심 원칙 목록을 찾을 수 없습니다.');
+      return '';
+    }
+
+    // items 배열을 텍스트로 변환
+    return listContent.items
+      .map(item => `- ${item}`)
+      .join('\n\n');
+  } catch (error) {
+    console.error('❌ 핵심 원칙 추출 실패:', error);
     return '';
   }
-
-  // Step 2: "핵심 원칙" 다음 줄부터 시작
-  // 첫 번째 줄바꿈 찾기 (제목 줄)
-  const firstNewline = txtContent.indexOf('\n', headerIndex);
-  if (firstNewline === -1) return '';
-
-  // 두 번째 줄바꿈 찾기 (설명 줄)
-  const secondNewline = txtContent.indexOf('\n', firstNewline + 1);
-  if (secondNewline === -1) return '';
-
-  // 세 번째 줄바꿈 이후부터 추출 (빈 줄 다음)
-  const startIndex = secondNewline + 1;
-  const remainingText = txtContent.substring(startIndex);
-
-  // Step 3: 다음 섹션 시작 전까지 추출
-  // 종료 패턴: 새로운 주요 섹션이 시작되는 부분
-  const endPatterns = [
-    '\n이러한',      // "이러한 원칙은..." (비용.txt)
-    '\n조직',        // "조직 보안 마인드셋" (보안.txt)
-    '\nGoogle',      // 새 섹션
-    '\n파트너',      // 새 섹션
-    '\nAI 및',       // 새 섹션
-    '\n설계',        // "설계 단계부터..." (지속가능성.txt)
-    '\n클라우드 거버넌스',
-    '\n안정성 중점',
-    '\n성능 최적화 프로세스',
-    '\n책임 공유'    // "책임 공유 및..." (지속가능성.txt)
-  ];
-
-  let content = remainingText;
-  let minIndex = content.length;
-
-  for (const pattern of endPatterns) {
-    const idx = content.indexOf(pattern);
-    if (idx !== -1 && idx < minIndex) {
-      minIndex = idx;
-    }
-  }
-
-  content = content.substring(0, minIndex).trim();
-
-  // 추가 정리: 불필요한 빈 줄 제거
-  content = content.replace(/\n{3,}/g, '\n\n');
-
-  // 🔥 디버깅: 추출된 원칙 확인
-  if (content) {
-    console.log('✅ 핵심 원칙 추출 성공:', content.substring(0, 200) + '...');
-    console.log('📏 추출된 원칙 길이:', content.length, '자');
-  }
-
-  return content;
 }
 
 /**
@@ -96,42 +75,34 @@ const AXIS_TO_PILLAR = {
   performance_optimization: {
     name: '성능 최적화 (Performance Optimization)',
     emoji: '⚡',
-    principles: extractPrinciples(performanceTxt)
+    principles: extractPrinciples(performanceJson)
   },
   reliability: {
     name: '신뢰성 (Reliability)',
     emoji: '🏗️',
-    principles: extractPrinciples(reliabilityTxt)
+    principles: extractPrinciples(reliabilityJson)
   },
   operational_excellence: {
     name: '운영 우수성 (Operational Excellence)',
     emoji: '⚙️',
-    principles: extractPrinciples(operationalTxt)
+    principles: extractPrinciples(operationalJson)
   },
   cost_optimization: {
     name: '비용 최적화 (Cost Optimization)',
     emoji: '💰',
-    principles: extractPrinciples(costTxt)
+    principles: extractPrinciples(costJson)
   },
   security: {
     name: '보안 (Security)',
     emoji: '🔐',
-    principles: extractPrinciples(securityTxt)
+    principles: extractPrinciples(securityJson)
   },
   sustainability: {
     name: '지속가능성 (Sustainability)',
     emoji: '🌱',
-    principles: extractPrinciples(sustainabilityTxt)
+    principles: extractPrinciples(sustainabilityJson)
   }
 };
-
-// 🔥 디버깅: 각 기둥별 추출된 원칙 통계
-console.log('📊 6대 기둥 핵심 원칙 추출 결과:');
-Object.entries(AXIS_TO_PILLAR).forEach(([key, pillar]) => {
-  const length = pillar.principles.length;
-  const status = length > 0 ? '✅' : '❌';
-  console.log(`  ${status} ${pillar.name}: ${length}자`);
-});
 
 /**
  * 🔥 루브릭 기준 정의 (모든 기둥 공통)
