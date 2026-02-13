@@ -1,4 +1,8 @@
 <!--
+수정일: 2026-02-14
+수정 내용: 5대 지표 평가 시스템 완전 통합
+-->
+<!--
 수정일: 2026-02-10
 수정 내용: 이전 작업 버전(SKN20-FINAL-5TEAM_before)으로 pseudocode 프론트엔드 코드 복구
 -->
@@ -14,13 +18,14 @@
         <span class="chapter-title">CHAPTER {{ gameState.currentStageId }}: {{ currentMission.title || '로딩 중...' }}</span>
         <span class="sub-info">{{ currentMission.subModuleTitle || 'LEAKAGE_GUARD' }}</span>
       </div>
-      <div class="integrity-monitor">
-        <span class="integrity-label">정화 무결성</span>
-        <div class="hp-bar-bg">
-             <div class="hp-bar-fill" :style="{ width: Math.max(0, gameState.playerHP) + '%' }"></div>
-        </div>
-        <span class="integrity-val">{{ Math.max(0, gameState.playerHP) }}%</span>
-
+      <!-- [2026-02-14 수정] 듀토리얼 버튼 및 실습 종료 버튼 분리 -->
+      <div class="header-actions">
+        <button class="btn-tutorial-trigger" @click="startTutorial">
+          <BookOpen class="w-4 h-4 mr-2" /> 사용법(튜토리얼)
+        </button>
+        <button class="btn-practice-close" @click="closePractice">
+          <X class="w-4 h-4 mr-2" /> 실습 종료
+        </button>
       </div>
     </header>
 
@@ -86,8 +91,8 @@
               </div>
 
               <div class="visual-frame">
-                  <!-- [2026-02-11] 코덕 캐릭터 이미지 연결 -->
-                  <img src="@/assets/image/duck_det.png" alt="Coduck Detective" class="coduck-portrait" />
+                  <!-- [2026-02-11] 코덕 캐릭터 이미지 연결 [2026-02-14] 클릭 시 실시간 힌트 토글 -->
+                  <img src="@/assets/image/duck_det.png" alt="Coduck Detective" class="coduck-portrait cursor-pointer hover:scale-105 transition-transform" @click="toggleHintDuck" />
                   <div class="scan-overlay"></div>
                   
                   <!-- [2026-02-11] 손상 시 표시 -->
@@ -217,24 +222,33 @@
                               </div>
                           </div>
 
-                          <div class="actions flex items-center gap-6 relative">
-                              <!-- [2026-02-13] 실시간 힌트 오리 & 말풍선 (유동적 위치) -->
+                          <div class="actions flex items-center gap-4 relative">
+                              <!-- [2026-02-14 수정] 실시간 힌트 오리 & 말풍선 (유동적 위치) [유닛 오리 이미지 경로 수정] -->
                               <Transition name="fade-slide">
                                 <div v-if="showHintDuck" class="hint-duck-wrapper">
                                     <div class="hint-bubble">
                                         <div class="hb-content">{{ dynamicHintMessage || '분석 중입니다...' }}</div>
                                         <div class="hb-tail"></div>
                                     </div>
-                                    <img src="/image/unit_duck.png" alt="Hint Duck" class="hint-unit-img" />
+                                    <img src="@/assets/image/unit_duck.png" alt="Hint Duck" class="hint-unit-img" />
                                 </div>
                               </Transition>
+
+                              <!-- [2026-02-14 수정] 힌트보기 버튼 추가 (심화분석 시작 왼쪽에 배치) -->
+                              <button 
+                                  class="btn-hint-toggle"
+                                  @click="toggleHintDuck"
+                                  :class="{ 'is-active': showHintDuck }"
+                              >
+                                  <Lightbulb class="w-4 h-4 mr-1.5" /> 힌트보기
+                              </button>
 
                               <button 
                                   :disabled="!canSubmitPseudo || isProcessing"
                                   @click="submitPseudo"
                                   class="btn-execute-large"
                               >
-                                  심화 분석 시작 <Play class="w-4 h-4" />
+                                  심화 분석 시작 <Play class="w-4 h-4 ml-1.5" />
                               </button>
                           </div>
                       </div>
@@ -307,7 +321,7 @@
               </div>
 
               <!-- [STEP 4] 최종 리포트 (EVALUATION) [2026-02-13] decision-panel 내부로 이동 -->
-              <div v-else-if="gameState.phase === 'EVALUATION'" class="evaluation-phase">
+              <div v-else-if="gameState.phase === 'EVALUATION'" class="evaluation-phase relative">
                   <!-- [2026-02-13] 복기 학습 모드 시 미션 정보 재노출 -->
                   <div v-if="evaluationResult?.is_low_effort || gameState.hasUsedBlueprint" class="mission-instruction-compact animate-slideDownFade mb-6">
                       <div class="mi-section">
@@ -319,177 +333,144 @@
                           <p class="mi-desc-small">{{ currentMission?.designContext?.writingGuide?.replace('[필수 포함 조건 (Constraint)]\n', '') }}</p>
                       </div>
                   </div>
-                  <div class="report-card full-width-report">
-                      <div class="report-header">
-                          <div class="medal-area">
-                              <div class="medal-icon" :class="scoreTier.class">{{ scoreTier.icon }}</div>
-                              <div class="medal-label">{{ scoreTier.label }}</div>
-                          </div>
-                          <div class="total-score">
-                              <span class="score-val">{{ evaluationResult?.finalScore || 0 }}</span>
-                              <span class="score-label">MISSION SCORE</span>
-                          </div>
+                  <div v-if="tutorialAnalyzing" class="ai-analysis-simulation absolute inset-0 z-[100] bg-[#0a1220] flex flex-col items-center justify-center rounded-2xl border border-blue-500/30">
+                      <LoadingDuck message="AI 아키텍트가 전체 설계의 정합성과 설계 패턴을 심층 분석 중입니다..." />
+                      <div class="analysis-progress-bar w-64 h-1.5 bg-slate-800 rounded-full mt-4 overflow-hidden">
+                          <div class="analysis-progress-fill h-full bg-blue-500 animate-loading-bar"></div>
                       </div>
+                  </div>
 
-                      <!-- [2026-02-13] 3-Phase Weights Breakdown: 백분율 및 가중치 병기로 명확성 확보 -->
-                      <!-- [2026-02-13] 유저 요청: 상세 점수 내역(integrated-score-belt) 숨김 처리 -->
-                      <!--
-                      <div class="integrated-score-belt">
-                          <div class="step-summary">
-                              <span class="step-label">DIAGNOSTIC (20%)</span>
-                              <div class="step-val-group">
-                                  <span class="step-val-main">{{ Math.round(evaluationResult?.gameScore || 0) }}%</span>
-                                  <span class="step-val-sub">(+{{ evaluationResult?.diagnosticScoreWeighted }}pts)</span>
-                              </div>
-                          </div>
-                          <div class="step-summary">
-                              <span class="step-label">ARCHITECTURE (70%)</span>
-                              <div class="step-val-group">
-                                  <span class="step-val-main">{{ Math.round(evaluationResult?.aiScore || 0) }}%</span>
-                                  <span class="step-val-sub">(+{{ evaluationResult?.designScoreWeighted }}pts)</span>
-                              </div>
-                          </div>
-                          <div class="step-summary">
-                              <span class="step-label">ITERATIVE (10%)</span>
-                              <div class="step-val-group">
-                                  <span class="step-val-main">{{ Math.round(gameState?.iterativeScore || 0) }}%</span>
-                                  <span class="step-val-sub">(+{{ evaluationResult?.iterativeScoreWeighted }}pts)</span>
-                              </div>
-                          </div>
-                      </div>
-                      -->
-
-                      <div class="evaluation-main-grid">
-                          <!-- Radar Chart (5D Metrics) -->
-                          <div class="radar-container">
-                              <svg viewBox="0 0 200 200" class="radar-svg" preserveAspectRatio="xMidYMid meet">
-                                  <!-- Background Circles -->
-                                  <circle cx="100" cy="100" r="80" class="radar-bg-circle" />
-                                  <circle cx="100" cy="100" r="60" class="radar-bg-circle" />
-                                  <circle cx="100" cy="100" r="40" class="radar-bg-circle" />
-                                  <circle cx="100" cy="100" r="20" class="radar-bg-circle" />
-                                  
-                                  <!-- Axis Lines -->
-                                  <line v-for="(pos, i) in radarAxes" :key="'ax-'+i" 
-                                        x1="100" y1="100" :x2="pos.x" :y2="pos.y" class="radar-axis-line" />
-                                  
-                                  <!-- Data Polygon -->
-                                  <polygon :points="radarPoints" class="radar-poly" />
-                                  
-                                  <!-- Axis Labels -->
-                                  <text v-for="(pos, i) in radarLabels" :key="'lbl-'+i"
-                                        :x="pos.x" :y="pos.y" 
-                                        :text-anchor="pos.anchor"
-                                        :dominant-baseline="pos.baseline"
-                                        class="radar-label-text">{{ pos.text }}</text>
-                              </svg>
-                          </div>
-
-                          <!-- Dimension List with Details -->
-                          <div class="dimension-details-grid">
-                              <div v-for="dim in evaluationResult?.details" :key="dim.id" class="dim-detail-card">
-                                  <div class="dim-card-header">
-                                      <span class="dim-label">{{ dim.category.toUpperCase() }}</span>
-                                      <span class="dim-val">{{ dim.score }}%</span>
-                                  </div>
-                                  <div class="dim-progress-mini"><div class="dim-fill-mini" :style="{ width: dim.score + '%' }"></div></div>
-                                  <p class="dim-comment">Verdict: {{ dim.comment }}</p>
-                                  <p class="dim-improvement" v-if="dim.score < 80">🎯 {{ dim.improvement }}</p>
-                              </div>
-                          </div>
-                      </div>
-
-                      <div class="mentor-feedback">
-                          <h3>🤖 AI MONITOR FEEDBACK</h3>
-                          <p class="feedback-text">"{{ evaluationResult?.seniorAdvice }}"</p>
-                          <div class="blueprint-section" v-if="evaluationResult?.converted_python">
-                              <div class="blueprint-header">
-                                  <Brain size="16" />
-                                  <span>YOUR LOGIC MAPPED TO PYTHON</span>
-                              </div>
-                              <pre class="blueprint-code"><code>{{ evaluationResult.converted_python }}</code></pre>
-                              <div v-if="evaluationResult?.python_feedback" class="python-feedback-mini">
-                                  💡 <b>Logic Probe:</b> {{ evaluationResult.python_feedback }}
-                              </div>
-                          </div>
-                      </div>
-
-                      <!-- [2026-02-13] Integrated Tail Question (꼬리질문) / Deep Dive -->
-                      <div v-if="evaluationResult?.tailQuestion || evaluationResult?.deepDive" class="integrated-question-section">
-                          <div class="iq-container">
-                              <h3 class="iq-title">
-                                  <AlertOctagon v-if="evaluationResult?.tailQuestion" class="iq-icon text-amber-500" />
-                                  <Lightbulb v-else class="iq-icon text-cyan-400" />
-                                  {{ evaluationResult?.tailQuestion ? "🧐 Architect's Tail Question (꼬리질문)" : "🚀 Architecture Deep Dive (심화질문)" }}
-                              </h3>
-                              <p class="iq-question">{{ (evaluationResult?.tailQuestion || evaluationResult?.deepDive)?.question }}</p>
-                              
-                              <div class="iq-options-grid">
-                                  <button v-for="(opt, idx) in (evaluationResult?.tailQuestion || evaluationResult?.deepDive)?.options" 
-                                          :key="idx"
-                                          @click="handleTailSelection(opt)"
-                                          class="iq-option-btn"
-                                          :disabled="gameState.iterativeScore !== null"
-                                          :class="{ 
-                                            'correct': gameState.iterativeScore === 100 && opt.is_correct,
-                                            'wrong': gameState.iterativeScore === 0 && !opt.is_correct && activeSelectedOption === opt
-                                          }"
-                                  >
-                                      <span class="opt-id">{{ String.fromCharCode(65 + idx) }}</span>
-                                      <span class="opt-txt">{{ opt.text }}</span>
-                                  </button>
-                              </div>
-                              
-                              <div v-if="gameState.feedbackMessage" class="iq-feedback-alert" :class="gameState.iterativeScore === 100 ? 'success' : 'warn'">
-                                 {{ gameState.feedbackMessage }}
-                              </div>
-                          </div>
-                      </div>
-
-                      <!-- [2026-02-13] Recommended Lectures (YouTube) -->
-                      <div v-if="evaluationResult?.recommendedLecture" class="youtube-recommendations">
-                          <div class="yr-header">
-                              <Play size="18" class="text-blue-400" />
-                              <h3>ARCHITECT'S LEARNING LIBRARY</h3>
-                          </div>
-                          <a :href="evaluationResult.recommendedLecture.url" target="_blank" class="video-card-single">
-                              <div class="video-info">
-                                  <h4 class="v-title">{{ evaluationResult.recommendedLecture.title }}</h4>
-                                  <p class="v-desc">{{ evaluationResult.recommendedLecture.reason }}</p>
-                                  <span class="v-cta">강의 보러가기 →</span>
-                              </div>
-                          </a>
-                      </div>
-
-                      <!-- [2026-02-13] YouTube Embed Player Modal -->
-                      <div v-if="activeYoutubeId" class="youtube-modal-overlay" @click.self="activeYoutubeId = null">
-                          <div class="youtube-modal-content">
-                              <button class="modal-close" @click="activeYoutubeId = null">
-                                  <X size="24" />
-                              </button>
-                              <div class="video-responsive">
-                                  <iframe 
-                                      :src="`https://www.youtube.com/embed/${activeYoutubeId}`" 
-                                      frameborder="0" 
-                                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                                      allowfullscreen>
-                                  </iframe>
-                              </div>
-                          </div>
-                      </div>
+                  <!-- [2026-02-14] 최종 아키텍처 리포트 포탈 (PPT 레이아웃 최적화) -->
+                  <div v-if="!tutorialAnalyzing && showMetrics && finalReport" class="architect-report-portal animate-fadeIn">
                       
-                      <div class="actions">
-                          <button @click="resetFlow" class="btn-restart">
-                              <RotateCcw class="w-4 h-4 mr-2" /> RESTART MISSION
+                      <!-- Part 1: Strategic Billboard (Score & Grade) -->
+                      <div class="report-billboard-premium">
+                          <div class="billboard-glass"></div>
+                          <div class="billboard-content">
+                              <div class="score-ring-box">
+                                  <svg viewBox="0 0 100 100" class="ring-svg-neo">
+                                      <circle class="ring-bg" cx="50" cy="50" r="45"></circle>
+                                      <circle class="ring-fill" cx="50" cy="50" r="45" :style="{ strokeDasharray: 283, strokeDashoffset: 283 - (283 * finalReport.totalScore / 100) }"></circle>
+                                  </svg>
+                                  <div class="score-absolute">
+                                      <span class="pts-num">{{ finalReport.totalScore }}</span>
+                                      <span class="pts-unit">PTS</span>
+                                  </div>
+                              </div>
+                              <div class="grade-badge-box">
+                                  <div class="grade-symbol-neo">
+                                      <span class="symbol">{{ finalReport.grade.grade }}</span>
+                                      <span class="label">STATUS</span>
+                                  </div>
+                                  <h2 class="verdict-headline">"{{ finalReport.grade.description }}"</h2>
+                              </div>
+                              <div class="mission-ident">
+                                  <div class="ch-tag">MISSION: {{ currentMission.title }}</div>
+                              </div>
+                          </div>
+                      </div>
+
+                      <!-- Part 2: Analysis Center (Dual Hub) -->
+                      <div class="report-hub-grid">
+                          <!-- Visual Balance Scan -->
+                          <div class="hub-cell visual-scan">
+                              <div class="neo-glass-card">
+                                  <h3 class="neo-card-title"><Activity size="14" /> Logic Balance Scan</h3>
+                                  <div class="radar-container-neo">
+                                      <canvas ref="radarChartCanvas"></canvas>
+                                  </div>
+                              </div>
+                          </div>
+
+                          <!-- Dimension Breakdowns -->
+                          <div class="hub-cell metrics-matrix">
+                              <div class="neo-glass-card h-full">
+                                  <h3 class="neo-card-title"><Layers size="14" /> Dimension Matrix</h3>
+                                  <div class="metric-progress-list">
+                                      <div v-for="(metric, key) in finalReport.metrics" :key="key" class="metric-row-neo">
+                                          <div class="m-top-row">
+                                              <span class="m-name">{{ metric.name }}</span>
+                                              <span class="m-val">{{ metric.score }}%</span>
+                                          </div>
+                                          <div class="m-bar-base">
+                                              <div class="m-bar-inner" :style="{ 
+                                                  width: metric.percentage + '%',
+                                                  backgroundColor: getMetricColor(metric.percentage)
+                                              }"></div>
+                                          </div>
+                                      </div>
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
+
+                      <!-- Part 3: Expert Senior Verdict -->
+                      <div class="expert-section-neo">
+                          <div class="mentor-glass-card">
+                              <div class="mentor-profile">
+                                  <div class="mentor-avatar">
+                                      <img src="@/assets/image/duck_det.png" alt="Architect Duck" />
+                                  </div>
+                                  <div class="mentor-meta">
+                                      <span class="m-role">Senior Architect Monitor</span>
+                                      <h4 class="m-name">{{ finalReport.finalReport.persona }}</h4>
+                                  </div>
+                              </div>
+                              
+                              <blockquote class="senior-quote">"{{ finalReport.finalReport.summary }}"</blockquote>
+                              
+                              <div class="feedback-dual-grid">
+                                  <div class="fb-item-neo plus">
+                                      <span class="tag-neo text-emerald-400">CORE STRENGTH</span>
+                                      <p class="txt-neo"><b>{{ finalReport.finalReport.strength.metric }}:</b> {{ finalReport.finalReport.strength.feedback }}</p>
+                                  </div>
+                                  <div class="fb-item-neo minus">
+                                      <span class="tag-neo text-amber-400">EVOLVE POINT</span>
+                                      <p class="txt-neo"><b>{{ finalReport.finalReport.weakness.metric }}:</b> {{ finalReport.finalReport.weakness.feedback }}</p>
+                                  </div>
+                              </div>
+
+                              <div class="one-point-lesson-neo">
+                                  <div class="p-icon-box"><Lightbulb size="20" class="text-amber-400" /></div>
+                                  <div class="p-content">
+                                      <span class="p-tag">ONE-POINT LESSON</span>
+                                      <p class="p-msg">{{ finalReport.finalReport.lesson }}</p>
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
+
+                      <!-- Part 4: Continuous Learning Path (YouTube) -->
+                      <div class="pathway-section-neo">
+                          <h3 class="path-heading-neo"><Cpu size="18" class="mr-2" /> CONTINUOUS LEARNING PATH</h3>
+                          <div class="path-grid-neo">
+                              <div v-for="video in getFilteredVideos()" :key="video.url" class="path-card-neo">
+                                  <a :href="video.url" target="_blank" class="p-link-neo">
+                                      <div class="p-info">
+                                          <span class="p-author">{{ video.channel }}</span>
+                                          <h5 class="p-title">{{ video.title }}</h5>
+                                          <p class="p-desc">{{ video.curationPoint }}</p>
+                                      </div>
+                                      <div class="p-play-ico"><Play size="14" fill="currentColor" /></div>
+                                  </a>
+                              </div>
+                          </div>
+                      </div>
+
+                      <!-- Part 5: Final Actions -->
+                      <div class="terminal-actions-neo">
+                          <button @click="resetFlow" class="btn-neo-restart">
+                              <RotateCcw size="18" class="mr-2" /> RESTART MISSION
                           </button>
-                          <button @click="handlePracticeClose" class="btn-close">
-                              MISSION COMPLETE
+                          <button @click="handlePracticeClose" class="btn-neo-complete">
+                              <CheckCircle size="18" class="mr-2" /> MISSION COMPLETE
                           </button>
                       </div>
                   </div>
-              </div>
-          </section>
-      </div>
+
+                  </div>
+              </section>
+          </div>
       
       <!-- BugHunt 스타일 오리 힌트 시스템 [2026-02-13] - viewport 하단 배치 -->
       <transition name="duck-pop">
@@ -507,6 +488,15 @@
       </transition>
     </main>
 
+    <!-- [2026-02-14 수정] 듀토리얼 오버레이 추가 (페이즈 변경 리스너 추가) -->
+    <PseudocodeTutorialOverlay
+      v-if="showTutorial"
+      @complete="onTutorialComplete"
+      @skip="onTutorialComplete"
+      @quit="closePractice"
+      @change-phase="handleTutorialPhaseChange"
+    />
+
     <!-- [2026-02-11] FEEDBACK TOAST -->
     <div v-if="gameState.feedbackMessage && gameState.phase !== 'EVALUATION'" class="feedback-toast">
       <span class="toast-icon">!</span> {{ gameState.feedbackMessage }}
@@ -515,7 +505,7 @@
 </template>
 
 <script setup>
-import { computed, ref, reactive, onMounted, watch } from 'vue';
+import { computed, ref, reactive, onMounted, watch, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { useGameStore } from '@/stores/game';
 import { useCoduckWars } from './composables/useCoduckWars.js';
@@ -523,8 +513,13 @@ import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
 import { useMonacoEditor } from './composables/useMonacoEditor.js';
 import { 
   AlertOctagon, Info, ArrowRight, Lightbulb, 
-  RotateCcw, Play, X, Brain, CheckCircle
+  RotateCcw, Play, X, Brain, CheckCircle,
+  Activity, Layers, Cpu
 } from 'lucide-vue-next';
+import { ComprehensiveEvaluator } from './evaluationEngine.js';
+import { generateCompleteLearningReport } from './reportGenerator.js';
+import { filterByScore } from './learningResources.js';
+import Chart from 'chart.js/auto';
 
 const activeYoutubeId = ref(null);
 import CodeFlowVisualizer from './components/CodeFlowVisualizer.vue';
@@ -532,7 +527,130 @@ import LoadingDuck from '../components/LoadingDuck.vue';
 
 const router = useRouter();
 const gameStore = useGameStore();
+const emit = defineEmits(['close']);
 
+// [2026-02-14 수정] 튜토리얼 상태 관리
+import PseudocodeTutorialOverlay from './components/PseudocodeTutorialOverlay.vue';
+import { BookOpen } from 'lucide-vue-next'; // BookOpen 아이콘 추가
+
+const showTutorial = ref(false);
+const originalPhase = ref(null);
+const tutorialAnalyzing = ref(false);
+
+onMounted(() => {
+  if (!localStorage.getItem('pseudocode-tutorial-done')) {
+    startTutorial();
+  }
+});
+
+const startTutorial = () => {
+    // 튜토리얼 시작 시 현재 페이즈 백업
+    originalPhase.value = gameState.phase;
+    showTutorial.value = true;
+};
+
+
+/**
+ * [2026-02-14 수정] 튜토리얼 진행에 따른 페이즈 자동 전환 및 모킹
+ */
+const handleTutorialPhaseChange = (targetPhase) => {
+    gameState.phase = targetPhase;
+
+    // 튜토리얼 중 화면이 비어 보이지 않도록 모크 데이터 주입
+    if (targetPhase === 'DIAGNOSTIC_1') {
+        // 진단 단계에서 질문 데이터가 없는 경우를 대비한 모킹
+        // (실제 데이터는 currentMission에서 가져오지만 튜토리얼 가독성을 위해)
+    }
+
+    if (targetPhase === 'PSEUDO_WRITE') {
+        if (!gameState.phase3Reasoning) {
+            gameState.phase3Reasoning = "# 데이터 전처리 아키텍처 설계\n# 1. 분리(Isolation): train_test_split\n# 2. 기준점(Anchor): fit on train only\n# 3. 일관성(Consistency): transform both";
+        }
+    }
+
+    if (targetPhase === 'PYTHON_VISUALIZATION') {
+        if (!evaluationResult.value?.converted_python) {
+            evaluationResult.value = {
+                converted_python: "import pandas as pd\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\n# 1. Isolation: 물리적 격리\ntrain_df, test_df = train_test_split(df, test_size=0.2)\n\n# 2. Anchor: 학습 세트에서만 통계량 추출\nscaler = StandardScaler()\nscaler.fit(train_df[['age', 'income']])\n\n# 3. Consistency: 동일한 변환 적용\ntrain_scaled = scaler.transform(train_df[['age', 'income']])\ntest_scaled = scaler.transform(test_df[['age', 'income']])",
+                feedback: "데이터 누수 방지 원칙을 정확하게 준수한 설계입니다. 특히 기준점 설정이 훌륭합니다."
+            };
+        }
+        // DEEP DIVE 질문 모킹 (Box 가시성 확보)
+        if (!deepQuizQuestion.value || typeof deepQuizQuestion.value === 'string') {
+           deepQuizQuestion.value = {
+               question: "모델 배포 후 데이터 분포가 급격히 변하는 'Data Drift'가 발생하면, 기존의 기준점(Anchor)을 어떻게 처리해야 할까요?",
+               options: [
+                   { text: "새로운 데이터에 맞춰 기준점을 즉시 재학습(Re-fit)한다.", is_correct: true, reason: "안정성을 위해 주기적인 기준점 업데이트가 필요합니다." },
+                   { text: "모델의 일관성을 위해 초기 기준점을 절대 바꾸지 않는다.", is_correct: false, reason: "데이터 분포 변화에 대응하지 못해 성능이 저하될 수 있습니다." }
+               ]
+           };
+        }
+    }
+    
+    if (targetPhase === 'EVALUATION') {
+        if (!finalReport.value) {
+            tutorialAnalyzing.value = true;
+            // 튜토리얼용 빠른 시뮬레이션
+            setTimeout(() => {
+                tutorialAnalyzing.value = false;
+                showMetrics.value = true;
+                finalReport.value = {
+                    totalScore: 88,
+                    grade: { grade: 'A+', description: 'Exceptional System Integrity' },
+                    metrics: {
+                        design: { name: '디자인', percentage: 92, score: 92, max: 100 },
+                        edgeCase: { name: '예외처리', percentage: 85, score: 85, max: 100 },
+                        abstraction: { name: '추상화', percentage: 95, score: 95, max: 100 },
+                        implementation: { name: '구현력', percentage: 78, score: 78, max: 100 },
+                        consistency: { name: '정합성', percentage: 90, score: 90, max: 100 }
+                    },
+                    finalReport: {
+                        persona: 'Architect Duck',
+                        summary: '이 설계는 완벽한 격리와 기준점 보호 전략을 보여주는 표본입니다.',
+                        strength: { metric: 'Consistency', feedback: '데이터 정합성 유지를 위해 기준점을 학습 데이터에만 고정하고 테스트 데이터에 일관되게 전파했습니다.' },
+                        weakness: { metric: 'Implementation', feedback: '실제 프로덕션 환경에서는 기준점 업데이트(Re-fitting) 주기를 자동화하는 코드를 추가하면 더욱 견고해질 것입니다.' },
+                        lesson: '데이터 누수는 사소한 fit() 한 번으로 시작됩니다. 항상 Anchor(기준점)가 어디인지 자각하십시오.'
+                    },
+                    recommendedContent: {
+                        curationMessage: '아키텍처 설계 역량을 한 단계 더 높여줄 추천 강의입니다.',
+                        videos: [
+                            { title: 'MLOps에서의 데이터 정제 전략', channel: 'Tech Insight', duration: '12:45', url: '#', curationPoint: '실무 파이프라인 구축', difficulty: 'expert' },
+                            { title: 'Data Leakage 완벽 가이드', channel: 'AI School', duration: '18:20', url: '#', curationPoint: '다양한 누수 사례 분석', difficulty: 'expert' }
+                        ]
+                    }
+                };
+                nextTick(() => {
+                    if (typeof renderRadarChart === 'function') renderRadarChart();
+                });
+            }, 1800); // 1.8초간 분석 로딩 시뮬레이션
+        } else {
+            showMetrics.value = true;
+        }
+    }
+};
+
+const onTutorialComplete = () => {
+    showTutorial.value = false;
+    // 실제 진행 중이던 페이즈로 복구
+    if (originalPhase.value) {
+        gameState.phase = originalPhase.value;
+    }
+    localStorage.setItem('pseudocode-tutorial-done', 'true');
+};
+
+const closePractice = () => {
+  if (confirm('실습을 종료하고 목록으로 돌아가시겠습니까?')) {
+    emit('close');
+  }
+};
+
+// ==================== [2026-02-14] useCoduckWars 분리 (초기화 문제 해결) ====================
+const coduckWarsComposable = useCoduckWars();
+
+// submitPseudo만 따로 빼두기
+const originalSubmitPseudo = coduckWarsComposable.submitPseudo;
+
+// 나머지는 destructuring
 const {
     gameState,
     currentMission,
@@ -552,15 +670,172 @@ const {
     handleGuideClick,
     submitDiagnostic,
     diagnosticQuestion,
-    submitPseudo,
+    // submitPseudo는 제외! (아래에서 재정의)
     submitDeepQuiz,
     handlePythonVisualizationNext,
     handleTailSelection: originalHandleTailSelection,
     resetFlow,
     toggleHint,
     handlePracticeClose
-} = useCoduckWars();
+} = coduckWarsComposable;
 
+
+// ==================== [2026-02-14] 5대 지표 평가 시스템 추가 ====================
+
+// 5대 지표 상태
+const showMetrics = ref(false);
+const finalReport = ref(null);
+const radarChartCanvas = ref(null);
+let radarChartInstance = null;
+
+/**
+ * submitPseudo 래퍼 - 5대 지표 평가 통합
+ */
+async function submitPseudoEnhanced() {
+  try {
+    // 1. 기존 평가 실행
+    await originalSubmitPseudo();
+
+    // 2. EVALUATION phase로 전환 대기
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    if (gameState.phase !== 'EVALUATION') {
+      console.warn('[5D] Not in EVALUATION phase yet');
+      return;
+    }
+
+    // 3. 5대 지표 평가 시작
+    console.log('[5D] Starting comprehensive evaluation...');
+    
+    const evaluator = new ComprehensiveEvaluator(getApiKey());
+    
+    const evaluationResults = await evaluator.evaluate({
+      pseudocode: gameState.pseudocode,
+      pythonCode: evaluationResult.value?.converted_python || '',
+      deepdive: gameState.deepQuizAnswer || '',
+      deepdiveScenario: deepQuizQuestion.value || {}
+    });
+
+    finalReport.value = await generateCompleteLearningReport(
+      evaluationResults,
+      getApiKey()
+    );
+
+    showMetrics.value = true;
+
+    await nextTick();
+    renderRadarChart();
+
+    console.log('[5D] Evaluation complete:', finalReport.value);
+    
+  } catch (error) {
+    console.error('[5D] Evaluation error:', error);
+    showMetrics.value = false;
+  }
+}
+
+/**
+ * API 키 가져오기
+ */
+function getApiKey() {
+  return import.meta.env.VITE_OPENAI_API_KEY || '';
+}
+
+/**
+ * 레이더 차트 렌더링
+ */
+function renderRadarChart() {
+  if (!radarChartCanvas.value || !finalReport.value) return;
+
+  if (radarChartInstance) {
+    radarChartInstance.destroy();
+  }
+
+  const ctx = radarChartCanvas.value.getContext('2d');
+  const metrics = finalReport.value.metrics;
+
+  radarChartInstance = new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels: [
+        metrics.abstraction.name,
+        metrics.implementation.name,
+        metrics.design.name,
+        metrics.edgeCase.name,
+        metrics.consistency.name
+      ],
+      datasets: [{
+        label: '당신의 점수',
+        data: [
+          metrics.abstraction.percentage,
+          metrics.implementation.percentage,
+          metrics.design.percentage,
+          metrics.edgeCase.percentage,
+          metrics.consistency.percentage
+        ],
+        backgroundColor: 'rgba(96, 165, 250, 0.3)',
+        borderColor: '#60a5fa',
+        pointBackgroundColor: '#60a5fa',
+        pointBorderColor: '#fff',
+        pointHoverBackgroundColor: '#fff',
+        pointHoverBorderColor: '#60a5fa',
+        borderWidth: 3,
+        pointRadius: 4,
+        pointHoverRadius: 6
+      }]
+    },
+    options: {
+      scales: {
+        r: {
+          beginAtZero: true,
+          max: 100,
+          ticks: { stepSize: 20, color: '#999' },
+          grid: { color: '#333' },
+          pointLabels: { color: '#fff', font: { size: 12 } }
+        }
+      },
+      plugins: { 
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+            titleColor: '#60a5fa',
+            bodyColor: '#fff',
+            cornerRadius: 8,
+            padding: 12
+          }
+      },
+      responsive: true,
+      maintainAspectRatio: false
+    }
+  });
+}
+
+/**
+ * 지표별 색상
+ */
+function getMetricColor(percentage) {
+  if (percentage >= 90) return '#4ade80'; // Emerald
+  if (percentage >= 75) return '#60a5fa'; // Blue
+  if (percentage >= 60) return '#fbbf24'; // Amber
+  return '#f87171'; // Rose
+}
+
+/**
+ * 점수별 영상 필터링
+ */
+function getFilteredVideos() {
+  if (!finalReport.value) return [];
+  return filterByScore(
+    finalReport.value.recommendedContent,
+    finalReport.value.totalScore
+  );
+}
+
+// submitPseudo 함수 최종 정의 (이제 에러 안 남!)
+const submitPseudo = submitPseudoEnhanced;
+
+
+// ==================== 기존 코드 ====================
 
 // [2026-02-13] 인트로를 제외한 실질적 학습/상호작용 단계 여부 (가독성 개선)
 const isInteractionPhase = computed(() => {
@@ -607,25 +882,22 @@ const radarAxes = computed(() => {
 const radarLabels = computed(() => {
     const labels = ['정합', '추상', '예외', '구현', '설계'];
     const center = 100;
-    const radius = 94; // [2026-02-13] 레이블 가독성을 위한 간격 확보
+    const radius = 94;
     return labels.map((text, i) => {
         const angle = (Math.PI * 2 * i) / 5 - Math.PI / 2;
         const x = center + Math.cos(angle) * radius;
         const y = center + Math.sin(angle) * radius;
 
-        // [2026-02-13] 사분면(Quadrant) 기반 텍스트 정렬 최적화
         let anchor = "middle";
         let baseline = "middle";
 
         const cos = Math.cos(angle);
         const sin = Math.sin(angle);
 
-        // X축 정렬 (start/middle/end)
         if (Math.abs(cos) < 0.1) anchor = "middle";
         else if (cos > 0) anchor = "start";
         else anchor = "end";
 
-        // Y축 정렬 (hanging/middle/auto)
         if (Math.abs(sin) < 0.1) baseline = "middle";
         else if (sin > 0) baseline = "hanging";
         else baseline = "auto";
@@ -641,7 +913,6 @@ const radarPoints = computed(() => {
     const maxRadius = 80;
     
     return keys.map((key, i) => {
-        // [2026-02-13] useCoduckWars.js에서 이미 100점 만점으로 정규화됨
         const score = (dims[key]?.score || 0) / 100; 
         const radius = score * maxRadius;
         const angle = (Math.PI * 2 * i) / 5 - Math.PI / 2;
@@ -651,12 +922,10 @@ const radarPoints = computed(() => {
     }).join(' ');
 });
 
-// [2026-02-13] 단계 이동 시 힌트 창 자동 닫기 (BugHunt와 동작 일관성)
 watch(() => gameState.phase, () => {
     gameState.showHint = false;
 });
 
-// Monaco Editor 연동
 const { monacoOptions, handleMonacoMount } = useMonacoEditor(
     currentMission, 
     reactive({
@@ -664,13 +933,99 @@ const { monacoOptions, handleMonacoMount } = useMonacoEditor(
         set userCode(v) { gameState.phase3Reasoning = v; }
     })
 );
-
-// --- END INTEGRATION ---
 </script>
 
 <style scoped src="./CoduckWars.css"></style>
 
 <style scoped>
+@keyframes loading-bar {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(-20%); }
+  100% { transform: translateX(0); }
+}
+
+.animate-loading-bar {
+  animation: loading-bar 1.8s ease-in-out infinite;
+}
+
+.ai-analysis-simulation {
+  backdrop-filter: blur(10px);
+}
+</style>
+
+<style scoped>
+/* 2026-02-14 수정: 헤더 신규 버튼 스타일 (튜토리얼, 실습 종료) */
+.btn-tutorial-trigger {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #f1f5f9;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  transition: all 0.2s;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.btn-tutorial-trigger:hover {
+  background: rgba(59, 130, 246, 0.25);
+  border-color: #3b82f6;
+  color: #fff;
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+}
+
+.btn-practice-close {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #f1f5f9;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  transition: all 0.2s;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.btn-practice-close:hover {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: #ef4444;
+  color: #fff;
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+}
+
+.btn-hint-toggle {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  color: #60a5fa;
+  padding: 12px 24px;
+  border-radius: 14px;
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.btn-hint-toggle:hover, .btn-hint-toggle.is-active {
+  background: rgba(59, 130, 246, 0.25);
+  border-color: #3b82f6;
+  color: #fff;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+  transform: translateY(-2px);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 /* [2026-02-13] Blueprint Reference Card (Retry Mode) */
 .blueprint-reference-card {
   z-index: 5;
@@ -732,5 +1087,874 @@ const { monacoOptions, handleMonacoMount } = useMonacoEditor(
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* ==================== [2026-02-14] Premium Architect Report Portal Styles ==================== */
+
+.architect-report-portal {
+  padding: 24px;
+  background: rgba(10, 15, 25, 0.4);
+  border-radius: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Score Banner */
+.report-banner-premium {
+  position: relative;
+  border-radius: 24px;
+  overflow: hidden;
+  padding: 40px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  box-shadow: 0 0 40px rgba(59, 130, 246, 0.15);
+}
+
+.banner-glass {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(30, 64, 175, 0.2), rgba(139, 92, 246, 0.2));
+  backdrop-filter: blur(20px);
+  z-index: 1;
+}
+
+.banner-content {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 1fr 1fr 2fr;
+  align-items: center;
+  gap: 32px;
+}
+
+.score-circle-wrapper {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.5));
+}
+
+.progress-ring {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.ring-bg {
+  stroke: rgba(255, 255, 255, 0.1);
+  stroke-width: 8;
+  fill: none;
+}
+
+.ring-fill {
+  stroke: #60a5fa;
+  stroke-width: 8;
+  stroke-linecap: round;
+  fill: none;
+  transition: stroke-dashoffset 1s ease-out;
+}
+
+.score-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.score-text .num {
+  font-size: 3rem;
+  font-weight: 900;
+  color: #fff;
+  line-height: 1;
+}
+
+.score-text .unit {
+  font-size: 0.8rem;
+  color: #60a5fa;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+
+.banner-center {
+  text-align: center;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0 20px;
+}
+
+.grade-symbol-large {
+  font-size: 5rem;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.grade-label {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  letter-spacing: 3px;
+  font-weight: 700;
+}
+
+.architect-status-text {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #f8fafc;
+  line-height: 1.4;
+  margin-bottom: 12px;
+}
+
+.mission-tag {
+  display: inline-block;
+  padding: 6px 12px;
+  background: rgba(59, 130, 246, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  color: #60a5fa;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* Analysis Hub Grid */
+.analysis-hub-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.section-card-glass {
+  background: rgba(30, 41, 59, 0.5);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+  padding: 24px;
+}
+
+.card-title-mini {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #64748b;
+  letter-spacing: 1.5px;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+}
+
+.radar-chart-wrapper {
+  height: 280px;
+  position: relative;
+}
+
+.metrics-matrix-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.matrix-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mi-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mi-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.mi-val {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #60a5fa;
+}
+
+.mi-bar-container {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.mi-bar-fill {
+  height: 100%;
+  border-radius: 10px;
+  transition: width 1s ease-out;
+}
+
+/* Verdict Section */
+.verdict-card-glass {
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.8), rgba(30, 41, 59, 0.8));
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 24px;
+  padding: 32px;
+}
+
+.verdict-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.persona-avatar {
+  width: 60px;
+  height: 60px;
+  background: rgba(59, 130, 246, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  border-radius: 50%;
+  padding: 8px;
+}
+
+.persona-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.p-role {
+  font-size: 0.7rem;
+  color: #60a5fa;
+  font-weight: 800;
+  letter-spacing: 2px;
+}
+
+.p-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.verdict-summary {
+  font-size: 1.1rem;
+  color: #f1f5f9;
+  line-height: 1.6;
+  font-style: italic;
+  margin-bottom: 32px;
+  padding-left: 16px;
+  border-left: 2px solid #3b82f6;
+}
+
+.feedback-grid-mini {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+.fb-item {
+  padding: 20px;
+  border-radius: 16px;
+}
+
+.fb-item.success { background: rgba(34, 197, 94, 0.05); border: 1px solid rgba(34, 197, 94, 0.2); }
+.fb-item.warning { background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.2); }
+
+.fb-tag {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.fb-item.success .fb-tag { color: #22c55e; }
+.fb-item.warning .fb-tag { color: #f59e0b; }
+
+.fb-text {
+  font-size: 0.9rem;
+  color: #cbd5e1;
+  line-height: 1.6;
+}
+
+.master-lesson-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  background: rgba(251, 191, 36, 0.05);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  padding: 24px;
+  border-radius: 16px;
+}
+
+.lesson-label {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #fbbf24;
+  letter-spacing: 1.5px;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.lesson-text {
+  font-size: 0.95rem;
+  color: #fef3c7;
+  line-height: 1.6;
+}
+
+/* Learning Path */
+.path-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 1.5px;
+  margin-bottom: 24px;
+}
+
+.path-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.path-card {
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  transition: all 0.3s ease;
+}
+
+.path-card:hover {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.4);
+  transform: translateY(-5px);
+}
+
+.pc-link {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  text-decoration: none;
+}
+
+.pc-channel {
+  font-size: 0.7rem;
+  color: #60a5fa;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.pc-title {
+  font-size: 1rem;
+  color: #fff;
+  margin: 6px 0 10px;
+  line-height: 1.4;
+}
+
+.pc-reason {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+
+.pc-play {
+  width: 32px;
+  height: 32px;
+  background: #3b82f6;
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+}
+
+/* Reusable Actions Section within Evaluation */
+.actions {
+  margin-top: 40px;
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  padding-bottom: 60px; /* 스크롤 공간 확보 */
+}
+
+/* ==========================================================================
+   [2026-02-14] Premium Architect Report Portal Styles
+   ========================================================================== */
+
+.architect-report-portal {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 1.5rem;
+  color: #f1f5f9;
+}
+
+/* Part 1: Billboard (Grade & Score) */
+.report-billboard-premium {
+  position: relative;
+  height: 200px;
+  border-radius: 24px;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.billboard-glass {
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(10px);
+  background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.1), transparent);
+}
+
+.billboard-content {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0 3rem;
+  gap: 3rem;
+}
+
+.score-ring-box {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+.ring-svg-neo {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.ring-bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.05);
+  stroke-width: 8;
+}
+
+.ring-fill {
+  fill: none;
+  stroke: #3b82f6;
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.score-absolute {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.pts-num {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+}
+
+.pts-unit {
+  font-size: 0.7rem;
+  color: #60a5fa;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.grade-badge-box {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex: 1;
+}
+
+.grade-symbol-neo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+}
+
+.grade-symbol-neo .symbol {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: #3b82f6;
+  text-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+}
+
+.grade-symbol-neo .label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.verdict-headline {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.5px;
+}
+
+.mission-ident {
+  margin-left: auto;
+}
+
+.ch-tag {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #60a5fa;
+  padding: 6px 14px;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* Part 2: Hub Grid */
+.report-hub-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.neo-glass-card {
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+  padding: 1.5rem;
+}
+
+.neo-card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 1.5rem;
+}
+
+.radar-container-neo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 260px;
+}
+
+.metric-progress-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.metric-row-neo .m-top-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.m-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.m-val {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #3b82f6;
+}
+
+.m-bar-base {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.m-bar-inner {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 1s ease-out 0.5s;
+}
+
+/* Part 3: Senior Verdict */
+.expert-section-neo {
+  background: rgba(30, 41, 59, 0.2);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  padding: 2rem;
+}
+
+.mentor-profile {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.mentor-avatar {
+  width: 50px;
+  height: 50px;
+  background: #1e293b;
+  border-radius: 50%;
+  padding: 8px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.mentor-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.m-role {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #3b82f6;
+  letter-spacing: 1px;
+}
+
+.m-name {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.senior-quote {
+  font-size: 1.2rem;
+  font-weight: 600;
+  line-height: 1.6;
+  color: #cbd5e1;
+  font-style: italic;
+  margin-bottom: 2rem;
+  padding-left: 1rem;
+  border-left: 3px solid #3b82f6;
+}
+
+.feedback-dual-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.fb-item-neo {
+  background: rgba(255, 255, 255, 0.02);
+  padding: 1.25rem;
+  border-radius: 16px;
+  border-left: 4px solid transparent;
+}
+
+.fb-item-neo.plus { border-color: #10b981; }
+.fb-item-neo.minus { border-color: #f59e0b; }
+
+.tag-neo {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.txt-neo {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #e2e8f0;
+}
+
+.point-lesson-neo {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  background: rgba(245, 158, 11, 0.05);
+  padding: 1.25rem;
+  border-radius: 16px;
+  border: 1px solid rgba(245, 158, 11, 0.15);
+}
+
+.p-icon-box {
+  background: rgba(245, 158, 11, 0.15);
+  padding: 10px;
+  border-radius: 12px;
+}
+
+.p-tag {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #f59e0b;
+  letter-spacing: 1px;
+}
+
+.p-msg {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fde68a;
+  margin-top: 0.25rem;
+}
+
+/* Part 4: Pathway Section */
+.pathway-section-neo {
+  margin-top: 1rem;
+}
+
+.path-heading-neo {
+  display: flex;
+  align-items: center;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 1px;
+  margin-bottom: 1.5rem;
+}
+
+.path-grid-neo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.p-link-neo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(15, 23, 42, 0.4);
+  padding: 1.25rem;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+}
+
+.p-link-neo:hover {
+  background: rgba(59, 130, 246, 0.08);
+  border-color: rgba(59, 130, 246, 0.4);
+  transform: translateY(-2px);
+}
+
+.p-author {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #3b82f6;
+  text-transform: uppercase;
+  margin-bottom: 0.25rem;
+  display: block;
+}
+
+.p-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 0.25rem;
+}
+
+.p-desc {
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.p-play-ico {
+  width: 32px;
+  height: 32px;
+  background: #3b82f6;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* Actions */
+.terminal-actions-neo {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.btn-neo-restart {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #94a3b8;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s;
+}
+
+.btn-neo-restart:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: #fff;
+  color: #fff;
+}
+
+.btn-neo-complete {
+  background: #3b82f6;
+  border: none;
+  color: #fff;
+  padding: 12px 32px;
+  border-radius: 12px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+.btn-neo-complete:hover {
+  background: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.5);
+}
+
+/* Animations */
+.animate-fadeIn {
+  animation: fadeIn 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-loading-bar {
+  animation: loadingBar 2s ease-in-out infinite;
+}
+
+@keyframes loadingBar {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(0); }
+  100% { transform: translateX(100%); }
+}
+
+/* [2026-02-14] Responsive Radar Fix */
+#radarChartCanvas {
+  max-width: 100%;
+  max-height: 100%;
 }
 </style>

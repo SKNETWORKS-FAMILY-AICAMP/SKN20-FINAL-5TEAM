@@ -126,42 +126,67 @@ export function useCoduckWars() {
     };
 
     /**
-     * [2026-02-13] 실시간 의사코드 분석 및 힌트 생성 (plan.md 로직)
+     * [2026-02-14 수정] 실시간 의사코드 분석 및 풍부한 유동적 힌트 생성
      */
     const updateDynamicHint = () => {
         const code = gameState.phase3Reasoning || "";
 
+        // 힌트 데이터 뱅크
+        const HINT_POOLS = {
+            isolation: [
+                "단어들은 잘 나열하셨네요! 하지만 이 단계들이 어떤 순서로 배치되어야 미래의 시험 문제가 학습 데이터로 새어나가지 않을까요?",
+                "모델이 학습하는 동안 미래의 정답지(Test)를 한 번이라도 훔쳐본다면, 그 성능을 신뢰할 수 있을까요? 물리적인 벽을 세우는 시점을 고민해 보세요.",
+                "현실 세계에서는 미래 데이터를 미리 알 수 없습니다. 현재 설계에서 '과거'와 '미래'를 가르는 명확한 선은 어디에 있나요?",
+                "전처리 도구가 전체 데이터의 특성(평균, 편차 등)을 미리 학습해버린다면, 이미 정보 유출이 시작된 것 아닐까요? 분할의 선후 관계를 다시 보세요."
+            ],
+            anchor: [
+                "만약 테스트 데이터로 기준을 새로 잡는다면, 학습 때 고생해서 만든 '기준점'이 흔들리지 않을까요? 모델이 배포된 후에도 이 기준을 유지할 방법을 고민해보세요.",
+                "우리가 가진 유일한 **'믿을 수 있는 과거'**는 어떤 데이터셋인가요? 그 데이터셋만이 기준점(fit)이 될 자격이 있습니다.",
+                "운영(Serving) 환경에서는 데이터가 한 건씩 들어옵니다. 그때마다 기준점을 새로 잡는다면, 모델이 배운 '원래의 잣대'가 유지될 수 있을까요?",
+                "테스트 데이터의 통계량을 기준점 설정에 포함하는 순간, 그것은 더 이상 공정한 테스트가 아닌 '답안지 유출'이 됩니다."
+            ],
+            abstraction: [
+                "키워드는 완벽해요! 이제 이 재료들을 연결해볼까요? '격리'가 된 상태에서 '기준점'을 잡아야 하는 공학적인 이유는 무엇일까요?",
+                "학습할 때는 섭씨(°C)로 가르치고, 시험 볼 때는 화씨(°F)로 물어본다면 모델이 정답을 맞출 수 있을까요? 변환의 기준을 똑같이 맞추는 방법은 무엇일까요?",
+                "운영 환경에서 들어오는 '쌩쌩한' 데이터에 학습 때 썼던'동일한 저울'을 적용하는 구체적인 로직이 포함되었나요?",
+                "모델이 배포된 후에도 '과거의 기준'에 자신을 맞추게 만드는 장치가 무엇인지 설계에 반영해 보세요."
+            ],
+            consistency: [
+                "학습할 때는 섭씨(°C)로 가르치고, 시험 볼 때는 화씨(°F)로 물어본다면 모델이 정답을 맞출 수 있을까요? 변환의 기준을 똑같이 맞추는 방법은 무엇일까요?",
+                "운영 환경에서 들어오는 '쌩쌩한' 데이터에 학습 때 썼던 **'동일한 저울'**을 적용하는 구체적인 로직이 포함되었나요?",
+                "모델이 배포된 후에도 '과거의 기준'에 자신을 맞추게 만드는 장치가 무엇인지 설계에 반영해 보세요."
+            ]
+        };
+
+        const getRandomHint = (pool) => pool[Math.floor(Math.random() * pool.length)];
+
         // 유형 1: [격리 Isolation] 개념 부족 (순서 오류/분리 미흡)
-        // 진단: 데이터를 나누는 시점이 불분명하거나 전처리 이후에 분할하려는 경우
         const hasSplit = /split|분할|나누|분리/i.test(code);
         const fitPos = code.search(/fit|기준|학습/i);
         const splitPos = code.search(/split|분할|나누|분리/i);
 
         if (!hasSplit || (fitPos !== -1 && splitPos !== -1 && fitPos < splitPos)) {
-            dynamicHintMessage.value = "모델이 학습하는 동안 미래의 정답지(Test)를 한 번이라도 훔쳐본다면, 그 성능을 신뢰할 수 있을까요? 물리적인 벽을 세우는 시점을 고민해 보세요.";
+            dynamicHintMessage.value = getRandomHint(HINT_POOLS.isolation);
             return;
         }
 
         // 유형 2: [기준점 Anchor] 개념 부족 (Train/Test 혼동)
-        // 진단: 모든 데이터로 fit을 하려 하거나, 테스트 데이터에서도 fit을 호출하려는 경우
         if (/(fit|학습|기준)\s*.*\s*(all|전체|test|테스트|전체데이터|모든|test_df|test_data)/i.test(code)) {
-            dynamicHintMessage.value = "우리가 가진 유일한 **'믿을 수 있는 과거'**는 어떤 데이터셋인가요? 그 데이터셋만이 기준점(fit)이 될 자격이 있습니다.";
+            dynamicHintMessage.value = getRandomHint(HINT_POOLS.anchor);
             return;
         }
 
-        // 유형 3: [일관성 Consistency] 운영 환경 적용 오류 (변환 누락)
-        // 진단: 학습과 서빙 환경의 변환 방식이 일치하지 않을 때
+        // 유형 4: [일관성 (Consistency)] 관련: 운영 환경 적용 오류
         const hasTransform = /transform|변환|적용/i.test(code);
         if (!hasTransform) {
-            dynamicHintMessage.value = "학습할 때는 섭씨(°C)로 가르치고, 시험 볼 때는 화씨(°F)로 물어본다면 모델이 정답을 맞출 수 있을까요? 변환의 기준을 똑같이 맞추는 방법은 무엇일까요?";
+            dynamicHintMessage.value = getRandomHint(HINT_POOLS.consistency);
             return;
         }
 
-        // 유형 4: [추상화 Abstraction] 논리적 연결 부족 (단순 나열)
-        // 진단: 키워드는 모두 썼으나, 각 단계가 왜 연결되는지에 대한 '인과관계'가 없을 때
+        // 유형 3: [추상화 Abstraction] 논리적 연결 부족 (단순 나열)
         const hasConnections = /->|>|다음으로|그 후|순서|단계|이후|과정/i.test(code);
         if (code.length < 60 || !hasConnections) {
-            dynamicHintMessage.value = "키워드는 완벽해요! 이제 이 재료들을 연결해볼까요? '격리'가 된 상태에서 '기준점'을 잡아야 하는 공학적인 이유는 무엇일까요?";
+            dynamicHintMessage.value = getRandomHint(HINT_POOLS.abstraction);
             return;
         }
 
@@ -362,6 +387,9 @@ export function useCoduckWars() {
             }
             evaluationResult.overall_score = evaluation.overall_score || 0;
             evaluationResult.is_low_effort = evaluation.is_low_effort || false;
+            // 2026-02-14 수정: 페르소나 및 총평 데이터 매핑 추가
+            evaluationResult.persona_name = evaluation.persona_name || "";
+            evaluationResult.one_line_review = evaluation.one_line_review || "";
 
             // ✅ [FIX] dimensions null-safe 접근
             const dims = evaluation.dimensions || {};

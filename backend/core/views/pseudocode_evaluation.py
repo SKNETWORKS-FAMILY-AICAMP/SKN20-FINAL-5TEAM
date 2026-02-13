@@ -33,34 +33,26 @@ SYSTEM_PROMPT = """당신은 AI 기반 데이터 과학 설계 평가 전문가�
 5. **Abstraction (추상화, 15점)**: 3대 키워드(격리, 기준점, 일관성)를 사용한 논리 구조화
 
 # 꼬리질문 (Tail Question / Deep Dive) 생성 규칙 (CRITICAL)
-사용자의 의사코드에서 **논리적으로 가장 취약하거나 모호한 부분**을 찾아내어 이를 검증하는 **4지선다(4 options)** 객관식 문제를 생성하세요.
-1. **[순서 오류]** 분할 전 fit을 한 경우 -> 데이터 누수 관련 질문
-2. **[대상 오류]** 전체 데이터셋에 fit/transform을 한 경우 -> 데이터 오염 관련 질문
-3. **[근거 부족]** 로직은 맞으나 구체적인 공학적 이유가 결여된 경우 -> 'Why'를 묻는 질문
-4. **[논리 완벽]** 완벽한 설계인 경우 -> 데이터 드리프트 등 '확장 상황' 대응 질문
-
-# Python 변환(Mapping) 원칙 (CRITICAL)
-- **핵심 로직 흐름만 시각화**: Import 문, 데이터 로드, 불필요한 설정 코드는 모두 제외하고 사용자가 작성한 **분할-학습-변환**의 핵심 흐름만 파이썬 구문으로 보여주세요.
-- **엄격한 매핑**: 사용자가 적은 '의사코드 문장' 하나하나가 파이썬의 어떤 구문으로 치환되는지 보여주어야 합니다.
-- **빈칸/생략 존중**: 사용자가 특정 단계를 누락했다면 파이썬 코드에서도 해당 부분을 `# [누락] 이 단계에 대한 설계가 없습니다` 와 같이 표기하여 자신의 설계를 돌아보게 하세요.
-- **강제 완성 금지**: 사용자가 언급하지 않은 라이브러리나 로직을 AI가 임의로 추가하여 '완벽한 코드'를 만들어주지 마세요. 사용자의 논리 그대로를 파이썬으로 옮기는 것이 목적입니다.
-- **주석 활용**: 사용자의 의사코드가 파이썬의 어떤 부분에 해당하는지 주석으로 매핑 결과를 명확히(e.g., `# [의사코드 대응] ...`) 보여주세요.
+# 아래 3가지 시나리오 중 하나를 선택하거나, 사용자의 논리적 약점을 공격하는 질문을 생성하세요.
+1. **[데이터 드리프트]**: 시간 경과에 따른 데이터 분포 변화 대응력 (e.g., 운영 환경에서 데이터가 변할 때 설계의 유효성)
+2. **[실시간 서빙]**: 성능(Latency)과 정확도의 트레이드오프 상황에서의 아키텍처 판단
+3. **[데이터 부족]**: 소량의 데이터셋에서 누수를 방지하며 검증력을 확보하는 전략
 
 # 출력 형식 (반드시 JSON)
 {
-  "overall_score": 0, // 85점 만점 기준
-  "persona_name": "판정된 페르소나",
+  "overall_score": 0, // 85점 만점 기준 (각 지표 합산)
+  "persona_name": "판정된 페르소나 (e.g., 원칙 중심의 이론가, 손이 빠른 실무형 코더 등)",
   "one_line_review": "한 줄 총평",
   "dimensions": {
-    "design": { "score": 25, "basis": "한줄 평", "improvement": "개선방법" },
-    "consistency": { "score": 20, "basis": "한줄 평", "improvement": "개선방법" },
-    "implementation": { "score": 10, "basis": "한줄 평", "improvement": "개선방법" },
-    "edge_case": { "score": 15, "basis": "한줄 평", "improvement": "개선방법" },
-    "abstraction": { "score": 15, "basis": "한줄 평", "improvement": "개선방법" }
+    "design": { "score": 25, "basis": "평가 근거", "improvement": "개선방법" },
+    "consistency": { "score": 20, "basis": "평가 근거", "improvement": "개선방법" },
+    "implementation": { "score": 10, "basis": "평가 근거", "improvement": "개선방법" },
+    "edge_case": { "score": 15, "basis": "평가 근거", "improvement": "개선방법" },
+    "abstraction": { "score": 15, "basis": "평가 근거", "improvement": "개선방법" }
   },
   "deep_dive": {
-    "title": "꼬리질문: 논리 허점 탐색",
-    "question": "의사코드의 XX 단계가 모호합니다. 이 경우 발생할 수 있는 공학적 문제는?",
+    "title": "꼬리질문: [시나리오명]",
+    "question": "의사코드 설계와 연관된 심화 상황 질문",
     "options": [
       { "id": 1, "text": "선택지 1", "is_correct": true, "feedback": "정답 해설" },
       { "id": 2, "text": "선택지 2", "is_correct": false, "feedback": "오답 해설" },
@@ -70,9 +62,10 @@ SYSTEM_PROMPT = """당신은 AI 기반 데이터 과학 설계 평가 전문가�
   },
   "converted_python": "사용자의 의사코드를 그대로 파이썬 구문으로 매핑한 코드",
   "python_feedback": "사용자 설계의 파이썬 변환 시 발생한 논리적 모순점",
-  "senior_advice": "시니어의 핵심 조언",
-  "strengths": [],
-  "weaknesses": []
+  "senior_advice": "시니어의 핵심 조언 (따뜻함과 전문성 유지)",
+  "strengths": ["강점1", "강점2"],
+  "weaknesses": ["약점1", "약점2"]
+}
 """
 
 @api_view(['POST'])
@@ -80,29 +73,6 @@ SYSTEM_PROMPT = """당신은 AI 기반 데이터 과학 설계 평가 전문가�
 def evaluate_pseudocode_5d(request):
     """
     5차원 메트릭 기반 의사코드 평가
-    
-    POST /api/core/pseudocode/evaluate-5d
-    
-    Request Body:
-    {
-        "quest_id": 1,
-        "quest_title": "전처리 데이터 누수 방지",
-        "pseudocode": "사용자 의사코드",
-        "validation_rules": {...},
-        "rule_result": {
-            "score": 75,
-            "concepts": ["data_split", "fit_train"],
-            "warnings": [...]
-        }
-    }
-    
-    Response:
-    {
-        "overall_score": 85,
-        "dimensions": {...},
-        "strengths": [...],
-        "weaknesses": [...]
-    }
     """
     try:
         # Request 데이터 추출
@@ -118,7 +88,7 @@ def evaluate_pseudocode_5d(request):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # 포기/무성의 응답 시 '아키텍처 복기 모드' (2026-02-13 고도화)
+        # [2026-02-14] 포기/무성의 응답 감지 로직 강화
         technical_keywords = ['split', 'fit', 'transform', '분할', '학습', '변환', '나누', '기준', '격리', '일관', '누수', 'leakage']
         has_tech = any(kw in pseudocode.lower() for kw in technical_keywords)
         
@@ -132,26 +102,22 @@ def evaluate_pseudocode_5d(request):
                     'dimensions': generate_low_score_dimensions("복기 학습 모드 전환"),
                     'strengths': [],
                     'weaknesses': ["설계 본인 작성 누락", "모범 사례 분석 필요"],
-                    'senior_advice': "설계가 막힐 때는 잘 짜여진 코드를 역으로 추적(Reverse Engineering)하는 것이 가장 빠릅니다. 오른쪽의 [아키텍트 청사진]을 읽고 아래 질문의 답을 찾아보세요.",
-                    'python_feedback': "아키텍트의 설계 핵심 포인트: '전처리 전 분할(Isolation)' -> '훈련 데이터 기준 fit(Anchor)' -> '일관된 적용(Consistency)' 순서를 확인하세요.",
-                    'converted_python': "# [아키텍트 청사진 - Blueprint]\nimport pandas as pd\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\n# 1. 격리(Isolation): 전처리 전 데이터를 분할하여 미래 정보를 차단\ntrain_data, test_data = train_test_split(data, test_size=0.2)\n\n# 2. 기준점(Anchor): 훈련 데이터에서만 평균/표준편차를 계산\nscaler = StandardScaler()\nscaler.fit(train_data)\n\n# 3. 일관성(Consistency): 확정된 기준을 훈련/테스트 모두에 동일하게 적용\ntrain_scaled = scaler.transform(train_data)\ntest_scaled = scaler.transform(test_data)",
-                    'tail_question': {
-                        "should_show": True,
-                        "reason": "아키텍처 복기 학습",
-                        "question": "위 청사진 코드에서 '데이터 누수(Leakage)'를 막기 위해 가장 먼저 수행한 '격리' 조치는 무엇인가요?",
+                    'senior_advice': "설계가 막힐 때는 잘 짜여진 코드를 역으로 추적하는 것이 가장 빠릅니다. 아키텍트의 청사진을 참고해 보세요.",
+                    'python_feedback': "아키텍처의 핵심: '격리(Isolation)' -> '기준점(Anchor)' -> '일관성(Consistency)'",
+                    'converted_python': "# [아키텍트 청사진]\n# 1. Isolation: train_test_split\n# 2. Anchor: scaler.fit(train)\n# 3. Consistency: scaler.transform(train/test)",
+                    'deep_dive': {
+                        "title": "아키텍처 복기 학습",
+                        "question": "데이터 누수(Leakage)를 방지하기 위해 전처리 도구가 Test 데이터를 보기 전에 가장 먼저 해야 할 일은?",
                         "options": [
-                            { "id": 1, "text": "데이터를 Train/Test로 분할하는 것", "is_correct": True, "feedback": "딩동댕! 전처리 도구가 테스트 데이터를 보기 전에 물리적으로 벽을 세우는 것이 격리의 시작입니다." },
-                            { "id": 2, "text": "StandardScaler를 생성하는 것", "is_correct": False, "feedback": "도구 생성은 준비 단계일 뿐, 격리는 '데이터 분할' 시점에 일어납니다." },
-                            { "id": 3, "text": "훈련 데이터를 transform 하는 것", "is_correct": False, "feedback": "그것은 일관성 유지 단계입니다." },
-                            { "id": 4, "text": "테스트 데이터로 fit 하는 것", "is_correct": False, "feedback": "그것은 오히려 데이터 누수를 유발하는 치명적 행위입니다!" }
+                            { "id": 1, "text": "데이터를 Train/Test로 격리하는 것", "is_correct": True, "feedback": "정답입니다! 물리적 격리가 최우선입니다." },
+                            { "id": 2, "text": "전체 데이터를 정규화하는 것", "is_correct": false, "feedback": "누수의 주범입니다!" },
+                            { "id": 3, "text": "학습을 시작하는 것", "is_correct": false, "feedback": "전처리가 먼저입니다." },
+                            { "id": 4, "text": "테스트 데이터로 fit 하는 것", "is_correct": false, "feedback": "치명적인 오류입니다." }
                         ]
                     }
                 },
                 status=status.HTTP_200_OK
             )
-        
-        # LLM 평가 및 Python 변환 호출
-        request_python_conversion = request.data.get('request_python_conversion', False)
         
         llm_result = call_llm_evaluation(
             quest_title=quest_title,
@@ -159,92 +125,51 @@ def evaluate_pseudocode_5d(request):
             rule_score=rule_result.get('score', 0),
             rule_concepts=rule_result.get('concepts', []),
             user_diagnostic=request.data.get('user_diagnostic', {}),
-            request_python_conversion=request_python_conversion
+            request_python_conversion=request.data.get('request_python_conversion', False)
         )
-        
-        # 최종 점수는 프론트에서 Rule(15) + LLM(85)를 합산하여 100점 만점으로 만듦
         
         return Response(llm_result, status=status.HTTP_200_OK)
         
-    except openai.OpenAIError as e:
-        # OpenAI API 에러
-        return Response(
-            {
-                'error': 'LLM service unavailable',
-                'detail': str(e),
-                'fallback': True
-            },
-            status=status.HTTP_503_SERVICE_UNAVAILABLE
-        )
-        
     except Exception as e:
-        # 기타 에러
+        import traceback
+        print(f"[5D Evaluation Error] {str(e)}")
+        print(traceback.format_exc())
         return Response(
-            {
-                'error': 'Internal server error',
-                'detail': str(e)
-            },
+            {'error': 'Internal server error', 'detail': str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
-
 
 def call_llm_evaluation(quest_title: str, pseudocode: str, rule_score: int, rule_concepts: list, user_diagnostic: dict = None, request_python_conversion: bool = False) -> Dict[str, Any]:
     """
     OpenAI API를 호출하여 5차원 평가 수행
     """
-    # OpenAI 클라이언트 초기화
     client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
     
-    # User 프롬프트 생성
     user_prompt = f"""
-# 문제
+# 미션
 {quest_title}
 
-# 학생이 작성한 의사코드
+# 학생의 의사코드
 {pseudocode}
 
-# 학생이 직접 분석한 진단 결과 (학습 일관성 평가용)
-- Phase 1 (원인 분석 - 서술/객관): {user_diagnostic.get('phase1', '없음') if user_diagnostic else '없음'}
-- Phase 2 (전술 설계 - 서술/객관): {user_diagnostic.get('phase2', '없음') if user_diagnostic else '없음'}
-- Phase 3 (전술 시퀀스 - 정렬형): {user_diagnostic.get('phase3', '없음') if user_diagnostic else '없음'}
-
-# 규칙 기반 사전 검증 결과 (참고용)
-- 규칙 점수: {rule_score}/100점
-- 포함된 개념: {', '.join(rule_concepts) if rule_concepts else '없음'}
+# 진단 단계 답변 (Coherence 평가용)
+{json.dumps(user_diagnostic, ensure_ascii=False) if user_diagnostic else '없음'}
 
 # 평가 요청
-위 의사코드를 5차원 메트릭으로 평가하고, 반드시 JSON 형식으로만 출력하세요.
-특히 **Coherence (정합성)** 차원에서는 '학생이 진단 단계(Phase 1~3)에서 도출한 결론/전술이 의사코드에 일관되게 반영되었는지'를 최우선으로 검증하세요. 진단 단계와 의사코드가 모순될 경우 Coherence 점수를 대폭 감점하고 상세 이유를 basis에 적어주세요.
-
-JSON 형식:
-{{
-  "overall_score": 0-85 정수,
-  "persona_name": "판정된 페르소나 명칭",
-  "one_line_review": "한 줄 총평",
-  "dimensions": {{
-    "coherence": {{
-      "score": 0-100 정수,
-      "basis": "평가 근거 (1-2문장, 한글)",
-      "specific_issue": "발견된 문제 (없으면 null)",
-      "improvement": "구체적 개선 방법 (없으면 null)"
-    }},
-    "abstraction": {{ ... (동일 구조) }},
-    "exception_handling": {{ ... }},
-    "implementation": {{ ... }},
-    "architecture": {{ ... }}
-  }},
-  "strengths": ["강점1", "강점2"],
-  "weaknesses": ["약점1", "약점2"],
-  "converted_python": "변환된 Python 코드 (문자열)",
-  "python_feedback": "Python 변환 관련 피드백 (80점 미만일 때 꼬리질문 힌트용)",
-  "senior_advice": "시니어 아키텍트의 전문적인 조언 (한글, 100자 이내. 따뜻하지만 냉철한 피드백)"
-}}
+위 의사코드를 5차원 메트릭(design, consistency, implementation, edge_case, abstraction)으로 평가하고 JSON으로 출력하세요.
+- **design (25점)**: 논리적 개연성 및 흐름
+- **consistency (20점)**: 누수 방지 원칙 준수 여부 (진단 답변과의 일관성 포함)
+- **implementation (10점)**: 코드 변환 가능성
+- **edge_case (15점)**: 예외 및 확장 상황 고려
+- **abstraction (15점)**: 구조화 및 전문 용어 사용
 
 **중요**: 
-- overall_score는 5개 차원 점수의 평균
-- 키워드만 나열한 경우 abstraction은 40점 이하
-- 구체적인 개선 방법을 제시하세요
+- overall_score는 5개 차원 점수의 총합 (85점 만점)
+- 키워드만 나열한 경우 abstraction은 5점 이하로 감점
+- 구체적인 개선 방법(improvement)을 제시하세요.
 - 의사코드를 기반으로 실행 가능한 Python 코드로 변환하여 converted_python에 담아주세요.
+
+반드시 JSON 형식으로만 응답해야 합니다.
 """
     
     # OpenAI API 호출 (최대 2회 재시도)
