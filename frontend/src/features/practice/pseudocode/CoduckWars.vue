@@ -14,13 +14,28 @@
         <span class="chapter-title">CHAPTER {{ gameState.currentStageId }}: {{ currentMission.title || '로딩 중...' }}</span>
         <span class="sub-info">{{ currentMission.subModuleTitle || 'BOOT_PROTOCOL' }}</span>
       </div>
-      <div class="integrity-monitor">
-        <span class="integrity-label">정화 무결성</span>
-        <div class="hp-bar-bg">
-             <div class="hp-bar-fill" :style="{ width: Math.max(0, gameState.playerHP) + '%' }"></div>
-        </div>
-        <span class="integrity-val">{{ Math.max(0, gameState.playerHP) }}%</span>
 
+      <div class="header-right-group">
+        <div class="integrity-monitor">
+          <span class="integrity-label">정화 무결성</span>
+          <div class="hp-bar-bg">
+               <div class="hp-bar-fill" :style="{ width: Math.max(0, gameState.playerHP) + '%' }"></div>
+          </div>
+          <span class="integrity-val">{{ Math.max(0, gameState.playerHP) }}%</span>
+        </div>
+
+        <div class="war-room-actions">
+          <button class="btn-terminal-action tutorial-btn" @click="toggleGuide">
+            <span class="dot-icon">■</span>
+            튜토리얼
+          </button>
+          <button v-if="gameState.phase === 'PSEUDO_WRITE'" class="btn-terminal-action hint-btn" @click="toggleHint">
+             HINT
+          </button>
+          <button class="btn-terminal-action exit-btn" @click="handlePracticeClose">
+            EXIT
+          </button>
+        </div>
       </div>
     </header>
 
@@ -187,6 +202,7 @@
                           <p class="mi-desc-small">{{ currentMission.designContext?.writingGuide?.replace('[필수 포함 조건 (Constraint)]\n', '') }}</p>
                       </div>
                   </div>
+
 
                   <div class="editor-layout w-full flex flex-col flex-1">
                       <div class="editor-body w-full flex-1 flex flex-col">
@@ -403,7 +419,7 @@
                               </button>
                               <div class="video-responsive">
                                   <iframe 
-                                      :src="`https://www.youtube-nocookie.com/embed/${activeYoutubeId}?autoplay=1`" 
+                                      :src="`https://www.youtube.com/embed/${activeYoutubeId}`" 
                                       frameborder="0" 
                                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                                       allowfullscreen>
@@ -424,6 +440,21 @@
               </div>
           </section>
       </div>
+      
+      <!-- BugHunt 스타일 오리 힌트 시스템 [2026-02-13] - viewport 하단 배치 -->
+      <transition name="duck-pop">
+        <div v-if="gameState.showHint" class="hint-duck-container">
+            <div class="hint-speech-bubble">
+                <div class="bubble-header">DUC-TIP!</div>
+                <div class="bubble-content">
+                    <p v-for="(hintText, hIdx) in currentMission.validation?.concepts?.flatMap(c => c.hints || [])" :key="hIdx" class="hint-li">
+                        • {{ hintText }}
+                    </p>
+                </div>
+            </div>
+            <img src="@/assets/image/duck_det.png" class="hint-duck-img" alt="Hint Duck">
+        </div>
+      </transition>
     </main>
 
     <!-- [2026-02-11] FEEDBACK TOAST -->
@@ -445,7 +476,6 @@ import {
   RotateCcw, Play, X, Brain, CheckCircle
 } from 'lucide-vue-next';
 
-const activeYoutubeId = ref(null);
 import CodeFlowVisualizer from './components/CodeFlowVisualizer.vue';
 import LoadingDuck from '../components/LoadingDuck.vue';
 
@@ -472,8 +502,12 @@ const {
     handlePythonVisualizationNext,
     handleTailSelection,
     resetFlow,
+    toggleHint,
     handlePracticeClose
 } = useCoduckWars();
+
+// [2026-02-13] YouTube 추천 영상 모달 상태
+const activeYoutubeId = ref(null);
 
 
 // [2026-02-13] 인트로를 제외한 실질적 학습/상호작용 단계 여부 (가독성 개선)
@@ -563,6 +597,11 @@ const radarPoints = computed(() => {
         const y = center + Math.sin(angle) * radius;
         return `${x},${y}`;
     }).join(' ');
+});
+
+// [2026-02-13] 단계 이동 시 힌트 창 자동 닫기 (BugHunt와 동작 일관성)
+watch(() => gameState.phase, () => {
+    gameState.showHint = false;
 });
 
 // Monaco Editor 연동

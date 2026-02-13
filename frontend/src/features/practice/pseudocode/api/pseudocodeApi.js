@@ -443,20 +443,20 @@ function getGrade(score) {
  */
 const YOUTUBE_LIBRARY = {
     leakage: [
-        { id: 'w_A5M9In9I0', title: 'Data Leakage in Machine Learning', desc: '데이터 누수의 정의와 실전 방지 전략을 배웁니다.', reason: '데이터 분할 전 통계량 산출 로직 보완이 필요합니다.' },
-        { id: 'nBaL9nTrkr4', title: 'ML Pipelines Simplified', desc: 'Pipeline으로 데이터 누수를 원천 차단하는 방법을 확인하세요.', reason: '전처리 파이프라인의 구조적 설계 교육용입니다.' }
+        { id: 'fSytzGwwBVw', title: 'Cross Validation (StatQuest)', desc: '교차 검증의 핵심 원리를 쉽고 재미있게 배워봅니다. 데이터 누수를 방지하는 올바른 분할 전략의 기초입니다.', reason: '데이터 분할과 검증 전략의 기본기를 점검해보세요.' },
+        { id: 'A88rDEf-pfk', title: 'Standardization (StatQuest)', desc: '데이터 표준화의 개념과 올바른 적용 시점을 알아봅니다. fit/transform 순서가 왜 중요한지 이해할 수 있습니다.', reason: '전처리 파이프라인에서 fit/transform 순서와 데이터 누수 방지 원리를 확인하세요.' }
     ],
     skew: [
-        { id: 'uF_fS65B_j4', title: 'Training-Serving Skew & Bias', desc: '학습과 서빙 환경의 데이터 불일치를 잡는 노하우.', reason: '수집 환경과 실제 추론 환경의 정합성을 검토해보세요.' }
+        { id: 'EuBBz3bI-aA', title: 'Bias and Variance (StatQuest)', desc: '편향-분산 트레이드오프의 핵심을 직관적으로 설명합니다. 모델 일반화와 환경 차이를 이해하는 기초입니다.', reason: '모델 일반화 성능과 학습-서빙 환경 차이를 이해하는 기본기입니다.' }
     ],
     exception_handling: [
-        { id: '94_MhWqj1vM', title: 'Robust Python Error Handling', desc: 'Try-Except를 넘어서는 견고한 에러 핸들링 설계.', reason: '에지 케이스 및 비정상 데이터에 대한 방어 로직이 부족합니다.' }
+        { id: 'ZUqGMDppEDs', title: 'Python Exception Handling (NeuralNine)', desc: 'Python에서 견고한 에러 핸들링 패턴을 실습합니다. try/except를 활용한 방어적 코딩 전략을 배워보세요.', reason: '에지 케이스 및 비정상 데이터에 대한 방어 로직이 부족합니다.' }
     ],
     architecture: [
-        { id: 'H0S_995S_jA', title: 'System Design: Separation of Concerns', desc: '복잡한 비즈니스 로직을 구조화하는 아키텍트의 시선.', reason: '전체적인 컴포넌트 간의 책임 분리(Separation of Concerns)를 연구해보세요.' }
+        { id: 'TMuno5RZNeE', title: 'SOLID Principles (Uncle Bob)', desc: '객체지향 설계의 5대 원칙(SOLID)을 창시자 Robert C. Martin이 직접 설명합니다.', reason: '전체적인 컴포넌트 간의 책임 분리(Separation of Concerns)를 연구해보세요.' }
     ],
     abstraction: [
-        { id: '3fA2E4I_m88', title: 'Clean Code: Logic vs Implementation', desc: '더 유연한 시스템을 위한 추상화 도입 타이밍.', reason: '하드코딩된 로직을 일반화하여 확장성을 높여보세요.' }
+        { id: 'pTB0EiLXUC8', title: 'OOP Simplified (Programming with Mosh)', desc: '객체지향 프로그래밍의 추상화 개념을 쉽고 명확하게 설명합니다.', reason: '하드코딩된 로직을 일반화하여 확장성을 높여보세요.' }
     ]
 };
 
@@ -465,10 +465,11 @@ const YOUTUBE_LIBRARY = {
  */
 function getRecommendedVideos(dimensions, problem = null) {
     const dimEntries = Object.entries(dimensions);
-    // 가장 점수가 낮은 차원 찾기 (80점 미만 대상)
+    // 가장 점수가 낮은 차원 찾기 (원본 100점 기준 80점 미만 대상)
+    // 주의: 이 시점에서 d.score는 12점 만점으로 스케일링된 상태이므로 original_score 사용
     const weakDims = dimEntries
-        .filter(([_, d]) => d.score < 80)
-        .sort((a, b) => a[1].score - b[1].score);
+        .filter(([_, d]) => (d.original_score ?? d.score) < 80)
+        .sort((a, b) => (a[1].original_score ?? a[1].score) - (b[1].original_score ?? b[1].score));
 
     const recommendations = [];
     const usedIds = new Set();

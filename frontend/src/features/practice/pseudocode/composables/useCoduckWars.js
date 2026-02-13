@@ -661,17 +661,13 @@ export function useCoduckWars() {
 
             console.log('[generateEvaluation] Details:', evaluationResult.details);
 
-            // ✅ AI 멘토 코칭 생성
-            try {
-                const seniorAdvice = await generateSeniorAdvice(phase3Result, gameState);
-                evaluationResult.seniorAdvice = seniorAdvice;
-                addSystemLog("시니어 아키텍트 조언 생성 완료", "SUCCESS");
-            } catch (error) {
-                console.error('[Senior Advice Error]', error);
-                evaluationResult.seniorAdvice = evaluationResult.finalScore >= 50
-                    ? "훌륭한 시도였습니다. 실전에서 적용하며 계속 발전시켜 나가세요."
-                    : "로직의 기초를 더 탄탄히 다져야 합니다. 가이드라인을 참고하여 다시 설계해보세요.";
-            }
+            // ✅ [2026-02-13] 유튜브 추천 영상 연동
+            evaluationResult.supplementaryVideos = phase3Result.recommended_videos || [];
+
+            // ✅ [2026-02-13] 연동 최적화: 백엔드 통합 조언을 최종적으로 확정 (중복 호출 제거)
+            evaluationResult.seniorAdvice = phase3Result.senior_advice || "탁월한 설계 역량을 보여주셨습니다.";
+
+            addSystemLog("최종 리포트 데이터 바인딩 완료", "SUCCESS");
 
             // ✅ 등급 결정
             if (evaluationResult.finalScore >= 90) {
@@ -806,6 +802,7 @@ export function useCoduckWars() {
         handlePythonVisualizationNext,
         handleTailSelection,
         resetFlow: () => startGame(),
-        handlePracticeClose: () => router.push('/practice')
+        toggleHint: () => { gameState.showHint = !gameState.showHint; },
+        handlePracticeClose: () => router.push('/')
     };
 }
