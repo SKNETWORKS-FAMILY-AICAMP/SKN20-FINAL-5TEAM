@@ -18,8 +18,6 @@ import costJson from '../data/Cost_Optimization.json';
 import securityJson from '../data/Security.json';
 import sustainabilityJson from '../data/Sustainability.json';
 
-const getApiKey = () => import.meta.env.VITE_OPENAI_API_KEY;
-
 /**
  * JSON 파일에서 "핵심 원칙" 섹션 추출
  *
@@ -222,7 +220,7 @@ const AXIS_SPECIFIC_RUBRICS = {
 };
 
 /**
- * OpenAI API 호출
+ * OpenAI API 호출 (백엔드 프록시 사용)
  */
 async function callOpenAI(prompt, options = {}) {
   const {
@@ -231,11 +229,10 @@ async function callOpenAI(prompt, options = {}) {
     temperature = 0.5
   } = options;
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const response = await fetch('/api/core/ai-proxy/', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${getApiKey()}`
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
       model,
@@ -247,7 +244,7 @@ async function callOpenAI(prompt, options = {}) {
 
   if (!response.ok) throw new Error(`API Error: ${response.status}`);
   const data = await response.json();
-  return data.choices[0].message.content.trim();
+  return data.content;
 }
 
 /**

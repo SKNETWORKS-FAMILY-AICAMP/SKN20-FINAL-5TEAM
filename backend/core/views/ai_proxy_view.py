@@ -39,11 +39,11 @@ class AIProxyView(APIView):
             client = openai.OpenAI(api_key=api_key)
 
             # 3. OpenAI API 호출
-            # [수정일: 2026-02-09] 모델 명시 (gpt-4o-mini) 및 로그 추가 (Antigravity)
-            print(f"[AIProxy] Calling OpenAI ({model})...", flush=True)
+            # [수정일: 2026-02-13] 프론트엔드에서 전달받은 model, max_tokens, temperature 사용
+            print(f"[AIProxy] Calling OpenAI (model={model}, max_tokens={max_tokens}, temperature={temperature})...", flush=True)
             # print(f"[AIProxy] Messages: {messages}", flush=True) # Too verbose
             response = client.chat.completions.create(
-                model="gpt-4o-mini", # Force gpt-4o-mini for now to be sure
+                model=model,  # 프론트엔드에서 전달받은 모델 사용
                 messages=messages,
                 max_tokens=max_tokens,
                 temperature=temperature
