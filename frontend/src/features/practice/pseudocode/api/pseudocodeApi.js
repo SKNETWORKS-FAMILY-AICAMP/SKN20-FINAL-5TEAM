@@ -73,6 +73,42 @@ export async function evaluatePseudocode5D(problem, pseudocode, userContext = nu
 
     const evaluationPromise = (async () => {
         try {
+            // [2026-02-14 추가] STEP 0: 무성의한 입력 원천 차단 (비싼 AI 호출 방지)
+            const inputCheck = PseudocodeValidator.isMeaningfulInput(pseudocode);
+            if (!inputCheck.valid) {
+                console.warn('[Validation] High-Reject: Low effort input detected');
+
+                // [2026-02-14 추가] 런타임 에러 방지를 위한 더미 질문 및 실제 청사진 데이터 연동
+                return {
+                    overall_score: 0,
+                    total_score_100: 0,
+                    is_low_effort: true,
+                    one_line_review: inputCheck.reason || "설계가 부족합니다.",
+                    persona_name: "낙제한 견습생",
+                    dimensions: {
+                        design: { score: 0, basis: "측정 불가", improvement: "설계 의도가 전혀 보이지 않습니다." },
+                        consistency: { score: 0, basis: "원칙 무시", improvement: "격리 및 일관성 원칙을 학습하세요." },
+                        implementation: { score: 0, basis: "구현 불가", improvement: "단계별 행동을 구체화하세요." },
+                        edge_case: { score: 0, basis: "고려 부족", improvement: "예외 상황을 생각해보세요." },
+                        abstraction: { score: 0, basis: "구조 결여", improvement: "논리적 구조를 갖추어야 합니다." }
+                    },
+                    converted_python: "# [차단] 설계를 포기했거나 입력이 너무 부실하여 분석을 중단했습니다.",
+                    python_feedback: "제공된 청사진(Blueprint)을 복구하며 논리 흐름을 처음부터 다시 익혀보시기 바랍니다.",
+                    tail_question: {
+                        should_show: true,
+                        context: "아키텍처 복기 학습",
+                        question: "설계 내용이 너무 부실하거나 포기하셨습니다. '청사진 복구 실습'으로 전환하시겠습니까?",
+                        options: [
+                            { text: "네, 기초부터 다시 배우겠습니다.", is_correct: true, reason: "복구 학습 모드 시작" },
+                            { text: "아니요, 다시 작성해 보겠습니다.", is_correct: false, reason: "재작성 모드" }
+                        ]
+                    },
+                    blueprint_steps: problem.blueprintSteps || [], // stages.js에서 추가한 단계별 실습 데이터
+                    next_phase: 'TAIL_QUESTION',
+                    hybrid: true
+                };
+            }
+
             // STEP 1: 규칙 기반 사전 검증 (40점 만점)
             console.log('[5D Evaluation] Step 1: Rule-based validation...');
             const validator = new PseudocodeValidator(problem);
@@ -144,21 +180,15 @@ export async function evaluatePseudocode5D(problem, pseudocode, userContext = nu
                 };
             }
 
-            // STEP 3: 점수 통합 및 스케일링 (2026-02-13 수정: Rule 15 + AI 85 = 100)
+            // STEP 3: 점수 통합 (2026-02-14 수정: 모든 권한 서버 회수)
+            // 서버에서 계산된 완결된 점수를 사용합니다.
+            const combinedScore = aiResult.total_score_100 || 0;
+            const ruleScoreScaled = aiResult.score_breakdown?.rule_score_15 || 0;
+            const aiScoreScaled = aiResult.score_breakdown?.ai_score_85 || 0;
 
-            // 1. Rule 점수 (0-100) -> 15점 만점으로 변환
-            const ruleScoreScaled = Math.round(ruleResult.score * 0.15);
-
-            // 2. AI 점수 (이미 백엔드에서 각 지표 가중치 합산하여 85점 만점으로 옴)
-            let aiScoreScaled = Math.round(aiResult.overall_score || 0);
-
-            // 3. 최종 점수 합산
-            const combinedScore = ruleScoreScaled + aiScoreScaled;
-
-            console.log('[5D Evaluation] Final Scores:', {
-                rule_raw: ruleResult.score,
+            console.log('[5D Evaluation] Server calculated scores:', {
+                rule_raw: aiResult.score_breakdown?.rule_raw_100,
                 rule_scaled_15: ruleScoreScaled,
-                ai_raw: aiResult.overall_score,
                 ai_scaled_85: aiScoreScaled,
                 total: combinedScore,
                 hasCriticalErrors

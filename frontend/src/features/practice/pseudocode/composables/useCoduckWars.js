@@ -33,7 +33,7 @@ export function useCoduckWars() {
         restartMission,
         startGame,
         selectStage,
-        resetFlow: engineResetFlow
+        restartMission: engineResetFlow
     } = useGameEngine();
 
     // Code Runner
@@ -84,7 +84,7 @@ export function useCoduckWars() {
 
                 if (opt.correct || opt.is_correct) {
                     gameState.score += 100;
-                    gameState.coduckMessage = `정답입니다! ${opt.feedback || '정확한 개념 이해입니다.'}`;
+                    gameState.coduckMessage = opt.feedback || '정확한 개념 이해입니다.';
                     addSystemLog("정확한 분석입니다! 설계 능력이 증명되었습니다.", "SUCCESS");
                 } else {
                     handleDamage(15);
@@ -322,7 +322,8 @@ export function useCoduckWars() {
      * Python 시각화 단계에서 '다음(DEEP DIVE 진입)' 클릭 시
      */
     const handlePythonVisualizationNext = () => {
-        if (!gameState.isMcqAnswered) {
+        // [2026-02-14 수정] 무성의 입력 복구 모드(is_low_effort)인 경우 MCQ 답변 체크 우회
+        if (!gameState.isMcqAnswered && !evaluationResult.is_low_effort) {
             addSystemLog("아키텍처 결함 보완 문제를 먼저 완료해주세요.", "WARN");
             return;
         }
@@ -356,7 +357,7 @@ export function useCoduckWars() {
 
         if (selected.is_correct || selected.correct) {
             gameState.score += 150;
-            gameState.coduckMessage = `정답입니다! ${selected.feedback || '설계 결함이 성공적으로 보완되었습니다.'}`;
+            gameState.coduckMessage = selected.feedback || '설계 결함이 성공적으로 보완되었습니다.';
             addSystemLog("탁월한 판단입니다! 설계 결함이 성공적으로 보완되었습니다.", "SUCCESS");
         } else {
             handleDamage(15);
@@ -376,7 +377,22 @@ export function useCoduckWars() {
             gameState.deepDiveAnswer = userAnswer;
 
             addSystemLog("최종 실무 시나리오 설계 분석 중...", "INFO");
-            // 추후 evaluationEngine에서 userAnswer 평가 로직 연동 예정
+
+            // [2026-02-14 추가] 무성의 입력(Low Effort) 복구 수련 완료 시 점수 대폭 보정
+            if (evaluationResult.is_low_effort) {
+                evaluationResult.overall_score = 75; // 0점 -> 75점으로 복구
+                evaluationResult.total_score_100 = 75;
+                evaluationResult.persona_name = "각성한 설계 지망생";
+                evaluationResult.one_line_review = "부족함을 인정하고 끝까지 아키텍처를 복구해낸 끈기가 돋보입니다.";
+
+                // 각 차원 점수도 '복구됨'으로 업데이트 (방사형 차트 반영용)
+                const dims = evaluationResult.dimensions;
+                Object.keys(dims).forEach(key => {
+                    dims[key].score = 7; // 10점 만점에 7점 수준으로 복구
+                    dims[key].basis = "학습을 통한 설계 복구 성공";
+                    dims[key].improvement = "앞으로도 이 설계 원칙을 잊지 마세요.";
+                });
+            }
 
             setPhase('EVALUATION');
         } catch (error) {

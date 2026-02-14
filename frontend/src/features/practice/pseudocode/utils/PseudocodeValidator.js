@@ -13,10 +13,10 @@
 export class PseudocodeValidator {
     constructor(problem) {
         this.problem = problem;
-        
+
         // ✨ 개선: 규칙을 외부에서 주입받음
         this.rules = problem?.validation || this.getDefaultRules();
-        
+
         // 검증 타입별 라이브러리 (필요 시)
         this.typeLibrary = problem?.validationTypeLibrary || {};
     }
@@ -28,7 +28,7 @@ export class PseudocodeValidator {
         const criticalErrors = this.checkCriticalErrors(pseudocode);
         const structure = this.analyzeStructure(pseudocode);
         const warnings = this.generateWarnings(pseudocode, structure);
-        
+
         return {
             passed: criticalErrors.length === 0,
             score: structure.score,
@@ -59,7 +59,7 @@ export class PseudocodeValidator {
             }
 
             const { pattern, message, correctExample, explanation } = patternDef;
-            
+
             let isError = false;
 
             // 단순 정규식 (하위 호환)
@@ -69,15 +69,15 @@ export class PseudocodeValidator {
             // 부정어 포함 객체 구조
             else if (typeof pattern === 'object' && pattern !== null) {
                 const { positive, negatives = [] } = pattern;
-                
+
                 // positive가 RegExp인지 확인
                 if (positive && typeof positive.test === 'function') {
                     // 1. 양성 패턴 체크
                     if (positive.test(normalized)) {
                         // 2. 부정어가 있는지 체크
-                        const hasNegative = negatives.length > 0 && 
+                        const hasNegative = negatives.length > 0 &&
                             negatives.some(neg => neg && typeof neg.test === 'function' && neg.test(normalized));
-                        
+
                         // 부정어 없으면 오류
                         if (!hasNegative) {
                             isError = true;
@@ -113,7 +113,7 @@ export class PseudocodeValidator {
      */
     analyzeStructure(pseudocode) {
         const lines = pseudocode.split('\n').filter(l => l.trim());
-        
+
         let score = 0;
         const feedback = [];
 
@@ -154,7 +154,7 @@ export class PseudocodeValidator {
     evaluateBasicStructure(lines, maxScore) {
         let score = 0;
         const feedback = [];
-        
+
         const recommendations = this.rules.recommendations || {};
         const minLines = recommendations.minLines || 3;
         const maxLines = recommendations.maxLines || 20;
@@ -172,7 +172,7 @@ export class PseudocodeValidator {
         // 번호 매기기 체크
         const hasNumbering = lines.filter(l => /^\d+[\.\):]/.test(l.trim())).length > 0;
         const preferredStyle = recommendations.preferredStyle;
-        
+
         if (hasNumbering) {
             score += maxScore / 2;
             feedback.push('✅ 번호 매기기 사용');
@@ -196,7 +196,7 @@ export class PseudocodeValidator {
 
         for (const concept of this.rules.requiredConcepts) {
             if (!concept.patterns || !Array.isArray(concept.patterns)) continue;
-            
+
             for (const pattern of concept.patterns) {
                 try {
                     if (pattern && typeof pattern.test === 'function' && pattern.test(normalized)) {
@@ -218,7 +218,7 @@ export class PseudocodeValidator {
     evaluateConcepts(concepts, maxScore) {
         const feedback = [];
         const requiredConcepts = this.rules.requiredConcepts || [];
-        
+
         if (requiredConcepts.length === 0) {
             return { score: maxScore, feedback: ['(개념 검증 규칙 없음)'] };
         }
@@ -226,21 +226,21 @@ export class PseudocodeValidator {
         // 가중치 합산
         let totalWeight = 0;
         let foundWeight = 0;
-        
+
         for (const required of requiredConcepts) {
             const weight = required.weight || 1;
             totalWeight += weight;
-            
+
             if (concepts.has(required.id)) {
                 foundWeight += weight;
             }
         }
 
         // totalWeight가 0이면 분모 에러 방지
-        const score = totalWeight > 0 
+        const score = totalWeight > 0
             ? Math.round(maxScore * (foundWeight / totalWeight))
             : 0;
-        
+
         if (foundWeight === totalWeight) {
             feedback.push('✅ 모든 핵심 개념 포함');
         } else {
@@ -268,7 +268,7 @@ export class PseudocodeValidator {
 
         // 총 포인트 계산
         const totalPoints = this.rules.dependencies.reduce((sum, dep) => sum + (dep.points || 0), 0);
-        
+
         if (totalPoints === 0) {
             return { score: maxScore, feedback: ['(흐름 포인트 미설정)'] };
         }
@@ -344,6 +344,44 @@ export class PseudocodeValidator {
     }
 
     /**
+     * [2026-02-14 추가] 무성의한 입력을 완벽히 걸러내는 정밀 검사 (High-Reject)
+     */
+    static isMeaningfulInput(text) {
+        if (!text || text.trim().length < 15) return {
+            valid: false,
+            reason: '설계가 너무 짧습니다. 아키텍처의 의도가 드러나도록 최소 15자 이상 상세히 작성해 주세요.'
+        };
+
+        const giveupKeywords = [
+            /모르/, /몰라/, /몰겠/, /어렵/, /못하/, /안됨/, /해줘/, /\?/, /help/,
+            /ㄴㄴ/, /ㅁㄴㅇㄹ/, /글쎄/, /패스/, /pass/, /귀찮/, /나중에/, /다음에/
+        ];
+
+        const hasGiveup = giveupKeywords.some(regex => regex.test(text));
+        if (hasGiveup) return {
+            valid: false,
+            reason: '설계를 포기하시거나 질문을 하셨군요. 이 단계는 당신의 "설계안"을 제출하는 곳입니다.'
+        };
+
+        // 반복적인 문자 (aaaaa, ..... 등) 체크
+        const isRepetitive = /(.)\1{4,}/.test(text.replace(/\s/g, ''));
+        if (isRepetitive) return {
+            valid: false,
+            reason: '의미 없는 문자의 반복이 감지되었습니다. 정상적인 문장으로 작성해 주세요.'
+        };
+
+        // 단순 코드 나열 검사 (한글이 아예 없고 특수기호/영문만 있는 짧은 문장 차단)
+        const hasKorean = /[가-힣]/.test(text);
+        const wordCount = text.trim().split(/\s+/).length;
+        if (!hasKorean && wordCount < 5) return {
+            valid: false,
+            reason: '자연어 설명이 부족합니다. 설계의 "의도"를 한국어로 함께 기술해 주세요.'
+        };
+
+        return { valid: true };
+    }
+
+    /**
      * 완성도 체크 (규칙 반영)
      */
     checkCompleteness(pseudocode) {
@@ -351,15 +389,15 @@ export class PseudocodeValidator {
         const recommendations = this.rules.recommendations || {};
         const minWords = recommendations.minWords || 20;
         const maxWords = recommendations.maxWords || 200;
-        
+
         return {
             wordCount,
             adequate: wordCount >= minWords && wordCount <= maxWords,
             message: wordCount < minWords
                 ? `의사코드가 너무 간략합니다 (최소 ${minWords}단어 권장)`
                 : wordCount > maxWords
-                ? `너무 세부적입니다 (최대 ${maxWords}단어 권장)`
-                : '적절한 길이입니다.'
+                    ? `너무 세부적입니다 (최대 ${maxWords}단어 권장)`
+                    : '적절한 길이입니다.'
         };
     }
 
@@ -379,7 +417,7 @@ export class PseudocodeValidator {
         if (recommendations.exceptionHandling) {
             const normalized = this.softNormalize(pseudocode);
             const hasExceptionHandling = /예외|오류|체크|검증|확인|validation|error|check/.test(normalized);
-            
+
             if (!hasExceptionHandling) {
                 warnings.push('💡 예외 상황 처리를 추가하면 더 견고한 설계가 됩니다.');
             }
@@ -444,7 +482,7 @@ export class CodeValidator {
      */
     removeComments(code) {
         let cleaned = code;
-        
+
         const commentPatterns = this.rules.commentPatterns || [
             /#.*$/gm,           // Python #
             /"""[\s\S]*?"""/g,  // Python """
@@ -472,7 +510,7 @@ export class CodeValidator {
         if (this.rules.requiredCalls) {
             for (const callDef of this.rules.requiredCalls) {
                 const found = callDef.pattern.test(cleanCode);
-                
+
                 if (!found) {
                     errors.push(`❌ ${callDef.name} 호출 누락`);
                 }
@@ -482,10 +520,10 @@ export class CodeValidator {
         // 금지 패턴 체크
         if (this.rules.forbiddenPatterns) {
             for (const forbiddenDef of this.rules.forbiddenPatterns) {
-                const codeToCheck = forbiddenDef.excludeComments 
-                    ? cleanCode 
+                const codeToCheck = forbiddenDef.excludeComments
+                    ? cleanCode
                     : code;
-                
+
                 if (forbiddenDef.pattern.test(codeToCheck)) {
                     errors.push(`🚨 ${forbiddenDef.message}`);
                 }

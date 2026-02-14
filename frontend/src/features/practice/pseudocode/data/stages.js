@@ -3,6 +3,8 @@
 // [2026-02-14] 5차원 메트릭 및 2단계 검증(Trigger MCQ -> 3대 시나리오 Deep Dive) 통합
 // ========================================
 
+import { VALIDATION_LIBRARY, CODE_VALIDATION_LIBRARY } from './validationRules_COMPLETE.js';
+
 export const aiQuests = [
     {
         id: 1,
@@ -37,6 +39,12 @@ scaler.fit(X_train)
 X_train_scaled = scaler.transform(X_train)
 X_test_scaled = scaler.transform(X_test)
         `.trim(),
+
+        blueprintSteps: [
+            { id: "s1", python: "X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)", pseudo: "먼저 데이터를 학습용과 검증용으로 물리적 격리(Isolation)한다.", keywords: ["격리", "분리", "학습/검증", "Isolation"] },
+            { id: "s2", python: "scaler.fit(X_train)", pseudo: "학습 데이터(train)에서만 통계량을 추출하여 기준점(Anchor)을 설정한다.", keywords: ["기준점", "학습데이터", "통계량", "fit"] },
+            { id: "s3", python: "scaler.transform(X_test)", pseudo: "테스트 데이터(test)에는 fit 없이 transform만 적용하여 일관성(Consistency)을 유지한다.", keywords: ["일관성", "테스트데이터", "transform", "동일변환"] }
+        ],
 
         interviewQuestions: [
             {
@@ -106,7 +114,8 @@ fit() 실행 시점에 Train/Test 분할이 되지 않아 Test 통계량이 Trai
                 title: "데이터 드리프트 시나리오",
                 question: "1년 뒤 고객층 변화로 데이터 분포가 바뀌었습니다. 기존 기준점(Anchor)을 고수하면 성능이 떨어질 텐데, '일관성' 원칙을 깨고 기준을 실시간으로 바꿀 것인가요? 아니면 다른 대안이 있나요?",
                 intent: "모델의 노후화를 인지하고 주기적인 재학습 파이프라인 설계 역량 확인.",
-                scoringKeywords: ["모니터링", "재학습", "기준점 갱신", "Retraining"]
+                scoringKeywords: ["모니터링", "재학습", "기준점 갱신", "Retraining"],
+                modelAnswer: "실시간으로 기준을 바꾸면 판단 근거가 흔들립니다. 대신 '모니터링'을 통해 성능 저하를 감지하고, 새로운 데이터로 '주기적인 재학습'을 진행하여 기준점(Anchor)을 공식적으로 갱신해야 합니다."
             },
             {
                 id: "realtime",
@@ -115,7 +124,8 @@ fit() 실행 시점에 Train/Test 분할이 되지 않아 Test 통계량이 Trai
                 title: "실시간 서빙 시나리오",
                 question: "0.1초 내 응답이 필요한 시스템입니다. 매번 격리와 기준점(fit) 계산을 반복할 순 없는데, 정확도를 지키며 속도를 확보할 엔지니어링적 방법은 무엇인가요?",
                 intent: "학습 시의 상태를 서빙 환경으로 전이하는 직렬화 기술 확인.",
-                scoringKeywords: ["Pickle", "Joblib", "직렬화", "객체화", "Serialization"]
+                scoringKeywords: ["Pickle", "Joblib", "직렬화", "객체화", "Serialization"],
+                modelAnswer: "학습 단계에서 생성된 Scaler 객체를 'Pickle'이나 'Joblib'으로 직렬화(Serialization)하여 저장합니다. 운영 환경에서는 이를 로드하여 fit 과정 없이 transform만 수행함으로써 정확도와 속도를 동시에 잡습니다."
             },
             {
                 id: "scarcity",
@@ -124,9 +134,14 @@ fit() 실행 시점에 Train/Test 분할이 되지 않아 Test 통계량이 Trai
                 title: "데이터 부족 및 불균형 시나리오",
                 question: "데이터가 100건뿐이라 격리를 하면 학습이 안 되고, 안 하자니 오염이 걱정됩니다. 원칙을 지키면서도 모델을 제대로 검증할 전략은?",
                 intent: "소량 데이터셋에서의 통계적 유의성 확보 능력 확인.",
-                scoringKeywords: ["K-Fold", "Stratified", "교차 검증", "층화"]
+                scoringKeywords: ["K-Fold", "Stratified", "교차 검증", "층화"],
+                modelAnswer: "단순 분할 대신 'K-Fold 교차 검증'이나 'Stratified Sampling(층화 추출)'을 사용합니다. 데이터를 여러 조각으로 나누어 모든 데이터가 한 번씩은 검증용으로 쓰이게 하되, 매 루프마다 격리 원칙은 엄격히 지킵니다."
             }
         ],
+
+        // [2026-02-14] ✅ COMPLETE 버전 검증 규칙 적용
+        validation: VALIDATION_LIBRARY.data_leakage,
+        codeValidation: CODE_VALIDATION_LIBRARY.data_leakage,
 
         mapPos: { x: 100, y: 450 }
     }

@@ -290,6 +290,7 @@
                     :evaluation-score="evaluationResult.overall_score"
                     :evaluation-feedback="evaluationResult.one_line_review || evaluationResult.feedback"
                     :mcq-data="evaluationResult.tail_question || evaluationResult.deep_dive"
+                    :blueprint-steps="evaluationResult.blueprint_steps"
                     :assigned-scenario="gameState.assignedScenario"
                     :is-mcq-answered="gameState.isMcqAnswered"
                     @answer-mcq="handleMcqAnswer"

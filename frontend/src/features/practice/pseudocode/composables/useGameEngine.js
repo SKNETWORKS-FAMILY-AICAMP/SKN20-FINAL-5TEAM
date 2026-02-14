@@ -161,11 +161,18 @@ export function useGameEngine() {
         gameState.phase3Reasoning = "";
         gameState.phase3Feedback = "";
 
-        // [2026-02-14] 진단 및 평가 데이터 초기화 추가
+        // [2026-02-14] 판단 및 진행 데이터 완전 초기화
         gameState.diagnosticStep = 0;
         gameState.diagnosticScores = [];
         gameState.diagnosticAnswer = "";
         gameState.diagnosticResult = null;
+        gameState.isDiagnosticAnswered = false;
+        gameState.diagnosticAnswerIdx = null;
+
+        gameState.isMcqAnswered = false;
+        gameState.assignedScenario = null;
+        gameState.deepDiveAnswer = "";
+
         gameState.phase3EvaluationResult = null;
         gameState.finalWeightedScore = 0;
 
@@ -184,6 +191,13 @@ export function useGameEngine() {
         gameState.diagnosticScores = [];
         gameState.diagnosticAnswer = "";
         gameState.diagnosticResult = null;
+        gameState.isDiagnosticAnswered = false;
+        gameState.diagnosticAnswerIdx = null;
+
+        gameState.isMcqAnswered = false;
+        gameState.assignedScenario = null;
+        gameState.deepDiveAnswer = "";
+
         gameState.phase3EvaluationResult = null;
         gameState.finalWeightedScore = 0;
         gameState.hasUsedBlueprint = false;
