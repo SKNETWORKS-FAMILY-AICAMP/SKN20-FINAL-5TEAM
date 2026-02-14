@@ -43,7 +43,7 @@
 */
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
 
-const emit = defineEmits(['complete', 'skip', 'change-phase']);
+const emit = defineEmits(['complete', 'skip', 'change-phase', 'quit']);
 
 const STEPS = [
   {

@@ -24,6 +24,11 @@ export function useGameEngine() {
         diagnosticAnswer: "",
         diagnosticResult: null,
         isEvaluatingDiagnostic: false,
+        isDiagnosticAnswered: false,   // [2026-02-14] 진단 단계 답변 완료 여부
+        diagnosticAnswerIdx: null,      // [2026-02-14] 진단 단계 선택 인덱스
+        isMcqAnswered: false,       // [2026-02-14] MCQ 답변 완료 여부
+        assignedScenario: null,     // [2026-02-14] 할당된 심화 시나리오 (Drift/Real-time/Scarcity)
+        deepDiveAnswer: "",         // [2026-02-14] 사용자의 시나리오 서술형 답변
 
         // Phase 3 State
         phase3Reasoning: "",

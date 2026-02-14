@@ -233,15 +233,15 @@ export async function evaluatePseudocode5D(problem, pseudocode, userContext = nu
                 python_feedback: aiResult.python_feedback || "",
                 // ✅ 포기/무성의 응답 플래그
                 is_low_effort: aiResult.is_low_effort || false,
-                // ✅ 백엔드에서 생성된 조언 우선 사용
+                // ✅ 백엔드에서 생성된 조언 매핑
                 senior_advice: aiResult.senior_advice || "",
-                // ✅ [2026-02-13] 유튜브 추천 영상 포함
+                // ✅ [2026-02-14] 백엔드에서 생성된 페르소나, 총평, 유튜브 추천 영상 매핑
                 persona_name: aiResult.persona_name || "분석 중인 아키텍트",
                 one_line_review: aiResult.one_line_review || "전반적으로 양호한 설계입니다.",
                 one_point_lesson: aiResult.one_point_lesson || "격리 수준을 더 높여보세요.",
                 // ✅ 동적 Deep Dive 포함
                 deep_dive: aiResult.deep_dive || null,
-                recommended_videos: getRecommendedVideos(aiResult.dimensions, problem)
+                recommended_videos: aiResult.recommended_videos || getRecommendedVideos(aiResult.dimensions, problem)
             };
 
             // 캐시 저장

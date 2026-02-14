@@ -15,51 +15,66 @@ import time
 from typing import Dict, Any
 
 
-# LLM 프롬프트 (2026-02-13 수정: 설계 중심 채점 체계 및 엄격한 Python 매핑 적용)
 SYSTEM_PROMPT = """당신은 AI 기반 데이터 과학 설계 평가 전문가입니다.
-
 # 평가 철학
-- 정답 채점 ❌ → 공학적 사고력 평가 ✅
+- 정답 채점 ❌ -> 공학적 사고력 평가 ✅
 - 단순 키워드 매칭이 아닌 데이터 누수(Data Leakage) 방지 원칙 준수 여부 검증
 - 사용자의 의사코드를 파이썬 코드로 '매핑(Mapping)'하여 논리적 허점을 시각화
 
-# 5차원 메트릭 평가 기준 (총 85점 만점)
-1. **Design (설계력, 25점)**: 꼬리질문을 통해 자연어와 코드 사이의 논리적 개연성 검증
-   - 분할(Split)과 학습(Fit)의 상관관계가 올바른가?
-2. **Consistency (정합성, 20점)**: 누수 방지 원칙의 일관성 (LLM 최종 검토)
-   - 모든 단계에서 테스트 데이터 정보가 격리되었는가?
-3. **Implementation (구현력, 10점)**: 의사코드가 실제 파이썬 로직으로 변환 가능한 수준인가?
-4. **Edge Case (예외처리, 15점)**: 심화질문을 통한 데이터 드리프트 등 확장 상황 대응력
-5. **Abstraction (추상화, 15점)**: 3대 키워드(격리, 기준점, 일관성)를 사용한 논리 구조화
+# 아키텍처 평가 체계 (총 100점 만점)
 
-3. **[데이터 부족]**: 소량의 데이터셋에서 누수를 방지하며 검증력을 확보하는 전략
-4. **[정답 일관성]**: 생성하는 4개 선택지 중 **정답(is_correct: true)은 반드시 단 하나**여야 함.
+## 1. 기초 설계 단계: "논리의 뼈대" (30점)
+- **Abstraction (추상화, 15점)**: 3대 키워드(격리/Isolation, 기준점/Anchor, 일관성/Consistency)를 사용하여 논리를 구조화했는가?
+- **Sequence/Rule (논리 순서, 15점)**: 필수 키워드 포함 및 물리적 연산 순서(데이터 분할 -> 기준값 추출)가 올바른가?
+
+## 2. 구현 및 위기 대응 단계: "실제 구현 및 대응" (50점)
+- **Implementation (구현력, 10점)**: 의사코드가 실제 파이썬 로직으로 파싱 및 변환 가능한 수준인가?
+- **Design (설계력, 25점)**: Tail Question(MCQ)을 통해 사용자의 설계와 변환된 코드 사이의 논리적 개연성을 검증.
+- **Edge Case (예외처리, 15점)**: Deep Dive 시나리오(데이터 드리프트 등)를 통해 확장 상황에 대한 대응력을 검증.
+
+## 3. 종합 평가: "누수 방지 무결성" (20점)
+- **Consistency (정합성, 20점)**: 설계부터 구현, 위기 대응까지 '데이터 누수 방지 원칙'이 일관되게 유지되었는지 LLM이 최종 검토.
+
+# 질문 생성 및 출력 가이드
+- **[Trigger Question]**: 사용자의 설계 결점(순서 오류, 대상 오류 등)을 정확히 저격하는 객관식 문제를 생성하세요.
+- **[정답 일관성]**: 생성하는 4개 선택지 중 정답(is_correct: true)은 반드시 단 하나여야 함.
+- **[JSON Output]**: 모든 점수의 합은 100점이 되어야 하며, 각 지표의 근거(basis)를 상세히 작성하세요.
 
 # 출력 형식 (반드시 JSON)
 {
   "overall_score": 0, // 85점 만점 기준 (각 지표 합산)
-  "persona_name": "판정된 페르소나 (e.g., 원칙 중심의 이론가, 손이 빠른 실무형 코더 등)",
+  "persona_name": "판정된 페르소나",
   "one_line_review": "한 줄 총평",
   "dimensions": {
-    "design": { "score": 25, "basis": "평가 근거", "improvement": "개선방법" },
-    "consistency": { "score": 20, "basis": "평가 근거", "improvement": "개선방법" },
-    "implementation": { "score": 10, "basis": "평가 근거", "improvement": "개선방법" },
-    "edge_case": { "score": 15, "basis": "평가 근거", "improvement": "개선방법" },
-    "abstraction": { "score": 15, "basis": "평가 근거", "improvement": "개선방법" }
+    "design": { "score": 25, "basis": "근거", "improvement": "개선" },
+    "consistency": { "score": 20, "basis": "근거", "improvement": "개선" },
+    "implementation": { "score": 10, "basis": "근거", "improvement": "개선" },
+    "edge_case": { "score": 15, "basis": "근거", "improvement": "개선" },
+    "abstraction": { "score": 15, "basis": "근거", "improvement": "개선" }
+  },
+  "tail_question": {
+    "should_show": false, // 80점 미만일 때만 true
+    "question": "약점 보완 질문",
+    "options": [
+      { "id": 1, "text": "선택지", "is_correct": true, "feedback": "해설" },
+      { "id": 2, "text": "선택지", "is_correct": false, "feedback": "해설" },
+      { "id": 3, "text": "선택지", "is_correct": false, "feedback": "해설" },
+      { "id": 4, "text": "선택지", "is_correct": false, "feedback": "해설" }
+    ]
   },
   "deep_dive": {
     "title": "꼬리질문: [시나리오명]",
-    "question": "의사코드 설계와 연관된 심화 상황 질문",
+    "question": "80점 이상일 때의 심화 질문",
     "options": [
-      { "id": 1, "text": "선택지 1", "is_correct": true, "feedback": "정답 해설" },
-      { "id": 2, "text": "선택지 2", "is_correct": false, "feedback": "오답 해설" },
-      { "id": 3, "text": "선택지 3", "is_correct": false, "feedback": "오답 해설" },
-      { "id": 4, "text": "선택지 4", "is_correct": false, "feedback": "오답 해설" }
+      { "id": 1, "text": "선택지", "is_correct": true, "feedback": "해설" },
+      { "id": 2, "text": "선택지", "is_correct": false, "feedback": "해설" },
+      { "id": 3, "text": "선택지", "is_correct": false, "feedback": "해설" },
+      { "id": 4, "text": "선택지", "is_correct": false, "feedback": "해설" }
     ]
   },
-  "converted_python": "사용자의 의사코드를 그대로 파이썬 구문으로 매핑한 코드",
-  "python_feedback": "사용자 설계의 파이썬 변환 시 발생한 논리적 모순점",
-  "senior_advice": "시니어의 핵심 조언 (따뜻함과 전문성 유지)",
+  "converted_python": "매핑된 파이썬 코드",
+  "python_feedback": "논리적 모순점 피드백",
+  "senior_advice": "시니어의 조언",
   "strengths": ["강점1", "강점2"],
   "weaknesses": ["약점1", "약점2"]
 }
@@ -85,31 +100,58 @@ def evaluate_pseudocode_5d(request):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # [2026-02-14] 포기/무성의 응답 감지 로직 강화
+        # [2026-02-14 수정] 비속어 및 무의미한 입력 필터링 로직 추가
+        # 교육적 환경 유지를 위해 부적절한 언어 및 무성의한 입력을 감지합니다.
+        vulgar_words = ['시발', '씨발', '개새끼', '병신', '미친', '노답', '존나', '지랄']
+        meaningless_chars = ['ㅋ', 'ㅎ', '?', '!', '.', ',', ' ']
+        
+        # 1. 비속어 검사
+        has_vulgar = any(word in pseudocode for word in vulgar_words)
+        
+        # 2. 실질적 내용 검사 (특수문자/공백 제외한 글자 수)
+        clean_text = "".join([c for c in pseudocode if c not in meaningless_chars])
+        is_too_short = len(clean_text) < 5
+        
+        # 기술 키워드 포함 여부 확인
         technical_keywords = ['split', 'fit', 'transform', '분할', '학습', '변환', '나누', '기준', '격리', '일관', '누수', 'leakage']
         has_tech = any(kw in pseudocode.lower() for kw in technical_keywords)
         
-        if len(pseudocode.strip()) < 15 or (not has_tech and len(pseudocode.strip()) < 30):
+        # 필터링 조건: 비속어 포함 OR (내용이 너무 짧고 기술 키워드 없음)
+        if has_vulgar or (is_too_short and not has_tech):
+            review_message = "건전한 학습 환경을 위해 바른 언어를 사용해 주세요." if has_vulgar else "직접 설계하기 어렵다면, 아키텍트의 청사진을 보고 흐름을 분석해 봅시다."
+            persona = "주의 깊은 설계자" if has_vulgar else "성찰하는 분석가"
+            
             return Response(
                 {
                     'overall_score': 15,
                     'is_low_effort': True,
-                    'persona_name': "성찰하는 분석가",
-                    'one_line_review': "직접 설계하기 어렵다면, 아키텍트의 청사진을 보고 흐름을 분석해 봅시다.",
-                    'dimensions': generate_low_score_dimensions("복기 학습 모드 전환"),
+                    'is_vulgar': has_vulgar,
+                    'persona_name': persona,
+                    'one_line_review': review_message,
+                    'dimensions': generate_low_score_dimensions("복기 학습 모드 전환 (입력 부적절)"),
                     'strengths': [],
                     'weaknesses': ["설계 본인 작성 누락", "모범 사례 분석 필요"],
                     'senior_advice': "설계가 막힐 때는 잘 짜여진 코드를 역으로 추적하는 것이 가장 빠릅니다. 아키텍트의 청사진을 참고해 보세요.",
                     'python_feedback': "아키텍처의 핵심: '격리(Isolation)' -> '기준점(Anchor)' -> '일관성(Consistency)'",
-                    'converted_python': "# [아키텍트 청사진]\n# 1. Isolation: train_test_split\n# 2. Anchor: scaler.fit(train)\n# 3. Consistency: scaler.transform(train/test)",
-                    'deep_dive': {
-                        "title": "아키텍처 복기 학습",
+                    'converted_python': "# [아키텍트 청사진]\n# 1. Isolation: train_test_split\n# 2. Anchor: scaler.fit(train)\n# 3. Consistency: scaler.transform(train/test)\n\nimport pandas as pd\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\n# 데이터 로드 및 분할 (Isolation)\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)\n\n# 스케일러 정의 및 학습 데이터로 기준점 설정 (Anchor)\nscaler = StandardScaler()\nscaler.fit(X_train)\n\n# 학습 및 테스트 데이터에 동일 기준 적용 (Consistency)\nX_train_scaled = scaler.transform(X_train)\nX_test_scaled = scaler.transform(X_test)",
+                    'tail_question': {
+                        "should_show": True,
                         "question": "데이터 누수(Leakage)를 방지하기 위해 전처리 도구가 Test 데이터를 보기 전에 가장 먼저 해야 할 일은?",
                         "options": [
                             { "id": 1, "text": "데이터를 Train/Test로 격리하는 것", "is_correct": True, "feedback": "정답입니다! 물리적 격리가 최우선입니다." },
                             { "id": 2, "text": "전체 데이터를 정규화하는 것", "is_correct": False, "feedback": "누수의 주범입니다!" },
                             { "id": 3, "text": "학습을 시작하는 것", "is_correct": False, "feedback": "전처리가 먼저입니다." },
                             { "id": 4, "text": "테스트 데이터로 fit 하는 것", "is_correct": False, "feedback": "치명적인 오류입니다." }
+                        ]
+                    },
+                    'deep_dive': {
+                        "title": "아키텍처 복기 학습",
+                        "question": "설계가 막힐 때는 청사진을 보고 논리를 역추적하는 것이 중요합니다. 위 질문의 정답을 아시겠나요?",
+                        "options": [
+                            { "id": 1, "text": "데이터 격리", "is_correct": True, "feedback": "맞습니다!" },
+                            { "id": 2, "text": "정규화", "is_correct": False, "feedback": "아닙니다." },
+                            { "id": 3, "text": "모델 학습", "is_correct": False, "feedback": "아닙니다." },
+                            { "id": 4, "text": "테스트 데이터 사용", "is_correct": False, "feedback": "절대 안 됩니다." }
                         ]
                     }
                 },
@@ -125,6 +167,30 @@ def evaluate_pseudocode_5d(request):
             request_python_conversion=request.data.get('request_python_conversion', False)
         )
         
+        # [2026-02-14 수정] 취약 지표별 맞춤형 유튜브 영상 큐레이션 통합
+        # 5차원 평가 결과 중 가장 점수가 낮은 지표를 추출하여 검색어를 매핑합니다.
+        try:
+            from core.utils.youtube_helper import search_youtube_videos
+            
+            dimensions = llm_result.get('dimensions', {})
+            if dimensions:
+                # 가장 낮은 점수의 지표 찾기
+                weakest_dim = min(dimensions.items(), key=lambda x: x[1].get('score', 100))[0]
+                
+                query_map = {
+                    'design': '머신러닝 파이프라인 설계 원칙',
+                    'consistency': 'Data Leakage(데이터 누수) 방지 가이드',
+                    'implementation': 'Scikit-learn fit transform 활용법',
+                    'edge_case': 'MLOps 데이터 드리프트 대응 실무',
+                    'abstraction': '공학적 문제 구조화 및 의사코드 작성'
+                }
+                
+                query = query_map.get(weakest_dim, '데이터 과학 전처리 원칙')
+                llm_result['recommended_videos'] = search_youtube_videos(query, max_results=3)
+        except Exception as yt_err:
+            print(f"[YouTube Curation Error] {str(yt_err)}")
+            llm_result['recommended_videos'] = []
+            
         return Response(llm_result, status=status.HTTP_200_OK)
         
     except Exception as e:
@@ -163,8 +229,9 @@ def call_llm_evaluation(quest_title: str, pseudocode: str, rule_score: int, rule
 **중요**: 
 - overall_score는 5개 차원 점수의 총합 (85점 만점)
 - 키워드만 나열한 경우 abstraction은 5점 이하로 감점
-- 구체적인 개선 방법(improvement)을 제시하세요.
-- 의사코드를 기반으로 실행 가능한 Python 코드로 변환하여 converted_python에 담아주세요.
+- **[질문 분기]**: 점수가 80점 미만이면 `tail_question`을 생성하고 `should_show`를 true로, 80점 이상이면 `deep_dive`를 생성하고 `tail_question`의 `should_show`는 false로 설정하세요.
+- **[정답 일관성]**: 모든 질문의 선택지(options) 중 정답(`is_correct: true`)은 반드시 단 하나여야 하며, 나머지는 `false`여야 합니다.
+- 의사코드를 기반으로 실행 가능한 Python 코드로 변환하여 `converted_python`에 담아주세요.
 
 반드시 JSON 형식으로만 응답해야 합니다.
 """
@@ -274,8 +341,19 @@ def generate_fallback_response(rule_score: int) -> Dict[str, Any]:
         },
         "strengths": ["규칙 기반 검증 통과"],
         "weaknesses": ["AI 평가 서비스 일시 장애"],
-        "converted_python": "# [시스템 알림] 현재 AI 변환 서비스가 혼잡합니다.\n# 잠시 후 다시 시도하거나, 미션 조건을 다시 한 번 확인해 주세요.",
-        "python_feedback": "구조적 설계 순서(격리 -> 기준점 -> 일관성)를 의사코드에 명확히 적어주시면 변환이 원활해집니다.",
+        "converted_python": "# [시스템 알림] AI 분석 시간이 초과되어 기본 청사진을 제공합니다.\n# 1. Isolation: train_test_split\n# 2. Anchor: scaler.fit(train)\n# 3. Consistency: scaler.transform(test)\n\nimport pandas as pd\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)\nscaler = StandardScaler()\nscaler.fit(X_train)\nX_test_scaled = scaler.transform(X_test)",
+        "python_feedback": "AI 엔진이 혼잡하여 상세 피드백을 생성하지 못했습니다. 설계의 3대 원칙인 '격리-기준점-일관성'을 확인해 보세요.",
+        "tail_question": {
+            "should_show": True,
+            "question": "데이터 누수를 방지하기 위해 가장 먼저 수행해야 할 단계는 무엇인가요?",
+            "options": [
+                { "id": 1, "text": "훈련/테스트 데이터 격리", "is_correct": True, "feedback": "맞습니다! 격리가 최우선입니다." },
+                { "id": 2, "text": "전체 데이터 정규화", "is_correct": False, "feedback": "누수의 원인이 됩니다." },
+                { "id": 3, "text": "모델 학습 시작", "is_correct": False, "feedback": "전처리가 먼저입니다." },
+                { "id": 4, "text": "테스트 데이터로 fit", "is_correct": False, "feedback": "절대 안 됩니다." }
+            ]
+        },
+        "one_line_review": "AI 분석 중 시간 초과가 발생하여 룰 기반 점수로 우선 평가를 진행합니다.",
         "fallback": True
     }
 

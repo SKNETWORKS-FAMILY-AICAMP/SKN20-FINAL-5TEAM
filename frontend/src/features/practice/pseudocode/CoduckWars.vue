@@ -1,10 +1,6 @@
 <!--
 수정일: 2026-02-14
-수정 내용: 5대 지표 평가 시스템 완전 통합
--->
-<!--
-수정일: 2026-02-10
-수정 내용: 이전 작업 버전(SKN20-FINAL-5TEAM_before)으로 pseudocode 프론트엔드 코드 복구
+수정 내용: 5대 지표 평가 시스템 완전 통합 및 프리미엄 리포트 UI 적용
 -->
 <template>
   <div class="coduck-wars-container">
@@ -20,7 +16,7 @@
       </div>
       <!-- [2026-02-14 수정] 듀토리얼 버튼 및 실습 종료 버튼 분리 -->
       <div class="header-actions">
-        <!-- [2026-02-14] 힌트보기 버튼 헤더(붉은색 위치) 배치 -->
+        <!-- [2026-02-14] 힌트보기 버튼 헤더 - 자연어 서술 단계에서만 노출 (분석 시 은닉) -->
         <button v-if="isNaturalLanguagePhase" class="btn-hint-header" @click="toggleHintDuck" :class="{ 'is-active': showHintDuck }">
            <Lightbulb class="w-4 h-4 mr-1.5" /> 힌트보기
         </button>
@@ -113,7 +109,7 @@
           </aside>
 
           <!-- RIGHT PANEL: DECISION ENGINE [2026-02-11] 단계별 인터랙션 영역 -->
-          <section class="decision-panel relative">
+          <section class="decision-panel relative" :class="{ 'visualization-p-zero': ['PYTHON_VISUALIZATION', 'TAIL_QUESTION', 'DEEP_DIVE_DESCRIPTIVE'].includes(gameState.phase) }">
               <div v-if="gameState.phase.startsWith('DIAGNOSTIC')">
                   <div class="system-status-row">
                       <span v-if="gameState.phase === 'DIAGNOSTIC_1'">STEP_01: CONCEPT_IDENTIFICATION</span>
@@ -150,7 +146,7 @@
                           
                           <div class="actions relative mt-4">
                               <Transition name="fade-slide">
-                                <div v-if="showHintDuck" class="hint-duck-wrapper" @click="toggleHintDuck" title="클릭하면 다시 숨깁니다">
+                                <div v-if="showHintDuck && isNaturalLanguagePhase" class="hint-duck-wrapper" @click="toggleHintDuck" title="클릭하면 다시 숨깁니다">
                                     <div class="hint-bubble">
                                         <div class="hb-content">{{ dynamicHintMessage || '분석 중입니다...' }}</div>
                                         <div class="hb-tail"></div>
@@ -166,23 +162,45 @@
                               </button>
                           </div>
                       </div>
-                      <!-- 객관식 UI (CHOICE) [2026-02-12] 코덕 비주얼 복구 -->
+                      <!-- 객관식 UI (CHOICE) [2026-02-14 수정] 피드백 루프 추가 -->
                       <div v-else-if="diagnosticQuestion.type === 'CHOICE'" class="choice-interaction-area">
                           <div class="choice-visual-frame mb-8">
                               <div class="choice-coduck">
                                   <img :src="currentMission.character?.image || '@/assets/image/duck_det.png'" alt="Coduck Interviewer" />
                               </div>
-                              <div class="choice-speech-bubble">
+                              <div class="choice-speech-bubble" :class="{ 'correct-bubble': gameState.isDiagnosticAnswered && diagnosticQuestion.options[gameState.diagnosticAnswerIdx]?.correct, 'wrong-bubble': gameState.isDiagnosticAnswered && !diagnosticQuestion.options[gameState.diagnosticAnswerIdx]?.correct }">
                                   <div class="bubble-tail"></div>
-                                  <p class="bubble-text">{{ diagnosticQuestion.question }}</p>
+                                  <p class="bubble-text">{{ gameState.isDiagnosticAnswered ? gameState.coduckMessage : diagnosticQuestion.question }}</p>
                               </div>
                           </div>
                           <div class="options-list">
-                              <div v-for="(opt, idx) in diagnosticQuestion.options" :key="idx" @click="submitDiagnostic(idx)" class="option-card">
+                              <div 
+                                v-for="(opt, idx) in diagnosticQuestion.options" 
+                                :key="idx" 
+                                @click="submitDiagnostic(idx)" 
+                                class="option-card"
+                                :class="{ 
+                                    'is-selected': gameState.diagnosticAnswerIdx === idx,
+                                    'is-correct': gameState.isDiagnosticAnswered && (opt.correct || opt.is_correct),
+                                    'is-wrong': gameState.isDiagnosticAnswered && gameState.diagnosticAnswerIdx === idx && !(opt.correct || opt.is_correct),
+                                    'is-disabled': gameState.isDiagnosticAnswered
+                                }"
+                              >
                                   <div class="opt-index">{{ idx + 1 }}</div>
                                   <div class="opt-main text-lg">{{ opt.text }}</div>
-                                  <div class="opt-arrow"><ArrowRight /></div>
+                                  <div class="opt-status-icon">
+                                      <CheckCircle v-if="gameState.isDiagnosticAnswered && (opt.correct || opt.is_correct)" class="text-green-400" />
+                                      <X v-else-if="gameState.isDiagnosticAnswered && gameState.diagnosticAnswerIdx === idx" class="text-red-400" />
+                                      <ArrowRight v-else />
+                                  </div>
                               </div>
+                          </div>
+
+                          <!-- [추가] 다음 단계 진행 버튼 (답변 후에만 등장) -->
+                          <div v-if="gameState.isDiagnosticAnswered" class="mt-8 animate-fadeIn">
+                              <button @click="submitDiagnostic()" class="btn-execute-large w-full-btn">
+                                  다음 분석 단계로 진행 <ArrowRight class="w-5 h-5 ml-2" />
+                              </button>
                           </div>
                       </div>
                   </div>
@@ -240,9 +258,9 @@
                           </div>
 
                           <div class="actions flex items-center justify-end gap-4 relative">
-                              <!-- [2026-02-14] 실시간 힌트 오리 & 말풍선 (버튼 왼쪽 위치) -->
+                              <!-- [2026-02-14] 실시간 힌트 오리 & 말풍선 (분석 중일 때는 은닉) -->
                               <Transition name="fade-slide">
-                                <div v-if="showHintDuck" class="hint-duck-wrapper" @click="toggleHintDuck" title="클릭하면 다시 숨깁니다">
+                                <div v-if="showHintDuck && isNaturalLanguagePhase" class="hint-duck-wrapper" @click="toggleHintDuck" title="클릭하면 다시 숨깁니다">
                                     <div class="hint-bubble">
                                         <div class="hb-content">{{ dynamicHintMessage || '분석 중입니다...' }}</div>
                                         <div class="hb-tail"></div>
@@ -263,69 +281,21 @@
                   </div>
               </div>
 
-              <!-- [STEP 3] Python 시각화 및 분기 단계 [2026-02-13] decision-panel 내부로 이동 -->
-              <div v-else-if="gameState.phase === 'PYTHON_VISUALIZATION'" class="visualization-phase flex-1 flex flex-col min-h-0">
+              <!-- [STEP 3] 전술 시각화 및 2단계 검증 (MCQ + 실무 시나리오) -->
+              <div v-else-if="['PYTHON_VISUALIZATION', 'TAIL_QUESTION', 'DEEP_DIVE_DESCRIPTIVE'].includes(gameState.phase)" class="visualization-phase flex-1 flex flex-col min-h-0">
                   <CodeFlowVisualizer
-                      :pseudo-code="gameState.phase3Reasoning"
-                      :python-code="evaluationResult?.converted_python"
-                      :score="evaluationResult?.overall_score"
-                      :feedback="evaluationResult?.python_feedback"
-                      :senior-advice="evaluationResult?.senior_advice"
-                      :is-low-effort="evaluationResult?.is_low_effort"
-                      :mission-title="currentMission?.title"
-                      :mission-desc="currentMission?.designContext?.description"
-                      :mission-constraints="currentMission?.designContext?.writingGuide"
-                      :question-data="deepQuizQuestion"
-                      @next="handlePythonVisualizationNext"
-                      @select-option="submitDeepQuiz"
-                      @retry="retryDesign"
+                    :phase="gameState.phase"
+                    :pseudocode="gameState.phase3Reasoning"
+                    :python-code="evaluationResult.converted_python"
+                    :evaluation-score="evaluationResult.overall_score"
+                    :evaluation-feedback="evaluationResult.one_line_review || evaluationResult.feedback"
+                    :mcq-data="evaluationResult.tail_question || evaluationResult.deep_dive"
+                    :assigned-scenario="gameState.assignedScenario"
+                    :is-mcq-answered="gameState.isMcqAnswered"
+                    @answer-mcq="handleMcqAnswer"
+                    @submit-descriptive="submitDescriptiveDeepDive"
+                    @next-phase="handlePythonVisualizationNext"
                   />
-              </div>
-
-              <!-- [STEP 3-1] Tail Question 단계 (80점 미만) [2026-02-13] decision-panel 내부로 이동 -->
-              <div v-else-if="gameState.phase === 'TAIL_QUESTION'" class="tail-question-phase flex-1 flex flex-col min-h-0">
-                  <div class="tail-question-area">
-                      <div class="tq-header">
-                          <span class="tq-icon">💡</span>
-                          <span class="tq-title">개념 보완이 필요해요 (Score: {{ evaluationResult?.overall_score }})</span>
-                      </div>
-                      
-                      <div class="tq-content">
-                          {{ deepQuizQuestion?.question }}
-                      </div>
-                      
-                      <div class="tq-options">
-                          <button 
-                              v-for="(option, idx) in deepQuizQuestion?.options" 
-                              :key="idx"
-                              @click="handleTailSelection(option)"
-                              class="btn-tq-option"
-                          >
-                              {{ option.text }}
-                          </button>
-                      </div>
-                  </div>
-              </div>
-
-              <!-- [STEP 3-2] Deep Dive 단계 (80점 이상) [2026-02-13] decision-panel 내부로 이동 -->
-              <div v-else-if="gameState.phase === 'DEEP_QUIZ'" class="deep-dive-phase flex-1 flex flex-col min-h-0">
-                   <div class="deep-dive-container">
-                      <h3 class="deep-dive-title">🚀 심화 학습 (Deep Dive)</h3>
-                      <div class="deep-dive-content">
-                          <p class="deep-dive-question">{{ deepQuizQuestion?.question }}</p>
-                          <div class="options-list deep-dive-options">
-                              <button 
-                                  v-for="(option, idx) in deepQuizQuestion?.options" 
-                                  :key="idx"
-                                  @click="submitDeepQuiz(idx)"
-                                  class="option-card full-width-card"
-                              >
-                                  <span class="opt-index">{{ idx + 1 }}</span>
-                                  <span class="opt-main">{{ option.text }}</span>
-                              </button>
-                          </div>
-                      </div>
-                   </div>
               </div>
 
               <!-- [STEP 4] 최종 리포트 (EVALUATION) [2026-02-13] decision-panel 내부로 이동 -->
@@ -453,14 +423,28 @@
 
                       <!-- Part 4: Continuous Learning Path (YouTube) -->
                       <div class="pathway-section-neo">
-                          <!-- 지표별 큐레이션 리스트 -->
                           <div class="curation-header">
-                              <h3 class="path-heading-neo"><Play size="18" class="mr-2" /> 📺 지표별 맞춤형 콘텐츠 큐레이션 리스트</h3>
+                              <h3 class="path-heading-neo"><Play size="18" class="mr-2" /> 📺 실시간 맞춤형 학습 큐레이션 (YouTube API 기반)</h3>
                           </div>
                           
                           <div class="path-grid-neo">
-                               <!-- [2026-02-14] 모든 지표가 아닌 '최약 지표' 1개에 대해서만 큐레이션 제공 -->
-                               <div v-if="weakestMetricKey" class="path-card-neo curation-card weakest-focus">
+                               <!-- [2026-02-14] API로 실시간 연동된 추천 영상 목록 표시 -->
+                               <div v-for="video in evaluationResult.supplementaryVideos" :key="video.videoId" class="path-card-neo curation-card">
+                                  <a :href="video.url" target="_blank" class="p-link-neo">
+                                      <div class="p-thumbnail border-b border-white/5 overflow-hidden rounded-t-xl mb-3">
+                                          <img :src="video.thumbnail" :alt="video.title" class="w-full h-auto transform hover:scale-105 transition-transform" />
+                                      </div>
+                                      <div class="p-index text-blue-400">{{ video.channelTitle }}</div>
+                                      <h4 class="p-video-title text-sm font-bold text-white mb-2 leading-snug line-clamp-2">{{ video.title }}</h4>
+                                      <p class="text-xs text-slate-400 line-clamp-3 leading-relaxed">{{ video.description }}</p>
+                                      <div class="flex items-center justify-end mt-4 text-emerald-400 font-bold text-[10px]">
+                                          <Play size="14" class="mr-1" /> WATCH NOW
+                                      </div>
+                                  </a>
+                               </div>
+
+                               <!-- API 결과가 없을 경우 기존 Resource 폴백 -->
+                               <div v-if="!evaluationResult.supplementaryVideos?.length && weakestMetricKey" class="path-card-neo curation-card weakest-focus">
                                   <div class="weakest-badge">🚨 취약 지표 집중 보완</div>
                                   <a :href="getMetricVideo(weakestMetricKey).url" target="_blank" class="p-link-neo">
                                       <div class="p-index">{{ LEARNING_RESOURCES[weakestMetricKey].metric }}</div>
@@ -471,41 +455,16 @@
                                               {{ LEARNING_RESOURCES[weakestMetricKey].curationMessage }}
                                               <span class="quote-icon">"</span>
                                           </div>
-                                          <div class="flex items-center justify-between mt-6 p-4 bg-slate-900/50 rounded-lg border border-white/5 shadow-inner">
-                                              <div class="flex flex-col">
-                                                  <span class="p-video-label">추천 강의:</span>
-                                                  <span class="p-video-title-small">{{ getMetricVideo(weakestMetricKey).title }}</span>
-                                              </div>
-                                              <div class="p-play-ico"><Play size="18" fill="currentColor" /></div>
-                                          </div>
-                                          <p class="p-curation-point mt-3">
-                                              <span class="point-label">공략 포인트:</span>
-                                              {{ getMetricVideo(weakestMetricKey).curationPoint }}
-                                          </p>
                                       </div>
                                   </a>
                                </div>
                           </div>
 
-                          <!-- 마스터 전용 넥스트 레벨 -->
-                          <div v-if="finalReport.totalScore >= 80" class="master-next-level mt-10">
+                          <!-- [2026-02-14] 마스터 레벨 전용 콘텐츠 -->
+                          <div v-if="evaluationResult.overall_score >= 80" class="master-next-level mt-10">
                               <div class="master-header">
-                                  <h3 class="path-heading-neo master-glow"><CheckCircle size="18" class="mr-2" /> 🏆 마스터를 위한 '넥스트 레벨' (평균 80점 이상)</h3>
-                                  <p class="master-message">{{ getMasterContent().curationMessage }}</p>
-                              </div>
-                              <div class="master-content-card">
-                                  <div class="m-info">
-                                      <span class="m-video-label">추천 영상:</span>
-                                      <span class="m-video-title">{{ getMasterContent().videos[0].title }}</span>
-                                      <p class="m-curation-msg">
-                                          <span class="point-label">큐레이션 메시지:</span>
-                                          {{ getMasterContent().curationMessage }}
-                                      </p>
-                                      <p class="m-focus-point">
-                                          <span class="point-label">공략 포인트:</span>
-                                          {{ getMasterContent().videos[0].curationPoint }}
-                                      </p>
-                                  </div>
+                                  <h3 class="path-heading-neo master-glow"><CheckCircle size="18" class="mr-2" /> 🏆 S-CLASS 아키텍트 전용 심화 세션</h3>
+                                  <p class="master-message">이미 설계 원칙을 완벽히 이해하셨군요! 이제는 엔터프라이즈 레벨의 확장을 고민할 때입니다.</p>
                               </div>
                           </div>
                       </div>
@@ -558,6 +517,10 @@
 </template>
 
 <script setup>
+/**
+ * 수정일: 2026-02-14
+ * 수정 내용: 5대 지표 평가 시스템 완전 통합 및 프리미엄 리포트 UI 적용
+ */
 import { computed, ref, reactive, onMounted, watch, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { useGameStore } from '@/stores/game';
@@ -577,18 +540,57 @@ import Chart from 'chart.js/auto';
 const activeYoutubeId = ref(null);
 import CodeFlowVisualizer from './components/CodeFlowVisualizer.vue';
 import LoadingDuck from '../components/LoadingDuck.vue';
+import PseudocodeTutorialOverlay from './components/PseudocodeTutorialOverlay.vue';
+import { BookOpen } from 'lucide-vue-next';
 
 const router = useRouter();
 const gameStore = useGameStore();
 const emit = defineEmits(['close']);
 
-// [2026-02-14 수정] 튜토리얼 상태 관리
-import PseudocodeTutorialOverlay from './components/PseudocodeTutorialOverlay.vue';
-import { BookOpen } from 'lucide-vue-next'; // BookOpen 아이콘 추가
-
+// [2026-02-14] 튜토리얼 및 리포트 관련 상태 변수 선언 (최상단 이동)
 const showTutorial = ref(false);
 const originalPhase = ref(null);
 const tutorialAnalyzing = ref(false);
+const showMetrics = ref(false);
+const finalReport = ref(null);
+const radarChartCanvas = ref(null);
+let radarChartInstance = null;
+
+// [2026-02-14] useCoduckWars 분리 및 데이터 선언 (상단 이동)
+const coduckWarsComposable = useCoduckWars();
+const { resetHintTimer } = coduckWarsComposable;
+const originalSubmitPseudo = coduckWarsComposable.submitPseudo;
+
+const {
+    gameState,
+    currentMission,
+    evaluationResult,
+    deepQuizQuestion,
+    ruleChecklist,
+    canSubmitPseudo,
+    isProcessing,
+    isGuideOpen,
+    selectedGuideIdx,
+    showHintDuck,
+    toggleHintDuck,
+    dynamicHintMessage,
+    retryDesign,
+
+    toggleGuide,
+    handleGuideClick,
+    submitDiagnostic,
+    diagnosticQuestion,
+    submitDeepQuiz,
+    handleMcqAnswer,
+    submitDescriptiveDeepDive,
+    handlePythonVisualizationNext,
+    handleTailSelection: originalHandleTailSelection,
+    resetFlow: engineResetFlow,
+    toggleHint,
+    handlePracticeClose,
+    addSystemLog,
+    handleReSubmitPseudo
+} = coduckWarsComposable;
 
 onMounted(() => {
   if (!localStorage.getItem('pseudocode-tutorial-done')) {
@@ -602,7 +604,6 @@ const startTutorial = () => {
     showTutorial.value = true;
 };
 
-
 /**
  * [2026-02-14 수정] 튜토리얼 진행에 따른 페이즈 자동 전환 및 모킹
  */
@@ -612,29 +613,30 @@ const handleTutorialPhaseChange = (targetPhase) => {
     // 튜토리얼 중 화면이 비어 보이지 않도록 모크 데이터 주입
     if (targetPhase === 'DIAGNOSTIC_1') {
         // 진단 단계에서 질문 데이터가 없는 경우를 대비한 모킹
-        // (실제 데이터는 currentMission에서 가져오지만 튜토리얼 가독성을 위해)
     }
 
     if (targetPhase === 'PSEUDO_WRITE') {
-        if (!gameState.phase3Reasoning) {
-            gameState.phase3Reasoning = "# 데이터 전처리 아키텍처 설계\n# 1. 분리(Isolation): train_test_split\n# 2. 기준점(Anchor): fit on train only\n# 3. 일관성(Consistency): transform both";
-        }
+        // [수정] 사용자가 직접 작성할 수 있도록 자동 채우기 로직 제거
     }
 
     if (targetPhase === 'PYTHON_VISUALIZATION') {
-        if (!evaluationResult.value?.converted_python) {
-            evaluationResult.value = {
+        // evaluationResult는 reactive 객체이므로 .value 없이 접근
+        if (!evaluationResult.converted_python) {
+            Object.assign(evaluationResult, {
                 converted_python: "import pandas as pd\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\n# 1. Isolation: 물리적 격리\ntrain_df, test_df = train_test_split(df, test_size=0.2)\n\n# 2. Anchor: 학습 세트에서만 통계량 추출\nscaler = StandardScaler()\nscaler.fit(train_df[['age', 'income']])\n\n# 3. Consistency: 동일한 변환 적용\ntrain_scaled = scaler.transform(train_df[['age', 'income']])\ntest_scaled = scaler.transform(test_df[['age', 'income']])",
-                feedback: "데이터 누수 방지 원칙을 정확하게 준수한 설계입니다. 특히 기준점 설정이 훌륭합니다."
-            };
+                feedback: "데이터 누수 방지 원칙을 정확하게 준수한 설계입니다. 특히 기준점 설정이 훌륭합니다.",
+                overall_score: 88,
+                one_line_review: "데이터 누수 차단을 위한 격리(Isolation)와 기준점(Anchor) 설정이 매우 논리적입니다."
+            });
         }
-        // DEEP DIVE 질문 모킹 (Box 가시성 확보)
-        if (!deepQuizQuestion.value || typeof deepQuizQuestion.value === 'string') {
-           deepQuizQuestion.value = {
+        // deepQuizQuestion은 computed이므로 직접 할당 불가 -> evaluationResult 데이터 수정으로 우회
+        if (!evaluationResult.tail_question && !evaluationResult.deep_dive) {
+           evaluationResult.tail_question = {
+               should_show: true,
                question: "모델 배포 후 데이터 분포가 급격히 변하는 'Data Drift'가 발생하면, 기존의 기준점(Anchor)을 어떻게 처리해야 할까요?",
                options: [
-                   { text: "새로운 데이터에 맞춰 기준점을 즉시 재학습(Re-fit)한다.", is_correct: true, reason: "안정성을 위해 주기적인 기준점 업데이트가 필요합니다." },
-                   { text: "모델의 일관성을 위해 초기 기준점을 절대 바꾸지 않는다.", is_correct: false, reason: "데이터 분포 변화에 대응하지 못해 성능이 저하될 수 있습니다." }
+                   { id: 1, text: "새로운 데이터에 맞춰 기준점을 즉시 재학습(Re-fit)한다.", is_correct: true, feedback: "안정성을 위해 주기적인 기준점 업데이트가 필요합니다." },
+                   { id: 2, text: "모델의 일관성을 위해 초기 기준점을 절대 바꾸지 않는다.", is_correct: false, feedback: "데이터 분포 변화에 대응하지 못해 성능이 저하될 수 있습니다." }
                ]
            };
         }
@@ -675,7 +677,7 @@ const handleTutorialPhaseChange = (targetPhase) => {
                 nextTick(() => {
                     if (typeof renderRadarChart === 'function') renderRadarChart();
                 });
-            }, 1800); // 1.8초간 분석 로딩 시뮬레이션
+            }, 1800);
         } else {
             showMetrics.value = true;
         }
@@ -697,124 +699,46 @@ const closePractice = () => {
   }
 };
 
-// ==================== [2026-02-14] useCoduckWars 분리 (초기화 문제 해결) ====================
-const coduckWarsComposable = useCoduckWars();
-
-// submitPseudo만 따로 빼두기
-const originalSubmitPseudo = coduckWarsComposable.submitPseudo;
-
-// 나머지는 destructuring
-const {
-    gameState,
-    currentMission,
-    evaluationResult,
-    deepQuizQuestion,
-    ruleChecklist,
-    canSubmitPseudo,
-    isProcessing,
-    isGuideOpen,
-    selectedGuideIdx,
-    showHintDuck,
-    toggleHintDuck,
-    dynamicHintMessage,
-    retryDesign,
-
-    toggleGuide,
-    handleGuideClick,
-    submitDiagnostic,
-    diagnosticQuestion,
-    // submitPseudo는 제외! (아래에서 재정의)
-    submitDeepQuiz,
-    handlePythonVisualizationNext,
-    handleTailSelection: originalHandleTailSelection,
-    resetFlow: engineResetFlow,
-    toggleHint,
-    handlePracticeClose,
-    addSystemLog
-} = coduckWarsComposable;
-
-/**
- * [2026-02-14] 엔진의 초기화와 화면 전용 상태 초기화 통합
- */
 const resetFlow = () => {
-    // 1. 엔진 상태 초기화 (진단 단계, 점수 등)
     engineResetFlow();
-    
-    // 2. 화면 전용 상태 초기화
     finalReport.value = null;
     showMetrics.value = false;
-    showHintDuck.value = false; // 힌트 오리 닫기
-    
-    // 3. 로그 초기화
+    showHintDuck.value = false;
     addSystemLog("시스템을 처음부터 다시 시작합니다.", "INFO");
 };
 
-/**
- * [2026-02-14] 미션 완료 및 다음 스테이지 해금
- */
 const completeMission = () => {
-    // 1. 현재 스테이지 인덱스 (Stage ID - 1)
     const stageIdx = (gameState.currentStageId || 1) - 1;
-    
-    // 2. 게임 스토어를 통한 해금 처리
     gameStore.unlockNextStage('Pseudo Practice', stageIdx);
-
-    // 3. [2026-02-14 추가] 다음 스테이지 인덱스 강제 업데이트 (목록 복귀 시 덕이 이동)
     if (stageIdx < 9) {
         gameStore.selectedQuestIndex = stageIdx + 1;
     }
-    
-    // 4. 시스템 로그 기록
     addSystemLog(`미션 완료: 스테이지 ${gameState.currentStageId} 데이터베이스 기록됨.`, "SUCCESS");
-    
-    // 5. 화면 닫기 (부모 컴포넌트로 전달하여 목록 화면의 해금 상태 갱신 유도)
     emit('close');
 };
 
-// [2026-02-14] 자연어 서술 단계 여부 판단 (힌트 버튼 노출용)
 const isNaturalLanguagePhase = computed(() => {
-    // 분석 중이거나 결과가 표시된 상태면 힌트 버튼 숨김
     if (isProcessing.value || showMetrics.value || tutorialAnalyzing.value) return false;
-    
-    // 1. 의사코드 작성 단계
     if (gameState.phase === 'PSEUDO_WRITE') return true;
-    
-    // 2. 진단 1단계 문항 중 '서술형'일 때
     if (gameState.phase === 'DIAGNOSTIC_1' && diagnosticQuestion.value?.type === 'DESCRIPTIVE') return true;
-    
     return false;
 });
 
+// [2026-02-14] 5대 지표 평가 시스템 추가 (상태 변수는 상단으로 이동됨)
 
-// ==================== [2026-02-14] 5대 지표 평가 시스템 추가 ====================
-
-// 5대 지표 상태
-const showMetrics = ref(false);
-const finalReport = ref(null);
-const radarChartCanvas = ref(null);
-let radarChartInstance = null;
-
-/**
- * 5대 지표 평가 시작
- * (EVALUATION 단계 진입 시 자동으로 호출됨)
- */
 async function runComprehensiveEvaluation() {
   if (finalReport.value || isProcessing.value) return;
   
   try {
     isProcessing.value = true;
-    console.log('[5D] Starting comprehensive evaluation...');
-    
-    // 로딩 상태 시뮬레이션 (선택적)
     gameState.feedbackMessage = "시니어 아키텍트가 최종 검토 중입니다...";
     
     const evaluator = new ComprehensiveEvaluator(getApiKey());
-    
     const evaluationResults = await evaluator.evaluate({
       pseudocode: gameState.phase3Reasoning,
-      pythonCode: evaluationResult.value?.converted_python || '',
-      deepdive: gameState.deepQuizAnswer || '',
-      deepdiveScenario: deepQuizQuestion.value || {}
+      pythonCode: evaluationResult.converted_python || '',
+      deepdive: gameState.deepDiveAnswer || gameState.deepQuizAnswer || '',
+      deepdiveScenario: gameState.assignedScenario || deepQuizQuestion.value || {}
     });
 
     finalReport.value = await generateCompleteLearningReport(
@@ -823,49 +747,27 @@ async function runComprehensiveEvaluation() {
     );
 
     showMetrics.value = true;
-
     await nextTick();
     renderRadarChart();
-
-    console.log('[5D] Evaluation complete:', finalReport.value);
-    
   } catch (error) {
     console.error('[5D] Evaluation error:', error);
-    // 폴백: 최소한 화면은 보여줌
     showMetrics.value = true;
   } finally {
     isProcessing.value = false;
   }
 }
 
-/**
- * submitPseudo 래퍼 - 기존 로직만 실행
- */
 async function submitPseudoEnhanced() {
-  try {
-    // 기존 평가 실행 (PYTHON_VISUALIZATION 단계로 이동함)
-    await originalSubmitPseudo();
-  } catch (error) {
-    console.error('Submission error:', error);
-  }
+  await originalSubmitPseudo();
 }
 
-/**
- * API 키 가져오기
- */
 function getApiKey() {
   return import.meta.env.VITE_OPENAI_API_KEY || '';
 }
 
-/**
- * 레이더 차트 렌더링
- */
 function renderRadarChart() {
   if (!radarChartCanvas.value || !finalReport.value) return;
-
-  if (radarChartInstance) {
-    radarChartInstance.destroy();
-  }
+  if (radarChartInstance) radarChartInstance.destroy();
 
   const ctx = radarChartCanvas.value.getContext('2d');
   const metrics = finalReport.value.metrics;
@@ -926,36 +828,17 @@ function renderRadarChart() {
   });
 }
 
-/**
- * 지표별 색상
- */
 function getMetricColor(percentage) {
-  if (percentage >= 90) return '#4ade80'; // Emerald
-  if (percentage >= 75) return '#60a5fa'; // Blue
-  if (percentage >= 60) return '#fbbf24'; // Amber
-  return '#f87171'; // Rose
+  if (percentage >= 90) return '#4ade80';
+  if (percentage >= 75) return '#60a5fa';
+  if (percentage >= 60) return '#fbbf24';
+  return '#f87171';
 }
 
-/**
- * 점수별 영상 필터링
- */
-function getFilteredVideos() {
-  if (!finalReport.value) return [];
-  return filterByScore(
-    finalReport.value.recommendedContent,
-    finalReport.value.totalScore
-  );
-}
-
-/**
- * 최약 지표 키 계산
- */
 const weakestMetricKey = computed(() => {
   if (!finalReport.value || !finalReport.value.metrics) return null;
   const metrics = finalReport.value.metrics;
   const metricKeys = ['design', 'edgeCase', 'abstraction', 'implementation', 'consistency'];
-  
-  // 중요도 가중치 (reportGenerator와 동일하게 유지)
   const priorities = { design: 5, consistency: 4, edgeCase: 3, abstraction: 2, implementation: 1 };
   
   return [...metricKeys].sort((a, b) => {
@@ -966,116 +849,28 @@ const weakestMetricKey = computed(() => {
   })[0];
 });
 
-/**
- * 지표별 추천 영상 가져오기
- */
 function getMetricVideo(metricKey) {
   if (!metricKey || !LEARNING_RESOURCES[metricKey]) return { title: '', url: '', curationPoint: '' };
   return LEARNING_RESOURCES[metricKey].videos[0];
 }
 
-/**
- * 마스터 레벨 콘텐츠 가져오기
- */
-function getMasterContent() {
-  return LEARNING_RESOURCES.master;
-}
-
-// submitPseudo 함수 최종 정의 (이제 에러 안 남!)
 const submitPseudo = submitPseudoEnhanced;
 
-
-// ==================== 기존 코드 ====================
-
-// [2026-02-13] 인트로를 제외한 실질적 학습/상호작용 단계 여부 (가독성 개선)
 const isInteractionPhase = computed(() => {
     const p = gameState.phase;
     return p.startsWith('DIAGNOSTIC') || 
            ['PSEUDO_WRITE', 'PYTHON_VISUALIZATION', 'EVALUATION', 'TAIL_QUESTION', 'DEEP_QUIZ'].includes(p);
 });
 
-// [2026-02-12] 지문(problemContext)을 설명부와 코드부로 분리하여 가독성 증대
 const diagnosticProblemParts = computed(() => {
     const context = diagnosticQuestion.value.problemContext || "";
     if (!context) return null;
-    
-    // 이중 개행(\n\n)을 기준으로 첫 단락(설명)과 나머지(코드)를 분리
     const parts = context.split('\n\n');
-    return {
-        instruction: parts[0],
-        code: parts.slice(1).join('\n\n')
-    };
-});
-
-// [2026-02-13] Radar Chart & Evaluation UI Compute
-const scoreTier = computed(() => {
-    const score = evaluationResult.finalScore || 0;
-    if (score >= 90) return { icon: '🏆', label: 'MASTER ARCHITECT', class: 'tier-s' };
-    if (score >= 80) return { icon: '🥇', label: 'SENIOR ARCHITECT', class: 'tier-a' };
-    if (score >= 70) return { icon: '🥈', label: 'JUNIOR ARCHITECT', class: 'tier-b' };
-    return { icon: '🥉', label: 'ARCH_APPRENTICE', class: 'tier-c' };
-});
-
-const radarAxes = computed(() => {
-    const count = 5;
-    const center = 100;
-    const radius = 80;
-    return Array.from({ length: count }).map((_, i) => {
-        const angle = (Math.PI * 2 * i) / count - Math.PI / 2;
-        return {
-            x: center + Math.cos(angle) * radius,
-            y: center + Math.sin(angle) * radius
-        };
-    });
-});
-
-const radarLabels = computed(() => {
-    const labels = ['정합', '추상', '예외', '구현', '설계'];
-    const center = 100;
-    const radius = 94;
-    return labels.map((text, i) => {
-        const angle = (Math.PI * 2 * i) / 5 - Math.PI / 2;
-        const x = center + Math.cos(angle) * radius;
-        const y = center + Math.sin(angle) * radius;
-
-        let anchor = "middle";
-        let baseline = "middle";
-
-        const cos = Math.cos(angle);
-        const sin = Math.sin(angle);
-
-        if (Math.abs(cos) < 0.1) anchor = "middle";
-        else if (cos > 0) anchor = "start";
-        else anchor = "end";
-
-        if (Math.abs(sin) < 0.1) baseline = "middle";
-        else if (sin > 0) baseline = "hanging";
-        else baseline = "auto";
-
-        return { text, x, y, anchor, baseline };
-    });
-});
-
-const radarPoints = computed(() => {
-    const dims = evaluationResult.dimensions || {};
-    const keys = ['design', 'consistency', 'edge_case', 'implementation', 'abstraction'];
-    const center = 100;
-    const maxRadius = 80;
-    
-    return keys.map((key, i) => {
-        const score = (dims[key]?.score || 0) / 100; 
-        const radius = score * maxRadius;
-        const angle = (Math.PI * 2 * i) / 5 - Math.PI / 2;
-        const x = center + Math.cos(angle) * radius;
-        const y = center + Math.sin(angle) * radius;
-        return `${x},${y}`;
-    }).join(' ');
+    return { instruction: parts[0], code: parts.slice(1).join('\n\n') };
 });
 
 watch(() => gameState.phase, (newPhase) => {
     gameState.showHint = false;
-    
-    // [2026-02-14] EVALUATION 단계 진입 시 5D 평가 자동 트리거
     if (newPhase === 'EVALUATION' && !showTutorial.value) {
         runComprehensiveEvaluation();
     }
@@ -1093,6 +888,22 @@ const { monacoOptions, handleMonacoMount } = useMonacoEditor(
 <style scoped src="./CoduckWars.css"></style>
 
 <style scoped>
+/* [2026-02-14] 코덕 캐릭터 클릭 유도 효과 제거 (사용자 요청: 수동 힌트만 제공) */
+.visual-frame {
+    position: relative;
+    cursor: pointer;
+}
+
+@keyframes pulse-hint {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+}
+
+@keyframes pulse-glow {
+    0%, 100% { filter: drop-shadow(0 0 15px rgba(59, 130, 246, 0.3)); }
+    50% { filter: drop-shadow(0 0 30px rgba(59, 130, 246, 0.7)); }
+}
+
 @keyframes loading-bar {
   0% { transform: translateX(-100%); }
   50% { transform: translateX(-20%); }
@@ -1105,6 +916,10 @@ const { monacoOptions, handleMonacoMount } = useMonacoEditor(
 
 .ai-analysis-simulation {
   backdrop-filter: blur(10px);
+}
+
+.visualization-p-zero {
+  padding: 0 !important;
 }
 </style>
 
@@ -1185,8 +1000,8 @@ const { monacoOptions, handleMonacoMount } = useMonacoEditor(
   pointer-events: auto !important;
   z-index: 1000;
   cursor: pointer;
-  margin-right: 15px; /* 버튼과의 간격 */
-  align-self: flex-end; /* 버튼 하단 라인에 맞춤 */
+  margin-right: 15px;
+  align-self: flex-end;
 }
 
 .hint-unit-img.clickable-duck {
@@ -1203,7 +1018,7 @@ const { monacoOptions, handleMonacoMount } = useMonacoEditor(
 
 .hint-bubble {
   position: absolute !important;
-  bottom: 80px !important; /* 오리 머리 위쪽 */
+  bottom: 80px !important;
   left: 50% !important;
   transform: translateX(-50%) !important;
   width: 380px !important; 
@@ -1230,36 +1045,12 @@ const { monacoOptions, handleMonacoMount } = useMonacoEditor(
   100% { transform: scale(1) translateY(0); opacity: 1; }
 }
 
-.btn-hint-toggle {
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.4);
-  color: #60a5fa;
-  padding: 12px 24px;
-  border-radius: 14px;
-  font-weight: 800;
-  font-size: 14px;
-  letter-spacing: 0.5px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-}
-
-.btn-hint-toggle:hover, .btn-hint-toggle.is-active {
-  background: rgba(59, 130, 246, 0.25);
-  border-color: #3b82f6;
-  color: #fff;
-  box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
-  transform: translateY(-2px);
-}
-
 .header-actions {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-/* [2026-02-13] Blueprint Reference Card (Retry Mode) */
 .blueprint-reference-card {
   z-index: 5;
   margin-bottom: 2rem;
@@ -1289,7 +1080,6 @@ const { monacoOptions, handleMonacoMount } = useMonacoEditor(
   background: #334155;
 }
 
-/* Retry Button Styling */
 :deep(.btn-retry-action) {
   background: rgba(30, 41, 59, 0.6);
   border: 2px solid #3b82f6;
@@ -1312,414 +1102,7 @@ const { monacoOptions, handleMonacoMount } = useMonacoEditor(
 }
 
 @keyframes slideInDown {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-
-/* ==================== [2026-02-14] Premium Architect Report Portal Styles ==================== */
-
-.architect-report-portal {
-  padding: 24px;
-  background: rgba(10, 15, 25, 0.4);
-  border-radius: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-/* Score Banner */
-.report-banner-premium {
-  position: relative;
-  border-radius: 24px;
-  overflow: hidden;
-  padding: 40px;
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  box-shadow: 0 0 40px rgba(59, 130, 246, 0.15);
-}
-
-.banner-glass {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(30, 64, 175, 0.2), rgba(139, 92, 246, 0.2));
-  backdrop-filter: blur(20px);
-  z-index: 1;
-}
-
-.banner-content {
-  position: relative;
-  z-index: 2;
-  display: grid;
-  grid-template-columns: 1fr 1fr 2fr;
-  align-items: center;
-  gap: 32px;
-}
-
-.score-circle-wrapper {
-  position: relative;
-  width: 140px;
-  height: 140px;
-  filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.5));
-}
-
-.progress-ring {
-  width: 100%;
-  height: 100%;
-  transform: rotate(-90deg);
-}
-
-.ring-bg {
-  stroke: rgba(255, 255, 255, 0.1);
-  stroke-width: 8;
-  fill: none;
-}
-
-.ring-fill {
-  stroke: #60a5fa;
-  stroke-width: 8;
-  stroke-linecap: round;
-  fill: none;
-  transition: stroke-dashoffset 1s ease-out;
-}
-
-.score-text {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.score-text .num {
-  font-size: 3rem;
-  font-weight: 900;
-  color: #fff;
-  line-height: 1;
-}
-
-.score-text .unit {
-  font-size: 0.8rem;
-  color: #60a5fa;
-  font-weight: 700;
-  letter-spacing: 2px;
-}
-
-.banner-center {
-  text-align: center;
-  border-left: 1px solid rgba(255, 255, 255, 0.1);
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 0 20px;
-}
-
-.grade-symbol-large {
-  font-size: 5rem;
-  font-weight: 900;
-  color: #fff;
-  text-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
-  line-height: 1;
-  margin-bottom: 8px;
-}
-
-.grade-label {
-  font-size: 0.75rem;
-  color: #94a3b8;
-  letter-spacing: 3px;
-  font-weight: 700;
-}
-
-.architect-status-text {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #f8fafc;
-  line-height: 1.4;
-  margin-bottom: 12px;
-}
-
-.mission-tag {
-  display: inline-block;
-  padding: 6px 12px;
-  background: rgba(59, 130, 246, 0.2);
-  border: 1px solid rgba(59, 130, 246, 0.4);
-  color: #60a5fa;
-  border-radius: 8px;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
-/* Analysis Hub Grid */
-.analysis-hub-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-}
-
-.section-card-glass {
-  background: rgba(30, 41, 59, 0.5);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 20px;
-  padding: 24px;
-}
-
-.card-title-mini {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.75rem;
-  font-weight: 800;
-  color: #64748b;
-  letter-spacing: 1.5px;
-  margin-bottom: 20px;
-  text-transform: uppercase;
-}
-
-.radar-chart-wrapper {
-  height: 280px;
-  position: relative;
-}
-
-.metrics-matrix-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.matrix-item {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.mi-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.mi-label {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #e2e8f0;
-}
-
-.mi-val {
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: #60a5fa;
-}
-
-.mi-bar-container {
-  height: 6px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.mi-bar-fill {
-  height: 100%;
-  border-radius: 10px;
-  transition: width 1s ease-out;
-}
-
-/* Verdict Section */
-.verdict-card-glass {
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.8), rgba(30, 41, 59, 0.8));
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 24px;
-  padding: 32px;
-}
-
-.verdict-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.persona-avatar {
-  width: 60px;
-  height: 60px;
-  background: rgba(59, 130, 246, 0.2);
-  border: 1px solid rgba(59, 130, 246, 0.4);
-  border-radius: 50%;
-  padding: 8px;
-}
-
-.persona-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-.p-role {
-  font-size: 0.7rem;
-  color: #60a5fa;
-  font-weight: 800;
-  letter-spacing: 2px;
-}
-
-.p-name {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #fff;
-}
-
-.verdict-summary {
-  font-size: 1.1rem;
-  color: #f1f5f9;
-  line-height: 1.6;
-  font-style: italic;
-  margin-bottom: 32px;
-  padding-left: 16px;
-  border-left: 2px solid #3b82f6;
-}
-
-.feedback-grid-mini {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  margin-bottom: 32px;
-}
-
-.fb-item {
-  padding: 20px;
-  border-radius: 16px;
-}
-
-.fb-item.success { background: rgba(34, 197, 94, 0.05); border: 1px solid rgba(34, 197, 94, 0.2); }
-.fb-item.warning { background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.2); }
-
-.fb-tag {
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 1.5px;
-  display: block;
-  margin-bottom: 12px;
-}
-
-.fb-item.success .fb-tag { color: #22c55e; }
-.fb-item.warning .fb-tag { color: #f59e0b; }
-
-.fb-text {
-  font-size: 0.9rem;
-  color: #cbd5e1;
-  line-height: 1.6;
-}
-
-.master-lesson-box {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  background: rgba(251, 191, 36, 0.05);
-  border: 1px solid rgba(251, 191, 36, 0.2);
-  padding: 24px;
-  border-radius: 16px;
-}
-
-.lesson-label {
-  font-size: 0.8rem;
-  font-weight: 800;
-  color: #fbbf24;
-  letter-spacing: 1.5px;
-  display: block;
-  margin-bottom: 8px;
-}
-
-.lesson-text {
-  font-size: 0.95rem;
-  color: #fef3c7;
-  line-height: 1.6;
-}
-
-/* Learning Path */
-.path-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 1rem;
-  font-weight: 800;
-  color: #fff;
-  letter-spacing: 1.5px;
-  margin-bottom: 24px;
-}
-
-.path-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
-}
-
-.path-card {
-  background: rgba(30, 41, 59, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 16px;
-  transition: all 0.3s ease;
-}
-
-.path-card:hover {
-  background: rgba(59, 130, 246, 0.1);
-  border-color: rgba(59, 130, 246, 0.4);
-  transform: translateY(-5px);
-}
-
-.pc-link {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px;
-  text-decoration: none;
-}
-
-.pc-channel {
-  font-size: 0.7rem;
-  color: #60a5fa;
-  font-weight: 700;
-  letter-spacing: 1px;
-}
-
-.pc-title {
-  font-size: 1rem;
-  color: #fff;
-  margin: 6px 0 10px;
-  line-height: 1.4;
-}
-
-.pc-reason {
-  font-size: 0.8rem;
-  color: #94a3b8;
-  line-height: 1.5;
-}
-
-.pc-play {
-  width: 32px;
-  height: 32px;
-  background: #3b82f6;
-  color: #fff;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
-}
-
-/* Reusable Actions Section within Evaluation */
-.actions {
-  margin-top: 40px;
-  display: flex;
-  justify-content: center;
-  gap: 20px;
-  padding-bottom: 60px; /* 스크롤 공간 확보 */
-}
-
-
-/* [2026-02-14] Global report styles are now moved to CoduckWars.css */
-
 </style>
