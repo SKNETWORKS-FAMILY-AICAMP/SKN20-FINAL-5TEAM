@@ -35,16 +35,15 @@ export class ReportGenerator {
 
 # [Input Data]
 총점: ${totalScore}/100점
+최강 지표: ${strongest?.name || '분석 중'} (${strongest?.percentage || 0}%)
+최약 지표: ${weakest?.name || '분석 중'} (${weakest?.percentage || 0}%)
 
-5대 지표 점수:
-1. 설계력(Design): ${metrics.design.score}/${metrics.design.max}점 (${metrics.design.percentage}%)
-2. 정합성(Consistency): ${metrics.consistency.score}/${metrics.consistency.max}점 (${metrics.consistency.percentage}%)
-3. 구현력(Implementation): ${metrics.implementation.score}/${metrics.implementation.max}점 (${metrics.implementation.percentage}%)
-4. 예외처리(Edge Case): ${metrics.edgeCase.score}/${metrics.edgeCase.max}점 (${metrics.edgeCase.percentage}%)
-5. 추상화(Abstraction): ${metrics.abstraction.score}/${metrics.abstraction.max}점 (${metrics.abstraction.percentage}%)
-
-최강 지표: ${strongest.name} (${strongest.percentage}%)
-최약 지표: ${weakest.name} (${weakest.percentage}%)
+5대 지표 점수 상세:
+1. 설계력(Design): ${metrics.design?.score ?? 0}/${metrics.design?.max ?? 0}점 (${metrics.design?.percentage ?? 0}%)
+2. 정합성(Consistency): ${metrics.consistency?.score ?? 0}/${metrics.consistency?.max ?? 0}점 (${metrics.consistency?.percentage ?? 0}%)
+3. 구현력(Implementation): ${metrics.implementation?.score ?? 0}/${metrics.implementation?.max ?? 0}점 (${metrics.implementation?.percentage ?? 0}%)
+4. 예외처리(Edge Case): ${metrics.edgeCase?.score ?? 0}/${metrics.edgeCase?.max ?? 0}점 (${metrics.edgeCase?.percentage ?? 0}%)
+5. 추상화(Abstraction): ${metrics.abstraction?.score ?? 0}/${metrics.abstraction?.max ?? 0}점 (${metrics.abstraction?.percentage ?? 0}%)
 
 # [Step-by-Step Logic]
 1. 분석: 5개 지표 중 점수가 가장 높은 '최강 지표'와 가장 낮은 '최약 지표'를 선정한다. (동점일 경우 중요도가 높은 설계력 > 정합성 순으로 우선순위 결정)
@@ -101,22 +100,26 @@ export class ReportGenerator {
     };
 
     // 최강 지표
-    const strongest = metricsList.reduce((max, curr) => {
-      if (curr.percentage > max.percentage) return curr;
-      if (curr.percentage === max.percentage && priorities[curr.key] > priorities[max.key]) {
-        return curr;
-      }
-      return max;
-    });
+    const strongest = metricsList.length > 0
+      ? metricsList.reduce((max, curr) => {
+        if (curr.percentage > max.percentage) return curr;
+        if (curr.percentage === max.percentage && priorities[curr.key] > priorities[max.key]) {
+          return curr;
+        }
+        return max;
+      })
+      : { name: 'N/A', percentage: 0, key: 'none' };
 
     // 최약 지표
-    const weakest = metricsList.reduce((min, curr) => {
-      if (curr.percentage < min.percentage) return curr;
-      if (curr.percentage === min.percentage && priorities[curr.key] > priorities[min.key]) {
-        return curr;
-      }
-      return min;
-    });
+    const weakest = metricsList.length > 0
+      ? metricsList.reduce((min, curr) => {
+        if (curr.percentage < min.percentage) return curr;
+        if (curr.percentage === min.percentage && priorities[curr.key] > priorities[min.key]) {
+          return curr;
+        }
+        return min;
+      })
+      : { name: 'N/A', percentage: 0, key: 'none' };
 
     return { strongest, weakest };
   }

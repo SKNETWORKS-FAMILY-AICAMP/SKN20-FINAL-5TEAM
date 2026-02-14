@@ -36,8 +36,8 @@
     <!-- MAIN VIEWPORT [2026-02-11] UI 레이아웃 2단 구성(Battle Grid) 복원 -->
     <main class="viewport">
         
-      <!-- [2026-02-11] 사이드바 가이드 버튼 -->
-      <button class="btn-guide-floating" @click="toggleGuide" :class="{ 'is-open': isGuideOpen }">
+      <!-- [2026-02-14 수정] 평가 단계에서는 가이드 버튼 숨김 -->
+      <button v-if="gameState.phase !== 'EVALUATION'" class="btn-guide-floating" @click="toggleGuide" :class="{ 'is-open': isGuideOpen }">
           <span class="icon">?</span>
           <span class="label">CHAPTER</span>
       </button>
@@ -84,11 +84,11 @@
           </div>
       </div>
 
-      <!-- [2026-02-11] 2단 레이아웃 핵심 컨테이너 (Combat Grid) -->
-      <div class="combat-grid w-full h-full">
+      <!-- [2026-02-14 수정] 2단 레이아웃 핵심 컨테이너 (EVALUATION 시 1단으로 변경) -->
+      <div class="combat-grid w-full h-full" :class="{ 'full-width-layout': gameState.phase === 'EVALUATION' }">
           
-          <!-- LEFT PANEL: ENTITY CARD [2026-02-11] 코덕 캐릭터 및 상태창 -->
-          <aside class="entity-card">
+          <!-- LEFT PANEL: ENTITY CARD [2026-02-14 수정] 평가 단계에서는 좌측 패널 은닉 -->
+          <aside v-if="gameState.phase !== 'EVALUATION'" class="entity-card">
               <div class="entity-header">
                   <span class="e-type">ANALYZE_UNIT</span>
                   <span class="e-status">SYSTEM_ACTIVE</span>
@@ -103,8 +103,8 @@
                   <div v-if="gameState.playerHP < 40" class="disconnect-tag">INTEGRITY_COMPROMISED</div>
               </div>
 
-              <!-- [2026-02-11] 코덕 실시간 대사창 [2026-02-13] 모든 단계에서 시나리오가 보이도록 조건 확장 -->
-              <div class="dialogue-box">
+              <!-- [2026-02-11] 코덕 실시간 대사창 [2026-02-14 수정] 평가 및 결과 화면에서는 시나리오 박스 은닉 -->
+              <div v-if="gameState.phase !== 'EVALUATION'" class="dialogue-box">
                   <span class="speaker">문제 시나리오</span>
                   <p class="dialogue-text">"{{ (isInteractionPhase && currentMission.scenario) ? currentMission.scenario : (gameState.coduckMessage || '데이터 흐름을 분석 중입니다...') }}"</p>
               </div>
@@ -329,7 +329,7 @@
               </div>
 
               <!-- [STEP 4] 최종 리포트 (EVALUATION) [2026-02-13] decision-panel 내부로 이동 -->
-              <div v-else-if="gameState.phase === 'EVALUATION'" class="evaluation-phase relative flex-1 flex flex-col min-h-[700px]">
+              <div v-else-if="gameState.phase === 'EVALUATION'" class="evaluation-phase relative flex-1 flex flex-col h-full scroll-smooth">
                   <!-- [2026-02-13] 복기 학습 모드 시 미션 정보 재노출 -->
                   <div v-if="evaluationResult?.is_low_effort || gameState.hasUsedBlueprint" class="mission-instruction-compact animate-slideDownFade mb-6">
                       <div class="mi-section">
@@ -341,11 +341,12 @@
                           <p class="mi-desc-small">{{ currentMission?.designContext?.writingGuide?.replace('[필수 포함 조건 (Constraint)]\n', '') }}</p>
                       </div>
                   </div>
-                  <div v-if="tutorialAnalyzing || (isProcessing && gameState.phase === 'EVALUATION')" class="ai-analysis-simulation absolute inset-0 z-[100] bg-[#0a1220] flex flex-col items-center justify-center rounded-2xl border border-blue-500/30">
-                      <LoadingDuck message="AI 아키텍트가 전체 설계의 정합성과 설계 패턴을 심층 분석 중입니다..." />
-                      <div class="analysis-progress-bar w-64 h-1.5 bg-slate-800 rounded-full mt-4 overflow-hidden">
-                          <div class="analysis-progress-fill h-full bg-blue-500 animate-loading-bar"></div>
-                      </div>
+                  <!-- [2026-02-14 수정] 로딩 화면을 1번째 이미지 스타일로 변경 (Full Width & Background Sync) -->
+                  <div v-if="tutorialAnalyzing || (isProcessing && gameState.phase === 'EVALUATION')" class="ai-analysis-simulation absolute inset-0 z-[100] bg-[#050505] flex flex-col items-center justify-center rounded-2xl border border-emerald-500/30">
+                      <LoadingDuck 
+                        :message="tutorialAnalyzing ? '튜토리얼 분석 중...' : '작성해주신 흐름 바탕으로 종합평가 진행 중입니다...'" 
+                        :duration="4000"
+                      />
                   </div>
 
                   <!-- [2026-02-14] 최종 아키텍처 리포트 포탈 (PPT 레이아웃 최적화) -->
@@ -370,7 +371,10 @@
                                       <span class="symbol">{{ finalReport.grade.grade }}</span>
                                       <span class="label">STATUS</span>
                                   </div>
-                                  <h2 class="verdict-headline">"{{ finalReport.grade.description }}"</h2>
+                                  <div class="verdict-wrapper">
+                                      <h3 class="persona-title">최종 진단: {{ finalReport.finalReport.persona }}</h3>
+                                      <h2 class="verdict-headline">"{{ finalReport.finalReport.summary }}"</h2>
+                                  </div>
                               </div>
                               <div class="mission-ident">
                                   <div class="ch-tag">MISSION: {{ currentMission.title }}</div>
@@ -422,11 +426,9 @@
                                   </div>
                                   <div class="mentor-meta">
                                       <span class="m-role">Senior Architect Monitor</span>
-                                      <h4 class="m-name">{{ finalReport.finalReport.persona }}</h4>
+                                      <h4 class="m-name">Chief Duck Engineer</h4>
                                   </div>
                               </div>
-                              
-                              <blockquote class="senior-quote">"{{ finalReport.finalReport.summary }}"</blockquote>
                               
                               <div class="feedback-dual-grid">
                                   <div class="fb-item-neo plus">
@@ -451,30 +453,72 @@
 
                       <!-- Part 4: Continuous Learning Path (YouTube) -->
                       <div class="pathway-section-neo">
-                          <h3 class="path-heading-neo"><Cpu size="18" class="mr-2" /> CONTINUOUS LEARNING PATH</h3>
+                          <!-- 지표별 큐레이션 리스트 -->
+                          <div class="curation-header">
+                              <h3 class="path-heading-neo"><Play size="18" class="mr-2" /> 📺 지표별 맞춤형 콘텐츠 큐레이션 리스트</h3>
+                          </div>
+                          
                           <div class="path-grid-neo">
-                              <div v-for="video in getFilteredVideos()" :key="video.url" class="path-card-neo">
-                                  <a :href="video.url" target="_blank" class="p-link-neo">
-                                      <div class="p-info">
-                                          <span class="p-author">{{ video.channel }}</span>
-                                          <h5 class="p-title">{{ video.title }}</h5>
-                                          <p class="p-desc">{{ video.curationPoint }}</p>
+                               <!-- [2026-02-14] 모든 지표가 아닌 '최약 지표' 1개에 대해서만 큐레이션 제공 -->
+                               <div v-if="weakestMetricKey" class="path-card-neo curation-card weakest-focus">
+                                  <div class="weakest-badge">🚨 취약 지표 집중 보완</div>
+                                  <a :href="getMetricVideo(weakestMetricKey).url" target="_blank" class="p-link-neo">
+                                      <div class="p-index">{{ LEARNING_RESOURCES[weakestMetricKey].metric }}</div>
+                                      <div class="p-theme-tag">테마: {{ LEARNING_RESOURCES[weakestMetricKey].theme }}</div>
+                                      <div class="p-content-box mt-4">
+                                          <div class="p-curation-msg-box">
+                                              <span class="quote-icon">"</span>
+                                              {{ LEARNING_RESOURCES[weakestMetricKey].curationMessage }}
+                                              <span class="quote-icon">"</span>
+                                          </div>
+                                          <div class="flex items-center justify-between mt-6 p-4 bg-slate-900/50 rounded-lg border border-white/5 shadow-inner">
+                                              <div class="flex flex-col">
+                                                  <span class="p-video-label">추천 강의:</span>
+                                                  <span class="p-video-title-small">{{ getMetricVideo(weakestMetricKey).title }}</span>
+                                              </div>
+                                              <div class="p-play-ico"><Play size="18" fill="currentColor" /></div>
+                                          </div>
+                                          <p class="p-curation-point mt-3">
+                                              <span class="point-label">공략 포인트:</span>
+                                              {{ getMetricVideo(weakestMetricKey).curationPoint }}
+                                          </p>
                                       </div>
-                                      <div class="p-play-ico"><Play size="14" fill="currentColor" /></div>
                                   </a>
+                               </div>
+                          </div>
+
+                          <!-- 마스터 전용 넥스트 레벨 -->
+                          <div v-if="finalReport.totalScore >= 80" class="master-next-level mt-10">
+                              <div class="master-header">
+                                  <h3 class="path-heading-neo master-glow"><CheckCircle size="18" class="mr-2" /> 🏆 마스터를 위한 '넥스트 레벨' (평균 80점 이상)</h3>
+                                  <p class="master-message">{{ getMasterContent().curationMessage }}</p>
+                              </div>
+                              <div class="master-content-card">
+                                  <div class="m-info">
+                                      <span class="m-video-label">추천 영상:</span>
+                                      <span class="m-video-title">{{ getMasterContent().videos[0].title }}</span>
+                                      <p class="m-curation-msg">
+                                          <span class="point-label">큐레이션 메시지:</span>
+                                          {{ getMasterContent().curationMessage }}
+                                      </p>
+                                      <p class="m-focus-point">
+                                          <span class="point-label">공략 포인트:</span>
+                                          {{ getMasterContent().videos[0].curationPoint }}
+                                      </p>
+                                  </div>
                               </div>
                           </div>
                       </div>
 
                       <!-- Part 5: Final Actions -->
-                      <div class="terminal-actions-neo">
-                          <button @click="resetFlow" class="btn-neo-restart">
-                              <RotateCcw size="18" class="mr-2" /> RESTART MISSION
-                          </button>
-                          <button @click="handlePracticeClose" class="btn-neo-complete">
-                              <CheckCircle size="18" class="mr-2" /> MISSION COMPLETE
-                          </button>
-                      </div>
+                          <div class="terminal-actions-neo">
+                              <button @click="resetFlow" class="btn-neo-restart" aria-label="Restart Mission">
+                                  <RotateCcw size="18" class="mr-2" /> RESTART MISSION
+                              </button>
+                              <button @click="completeMission" class="btn-neo-complete" aria-label="Complete Mission">
+                                  <CheckCircle size="18" class="mr-2" /> MISSION COMPLETE
+                              </button>
+                          </div>
                   </div>
 
                   </div>
@@ -527,7 +571,7 @@ import {
 } from 'lucide-vue-next';
 import { ComprehensiveEvaluator } from './evaluationEngine.js';
 import { generateCompleteLearningReport } from './reportGenerator.js';
-import { filterByScore } from './learningResources.js';
+import { filterByScore, LEARNING_RESOURCES } from './learningResources.js';
 import Chart from 'chart.js/auto';
 
 const activeYoutubeId = ref(null);
@@ -683,18 +727,61 @@ const {
     submitDeepQuiz,
     handlePythonVisualizationNext,
     handleTailSelection: originalHandleTailSelection,
-    resetFlow,
+    resetFlow: engineResetFlow,
     toggleHint,
-    handlePracticeClose
+    handlePracticeClose,
+    addSystemLog
 } = coduckWarsComposable;
+
+/**
+ * [2026-02-14] 엔진의 초기화와 화면 전용 상태 초기화 통합
+ */
+const resetFlow = () => {
+    // 1. 엔진 상태 초기화 (진단 단계, 점수 등)
+    engineResetFlow();
+    
+    // 2. 화면 전용 상태 초기화
+    finalReport.value = null;
+    showMetrics.value = false;
+    showHintDuck.value = false; // 힌트 오리 닫기
+    
+    // 3. 로그 초기화
+    addSystemLog("시스템을 처음부터 다시 시작합니다.", "INFO");
+};
+
+/**
+ * [2026-02-14] 미션 완료 및 다음 스테이지 해금
+ */
+const completeMission = () => {
+    // 1. 현재 스테이지 인덱스 (Stage ID - 1)
+    const stageIdx = (gameState.currentStageId || 1) - 1;
+    
+    // 2. 게임 스토어를 통한 해금 처리
+    gameStore.unlockNextStage('Pseudo Practice', stageIdx);
+
+    // 3. [2026-02-14 추가] 다음 스테이지 인덱스 강제 업데이트 (목록 복귀 시 덕이 이동)
+    if (stageIdx < 9) {
+        gameStore.selectedQuestIndex = stageIdx + 1;
+    }
+    
+    // 4. 시스템 로그 기록
+    addSystemLog(`미션 완료: 스테이지 ${gameState.currentStageId} 데이터베이스 기록됨.`, "SUCCESS");
+    
+    // 5. 화면 닫기 (부모 컴포넌트로 전달하여 목록 화면의 해금 상태 갱신 유도)
+    emit('close');
+};
 
 // [2026-02-14] 자연어 서술 단계 여부 판단 (힌트 버튼 노출용)
 const isNaturalLanguagePhase = computed(() => {
     // 분석 중이거나 결과가 표시된 상태면 힌트 버튼 숨김
     if (isProcessing.value || showMetrics.value || tutorialAnalyzing.value) return false;
     
+    // 1. 의사코드 작성 단계
     if (gameState.phase === 'PSEUDO_WRITE') return true;
+    
+    // 2. 진단 1단계 문항 중 '서술형'일 때
     if (gameState.phase === 'DIAGNOSTIC_1' && diagnosticQuestion.value?.type === 'DESCRIPTIVE') return true;
+    
     return false;
 });
 
@@ -858,6 +945,40 @@ function getFilteredVideos() {
     finalReport.value.recommendedContent,
     finalReport.value.totalScore
   );
+}
+
+/**
+ * 최약 지표 키 계산
+ */
+const weakestMetricKey = computed(() => {
+  if (!finalReport.value || !finalReport.value.metrics) return null;
+  const metrics = finalReport.value.metrics;
+  const metricKeys = ['design', 'edgeCase', 'abstraction', 'implementation', 'consistency'];
+  
+  // 중요도 가중치 (reportGenerator와 동일하게 유지)
+  const priorities = { design: 5, consistency: 4, edgeCase: 3, abstraction: 2, implementation: 1 };
+  
+  return [...metricKeys].sort((a, b) => {
+    const ma = metrics[a];
+    const mb = metrics[b];
+    if (ma.percentage !== mb.percentage) return ma.percentage - mb.percentage;
+    return (priorities[b] || 0) - (priorities[a] || 0);
+  })[0];
+});
+
+/**
+ * 지표별 추천 영상 가져오기
+ */
+function getMetricVideo(metricKey) {
+  if (!metricKey || !LEARNING_RESOURCES[metricKey]) return { title: '', url: '', curationPoint: '' };
+  return LEARNING_RESOURCES[metricKey].videos[0];
+}
+
+/**
+ * 마스터 레벨 콘텐츠 가져오기
+ */
+function getMasterContent() {
+  return LEARNING_RESOURCES.master;
 }
 
 // submitPseudo 함수 최종 정의 (이제 에러 안 남!)
@@ -1598,505 +1719,7 @@ const { monacoOptions, handleMonacoMount } = useMonacoEditor(
   padding-bottom: 60px; /* 스크롤 공간 확보 */
 }
 
-/* ==========================================================================
-   [2026-02-14] Premium Architect Report Portal Styles
-   ========================================================================== */
 
-.architect-report-portal {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-  padding: 1.5rem;
-  color: #f1f5f9;
-}
+/* [2026-02-14] Global report styles are now moved to CoduckWars.css */
 
-/* Part 1: Billboard (Grade & Score) */
-.report-billboard-premium {
-  position: relative;
-  height: 200px;
-  border-radius: 24px;
-  overflow: hidden;
-  background: linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%);
-  border: 1px solid rgba(59, 130, 246, 0.2);
-}
-
-.billboard-glass {
-  position: absolute;
-  inset: 0;
-  backdrop-filter: blur(10px);
-  background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.1), transparent);
-}
-
-.billboard-content {
-  position: relative;
-  z-index: 2;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  padding: 0 3rem;
-  gap: 3rem;
-}
-
-.score-ring-box {
-  position: relative;
-  width: 120px;
-  height: 120px;
-}
-
-.ring-svg-neo {
-  width: 100%;
-  height: 100%;
-  transform: rotate(-90deg);
-}
-
-.ring-bg {
-  fill: none;
-  stroke: rgba(255, 255, 255, 0.05);
-  stroke-width: 8;
-}
-
-.ring-fill {
-  fill: none;
-  stroke: #3b82f6;
-  stroke-width: 8;
-  stroke-linecap: round;
-  transition: stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.score-absolute {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.pts-num {
-  font-size: 2.2rem;
-  font-weight: 800;
-  color: #fff;
-  line-height: 1;
-}
-
-.pts-unit {
-  font-size: 0.7rem;
-  color: #60a5fa;
-  font-weight: 700;
-  letter-spacing: 1px;
-}
-
-.grade-badge-box {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-  flex: 1;
-}
-
-.grade-symbol-neo {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 80px;
-  height: 80px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-}
-
-.grade-symbol-neo .symbol {
-  font-size: 2.5rem;
-  font-weight: 900;
-  color: #3b82f6;
-  text-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
-}
-
-.grade-symbol-neo .label {
-  font-size: 0.6rem;
-  font-weight: 700;
-  color: #94a3b8;
-}
-
-.verdict-headline {
-  font-size: 1.8rem;
-  font-weight: 800;
-  color: #fff;
-  letter-spacing: -0.5px;
-}
-
-.mission-ident {
-  margin-left: auto;
-}
-
-.ch-tag {
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  color: #60a5fa;
-  padding: 6px 14px;
-  border-radius: 99px;
-  font-size: 0.75rem;
-  font-weight: 700;
-}
-
-/* Part 2: Hub Grid */
-.report-hub-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-}
-
-.neo-glass-card {
-  background: rgba(15, 23, 42, 0.4);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 20px;
-  padding: 1.5rem;
-}
-
-.neo-card-title {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: #94a3b8;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 1.5rem;
-}
-
-.radar-container-neo {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 260px;
-}
-
-.metric-progress-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
-
-.metric-row-neo .m-top-row {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 0.5rem;
-}
-
-.metric-row-neo.premium-feedback {
-    padding: 1rem 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.m-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.6rem;
-}
-
-.m-name {
-  font-size: 0.95rem;
-  font-weight: 800;
-  color: #f1f5f9;
-}
-
-.m-score-tag {
-    font-size: 0.8rem;
-    font-weight: 900;
-    font-family: 'JetBrains Mono', monospace;
-    background: rgba(15, 23, 42, 0.5);
-    padding: 2px 8px;
-    border-radius: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.m-comment-box {
-    position: relative;
-    padding-left: 0.5rem;
-}
-
-.m-comment-text {
-  font-size: 0.85rem;
-  color: #94a3b8;
-  line-height: 1.5;
-  margin: 0;
-  font-style: italic;
-  font-weight: 500;
-}
-
-.quote-icon {
-    color: #3b82f6;
-    font-family: serif;
-    font-weight: 900;
-    opacity: 0.6;
-}
-
-.m-bar-inner {
-  height: 100%;
-  border-radius: 3px;
-  transition: width 1s ease-out 0.5s;
-}
-
-/* Part 3: Senior Verdict */
-.expert-section-neo {
-  background: rgba(30, 41, 59, 0.2);
-  border: 1px dashed rgba(255, 255, 255, 0.1);
-  border-radius: 24px;
-  padding: 2rem;
-}
-
-.mentor-profile {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.mentor-avatar {
-  width: 50px;
-  height: 50px;
-  background: #1e293b;
-  border-radius: 50%;
-  padding: 8px;
-  border: 1px solid rgba(59, 130, 246, 0.3);
-}
-
-.mentor-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-.m-role {
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: #3b82f6;
-  letter-spacing: 1px;
-}
-
-.m-name {
-  font-size: 1.1rem;
-  font-weight: 800;
-  color: #fff;
-}
-
-.senior-quote {
-  font-size: 1.2rem;
-  font-weight: 600;
-  line-height: 1.6;
-  color: #cbd5e1;
-  font-style: italic;
-  margin-bottom: 2rem;
-  padding-left: 1rem;
-  border-left: 3px solid #3b82f6;
-}
-
-.feedback-dual-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-
-.fb-item-neo {
-  background: rgba(255, 255, 255, 0.02);
-  padding: 1.25rem;
-  border-radius: 16px;
-  border-left: 4px solid transparent;
-}
-
-.fb-item-neo.plus { border-color: #10b981; }
-.fb-item-neo.minus { border-color: #f59e0b; }
-
-.tag-neo {
-  font-size: 0.65rem;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-  margin-bottom: 0.5rem;
-  display: block;
-}
-
-.txt-neo {
-  font-size: 0.95rem;
-  line-height: 1.5;
-  color: #e2e8f0;
-}
-
-.point-lesson-neo {
-  display: flex;
-  gap: 1rem;
-  align-items: flex-start;
-  background: rgba(245, 158, 11, 0.05);
-  padding: 1.25rem;
-  border-radius: 16px;
-  border: 1px solid rgba(245, 158, 11, 0.15);
-}
-
-.p-icon-box {
-  background: rgba(245, 158, 11, 0.15);
-  padding: 10px;
-  border-radius: 12px;
-}
-
-.p-tag {
-  font-size: 0.65rem;
-  font-weight: 800;
-  color: #f59e0b;
-  letter-spacing: 1px;
-}
-
-.p-msg {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #fde68a;
-  margin-top: 0.25rem;
-}
-
-/* Part 4: Pathway Section */
-.pathway-section-neo {
-  margin-top: 1rem;
-}
-
-.path-heading-neo {
-  display: flex;
-  align-items: center;
-  font-size: 1rem;
-  font-weight: 800;
-  color: #fff;
-  letter-spacing: 1px;
-  margin-bottom: 1.5rem;
-}
-
-.path-grid-neo {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-}
-
-.p-link-neo {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: rgba(15, 23, 42, 0.4);
-  padding: 1.25rem;
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  text-decoration: none;
-}
-
-.p-link-neo:hover {
-  background: rgba(59, 130, 246, 0.08);
-  border-color: rgba(59, 130, 246, 0.4);
-  transform: translateY(-2px);
-}
-
-.p-author {
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: #3b82f6;
-  text-transform: uppercase;
-  margin-bottom: 0.25rem;
-  display: block;
-}
-
-.p-title {
-  font-size: 1rem;
-  font-weight: 700;
-  color: #fff;
-  margin-bottom: 0.25rem;
-}
-
-.p-desc {
-  font-size: 0.8rem;
-  color: #94a3b8;
-}
-
-.p-play-ico {
-  width: 32px;
-  height: 32px;
-  background: #3b82f6;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-}
-
-/* Actions */
-.terminal-actions-neo {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  margin-top: 2rem;
-  padding-top: 2rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.btn-neo-restart {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #94a3b8;
-  padding: 12px 24px;
-  border-radius: 12px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  transition: all 0.2s;
-}
-
-.btn-neo-restart:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: #fff;
-  color: #fff;
-}
-
-.btn-neo-complete {
-  background: #3b82f6;
-  border: none;
-  color: #fff;
-  padding: 12px 32px;
-  border-radius: 12px;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  transition: all 0.2s;
-  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
-}
-
-.btn-neo-complete:hover {
-  background: #2563eb;
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.5);
-}
-
-/* Animations */
-.animate-fadeIn {
-  animation: fadeIn 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.animate-loading-bar {
-  animation: loadingBar 2s ease-in-out infinite;
-}
-
-@keyframes loadingBar {
-  0% { transform: translateX(-100%); }
-  50% { transform: translateX(0); }
-  100% { transform: translateX(100%); }
-}
-
-/* [2026-02-14] Responsive Radar Fix */
-#radarChartCanvas {
-  max-width: 100%;
-  max-height: 100%;
-}
 </style>

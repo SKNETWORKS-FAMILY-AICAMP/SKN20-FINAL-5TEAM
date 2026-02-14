@@ -24,6 +24,22 @@ export const aiQuests = [
             { icon: "⚖️", text: "STEP 4: 최종 평가", coduckMsg: "당신의 아키텍처 설계 능력을 AI 아키텍트가 정밀 평가합니다." }
         ],
 
+        blueprint: `
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+# 1. Isolation: 전처리 전 물리적 분리 (최우선 방어선)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+
+# 2. Anchor: 오직 학습 데이터로만 통계량(fit) 추출
+scaler = StandardScaler()
+scaler.fit(X_train)
+
+# 3. Consistency: 학습셋의 기준점으로 테스트셋까지 변환
+X_train_scaled = scaler.transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+        `.trim(),
+
         interviewQuestions: [
             {
                 id: "concept_1_choice",
@@ -328,6 +344,18 @@ ${'{'}code{'}'}
         subModuleTitle: "LEAKAGE_SHIELD",
         character: { name: "Coduck", image: "/assets/characters/coduck.png" },
 
+        blueprint: `
+# 1. Temporal Ordering: 시간순 정렬 (미래 데이터 역전 방지)
+df = df.sort_values('timestamp')
+
+# 2. Cutoff Point: 기준 시점 설정
+cutoff = '2023-12-31'
+
+# 3. Out-of-Time Split: 과거는 학습, 미래는 테스트로 물리적 격리
+train_df = df[df['timestamp'] < cutoff]
+test_df = df[df['timestamp'] >= cutoff]
+        `.trim(),
+
         // ✅ Quest 1 스타일의 고도화된 Validation
         validation: {
             criticalPatterns: [
@@ -431,6 +459,21 @@ ${'{'}code{'}'}
         subModuleTitle: "SKEW_CONTROLLER",
         character: { name: "Coduck", image: "/assets/characters/coduck.png" },
 
+        blueprint: `
+def preprocess_pipeline(df):
+    """학습과 서빙 환경에서 동일하게 사용될 공용 함수 (Skew 방지)"""
+    # 전처리 통합 로직
+    df['normalized_val'] = df['raw_val'] / 100
+    return df
+
+# 1. Training Environment
+train_data = preprocess_pipeline(raw_train)
+
+# 2. Serving (Production) Environment
+# 동일한 함수를 호출하여 로직 불일치(Skew) 원천 차단
+serving_data = preprocess_pipeline(incoming_request)
+        `.trim(),
+
         validation: {
             criticalPatterns: [
                 {
@@ -512,6 +555,18 @@ def prevent_serving_skew(data):
         subModuleTitle: "DEPLOY_POLICY_MAKER",
         character: { name: "Coduck", image: "/assets/characters/coduck.png" },
 
+        blueprint: `
+# 1. Prediction Probability: 모델의 원시 예측값(0~1) 추출
+probas = model.predict_proba(X_test)[:, 1]
+
+# 2. Risk-based Threshold: 비즈니스 비용을 고려한 임계값 설정
+# (예: 암 진단 시 미탐 방지를 위해 임계값을 0.5보다 낮게 설정)
+threshold = 0.3 
+
+# 3. Decision Logic: 임계값을 적용한 최종 배포/수락 판정
+final_labels = (probas >= threshold).astype(int)
+        `.trim(),
+
         validation: {
             criticalPatterns: [
                 {
@@ -579,6 +634,16 @@ def prevent_serving_skew(data):
         rewardXP: 450,
         subModuleTitle: "DRIFT_MONITOR",
         character: { name: "Coduck", image: "/assets/characters/coduck.png" },
+
+        blueprint: `
+# 1. Performance Drift: 실제 정답과 예측 간의 오차(MSE 등) 실시간 모니터링
+current_mse = calculate_mse(actual, preds)
+
+# 2. Threshold Check: 사전에 정의된 성능 유지 임계치와 비교
+if current_mse > drift_limit:
+    # 3. Trigger Retrain: 드리프트 감지 시 최신 데이터로 재학습 프로세스 가동
+    model.fit(new_data)
+        `.trim(),
 
         cards: [
             { icon: "📊", text: "STEP 1: 로그 분석 (Log Analysis)", coduckMsg: "현장의 데이터 흐름을 실시간으로 감시해야 합니다." },

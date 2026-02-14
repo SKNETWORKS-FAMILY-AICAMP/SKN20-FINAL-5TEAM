@@ -81,8 +81,16 @@
 
             <div class="unit-modal-body-v3">
               <div class="path-container-v3">
+                <!-- [2026-02-14] 징검다리 연결선 동적 렌더링 (해금 시 초록색 실선으로 변경) -->
                 <svg class="path-svg-v3" viewBox="0 0 800 1500">
-                  <path class="path-line-v3" d="M400,100 L560,250 L280,400 L520,550 L360,700 L400,850 L480,1000 L320,1150 L560,1300 L400,1450" fill="none" stroke="rgba(148, 163, 184, 0.2)" stroke-width="3" stroke-dasharray="10,5" />
+                  <line 
+                    v-for="(p, i) in pathPoints.slice(0, -1)" 
+                    :key="i"
+                    :x1="p[0]" :y1="p[1]"
+                    :x2="pathPoints[i+1][0]" :y2="pathPoints[i+1][1]"
+                    class="path-line-v3"
+                    :class="{ 'line-unlocked': isUnlocked(i + 1) }"
+                  />
                 </svg>
 
                 <div v-for="(problem, pIdx) in displayProblems" :key="problem.id" class="node-platform-v3"
@@ -171,6 +179,12 @@ const ui = useUiStore();
 // Router
 const route = useRoute();
 const router = useRouter();
+
+// [2026-02-14] 징검다리 좌표 데이터
+const pathPoints = [
+  [400, 100], [560, 250], [280, 400], [520, 550], [360, 700],
+  [400, 850], [480, 1000], [320, 1150], [560, 1300], [400, 1450]
+];
 
 // Local State
 const leaderboard = ref([]);

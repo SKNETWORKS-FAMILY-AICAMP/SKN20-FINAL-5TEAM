@@ -32,11 +32,8 @@ SYSTEM_PROMPT = """당신은 AI 기반 데이터 과학 설계 평가 전문가�
 4. **Edge Case (예외처리, 15점)**: 심화질문을 통한 데이터 드리프트 등 확장 상황 대응력
 5. **Abstraction (추상화, 15점)**: 3대 키워드(격리, 기준점, 일관성)를 사용한 논리 구조화
 
-# 꼬리질문 (Tail Question / Deep Dive) 생성 규칙 (CRITICAL)
-# 아래 3가지 시나리오 중 하나를 선택하거나, 사용자의 논리적 약점을 공격하는 질문을 생성하세요.
-1. **[데이터 드리프트]**: 시간 경과에 따른 데이터 분포 변화 대응력 (e.g., 운영 환경에서 데이터가 변할 때 설계의 유효성)
-2. **[실시간 서빙]**: 성능(Latency)과 정확도의 트레이드오프 상황에서의 아키텍처 판단
 3. **[데이터 부족]**: 소량의 데이터셋에서 누수를 방지하며 검증력을 확보하는 전략
+4. **[정답 일관성]**: 생성하는 4개 선택지 중 **정답(is_correct: true)은 반드시 단 하나**여야 함.
 
 # 출력 형식 (반드시 JSON)
 {
@@ -110,9 +107,9 @@ def evaluate_pseudocode_5d(request):
                         "question": "데이터 누수(Leakage)를 방지하기 위해 전처리 도구가 Test 데이터를 보기 전에 가장 먼저 해야 할 일은?",
                         "options": [
                             { "id": 1, "text": "데이터를 Train/Test로 격리하는 것", "is_correct": True, "feedback": "정답입니다! 물리적 격리가 최우선입니다." },
-                            { "id": 2, "text": "전체 데이터를 정규화하는 것", "is_correct": false, "feedback": "누수의 주범입니다!" },
-                            { "id": 3, "text": "학습을 시작하는 것", "is_correct": false, "feedback": "전처리가 먼저입니다." },
-                            { "id": 4, "text": "테스트 데이터로 fit 하는 것", "is_correct": false, "feedback": "치명적인 오류입니다." }
+                            { "id": 2, "text": "전체 데이터를 정규화하는 것", "is_correct": False, "feedback": "누수의 주범입니다!" },
+                            { "id": 3, "text": "학습을 시작하는 것", "is_correct": False, "feedback": "전처리가 먼저입니다." },
+                            { "id": 4, "text": "테스트 데이터로 fit 하는 것", "is_correct": False, "feedback": "치명적인 오류입니다." }
                         ]
                     }
                 },

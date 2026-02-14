@@ -1,15 +1,17 @@
 <template>
   <div class="code-flow-visualizer">
     <div class="content flex flex-col gap-8">
-      <!-- [2026-02-13] SYSTEM CONTEXT REFERENCE: 미션, 제약조건 (무성의 답변 시에만 노출) -->
-      <div v-if="isLowEffort" class="mission-instruction-compact animate-slideDownFade mb-4">
+      <!-- [2026-02-14] MISSION & CONSTRAINTS: 가독성을 위해 최상단에 고정 배치 -->
+      <div class="mission-instruction-compact animate-slideDownFade">
           <div class="mi-section">
-              <h4 class="mi-title text-blue-400">[미션]</h4>
-              <p class="mi-desc">{{ missionDesc }}</p>
+              <h4 class="mi-title text-blue-400" style="font-family: 'Pretendard', sans-serif;">[미션]</h4>
+              <p class="mi-desc" style="font-family: 'Pretendard', sans-serif;">{{ missionDesc }}</p>
           </div>
-          <div class="mi-section mi-border-top">
-              <h4 class="mi-title text-amber-400">[필수 포함 조건 (Constraint)]</h4>
-              <p class="mi-desc-small">{{ missionConstraints?.replace('[필수 포함 조건 (Constraint)]\n', '') }}</p>
+          <div class="mi-section mi-border-top" v-if="missionConstraints">
+              <h4 class="mi-title text-amber-400" style="font-family: 'Pretendard', sans-serif;">[필수 포함 조건 (CONSTRAINT)]</h4>
+              <p class="mi-desc-small" style="font-family: 'Pretendard', sans-serif;">
+                {{ missionConstraints.replace('[필수 포함 조건 (Constraint)]\n', '').replace('[필수 포함 조건 (CONSTRAINT)]\n', '') }}
+              </p>
           </div>
       </div>
 
@@ -62,13 +64,13 @@
                 <RotateCcw class="w-12 h-12 text-green-400 animate-spin-slow" />
               </div>
               <h5 class="text-2xl font-black text-green-400 mb-2 tracking-tighter">아키텍트의 설계 엿보기</h5>
-              <p class="text-slate-200 text-lg mb-2 leading-tight">
-                "이 청사진을 참고하여<br/>
-                <span class="text-green-300">자연어 설계를 다시 해볼까요?</span>"
+              <p class="text-slate-100 text-lg mb-4 leading-relaxed font-bold" style="font-family: 'Pretendard', sans-serif;">
+                "어렵다면 <span class="text-green-400">파이썬 코드</span>를 보고<br/>
+                논리 흐름을 먼저 파악해볼까요?"
               </p>
-              <p class="text-[10px] text-amber-400/70 mb-6">* 청사진 참고 시 최종 점수가 80점으로 제한됩니다.</p>
-              <div class="retry-trigger-btn px-6 py-3 bg-green-500 text-slate-900 font-black rounded-full hover:bg-green-400 transition-all shadow-lg">
-                도전하러 가기
+              <p class="text-[11px] text-amber-400/90 mb-6 font-medium">* 청사진을 참고하여 복습하면 실력이 더 빠르게 늘어납니다.</p>
+              <div class="retry-trigger-btn px-8 py-3 bg-green-500 text-slate-900 font-black rounded-full hover:bg-green-400 transition-all shadow-lg text-lg">
+                정답 보고 다시 설계하기
               </div>
             </div>
           </div>
@@ -101,7 +103,7 @@
                   <span class="text-xs font-bold text-blue-300">LOGIC SCORE: {{ score }}</span>
                 </div>
               </div>
-              <p class="text-slate-300 leading-relaxed text-lg">{{ feedback }}</p>
+              <p class="text-slate-300 leading-relaxed text-lg" style="font-family: 'Pretendard', sans-serif;">{{ feedback }}</p>
             </div>
           </div>
         </div>
@@ -279,9 +281,11 @@ const onSelectOption = (idx) => {
 }
 
 .panel-header .label {
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 1px;
+  /* [수정 2026-02-14] 가독성을 위해 폰트군을 Pretendard로 강제 고정 */
+  font-family: 'Pretendard', sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 800;
+  letter-spacing: 0.5px;
 }
 
 .pseudo-panel .label { color: #3b82f6; }
@@ -302,13 +306,16 @@ const onSelectOption = (idx) => {
   background: rgba(0, 0, 0, 0.3);
 }
 
-.code-block pre {
+.code-block pre,
+.code-block code {
   margin: 0;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  font-size: 18px;
-  line-height: 1.7;
-  white-space: pre-wrap;
-  letter-spacing: -0.2px;
+  /* [수정 2026-02-14] NES.css 등의 픽셀 폰트 간섭을 완전히 차단하고 VS Code 스타일로 강제 고정 */
+  font-family: 'Consolas', 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace !important;
+  font-size: 17px !important;
+  line-height: 1.7 !important;
+  white-space: pre-wrap !important;
+  letter-spacing: 0px !important;
+  font-weight: 400 !important;
 }
 
 .pseudo-panel code { color: #e2e8f0; }
@@ -592,15 +599,17 @@ const onSelectOption = (idx) => {
   min-height: 400px;
   background: rgba(10, 15, 25, 0.6);
   color: #fff;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  font-size: 18px;
-  line-height: 1.7;
+  /* [수정 2026-02-14] 에디터 폰트 가독성 강제 상향 */
+  font-family: 'Consolas', 'JetBrains Mono', 'Fira Code', monospace !important;
+  font-size: 18px !important;
+  line-height: 1.7 !important;
   padding: 20px;
   border: 1px dashed rgba(59, 130, 246, 0.4);
   border-radius: 12px;
   resize: none;
   outline: none;
   transition: all 0.3s ease;
+  letter-spacing: 0px !important;
 }
 
 .pseudo-editor-textarea:focus {

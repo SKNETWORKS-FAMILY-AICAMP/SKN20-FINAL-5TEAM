@@ -9,14 +9,14 @@ export class RuleBasedEvaluator {
     this.requiredKeywords = ['격리', '기준점', '일관성', 'train', 'test', 'fit', 'transform'];
     this.criticalPatterns = [
       {
-        pattern: /(전체|모든|전부).*(fit|학습)/i,
+        pattern: /(전체|모든|전부)\s*데이터\s*.*(fit|학습시키|학습시킴)\s*\(/i,
         penalty: -50,
-        error: '🚨 치명적: 전체 데이터로 fit 감지'
+        error: '🚨 치명적: 전체 데이터로 fit() 호출 감지'
       },
       {
-        pattern: /(test|테스트).*(fit|학습시키|학습시킴)/i,
+        pattern: /(test|테스트)\s*데이터\s*.*(fit|학습시키|학습시킴)\s*\(/i,
         penalty: -50,
-        error: '🚨 치명적: 테스트 데이터로 fit 감지'
+        error: '🚨 치명적: 테스트 데이터로 fit() 호출 감지'
       }
     ];
   }
@@ -357,10 +357,19 @@ export class ComprehensiveEvaluator {
       critical: ruleResult.critical
     };
 
-    // 치명적 오류 시 즉시 종료
+    // 치명적 오류 시 즉시 종료 (단, 리포트 생성을 위해 기본 지표는 계산)
     if (ruleResult.critical) {
       results.total = 0;
       results.criticalError = true;
+      results.stage2 = {
+        rule: 0,
+        abstraction: 0,
+        total: 0,
+        feedback: ruleResult.feedback
+      };
+      results.stage3 = { design: 0, implementation: 0, edgeCase: 0, total: 0 };
+      results.stage5 = { consistency: 0, total: 0 };
+      results.metrics = this.calculateMetrics(results);
       return results;
     }
 

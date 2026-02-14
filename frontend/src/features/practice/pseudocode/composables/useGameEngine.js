@@ -153,10 +153,17 @@ export function useGameEngine() {
     const restartMission = () => {
         addSystemLog("시스템 재부팅 시퀀스 초기화...", "WARN");
         gameState.playerHP = 100;
-        gameState.phase3Reasoning = ""; // [2026-02-13] 입력 초기화
+        gameState.phase3Reasoning = "";
         gameState.phase3Feedback = "";
 
-        // [2026-02-13] 페널티 우회 방지: restart 시에도 청사진 참고 기록 유지
+        // [2026-02-14] 진단 및 평가 데이터 초기화 추가
+        gameState.diagnosticStep = 0;
+        gameState.diagnosticScores = [];
+        gameState.diagnosticAnswer = "";
+        gameState.diagnosticResult = null;
+        gameState.phase3EvaluationResult = null;
+        gameState.finalWeightedScore = 0;
+
         setPhase('DIAGNOSTIC_1');
     };
 
@@ -164,9 +171,18 @@ export function useGameEngine() {
         gameState.currentStageId = 1;
         gameState.score = 0;
         gameState.playerHP = 100;
-        gameState.phase3Reasoning = ""; // [2026-02-13] 입력 초기화
+        gameState.phase3Reasoning = "";
         gameState.phase3Feedback = "";
+
+        // [2026-02-14] 전체 데이터 완전 초기화
+        gameState.diagnosticStep = 0;
+        gameState.diagnosticScores = [];
+        gameState.diagnosticAnswer = "";
+        gameState.diagnosticResult = null;
+        gameState.phase3EvaluationResult = null;
+        gameState.finalWeightedScore = 0;
         gameState.hasUsedBlueprint = false;
+
         gameState.systemLogs = [];
         addSystemLog("시스템 부팅... 초기화 완료.", "READY");
         setPhase('DIAGNOSTIC_1');

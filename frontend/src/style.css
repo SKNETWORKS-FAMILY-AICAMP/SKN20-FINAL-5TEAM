@@ -1877,6 +1877,13 @@ footer {
     stroke: rgba(148, 163, 184, 0.3);
     stroke-width: 4;
     stroke-dasharray: 12, 12;
+    transition: all 0.5s ease;
+}
+
+.path-line-v3.line-unlocked {
+    stroke: #b6ff40;
+    stroke-dasharray: none;
+    filter: drop-shadow(0 0 8px rgba(182, 255, 64, 0.6));
 }
 
 /* 노드 플랫폼 스타일 */
