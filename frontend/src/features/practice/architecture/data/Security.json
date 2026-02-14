@@ -1,0 +1,262 @@
+{
+  "title": "Security",
+  "url": "https://docs.cloud.google.com/architecture/framework/security?hl=ko",
+  "content": {
+    "html": "\n  \n  \n  \n  \n  \n\n  <div class=\"devsite-article-meta nocontent\" role=\"navigation\">\n    \n    \n    <ul class=\"devsite-breadcrumb-list\" aria-label=\"탐색경로\">\n  \n  <li class=\"devsite-breadcrumb-item\n             \">\n    \n    \n    \n      \n        \n  <a href=\"https://docs.cloud.google.com/?hl=ko\" class=\"devsite-breadcrumb-link gc-analytics-event\" data-category=\"Site-Wide Custom Events\" data-label=\"Breadcrumbs\" data-value=\"1\" track-type=\"globalNav\" track-name=\"breadcrumb\" track-metadata-position=\"1\" track-metadata-eventdetail=\"Google Cloud Documentation\">\n    \n          Home\n        \n  </a>\n  \n      \n    \n  </li>\n  \n  <li class=\"devsite-breadcrumb-item\n             \">\n    \n      \n      <div class=\"devsite-breadcrumb-guillemet material-icons\" aria-hidden=\"true\"></div>\n    \n    \n    \n      \n        \n  <a href=\"https://docs.cloud.google.com/docs?hl=ko\" class=\"devsite-breadcrumb-link gc-analytics-event\" data-category=\"Site-Wide Custom Events\" data-label=\"Breadcrumbs\" data-value=\"2\" track-type=\"globalNav\" track-name=\"breadcrumb\" track-metadata-position=\"2\" track-metadata-eventdetail=\"Documentation\">\n    \n          Documentation\n        \n  </a>\n  \n      \n    \n  </li>\n  \n  <li class=\"devsite-breadcrumb-item\n             \">\n    \n      \n      <div class=\"devsite-breadcrumb-guillemet material-icons\" aria-hidden=\"true\"></div>\n    \n    \n    \n      \n        \n  <a href=\"https://docs.cloud.google.com/architecture?hl=ko\" class=\"devsite-breadcrumb-link gc-analytics-event\" data-category=\"Site-Wide Custom Events\" data-label=\"Breadcrumbs\" data-value=\"3\" track-type=\"globalNav\" track-name=\"breadcrumb\" track-metadata-position=\"3\" track-metadata-eventdetail=\"Cloud Architecture Center\">\n    \n          Cloud Architecture Center\n        \n  </a>\n  \n      \n    \n  </li>\n  \n</ul>\n    \n      \n    <devsite-thumb-rating position=\"header\"><div class=\"devsite-thumb-rating\" role=\"form\" aria-labelledby=\"devsite-thumb-label-header\"><div class=\"devsite-thumb-label\" id=\"devsite-thumb-label-header\">도움이 되었나요?</div><div class=\"devsite-thumbs\"><button class=\"devsite-thumb devsite-thumb-up\" data-title=\"도움이 됨\" aria-label=\"도움이 됨\"><svg class=\"devsite-thumb-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M21,7h-6.31l0.95-4.57l0.03-0.32c0-0.41-0.17-0.79-0.44-1.06L14.17,0c0,0-7.09,6.85-7.17,7H2v13h16 c0.83,0,1.54-0.5,1.84-1.22l3.02-7.05C22.95,11.5,23,11.26,23,11V9C23,7.9,22.1,7,21,7z M7,18H4V9h3V18z M21,11l-3,7H9V8l4.34-4.34 L12,9h9V11z\"></path></svg></button><button class=\"devsite-thumb devsite-thumb-down\" data-title=\"도움이 되지 않음\" aria-label=\"도움이 되지 않음\"><svg class=\"devsite-thumb-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M3,17h6.31l-0.95,4.57l-0.03,0.32c0,0.41,0.17,0.79,0.44,1.06L9.83,24c0,0,7.09-6.85,7.17-7h5V4H6 C5.17,4,4.46,4.5,4.16,5.22l-3.02,7.05C1.05,12.5,1,12.74,1,13v2C1,16.1,1.9,17,3,17z M17,6h3v9h-3V6z M3,13l3-7h9v10l-4.34,4.34 L12,15H3V13z\"></path></svg></button></div></div></devsite-thumb-rating>\n  \n    \n  </div>\n  \n    <devsite-feedback position=\"header\" project-name=\"Cloud Architecture Center\" product-id=\"5313931\" bucket=\"Documentation\" context=\"\" version=\"t-devsite-webserver-20260205-r00-rc00.475300604671695351\" data-label=\"Send Feedback Button\" track-type=\"feedback\" track-name=\"sendFeedbackLink\" track-metadata-position=\"header\" class=\"nocontent\" project-icon=\"https://docs.cloud.google.com/_static/clouddocs/images/icons/cloud.svg?hl=ko\">\n\n  <button>\n  \n    \n    의견 보내기\n  \n  </button>\n</devsite-feedback>\n  \n    <h1 class=\"devsite-page-title\" tabindex=\"-1\">\n      Well-Architected Framework: 보안,<wbr> 개인 정보 보호,<wbr> 규정 준수 핵심 요소<devsite-actions data-nosnippet=\"\"><devsite-feature-tooltip ack-key=\"AckCollectionsBookmarkTooltipDismiss\" analytics-category=\"Site-Wide Custom Events\" analytics-action-show=\"Callout Profile displayed\" analytics-action-close=\"Callout Profile dismissed\" analytics-label=\"Create Collection Callout\" class=\"devsite-page-bookmark-tooltip nocontent inline-block\" dismiss-button=\"true\" id=\"devsite-collections-dropdown\" dismiss-button-text=\"닫기\" close-button-text=\"확인\" rendered=\"\" current-step=\"0\" style=\"--devsite-popout-offset-x: 32px;\">\n\n    \n    \n      <devsite-bookmark class=\"show\"><devsite-dropdown-list aria-label=\"Bookmark collections drop down\" role=\"listbox\" ellipsis=\"\" checkboxes=\"\" fetchingitems=\"true\" writable=\"\" additemtext=\"새 컬렉션\" rendered=\"\"><span data-label=\"devsite-bookmark-direct-action\" data-title=\"페이지 저장\" class=\"material-icons bookmark-icon bookmark-action\" slot=\"toggle\"></span><span data-label=\"devsite-bookmark-direct-action\" data-title=\"페이지 저장 해제\" hidden=\"\" class=\"material-icons bookmark-icon unbookmark-action toggled\" slot=\"toggle\"></span></devsite-dropdown-list></devsite-bookmark>\n    \n\n    <span slot=\"popout-heading\">\n      \n      컬렉션을 사용해 정리하기\n    </span>\n    <span slot=\"popout-contents\">\n      \n      내 환경설정을 기준으로 콘텐츠를 저장하고 분류하세요.<wbr>\n    </span>\n  </devsite-feature-tooltip><!----></devsite-actions>\n  \n      \n    </h1>\n  \n\n  <devsite-toc class=\"devsite-nav devsite-toc-embedded\" depth=\"2\" devsite-toc-embedded=\"\" visible=\"\"><ul class=\"devsite-nav-list\"><li class=\"devsite-nav-item devsite-nav-heading devsite-toc-toggle\"><span class=\"devsite-nav-title\" role=\"heading\" aria-level=\"2\"><span class=\"devsite-nav-text\">이 페이지의 내용</span></span><button type=\"button\" title=\"콘텐츠 펼치기/접기\" class=\"devsite-nav-show-all button-transparent material-icons\"></button></li><li class=\"devsite-nav-item\" visible=\"\"><a href=\"#core_principles\" class=\"devsite-nav-title gc-analytics-event\" data-category=\"Site-Wide Custom Events\" data-action=\"click\" data-label=\"Embedded nav\" data-value=\"0\" track-type=\"navigation\" track-name=\"embeddedNav\" track-metadata-position=\"0\" track-metadata-link-destination=\"#core_principles\"><span class=\"devsite-nav-text\" tooltip=\"\">핵심 원칙</span></a></li><li class=\"devsite-nav-item\" visible=\"\"><a href=\"#organizational_security_mindset\" class=\"devsite-nav-title gc-analytics-event\" data-category=\"Site-Wide Custom Events\" data-action=\"click\" data-label=\"Embedded nav\" data-value=\"1\" track-type=\"navigation\" track-name=\"embeddedNav\" track-metadata-position=\"1\" track-metadata-link-destination=\"#organizational_security_mindset\"><span class=\"devsite-nav-text\" tooltip=\"\">조직 보안 마인드셋</span></a></li><li class=\"devsite-nav-item\" visible=\"\"><a href=\"#focus_areas_of_cloud_security\" class=\"devsite-nav-title gc-analytics-event\" data-category=\"Site-Wide Custom Events\" data-action=\"click\" data-label=\"Embedded nav\" data-value=\"2\" track-type=\"navigation\" track-name=\"embeddedNav\" track-metadata-position=\"2\" track-metadata-link-destination=\"#focus_areas_of_cloud_security\"><span class=\"devsite-nav-text\" tooltip=\"\">클라우드 보안의 중점 분야</span></a></li><li class=\"devsite-nav-item\" visible=\"\"><a href=\"#contributors\" class=\"devsite-nav-title gc-analytics-event\" data-category=\"Site-Wide Custom Events\" data-action=\"click\" data-label=\"Embedded nav\" data-value=\"3\" track-type=\"navigation\" track-name=\"embeddedNav\" track-metadata-position=\"3\" track-metadata-link-destination=\"#contributors\"><span class=\"devsite-nav-text\" tooltip=\"\">참여자</span></a></li><li class=\"devsite-toc-toggle\"><button type=\"button\" class=\"button-flat devsite-nav-more-items material-icons\" track-type=\"navigation\" track-name=\"embeddedNavExpand\" title=\"콘텐츠 펼치기/접기\"></button></li></ul></devsite-toc>\n  \n    \n  <div class=\"devsite-article-body clearfix\n  \">\n\n  \n    <div class=\"last-reviewed\">Last reviewed 2025-02-05 UTC</div>\n    \n    \n    \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n<aside class=\"key-point noprint\">\n  보안, 개인 정보 보호, 규정 준수 부문의 콘텐츠를 단일 페이지에서 보거나 콘텐츠의 PDF 출력을 가져오려면 <a href=\"https://docs.cloud.google.com/architecture/framework/security/printable?hl=ko\" track-metadata-position=\"body\" track-name=\"internalLink\" track-type=\"bestPractices\">한 페이지에서 보기</a>를 참고하세요.\n</aside>\n\n\n\n<p><a href=\"https://docs.cloud.google.com/architecture/framework?hl=ko\" track-metadata-position=\"body\" track-name=\"internalLink\" track-type=\"solution\">Google Cloud 잘 설계된 프레임워크</a>의 보안, 개인 정보 보호, 규정 준수 요소에서는 보안, 개인 정보 보호, 규정 준수 요구사항을 충족하는 클라우드 워크로드를 설계, 배포, 운영하는 데 도움이 되는 권장사항을 제공합니다.</p>\n\n<p>이 문서는 다양한 보안 전문가와 엔지니어의 요구사항을 충족하고 유용한 통계를 제공하기 위해 작성되었습니다. 다음 표에는 이 문서의 대상이 설명되어 있습니다.</p>\n\n<div class=\"devsite-table-wrapper\"><table>\n  <thead>\n    <tr>\n      <th>대상</th>\n      <th>이 문서에서 제공하는 내용</th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <td>최고정보보안책임자 (CISO), 사업부 리더, IT 관리자</td>\n      <td>클라우드에서 보안 우수성을 확립하고 유지하며 보안 투자에 관한 정보에 입각한 결정을 내릴 수 있도록 보안 영역을 포괄적으로 파악하기 위한 일반적인 프레임워크입니다.</td>\n    </tr>\n    <tr>\n      <td>보안 설계자 및 엔지니어</td>\n      <td>설계 및 운영 단계에서 솔루션이 보안, 효율성, 확장성을 갖도록 설계하는 데 도움이 되는 주요 보안 관행</td>\n    </tr>\n    <tr>\n      <td>DevSecOps 팀</td>\n      <td>안전하고 안정적인 인프라를 지원하는 자동화를 계획하기 위해 전반적인 보안 제어를 통합하는 방법에 관한 안내</td>\n    </tr>\n    <tr>\n      <td>규정 준수 담당자 및 위험 관리자</td>\n      <td>규정 준수 의무를 충족하는 데 도움이 되는 보호 장치를 사용하여 위험 관리에 구조화된 접근 방식을 따르기 위한 주요 보안 권장사항</td>\n    </tr>\n  </tbody>\n</table></div>\n\n<p> Google Cloud 워크로드가 보안, 개인 정보 보호, 규정 준수 요구사항을 충족하도록 하려면 조직의 모든 이해관계자가 공동작업 접근 방식을 채택해야 합니다. 또한 클라우드 보안은 사용자와 Google의 공동 책임임을 인식해야 합니다. 자세한 내용은 <a href=\"https://docs.cloud.google.com/architecture/framework/security/shared-responsibility-shared-fate?hl=ko\" track-metadata-position=\"body\" track-name=\"internalLink\" track-type=\"solution\"> Google Cloud의 책임 공유 및 공통된 운명</a>을 참고하세요.</p>\n\n<p>이 영역의 권장사항은 핵심 보안 원칙으로 그룹화됩니다.\n각 원칙 기반 권장사항은 조직에 중요한 <a href=\"#focus_areas_of_cloud_security\" track-metadata-position=\"body\" track-name=\"internalLink\" track-type=\"solution\">클라우드 보안의 중점 분야</a> 하나 이상에 매핑됩니다. 각 추천에서는 조직의 보안 상태를 개선하는 데 도움이 되는Google Cloud 제품 및 기능의 사용 및 구성에 관한 안내를 강조합니다.</p>\n\n<h2 data-text=\"핵심 원칙\" id=\"core_principles\" tabindex=\"-1\" role=\"presentation\"><span class=\"devsite-heading\" role=\"heading\" aria-level=\"2\">핵심 원칙</span><button type=\"button\" class=\"devsite-heading-link button-flat material-icons\" aria-label=\"이 섹션에 대한 링크 복사. 핵심 원칙\" data-title=\"이 섹션에 대한 링크 복사. 핵심 원칙\" data-id=\"core_principles\"></button></h2>\n\n<p>이 핵심 요소의 권장사항은 다음 보안 핵심 원칙 내에 그룹화되어 있습니다. 이 원칙의 모든 요소는 중요합니다. 조직 및 워크로드의 요구사항에 따라 특정 원칙의 우선순위를 지정할 수 있습니다.</p>\n\n<ul>\n<li><a href=\"https://docs.cloud.google.com/architecture/framework/security/implement-security-by-design?hl=ko\" track-metadata-position=\"body\" track-name=\"internalLink\" track-type=\"solution\">보안 내재화 설계 구현</a>: 애플리케이션 및 인프라의 초기 설계 단계부터 클라우드 보안 및 네트워크 보안 고려사항을 통합합니다.Google Cloud 에서는 이 원칙을 적용하는 데 도움이 되는 아키텍처 청사진과 권장사항을 제공합니다.</li>\n<li><a href=\"https://docs.cloud.google.com/architecture/framework/security/implement-zero-trust?hl=ko\" track-metadata-position=\"body\" track-name=\"internalLink\" track-type=\"solution\">제로 트러스트 구현</a>: 리소스에 대한 액세스 권한이 신뢰의 지속적인 확인을 기반으로 부여되는 <em>절대 신뢰하지 말고 항상 확인할 것</em> 접근 방식을 사용합니다. Google Cloud는 Chrome Enterprise Premium 및 IAP (Identity-Aware Proxy)와 같은 제품을 통해 이 원칙을 지원합니다.</li>\n<li><a href=\"https://docs.cloud.google.com/architecture/framework/security/implement-shift-left-security?hl=ko\" track-metadata-position=\"body\" track-name=\"internalLink\" track-type=\"solution\">시프트-레프트 보안 구현</a>: 소프트웨어 개발 수명 주기 초기에 보안 제어를 구현합니다.\n시스템 변경사항이 적용되기 전에 보안 결함을 방지합니다. 시스템 변경사항이 커밋된 후 보안 버그를 초기에, 빠르게, 안정적으로 감지하고 수정합니다. Google Cloud 는 Cloud Build, Binary Authorization, Artifact Registry와 같은 제품을 통해 이 원칙을 지원합니다.</li>\n<li><a href=\"https://docs.cloud.google.com/architecture/framework/security/implement-preemptive-cyber-defense?hl=ko\" track-metadata-position=\"body\" track-name=\"internalLink\" track-type=\"solution\">선점형 사이버 방어 구현</a>:\n위협 인텔리전스와 같은 강력한 기본 조치를 구현하여 보안에 대한 선제적 접근 방식을 채택합니다. 이 접근 방식을 사용하면 더 효과적인 위협 감지 및 대응을 위한 기반을 구축할 수 있습니다.\nGoogle Cloud의 <a href=\"https://docs.cloud.google.com/docs/security/overview/whitepaper?hl=ko#technology_with_security_at_its_core\" track-metadata-position=\"body\" track-name=\"internalLink\" track-type=\"solution\">계층화된 보안 제어 접근 방식</a>은 이 원칙과 일치합니다.</li>\n<li><a href=\"https://docs.cloud.google.com/architecture/framework/security/use-ai-securely-and-responsibly?hl=ko\" track-metadata-position=\"body\" track-name=\"internalLink\" track-type=\"solution\">안전하고 책임감 있는 AI 사용</a>: 책임감 있고 안전한 방식으로 AI 시스템을 개발하고 배포합니다. 이 원칙에 대한 권장사항은 Well-Architected Framework의 <a href=\"https://docs.cloud.google.com/architecture/framework/perspectives/ai-ml?hl=ko\" track-metadata-position=\"body\" track-name=\"internalLink\" track-type=\"solution\">AI 및 ML 관점</a>과 Google의 <a href=\"https://saif.google?hl=ko\" track-metadata-position=\"body\" track-name=\"externalLink\" track-type=\"solution\">안전한 AI 프레임워크 (SAIF)</a>의 안내와 일치합니다.</li>\n<li><a href=\"https://docs.cloud.google.com/architecture/framework/security/use-ai-for-security?hl=ko\" track-metadata-position=\"body\" track-name=\"internalLink\" track-type=\"solution\">보안을 위해 AI 사용</a>: AI 기능을 사용하여 <a href=\"https://cloud.google.com/security/ai?hl=ko\" track-metadata-position=\"body\" track-name=\"internalLink\" track-type=\"solution\">Gemini in Security</a> 및 전반적인 플랫폼 보안 기능을 통해 기존 보안 시스템과 프로세스를 개선합니다. AI를 도구로 사용하여 수정 작업의 자동화를 늘리고 보안 위생을 보장하여 다른 시스템의 보안을 강화하세요.</li>\n<li><a href=\"https://docs.cloud.google.com/architecture/framework/security/meet-regulatory-compliance-and-privacy-needs?hl=ko\" track-metadata-position=\"body\" track-name=\"internalLink\" track-type=\"solution\">규제, 규정 준수, 개인 정보 보호 요구사항 충족</a>:\n업계별 규정, 규정 준수 표준, 개인 정보 보호 요구사항을 준수하세요. Google Cloud Assured Workloads, 조직 정책 서비스, <a href=\"https://cloud.google.com/security/compliance/?hl=ko\" track-metadata-position=\"body\" track-name=\"internalLink\" track-type=\"solution\">규정 준수 리소스 센터</a>와 같은 제품을 통해 이러한 의무를 준수할 수 있습니다.</li>\n</ul>\n\n<h2 data-text=\"조직 보안 마인드셋\" id=\"organizational_security_mindset\" tabindex=\"-1\">조직 보안 마인드셋</h2>\n\n<p>성공적인 클라우드 도입 및 운영을 위해서는 보안 중심의 조직적 사고방식이 중요합니다. 이러한 사고방식은 조직의 문화에 깊이 뿌리내려야 하며, 앞서 설명한 핵심 보안 원칙에 따라 안내되는 관행에 반영되어야 합니다.</p>\n\n<p>조직의 보안 마인드는 시스템 설계 중에 보안을 고려하고, 제로 트러스트를 가정하며, 개발 프로세스 전반에 보안 기능을 통합하는 것을 강조합니다. 이러한 사고방식에서는 사이버 방어 조치에 대해 사전 대응적으로 생각하고, 보안을 위해 안전하게 AI를 사용하며, 규제, 개인 정보 보호, 규정 준수 요구사항을 고려합니다. 이러한 원칙을 수용하면 조직에서 위협에 선제적으로 대처하고, 가치 있는 애셋을 보호하며, 책임감 있는 기술 사용을 보장하는 보안 우선 문화를 조성할 수 있습니다.</p>\n\n<h2 data-text=\"클라우드 보안의 중점 분야\" id=\"focus_areas_of_cloud_security\" tabindex=\"-1\">클라우드 보안의 중점 분야</h2>\n\n<p>이 섹션에서는 애플리케이션, 시스템, 데이터의 보안을 계획, 구현, 관리할 때 집중해야 하는 영역을 설명합니다. 이 필라의 각 원칙에 있는 권장사항은 이러한 중점 분야 중 하나 이상과 관련이 있습니다. 이 문서의 나머지 부분에서는 명확성과 맥락을 더하기 위해 권장사항에 해당하는 보안 중점 영역을 명시합니다.</p>\n\n<div class=\"devsite-table-wrapper\"><table>\n  <thead>\n    <tr>\n      <th><strong>초점 영역</strong></th>\n      <th><strong>활동 및 구성요소</strong></th>\n      <th><strong>관련 Google Cloud 제품, 기능, 솔루션</strong></th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <td>인프라 보안</td>\n      <td><ul>\n        <li>안전한 네트워크 인프라</li>\n        <li>전송 중인 데이터와 미사용 데이터를 암호화합니다.</li>\n        <li>트래픽 흐름을 제어합니다.</li>\n        <li>IaaS 및 PaaS 서비스를 보호합니다.</li>\n        <li>무단 액세스로부터 보호</li>\n      </ul></td>\n      <td><ul>\n        <li><a href=\"https://docs.cloud.google.com/firewall/docs/firewall-policies-overview?hl=ko\">방화벽 정책</a></li>\n        <li><a href=\"https://docs.cloud.google.com/vpc-service-controls/docs/overview?hl=ko\">VPC 서비스 제어</a></li>\n        <li><a href=\"https://docs.cloud.google.com/armor/docs/cloud-armor-overview?hl=ko\">Google Cloud Armor</a></li>\n        <li><a href=\"https://docs.cloud.google.com/firewall/docs/about-firewalls?hl=ko\">Cloud Next Generation Firewall</a></li>\n        <li><a href=\"https://docs.cloud.google.com/secure-web-proxy/docs/overview?hl=ko\">보안 웹 프록시</a></li>\n      </ul></td>\n    </tr>\n    <tr>\n      <td>ID 및 액세스 관리</td>\n      <td><ul>\n        <li>인증, 승인, 액세스 제어를 사용합니다.</li>\n        <li>클라우드 ID를 관리합니다.</li>\n        <li>ID 및 액세스 관리 정책을 관리합니다.</li>\n      </ul></td>\n      <td><ul>\n        <li><a href=\"https://docs.cloud.google.com/identity/docs/overview?hl=ko\">Cloud ID</a></li>\n        <li><a href=\"https://docs.cloud.google.com/iam/docs/overview?hl=ko\">Google의 Identity and Access Management (IAM) 서비스</a></li>\n        <li><a href=\"https://docs.cloud.google.com/iam/docs/workforce-identity-federation?hl=ko\">직원 ID 제휴</a></li>\n        <li><a href=\"https://docs.cloud.google.com/iam/docs/workload-identity-federation?hl=ko\">워크로드 아이덴티티 제휴</a></li>\n      </ul></td>\n    </tr>\n    <tr>\n      <td>데이터 보안</td>\n      <td><ul>\n        <li> Google Cloud 에 데이터를 안전하게 저장합니다.</li>\n        <li>데이터 액세스 제어</li>\n        <li>데이터를 검색하고 분류합니다.</li>\n        <li>암호화, 액세스 제어, 데이터 손실 방지와 같은 필요한 제어를 설계합니다.</li>\n        <li>저장, 전송, 사용 중인 데이터를 보호합니다.</li>\n      </ul></td>\n      <td><ul>\n        <li><a href=\"https://docs.cloud.google.com/iam/docs/overview?hl=ko\">Google의 IAM 서비스</a></li>\n        <li><a href=\"https://docs.cloud.google.com/sensitive-data-protection/docs/sensitive-data-protection-overview?hl=ko\">Sensitive Data Protection</a></li>\n        <li><a href=\"https://docs.cloud.google.com/vpc-service-controls/docs/overview?hl=ko\">VPC 서비스 제어</a></li>\n        <li><a href=\"https://docs.cloud.google.com/kms/docs/key-management-service?hl=ko\">Cloud KMS</a></li>\n        <li><a href=\"https://docs.cloud.google.com/confidential-computing/docs/confidential-computing-overview?hl=ko\">컨피덴셜 컴퓨팅</a></li>\n      </ul></td>\n    </tr>\n    <tr>\n      <td>AI 및 ML 보안</td>\n      <td><ul>\n        <li>AI 및 ML 인프라와 파이프라인의 여러 계층에서 보안 제어를 적용합니다.</li>\n        <li>모델 안전성 보장</li>\n      </ul></td>\n      <td><ul>\n        <li><a href=\"https://saif.google/?hl=ko\">Google의 SAIF</a></li>\n        <li><a href=\"https://docs.cloud.google.com/security-command-center/docs/model-armor-overview?hl=ko\">Model Armor</a></li>\n      </ul></td>\n    </tr>\n    <tr>\n      <td>보안 운영 (SecOps)</td>\n      <td><ul>\n        <li>효과적인 사고 관리, 위협 감지, 대응 프로세스를 위해 최신 SecOps 플랫폼과 관행을 도입하세요.</li>\n        <li>보안 이벤트를 위해 시스템과 애플리케이션을 지속적으로 모니터링합니다.</li>\n      </ul></td>\n      <td><ul>\n        <li><a href=\"https://docs.cloud.google.com/chronicle/docs/secops/secops-overview?hl=ko\">Google Security Operations</a></li>\n      </ul></td>\n    </tr>\n    <tr>\n      <td>애플리케이션 보안</td>\n      <td><ul>\n        <li>소프트웨어 취약점 및 공격으로부터 애플리케이션을 보호합니다.</li>\n      </ul></td>\n      <td><ul>\n        <li><a href=\"https://docs.cloud.google.com/artifact-registry/docs/overview?hl=ko\">Artifact Registry</a></li>\n        <li><a href=\"https://docs.cloud.google.com/artifact-analysis/docs/artifact-analysis?hl=ko\">Artifact Analysis</a></li>\n        <li><a href=\"https://docs.cloud.google.com/binary-authorization/docs/overview?hl=ko\">Binary Authorization</a></li>\n        <li><a href=\"https://docs.cloud.google.com/assured-open-source-software/docs/overview?hl=ko\">Assured Open Source Software</a></li>\n        <li><a href=\"https://docs.cloud.google.com/armor/docs/cloud-armor-overview?hl=ko\">Google Cloud Armor</a></li>\n        <li><a href=\"https://docs.cloud.google.com/security-command-center/docs/concepts-web-security-scanner-overview?hl=ko\">Web Security Scanner</a></li>\n      </ul></td>\n    </tr>\n    <tr>\n      <td>클라우드 거버넌스, 위험 및 규정 준수</td>\n      <td><ul>\n        <li>클라우드 리소스를 효과적이고 안전하게 관리하기 위한 정책, 절차, 제어를 수립합니다.</li>\n      </ul></td>\n      <td><ul>\n        <li><a href=\"https://docs.cloud.google.com/resource-manager/docs/organization-policy/overview?hl=ko\">조직 정책 서비스</a></li>\n        <li><a href=\"https://docs.cloud.google.com/asset-inventory/docs/asset-inventory-overview?hl=ko\">Cloud 애셋 인벤토리</a></li>\n        <li><a href=\"https://docs.cloud.google.com/security-command-center/docs/security-command-center-overview?hl=ko\">Security Command Center\n        Enterprise</a></li>\n        <li><a href=\"https://docs.cloud.google.com/resource-manager/docs?hl=ko\">Resource Manager</a></li>\n      </ul></td>\n    </tr>\n    <tr>\n      <td>로깅, 감사, 모니터링</td>\n      <td><ul>\n        <li>로그를 분석하여 잠재적인 위협을 식별합니다.</li>\n        <li>규정 준수 및 보안 분석을 위해 시스템 활동을 추적하고 기록합니다.</li>\n      </ul></td>\n      <td><ul>\n        <li><a href=\"https://docs.cloud.google.com/logging/docs/overview?hl=ko\">Cloud Logging</a></li>\n        <li><a href=\"https://docs.cloud.google.com/monitoring/docs/monitoring-overview?hl=ko\">Cloud Monitoring</a></li>\n        <li><a href=\"https://docs.cloud.google.com/logging/docs/audit?hl=ko\">Cloud 감사 로그</a></li>\n        <li><a href=\"https://docs.cloud.google.com/vpc/docs/flow-logs?hl=ko\">VPC 흐름 로그</a></li>\n      </ul></td>\n    </tr>\n  </tbody>\n</table></div>\n\n\n\n\n\n\n\n<h2 data-text=\"참여자\" id=\"contributors\" tabindex=\"-1\">참여자</h2><p>저자:\n        </p><ul><li><a href=\"https://www.linkedin.com/in/wholmes\" track-metadata-position=\"body\" track-name=\"externalLink\" track-type=\"solution\">웨이드 홈즈</a> | 글로벌 솔루션 디렉터</li><li><a href=\"https://www.linkedin.com/in/hectorgdiaz\" track-metadata-position=\"body\" track-name=\"externalLink\" track-type=\"solution\">헥터 디아즈</a> | 클라우드 보안 설계자</li><li>카를로스 레오나르도 로사리오 | Google Cloud 보안 전문가</li><li><a href=\"https://www.linkedin.com/in/johnbac/\" track-metadata-position=\"body\" track-name=\"externalLink\" track-type=\"solution\">존 베이컨</a> | 파트너 솔루션 설계자</li><li><a href=\"http://www.linkedin.com/in/thesachinkalra\" track-metadata-position=\"body\" track-name=\"externalLink\" track-type=\"solution\">사친 칼라</a> | 글로벌 보안 솔루션 관리자</li></ul><p></p><p>기타 참여자:\n          </p><ul><li><a href=\"https://www.linkedin.com/in/chuvakin/\" track-metadata-position=\"body\" track-name=\"externalLink\" track-type=\"solution\">안톤 슈바킨</a> | CISO실 보안 자문 담당자</li><li><a href=\"https://www.linkedin.com/in/daniellees\" track-metadata-position=\"body\" track-name=\"externalLink\" track-type=\"solution\">다니엘 리</a> | 클라우드 보안 설계자</li><li><a href=\"https://www.linkedin.com/in/filipegracio\" track-metadata-position=\"body\" track-name=\"externalLink\" track-type=\"solution\">필리페 그라시오, 박사</a> | 고객 엔지니어, AI/ML 전문가</li><li><a href=\"https://www.linkedin.com/in/garyharmson\" track-metadata-position=\"body\" track-name=\"externalLink\" track-type=\"solution\">게리 하름슨</a> | 수석 설계자</li><li><a href=\"https://www.linkedin.com/in/gino-pelliccia-13637025\" track-metadata-position=\"body\" track-name=\"externalLink\" track-type=\"solution\">지노 펠리치아</a> | 수석 설계자</li><li><a href=\"https://www.linkedin.com/in/jmandrade\" track-metadata-position=\"body\" track-name=\"externalLink\" track-type=\"solution\">호세 안드라데</a> | 고객 엔지니어, SRE 전문가</li><li>저자: <a href=\"https://www.linkedin.com/in/kumardhanagopal\" track-metadata-position=\"body\" track-name=\"externalLink\" track-type=\"solution\">쿠마르 다나고팔</a> | 크로스 프로덕트 솔루션 개발자</li><li><a href=\"https://www.linkedin.com/in/laura-hyatt\" track-metadata-position=\"body\" track-name=\"externalLink\" track-type=\"solution\">로라 하얏트</a> | 고객 엔지니어, FSI</li><li><a href=\"https://www.linkedin.com/in/marwanalshawi\" track-metadata-position=\"body\" track-name=\"externalLink\" track-type=\"solution\">마르완 알 샤위</a> | 파트너 고객 엔지니어</li><li><a href=\"https://www.linkedin.com/in/nicolaspintaux\" track-metadata-position=\"body\" track-name=\"externalLink\" track-type=\"solution\">니콜라스 핀토</a> | 고객 엔지니어, 애플리케이션 현대화 전문가</li><li><a href=\"https://www.linkedin.com/in/noah-mcdonald-77b04a173\" track-metadata-position=\"body\" track-name=\"externalLink\" track-type=\"solution\">노아 맥도널드</a> | 클라우드 보안 컨설턴트</li><li><a href=\"https://www.linkedin.com/in/osvaldocostajr\" track-metadata-position=\"body\" track-name=\"externalLink\" track-type=\"solution\">Osvaldo Costa</a> | 네트워킹 전문 고객 엔지니어</li><li><a href=\"https://www.linkedin.com/in/radhika-kanakam-18ab876\" track-metadata-position=\"body\" track-name=\"externalLink\" track-type=\"solution\">라디카 카나캄</a> | 프로그램 리드, Google Cloud Well-Architected Framework</li><li><a href=\"https://www.linkedin.com/in/samantha-he-05a98173\" track-metadata-position=\"body\" track-name=\"externalLink\" track-type=\"solution\">사만다 헤</a> | 테크니컬 라이터</li><li><a href=\"https://www.linkedin.com/in/susanwu88\" track-metadata-position=\"body\" track-name=\"externalLink\" track-type=\"solution\">Susan Wu</a> | 아웃바운드 제품 관리자</li></ul><p></p>\n\n  \n  \n\n  \n    <devsite-hats-survey class=\"nocontent\" hats-id=\"Nd7nTix2o0eU5NUYprb0ThtUc5jf\" listnr-id=\"83405\"></devsite-hats-survey>\n  \n\n  \n</div>\n    <div class=\"devsite-steps\">\n  \n  \n  <div class=\"steps-next steps-direction\">\n    <a href=\"https://docs.cloud.google.com/architecture/framework/security/implement-security-by-design?hl=ko\" class=\"steps-link gc-analytics-event\" data-category=\"Site-Wide Custom Events\" data-action=\"Next step\" data-label=\"/architecture/framework/security/implement-security-by-design\">\n      \n      <div class=\"steps-link-direction\">다음</div>\n      <span class=\"steps-link-title-next steps-link-title\">\n        보안 내재화 설계 구현\n      </span>\n      <span class=\"steps-link-arrow steps-link-arrow-right material-icons\" aria-hidden=\"true\">\n        arrow_forward\n      </span>\n    </a>\n  </div>\n  \n</div>\n  \n\n  \n    \n    \n      \n    <devsite-thumb-rating position=\"footer\"><div class=\"devsite-thumb-rating\" role=\"form\" aria-labelledby=\"devsite-thumb-label-footer\"><div class=\"devsite-thumb-label\" id=\"devsite-thumb-label-footer\">도움이 되었나요?</div><div class=\"devsite-thumbs\"><button class=\"devsite-thumb devsite-thumb-up\" data-title=\"도움이 됨\" aria-label=\"도움이 됨\"><svg class=\"devsite-thumb-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M21,7h-6.31l0.95-4.57l0.03-0.32c0-0.41-0.17-0.79-0.44-1.06L14.17,0c0,0-7.09,6.85-7.17,7H2v13h16 c0.83,0,1.54-0.5,1.84-1.22l3.02-7.05C22.95,11.5,23,11.26,23,11V9C23,7.9,22.1,7,21,7z M7,18H4V9h3V18z M21,11l-3,7H9V8l4.34-4.34 L12,9h9V11z\"></path></svg></button><button class=\"devsite-thumb devsite-thumb-down\" data-title=\"도움이 되지 않음\" aria-label=\"도움이 되지 않음\"><svg class=\"devsite-thumb-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M3,17h6.31l-0.95,4.57l-0.03,0.32c0,0.41,0.17,0.79,0.44,1.06L9.83,24c0,0,7.09-6.85,7.17-7h5V4H6 C5.17,4,4.46,4.5,4.16,5.22l-3.02,7.05C1.05,12.5,1,12.74,1,13v2C1,16.1,1.9,17,3,17z M17,6h3v9h-3V6z M3,13l3-7h9v10l-4.34,4.34 L12,15H3V13z\"></path></svg></button></div></div></devsite-thumb-rating>\n  \n       \n         <devsite-feedback position=\"footer\" project-name=\"Cloud Architecture Center\" product-id=\"5313931\" bucket=\"Documentation\" context=\"\" version=\"t-devsite-webserver-20260205-r00-rc00.475300604671695351\" data-label=\"Send Feedback Button\" track-type=\"feedback\" track-name=\"sendFeedbackLink\" track-metadata-position=\"footer\" class=\"nocontent\" project-icon=\"https://docs.cloud.google.com/_static/clouddocs/images/icons/cloud.svg?hl=ko\">\n\n  <button>\n  \n    \n    의견 보내기\n  \n  </button>\n</devsite-feedback>\n       \n    \n    \n  \n\n  <div class=\"devsite-floating-action-buttons\"></div>",
+    "text": "Home\nDocumentation\nCloud Architecture Center\n도움이 되었나요?\n의견 보내기\nWell-Architected Framework: 보안,\n개인 정보 보호,\n규정 준수 핵심 요소\n컬렉션을 사용해 정리하기\n내 환경설정을 기준으로 콘텐츠를 저장하고 분류하세요.\n이 페이지의 내용\n핵심 원칙\n조직 보안 마인드셋\n클라우드 보안의 중점 분야\n참여자\nLast reviewed 2025-02-05 UTC\n보안, 개인 정보 보호, 규정 준수 부문의 콘텐츠를 단일 페이지에서 보거나 콘텐츠의 PDF 출력을 가져오려면\n한 페이지에서 보기\n를 참고하세요.\nGoogle Cloud 잘 설계된 프레임워크\n의 보안, 개인 정보 보호, 규정 준수 요소에서는 보안, 개인 정보 보호, 규정 준수 요구사항을 충족하는 클라우드 워크로드를 설계, 배포, 운영하는 데 도움이 되는 권장사항을 제공합니다.\n이 문서는 다양한 보안 전문가와 엔지니어의 요구사항을 충족하고 유용한 통계를 제공하기 위해 작성되었습니다. 다음 표에는 이 문서의 대상이 설명되어 있습니다.\n대상\n이 문서에서 제공하는 내용\n최고정보보안책임자 (CISO), 사업부 리더, IT 관리자\n클라우드에서 보안 우수성을 확립하고 유지하며 보안 투자에 관한 정보에 입각한 결정을 내릴 수 있도록 보안 영역을 포괄적으로 파악하기 위한 일반적인 프레임워크입니다.\n보안 설계자 및 엔지니어\n설계 및 운영 단계에서 솔루션이 보안, 효율성, 확장성을 갖도록 설계하는 데 도움이 되는 주요 보안 관행\nDevSecOps 팀\n안전하고 안정적인 인프라를 지원하는 자동화를 계획하기 위해 전반적인 보안 제어를 통합하는 방법에 관한 안내\n규정 준수 담당자 및 위험 관리자\n규정 준수 의무를 충족하는 데 도움이 되는 보호 장치를 사용하여 위험 관리에 구조화된 접근 방식을 따르기 위한 주요 보안 권장사항\nGoogle Cloud 워크로드가 보안, 개인 정보 보호, 규정 준수 요구사항을 충족하도록 하려면 조직의 모든 이해관계자가 공동작업 접근 방식을 채택해야 합니다. 또한 클라우드 보안은 사용자와 Google의 공동 책임임을 인식해야 합니다. 자세한 내용은\nGoogle Cloud의 책임 공유 및 공통된 운명\n을 참고하세요.\n이 영역의 권장사항은 핵심 보안 원칙으로 그룹화됩니다.\n각 원칙 기반 권장사항은 조직에 중요한\n클라우드 보안의 중점 분야\n하나 이상에 매핑됩니다. 각 추천에서는 조직의 보안 상태를 개선하는 데 도움이 되는Google Cloud 제품 및 기능의 사용 및 구성에 관한 안내를 강조합니다.\n핵심 원칙\n이 핵심 요소의 권장사항은 다음 보안 핵심 원칙 내에 그룹화되어 있습니다. 이 원칙의 모든 요소는 중요합니다. 조직 및 워크로드의 요구사항에 따라 특정 원칙의 우선순위를 지정할 수 있습니다.\n보안 내재화 설계 구현\n: 애플리케이션 및 인프라의 초기 설계 단계부터 클라우드 보안 및 네트워크 보안 고려사항을 통합합니다.Google Cloud 에서는 이 원칙을 적용하는 데 도움이 되는 아키텍처 청사진과 권장사항을 제공합니다.\n제로 트러스트 구현\n: 리소스에 대한 액세스 권한이 신뢰의 지속적인 확인을 기반으로 부여되는\n절대 신뢰하지 말고 항상 확인할 것\n접근 방식을 사용합니다. Google Cloud는 Chrome Enterprise Premium 및 IAP (Identity-Aware Proxy)와 같은 제품을 통해 이 원칙을 지원합니다.\n시프트-레프트 보안 구현\n: 소프트웨어 개발 수명 주기 초기에 보안 제어를 구현합니다.\n시스템 변경사항이 적용되기 전에 보안 결함을 방지합니다. 시스템 변경사항이 커밋된 후 보안 버그를 초기에, 빠르게, 안정적으로 감지하고 수정합니다. Google Cloud 는 Cloud Build, Binary Authorization, Artifact Registry와 같은 제품을 통해 이 원칙을 지원합니다.\n선점형 사이버 방어 구현\n:\n위협 인텔리전스와 같은 강력한 기본 조치를 구현하여 보안에 대한 선제적 접근 방식을 채택합니다. 이 접근 방식을 사용하면 더 효과적인 위협 감지 및 대응을 위한 기반을 구축할 수 있습니다.\nGoogle Cloud의\n계층화된 보안 제어 접근 방식\n은 이 원칙과 일치합니다.\n안전하고 책임감 있는 AI 사용\n: 책임감 있고 안전한 방식으로 AI 시스템을 개발하고 배포합니다. 이 원칙에 대한 권장사항은 Well-Architected Framework의\nAI 및 ML 관점\n과 Google의\n안전한 AI 프레임워크 (SAIF)\n의 안내와 일치합니다.\n보안을 위해 AI 사용\n: AI 기능을 사용하여\nGemini in Security\n및 전반적인 플랫폼 보안 기능을 통해 기존 보안 시스템과 프로세스를 개선합니다. AI를 도구로 사용하여 수정 작업의 자동화를 늘리고 보안 위생을 보장하여 다른 시스템의 보안을 강화하세요.\n규제, 규정 준수, 개인 정보 보호 요구사항 충족\n:\n업계별 규정, 규정 준수 표준, 개인 정보 보호 요구사항을 준수하세요. Google Cloud Assured Workloads, 조직 정책 서비스,\n규정 준수 리소스 센터\n와 같은 제품을 통해 이러한 의무를 준수할 수 있습니다.\n조직 보안 마인드셋\n성공적인 클라우드 도입 및 운영을 위해서는 보안 중심의 조직적 사고방식이 중요합니다. 이러한 사고방식은 조직의 문화에 깊이 뿌리내려야 하며, 앞서 설명한 핵심 보안 원칙에 따라 안내되는 관행에 반영되어야 합니다.\n조직의 보안 마인드는 시스템 설계 중에 보안을 고려하고, 제로 트러스트를 가정하며, 개발 프로세스 전반에 보안 기능을 통합하는 것을 강조합니다. 이러한 사고방식에서는 사이버 방어 조치에 대해 사전 대응적으로 생각하고, 보안을 위해 안전하게 AI를 사용하며, 규제, 개인 정보 보호, 규정 준수 요구사항을 고려합니다. 이러한 원칙을 수용하면 조직에서 위협에 선제적으로 대처하고, 가치 있는 애셋을 보호하며, 책임감 있는 기술 사용을 보장하는 보안 우선 문화를 조성할 수 있습니다.\n클라우드 보안의 중점 분야\n이 섹션에서는 애플리케이션, 시스템, 데이터의 보안을 계획, 구현, 관리할 때 집중해야 하는 영역을 설명합니다. 이 필라의 각 원칙에 있는 권장사항은 이러한 중점 분야 중 하나 이상과 관련이 있습니다. 이 문서의 나머지 부분에서는 명확성과 맥락을 더하기 위해 권장사항에 해당하는 보안 중점 영역을 명시합니다.\n초점 영역\n활동 및 구성요소\n관련 Google Cloud 제품, 기능, 솔루션\n인프라 보안\n안전한 네트워크 인프라\n전송 중인 데이터와 미사용 데이터를 암호화합니다.\n트래픽 흐름을 제어합니다.\nIaaS 및 PaaS 서비스를 보호합니다.\n무단 액세스로부터 보호\n방화벽 정책\nVPC 서비스 제어\nGoogle Cloud Armor\nCloud Next Generation Firewall\n보안 웹 프록시\nID 및 액세스 관리\n인증, 승인, 액세스 제어를 사용합니다.\n클라우드 ID를 관리합니다.\nID 및 액세스 관리 정책을 관리합니다.\nCloud ID\nGoogle의 Identity and Access Management (IAM) 서비스\n직원 ID 제휴\n워크로드 아이덴티티 제휴\n데이터 보안\nGoogle Cloud 에 데이터를 안전하게 저장합니다.\n데이터 액세스 제어\n데이터를 검색하고 분류합니다.\n암호화, 액세스 제어, 데이터 손실 방지와 같은 필요한 제어를 설계합니다.\n저장, 전송, 사용 중인 데이터를 보호합니다.\nGoogle의 IAM 서비스\nSensitive Data Protection\nVPC 서비스 제어\nCloud KMS\n컨피덴셜 컴퓨팅\nAI 및 ML 보안\nAI 및 ML 인프라와 파이프라인의 여러 계층에서 보안 제어를 적용합니다.\n모델 안전성 보장\nGoogle의 SAIF\nModel Armor\n보안 운영 (SecOps)\n효과적인 사고 관리, 위협 감지, 대응 프로세스를 위해 최신 SecOps 플랫폼과 관행을 도입하세요.\n보안 이벤트를 위해 시스템과 애플리케이션을 지속적으로 모니터링합니다.\nGoogle Security Operations\n애플리케이션 보안\n소프트웨어 취약점 및 공격으로부터 애플리케이션을 보호합니다.\nArtifact Registry\nArtifact Analysis\nBinary Authorization\nAssured Open Source Software\nGoogle Cloud Armor\nWeb Security Scanner\n클라우드 거버넌스, 위험 및 규정 준수\n클라우드 리소스를 효과적이고 안전하게 관리하기 위한 정책, 절차, 제어를 수립합니다.\n조직 정책 서비스\nCloud 애셋 인벤토리\nSecurity Command Center\n        Enterprise\nResource Manager\n로깅, 감사, 모니터링\n로그를 분석하여 잠재적인 위협을 식별합니다.\n규정 준수 및 보안 분석을 위해 시스템 활동을 추적하고 기록합니다.\nCloud Logging\nCloud Monitoring\nCloud 감사 로그\nVPC 흐름 로그\n참여자\n저자:\n웨이드 홈즈\n| 글로벌 솔루션 디렉터\n헥터 디아즈\n| 클라우드 보안 설계자\n카를로스 레오나르도 로사리오 | Google Cloud 보안 전문가\n존 베이컨\n| 파트너 솔루션 설계자\n사친 칼라\n| 글로벌 보안 솔루션 관리자\n기타 참여자:\n안톤 슈바킨\n| CISO실 보안 자문 담당자\n다니엘 리\n| 클라우드 보안 설계자\n필리페 그라시오, 박사\n| 고객 엔지니어, AI/ML 전문가\n게리 하름슨\n| 수석 설계자\n지노 펠리치아\n| 수석 설계자\n호세 안드라데\n| 고객 엔지니어, SRE 전문가\n저자:\n쿠마르 다나고팔\n| 크로스 프로덕트 솔루션 개발자\n로라 하얏트\n| 고객 엔지니어, FSI\n마르완 알 샤위\n| 파트너 고객 엔지니어\n니콜라스 핀토\n| 고객 엔지니어, 애플리케이션 현대화 전문가\n노아 맥도널드\n| 클라우드 보안 컨설턴트\nOsvaldo Costa\n| 네트워킹 전문 고객 엔지니어\n라디카 카나캄\n| 프로그램 리드, Google Cloud Well-Architected Framework\n사만다 헤\n| 테크니컬 라이터\nSusan Wu\n| 아웃바운드 제품 관리자\n다음\n보안 내재화 설계 구현\narrow_forward\n도움이 되었나요?\n의견 보내기",
+    "headings": [
+      {
+        "level": "h1",
+        "text": "Well-Architected Framework: 보안,개인 정보 보호,규정 준수 핵심 요소컬렉션을 사용해 정리하기내 환경설정을 기준으로 콘텐츠를 저장하고 분류하세요."
+      },
+      {
+        "level": "h2",
+        "text": "핵심 원칙"
+      },
+      {
+        "level": "h2",
+        "text": "조직 보안 마인드셋"
+      },
+      {
+        "level": "h2",
+        "text": "클라우드 보안의 중점 분야"
+      },
+      {
+        "level": "h2",
+        "text": "참여자"
+      }
+    ],
+    "sections": [
+      {
+        "heading": "핵심 원칙",
+        "level": "h2",
+        "content": [
+          {
+            "type": "paragraph",
+            "text": "이 핵심 요소의 권장사항은 다음 보안 핵심 원칙 내에 그룹화되어 있습니다. 이 원칙의 모든 요소는 중요합니다. 조직 및 워크로드의 요구사항에 따라 특정 원칙의 우선순위를 지정할 수 있습니다."
+          },
+          {
+            "type": "list",
+            "items": [
+              "보안 내재화 설계 구현: 애플리케이션 및 인프라의 초기 설계 단계부터 클라우드 보안 및 네트워크 보안 고려사항을 통합합니다.Google Cloud 에서는 이 원칙을 적용하는 데 도움이 되는 아키텍처 청사진과 권장사항을 제공합니다.",
+              "제로 트러스트 구현: 리소스에 대한 액세스 권한이 신뢰의 지속적인 확인을 기반으로 부여되는절대 신뢰하지 말고 항상 확인할 것접근 방식을 사용합니다. Google Cloud는 Chrome Enterprise Premium 및 IAP (Identity-Aware Proxy)와 같은 제품을 통해 이 원칙을 지원합니다.",
+              "시프트-레프트 보안 구현: 소프트웨어 개발 수명 주기 초기에 보안 제어를 구현합니다.\n시스템 변경사항이 적용되기 전에 보안 결함을 방지합니다. 시스템 변경사항이 커밋된 후 보안 버그를 초기에, 빠르게, 안정적으로 감지하고 수정합니다. Google Cloud 는 Cloud Build, Binary Authorization, Artifact Registry와 같은 제품을 통해 이 원칙을 지원합니다.",
+              "선점형 사이버 방어 구현:\n위협 인텔리전스와 같은 강력한 기본 조치를 구현하여 보안에 대한 선제적 접근 방식을 채택합니다. 이 접근 방식을 사용하면 더 효과적인 위협 감지 및 대응을 위한 기반을 구축할 수 있습니다.\nGoogle Cloud의계층화된 보안 제어 접근 방식은 이 원칙과 일치합니다.",
+              "안전하고 책임감 있는 AI 사용: 책임감 있고 안전한 방식으로 AI 시스템을 개발하고 배포합니다. 이 원칙에 대한 권장사항은 Well-Architected Framework의AI 및 ML 관점과 Google의안전한 AI 프레임워크 (SAIF)의 안내와 일치합니다.",
+              "보안을 위해 AI 사용: AI 기능을 사용하여Gemini in Security및 전반적인 플랫폼 보안 기능을 통해 기존 보안 시스템과 프로세스를 개선합니다. AI를 도구로 사용하여 수정 작업의 자동화를 늘리고 보안 위생을 보장하여 다른 시스템의 보안을 강화하세요.",
+              "규제, 규정 준수, 개인 정보 보호 요구사항 충족:\n업계별 규정, 규정 준수 표준, 개인 정보 보호 요구사항을 준수하세요. Google Cloud Assured Workloads, 조직 정책 서비스,규정 준수 리소스 센터와 같은 제품을 통해 이러한 의무를 준수할 수 있습니다."
+            ]
+          }
+        ]
+      },
+      {
+        "heading": "조직 보안 마인드셋",
+        "level": "h2",
+        "content": [
+          {
+            "type": "paragraph",
+            "text": "성공적인 클라우드 도입 및 운영을 위해서는 보안 중심의 조직적 사고방식이 중요합니다. 이러한 사고방식은 조직의 문화에 깊이 뿌리내려야 하며, 앞서 설명한 핵심 보안 원칙에 따라 안내되는 관행에 반영되어야 합니다."
+          },
+          {
+            "type": "paragraph",
+            "text": "조직의 보안 마인드는 시스템 설계 중에 보안을 고려하고, 제로 트러스트를 가정하며, 개발 프로세스 전반에 보안 기능을 통합하는 것을 강조합니다. 이러한 사고방식에서는 사이버 방어 조치에 대해 사전 대응적으로 생각하고, 보안을 위해 안전하게 AI를 사용하며, 규제, 개인 정보 보호, 규정 준수 요구사항을 고려합니다. 이러한 원칙을 수용하면 조직에서 위협에 선제적으로 대처하고, 가치 있는 애셋을 보호하며, 책임감 있는 기술 사용을 보장하는 보안 우선 문화를 조성할 수 있습니다."
+          }
+        ]
+      },
+      {
+        "heading": "클라우드 보안의 중점 분야",
+        "level": "h2",
+        "content": [
+          {
+            "type": "paragraph",
+            "text": "이 섹션에서는 애플리케이션, 시스템, 데이터의 보안을 계획, 구현, 관리할 때 집중해야 하는 영역을 설명합니다. 이 필라의 각 원칙에 있는 권장사항은 이러한 중점 분야 중 하나 이상과 관련이 있습니다. 이 문서의 나머지 부분에서는 명확성과 맥락을 더하기 위해 권장사항에 해당하는 보안 중점 영역을 명시합니다."
+          },
+          {
+            "type": "list",
+            "items": [
+              "안전한 네트워크 인프라",
+              "전송 중인 데이터와 미사용 데이터를 암호화합니다.",
+              "트래픽 흐름을 제어합니다.",
+              "IaaS 및 PaaS 서비스를 보호합니다.",
+              "무단 액세스로부터 보호"
+            ]
+          },
+          {
+            "type": "list",
+            "items": [
+              "방화벽 정책",
+              "VPC 서비스 제어",
+              "Google Cloud Armor",
+              "Cloud Next Generation Firewall",
+              "보안 웹 프록시"
+            ]
+          },
+          {
+            "type": "list",
+            "items": [
+              "인증, 승인, 액세스 제어를 사용합니다.",
+              "클라우드 ID를 관리합니다.",
+              "ID 및 액세스 관리 정책을 관리합니다."
+            ]
+          },
+          {
+            "type": "list",
+            "items": [
+              "Cloud ID",
+              "Google의 Identity and Access Management (IAM) 서비스",
+              "직원 ID 제휴",
+              "워크로드 아이덴티티 제휴"
+            ]
+          },
+          {
+            "type": "list",
+            "items": [
+              "Google Cloud 에 데이터를 안전하게 저장합니다.",
+              "데이터 액세스 제어",
+              "데이터를 검색하고 분류합니다.",
+              "암호화, 액세스 제어, 데이터 손실 방지와 같은 필요한 제어를 설계합니다.",
+              "저장, 전송, 사용 중인 데이터를 보호합니다."
+            ]
+          },
+          {
+            "type": "list",
+            "items": [
+              "Google의 IAM 서비스",
+              "Sensitive Data Protection",
+              "VPC 서비스 제어",
+              "Cloud KMS",
+              "컨피덴셜 컴퓨팅"
+            ]
+          },
+          {
+            "type": "list",
+            "items": [
+              "AI 및 ML 인프라와 파이프라인의 여러 계층에서 보안 제어를 적용합니다.",
+              "모델 안전성 보장"
+            ]
+          },
+          {
+            "type": "list",
+            "items": [
+              "Google의 SAIF",
+              "Model Armor"
+            ]
+          },
+          {
+            "type": "list",
+            "items": [
+              "효과적인 사고 관리, 위협 감지, 대응 프로세스를 위해 최신 SecOps 플랫폼과 관행을 도입하세요.",
+              "보안 이벤트를 위해 시스템과 애플리케이션을 지속적으로 모니터링합니다."
+            ]
+          },
+          {
+            "type": "list",
+            "items": [
+              "Google Security Operations"
+            ]
+          },
+          {
+            "type": "list",
+            "items": [
+              "소프트웨어 취약점 및 공격으로부터 애플리케이션을 보호합니다."
+            ]
+          },
+          {
+            "type": "list",
+            "items": [
+              "Artifact Registry",
+              "Artifact Analysis",
+              "Binary Authorization",
+              "Assured Open Source Software",
+              "Google Cloud Armor",
+              "Web Security Scanner"
+            ]
+          },
+          {
+            "type": "list",
+            "items": [
+              "클라우드 리소스를 효과적이고 안전하게 관리하기 위한 정책, 절차, 제어를 수립합니다."
+            ]
+          },
+          {
+            "type": "list",
+            "items": [
+              "조직 정책 서비스",
+              "Cloud 애셋 인벤토리",
+              "Security Command Center\n        Enterprise",
+              "Resource Manager"
+            ]
+          },
+          {
+            "type": "list",
+            "items": [
+              "로그를 분석하여 잠재적인 위협을 식별합니다.",
+              "규정 준수 및 보안 분석을 위해 시스템 활동을 추적하고 기록합니다."
+            ]
+          },
+          {
+            "type": "list",
+            "items": [
+              "Cloud Logging",
+              "Cloud Monitoring",
+              "Cloud 감사 로그",
+              "VPC 흐름 로그"
+            ]
+          }
+        ]
+      },
+      {
+        "heading": "참여자",
+        "level": "h2",
+        "content": [
+          {
+            "type": "paragraph",
+            "text": "저자:"
+          },
+          {
+            "type": "list",
+            "items": [
+              "웨이드 홈즈| 글로벌 솔루션 디렉터",
+              "헥터 디아즈| 클라우드 보안 설계자",
+              "카를로스 레오나르도 로사리오 | Google Cloud 보안 전문가",
+              "존 베이컨| 파트너 솔루션 설계자",
+              "사친 칼라| 글로벌 보안 솔루션 관리자"
+            ]
+          },
+          {
+            "type": "paragraph",
+            "text": ""
+          },
+          {
+            "type": "paragraph",
+            "text": "기타 참여자:"
+          },
+          {
+            "type": "list",
+            "items": [
+              "안톤 슈바킨| CISO실 보안 자문 담당자",
+              "다니엘 리| 클라우드 보안 설계자",
+              "필리페 그라시오, 박사| 고객 엔지니어, AI/ML 전문가",
+              "게리 하름슨| 수석 설계자",
+              "지노 펠리치아| 수석 설계자",
+              "호세 안드라데| 고객 엔지니어, SRE 전문가",
+              "저자:쿠마르 다나고팔| 크로스 프로덕트 솔루션 개발자",
+              "로라 하얏트| 고객 엔지니어, FSI",
+              "마르완 알 샤위| 파트너 고객 엔지니어",
+              "니콜라스 핀토| 고객 엔지니어, 애플리케이션 현대화 전문가",
+              "노아 맥도널드| 클라우드 보안 컨설턴트",
+              "Osvaldo Costa| 네트워킹 전문 고객 엔지니어",
+              "라디카 카나캄| 프로그램 리드, Google Cloud Well-Architected Framework",
+              "사만다 헤| 테크니컬 라이터",
+              "Susan Wu| 아웃바운드 제품 관리자"
+            ]
+          },
+          {
+            "type": "paragraph",
+            "text": ""
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,4 +1,5 @@
-
+import sys
+import traceback
 import openai
 from django.conf import settings
 from rest_framework.views import APIView
@@ -38,7 +39,8 @@ class AIProxyView(APIView):
             client = openai.OpenAI(api_key=api_key)
 
             # 3. OpenAI API 호출
-            print(f"[AIProxy] Calling OpenAI ({model})...", flush=True)
+            # [2026-02-13] 프론트엔드 전달 파라미터 및 response_format 통합 적용
+            print(f"[AIProxy] Calling OpenAI (model={model}, max_tokens={max_tokens}, temperature={temperature})...", flush=True)
             
             call_params = {
                 "model": model,
@@ -55,11 +57,6 @@ class AIProxyView(APIView):
             # 4. 응답 반환
             ai_content = response.choices[0].message.content
             print(f"[AIProxy] OpenAI Call Success! (Model: {model})", flush=True)
-            return Response({"content": ai_content}, status=status.HTTP_200_OK)
-
-            # 4. 응답 반환
-            ai_content = response.choices[0].message.content
-            print("[AIProxy] OpenAI Call Success!", flush=True)
             return Response({"content": ai_content}, status=status.HTTP_200_OK)
 
         except openai.AuthenticationError as e:

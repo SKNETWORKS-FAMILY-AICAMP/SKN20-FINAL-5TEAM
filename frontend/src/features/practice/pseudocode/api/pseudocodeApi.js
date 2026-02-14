@@ -261,6 +261,205 @@ export async function evaluatePseudocode5D(problem, pseudocode, userContext = nu
 /**
  * Fallback: 규칙 기반으로 5차원 점수 생성
  */
+export async function generatePseudocodeDeepDiveQuestions(problem, pseudocode) {
+    // 캐시 확인
+    const cacheKey = getCacheKey('questions', {
+        problemId: problem.id,
+        pseudocodeHash: pseudocode.substring(0, 100)
+    });
+
+    const cached = getCache(cacheKey);
+    if (cached) {
+        console.log('[AI Cache] Questions from cache');
+        return cached;
+    }
+
+    const systemPrompt = `You are an experienced technical interviewer.
+Generate 3 insightful follow-up questions to assess deeper understanding.
+
+Categories:
+1. Logic Understanding - why they chose this approach
+2. Edge Cases - how they handle exceptions
+3. Optimization - time/space complexity awareness`;
+
+    const userPrompt = `Problem: ${problem?.title || 'Algorithm Problem'}
+Student's pseudocode:
+${pseudocode}
+
+Generate 3 questions (one per category).
+Format as JSON array:
+[
+  {"category": "Logic Understanding", "question": "..."},
+  {"category": "Edge Cases", "question": "..."},
+  {"category": "Optimization", "question": "..."}
+]`;
+
+    try {
+        const response = await axios.post('/api/core/ai-proxy/', {
+            model: 'gpt-4o-mini',
+            messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt }
+            ],
+            max_tokens: 400,
+            temperature: 0.8
+        });
+
+        // ✨ 1번 해결: 안전한 JSON 파싱
+        const responseData = response.data.content || response.data;
+        const questions = typeof responseData === 'string' ? safeJSONParse(responseData, null) : responseData;
+
+        if (Array.isArray(questions) && questions.length > 0) {
+            // 캐시 저장
+            setCache(cacheKey, questions);
+            return questions;
+        }
+
+        throw new Error('Invalid JSON response');
+
+    } catch (error) {
+        console.error('Question generation failed:', error.message);
+
+        // Fallback 질문
+        const fallback = [
+            {
+                category: 'Logic Understanding',
+                question: '이 알고리즘의 핵심 아이디어를 한 문장으로 설명해주세요.'
+            },
+            {
+                category: 'Edge Cases',
+                question: '입력 데이터가 비어있거나 예상과 다른 형식일 때 어떻게 처리하나요?'
+            },
+            {
+                category: 'Optimization',
+                question: '이 알고리즘의 시간 복잡도는 어떻게 되며, 개선할 수 있는 부분이 있나요?'
+            }
+        ];
+
+        return fallback;
+    }
+}
+
+/**
+ * [NEW] 백엔드 지능형 에이전트 호출 (Coduck Wizard)
+ * 사용자의 전략과 제약사항을 포함하여 정밀 분석을 수행합니다.
+ */
+export async function runPseudocodeAgent(params) {
+    const {
+        user_logic,
+        quest_title,
+        quest_description,
+        selected_strategy,
+        constraints
+    } = params;
+
+    try {
+        const response = await axios.post('/api/core/pseudo-agent/', {
+            user_logic,
+            quest_title,
+            quest_description,
+            selected_strategy,
+            constraints
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Pseudocode Agent Error:', error);
+        throw error;
+    }
+}
+
+/**
+ * 최종 종합 평가 (의사코드 + 면접 답변)
+ * ✨ 4번 해결: Phase 3 결과 재사용 (캐싱)
+ */
+export async function evaluatePseudocode(problem, pseudocode, deepDiveQnA, phase3Result = null) {
+    // ✨ Phase 3 결과 재사용 (중복 AI 호출 방지)
+    let validationResult;
+
+    if (phase3Result) {
+        console.log('[Cache] Reusing Phase 3 validation result');
+        validationResult = {
+            score: phase3Result.score,
+            passed: phase3Result.passed,
+            criticalErrors: phase3Result.criticalErrors,
+            details: phase3Result.details,
+            warnings: phase3Result.improvements
+        };
+    } else {
+        // Phase 3 없이 직접 호출된 경우
+        const validator = new PseudocodeValidator(problem);
+        validationResult = validator.validate(pseudocode);
+    }
+
+    // 의사코드 점수: 50점 만점으로 환산
+    const pseudocodeScore = Math.round(validationResult.score * 0.5);
+
+    // 2. 면접 답변 평가 (간단한 휴리스틱)
+    const deepDiveArray = Array.isArray(deepDiveQnA) ? deepDiveQnA : [];
+
+    let interviewScore = 0;
+    const questionAnalysis = [];
+
+    for (const qa of deepDiveArray) {
+        const answer = qa.answer || '';
+        const wordCount = answer.split(/\s+/).length;
+
+        let qScore = 0;
+        let feedback = '';
+
+        if (wordCount === 0) {
+            qScore = 0;
+            feedback = '답변이 없습니다.';
+        } else if (wordCount < 10) {
+            qScore = 5;
+            feedback = '너무 짧습니다. 더 구체적으로 설명해보세요.';
+        } else if (wordCount < 30) {
+            qScore = 10;
+            feedback = '기본 개념은 있지만 더 자세한 설명이 필요합니다.';
+        } else {
+            const hasTechTerms = /(알고리즘|복잡도|최적화|데이터구조|시간|공간|효율|성능)/i.test(answer);
+            qScore = hasTechTerms ? 15 : 12;
+            feedback = hasTechTerms
+                ? '구체적이고 기술적인 답변입니다!'
+                : '좋은 답변입니다. 기술 용어를 추가하면 더 좋겠습니다.';
+        }
+
+        interviewScore += qScore;
+        questionAnalysis.push({
+            question: qa.question,
+            category: qa.category,
+            userAnswer: answer,
+            score: qScore,
+            feedback
+        });
+    }
+
+    interviewScore = Math.min(50, interviewScore);
+
+    // 3. 최종 통합
+    const totalScore = pseudocodeScore + interviewScore;
+
+    let grade;
+    if (totalScore >= 85) {
+        grade = 'excellent';
+    } else if (totalScore >= 70) {
+        grade = 'good';
+    } else if (totalScore >= 50) {
+        grade = 'needs-improvement';
+    } else {
+        grade = 'poor';
+    }
+
+    return {
+        totalScore,
+        pseudocodeScore,
+        interviewScore,
+        grade,
+        questionAnalysis,
+        isPassed: totalScore >= 70
+    };
+}
+
 function generateRuleBasedDimensions(ruleResult, pseudocode) {
     const baseScore = ruleResult.score; // 0-100
     const concepts = Array.from(ruleResult.details.concepts || []);

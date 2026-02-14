@@ -298,5 +298,3182 @@
             "update_date": "2026-01-25T11:00:00Z",
             "use_yn": "Y"
         }
+    },
+    {
+        "model": "core.practicedetail",
+        "pk": "unit03_01",
+        "fields": {
+            "practice": "unit03",
+            "detail_title": "Amazon 판매 랭킹 시스템",
+            "detail_type": "PROBLEM",
+            "content_data": {
+                "problem_id": "adv_001_amazon_ranking_system",
+                "title": "Amazon 판매 랭킹 시스템",
+                "scenario": "Amazon에서 카테고리별 상품 판매 순위를 추적하고 제공하는 시스템을 설계하라. 상품은 여러 카테고리에 속할 수 있으며, 순위는 롤링 평균 기반으로 주기적으로 갱신되어야 한다.",
+                "constraints": [
+                    "상품 수 약 1,000만 개",
+                    "카테고리 수 약 1,000개",
+                    "상품과 카테고리는 다대다(many-to-many) 관계",
+                    "월 10억 건의 거래 (약 초당 40,000 요청, 불균등 트래픽)",
+                    "최소 1시간 주기로 랭킹 갱신, 인기 상품은 더 자주",
+                    "조회 대비 구매 비율 약 1:100",
+                    "순위는 롤링 평균 기반 (과거 인기 상품이 영구적으로 상위 유지되지 않음)"
+                ],
+                "missions": [
+                    "초당 수만 건의 판매 트랜잭션을 처리하면서 랭킹 갱신 지연을 최소화하는 데이터 파이프라인을 설계하세요.",
+                    "카테고리당 수백만 상품의 랭킹을 빠르게 조회할 수 있는 캐싱 구조를 설계하세요."
+                ],
+                "rubric_functional": {
+                    "required_components": [
+                        "API Server",
+                        "Cache (Redis)",
+                        "RDBMS",
+                        "Message Queue"
+                    ],
+                    "required_flows": [
+                        {
+                            "from": "API Server",
+                            "to": "Cache",
+                            "reason": "카테고리별 순위를 캐시에서 우선 조회하여 DB 부하 감소"
+                        },
+                        {
+                            "from": "Message Queue",
+                            "to": "Worker",
+                            "reason": "거래 이벤트를 큐에 적재 후 배치 집계 처리"
+                        },
+                        {
+                            "from": "Worker",
+                            "to": "Cache",
+                            "reason": "배치 집계 결과로 캐시 순위 갱신"
+                        }
+                    ]
+                },
+                "rubric_non_functional": [],
+                "axis_weights": {
+                    "performance_optimization": {
+                        "weight": 30,
+                        "reason": "조회 대비 구매 비율 1:100의 읽기 집약 워크로드에서 캐시 샤딩, 페이지네이션, 배치 갱신 전략이 응답 지연을 결정"
+                    },
+                    "reliability": {
+                        "weight": 25,
+                        "reason": "캐시 장애 시 서비스 연속성, 메시지 큐의 데이터 무결성, 배치 파이프라인의 안정적 운영이 랭킹 정확도에 직결"
+                    },
+                    "operational_excellence": {
+                        "weight": 20,
+                        "reason": "1시간 주기 배치 갱신, 분산 캐시 샤드 운영, 불균등 트래픽 모니터링 등 파이프라인 전반의 운영 자동화가 필요"
+                    },
+                    "cost_optimization": {
+                        "weight": 15,
+                        "reason": "월 10억 건 거래 처리를 위한 분산 캐시와 메시지 큐 인프라 비용 최적화, 핫/콜드 데이터 계층화 전략이 필요"
+                    },
+                    "security": {
+                        "weight": 5,
+                        "reason": "내부 데이터 파이프라인 시스템으로 별도 보안 요구사항이 낮으나 기본적인 접근 제어는 필요"
+                    },
+                    "sustainability": {
+                        "weight": 5,
+                        "reason": "배치 처리 최적화와 캐시 적중률 향상으로 불필요한 컴퓨팅 리소스 소비를 줄일 수 있음"
+                    }
+                },
+                "decision_points": [
+                    {
+                        "decision": "트랜잭션 발생 시 즉시 DB 쓰기 vs 메시지 큐 적재 후 일괄 쓰기",
+                        "tension": "즉시 쓰기는 데이터 반영이 빠르지만 초당 수만 건의 개별 쓰기로 DB에 부하가 집중되고, 큐 기반 일괄 쓰기는 부하를 평탄화하지만 큐 장애 시 데이터 유실 위험이 생긴다"
+                    },
+                    {
+                        "decision": "단일 캐시 vs 분산 캐시 샤딩",
+                        "tension": "단일 캐시는 운영이 단순하지만 10억 건 규모에서 용량과 동시 연결 한계에 부딪히고, 분산 샤딩은 확장성을 확보하지만 균등한 부하 분배 전략이 필요하다"
+                    },
+                    {
+                        "decision": "관계형 단일 저장소 vs 용도별 분리 저장소 (관계형 + 시계열)",
+                        "tension": "단일 저장소는 조인이 쉽지만 시계열 대량 데이터에 비효율적이고, 분리하면 각 워크로드에 최적화되지만 크로스 데이터 조합이 복잡해진다"
+                    },
+                    {
+                        "decision": "정적 해시 파티셔닝 vs 동적 부하 기반 할당",
+                        "tension": "정적 해시는 구현이 간단하지만 인기 상품에 핫스팟이 발생하고, 동적 할당은 부하를 균등화하지만 조회 빈도 추정이라는 추가 복잡도가 생긴다"
+                    },
+                    {
+                        "decision": "전체 랭킹 캐싱 vs 페이지네이션 단위 청크 캐싱",
+                        "tension": "전체 캐싱은 단순하지만 카테고리당 수백만 항목 시 메모리 낭비가 크고, 청크 캐싱은 메모리 효율적이지만 키 설계와 페이지네이션 로직이 추가된다"
+                    },
+                    {
+                        "decision": "캐시 장애 시 배치 재실행 vs 백업 저장소에서 복구",
+                        "tension": "배치 재실행은 항상 최신 데이터를 보장하지만 복구 시간이 길고, 백업 저장소 복구는 빠르지만 마지막 배치 이후 변경분이 반영되지 않는다"
+                    }
+                ]
+            },
+            "display_order": 1,
+            "is_active": true,
+            "create_date": "2026-02-12T10:00:00Z",
+            "update_date": "2026-02-12T10:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practicedetail",
+        "pk": "unit03_02",
+        "fields": {
+            "practice": "unit03",
+            "detail_title": "은행 원장(Ledger) 시스템",
+            "detail_type": "PROBLEM",
+            "content_data": {
+                "problem_id": "adv_002_banking_ledger",
+                "title": "은행 원장(Ledger) 시스템",
+                "scenario": "ATM, 외부 결제 서비스, 직접 입금 등 다양한 거래 소스를 처리하고 조정(reconciliation)하는 글로벌 뱅킹 원장 시스템을 설계하라. 강한 일관성, 보안, 규제 준수가 핵심이다.",
+                "constraints": [
+                    "수백만 명의 사용자",
+                    "다중 거래 소스 (ATM, 외부 결제, 수표, 송금, 자동이체)",
+                    "글로벌 서비스 (다중 리전, 다중 통화)",
+                    "강한 일관성(strong consistency) 필수",
+                    "정부 규제 준수 필수 (세금 보고, 감사, 데이터 삭제 정책)",
+                    "다중 인증(MFA) 요구",
+                    "거래 상태 추적 및 조정(reconciliation) 프로세스 필요"
+                ],
+                "missions": [
+                    "다양한 거래 소스의 데이터를 정확하게 조정(reconciliation)하면서 잔액 일관성을 보장하는 구조를 설계하세요.",
+                    "글로벌 서비스에서 다중 리전 간 데이터 정합성을 유지하는 구조를 설계하세요."
+                ],
+                "rubric_functional": {
+                    "required_components": [
+                        "API Server",
+                        "RDBMS",
+                        "Message Queue",
+                        "Worker"
+                    ],
+                    "required_flows": [
+                        {
+                            "from": "API Server",
+                            "to": "RDBMS",
+                            "reason": "거래 기록을 ACID 트랜잭션으로 즉시 저장"
+                        },
+                        {
+                            "from": "API Server",
+                            "to": "Message Queue",
+                            "reason": "비동기 조정(reconciliation) 작업 큐 적재"
+                        },
+                        {
+                            "from": "Worker",
+                            "to": "RDBMS",
+                            "reason": "조정 완료 후 거래 상태 업데이트"
+                        }
+                    ]
+                },
+                "rubric_non_functional": [],
+                "axis_weights": {
+                    "security": {
+                        "weight": 30,
+                        "reason": "다중 인증(MFA), 정부 규제 준수(세금 보고·감사·데이터 삭제), 다중 거래 소스의 접근 권한 관리가 필수"
+                    },
+                    "reliability": {
+                        "weight": 30,
+                        "reason": "강한 일관성(strong consistency) 필수, 거래 조정(reconciliation) 과정의 잔액 정합성, 글로벌 다중 리전 간 데이터 무결성이 핵심"
+                    },
+                    "operational_excellence": {
+                        "weight": 20,
+                        "reason": "글로벌 다중 리전 운영, 감사 로그 관리, 규제 보고 자동화, 거래 상태 추적 및 조정 프로세스 운영이 필요"
+                    },
+                    "cost_optimization": {
+                        "weight": 10,
+                        "reason": "핫/콜드 데이터 아카이빙(활성 저장소 vs 계층형 분리), 글로벌 다중 리전 인프라의 비용 효율적 운영이 필요"
+                    },
+                    "performance_optimization": {
+                        "weight": 5,
+                        "reason": "응답 지연보다 데이터 정확성이 중요한 금융 시스템 특성상 성능 최적화 우선순위가 낮음"
+                    },
+                    "sustainability": {
+                        "weight": 5,
+                        "reason": "글로벌 다중 리전 인프라의 에너지 효율적 운영과 아카이빙을 통한 스토리지 자원 절감이 필요"
+                    }
+                },
+                "decision_points": [
+                    {
+                        "decision": "거래 기록 즉시 잔액 반영 vs 조정(reconciliation) 완료 후 반영",
+                        "tension": "즉시 반영은 사용자에게 정확한 잔액을 보여주지만 외부 서비스 확인 전 부정확할 수 있고, 조정 후 반영은 정확성을 보장하지만 일시적으로 'pending' 상태가 지속된다"
+                    },
+                    {
+                        "decision": "리전별 데이터 격리 vs 글로벌 복제",
+                        "tension": "리전 격리는 데이터 주권 규정 준수가 용이하지만 사용자 이동 시 지연이 발생하고, 글로벌 복제는 접근이 빠르지만 규제를 위반할 수 있다"
+                    },
+                    {
+                        "decision": "동기식 거래 처리 vs 비동기 큐 기반 처리 후 조정",
+                        "tension": "동기식은 즉각적 확인이 가능하지만 외부 서비스 장애에 취약하고, 비동기식은 처리량이 높지만 거래 상태가 일시적으로 '대기 중'이 된다"
+                    },
+                    {
+                        "decision": "활성 저장소 단일 운영 vs 계층형 데이터 아카이빙 (핫/콜드 분리)",
+                        "tension": "단일 저장소는 쿼리가 단순하지만 데이터 증가에 따라 비용과 성능이 악화되고, 계층 분리는 비용과 성능을 최적화하지만 아카이빙 로직과 접근 패턴이 복잡해진다"
+                    },
+                    {
+                        "decision": "멱등성 보장 토큰 생성 vs 요청별 새 세션 발급",
+                        "tension": "멱등성 토큰은 중복 요청과 다중 디바이스 문제를 방지하지만 토큰 관리가 복잡해지고, 요청별 세션은 단순하지만 동시 세션 간 불일치와 보안 취약점이 발생한다"
+                    },
+                    {
+                        "decision": "외부 서비스의 직접 DB 갱신 vs 중앙 핸들러를 통한 간접 갱신",
+                        "tension": "직접 갱신은 경로가 짧지만 외부 서비스에 DB 접근 권한을 부여해야 하고, 중앙 핸들러 경유는 보안이 강화되지만 처리 경로가 길어진다"
+                    }
+                ]
+            },
+            "display_order": 2,
+            "is_active": true,
+            "create_date": "2026-02-12T10:00:00Z",
+            "update_date": "2026-02-12T10:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practicedetail",
+        "pk": "unit03_03",
+        "fields": {
+            "practice": "unit03",
+            "detail_title": "캘린더 이벤트 관리 시스템",
+            "detail_type": "PROBLEM",
+            "content_data": {
+                "problem_id": "adv_003_calendar_system",
+                "title": "캘린더 이벤트 관리 시스템",
+                "scenario": "1억 명의 사용자를 위한 캘린더 시스템에 이벤트 생성, 초대, 조회, 알림 기능을 설계하라. 일관성을 우선시하며 대규모 이벤트 데이터의 효율적 저장과 시간 기반 알림 전송이 핵심이다.",
+                "constraints": [
+                    "등록 사용자 1억 명",
+                    "일일 활성 사용자 약 1,000만 명",
+                    "일일 이벤트 생성 약 1억 건",
+                    "초당 약 1,000 QPS (이벤트 생성)",
+                    "이벤트 15분 전 알림 전송 필요",
+                    "일관성(consistency)을 가용성(availability)보다 우선",
+                    "수년간 운영 시 페타바이트 규모 데이터 축적"
+                ],
+                "missions": [
+                    "수년간 페타바이트 규모로 축적되는 이벤트 데이터를 효율적으로 저장하고 조회하는 구조를 설계하세요.",
+                    "이벤트 시작 15분 전 알림을 누락 없이 정시에 전달하는 알림 파이프라인을 설계하세요."
+                ],
+                "rubric_functional": {
+                    "required_components": [
+                        "API Server",
+                        "RDBMS",
+                        "Message Queue",
+                        "Worker"
+                    ],
+                    "required_flows": [
+                        {
+                            "from": "API Server",
+                            "to": "RDBMS",
+                            "reason": "이벤트 생성·수정을 일관성 있게 저장"
+                        },
+                        {
+                            "from": "RDBMS",
+                            "to": "Message Queue",
+                            "reason": "알림 대상 이벤트를 주기적으로 조회 후 큐 적재"
+                        },
+                        {
+                            "from": "Message Queue",
+                            "to": "Worker",
+                            "reason": "알림 워커가 다단계 파이프라인으로 푸시 발송"
+                        }
+                    ]
+                },
+                "rubric_non_functional": [],
+                "axis_weights": {
+                    "reliability": {
+                        "weight": 30,
+                        "reason": "일관성을 가용성보다 우선하며 15분 전 알림이 누락 없이 정시에 전달되어야 하므로 파이프라인 안정성이 핵심"
+                    },
+                    "performance_optimization": {
+                        "weight": 25,
+                        "reason": "수년간 페타바이트 규모 데이터에서 시간 기반 조회 인덱싱과 초당 약 1,000 QPS 이벤트 생성 처리 속도가 필요"
+                    },
+                    "operational_excellence": {
+                        "weight": 20,
+                        "reason": "다단계 알림 파이프라인 모니터링, 파티셔닝 전략 운영, 배치 스캔 주기 관리 등 복잡한 운영 자동화가 필요"
+                    },
+                    "cost_optimization": {
+                        "weight": 15,
+                        "reason": "수년간 축적되는 페타바이트 규모 이벤트 데이터의 저장 비용 관리와 핫/콜드 파티셔닝 전략이 필요"
+                    },
+                    "security": {
+                        "weight": 5,
+                        "reason": "별도 보안 요구사항이 명시되지 않았으나 사용자 개인 일정 데이터의 기본적 보호가 필요"
+                    },
+                    "sustainability": {
+                        "weight": 5,
+                        "reason": "장기 저장 데이터의 에너지 효율적 관리와 불필요한 알림 스캔 최소화가 필요"
+                    }
+                },
+                "decision_points": [
+                    {
+                        "decision": "사용자 ID 기반 파티셔닝 vs 시간 범위 기반 파티셔닝",
+                        "tension": "사용자 ID 파티셔닝은 균등 분배가 가능하지만 시간 범위 쿼리 시 여러 파티션을 탐색해야 하고, 시간 기반은 범위 쿼리에 효율적이지만 특정 시간대에 핫스팟이 발생한다"
+                    },
+                    {
+                        "decision": "좁은 스캔 창(15분 단위 실시간 조회) vs 넓은 스캔 창(30분 치 사전 적재 후 지연 발송)",
+                        "tension": "좁은 창은 정확한 타이밍을 보장하지만 매분 쿼리 지연 시 알림 누락 위험이 있고, 넓은 창은 누락을 줄이지만 불필요한 데이터를 미리 적재하고 발송 시점 관리가 추가된다"
+                    },
+                    {
+                        "decision": "단일 알림 파이프라인 vs 단계별 큐 분리 파이프라인 (적격성 확인 → 콘텐츠 생성 → 발송)",
+                        "tension": "단일 파이프라인은 단순하지만 한 단계 실패 시 전체가 중단되고, 단계별 분리는 장애 격리와 재처리가 가능하지만 운영 복잡도와 인프라 비용이 증가한다"
+                    },
+                    {
+                        "decision": "관계별 분리 테이블(이벤트 생성자 별도) vs 기존 테이블에 컬럼 추가 + 복합 인덱스",
+                        "tension": "분리 테이블은 관심사가 명확히 분리되지만 조인 비용이 증가하고, 컬럼 추가는 조인 없이 조회가 가능하지만 인덱스 관리가 복잡해진다"
+                    },
+                    {
+                        "decision": "자체 알림 발송 인프라 구축 vs 외부 발송 서비스 위탁",
+                        "tension": "자체 구축은 대규모에서 비용 효율적이지만 바운스 처리 등 복잡한 로직을 직접 관리해야 하고, 외부 위탁은 운영이 단순하지만 대규모 발송 시 비용이 급격히 증가한다"
+                    }
+                ]
+            },
+            "display_order": 3,
+            "is_active": true,
+            "create_date": "2026-02-12T10:00:00Z",
+            "update_date": "2026-02-12T10:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practicedetail",
+        "pk": "unit03_04",
+        "fields": {
+            "practice": "unit03",
+            "detail_title": "자선 기부 시스템",
+            "detail_type": "PROBLEM",
+            "content_data": {
+                "problem_id": "adv_004_charity_donating_system",
+                "title": "자선 기부 시스템",
+                "scenario": "사용자가 사전 정의된 자선 단체 목록에서 선택하여 기부할 수 있는 백엔드 시스템을 설계하라. 결제 처리, 장애 복구, 대규모 확장이 핵심이다.",
+                "constraints": [
+                    "일일 100만 건 기부 (초당 약 12건)",
+                    "전 세계 서비스",
+                    "5년간 약 120GB 데이터 축적",
+                    "자선 단체로의 송금은 월 1회 일괄 처리",
+                    "제3자 결제 서비스 사용 가능",
+                    "익명 기부 지원"
+                ],
+                "missions": [
+                    "기부 트랜잭션의 유실 없이 결제 처리와 데이터 저장을 안정적으로 수행하는 구조를 설계하세요.",
+                    "결제 서비스 장애 시에도 기부 요청이 손실되지 않는 복구 구조를 설계하세요."
+                ],
+                "rubric_functional": {
+                    "required_components": [
+                        "API Server",
+                        "RDBMS",
+                        "Message Queue",
+                        "Worker"
+                    ],
+                    "required_flows": [
+                        {
+                            "from": "API Server",
+                            "to": "Message Queue",
+                            "reason": "기부 요청을 큐에 적재하여 비동기 결제 처리"
+                        },
+                        {
+                            "from": "Message Queue",
+                            "to": "Worker",
+                            "reason": "워커 풀이 외부 결제 서비스 호출 및 재시도 처리"
+                        },
+                        {
+                            "from": "Worker",
+                            "to": "RDBMS",
+                            "reason": "결제 결과를 DB에 기록하여 데이터 정합성 보장"
+                        }
+                    ]
+                },
+                "rubric_non_functional": [],
+                "axis_weights": {
+                    "reliability": {
+                        "weight": 30,
+                        "reason": "기부 트랜잭션 유실 방지, 결제 실패 시 재시도, 자선 단체 월 1회 송금의 정확한 데이터 처리가 핵심"
+                    },
+                    "operational_excellence": {
+                        "weight": 25,
+                        "reason": "워커 풀 관리, 외부 결제 서비스 장애 감지·복구, 월간 송금 배치 운영, 결제 파이프라인 모니터링이 필요"
+                    },
+                    "cost_optimization": {
+                        "weight": 15,
+                        "reason": "5년간 120GB 데이터 축적의 저장 비용과 워커 풀 규모 최적화, 제3자 결제 서비스 비용 관리가 필요"
+                    },
+                    "performance_optimization": {
+                        "weight": 15,
+                        "reason": "초당 약 12건의 기본 QPS이나 전 세계 서비스에서 결제 처리 흐름의 응답 속도 최적화가 필요"
+                    },
+                    "security": {
+                        "weight": 10,
+                        "reason": "제3자 결제 서비스 연동 시 데이터 전송 보안과 익명 기부자 정보 보호가 필요"
+                    },
+                    "sustainability": {
+                        "weight": 5,
+                        "reason": "비동기 큐 기반 처리로 피크 부하를 평탄화하여 불필요한 컴퓨팅 리소스 소비를 절감"
+                    }
+                },
+                "decision_points": [
+                    {
+                        "decision": "앱 서버의 DB 직접 쓰기 + 큐 동시 발행 vs 큐 단일 경로로 통합",
+                        "tension": "동시 발행은 즉시 기록이 가능하지만 한쪽 실패 시 불일치 상태가 발생하고, 단일 경로는 일관성을 보장하지만 기록 지연이 생긴다"
+                    },
+                    {
+                        "decision": "단일 결제 마이크로서비스 vs 메시지 큐 뒤 분산 워커 풀",
+                        "tension": "단일 서비스는 구현이 단순하지만 10억 건 규모에서 병목이 되고, 분산 워커는 처리량을 확보하지만 구독자 관리와 부하 분배가 추가된다"
+                    },
+                    {
+                        "decision": "사용자 ID 기반 샤딩 vs 자선 단체 ID 기반 샤딩",
+                        "tension": "사용자 ID는 균등 분배가 가능하지만 인기 기부처로의 핫스팟을 해결하지 못하고, 단체 ID는 단체별 격리가 되지만 특정 단체에 부하가 집중된다"
+                    },
+                    {
+                        "decision": "별도 키 생성 서비스 + 사전 생성 vs DB 내장 UUID 생성",
+                        "tension": "별도 서비스는 분산 환경에서 충돌을 방지하지만 서비스 장애 시 키 유실 위험이 있고, DB 내장은 운영이 단순하지만 DB에 추가 부하가 발생한다"
+                    },
+                    {
+                        "decision": "동기식 결제 응답 대기 vs 비동기 처리 + 상태 조회 API",
+                        "tension": "동기식은 즉각적 확인이 가능하지만 결제 처리 시간만큼 연결을 점유하고, 비동기는 서버 자원을 절약하지만 클라이언트가 별도로 상태를 확인해야 한다"
+                    }
+                ]
+            },
+            "display_order": 4,
+            "is_active": true,
+            "create_date": "2026-02-12T10:00:00Z",
+            "update_date": "2026-02-12T10:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practicedetail",
+        "pk": "unit03_05",
+        "fields": {
+            "practice": "unit03",
+            "detail_title": "협업 코드 에디터 (Coderpad)",
+            "detail_type": "PROBLEM",
+            "content_data": {
+                "problem_id": "adv_005_design_coderpad",
+                "title": "협업 코드 에디터 (Coderpad)",
+                "scenario": "실시간 텍스트 동기화, 코드 실행, 10년간 콘텐츠 보존을 지원하는 온라인 협업 코드 에디터를 설계하라. 세션당 2-3명 참가자를 기준으로 한다.",
+                "constraints": [
+                    "세션당 2-3명 참가자",
+                    "텍스트 변경 사항 실시간 동기화",
+                    "다중 언어 코드 실행 지원",
+                    "최종 콘텐츠 10년간 보존",
+                    "약 36TB 총 저장 용량 (10년 기준, 일일 100만 세션 가정)",
+                    "최종 일관성(eventual consistency) 허용"
+                ],
+                "missions": [
+                    "여러 사용자의 코드 편집 내용을 실시간으로 동기화하는 통신 구조를 설계하세요.",
+                    "코드 실행 서비스의 과부하가 편집 서비스에 영향을 주지 않는 격리 구조를 설계하세요."
+                ],
+                "rubric_functional": {
+                    "required_components": [
+                        "WebSocket Gateway",
+                        "API Server",
+                        "Object Storage"
+                    ],
+                    "required_flows": [
+                        {
+                            "from": "Client",
+                            "to": "WebSocket Gateway",
+                            "reason": "실시간 diff 기반 텍스트 동기화 전송"
+                        },
+                        {
+                            "from": "WebSocket Gateway",
+                            "to": "Object Storage",
+                            "reason": "세션 콘텐츠를 영구 저장소에 보존 (10년 보존 요건)"
+                        },
+                        {
+                            "from": "API Server",
+                            "to": "Worker",
+                            "reason": "코드 실행 요청을 격리 환경에서 비동기 처리"
+                        }
+                    ]
+                },
+                "rubric_non_functional": [],
+                "axis_weights": {
+                    "performance_optimization": {
+                        "weight": 30,
+                        "reason": "실시간 텍스트 동기화에서 편집 지연이 사용자 경험을 직접 결정하므로 저지연 diff 전송이 핵심"
+                    },
+                    "security": {
+                        "weight": 20,
+                        "reason": "사용자가 임의 코드를 실행하므로 컨테이너 샌드박싱, 메모리 제한, 타임아웃 등 격리가 필수"
+                    },
+                    "reliability": {
+                        "weight": 20,
+                        "reason": "최종 콘텐츠 10년간 보존 요구사항과 코드 실행 과부하 시 편집 서비스 격리를 통한 서비스 안정성이 필요"
+                    },
+                    "operational_excellence": {
+                        "weight": 15,
+                        "reason": "다중 언어 실행 환경 관리, 실행·편집 서비스 격리 운영, WebSocket 연결 모니터링이 필요"
+                    },
+                    "cost_optimization": {
+                        "weight": 10,
+                        "reason": "10년간 약 36TB 콘텐츠 보존의 저장 비용과 코드 실행 컨테이너 자원 관리가 필요"
+                    },
+                    "sustainability": {
+                        "weight": 5,
+                        "reason": "코드 실행 컨테이너의 효율적 자원 할당과 비활성 세션 정리를 통한 에너지 절감"
+                    }
+                },
+                "decision_points": [
+                    {
+                        "decision": "키스트로크 단위 전송 vs diff 단위 전송",
+                        "tension": "키스트로크는 즉각적이지만 선택 영역 등 복합 입력 처리가 복잡하고, diff는 구현과 디버깅이 쉽지만 변경 감지 로직이 추가된다"
+                    },
+                    {
+                        "decision": "웹소켓 기반 실시간 연결 vs HTTP 폴링 기반 동기화",
+                        "tension": "웹소켓은 저지연이지만 시스템 복잡도가 높고, 폴링은 단순하지만 10KB 문서 규모에서는 충분히 빠를 수 있다"
+                    },
+                    {
+                        "decision": "도착 순서대로 diff 병합 vs 타임스탬프 기반 재정렬 후 병합",
+                        "tension": "도착 순서 병합은 단순하지만 네트워크 지연 시 순서가 뒤바뀌어 문자 누락이 발생하고, 타임스탬프 재정렬은 정확하지만 버퍼링으로 지연이 추가된다"
+                    },
+                    {
+                        "decision": "스티키 세션(단일 인스턴스 상태 보유) vs 무상태 서비스 + 외부 상태 저장소",
+                        "tension": "스티키 세션은 초저지연이지만 인스턴스 장애 시 데이터 유실이 발생하고, 무상태는 복구가 쉽지만 외부 저장소 접근 지연이 추가된다"
+                    },
+                    {
+                        "decision": "실행과 편집의 자원 격리(별도 큐) vs 단일 파이프라인 공유",
+                        "tension": "격리하면 실행 과부하가 편집에 영향을 주지 않지만 인프라 비용이 증가하고, 공유하면 효율적이지만 실행 폭주 시 편집까지 중단된다"
+                    }
+                ]
+            },
+            "display_order": 5,
+            "is_active": true,
+            "create_date": "2026-02-12T10:00:00Z",
+            "update_date": "2026-02-12T10:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practicedetail",
+        "pk": "unit03_06",
+        "fields": {
+            "practice": "unit03",
+            "detail_title": "Facebook 이벤트 시스템",
+            "detail_type": "PROBLEM",
+            "content_data": {
+                "problem_id": "adv_006_design_facebook_events",
+                "title": "Facebook 이벤트 시스템",
+                "scenario": "800M 월간 활성 사용자를 위한 Facebook Events 시스템을 설계하라. 이벤트 생성/RSVP, 알림, 정시 리마인더, 이벤트 페이지를 포함하며 글로벌 규모에서의 가용성과 리마인더 정확성이 핵심이다.",
+                "constraints": [
+                    "Facebook 월간 활성 사용자 40억 명, 20%가 Events 이용 (약 8억 명)",
+                    "전 세계 사용자 (다중 시간대)",
+                    "동시 이벤트 수천 건 (공휴일 피크)",
+                    "이벤트는 공개(public) 또는 비공개(private)",
+                    "알림(notification)은 최종 일관성 허용",
+                    "리마인더(reminder)는 정확한 시간에 전달 필수"
+                ],
+                "missions": [
+                    "수억 사용자에게 이벤트 리마인더를 정확한 시간에 전달하는 알림 구조를 설계하세요.",
+                    "공휴일 피크 시 동시 수천 건의 이벤트 RSVP 처리를 감당하는 확장 구조를 설계하세요."
+                ],
+                "rubric_functional": {
+                    "required_components": [
+                        "API Server",
+                        "RDBMS",
+                        "Cache",
+                        "Message Queue",
+                        "Worker"
+                    ],
+                    "required_flows": [
+                        {
+                            "from": "API Server",
+                            "to": "RDBMS",
+                            "reason": "이벤트 RSVP 및 메타데이터 저장"
+                        },
+                        {
+                            "from": "API Server",
+                            "to": "Cache",
+                            "reason": "이벤트 페이지 조회 시 캐시 우선 응답"
+                        },
+                        {
+                            "from": "Message Queue",
+                            "to": "Worker",
+                            "reason": "리마인더 및 알림을 비동기 워커로 발송"
+                        }
+                    ]
+                },
+                "rubric_non_functional": [],
+                "axis_weights": {
+                    "reliability": {
+                        "weight": 35,
+                        "reason": "리마인더는 정확한 시간에 전달 필수이며, 8억 사용자 대상 공휴일 피크 시에도 서비스 중단과 알림 누락이 불가"
+                    },
+                    "performance_optimization": {
+                        "weight": 25,
+                        "reason": "수억 사용자의 이벤트 조회·RSVP 응답 속도와 다중 시간대에서 정시 리마인더 처리 성능이 필요"
+                    },
+                    "operational_excellence": {
+                        "weight": 20,
+                        "reason": "다중 시간대 리마인더 스케줄링 관리, 피크 트래픽 대응, 비동기 알림 파이프라인 운영이 필요"
+                    },
+                    "cost_optimization": {
+                        "weight": 10,
+                        "reason": "글로벌 8억 사용자 인프라의 비용 관리와 이벤트 데이터의 효율적 보존 정책이 필요"
+                    },
+                    "security": {
+                        "weight": 5,
+                        "reason": "공개/비공개 이벤트의 접근 제어가 필요하나 별도 보안 요구사항은 명시되지 않음"
+                    },
+                    "sustainability": {
+                        "weight": 5,
+                        "reason": "글로벌 분산 리마인더 시스템의 에너지 효율적 운영과 비피크 시 리소스 축소가 필요"
+                    }
+                },
+                "decision_points": [
+                    {
+                        "decision": "서버 기반 알림 발송 vs 클라이언트 디바이스 로컬 캐싱 + 자체 리마인더",
+                        "tension": "서버 발송은 중앙 관리가 가능하지만 네트워크 단절 시 전달 불가능하고, 디바이스 캐싱은 오프라인에서도 동작하지만 동기화 로직이 추가된다"
+                    },
+                    {
+                        "decision": "배치 잡 기반 리마인더 전송 vs 이벤트 드리븐 정시 트리거",
+                        "tension": "배치 잡은 구현이 단순하지만 부하 변동에 따라 타이밍이 부정확해지고, 이벤트 드리븐은 정확하지만 이벤트 스케줄링 인프라가 복잡해진다"
+                    },
+                    {
+                        "decision": "최종 일관성 알림 (지연 허용) vs 강한 정시성 리마인더 (지연 불허)",
+                        "tension": "알림은 지연되어도 사용자가 모르지만, 리마인더는 1분 지연도 나쁜 사용자 경험이 된다 - 같은 전달 채널이지만 신뢰성 요구가 다르다"
+                    },
+                    {
+                        "decision": "구조화된 저장소(읽기 최적화) vs 비구조화 저장소(쓰기 최적화)",
+                        "tension": "구조화 저장소는 이벤트 조회와 필터링이 빠르지만 쓰기 부하가 높고, 비구조화는 RSVP 등 쓰기가 빠르지만 읽기 시 조인 비용이 발생한다"
+                    }
+                ]
+            },
+            "display_order": 6,
+            "is_active": true,
+            "create_date": "2026-02-12T10:00:00Z",
+            "update_date": "2026-02-12T10:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practicedetail",
+        "pk": "unit03_07",
+        "fields": {
+            "practice": "unit03",
+            "detail_title": "인스타그램 릴스 추천 시스템 설계",
+            "detail_type": "PROBLEM",
+            "content_data": {
+                "problem_id": "adv_007_design_instagram_reels",
+                "title": "인스타그램 릴스 추천 시스템 설계",
+                "scenario": "10억 DAU 규모의 짧은 동영상 무한 스크롤 피드에서 사용자 참여를 극대화하는 ML 기반 추천 시스템을 설계하라.",
+                "constraints": [
+                    "DAU 10억 명",
+                    "일 신규 릴스 약 1천만 개 (DAU의 약 1%가 생성)",
+                    "글로벌 서비스 (미국·유럽 중심, 기타 지역 포함)",
+                    "무한 스크롤 인터페이스 (검색·탐색 없음, 시스템이 서빙하는 콘텐츠만 노출)",
+                    "참여도(시청 시간·상호작용) 극대화 목표",
+                    "기존 휴리스틱 랭킹 시스템에서 ML 기반으로 전환"
+                ],
+                "missions": [
+                    "10억 DAU 규모에서 사용자 참여를 극대화하는 동영상 추천 파이프라인을 설계하세요.",
+                    "수백만 후보 동영상에서 사용자별 최적 콘텐츠를 빠르게 선별하는 랭킹 구조를 설계하세요."
+                ],
+                "rubric_functional": {
+                    "required_components": [
+                        "API Server",
+                        "Cache",
+                        "RDBMS",
+                        "Worker"
+                    ],
+                    "required_flows": [
+                        {
+                            "from": "API Server",
+                            "to": "Cache",
+                            "reason": "임베딩 기반 후보군을 캐시에서 빠르게 검색"
+                        },
+                        {
+                            "from": "Cache",
+                            "to": "Worker",
+                            "reason": "후보 콘텐츠를 랭킹 모델로 정밀 순위 재계산"
+                        },
+                        {
+                            "from": "Worker",
+                            "to": "API Server",
+                            "reason": "개인화된 순위 결과를 사용자에게 서빙"
+                        }
+                    ]
+                },
+                "rubric_non_functional": [],
+                "axis_weights": {
+                    "performance_optimization": {
+                        "weight": 30,
+                        "reason": "후보 생성에서 정밀 랭킹까지의 추론 지연이 10억 DAU 무한 스크롤 경험의 핵심"
+                    },
+                    "operational_excellence": {
+                        "weight": 25,
+                        "reason": "ML 모델 드리프트 모니터링, 피드백 루프 관리, 탐색/활용 균형 조절, A/B 테스트 운영이 필요"
+                    },
+                    "reliability": {
+                        "weight": 20,
+                        "reason": "추천 서비스가 항상 동작하여 빈 피드가 표시되지 않아야 하며 ML 파이프라인 장애 복구가 필요"
+                    },
+                    "cost_optimization": {
+                        "weight": 10,
+                        "reason": "10억 DAU 규모의 GPU 추론 비용, 임베딩 저장소 비용, 실시간 피처 계산 인프라 비용 최적화가 필요"
+                    },
+                    "sustainability": {
+                        "weight": 10,
+                        "reason": "대규모 ML 모델 훈련과 추론의 에너지 소비가 상당하므로 효율적 배치 처리와 모델 경량화가 필요"
+                    },
+                    "security": {
+                        "weight": 5,
+                        "reason": "사용자 행동 데이터의 프라이버시 보호가 필요하나 별도 보안 요구사항은 명시되지 않음"
+                    }
+                },
+                "decision_points": [
+                    {
+                        "decision": "시청 완료 이진 분류 모델 vs 시청 시간 회귀 모델",
+                        "tension": "이진 분류는 레이블이 명확하고 학습이 안정적이나 시청 깊이 정보를 잃고, 회귀는 세밀한 참여도를 포착하나 노이즈에 민감하다"
+                    },
+                    {
+                        "decision": "후보 생성과 정밀 랭킹을 분리된 단계로 할지 vs 단일 모델로 통합할지",
+                        "tension": "분리하면 각 단계를 지연 시간·정확도에 맞게 최적화할 수 있으나 파이프라인 복잡도가 증가하고, 단일 모델은 단순하나 수천만 후보를 실시간 처리하기 어렵다"
+                    },
+                    {
+                        "decision": "학습 가능한 ID 임베딩 vs 콘텐츠 처리 기반 임베딩",
+                        "tension": "ID 임베딩은 협업 필터링 신호를 잘 포착하나 콜드 스타트 문제가 있고, 콘텐츠 기반은 새 콘텐츠에도 작동하나 계산 비용이 높다"
+                    },
+                    {
+                        "decision": "학습 데이터에 탐색용 무작위 쌍을 주입할지 vs 순수 활용 데이터만 사용할지",
+                        "tension": "탐색 데이터 주입은 피드백 루프 편향을 완화하나 단기 참여 지표가 떨어질 수 있고, 순수 활용은 단기 성능이 좋으나 미탐색 주제가 지속적으로 소외된다"
+                    }
+                ]
+            },
+            "display_order": 7,
+            "is_active": true,
+            "create_date": "2026-02-12T10:00:00Z",
+            "update_date": "2026-02-12T10:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practicedetail",
+        "pk": "unit03_08",
+        "fields": {
+            "practice": "unit03",
+            "detail_title": "온라인 코딩 대회 플랫폼 (LeetCode 콘테스트)",
+            "detail_type": "PROBLEM",
+            "content_data": {
+                "problem_id": "adv_008_design_leetcode",
+                "title": "온라인 코딩 대회 플랫폼 (LeetCode 콘테스트)",
+                "scenario": "100만 명 이상의 참가자가 1시간 동안 코딩 문제를 풀고 실시간 리더보드로 순위를 확인하는 코딩 대회 플랫폼을 설계하라. 솔루션 검증, 실시간 랭킹, 가상 머신 격리가 핵심이다.",
+                "constraints": [
+                    "100만 명 참가자, 1시간 제한",
+                    "인당 약 3회 제출 → 총 500만 이벤트",
+                    "초당 약 400 이벤트(EPS)",
+                    "리더보드 실시간 갱신 (대회 중 최종 일관성 허용, 대회 후 정확한 순위)",
+                    "솔루션 크기 약 1KB, 리더보드 약 50MB",
+                    "다중 프로그래밍 언어 지원",
+                    "가상 머신 간 솔루션 격리 필요"
+                ],
+                "missions": [
+                    "100만 참가자의 제출 결과를 실시간으로 반영하는 리더보드 구조를 설계하세요.",
+                    "동시에 대량의 코드 제출이 발생해도 안정적으로 실행 환경을 제공하는 구조를 설계하세요."
+                ],
+                "rubric_functional": {
+                    "required_components": [
+                        "API Server",
+                        "RDBMS",
+                        "Cache",
+                        "Message Queue"
+                    ],
+                    "required_flows": [
+                        {
+                            "from": "API Server",
+                            "to": "Message Queue",
+                            "reason": "코드 제출을 큐에 적재하여 격리 VM에서 비동기 실행"
+                        },
+                        {
+                            "from": "Message Queue",
+                            "to": "RDBMS",
+                            "reason": "채점 결과를 이벤트 DB에 append-only 기록"
+                        },
+                        {
+                            "from": "RDBMS",
+                            "to": "Cache",
+                            "reason": "배치 집계로 정확한 리더보드 순위를 캐시에 갱신"
+                        }
+                    ]
+                },
+                "rubric_non_functional": [],
+                "axis_weights": {
+                    "reliability": {
+                        "weight": 30,
+                        "reason": "1시간 한정 이벤트로 시스템 중단 시 전체 대회가 무효화되며, 코드 제출·채점 결과 유실이 불가"
+                    },
+                    "performance_optimization": {
+                        "weight": 25,
+                        "reason": "100만 참가자의 코드 실행 대기 시간 최소화와 실시간 리더보드 갱신 속도가 핵심"
+                    },
+                    "operational_excellence": {
+                        "weight": 20,
+                        "reason": "동시 VM 풀 관리, 리더보드 핫/콜드 패스 운영, 대회 전후 인프라 프로비저닝 자동화가 필요"
+                    },
+                    "cost_optimization": {
+                        "weight": 15,
+                        "reason": "VM 사전 생성 vs 지연 생성의 비용 트레이드오프, 대회 종료 후 미사용 VM 자원 회수가 필요"
+                    },
+                    "security": {
+                        "weight": 5,
+                        "reason": "가상 머신 간 솔루션 격리가 필요하나 별도 보안 요구사항은 명시되지 않음"
+                    },
+                    "sustainability": {
+                        "weight": 5,
+                        "reason": "대회 종료 후 VM 자원 즉시 해제와 자원 사전 프로비저닝 최적화를 통한 에너지 절감"
+                    }
+                },
+                "decision_points": [
+                    {
+                        "decision": "실시간 확률적 랭킹(핫 패스) vs 정확한 배치 랭킹(콜드 패스)",
+                        "tension": "확률적 알고리즘은 즉각적이지만 순위가 근사치이고, 배치 처리는 정확하지만 갱신 주기만큼 지연된다 - 두 경로를 병합하면 정확성과 실시간성을 모두 확보하지만 시스템 복잡도가 증가한다"
+                    },
+                    {
+                        "decision": "사용자 접속 시 VM 사전 생성 vs 첫 제출 시 VM 생성",
+                        "tension": "사전 생성은 제출 시 지연이 없지만 미사용 VM으로 자원이 낭비되고, 지연 생성은 자원 효율적이지만 첫 제출 시 시작 지연이 발생한다"
+                    },
+                    {
+                        "decision": "상태 보유 컨테스트 서버 vs 무상태 컨테스트 서버 + 외부 상태 관리",
+                        "tension": "상태 보유는 빠르지만 서버 장애 시 세션이 유실되고, 무상태는 교체가 쉽지만 외부 저장소 접근 비용이 추가된다"
+                    },
+                    {
+                        "decision": "캐시 선행 갱신(write-ahead cache) vs TTL 기반 캐시 만료 후 DB 조회",
+                        "tension": "선행 갱신은 항상 최신이지만 갱신 지연이 추가되고, TTL은 단순하지만 만료 전까지 오래된 데이터가 노출된다"
+                    },
+                    {
+                        "decision": "이벤트 DB append-only + CDC 스트림 vs 리더보드 DB 직접 갱신",
+                        "tension": "append-only는 쓰기 처리량이 높고 이벤트 재처리가 가능하지만 스트림 처리 파이프라인이 필요하고, 직접 갱신은 단순하지만 쓰기 경합과 재처리 불가 문제가 있다"
+                    }
+                ]
+            },
+            "display_order": 8,
+            "is_active": true,
+            "create_date": "2026-02-12T10:00:00Z",
+            "update_date": "2026-02-12T10:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practicedetail",
+        "pk": "unit03_09",
+        "fields": {
+            "practice": "unit03",
+            "detail_title": "실시간 라이브 댓글 시스템",
+            "detail_type": "PROBLEM",
+            "content_data": {
+                "problem_id": "adv_009_design_live_comments",
+                "title": "실시간 라이브 댓글 시스템",
+                "scenario": "Facebook에서 사용자가 사진/영상을 보는 동안 새 댓글이 자동으로 나타나는 라이브 댓글 기능을 설계하라. 사용자 조작 없이 댓글이 실시간 표시되는 것이 핵심 퍼즐이다.",
+                "constraints": [
+                    "Facebook 사용자 10억 명, 1%가 댓글 작성 (약 1,000만 명)",
+                    "일일 약 4,000만 건 댓글",
+                    "텍스트 전용 댓글",
+                    "저지연(low latency) 요구",
+                    "고가용성 우선, 최종 일관성 허용",
+                    "일일 약 2GB 저장 용량",
+                    "셀러브리티 게시물의 핫스팟 고려 필요"
+                ],
+                "missions": [
+                    "사진/영상 게시물에 새 댓글이 자동으로 나타나는 실시간 전달 구조를 설계하세요.",
+                    "수백만 동시 접속자에게 댓글을 저지연으로 전달하면서 서버 자원을 효율적으로 사용하는 구조를 설계하세요."
+                ],
+                "rubric_functional": {
+                    "required_components": [
+                        "WebSocket Gateway",
+                        "API Server",
+                        "Message Queue",
+                        "Cache"
+                    ],
+                    "required_flows": [
+                        {
+                            "from": "Client",
+                            "to": "API Server",
+                            "reason": "댓글 작성 요청 수신"
+                        },
+                        {
+                            "from": "API Server",
+                            "to": "Message Queue",
+                            "reason": "댓글을 큐에 적재하여 비동기 팬아웃 처리"
+                        },
+                        {
+                            "from": "Message Queue",
+                            "to": "WebSocket Gateway",
+                            "reason": "구독자에게 푸시 기반 실시간 댓글 전달"
+                        }
+                    ]
+                },
+                "rubric_non_functional": [],
+                "axis_weights": {
+                    "performance_optimization": {
+                        "weight": 35,
+                        "reason": "새 댓글이 자동으로 나타나는 '라이브' 전달이 핵심으로 저지연 푸시와 셀러브리티 핫스팟 대응이 필수"
+                    },
+                    "reliability": {
+                        "weight": 25,
+                        "reason": "고가용성 우선 정책, 메시지 큐 장애 시 댓글 유실 방지, 대규모 동시 접속 시 서비스 안정성이 필요"
+                    },
+                    "operational_excellence": {
+                        "weight": 20,
+                        "reason": "웹소켓 연결 관리, 구독 매핑 운영, 비동기 팬아웃 파이프라인 모니터링이 필요"
+                    },
+                    "cost_optimization": {
+                        "weight": 10,
+                        "reason": "수백만 동시 접속의 서버 자원과 웹소켓 연결 관리 비용 최적화가 필요"
+                    },
+                    "security": {
+                        "weight": 5,
+                        "reason": "별도 보안 요구사항이 명시되지 않았으나 기본적인 접근 제어가 필요"
+                    },
+                    "sustainability": {
+                        "weight": 5,
+                        "reason": "유휴 연결의 효율적 관리와 팬아웃 처리 최적화를 통한 에너지 절감"
+                    }
+                },
+                "decision_points": [
+                    {
+                        "decision": "서버 푸시(웹소켓/롱 폴링) vs 클라이언트 풀(주기적 API 호출) 기반 댓글 전달",
+                        "tension": "푸시는 즉각적이지만 서버 자원과 연결 관리가 복잡하고, 풀은 단순하지만 폴링 간격만큼 지연이 발생하고 불필요한 요청이 생긴다"
+                    },
+                    {
+                        "decision": "웹소켓(양방향) vs HTTP 롱 폴링/SSE(단방향)",
+                        "tension": "웹소켓은 읽기/쓰기를 같은 연결로 처리하지만 서버 복잡도가 높고, 롱 폴링은 구현이 단순하지만 쓰기에 별도 HTTP 요청이 필요하다"
+                    },
+                    {
+                        "decision": "동기식 직접 팬아웃 vs 메시지 큐 기반 비동기 팬아웃",
+                        "tension": "동기식은 지연이 적지만 쓰기 서버에 부하가 집중되고, 비동기는 부하를 분산하지만 큐 장애 시 댓글 유실 위험이 있다"
+                    },
+                    {
+                        "decision": "메시지 큐 장애 시 디스크 기록 복구 vs 인메모리 캐시 복제",
+                        "tension": "디스크 기록은 내구성이 높지만 복구 시간이 길고, 인메모리 복제는 빠르지만 캐시 자체도 실패할 수 있다"
+                    },
+                    {
+                        "decision": "구독 매핑을 로컬 머신 메모리에 유지 vs 외부 저장소에 영속화",
+                        "tension": "로컬 메모리는 초저지연이지만 머신 장애 시 매핑이 유실되고, 외부 저장소는 내구성이 있지만 조회 지연이 추가된다"
+                    }
+                ]
+            },
+            "display_order": 9,
+            "is_active": true,
+            "create_date": "2026-02-12T10:00:00Z",
+            "update_date": "2026-02-12T10:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practicedetail",
+        "pk": "unit03_10",
+        "fields": {
+            "practice": "unit03",
+            "detail_title": "온라인 저지 (코드 실행 플랫폼)",
+            "detail_type": "PROBLEM",
+            "content_data": {
+                "problem_id": "adv_010_design_online_judge",
+                "title": "온라인 저지 (코드 실행 플랫폼)",
+                "scenario": "사용자가 코드를 제출하면 안전하게 실행하고 결과를 반환하는 온라인 저지 시스템을 설계하라. 악성 코드 방어, 코드 실행 격리, 비동기 결과 전달이 핵심이다.",
+                "constraints": [
+                    "일일 활성 사용자 1,000만 명",
+                    "총 약 600 QPS (420 제출 + 180 조회)",
+                    "대역폭 약 15 MB/s",
+                    "제출당 약 30KB, 문제 설명 약 10KB",
+                    "문제 DB 약 10만 개 (약 1GB)",
+                    "코드 실행의 보안 격리 필수"
+                ],
+                "missions": [
+                    "사용자가 제출한 코드를 안전하게 격리된 환경에서 실행하고 결과를 반환하는 구조를 설계하세요.",
+                    "대량의 동시 제출 요청을 처리하면서 실행 대기 시간을 최소화하는 구조를 설계하세요."
+                ],
+                "rubric_functional": {
+                    "required_components": [
+                        "API Server",
+                        "Message Queue",
+                        "Worker",
+                        "RDBMS"
+                    ],
+                    "required_flows": [
+                        {
+                            "from": "API Server",
+                            "to": "Message Queue",
+                            "reason": "코드 제출을 큐에 적재하여 비동기 실행 보장"
+                        },
+                        {
+                            "from": "Message Queue",
+                            "to": "Worker",
+                            "reason": "격리 컨테이너에서 코드를 안전하게 실행"
+                        },
+                        {
+                            "from": "Worker",
+                            "to": "RDBMS",
+                            "reason": "실행 결과(통과/실패/시간초과)를 DB에 저장"
+                        }
+                    ]
+                },
+                "rubric_non_functional": [],
+                "axis_weights": {
+                    "security": {
+                        "weight": 35,
+                        "reason": "사용자가 제출한 임의 코드를 실행하므로 컨테이너 격리, VPC 네트워크 제한, 자원 제한(메모리·CPU·시간)이 핵심"
+                    },
+                    "reliability": {
+                        "weight": 20,
+                        "reason": "코드 실행 격리 실패 시 시스템 전체가 위험에 노출되며, 실행 서비스 장애 시에도 제출 접수가 보장되어야 함"
+                    },
+                    "performance_optimization": {
+                        "weight": 20,
+                        "reason": "1,000만 DAU의 코드 실행 결과 응답 대기 시간이 사용자 경험을 직접 결정"
+                    },
+                    "operational_excellence": {
+                        "weight": 15,
+                        "reason": "격리 환경 운영, 다중 프로그래밍 언어 지원, 컨테이너 상태 모니터링, 결과 전달 파이프라인 관리가 필요"
+                    },
+                    "cost_optimization": {
+                        "weight": 5,
+                        "reason": "격리 컨테이너의 자원 할당과 시작 오버헤드를 최적화하여 인프라 비용을 관리"
+                    },
+                    "sustainability": {
+                        "weight": 5,
+                        "reason": "코드 실행 완료 후 컨테이너 즉시 정리와 자원 재활용을 통한 에너지 효율화"
+                    }
+                },
+                "decision_points": [
+                    {
+                        "decision": "동기식 코드 실행 응답 vs 비동기 큐 기반 실행 + 상태 조회",
+                        "tension": "동기식은 즉각적 결과 확인이 가능하지만 연결을 실행 시간만큼 점유하고 동시 연결 제한(~60K)에 도달하며, 비동기는 서버 자원을 절약하지만 결과 전달 메커니즘이 추가된다"
+                    },
+                    {
+                        "decision": "격리된 컨테이너 내 코드 실행 vs 공유 프로세스 내 코드 실행",
+                        "tension": "컨테이너 격리는 악성 코드가 다른 실행에 영향을 주지 못하지만 컨테이너 시작 오버헤드가 있고, 공유 프로세스는 빠르지만 자원 격리와 보안이 취약하다"
+                    },
+                    {
+                        "decision": "푸시 기반 결과 전달(서버→클라이언트) vs 폴링 기반 결과 조회(클라이언트→서버)",
+                        "tension": "푸시는 지연이 적지만 클라이언트 연결 정보를 저장해야 하고, 폴링은 구현이 단순하지만 불필요한 요청이 발생하고 결과 확인이 지연된다"
+                    },
+                    {
+                        "decision": "VPC 네트워크 레벨 격리 vs 애플리케이션 레벨 보안 제어",
+                        "tension": "VPC 격리는 네트워크를 완전 차단하지만 DB 연결도 차단되어 설계가 복잡해지고, 애플리케이션 레벨은 유연하지만 보안 취약점이 남을 수 있다"
+                    },
+                    {
+                        "decision": "실행 관리자가 코드+입출력을 전달하는 패턴 vs 실행 컨테이너가 직접 DB 접근",
+                        "tension": "관리자 패턴은 컨테이너의 DB 접근을 완전 차단하여 보안이 강화되지만 데이터 전달 로직이 추가되고, 직접 접근은 단순하지만 악성 코드가 DB를 조작할 위험이 있다"
+                    }
+                ]
+            },
+            "display_order": 10,
+            "is_active": true,
+            "create_date": "2026-02-12T10:00:00Z",
+            "update_date": "2026-02-12T10:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practicedetail",
+        "pk": "unit03_11",
+        "fields": {
+            "practice": "unit03",
+            "detail_title": "금융 거래 플랫폼 (Robinhood)",
+            "detail_type": "PROBLEM",
+            "content_data": {
+                "problem_id": "adv_011_design_robinhood",
+                "title": "금융 거래 플랫폼 (Robinhood)",
+                "scenario": "시장가 주문과 지정가 주문을 처리하는 금융 거래 플랫폼을 설계하라. 일반 투자자(일 5건)와 고빈도 트레이더(초당 100건)를 모두 지원하며 거래 정확성, 확장성, 주문 상태 실시간 전달이 핵심이다.",
+                "constraints": [
+                    "최대 일일 활성 사용자 1,000만 명",
+                    "5%가 고빈도 트레이더 (50만 명, 초당 최대 100건)",
+                    "일반 사용자: 일 평균 5건 거래",
+                    "시장가(market) 주문과 지정가(limit) 주문 2종",
+                    "지정가 주문 유효기간 1일",
+                    "거래 일관성(transaction correctness) 필수",
+                    "인증/보안은 범위 밖"
+                ],
+                "missions": [
+                    "시장가·지정가 주문을 빠르고 정확하게 매칭하면서 데이터 정합성을 보장하는 구조를 설계하세요.",
+                    "주문 체결 상태를 사용자에게 실시간으로 전달하는 통신 구조를 설계하세요."
+                ],
+                "rubric_functional": {
+                    "required_components": [
+                        "API Server",
+                        "Message Queue",
+                        "RDBMS",
+                        "WebSocket Gateway"
+                    ],
+                    "required_flows": [
+                        {
+                            "from": "API Server",
+                            "to": "Message Queue",
+                            "reason": "주문 요청을 큐에 적재하여 매칭 엔진으로 비동기 전달"
+                        },
+                        {
+                            "from": "Message Queue",
+                            "to": "Worker",
+                            "reason": "종목 기반 샤딩으로 주문 체결 처리"
+                        },
+                        {
+                            "from": "Worker",
+                            "to": "WebSocket Gateway",
+                            "reason": "체결 결과를 실시간으로 사용자에게 푸시"
+                        }
+                    ]
+                },
+                "rubric_non_functional": [],
+                "axis_weights": {
+                    "reliability": {
+                        "weight": 35,
+                        "reason": "금융 거래의 정확성이 필수이며 주문 매칭 일관성, 장 운영 중 시스템 가용성, 미체결 주문 복구가 핵심"
+                    },
+                    "performance_optimization": {
+                        "weight": 25,
+                        "reason": "고빈도 트레이더 초당 100건 처리, 주문 체결 지연이 가격 변동 위험을 증가시키므로 저지연 처리가 필수"
+                    },
+                    "operational_excellence": {
+                        "weight": 20,
+                        "reason": "피크 시간(장 개장/마감) 자동 스케일링, 매칭 엔진 모니터링, 종목별 샤드 운영 관리가 필요"
+                    },
+                    "cost_optimization": {
+                        "weight": 10,
+                        "reason": "피크/비피크 시간의 자원 관리와 자동 스케일링 vs 사전 프로비저닝의 비용 트레이드오프"
+                    },
+                    "security": {
+                        "weight": 5,
+                        "reason": "인증/보안은 범위 밖으로 별도 보안 요구사항이 명시되지 않음"
+                    },
+                    "sustainability": {
+                        "weight": 5,
+                        "reason": "비장 운영 시간의 리소스 축소와 자동 스케일링을 통한 비피크 시 에너지 절감"
+                    }
+                },
+                "decision_points": [
+                    {
+                        "decision": "종목(ticker) 기반 샤딩 vs 사용자 ID 기반 샤딩",
+                        "tension": "종목 기반은 같은 종목의 매수/매도가 같은 샤드에서 매칭되어 공정하지만 인기 종목에 핫스팟이 발생하고, 사용자 기반은 균등 분배가 가능하지만 같은 종목의 주문이 분산되어 가격 불일치가 생긴다"
+                    },
+                    {
+                        "decision": "알림 서비스(비동기 푸시) vs 웹소켓(실시간 양방향) 기반 주문 상태 전달",
+                        "tension": "알림은 구현이 단순하지만 지연이 있어 사용자가 '체결 안 됨'으로 오인하여 중복 주문할 수 있고, 웹소켓은 즉각적이지만 연결 관리와 서버 자원이 추가된다"
+                    },
+                    {
+                        "decision": "관계형 DB(SQL) vs 컬럼 지향 비관계형 DB 거래 기록 저장",
+                        "tension": "SQL은 조인과 범위 쿼리가 용이하고 사용자별 거래 내역 조회에 적합하지만 쓰기 확장이 어렵고, 컬럼 지향은 높은 쓰기 처리량을 제공하지만 복잡한 쿼리가 제한된다"
+                    },
+                    {
+                        "decision": "메시지 큐 기반 비동기 체결 vs 거래 서비스 직접 동기 호출",
+                        "tension": "비동기는 서버 부하를 분리하고 피크 시 버퍼 역할을 하지만 체결 지연이 발생하고, 동기는 즉각적이지만 서버와 거래 서비스가 강결합된다"
+                    },
+                    {
+                        "decision": "피크 시간 자동 스케일링 vs 사전 스케줄 기반 인스턴스 프로비저닝",
+                        "tension": "자동 스케일링은 부하에 반응하지만 스케일업 지연이 있고, 사전 프로비저닝은 즉시 대응하지만 비피크 시 자원 낭비가 발생한다"
+                    }
+                ]
+            },
+            "display_order": 11,
+            "is_active": true,
+            "create_date": "2026-02-12T10:00:00Z",
+            "update_date": "2026-02-12T10:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practicedetail",
+        "pk": "unit03_12",
+        "fields": {
+            "practice": "unit03",
+            "detail_title": "동영상 스트리밍 플랫폼 (YouTube)",
+            "detail_type": "PROBLEM",
+            "content_data": {
+                "problem_id": "adv_012_design_youtube",
+                "title": "동영상 스트리밍 플랫폼 (YouTube)",
+                "scenario": "사용자가 동영상을 업로드하고, 스트리밍으로 시청하며, 제목/설명으로 검색할 수 있는 대규모 동영상 플랫폼을 설계하라. 다중 해상도 변환, 글로벌 저지연 전송, 대용량 파일 처리가 핵심이다.",
+                "constraints": [
+                    "수백만 명의 사용자 지원",
+                    "평균 동영상 크기 약 300MB",
+                    "업로드 후 다중 해상도 변환 필요",
+                    "텍스트 기반 검색 (제목, 설명)",
+                    "스트리밍 지연을 네트워크 지연에 가깝게 유지",
+                    "다운로드 불가, 스트리밍만 지원"
+                ],
+                "missions": [
+                    "전 세계 사용자에게 끊김 없이 동영상을 제공하는 스트리밍 구조를 설계하세요.",
+                    "대용량 동영상의 업로드부터 시청 가능 상태까지의 처리 파이프라인을 설계하세요."
+                ],
+                "rubric_functional": {
+                    "required_components": [
+                        "API Server",
+                        "Object Storage",
+                        "Message Queue",
+                        "Worker",
+                        "CDN"
+                    ],
+                    "required_flows": [
+                        {
+                            "from": "API Server",
+                            "to": "Object Storage",
+                            "reason": "업로드된 원본 동영상을 오브젝트 스토리지에 저장"
+                        },
+                        {
+                            "from": "API Server",
+                            "to": "Message Queue",
+                            "reason": "트랜스코딩 작업을 큐에 적재"
+                        },
+                        {
+                            "from": "Client",
+                            "to": "CDN",
+                            "reason": "지리적으로 근접한 CDN에서 저지연 동영상 스트리밍"
+                        }
+                    ]
+                },
+                "rubric_non_functional": [],
+                "axis_weights": {
+                    "performance_optimization": {
+                        "weight": 30,
+                        "reason": "네트워크 조건이 다양한 전 세계 사용자에게 끊김 없는 스트리밍을 제공하기 위한 CDN 기반 저지연 전송이 핵심"
+                    },
+                    "reliability": {
+                        "weight": 20,
+                        "reason": "업로드 큐와 비동기 트랜스코딩 파이프라인에서 영상 데이터 유실 방지와 인기 동영상 트래픽 집중 대응이 필요"
+                    },
+                    "operational_excellence": {
+                        "weight": 20,
+                        "reason": "다중 해상도 트랜스코딩 파이프라인 관리, CDN 캐시 운영, 동영상 메타데이터 검색 인덱싱 운영이 필요"
+                    },
+                    "cost_optimization": {
+                        "weight": 15,
+                        "reason": "평균 300MB 대용량 영상의 다중 해상도 저장 비용과 CDN 대역폭 비용 최적화가 필요"
+                    },
+                    "sustainability": {
+                        "weight": 10,
+                        "reason": "대규모 트랜스코딩과 글로벌 데이터 전송의 에너지 소비가 상당하므로 효율적 인코딩과 CDN 최적화가 필요"
+                    },
+                    "security": {
+                        "weight": 5,
+                        "reason": "다운로드 불가·스트리밍 전용 정책의 콘텐츠 보호가 필요하나 별도 보안 요구사항은 명시되지 않음"
+                    }
+                },
+                "decision_points": [
+                    {
+                        "decision": "양방향 지속 연결 기반 스트리밍 vs 청크 단위 개별 요청 기반 스트리밍",
+                        "tension": "지속 연결은 서버가 전송 흐름을 제어하여 지연이 적지만 특정 서버에 고정되고, 청크 요청은 여러 서버에 부하를 분산할 수 있지만 매 요청마다 연결 수립 오버헤드와 클라이언트 흐름 제어 부담이 추가된다"
+                    },
+                    {
+                        "decision": "원본 저장소에서 직접 제공 vs 지리적 분산 캐시 서버를 통한 제공",
+                        "tension": "직접 제공은 구조가 단순하지만 인기 동영상에 단일 저장소 부하가 집중되고, 분산 캐시 서버는 사용자 근접 지점에서 저지연 제공이 가능하지만 콘텐츠 복제와 DNS 라우팅 인프라가 추가된다"
+                    },
+                    {
+                        "decision": "원본 동영상 단일 포맷 저장 vs 다중 해상도로 변환 후 저장",
+                        "tension": "단일 포맷은 저장과 관리가 단순하지만 다양한 대역폭 환경에 대응할 수 없고, 다중 변환은 사용자 경험을 개선하지만 비동기 변환 파이프라인과 추가 저장 공간이 필요하다"
+                    },
+                    {
+                        "decision": "관계형 DB vs 비관계형 DB 동영상 메타데이터 저장",
+                        "tension": "관계형은 구조화된 메타데이터 조회와 조인에 적합하지만 대규모 쓰기 확장이 어렵고, 비관계형은 유연한 스키마와 수평 확장이 가능하지만 복잡한 관계 쿼리가 제한된다"
+                    }
+                ]
+            },
+            "display_order": 12,
+            "is_active": true,
+            "create_date": "2026-02-12T10:00:00Z",
+            "update_date": "2026-02-12T10:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practicedetail",
+        "pk": "unit03_13",
+        "fields": {
+            "practice": "unit03",
+            "detail_title": "중앙 집중형 ML 관리 플랫폼",
+            "detail_type": "PROBLEM",
+            "content_data": {
+                "problem_id": "adv_013_design_a_centralized_ml_management_platform",
+                "title": "중앙 집중형 ML 관리 플랫폼",
+                "scenario": "데이터 수집, 모델 훈련, 모델 서빙의 3단계를 포괄하는 중앙 집중형 머신러닝 관리 플랫폼을 설계하라. 수많은 ML 엔지니어가 모델을 등록·훈련·검증·배포할 수 있는 엔드투엔드 파이프라인이 핵심이다.",
+                "constraints": [
+                    "수천~수만 개의 개별 모델 운영",
+                    "훈련 데이터 수백 테라바이트 이상",
+                    "모델 서빙 피크 시 초당 약 1,000건 추론 요청",
+                    "3단계 파이프라인: 데이터 수집 → 모델 훈련 → 모델 서빙",
+                    "대규모 언어 모델 포함 다양한 크기의 모델 지원",
+                    "지속적 배포 및 자동 재훈련 지원 필요"
+                ],
+                "missions": [
+                    "데이터 수집부터 모델 서빙까지 전체 ML 라이프사이클을 관리하는 파이프라인을 설계하세요.",
+                    "훈련된 모델을 글로벌 규모로 저지연 서빙하는 배포 구조를 설계하세요."
+                ],
+                "rubric_functional": {
+                    "required_components": [
+                        "API Server",
+                        "Object Storage",
+                        "RDBMS",
+                        "Cache"
+                    ],
+                    "required_flows": [
+                        {
+                            "from": "API Server",
+                            "to": "RDBMS",
+                            "reason": "모델 메타데이터·버전·상태를 레지스트리에 기록"
+                        },
+                        {
+                            "from": "Worker",
+                            "to": "Object Storage",
+                            "reason": "훈련된 모델 가중치를 대용량 저장소에 보관"
+                        },
+                        {
+                            "from": "Object Storage",
+                            "to": "Cache",
+                            "reason": "서빙 시 모델 가중치를 인메모리 캐시로 로드하여 추론 지연 감소"
+                        }
+                    ]
+                },
+                "rubric_non_functional": [],
+                "axis_weights": {
+                    "operational_excellence": {
+                        "weight": 30,
+                        "reason": "모델 라이프사이클(등록·훈련·검증·배포) 전체 관리, CI/CD 자동 재훈련, 블루-그린 배포 운영이 핵심"
+                    },
+                    "performance_optimization": {
+                        "weight": 25,
+                        "reason": "모델 서빙 시 초당 약 1,000건 추론 요청의 저지연 응답과 인메모리 가중치 캐시 최적화가 필요"
+                    },
+                    "reliability": {
+                        "weight": 20,
+                        "reason": "모델 훈련 실패 시 롤백, 블루-그린 배포를 통한 무중단 서빙 전환, 리전 장애 대응이 필요"
+                    },
+                    "cost_optimization": {
+                        "weight": 15,
+                        "reason": "수백 테라바이트 훈련 데이터의 저장 비용, GPU 훈련 비용, 다중 리전 캐시 인프라 비용 최적화가 필요"
+                    },
+                    "sustainability": {
+                        "weight": 5,
+                        "reason": "대규모 모델 훈련의 에너지 소비가 상당하므로 효율적 학습 스케줄링과 자원 공유가 필요"
+                    },
+                    "security": {
+                        "weight": 5,
+                        "reason": "별도 보안 요구사항이 명시되지 않았으나 모델과 훈련 데이터의 기본적 접근 제어가 필요"
+                    }
+                },
+                "decision_points": [
+                    {
+                        "decision": "대용량 파일 저장소 vs 관계형 DB 모델 가중치 저장",
+                        "tension": "파일 저장소는 대규모 가중치(수십억 파라미터)를 저장할 수 있지만 특정 모델 버전 조회가 비효율적이고 소형 파일이 많아지면 성능이 저하되며, 관계형 DB는 정확한 ID 기반 조회가 빠르지만 대규모 가중치 저장에 용량과 성능 한계가 있다"
+                    },
+                    {
+                        "decision": "단일 리전 중앙 서빙 vs 다중 리전 분산 서빙",
+                        "tension": "단일 리전은 가중치 동기화가 불필요하지만 원거리 사용자에게 추론 지연이 크고, 다중 리전은 사용자 근접 서빙으로 지연을 줄이지만 가중치 캐시 복제와 배포 동기화 복잡도가 증가한다"
+                    },
+                    {
+                        "decision": "즉시 전체 배포 vs 블루-그린 방식 단계적 배포",
+                        "tension": "즉시 배포는 최신 모델을 빠르게 반영하지만 성능 저하 시 롤백이 느리고, 블루-그린은 이전 버전을 유지하여 즉시 롤백이 가능하지만 두 배의 캐시 자원이 필요하다"
+                    },
+                    {
+                        "decision": "코드 병합 시 자동 훈련 트리거 vs 수동 요청 기반 훈련 실행",
+                        "tension": "자동 트리거는 최신 모델 코드가 즉시 훈련·검증되어 배포 속도가 빠르지만 불필요한 훈련이 실행될 수 있고, 수동 요청은 자원을 절약하지만 배포 주기가 길어진다"
+                    }
+                ]
+            },
+            "display_order": 13,
+            "is_active": true,
+            "create_date": "2026-02-12T10:00:00Z",
+            "update_date": "2026-02-12T10:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practicedetail",
+        "pk": "unit03_14",
+        "fields": {
+            "practice": "unit03",
+            "detail_title": "무료 음식 프로모션 캠페인 시스템",
+            "detail_type": "PROBLEM",
+            "content_data": {
+                "problem_id": "adv_014_design_a_free_food_app",
+                "title": "무료 음식 프로모션 캠페인 시스템",
+                "scenario": "음식 배달 앱에서 10분 내에 600만 개의 무료 버거를 배포하는 마케팅 캠페인 시스템을 설계하라. 한 사용자당 최대 1개 제한, 초과 배포 방지, 대규모 동시 요청 처리가 핵심이다.",
+                "constraints": [
+                    "10분 내 600만 개 버거 배포",
+                    "동시 활성 사용자 약 2,000만 명",
+                    "사용자당 최대 1개 버거 제한",
+                    "초과 배포 불가, 미달은 허용",
+                    "선착순(FIFO) 방식 배분",
+                    "미국 단일 리전 운영",
+                    "기존 결제 시스템 활용, 결제는 캠페인 이후 처리 가능"
+                ],
+                "missions": [
+                    "10분 내 600만 건의 동시 요청을 처리하면서 프로모션 수량을 정확히 관리하는 구조를 설계하세요.",
+                    "전 세계 다중 데이터센터에서 프로모션 재고를 일관되게 추적하는 구조를 설계하세요."
+                ],
+                "rubric_functional": {
+                    "required_components": [
+                        "API Server",
+                        "Message Queue",
+                        "Cache",
+                        "RDBMS"
+                    ],
+                    "required_flows": [
+                        {
+                            "from": "API Server",
+                            "to": "Message Queue",
+                            "reason": "대규모 동시 요청을 큐에 적재하여 선착순 처리"
+                        },
+                        {
+                            "from": "Message Queue",
+                            "to": "Worker",
+                            "reason": "워커가 분산 카운터 조회 후 프로모션 승인/거절"
+                        },
+                        {
+                            "from": "Worker",
+                            "to": "Cache",
+                            "reason": "분산 카운터(Redis)로 초과 배포 방지"
+                        }
+                    ]
+                },
+                "rubric_non_functional": [],
+                "axis_weights": {
+                    "reliability": {
+                        "weight": 30,
+                        "reason": "600만 개 초과 발급 절대 불가이므로 분산 환경에서의 정확한 카운팅과 10분 한정 이벤트의 서비스 연속성이 핵심"
+                    },
+                    "performance_optimization": {
+                        "weight": 30,
+                        "reason": "2,000만 동시 접속에서 초당 약 20,000 요청을 처리하는 응답 속도와 분산 카운터 조회 성능이 핵심"
+                    },
+                    "operational_excellence": {
+                        "weight": 20,
+                        "reason": "10분 한정 캠페인의 실시간 카운터 감시, 트래픽 폭주 대응, 장애 시 즉시 복구 체계가 필요"
+                    },
+                    "cost_optimization": {
+                        "weight": 10,
+                        "reason": "단기간 폭주 트래픽을 위한 사전 프로비저닝 비용과 이벤트 종료 후 리소스 회수가 필요"
+                    },
+                    "security": {
+                        "weight": 5,
+                        "reason": "사용자당 1개 제한 관련 중복 요청 방지가 필요하나 별도 보안 요구사항은 명시되지 않음"
+                    },
+                    "sustainability": {
+                        "weight": 5,
+                        "reason": "단기 이벤트 종료 후 프로비저닝된 리소스의 즉시 해제로 에너지 낭비 방지"
+                    }
+                },
+                "decision_points": [
+                    {
+                        "decision": "동기식 즉시 응답 vs 비동기식 지연 응답 프로모션 적용",
+                        "tension": "동기식은 사용자에게 즉각적 결과를 제공하지만 미당첨 시 부정적 경험을 유발하고, 비동기식은 처리 정확도를 높이고 대기 중 추가 마케팅이 가능하지만 사용자가 결과를 기다려야 한다"
+                    },
+                    {
+                        "decision": "단일 중앙 카운터만 운용 vs DC별 분산 카운터 + 중앙 카운터 이중 운용",
+                        "tension": "단일 카운터는 구현이 단순하지만 동시 쓰기 충돌로 값이 왜곡될 수 있고, 이중 운용은 교차 검증으로 정확도를 높이지만 복잡도와 동기화 지연이 추가된다"
+                    },
+                    {
+                        "decision": "정확한 목표치(600만)까지 운용 vs 목표 미만(550만)에서 조기 중단 후 나머지 정밀 처리",
+                        "tension": "정확한 목표치는 최대 배포를 달성하지만 동시성 문제로 초과 배포 위험이 높고, 조기 중단은 초과를 원천 방지하지만 일부 미배포분이 발생한다"
+                    },
+                    {
+                        "decision": "확률적 자료구조 기반 중복 검사 vs 해시 기반 기기별 독립 검사",
+                        "tension": "확률적 자료구조는 메모리 효율적이고 빠르지만 오탐 가능성이 있고, 해시 기반 기기별 분배는 기기 내에서 정확한 검사가 가능하지만 부하 불균등 시 일부 기기의 할당량이 조기 소진된다"
+                    }
+                ]
+            },
+            "display_order": 14,
+            "is_active": true,
+            "create_date": "2026-02-12T10:00:00Z",
+            "update_date": "2026-02-12T10:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practicedetail",
+        "pk": "unit03_15",
+        "fields": {
+            "practice": "unit03",
+            "detail_title": "개인화 뉴스피드 시스템 (ML 설계)",
+            "detail_type": "PROBLEM",
+            "content_data": {
+                "problem_id": "adv_015_design_a_personalized_news_feed_system",
+                "title": "개인화 뉴스피드 시스템 (ML 설계)",
+                "scenario": "소셜 네트워크에서 사용자 참여를 극대화하기 위해 친구의 최근 활동을 개인화하여 타임라인에 표시하는 뉴스피드 시스템을 설계하라. 멀티모달 콘텐츠 처리, 실시간에 가까운 응답, 참여 예측 모델이 핵심이다.",
+                "constraints": [
+                    "콘텐츠는 텍스트, 이미지, 동영상 멀티모달",
+                    "최근 7일~1개월 이내 활동 대상",
+                    "친구 수 최대 약 1,000명, 전체 게시물 수백만 건",
+                    "밀리초 단위 응답 지연 목표",
+                    "공개 프로필 데이터만 사용 가능",
+                    "앱 실행 시 실시간에 가까운 피드 갱신 필요"
+                ],
+                "missions": [
+                    "사용자 참여를 극대화하기 위해 게시물의 관련성을 예측하는 ML 파이프라인을 설계하세요.",
+                    "수억 명의 피드를 개인화하면서 모델 추론 지연을 최소화하는 서빙 구조를 설계하세요."
+                ],
+                "rubric_functional": {
+                    "required_components": [
+                        "API Server",
+                        "Cache",
+                        "RDBMS",
+                        "Worker"
+                    ],
+                    "required_flows": [
+                        {
+                            "from": "API Server",
+                            "to": "Cache",
+                            "reason": "사용자 피처를 Feature Store에서 실시간 조회"
+                        },
+                        {
+                            "from": "Cache",
+                            "to": "Worker",
+                            "reason": "후보 포스트를 랭킹 모델로 다단계 순위 결정"
+                        },
+                        {
+                            "from": "Worker",
+                            "to": "API Server",
+                            "reason": "개인화된 피드 결과를 사용자에게 서빙"
+                        }
+                    ]
+                },
+                "rubric_non_functional": [],
+                "axis_weights": {
+                    "performance_optimization": {
+                        "weight": 30,
+                        "reason": "밀리초 단위 응답 지연 목표로 실시간 피처 계산, 다단계 후보 선별·랭킹의 추론 속도가 핵심"
+                    },
+                    "operational_excellence": {
+                        "weight": 25,
+                        "reason": "특징 드리프트 모니터링, 온라인 학습 파이프라인, 모델 배포 관리, 평가 지표(DAU·체류 시간) 추적이 필요"
+                    },
+                    "reliability": {
+                        "weight": 20,
+                        "reason": "온라인 학습 실패, 모델 배포 오류에 대한 즉시 롤백과 피드 서비스 가용성이 필요"
+                    },
+                    "cost_optimization": {
+                        "weight": 15,
+                        "reason": "수백만 게시물의 실시간 추론을 위한 GPU 비용, Feature Store 인프라 비용 최적화가 필요"
+                    },
+                    "sustainability": {
+                        "weight": 5,
+                        "reason": "대규모 실시간 ML 추론의 에너지 효율적 운영과 경량 모델 활용이 필요"
+                    },
+                    "security": {
+                        "weight": 5,
+                        "reason": "공개 프로필 데이터만 사용하므로 별도 보안 요구사항은 낮으나 개인화 데이터의 기본적 보호가 필요"
+                    }
+                },
+                "decision_points": [
+                    {
+                        "decision": "이진 분류(참여 여부 예측) vs 순위 학습(참여 순서 예측) ML 문제 정의",
+                        "tension": "이진 분류는 단순하고 해석이 쉽지만 게시물 간 상대적 선호를 반영하지 못하고, 순위 학습은 피드 순서를 직접 최적화하지만 학습 데이터 구성과 모델 복잡도가 증가한다"
+                    },
+                    {
+                        "decision": "앙상블 트리 모델 vs 심층 신경망 모델 선택",
+                        "tension": "트리 모델은 특성 전처리가 최소화되고 빠르지만 온라인 학습이 불가하고 대규모 데이터에서 성능이 제한되며, 신경망은 대규모 데이터에서 높은 성능과 지속 학습이 가능하지만 추론 속도와 해석성이 낮다"
+                    },
+                    {
+                        "decision": "단일 참여 확률 예측 vs 참여 유형별(클릭·댓글·공유) 개별 확률 예측",
+                        "tension": "단일 예측은 모델이 단순하고 서빙이 빠르지만 참여 유형별 비즈니스 가치 차이를 반영할 수 없고, 유형별 예측은 세밀한 랭킹이 가능하지만 다중 작업 학습과 가중치 조합 로직이 추가된다"
+                    },
+                    {
+                        "decision": "유사도 기반 경량 구조(사전 계산 가능) vs 연결 계층 포함 심층 구조(실시간 계산)",
+                        "tension": "경량 구조는 아이템 임베딩을 사전 계산하여 서빙이 빠르지만 사용자-아이템 상호작용 특성을 반영하지 못하고, 심층 구조는 상호작용을 학습하여 정확도가 높지만 실시간 계산 비용이 크다"
+                    },
+                    {
+                        "decision": "클릭률 단일 지표 평가 vs 체류 시간·빈도 등 복합 지표 평가",
+                        "tension": "클릭률은 측정이 단순하지만 클릭 후 이탈 같은 낮은 참여를 구분하지 못하고, 복합 지표는 실질적 참여를 반영하지만 지표 간 가중치 설정과 최적화 목표 충돌이 발생한다"
+                    }
+                ]
+            },
+            "display_order": 15,
+            "is_active": true,
+            "create_date": "2026-02-12T10:00:00Z",
+            "update_date": "2026-02-12T10:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practicedetail",
+        "pk": "unit03_16",
+        "fields": {
+            "practice": "unit03",
+            "detail_title": "실시간 게임 리더보드",
+            "detail_type": "PROBLEM",
+            "content_data": {
+                "problem_id": "adv_016_design_gaming_leaderboard",
+                "title": "실시간 게임 리더보드",
+                "scenario": "월간 토너먼트에서 500만 DAU의 실시간 순위를 표시하는 게임 리더보드를 설계하라. 상위 10명 표시, 개인 순위 조회, 실시간 갱신이 핵심이다.",
+                "constraints": [
+                    "일일 활성 사용자 500만 명",
+                    "월간 활성 사용자 2,500만 명",
+                    "사용자당 일 평균 10경기, 일 총 5,000만 경기",
+                    "초당 약 500건 경기 결과 업데이트",
+                    "상위 10명 + 개인 순위 표시",
+                    "월간 토너먼트 (매월 리셋)",
+                    "단일 게임 대상"
+                ],
+                "missions": [
+                    "500만 DAU의 점수 업데이트를 실시간으로 반영하는 리더보드 구조를 설계하세요.",
+                    "월간 토너먼트별 데이터를 효율적으로 관리하고 과거 기록을 조회하는 저장 구조를 설계하세요."
+                ],
+                "rubric_functional": {
+                    "required_components": [
+                        "API Server",
+                        "Cache (Redis)",
+                        "RDBMS",
+                        "WebSocket Gateway"
+                    ],
+                    "required_flows": [
+                        {
+                            "from": "API Server",
+                            "to": "Cache",
+                            "reason": "매치 결과를 Redis Sorted Set으로 실시간 순위 업데이트"
+                        },
+                        {
+                            "from": "Cache",
+                            "to": "WebSocket Gateway",
+                            "reason": "순위 변동을 연결된 클라이언트에게 실시간 푸시"
+                        },
+                        {
+                            "from": "Cache",
+                            "to": "RDBMS",
+                            "reason": "월간 토너먼트 종료 시 최종 순위를 DB에 영구 저장"
+                        }
+                    ]
+                },
+                "rubric_non_functional": [],
+                "axis_weights": {
+                    "performance_optimization": {
+                        "weight": 30,
+                        "reason": "리더보드 자체가 '실시간' 서비스이므로 초당 500건 점수 갱신·조회의 저지연 응답이 핵심"
+                    },
+                    "reliability": {
+                        "weight": 25,
+                        "reason": "게임 중 리더보드 장애 시 사용자 이탈로 직결되며, 월간 토너먼트 전환 시 데이터 무결성 보존이 필요"
+                    },
+                    "operational_excellence": {
+                        "weight": 20,
+                        "reason": "월간 토너먼트 전환 자동화, Redis Sorted Set 운영, 실시간 WebSocket 푸시 관리가 필요"
+                    },
+                    "cost_optimization": {
+                        "weight": 15,
+                        "reason": "Redis 인메모리 캐시 비용과 과거 토너먼트 데이터의 DB 저장 비용 관리가 필요"
+                    },
+                    "security": {
+                        "weight": 5,
+                        "reason": "별도 보안 요구사항이 명시되지 않았으나 점수 조작 방지를 위한 기본적 무결성 검증이 필요"
+                    },
+                    "sustainability": {
+                        "weight": 5,
+                        "reason": "상시 구동 실시간 서비스의 에너지 효율적 운영과 비활성 시간대 리소스 축소가 필요"
+                    }
+                },
+                "decision_points": [
+                    {
+                        "decision": "서버리스 함수 기반 처리 vs 상시 구동 서비스 기반 처리 리더보드 업데이트",
+                        "tension": "서버리스는 가볍고 이벤트 기반으로 효율적이지만 클라이언트와 지속 연결을 유지할 수 없어 실시간성이 저하되고, 상시 서비스는 양방향 연결을 유지하여 즉시 푸시가 가능하지만 서버 자원이 상시 소비된다"
+                    },
+                    {
+                        "decision": "기존 테이블에 월별 복합키 추가 vs 월별 신규 테이블 생성 토너먼트 데이터 관리",
+                        "tension": "복합키는 단일 테이블로 관리가 단순하지만 과거 데이터가 누적되어 조회 성능이 저하되고, 월별 테이블은 현재 월 데이터만 독립 관리하여 성능이 유지되지만 테이블 생성·전환·정리 운영이 추가된다"
+                    },
+                    {
+                        "decision": "무작위 파티셔닝 vs 지역 기반 파티셔닝 데이터 분산",
+                        "tension": "무작위는 균등 분배가 가능하지만 상위 랭커에 핫스팟이 발생할 수 있고, 지역 기반은 근접성으로 지연을 줄이지만 특정 지역에 부하가 편중될 수 있다"
+                    },
+                    {
+                        "decision": "캐시에 전체 순위 저장 vs 상위 N명만 캐시에 저장",
+                        "tension": "전체 저장은 모든 사용자의 순위를 즉시 반환할 수 있지만 메모리 소비가 크고, 상위 N명만 저장은 메모리 효율적이지만 개인 순위 조회 시 DB 조회가 필요하여 지연이 발생한다"
+                    }
+                ]
+            },
+            "display_order": 16,
+            "is_active": true,
+            "create_date": "2026-02-12T10:00:00Z",
+            "update_date": "2026-02-12T10:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practicedetail",
+        "pk": "unit03_17",
+        "fields": {
+            "practice": "unit03",
+            "detail_title": "메시징 서비스 (WhatsApp)",
+            "detail_type": "PROBLEM",
+            "content_data": {
+                "problem_id": "adv_017_designing_whatsapp",
+                "title": "메시징 서비스 (WhatsApp)",
+                "scenario": "1:1 채팅과 그룹 채팅을 지원하는 메시징 서비스를 설계하라. 텍스트, 이미지, 파일 전송과 클라이언트 알림, 메시지 삭제 기능이 요구되며 데이터 유실 방지와 실시간 전달이 핵심이다.",
+                "constraints": [
+                    "일일 활성 사용자 100만 명",
+                    "텍스트 메시지 약 100바이트, 이미지 최대 1MB (압축 후)",
+                    "사용자당 일 평균 40건 메시지",
+                    "일일 약 20GB 데이터, 5년 저장 시 약 36TB",
+                    "암호화/보안은 범위 밖",
+                    "다중 기기 동기화 필요"
+                ],
+                "missions": [
+                    "수억 사용자 간 메시지를 실시간으로 전달하는 통신 구조를 설계하세요.",
+                    "1:1 채팅과 그룹 채팅의 메시지를 효율적으로 저장하고 조회하는 데이터 구조를 설계하세요."
+                ],
+                "rubric_functional": {
+                    "required_components": [
+                        "WebSocket Gateway",
+                        "API Server",
+                        "RDBMS",
+                        "Message Queue"
+                    ],
+                    "required_flows": [
+                        {
+                            "from": "Client",
+                            "to": "WebSocket Gateway",
+                            "reason": "실시간 메시지 송수신을 위한 지속 연결"
+                        },
+                        {
+                            "from": "WebSocket Gateway",
+                            "to": "Message Queue",
+                            "reason": "수신자 오프라인 시 메시지를 큐에 보관"
+                        },
+                        {
+                            "from": "Message Queue",
+                            "to": "RDBMS",
+                            "reason": "메시지를 영구 저장하여 데이터 유실 방지"
+                        }
+                    ]
+                },
+                "rubric_non_functional": [],
+                "axis_weights": {
+                    "reliability": {
+                        "weight": 35,
+                        "reason": "메시지가 절대 유실되어서는 안 되며, 오프라인 사용자에게도 전달이 보장되어야 하고 다중 기기 동기화가 필요"
+                    },
+                    "performance_optimization": {
+                        "weight": 25,
+                        "reason": "실시간 메시지 전달의 저지연이 사용자 경험을 직접 결정하며 WebSocket 기반 즉각적 전달이 필요"
+                    },
+                    "operational_excellence": {
+                        "weight": 20,
+                        "reason": "WebSocket 연결 관리, 데이터 샤딩 운영, 오프라인 메시지 큐 모니터링, 다중 기기 동기화 관리가 필요"
+                    },
+                    "cost_optimization": {
+                        "weight": 10,
+                        "reason": "5년간 약 36TB 메시지 데이터의 저장 비용과 동시 연결 관리를 위한 서버 비용 최적화가 필요"
+                    },
+                    "sustainability": {
+                        "weight": 5,
+                        "reason": "대규모 지속 연결의 에너지 효율적 관리와 메시지 저장소의 효율적 운영이 필요"
+                    },
+                    "security": {
+                        "weight": 5,
+                        "reason": "암호화/보안은 범위 밖으로 별도 보안 요구사항이 명시되지 않음"
+                    }
+                },
+                "decision_points": [
+                    {
+                        "decision": "서버 푸시(지속 연결) vs 클라이언트 폴링(주기적 요청) 메시지 전달",
+                        "tension": "지속 연결은 즉각적 전달로 실시간 경험을 제공하지만 서버당 동시 연결 수에 한계가 있어 선형적 서버 확장이 필요하고, 폴링은 서버 자원을 절약하지만 폴링 간격만큼 지연이 발생하여 실시간 경험이 저하된다"
+                    },
+                    {
+                        "decision": "관계형 DB vs 비관계형 DB 메시지 저장",
+                        "tension": "관계형은 구조화된 데이터와 조인에 강하지만 대량 메시지 쓰기 확장이 어렵고, 비관계형은 가변 크기 데이터의 고속 쓰기에 적합하지만 테이블 간 조인이 비효율적이다"
+                    },
+                    {
+                        "decision": "동기식 메시지 전달 vs 비동기식(큐 기반) 메시지 전달",
+                        "tension": "동기식은 즉각적 전달이 가능하지만 서비스 간 강결합이 발생하고, 비동기식은 서버 부하를 분산하고 장애를 격리하지만 전달 지연이 추가된다"
+                    },
+                    {
+                        "decision": "테이블별 동일 DB 사용 vs 테이블 특성에 따른 다종 DB 혼합 사용",
+                        "tension": "동일 DB는 운영이 단순하고 크로스 조회가 용이하지만 모든 워크로드에 최적화되지 않고, 다종 혼합은 각 데이터 특성에 맞춰 최적화되지만 운영 복잡도와 크로스 데이터 조합이 어려워진다"
+                    },
+                    {
+                        "decision": "단일 파티션에서 시작 후 분할 vs 초기부터 다중 파티션 구성",
+                        "tension": "단일 시작은 운영이 단순하지만 트래픽 증가 시 분할 작업이 서비스 중단을 유발할 수 있고, 초기 다중 파티션은 확장에 유리하지만 저트래픽 시 자원 낭비가 발생한다"
+                    }
+                ]
+            },
+            "display_order": 17,
+            "is_active": true,
+            "create_date": "2026-02-12T10:00:00Z",
+            "update_date": "2026-02-12T10:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practicedetail",
+        "pk": "unit03_18",
+        "fields": {
+            "practice": "unit03",
+            "detail_title": "사기/스캠 콘텐츠 탐지 시스템 (ML 설계)",
+            "detail_type": "PROBLEM",
+            "content_data": {
+                "problem_id": "adv_018_detect_fraudulent_and_scam_practices",
+                "title": "사기/스캠 콘텐츠 탐지 시스템 (ML 설계)",
+                "scenario": "소셜 미디어 플랫폼에서 사기성·스캠 게시물을 자동 탐지하여 삭제, 강등, 수동 검토로 분류하는 ML 시스템을 설계하라. 멀티모달 콘텐츠 처리, 클래스 불균형 대응, 단계적 배포가 핵심이다.",
+                "constraints": [
+                    "일일 콘텐츠 수십억 건",
+                    "약 2%가 사기/스캠 콘텐츠 (클래스 불균형)",
+                    "탐지 지연 30초 이내",
+                    "텍스트, 이미지, 동영상, 오디오, 하이퍼링크 멀티모달 입력",
+                    "다중 스캠 유형 (암호화폐, 대출 사기 등)",
+                    "영어 전용, 북미 시장 대상"
+                ],
+                "missions": [
+                    "다양한 유형의 사기성 콘텐츠를 자동으로 탐지하고 분류하는 ML 파이프라인을 설계하세요.",
+                    "정상 게시물의 오탐을 최소화하면서 탐지 정확도를 높이는 모델 구조를 설계하세요."
+                ],
+                "rubric_functional": {
+                    "required_components": [
+                        "API Server",
+                        "Message Queue",
+                        "Worker",
+                        "RDBMS"
+                    ],
+                    "required_flows": [
+                        {
+                            "from": "API Server",
+                            "to": "Message Queue",
+                            "reason": "콘텐츠 업로드 시 ML 분석 파이프라인에 비동기 전달"
+                        },
+                        {
+                            "from": "Message Queue",
+                            "to": "Worker",
+                            "reason": "멀티모달 특성 추출 및 분류 모델 추론 실행"
+                        },
+                        {
+                            "from": "Worker",
+                            "to": "RDBMS",
+                            "reason": "탐지 결과(삭제/강등/수동검토)를 DB에 기록"
+                        }
+                    ]
+                },
+                "rubric_non_functional": [],
+                "axis_weights": {
+                    "operational_excellence": {
+                        "weight": 25,
+                        "reason": "단계적 배포(그림자→카나리→A/B), 라벨링 품질 관리, 새 스캠 유형 대응, 모델 드리프트 모니터링이 핵심"
+                    },
+                    "performance_optimization": {
+                        "weight": 25,
+                        "reason": "30초 이내 탐지 요구사항으로 일간 수십억 건 콘텐츠의 멀티모달 실시간 추론 속도와 처리량이 핵심"
+                    },
+                    "reliability": {
+                        "weight": 25,
+                        "reason": "오탐(정상 콘텐츠 삭제)과 미탐(스캠 통과) 모두 비즈니스에 심각한 영향을 미치므로 정밀도·재현율 균형이 필수"
+                    },
+                    "security": {
+                        "weight": 10,
+                        "reason": "사기·스캠으로부터 플랫폼 사용자를 보호하는 것이 시스템의 핵심 목적이므로 보안적 관점이 필요"
+                    },
+                    "cost_optimization": {
+                        "weight": 10,
+                        "reason": "멀티모달(텍스트·이미지·영상·오디오) 처리 인프라와 다수결 투표 라벨링의 비용 관리가 필요"
+                    },
+                    "sustainability": {
+                        "weight": 5,
+                        "reason": "대규모 멀티모달 ML 추론의 에너지 효율적 운영과 불필요한 재추론 최소화가 필요"
+                    }
+                },
+                "decision_points": [
+                    {
+                        "decision": "유형별 개별 모델 후기 결합 vs 전체 특성 통합 단일 모델 조기 결합",
+                        "tension": "개별 모델은 유형별 독립 훈련이 가능하지만 모델 수만큼 인프라가 필요하고 특성 간 상호작용을 학습하지 못하며, 통합 모델은 상호작용을 포착하지만 단일 모델의 복잡도가 증가한다"
+                    },
+                    {
+                        "decision": "단순 이진 분류기 vs 다중 작업 신경망 스캠 탐지",
+                        "tension": "이진 분류기는 구현이 단순하고 소비 서비스에 점수 해석이 쉽지만 스캠 유형별 분석이 불가하고, 다중 작업은 유형별 세밀한 탐지가 가능하지만 복잡도와 유지보수 비용이 증가한다"
+                    },
+                    {
+                        "decision": "정밀도 우선 vs 재현율 우선 분류 기준 설정",
+                        "tension": "정밀도 우선은 정상 콘텐츠 오삭제를 최소화하여 사용자 불만을 줄이지만 일부 스캠이 통과되고, 재현율 우선은 스캠을 최대한 포착하지만 정상 콘텐츠까지 삭제하여 사용자 경험을 저해한다"
+                    },
+                    {
+                        "decision": "전면 즉시 배포 vs 점진적 단계 배포(그림자→카나리→A/B) 모델 릴리스",
+                        "tension": "즉시 배포는 최신 모델을 빠르게 적용하지만 성능 저하 시 전체 사용자에게 영향이 미치고, 점진적 배포는 위험을 제한하지만 전체 적용까지 시간이 걸리고 인프라 비용이 증가한다"
+                    },
+                    {
+                        "decision": "다수결 투표 기반 라벨링 vs 단일 검토자 라벨링 훈련 데이터 생성",
+                        "tension": "다수결은 라벨 편향을 줄이지만 동일 콘텐츠에 복수 검토자가 필요하여 비용이 증가하고, 단일 검토자는 비용이 낮지만 개인 편향이 모델에 전이된다"
+                    }
+                ]
+            },
+            "display_order": 18,
+            "is_active": true,
+            "create_date": "2026-02-12T10:00:00Z",
+            "update_date": "2026-02-12T10:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practicedetail",
+        "pk": "unit03_19",
+        "fields": {
+            "practice": "unit03",
+            "detail_title": "분산 데이터베이스 파티셔닝",
+            "detail_type": "PROBLEM",
+            "content_data": {
+                "problem_id": "adv_019_distributed_databases",
+                "title": "분산 데이터베이스 파티셔닝",
+                "scenario": "단일 SQL 테이블의 행이 한 대의 머신 용량을 초과할 때, 여러 대의 네트워크 연결 머신에 데이터를 분산 저장하고 효율적으로 조회하는 방법을 설계하라. 파티셔닝 전략, 부하 분산, 조회 라우팅이 핵심이다.",
+                "constraints": [
+                    "단일 SQL 테이블, 행 수가 단일 머신 한도 초과",
+                    "여러 대의 네트워크 연결 머신 사용 가능",
+                    "자동화 분산 도구 없이 SQL만 사용",
+                    "중앙 집중 데이터웨어하우스 (단일 지역)",
+                    "읽기와 쓰기 모두 지원 필요"
+                ],
+                "missions": [
+                    "단일 머신 용량을 초과하는 데이터를 여러 머신에 효율적으로 분산 저장하는 파티셔닝 전략을 설계하세요.",
+                    "접근 빈도가 다른 데이터(최근 vs 과거)의 부하를 균형 있게 분배하는 구조를 설계하세요."
+                ],
+                "rubric_functional": {
+                    "required_components": [
+                        "Load Balancer",
+                        "API Server",
+                        "RDBMS",
+                        "Cache"
+                    ],
+                    "required_flows": [
+                        {
+                            "from": "Client",
+                            "to": "Load Balancer",
+                            "reason": "쿼리를 적절한 파티션 노드로 라우팅"
+                        },
+                        {
+                            "from": "Load Balancer",
+                            "to": "RDBMS",
+                            "reason": "파티션 키 기반으로 분산된 샤드 노드에 쿼리 실행"
+                        },
+                        {
+                            "from": "RDBMS",
+                            "to": "Cache",
+                            "reason": "쿼리 결과를 캐시하여 핫 파티션 부하 감소"
+                        }
+                    ]
+                },
+                "rubric_non_functional": [],
+                "axis_weights": {
+                    "performance_optimization": {
+                        "weight": 30,
+                        "reason": "네트워크로 연결된 머신 간 쿼리 속도, 스캔 범위 최소화, 로컬 조회 최적화가 핵심"
+                    },
+                    "operational_excellence": {
+                        "weight": 25,
+                        "reason": "파티셔닝 전략 관리, 리밸런싱 운영, 머신 장애 시 데이터 재배치, 읽기·쓰기 부하 모니터링이 필요"
+                    },
+                    "reliability": {
+                        "weight": 25,
+                        "reason": "머신 장애 시 서비스 연속성 유지, 리밸런싱 과정 중 레코드 유실 불가, 분산 쿼리 결과 정합성이 필요"
+                    },
+                    "cost_optimization": {
+                        "weight": 10,
+                        "reason": "다수 머신의 효율적 자원 활용과 핫/콜드 데이터 분리를 통한 인프라 비용 최적화가 필요"
+                    },
+                    "security": {
+                        "weight": 5,
+                        "reason": "별도 보안 요구사항이 명시되지 않았으나 분산 환경에서의 기본적 접근 제어가 필요"
+                    },
+                    "sustainability": {
+                        "weight": 5,
+                        "reason": "분산 머신의 에너지 효율적 운영과 불필요한 전체 스캔 최소화를 통한 연산 자원 절감"
+                    }
+                },
+                "decision_points": [
+                    {
+                        "decision": "지역 기반 분할 vs 시간 기반 분할 데이터 파티셔닝",
+                        "tension": "지역 기반은 해당 지역 사용자에게 빠르지만 교차 지역 조회가 복잡하고, 시간 기반은 최근 데이터 접근이 빠르지만 현재 기간 머신에 부하가 집중된다"
+                    },
+                    {
+                        "decision": "최근 데이터 전용 머신 집중 vs 전체 데이터 균등 분산 부하 분배",
+                        "tension": "최근 전용은 현재 트랜잭션이 빠르지만 해당 머신이 병목이 되고, 균등 분산은 부하가 고르지만 특정 사용자 데이터 조회 시 모든 머신을 검색해야 한다"
+                    },
+                    {
+                        "decision": "이름 첫 글자 기반 분할 vs 순환 배정 방식 레코드 분산",
+                        "tension": "이름 기반은 특정 사용자 조회가 단일 머신에서 가능하지만 글자별 빈도 차이로 불균형이 발생하고, 순환 배정은 균등하지만 특정 사용자 검색 시 어느 머신인지 알 수 없다"
+                    },
+                    {
+                        "decision": "트랜잭션과 보고 통합 처리 vs 읽기·쓰기 분리 부하 분배",
+                        "tension": "통합 처리는 구조가 단순하지만 대규모 분석 쿼리가 트랜잭션 삽입을 지연시키고, 분리는 각 작업 유형에 최적화 가능하지만 라우팅 계층 복수 운영의 복잡도가 증가한다"
+                    },
+                    {
+                        "decision": "식별자 해싱 기반 자동 분산 vs 조회 테이블 기반 수동 분산 레코드 배치",
+                        "tension": "해싱은 장부 관리 없이 대상 머신을 즉시 결정할 수 있지만 머신 추가·제거 시 재분배가 필요하고, 조회 테이블은 정확한 위치를 제공하지만 레코드·머신 변경 시 갱신 비용이 크다"
+                    }
+                ]
+            },
+            "display_order": 19,
+            "is_active": true,
+            "create_date": "2026-02-12T10:00:00Z",
+            "update_date": "2026-02-12T10:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practicedetail",
+        "pk": "unit03_20",
+        "fields": {
+            "practice": "unit03",
+            "detail_title": "페이스북 타임라인 서비스",
+            "detail_type": "PROBLEM",
+            "content_data": {
+                "problem_id": "adv_020_facebook_timeline_service",
+                "title": "페이스북 타임라인 서비스",
+                "scenario": "소셜 네트워크에서 친구의 게시물을 사용자 타임라인에 표시하는 서비스를 설계하라. 푸시·풀 모델 선택, QPS 산정, 데이터베이스 스키마 설계가 핵심이다.",
+                "constraints": [
+                    "다양한 디바이스·플랫폼 지원",
+                    "친구 관계 기반 게시물 표시",
+                    "특정 사용자 게시물 조회 기능",
+                    "가용성 우선 (일관성과 트레이드오프)",
+                    "저지연 응답 요구"
+                ],
+                "missions": [
+                    "친구의 게시물을 사용자 타임라인에 빠르게 표시하는 피드 생성 구조를 설계하세요.",
+                    "팔로워가 수백만 명인 인기 사용자의 게시물도 효율적으로 배포하는 구조를 설계하세요."
+                ],
+                "rubric_functional": {
+                    "required_components": [
+                        "API Server",
+                        "Cache",
+                        "RDBMS",
+                        "Message Queue"
+                    ],
+                    "required_flows": [
+                        {
+                            "from": "API Server",
+                            "to": "Cache",
+                            "reason": "타임라인 피드를 캐시에서 우선 조회하여 응답 속도 향상"
+                        },
+                        {
+                            "from": "API Server",
+                            "to": "Message Queue",
+                            "reason": "새 게시물을 팬아웃 큐에 적재"
+                        },
+                        {
+                            "from": "Message Queue",
+                            "to": "Cache",
+                            "reason": "팬아웃 워커가 팔로워들의 캐시 피드를 갱신"
+                        }
+                    ]
+                },
+                "rubric_non_functional": [],
+                "axis_weights": {
+                    "performance_optimization": {
+                        "weight": 30,
+                        "reason": "타임라인 로딩 QPS가 핵심 성능 지표이며 피드 생성 방식(푸시/풀)이 응답 속도를 결정"
+                    },
+                    "reliability": {
+                        "weight": 25,
+                        "reason": "가용성을 일관성보다 우선하는 명시적 요구사항과 게시물 데이터의 영속적 저장이 필수"
+                    },
+                    "operational_excellence": {
+                        "weight": 20,
+                        "reason": "팬아웃 파이프라인 운영, 캐시 피드 갱신 관리, 이벤트 기반 비동기 처리 아키텍처 운영이 필요"
+                    },
+                    "cost_optimization": {
+                        "weight": 15,
+                        "reason": "대규모 사용자의 캐시 피드 저장 비용과 팬아웃 쓰기 부하에 따른 인프라 비용 관리가 필요"
+                    },
+                    "security": {
+                        "weight": 5,
+                        "reason": "별도 보안 요구사항이 명시되지 않았으나 사용자 게시물의 기본적 접근 제어가 필요"
+                    },
+                    "sustainability": {
+                        "weight": 5,
+                        "reason": "팬아웃 처리 최적화(인기 사용자 풀 방식 전환 등)를 통한 불필요한 쓰기 에너지 절감"
+                    }
+                },
+                "decision_points": [
+                    {
+                        "decision": "푸시 모델(팬아웃 온 라이트) vs 풀 모델(팬아웃 온 리드) 타임라인 생성",
+                        "tension": "푸시 모델은 게시 시 모든 친구의 타임라인에 즉시 기록하여 읽기가 빠르지만 쓰기 부하가 크고, 풀 모델은 읽기 시 친구의 게시물을 수집하여 쓰기가 가벼우나 읽기 지연이 발생한다"
+                    },
+                    {
+                        "decision": "가용성 우선 vs 일관성 우선 시스템 설계 원칙",
+                        "tension": "가용성 우선은 서비스 중단을 최소화하지만 일시적으로 오래된 데이터가 표시될 수 있고, 일관성 우선은 항상 최신 데이터를 보장하지만 네트워크 분할 시 서비스가 중단될 수 있다"
+                    },
+                    {
+                        "decision": "요청-응답 기반 동기 처리 vs 이벤트 기반 비동기 처리 아키텍처",
+                        "tension": "동기 처리는 구현이 단순하고 흐름이 명확하지만 서비스 간 결합도가 높고, 이벤트 기반은 서비스 간 결합도를 낮추고 확장이 용이하지만 이벤트 순서와 멱등성 관리가 복잡하다"
+                    }
+                ]
+            },
+            "display_order": 20,
+            "is_active": true,
+            "create_date": "2026-02-12T10:00:00Z",
+            "update_date": "2026-02-12T10:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practicedetail",
+        "pk": "unit03_21",
+        "fields": {
+            "practice": "unit03",
+            "detail_title": "파일 시스템 기반 데이터 처리",
+            "detail_type": "PROBLEM",
+            "content_data": {
+                "problem_id": "adv_021_file_parsing",
+                "title": "파일 시스템 기반 데이터 처리",
+                "scenario": "디렉토리당 1,000개 파일 제한이 있는 비효율적 파일 시스템에서 수십만 선수의 타율을 계산·조회할 수 있도록 데이터를 구조화하고, 다수의 저성능 머신에서 병렬 처리하는 방법을 설계하라.",
+                "constraints": [
+                    "디렉토리당 최대 1,000개 파일",
+                    "100년치 야구 데이터 (수십만 선수)",
+                    "자체 개발 비효율적 파일 시스템 (데이터베이스 사용 불가)",
+                    "다수의 저성능·저메모리 머신 보유",
+                    "일일 배치 업데이트 (매일 텍스트 파일 수신)",
+                    "선수별 타율(안타 수 / 총 타석 수) 조회 기능 필요"
+                ],
+                "missions": [
+                    "디렉토리당 파일 수 제한이 있는 환경에서 수십만 선수 데이터를 효율적으로 저장하는 구조를 설계하세요.",
+                    "다수의 저성능 머신에서 데이터를 병렬로 처리하여 결과를 빠르게 산출하는 구조를 설계하세요."
+                ],
+                "rubric_functional": {
+                    "required_components": [
+                        "API Server",
+                        "Object Storage",
+                        "Worker",
+                        "Load Balancer"
+                    ],
+                    "required_flows": [
+                        {
+                            "from": "Client",
+                            "to": "Load Balancer",
+                            "reason": "선수 데이터 조회 요청을 적절한 서버로 분배"
+                        },
+                        {
+                            "from": "API Server",
+                            "to": "Object Storage",
+                            "reason": "계층적 디렉토리 구조에서 파일 검색"
+                        },
+                        {
+                            "from": "Object Storage",
+                            "to": "Worker",
+                            "reason": "다수 머신에서 map-reduce 방식 병렬 타율 계산"
+                        }
+                    ]
+                },
+                "rubric_non_functional": [],
+                "axis_weights": {
+                    "performance_optimization": {
+                        "weight": 30,
+                        "reason": "디렉토리당 1,000개 파일 제한 환경에서 빠른 검색과 전체 스캔 회피를 위한 계층적 구조 설계가 핵심"
+                    },
+                    "operational_excellence": {
+                        "weight": 25,
+                        "reason": "맵-리듀스 병렬 처리 관리, 일일 배치 업데이트 운영, 다수 저성능 머신의 작업 분배 관리가 필요"
+                    },
+                    "reliability": {
+                        "weight": 20,
+                        "reason": "병렬 처리 중 부분 장애 시 데이터 파손 방지와 다수 머신의 동시 파일 수정 시 결과 정합성이 필요"
+                    },
+                    "cost_optimization": {
+                        "weight": 15,
+                        "reason": "다수의 저성능·저메모리 머신을 효율적으로 활용하여 인프라 비용을 최적화"
+                    },
+                    "sustainability": {
+                        "weight": 5,
+                        "reason": "저성능 머신의 효율적 활용과 불필요한 전체 파일 스캔 최소화를 통한 에너지 절감"
+                    },
+                    "security": {
+                        "weight": 5,
+                        "reason": "별도 보안 요구사항이 명시되지 않았으나 데이터 무결성 관점의 기본적 보호가 필요"
+                    }
+                },
+                "decision_points": [
+                    {
+                        "decision": "전체 목록 단일 파일 저장 vs 버킷 분할 디렉토리 구조 선수 데이터 관리",
+                        "tension": "단일 파일은 구현이 단순하지만 조회 시 전체 파일을 읽어야 하고(O(n)), 버킷 분할은 검색 범위를 축소하지만 디렉토리 구조 설계와 유지가 복잡하다"
+                    },
+                    {
+                        "decision": "첫 글자 기반 단일 계층 버킷 vs 다중 글자 기반 다층 계층 버킷 디렉토리 구조",
+                        "tension": "단일 계층은 구현이 단순하고 경로가 짧지만 특정 글자에 1,000개를 초과하는 항목이 몰릴 수 있고, 다층 계층은 각 디렉토리가 제한 내에 유지되지만 경로가 깊어지고 관리가 복잡하다"
+                    },
+                    {
+                        "decision": "공유 파일에 직접 갱신 vs 독립 중간 파일 생성 후 병합 병렬 처리 전략",
+                        "tension": "공유 파일 직접 갱신은 최종 결과를 즉시 얻지만 파일 잠금 불가 시 데이터 손상 위험이 있고, 독립 파일 후 병합은 동시 접근 충돌이 없지만 병합 단계가 추가된다"
+                    }
+                ]
+            },
+            "display_order": 21,
+            "is_active": true,
+            "create_date": "2026-02-12T10:00:00Z",
+            "update_date": "2026-02-12T10:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practicedetail",
+        "pk": "unit03_22",
+        "fields": {
+            "practice": "unit03",
+            "detail_title": "근처 친구 찾기 서비스",
+            "detail_type": "PROBLEM",
+            "content_data": {
+                "problem_id": "adv_022_finding_nearby_friends",
+                "title": "근처 친구 찾기 서비스",
+                "scenario": "소셜 앱에서 사용자의 현재 위치 기반으로 고정 반경 내 친구를 지도에 표시하는 기능을 설계하라. 대규모 위치 갱신 처리, 실시간 근접 판정, 읽기·쓰기 부하 분리가 핵심이다.",
+                "constraints": [
+                    "일일 활성 사용자 1,000만 명",
+                    "사용자당 최대 1,000명, 평균 500명 친구",
+                    "30초 이내 위치 갱신 허용 지연",
+                    "고정 반경 2~3km (사용자 설정 불가)",
+                    "한 번에 20~25명 표시 (페이지네이션 지원)",
+                    "위치 조회 QPS 약 1,000, 위치 갱신 QPS 약 300,000"
+                ],
+                "missions": [
+                    "사용자의 위치 정보가 빈번하게 갱신되는 상황에서 근처 친구를 빠르게 검색하는 구조를 설계하세요.",
+                    "위치 쓰기 부하와 읽기 부하를 효율적으로 분리하여 처리하는 서비스 구조를 설계하세요."
+                ],
+                "rubric_functional": {
+                    "required_components": [
+                        "API Server",
+                        "Cache (Redis)",
+                        "RDBMS"
+                    ],
+                    "required_flows": [
+                        {
+                            "from": "Client",
+                            "to": "API Server",
+                            "reason": "사용자 위치 업데이트 요청 전송"
+                        },
+                        {
+                            "from": "API Server",
+                            "to": "Cache",
+                            "reason": "Geohash 기반으로 Redis에 위치 색인 및 근접 조회"
+                        },
+                        {
+                            "from": "Cache",
+                            "to": "RDBMS",
+                            "reason": "친구 관계 DB 조회 후 근접 친구 필터링"
+                        }
+                    ]
+                },
+                "rubric_non_functional": [],
+                "axis_weights": {
+                    "performance_optimization": {
+                        "weight": 35,
+                        "reason": "30초 이내 위치 갱신 반영과 QPS 약 300,000의 위치 업데이트, 실시간 근접 검색의 저지연 응답이 핵심"
+                    },
+                    "reliability": {
+                        "weight": 20,
+                        "reason": "위치 기반 실시간 서비스로 높은 가용성이 사용자 경험에 직결되며 위치 데이터 TTL 관리가 필요"
+                    },
+                    "operational_excellence": {
+                        "weight": 20,
+                        "reason": "읽기·쓰기 분리 서비스 운영, Geohash 기반 위치 인덱싱 관리, 친구 관계 DB 연동 관리가 필요"
+                    },
+                    "cost_optimization": {
+                        "weight": 15,
+                        "reason": "위치 갱신 QPS 300,000의 Redis 캐시 비용과 읽기·쓰기 분리 서비스의 인프라 비용 최적화가 필요"
+                    },
+                    "security": {
+                        "weight": 5,
+                        "reason": "사용자 위치 데이터의 프라이버시 보호가 필요하나 별도 보안 요구사항은 명시되지 않음"
+                    },
+                    "sustainability": {
+                        "weight": 5,
+                        "reason": "위치 갱신의 TTL 기반 자동 만료로 불필요한 데이터 저장과 처리 에너지를 절감"
+                    }
+                },
+                "decision_points": [
+                    {
+                        "decision": "읽기·쓰기 통합 서비스 vs 읽기·쓰기 분리 서비스 구조",
+                        "tension": "통합은 서비스 관리가 단순하지만 읽기와 쓰기의 부하 특성이 달라 독립 확장이 불가하고, 분리는 각각 독립 확장이 가능하지만 서비스 수가 증가하여 운영 복잡도가 높아진다"
+                    },
+                    {
+                        "decision": "친구 목록 개별 조회 vs 일괄 요청 위치 검색",
+                        "tension": "개별 조회는 구현이 단순하지만 최대 1,000회 네트워크 호출이 필요하고, 일괄 요청은 네트워크 부하를 대폭 줄이지만 저장소가 일괄 조회를 지원해야 한다"
+                    },
+                    {
+                        "decision": "위도·경도 직접 비교 필터링 vs 격자 기반 공간 인덱싱 근접 판정",
+                        "tension": "직접 비교는 추가 전처리 없이 구현 가능하지만 모든 친구 좌표를 가져와 거리 계산이 필요하고, 격자 기반은 인접 격자만 조회하여 검색 범위를 축소하지만 격자 생성과 관리 로직이 추가된다"
+                    }
+                ]
+            },
+            "display_order": 22,
+            "is_active": true,
+            "create_date": "2026-02-12T10:00:00Z",
+            "update_date": "2026-02-12T10:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practicedetail",
+        "pk": "unit03_23",
+        "fields": {
+            "practice": "unit03",
+            "detail_title": "유해 콘텐츠 탐지 시스템 (ML 설계)",
+            "detail_type": "PROBLEM",
+            "content_data": {
+                "problem_id": "adv_023_harmful_content_removal",
+                "title": "유해 콘텐츠 탐지 시스템 (ML 설계)",
+                "scenario": "소셜 플랫폼에서 텍스트, 이미지, 짧은 동영상의 유해 콘텐츠(학대, 음란물, 폭력, 허위 정보)를 자동 탐지·제거하는 ML 시스템을 설계하라. 긴급도별 하이브리드 차단, 모달리티별 확장, 사람 검토 루프가 핵심이다.",
+                "constraints": [
+                    "일일 활성 사용자 약 5,000만 명",
+                    "일일 약 5,000만 게시물 (텍스트 약 80%, 이미지·동영상 약 20%)",
+                    "유해 콘텐츠 비율 약 1~5%",
+                    "텍스트, 이미지, 짧은 동영상 멀티모달 입력",
+                    "유해 카테고리: 학대, 음란물, 폭력, 허위 정보",
+                    "긴급 콘텐츠(음란물·폭력)는 즉시 차단, 비긴급(허위 정보)은 하루 이내 처리",
+                    "게시물 노출 지연 초 단위 허용"
+                ],
+                "missions": [
+                    "텍스트, 이미지, 동영상 등 다양한 형식의 유해 콘텐츠를 탐지하는 ML 파이프라인을 설계하세요.",
+                    "콘텐츠 게시 속도를 저해하지 않으면서 유해 콘텐츠를 신속히 차단하는 검토 구조를 설계하세요."
+                ],
+                "rubric_functional": {
+                    "required_components": [
+                        "API Server",
+                        "Message Queue",
+                        "Worker",
+                        "RDBMS"
+                    ],
+                    "required_flows": [
+                        {
+                            "from": "API Server",
+                            "to": "Message Queue",
+                            "reason": "콘텐츠 업로드 시 검토 파이프라인에 비동기 전달"
+                        },
+                        {
+                            "from": "Message Queue",
+                            "to": "Worker",
+                            "reason": "모달리티별(텍스트/이미지/영상) ML 모델 추론 실행"
+                        },
+                        {
+                            "from": "Worker",
+                            "to": "RDBMS",
+                            "reason": "검토 결과(즉시차단/지연검토/허용)를 DB에 기록"
+                        }
+                    ]
+                },
+                "rubric_non_functional": [],
+                "axis_weights": {
+                    "reliability": {
+                        "weight": 25,
+                        "reason": "유해 콘텐츠 미탐지 시 플랫폼 신뢰도가 치명적으로 하락하므로 높은 재현율과 파이프라인 안정성이 필수"
+                    },
+                    "performance_optimization": {
+                        "weight": 25,
+                        "reason": "일간 5,000만 게시물의 멀티모달 실시간 추론과 긴급 콘텐츠(음란물·폭력) 즉시 차단 처리 속도가 핵심"
+                    },
+                    "operational_excellence": {
+                        "weight": 25,
+                        "reason": "모달리티별 모델 관리, 사람 검토 루프(Human-in-the-Loop), 무중단 모델 배포, 드리프트 모니터링이 필요"
+                    },
+                    "security": {
+                        "weight": 15,
+                        "reason": "학대·음란물·폭력·허위 정보로부터 플랫폼 사용자를 보호하는 것이 시스템의 핵심 목적"
+                    },
+                    "cost_optimization": {
+                        "weight": 5,
+                        "reason": "멀티모달 처리 인프라와 사람 검토 비용 관리가 필요하나 안전이 비용보다 우선"
+                    },
+                    "sustainability": {
+                        "weight": 5,
+                        "reason": "긴급/비긴급 우선순위 분리로 불필요한 즉시 추론을 줄이고 배치 처리를 활용하여 에너지 절감"
+                    }
+                },
+                "decision_points": [
+                    {
+                        "decision": "즉시(사전) 차단 vs 지연(사후) 차단 콘텐츠 검토 시점",
+                        "tension": "즉시 차단은 위험 콘텐츠를 사용자 노출 전에 제거하지만 모든 게시물에 실시간 추론이 필요하고, 지연 차단은 비용이 낮지만 유해 콘텐츠가 일정 시간 사용자에게 노출된다"
+                    },
+                    {
+                        "decision": "통합 멀티모달 단일 모델 vs 모달리티별 개별 모델 콘텐츠 분류",
+                        "tension": "통합 모델은 유지보수가 단순하지만 모달리티별 독립 확장이 불가하고, 개별 모델은 각 유형을 독립 확장·최적화할 수 있지만 모델 수만큼 운영 부담이 증가한다"
+                    },
+                    {
+                        "decision": "짧은 토큰(글자·하위단어 단위) vs 긴 토큰(단어·다중단어 단위) 텍스트 전처리",
+                        "tension": "짧은 토큰은 문자 패턴을 포착하지만 어휘가 방대하고 문맥 파악이 어렵고, 긴 토큰은 문맥을 보존하여 맥락 의존적 유해성을 판별하지만 개별 임베딩 차원이 커진다"
+                    },
+                    {
+                        "decision": "높은 정밀도(엄격 차단) vs 높은 재현율(관대 허용) 분류 임계값 설정",
+                        "tension": "엄격 차단은 유해 콘텐츠 노출을 최소화하지만 정상 콘텐츠 오차단으로 사용자 경험이 저해되고, 관대 허용은 표현의 자유를 보장하지만 유해 콘텐츠가 통과될 수 있다"
+                    },
+                    {
+                        "decision": "일괄 추론 vs 실시간 스트리밍 추론 모델 서빙 방식",
+                        "tension": "일괄은 구현이 단순하고 비용이 낮지만 즉시 차단 요구를 충족하지 못하고, 실시간은 게시물 도착 즉시 처리하지만 인프라 비용이 높고 복잡하다"
+                    }
+                ]
+            },
+            "display_order": 23,
+            "is_active": true,
+            "create_date": "2026-02-12T10:00:00Z",
+            "update_date": "2026-02-12T10:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practicedetail",
+        "pk": "unit03_24",
+        "fields": {
+            "practice": "unit03",
+            "detail_title": "이미지 필터 서비스",
+            "detail_type": "PROBLEM",
+            "content_data": {
+                "problem_id": "adv_024_image_filter_service",
+                "title": "이미지 필터 서비스",
+                "scenario": "사용자가 사진을 업로드하고 필터를 적용한 후 처리된 이미지를 알림과 함께 다운로드할 수 있는 이미지 처리 서비스를 설계하라. 비동기 처리, 대규모 요청 확장, 필터 관리가 핵심이다.",
+                "constraints": [
+                    "일일 활성 사용자 1,000만 명",
+                    "초당 150,000 요청",
+                    "이미지 최대 크기 5MB",
+                    "처리된 이미지 3개월 보관",
+                    "계정 없이 익명 사용 가능",
+                    "관리자가 새 필터를 추가 가능",
+                    "미국 단일 국가 대상 (추후 글로벌 확장)"
+                ],
+                "missions": [
+                    "이미지 필터 적용에 시간이 걸릴 때 사용자 경험을 유지하면서 처리하는 구조를 설계하세요.",
+                    "필터 처리 완료 후 사용자에게 알림을 전달하는 전체 데이터 흐름을 설계하세요."
+                ],
+                "rubric_functional": {
+                    "required_components": [
+                        "API Server",
+                        "Message Queue",
+                        "Worker",
+                        "Object Storage"
+                    ],
+                    "required_flows": [
+                        {
+                            "from": "API Server",
+                            "to": "Object Storage",
+                            "reason": "원본 이미지를 오브젝트 스토리지에 저장"
+                        },
+                        {
+                            "from": "API Server",
+                            "to": "Message Queue",
+                            "reason": "필터 처리 작업을 큐에 적재하여 비동기 처리"
+                        },
+                        {
+                            "from": "Worker",
+                            "to": "Object Storage",
+                            "reason": "필터 적용된 이미지를 저장소에 저장"
+                        }
+                    ]
+                },
+                "rubric_non_functional": [],
+                "axis_weights": {
+                    "performance_optimization": {
+                        "weight": 25,
+                        "reason": "초당 150,000 요청에서 필터 적용 처리 속도와 비동기 완료 알림까지의 전체 응답 시간이 사용자 경험을 결정"
+                    },
+                    "reliability": {
+                        "weight": 25,
+                        "reason": "장애 시 처리 중인 이미지 요청이 유실되지 않도록 큐 기반 내구성과 처리 상태 추적이 필요"
+                    },
+                    "operational_excellence": {
+                        "weight": 20,
+                        "reason": "비동기 처리 파이프라인 관리, 필터 등록·배포 운영, 처리 상태(대기·처리 중·완료) 모니터링이 필요"
+                    },
+                    "cost_optimization": {
+                        "weight": 20,
+                        "reason": "초당 150,000 요청의 워커 풀 비용, 3개월 보관 정책에 따른 저장 비용, 글로벌 확장 대비 비용 관리가 필요"
+                    },
+                    "security": {
+                        "weight": 5,
+                        "reason": "계정 없이 익명 사용 가능하므로 별도 보안 요구사항은 낮으나 악의적 이미지 업로드 방지가 필요"
+                    },
+                    "sustainability": {
+                        "weight": 5,
+                        "reason": "3개월 보관 후 자동 삭제 정책으로 불필요한 저장 에너지를 절감하고 워커 자원을 효율적으로 활용"
+                    }
+                },
+                "decision_points": [
+                    {
+                        "decision": "동기식 즉시 응답 vs 비동기 큐 기반 처리 이미지 필터 적용",
+                        "tension": "동기식은 즉시 결과를 반환하여 단순하지만 복잡한 필터의 처리 시간이 길어 요청이 차단되고, 비동기는 대량 요청을 수용하지만 알림 시스템과 상태 추적이 추가된다"
+                    },
+                    {
+                        "decision": "서비스 간 직접 호출 vs 메시지 큐 기반 비동기 통신 컴포넌트 연결",
+                        "tension": "직접 호출은 지연이 낮고 구현이 단순하지만 서비스 장애 시 요청이 유실되고, 메시지 큐는 서비스 간 결합도를 낮추고 장애 격리가 가능하지만 큐 인프라 운영이 추가된다"
+                    },
+                    {
+                        "decision": "관계형 데이터베이스 단일 저장 vs 메타데이터와 바이너리 분리 저장 이미지 관리",
+                        "tension": "단일 저장은 관리가 단순하지만 대용량 바이너리를 관계형 DB에 저장하면 성능이 저하되고, 분리 저장은 각 저장소에 최적화된 방식을 사용하지만 두 저장소 간 참조 관리가 필요하다"
+                    }
+                ]
+            },
+            "display_order": 24,
+            "is_active": true,
+            "create_date": "2026-02-12T10:00:00Z",
+            "update_date": "2026-02-12T10:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practicedetail",
+        "pk": "unit03_25",
+        "fields": {
+            "practice": "unit03",
+            "detail_title": "분산 작업 스케줄러",
+            "detail_type": "PROBLEM",
+            "content_data": {
+                "problem_id": "adv_025_job_scheduler",
+                "title": "분산 작업 스케줄러",
+                "scenario": "고객이 임의의 코드를 업로드하여 즉시 실행하거나 반복 스케줄로 실행할 수 있는 공개 작업 스케줄링 서비스를 설계하라. 일일 1,000억 건 작업 처리, 100밀리초 이내 실행 시작, 대규모 확장이 핵심이다.",
+                "constraints": [
+                    "고객 100,000명",
+                    "고객당 100만 개 작업 정의",
+                    "일일 1,000억 건 작업 실행",
+                    "고객당 초당 10건 작업 실행",
+                    "작업당 최대 24시간 실행 시간",
+                    "작업당 최대 1GB 메모리",
+                    "스케줄 실행 시작 지연 100밀리초 이내 목표",
+                    "약 1,000만 개 반복 스케줄"
+                ],
+                "missions": [
+                    "대량의 작업을 다수의 워커에게 효율적으로 분배하는 구조를 설계하세요.",
+                    "즉시 실행과 반복 스케줄 실행을 모두 지원하면서 작업 실패 시 복구가 가능한 구조를 설계하세요."
+                ],
+                "rubric_functional": {
+                    "required_components": [
+                        "API Server",
+                        "Message Queue",
+                        "Worker",
+                        "RDBMS"
+                    ],
+                    "required_flows": [
+                        {
+                            "from": "API Server",
+                            "to": "RDBMS",
+                            "reason": "작업 정의 및 스케줄 메타데이터를 DB에 저장"
+                        },
+                        {
+                            "from": "API Server",
+                            "to": "Message Queue",
+                            "reason": "실행 대상 작업을 큐에 적재하여 워커에 분배"
+                        },
+                        {
+                            "from": "Worker",
+                            "to": "RDBMS",
+                            "reason": "작업 실행 결과 및 상태를 DB에 기록"
+                        }
+                    ]
+                },
+                "rubric_non_functional": [],
+                "axis_weights": {
+                    "reliability": {
+                        "weight": 25,
+                        "reason": "작업 실패 시 재시도, 중복 실행 방지(멱등성), 워커 체크포인트를 통한 데이터 무결성 보장이 필요"
+                    },
+                    "performance_optimization": {
+                        "weight": 25,
+                        "reason": "스케줄된 작업의 100밀리초 이내 시작 SLA와 일간 1,000억 건 작업의 분배 지연 최소화가 핵심"
+                    },
+                    "operational_excellence": {
+                        "weight": 25,
+                        "reason": "대규모 워커 풀 관리, 반복 스케줄 운영, 장애 감지·복구 자동화, 고객별 작업 격리 관리가 필요"
+                    },
+                    "cost_optimization": {
+                        "weight": 15,
+                        "reason": "일간 1,000억 건 작업 실행의 컴퓨팅 자원 비용과 작업당 최대 1GB 메모리·24시간 실행의 자원 관리가 필요"
+                    },
+                    "security": {
+                        "weight": 5,
+                        "reason": "고객의 임의 코드 실행 격리가 필요하나 별도 보안 요구사항은 명시되지 않음"
+                    },
+                    "sustainability": {
+                        "weight": 5,
+                        "reason": "대규모 작업 실행의 자원 효율적 스케줄링과 유휴 워커의 에너지 절감이 필요"
+                    }
+                },
+                "decision_points": [
+                    {
+                        "decision": "메시지 큐 기반 푸시 vs 워커 폴링 기반 풀 작업 분배",
+                        "tension": "메시지 큐는 워커가 수동적으로 작업을 받아 로직이 단순하지만 브로커 장애 시 전체 분배가 중단되고, 폴링은 브로커 없이 직접 조회하지만 동일 작업 중복 실행과 데이터베이스 부하 문제가 발생한다"
+                    },
+                    {
+                        "decision": "단일 대기열 전체 워커 연결 vs 파티션 기반 소비자 그룹 분할 메시지 분배",
+                        "tension": "단일 대기열은 구현이 단순하지만 수백만 소켓 연결의 장애 시 동시 재연결 폭주를 유발하고, 파티션 분할은 장애 영향을 격리하고 수평 확장이 가능하지만 파티션 관리와 리밸런싱이 추가된다"
+                    },
+                    {
+                        "decision": "데이터베이스 폴링 기반 스케줄러 vs 인메모리 스케줄러 작업 예약 실행",
+                        "tension": "DB 폴링은 내구성이 보장되지만 수백만 스케줄을 밀리초 내에 조회하기 어렵고, 인메모리는 조회가 극도로 빠르지만 장애 시 데이터 유실 위험이 있다"
+                    },
+                    {
+                        "decision": "코드 직접 업로드 실행 vs 컨테이너 이미지 기반 실행 작업 배포",
+                        "tension": "코드 직접 업로드는 사용이 간편하지만 모든 언어의 컴파일·실행 환경을 시스템이 제공해야 하고, 컨테이너 이미지는 언어 독립적이지만 이미지 빌드·저장·풀링 비용이 추가된다"
+                    },
+                    {
+                        "decision": "스케줄 데이터베이스 단일 인스턴스 vs 고객 식별자 기반 샤딩 분산",
+                        "tension": "단일 인스턴스는 관리가 단순하지만 1,000만 스케줄의 밀리초 내 전체 스캔이 불가하고, 샤딩은 각 파티션이 소규모 데이터만 처리하지만 샤드 관리와 장애 복구가 복잡하다"
+                    }
+                ]
+            },
+            "display_order": 25,
+            "is_active": true,
+            "create_date": "2026-02-12T10:00:00Z",
+            "update_date": "2026-02-12T10:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practicedetail",
+        "pk": "unit03_26",
+        "fields": {
+            "practice": "unit03",
+            "detail_title": "온라인 파일 스토리지 서비스 설계",
+            "detail_type": "PROBLEM",
+            "content_data": {
+                "problem_id": "adv_026_online_file_storage",
+                "title": "온라인 파일 스토리지 서비스 설계",
+                "scenario": "Dropbox/Google Drive와 같은 파일 호스팅 서비스를 설계하라. 파일 업로드·다운로드·공유·다중 클라이언트 동기화를 지원해야 한다.",
+                "constraints": [
+                    "총 사용자 5억 명, DAU 5천만 명",
+                    "가용성 99.99% (4 nines)",
+                    "읽기·쓰기 비율 균등",
+                    "최종 일관성(eventual consistency) 허용",
+                    "사용자당 일 평균 5MB 업로드 → 일 약 5PB 데이터",
+                    "모든 파일 유형 지원"
+                ],
+                "missions": [
+                    "대용량 파일의 업로드 중 네트워크 중단 시에도 이어서 전송할 수 있는 구조를 설계하세요.",
+                    "파일 메타데이터와 실제 데이터를 효율적으로 저장하고 동기화하는 구조를 설계하세요."
+                ],
+                "rubric_functional": {
+                    "required_components": [
+                        "API Server",
+                        "Object Storage",
+                        "RDBMS",
+                        "Message Queue"
+                    ],
+                    "required_flows": [
+                        {
+                            "from": "API Server",
+                            "to": "Object Storage",
+                            "reason": "청크 단위로 분할된 파일을 오브젝트 스토리지에 저장"
+                        },
+                        {
+                            "from": "API Server",
+                            "to": "RDBMS",
+                            "reason": "파일 메타데이터(경로, 버전, 공유 설정)를 DB에 저장"
+                        },
+                        {
+                            "from": "Message Queue",
+                            "to": "Client",
+                            "reason": "파일 변경 시 다중 클라이언트에 동기화 알림 전달"
+                        }
+                    ]
+                },
+                "rubric_non_functional": [],
+                "axis_weights": {
+                    "reliability": {
+                        "weight": 30,
+                        "reason": "99.99% 가용성 명시적 요구사항, 파일 데이터 영구 보존, 업로드 중단 시 이어받기가 핵심"
+                    },
+                    "cost_optimization": {
+                        "weight": 20,
+                        "reason": "5억 사용자, 일 약 5PB 데이터의 저장 비용 관리와 메타데이터·바이너리 분리 저장 전략이 필요"
+                    },
+                    "operational_excellence": {
+                        "weight": 20,
+                        "reason": "다중 클라이언트 동기화 관리, 청크 업로드 파이프라인 운영, 메타데이터·바이너리 저장소 운영이 필요"
+                    },
+                    "performance_optimization": {
+                        "weight": 15,
+                        "reason": "읽기·쓰기 비율이 균등한 워크로드에서 파일 업로드·다운로드 응답 속도 최적화가 필요"
+                    },
+                    "security": {
+                        "weight": 10,
+                        "reason": "파일 공유 설정의 접근 제어와 다중 클라이언트 간 데이터 보호가 필요"
+                    },
+                    "sustainability": {
+                        "weight": 5,
+                        "reason": "페타바이트 규모 스토리지의 에너지 효율적 운영과 청크 중복 제거를 통한 저장 공간 절감"
+                    }
+                },
+                "decision_points": [
+                    {
+                        "decision": "메타데이터 저장소와 객체 저장소를 분리할지 vs 단일 저장소에 통합할지",
+                        "tension": "분리하면 각 저장소를 용도에 맞게 최적화할 수 있으나 두 저장소 간 일관성 관리가 복잡해진다"
+                    },
+                    {
+                        "decision": "파일 청킹을 클라이언트 측에서 수행할지 vs 서버 측에서 수행할지",
+                        "tension": "클라이언트 측 청킹은 네트워크 장애 시 부분 재전송이 가능하나 클라이언트 구현 복잡도가 증가한다"
+                    },
+                    {
+                        "decision": "메타데이터에 관계형 DB를 사용할지 vs NoSQL을 사용할지",
+                        "tension": "관계형 DB는 사용자·파일·권한 간 구조화된 관계를 잘 표현하나 대규모 샤딩이 복잡하고, NoSQL은 수평 확장이 용이하나 복잡한 관계 표현이 어렵다"
+                    },
+                    {
+                        "decision": "청크 순서를 매니페스트 파일로 관리할지 vs 시퀀스 번호로 관리할지",
+                        "tension": "매니페스트 파일은 청크별 크기·위치를 유연하게 저장하나 별도 관리 비용이 발생하고, 시퀀스 번호는 단순하나 가변 청크 크기 표현이 제한적이다"
+                    },
+                    {
+                        "decision": "다중 클라이언트 동기화를 메시지 큐로 할지 vs 폴링 방식으로 할지",
+                        "tension": "메시지 큐는 실시간 동기화가 가능하나 인프라 복잡도가 높아지고, 폴링은 구현이 단순하나 지연이 발생할 수 있다"
+                    }
+                ]
+            },
+            "display_order": 26,
+            "is_active": true,
+            "create_date": "2026-02-12T10:00:00Z",
+            "update_date": "2026-02-12T10:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practicedetail",
+        "pk": "unit03_27",
+        "fields": {
+            "practice": "unit03",
+            "detail_title": "결제 파이프라인 설계",
+            "detail_type": "PROBLEM",
+            "content_data": {
+                "problem_id": "adv_027_payment_pipeline_design",
+                "title": "결제 파이프라인 설계",
+                "scenario": "권리 관리(A)·회계(B)·결제(C) 세 시스템 간 상호 연결된 결제 파이프라인을 설계하라. 시스템 B 소유자로서 A의 데이터와 사용자 입력을 결합하여 C에 정확한 결제 항목을 전달해야 한다.",
+                "constraints": [
+                    "금융 시스템이므로 일관성을 가용성보다 우선",
+                    "월 단위 결산 처리",
+                    "수천 개 타이틀, 약 50개국 운영",
+                    "관계형 데이터(타이틀·권리·결제 간 강한 관계)",
+                    "시스템 A·C는 외부 팀 소유 의존 서비스"
+                ],
+                "missions": [
+                    "권리 관리·회계·결제 세 시스템 간 데이터 정합성을 보장하는 통신 구조를 설계하세요.",
+                    "시스템 간 데이터 불일치 발생 시 이를 감지하고 복구하는 조정(reconciliation) 구조를 설계하세요."
+                ],
+                "rubric_functional": {
+                    "required_components": [
+                        "API Server",
+                        "RDBMS",
+                        "Message Queue",
+                        "Worker"
+                    ],
+                    "required_flows": [
+                        {
+                            "from": "API Server",
+                            "to": "RDBMS",
+                            "reason": "시스템 A의 권리 데이터를 수신하여 청구 항목으로 누적 저장"
+                        },
+                        {
+                            "from": "API Server",
+                            "to": "Message Queue",
+                            "reason": "검증 완료된 결제 명령을 비동기로 시스템 C에 전달"
+                        },
+                        {
+                            "from": "Worker",
+                            "to": "RDBMS",
+                            "reason": "시스템 B·C 간 데이터 정합성 검증 및 원장 갱신"
+                        }
+                    ]
+                },
+                "rubric_non_functional": [],
+                "axis_weights": {
+                    "reliability": {
+                        "weight": 30,
+                        "reason": "세 시스템(권리 관리·회계·결제) 간 데이터 정합성이 핵심이며 금전 데이터의 중복·누락·손실이 절대 불가"
+                    },
+                    "security": {
+                        "weight": 25,
+                        "reason": "금융 결제 시스템의 보안·감사 추적이 기본 요구사항이며 시스템 간 데이터 전송 보안이 필수"
+                    },
+                    "operational_excellence": {
+                        "weight": 25,
+                        "reason": "월 단위 결산 처리, 시스템 간 조정(reconciliation) 자동화, 외부 팀 소유 서비스 장애 감지·대응이 필요"
+                    },
+                    "cost_optimization": {
+                        "weight": 10,
+                        "reason": "B2B 결제 시스템으로 대규모 트래픽은 아니나 의존 시스템 장애 시 캐시 사용 vs 대기의 비용 트레이드오프가 존재"
+                    },
+                    "performance_optimization": {
+                        "weight": 5,
+                        "reason": "월 단위 배치 처리로 실시간 응답 지연 요구가 낮으며 데이터 정확성이 속도보다 우선"
+                    },
+                    "sustainability": {
+                        "weight": 5,
+                        "reason": "월 단위 배치 처리 최적화로 상시 가동이 아닌 필요 시점에만 자원을 사용하여 에너지 절감"
+                    }
+                },
+                "decision_points": [
+                    {
+                        "decision": "시스템 간 통신을 동기식 조회로 할지 vs 비동기 이벤팅으로 할지",
+                        "tension": "동기식은 구현이 단순하고 요청 성공·실패를 즉시 알 수 있으나 시스템 A 장애 시 전체가 차단되고, 비동기 이벤팅은 느슨한 결합이나 이벤트 유실 감지가 어렵다"
+                    },
+                    {
+                        "decision": "시스템 B·C 간 데이터 정합성을 중앙 원장으로 검증할지 vs 직접 비교할지",
+                        "tension": "중앙 원장은 자동화된 불일치 감지가 가능하나 추가 시스템 유지 비용이 발생하고, 직접 비교는 인적 의존도가 높아 누락 위험이 있다"
+                    },
+                    {
+                        "decision": "의존 시스템 장애 시 캐시된 데이터를 사용할지 vs 복구까지 대기할지",
+                        "tension": "캐시 사용은 부분적 서비스 지속이 가능하나 오래된 데이터로 잘못된 결제가 발생할 수 있고, 대기는 정확성을 보장하나 업무가 중단된다"
+                    }
+                ]
+            },
+            "display_order": 27,
+            "is_active": true,
+            "create_date": "2026-02-12T10:00:00Z",
+            "update_date": "2026-02-12T10:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practicedetail",
+        "pk": "unit03_28",
+        "fields": {
+            "practice": "unit03",
+            "detail_title": "사진 공유 서비스 설계",
+            "detail_type": "PROBLEM",
+            "content_data": {
+                "problem_id": "adv_028_photo_sharing_service",
+                "title": "사진 공유 서비스 설계",
+                "scenario": "사용자가 사진을 업로드하고 팔로우한 사용자의 최신 사진 피드를 볼 수 있는 Instagram 유사 서비스를 설계하라.",
+                "constraints": [
+                    "DAU 10억 명",
+                    "사진 업로드 크기 최대 10MB",
+                    "읽기·쓰기 비율 80:20",
+                    "최종 일관성(eventual consistency) 허용",
+                    "고가용성·저지연 우선",
+                    "팔로우 요청 승인·거부 메커니즘 필요",
+                    "팔로워 10만 이상 자동 인증 계정 분류"
+                ],
+                "missions": [
+                    "고화질 사진의 업로드부터 다양한 해상도 변환까지의 처리 파이프라인을 설계하세요.",
+                    "팔로우한 사용자의 최신 사진을 빠르게 피드에 표시하는 구조를 설계하세요."
+                ],
+                "rubric_functional": {
+                    "required_components": [
+                        "API Server",
+                        "Object Storage",
+                        "RDBMS",
+                        "Message Queue"
+                    ],
+                    "required_flows": [
+                        {
+                            "from": "API Server",
+                            "to": "Object Storage",
+                            "reason": "사진 바이너리를 오브젝트 스토리지에 저장"
+                        },
+                        {
+                            "from": "API Server",
+                            "to": "RDBMS",
+                            "reason": "사진 메타데이터(작성자, 설명 등)를 DB에 저장"
+                        },
+                        {
+                            "from": "Message Queue",
+                            "to": "Worker",
+                            "reason": "해상도 변환(썸네일 생성)을 비동기 큐로 처리"
+                        }
+                    ]
+                },
+                "rubric_non_functional": [],
+                "axis_weights": {
+                    "performance_optimization": {
+                        "weight": 30,
+                        "reason": "10억 DAU의 읽기 중심(80%) 워크로드에서 빠른 피드 로딩과 사진 전달 속도가 핵심"
+                    },
+                    "reliability": {
+                        "weight": 25,
+                        "reason": "고가용성·저지연 우선 요구사항, 업로드된 사진의 영구 저장과 해상도 변환 파이프라인 안정성이 필요"
+                    },
+                    "operational_excellence": {
+                        "weight": 15,
+                        "reason": "해상도 변환 파이프라인 운영, 피드 생성 전략(동적 조합 vs 사전 계산) 관리, 인증 계정 분류 운영이 필요"
+                    },
+                    "cost_optimization": {
+                        "weight": 15,
+                        "reason": "10억 DAU의 사진 저장(최대 10MB) 비용, 다중 해상도 저장 비용, CDN 대역폭 비용 최적화가 필요"
+                    },
+                    "sustainability": {
+                        "weight": 10,
+                        "reason": "글로벌 규모 이미지 저장·전송·변환의 에너지 소비가 상당하므로 효율적 인코딩과 CDN 최적화가 필요"
+                    },
+                    "security": {
+                        "weight": 5,
+                        "reason": "팔로우 승인·거부 메커니즘의 접근 제어가 필요하나 별도 보안 요구사항은 명시되지 않음"
+                    }
+                },
+                "decision_points": [
+                    {
+                        "decision": "사진 메타데이터와 바이너리 데이터를 분리 저장할지 vs 통합 저장할지",
+                        "tension": "분리 저장은 각각 최적화된 저장소를 사용할 수 있으나 두 저장소 간 참조 관리가 필요하고, 통합은 단순하나 대용량 바이너리에 부적합하다"
+                    },
+                    {
+                        "decision": "사진 업로드 후 해상도 변환을 동기 처리할지 vs 비동기 큐로 처리할지",
+                        "tension": "동기 처리는 즉시 결과를 보장하나 업로드 지연이 발생하고, 비동기는 빠른 응답이 가능하나 변환 완료 전 일부 해상도가 누락될 수 있다"
+                    },
+                    {
+                        "decision": "피드 생성을 요청 시 동적 조합할지 vs 사용자별 사전 계산된 큐를 유지할지",
+                        "tension": "동적 조합은 항상 최신 데이터를 반영하나 팔로우 수가 많으면 지연이 커지고, 사전 계산은 빠른 응답이 가능하나 저장 공간과 갱신 비용이 증가한다"
+                    }
+                ]
+            },
+            "display_order": 28,
+            "is_active": true,
+            "create_date": "2026-02-12T10:00:00Z",
+            "update_date": "2026-02-12T10:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practicedetail",
+        "pk": "unit03_29",
+        "fields": {
+            "practice": "unit03",
+            "detail_title": "RSS 뉴스 피드 서비스 설계",
+            "detail_type": "PROBLEM",
+            "content_data": {
+                "problem_id": "adv_029_rss_news_feed",
+                "title": "RSS 뉴스 피드 서비스 설계",
+                "scenario": "사용자가 뉴스 채널을 구독하고 최신 뉴스를 피드 형태로 받아볼 수 있는 RSS 리더 애플리케이션을 설계하라.",
+                "constraints": [
+                    "초기 사용자 10만 명 (확장 가능해야 함)",
+                    "가용성 99.99% (4 nines)",
+                    "뉴스 피드 3~5초 주기 갱신",
+                    "가용성을 일관성보다 우선",
+                    "사용자당 최소 10개 뉴스 채널 구독",
+                    "모바일 기반 애플리케이션"
+                ],
+                "missions": [
+                    "수천 개의 뉴스 채널에서 발행되는 콘텐츠를 구독자에게 효율적으로 전달하는 구조를 설계하세요.",
+                    "피드 조회 성능을 최적화하면서 DB 부하를 최소화하는 캐싱 구조를 설계하세요."
+                ],
+                "rubric_functional": {
+                    "required_components": [
+                        "API Server",
+                        "Cache",
+                        "RDBMS",
+                        "Message Queue",
+                        "Worker"
+                    ],
+                    "required_flows": [
+                        {
+                            "from": "Worker",
+                            "to": "RDBMS",
+                            "reason": "크롤러가 RSS 소스에서 뉴스를 수집하여 DB에 저장"
+                        },
+                        {
+                            "from": "Message Queue",
+                            "to": "Cache",
+                            "reason": "새 뉴스 도착 시 구독자 피드 캐시를 팬아웃 갱신"
+                        },
+                        {
+                            "from": "API Server",
+                            "to": "Cache",
+                            "reason": "사용자 피드 요청 시 캐시에서 최신 뉴스 우선 조회"
+                        }
+                    ]
+                },
+                "rubric_non_functional": [],
+                "axis_weights": {
+                    "reliability": {
+                        "weight": 30,
+                        "reason": "99.99% 가용성이 명시적 요구사항이며, 크롤러-파서-저장소 파이프라인에서 뉴스 데이터 유실 방지가 필요"
+                    },
+                    "performance_optimization": {
+                        "weight": 25,
+                        "reason": "3~5초 주기 피드 갱신과 낮은 조회 응답 시간을 위한 캐시 전략이 필요"
+                    },
+                    "operational_excellence": {
+                        "weight": 25,
+                        "reason": "RSS 크롤러 파이프라인 관리, 캐시 팬아웃 운영, 피드 갱신 주기 관리, 10만→2억 확장 대비 운영이 필요"
+                    },
+                    "cost_optimization": {
+                        "weight": 10,
+                        "reason": "10만에서 2억 사용자로 확장 시 캐시와 DB 샤딩의 인프라 비용 관리가 필요"
+                    },
+                    "security": {
+                        "weight": 5,
+                        "reason": "별도 보안 요구사항이 명시되지 않았으나 외부 RSS 소스의 기본적 검증이 필요"
+                    },
+                    "sustainability": {
+                        "weight": 5,
+                        "reason": "크롤러의 효율적 폴링 주기 설정으로 불필요한 네트워크 요청과 에너지 소비를 절감"
+                    }
+                },
+                "decision_points": [
+                    {
+                        "decision": "뉴스 피드 갱신을 푸시 방식으로 할지 vs 풀 방식으로 할지",
+                        "tension": "푸시는 실시간 갱신이 가능하나 불필요한 리소스 소비가 발생하고, 풀은 사용자 요청 시에만 리소스를 사용하나 최신 뉴스 반영이 지연될 수 있다"
+                    },
+                    {
+                        "decision": "캐시를 서비스-데이터베이스 사이에 배치할지 vs 로드밸런서-서비스 사이에 배치할지",
+                        "tension": "서비스-DB 사이 캐시는 어떤 API 호출인지 알고 적절한 데이터를 반환할 수 있으나, LB-서비스 사이 캐시는 어떤 요청인지 모른 채 데이터를 반환해야 하는 문제가 있다"
+                    },
+                    {
+                        "decision": "데이터베이스 수평 샤딩을 해시 기반으로 할지 vs 다른 파티셔닝 키를 사용할지",
+                        "tension": "해시 기반 샤딩은 균등 분배가 가능하나 범위 질의가 어렵고, 다른 키(예: 사용자명) 기반은 불균등 분배가 발생할 수 있다"
+                    }
+                ]
+            },
+            "display_order": 29,
+            "is_active": true,
+            "create_date": "2026-02-12T10:00:00Z",
+            "update_date": "2026-02-12T10:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practicedetail",
+        "pk": "unit03_30",
+        "fields": {
+            "practice": "unit03",
+            "detail_title": "분산 고유 ID 생성 시스템 설계",
+            "detail_type": "PROBLEM",
+            "content_data": {
+                "problem_id": "adv_030_unique_id_generation",
+                "title": "분산 고유 ID 생성 시스템 설계",
+                "scenario": "분산 환경의 다수 클라이언트에게 고유 ID를 생성·제공하는 글로벌 규모 시스템을 설계하라.",
+                "constraints": [
+                    "초당 100건 요청 (확장 시 수천~수만 건)",
+                    "30년 운영 수명 → 약 1조 개 ID 필요",
+                    "글로벌 지리적 분산 배포",
+                    "단일 장애점 없어야 함",
+                    "ID 중복 절대 불가"
+                ],
+                "missions": [
+                    "분산된 다수의 클라이언트가 동시에 요청해도 고유성이 보장되는 ID 생성 구조를 설계하세요.",
+                    "생성된 ID가 시간 순서로 정렬 가능하면서도 충돌이 없는 체계를 설계하세요."
+                ],
+                "rubric_functional": {
+                    "required_components": [
+                        "API Server",
+                        "Cache",
+                        "RDBMS"
+                    ],
+                    "required_flows": [
+                        {
+                            "from": "Client",
+                            "to": "API Server",
+                            "reason": "고유 ID 생성 요청"
+                        },
+                        {
+                            "from": "API Server",
+                            "to": "Cache",
+                            "reason": "사전 생성된 ID 배치를 인메모리에서 빠르게 할당"
+                        },
+                        {
+                            "from": "Cache",
+                            "to": "RDBMS",
+                            "reason": "ID 범위 소진 시 DB에서 새 범위를 할당받아 캐시 충전"
+                        }
+                    ]
+                },
+                "rubric_non_functional": [],
+                "axis_weights": {
+                    "performance_optimization": {
+                        "weight": 30,
+                        "reason": "네트워크 라운드트립 최소화를 위한 로컬 캐시와 사전 생성 전략이 핵심이며 글로벌 분산 환경에서 저지연이 필수"
+                    },
+                    "reliability": {
+                        "weight": 30,
+                        "reason": "ID 중복이 절대 불가하므로 유일성 보장이 필수이며, 모든 서비스의 기반 인프라로서 높은 가용성이 필요"
+                    },
+                    "operational_excellence": {
+                        "weight": 20,
+                        "reason": "글로벌 분산 노드 관리, 캐시 범위 충전 운영, 30년 장기 운영의 ID 체계 관리가 필요"
+                    },
+                    "cost_optimization": {
+                        "weight": 10,
+                        "reason": "30년 운영 수명의 글로벌 인프라 비용과 캐시 노드 장애 시 키 낭비를 최소화해야 함"
+                    },
+                    "security": {
+                        "weight": 5,
+                        "reason": "별도 보안 요구사항이 명시되지 않았으나 ID 체계의 예측 불가능성이 필요할 수 있음"
+                    },
+                    "sustainability": {
+                        "weight": 5,
+                        "reason": "사전 생성 및 로컬 캐시 활용으로 중앙 서버 부하와 네트워크 에너지 소비를 절감"
+                    }
+                },
+                "decision_points": [
+                    {
+                        "decision": "자동 증가 테이블 방식 vs 타임스탬프 기반 ID 생성 방식",
+                        "tension": "자동 증가 테이블은 유일성이 보장되나 분산 환경에서 병목이 되고, 타임스탬프는 분산에 유리하나 동일 시각 충돌 처리가 필요하다"
+                    },
+                    {
+                        "decision": "동일 타임스탬프 충돌을 벡터 클럭으로 해결할지 vs 사용자·노드 해시를 결합할지",
+                        "tension": "벡터 클럭은 단순 증가 카운터로 충돌을 해결하나 같은 타임스탬프에서만 필요하고, 사용자·노드 해시 결합은 더 많은 정보를 포함하나 ID 길이가 증가한다"
+                    },
+                    {
+                        "decision": "중앙 생성 서비스에 직접 요청할지 vs 지역별 캐시에서 사전 생성된 키를 분배할지",
+                        "tension": "직접 요청은 실시간 유일성이 보장되나 지리적 지연이 발생하고, 캐시 분배는 빠른 응답이 가능하나 캐시 노드 장애 시 소량의 키가 낭비된다"
+                    }
+                ]
+            },
+            "display_order": 30,
+            "is_active": true,
+            "create_date": "2026-02-12T10:00:00Z",
+            "update_date": "2026-02-12T10:00:00Z",
+            "use_yn": "Y"
+        }
+    },
+    {
+        "model": "core.practicedetail",
+        "pk": "unit03_31",
+        "fields": {
+            "practice": "unit03",
+            "detail_title": "비디오 업로드 처리 시스템 설계",
+            "detail_type": "PROBLEM",
+            "content_data": {
+                "problem_id": "adv_031_video_upload_api",
+                "title": "비디오 업로드 처리 시스템 설계",
+                "scenario": "대규모 비디오 업로드를 수신·저장하고 내부 처리 서비스에 전달하는 백엔드 워크플로우 시스템을 설계하라.",
+                "constraints": [
+                    "글로벌 규모 인기 앱(TikTok급) 대상",
+                    "비디오 최대 15초, 약 300MB 이하",
+                    "초당 약 50건 비디오 업로드",
+                    "업로드된 비디오 5년 보관 의무",
+                    "내부 처리 서비스는 비디오당 약 1분 소요",
+                    "쓰기 전용 서비스 (읽기 연산 불필요)"
+                ],
+                "missions": [
+                    "대용량 비디오의 업로드 중 네트워크 장애에도 대응할 수 있는 업로드 구조를 설계하세요.",
+                    "업로드된 비디오를 내부 처리 서비스에 안정적으로 전달하는 파이프라인을 설계하세요."
+                ],
+                "rubric_functional": {
+                    "required_components": [
+                        "Load Balancer",
+                        "API Server",
+                        "Object Storage",
+                        "Message Queue",
+                        "Worker"
+                    ],
+                    "required_flows": [
+                        {
+                            "from": "Client",
+                            "to": "Load Balancer",
+                            "reason": "청크 분할 업로드 요청을 서버로 분배"
+                        },
+                        {
+                            "from": "API Server",
+                            "to": "Object Storage",
+                            "reason": "비디오 청크를 오브젝트 스토리지에 저장"
+                        },
+                        {
+                            "from": "API Server",
+                            "to": "Message Queue",
+                            "reason": "내부 처리(트랜스코딩 등) 작업을 큐에 적재"
+                        }
+                    ]
+                },
+                "rubric_non_functional": [],
+                "axis_weights": {
+                    "reliability": {
+                        "weight": 30,
+                        "reason": "업로드 중단 시 이어받기와 내부 처리 파이프라인의 데이터 무결성 보장이 핵심이며 5년 보관 의무 준수가 필요"
+                    },
+                    "performance_optimization": {
+                        "weight": 25,
+                        "reason": "청크 단위 업로드의 효율적 전송과 내부 처리 서비스(비디오당 약 1분)까지의 전달 지연 최소화가 필요"
+                    },
+                    "operational_excellence": {
+                        "weight": 20,
+                        "reason": "워커 장애 감지(코디네이터 패턴 vs 큐 타임아웃), 처리 파이프라인 모니터링, 대규모 업로드 인프라 관리가 필요"
+                    },
+                    "cost_optimization": {
+                        "weight": 15,
+                        "reason": "TikTok급 글로벌 규모의 비디오 저장(5년 보관) 비용과 트랜스코딩 워커 인프라 비용 최적화가 필요"
+                    },
+                    "sustainability": {
+                        "weight": 5,
+                        "reason": "대규모 비디오 저장과 트랜스코딩의 에너지 효율화 및 워커 자원의 탄력적 운영이 필요"
+                    },
+                    "security": {
+                        "weight": 5,
+                        "reason": "별도 보안 요구사항이 명시되지 않았으나 업로드된 콘텐츠의 기본적 무결성 검증이 필요"
+                    }
+                },
+                "decision_points": [
+                    {
+                        "decision": "비디오를 청크 단위로 분할 업로드할지 vs 단일 요청으로 전송할지",
+                        "tension": "청크 업로드는 네트워크 장애 시 부분 재전송이 가능하나 구현 복잡도가 높아지고, 단일 전송은 단순하나 대용량 파일에서 실패 시 전체 재전송이 필요하다"
+                    },
+                    {
+                        "decision": "내부 처리 호출을 큐 기반 워커로 할지 vs 업로드 서비스에서 직접 호출할지",
+                        "tension": "큐 기반 워커는 부하 분산과 재시도가 용이하나 메시지 처리 보장 로직이 필요하고, 직접 호출은 단순하나 처리 서비스 장애 시 업로드 서비스까지 영향받는다"
+                    },
+                    {
+                        "decision": "워커 장애 감지를 코디네이터 패턴으로 할지 vs 큐 타임아웃에 의존할지",
+                        "tension": "코디네이터는 워커 상태를 능동적으로 파악하고 자동 확장할 수 있으나 추가 컴포넌트 관리가 필요하고, 큐 타임아웃은 단순하나 대규모 장애 시 큐가 계속 쌓일 수 있다"
+                    }
+                ]
+            },
+            "display_order": 31,
+            "is_active": true,
+            "create_date": "2026-02-12T10:00:00Z",
+            "update_date": "2026-02-12T10:00:00Z",
+            "use_yn": "Y"
+        }
     }
 ]

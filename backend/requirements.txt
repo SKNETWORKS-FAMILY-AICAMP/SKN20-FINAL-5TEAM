@@ -14,5 +14,7 @@ openai
 python-dotenv
 Pillow
 google-genai
+google-generativeai
+groq
 boto3
 django-storages

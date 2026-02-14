@@ -7,6 +7,7 @@ from core.views import (
     DashboardLogViewSet,
     CommonViewSet,
     PracticeViewSet,
+    PracticeDetailViewSet,
     LoginView,
     LogoutView,
     SessionCheckView,
@@ -17,7 +18,8 @@ from core.views import (
     BehaviorVerificationView,
     OverallProgressView,
     UserAnswersView,
-    activity_view
+    activity_view,
+    PseudocodeAgentView
 )
 from core.views.pseudocode_execution import execute_python_code
 from core.views import pseudocode_evaluation
@@ -27,6 +29,7 @@ router.register(r'users', UserProfileViewSet, basename='users')
 router.register(r'dashboard-logs', DashboardLogViewSet)
 router.register(r'commons', CommonViewSet)
 router.register(r'practices', PracticeViewSet)
+router.register(r'practice-details', PracticeDetailViewSet, basename='practice-details')
 
 urlpatterns = [
     path('', include(router.urls)),
@@ -61,5 +64,6 @@ urlpatterns = [
     path('management/user-answers/<str:practice_id>/<int:user_id>/', UserAnswersView.as_view(), name='user_answers_detail'),
 
     path('pseudocode/execute/', execute_python_code, name='pseudocode_execute'),
+    path('pseudo-agent/', PseudocodeAgentView.as_view(), name='pseudo_agent'),
     path('pseudocode/evaluate-5d', pseudocode_evaluation.evaluate_pseudocode_5d),
 ]

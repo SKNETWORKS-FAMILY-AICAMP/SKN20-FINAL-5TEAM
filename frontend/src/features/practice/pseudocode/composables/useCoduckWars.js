@@ -12,7 +12,12 @@
 import { ref, computed, reactive, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
-import { evaluatePseudocode5D, generateSeniorAdvice, evaluateDiagnosticAnswer } from '../api/pseudocodeApi.js';
+import {
+    evaluatePseudocode5D,
+    generateSeniorAdvice,
+    evaluateDiagnosticAnswer,
+    runPseudocodeAgent
+} from '../api/pseudocodeApi.js';
 import { useGameEngine } from './useGameEngine.js';
 import { useCodeRunner } from './useCodeRunner.js';
 
