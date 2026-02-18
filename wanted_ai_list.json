@@ -1,0 +1,310 @@
+[
+  {
+    "status": "active",
+    "hidden": false,
+    "is_like": false,
+    "score": null,
+    "is_bookmark": false,
+    "company": {
+      "id": 23096,
+      "industry_name": "판매, 유통",
+      "application_response_stats": {
+        "avg_rate": 73.54,
+        "level": "low",
+        "delayed_count": 0,
+        "avg_day": null,
+        "remained_count": 0,
+        "type": "applied_reply_done"
+      },
+      "name": "코자"
+    },
+    "annual_to": 10,
+    "title_img": {
+      "origin": "https://static.wanted.co.kr/images/company/23096/ahijmbfn838ivhm7__1080_790.jpg",
+      "thumb": "https://static.wanted.co.kr/images/company/23096/ahijmbfn838ivhm7__400_400.jpg"
+    },
+    "compare_country": true,
+    "due_time": null,
+    "like_count": 0,
+    "id": 342326,
+    "logo_img": {
+      "origin": "https://static.wanted.co.kr/images/wdes/0_4.19e02587.jpg",
+      "thumb": "https://static.wanted.co.kr/images/wdes/0_5.19e02587.jpg"
+    },
+    "address": {
+      "location_key": "seoul",
+      "district": "성동구",
+      "country": "한국",
+      "location": "서울",
+      "full_location": "서울 성동구 뚝섬로1길 63",
+      "district_key": "seoul.seongdong-gu"
+    },
+    "matching_score": null,
+    "position": "[스탠드오일] 인사(HRM&Payroll) 담당자",
+    "is_recommended": false,
+    "reward": {
+      "formatted_total": "100만원",
+      "formatted_recommender": "50만원",
+      "formatted_recommendee": "50만원"
+    },
+    "category_tags": [
+      {
+        "parent_id": 517,
+        "id": 643
+      },
+      {
+        "parent_id": 517,
+        "id": 650
+      }
+    ],
+    "annual_from": 3
+  },
+  {
+    "status": "active",
+    "hidden": false,
+    "is_like": false,
+    "score": null,
+    "is_bookmark": false,
+    "company": {
+      "id": 15595,
+      "industry_name": "제조",
+      "application_response_stats": {
+        "avg_rate": 0.0,
+        "level": "very_low",
+        "delayed_count": 0,
+        "avg_day": null,
+        "remained_count": 0,
+        "type": "applied_reply_done"
+      },
+      "name": "고영테크놀러지"
+    },
+    "annual_to": 7,
+    "title_img": {
+      "origin": "https://static.wanted.co.kr/images/company/15595/98rh9xceb0bzyfss__1080_790.jpg",
+      "thumb": "https://static.wanted.co.kr/images/company/15595/98rh9xceb0bzyfss__400_400.jpg"
+    },
+    "compare_country": true,
+    "due_time": null,
+    "like_count": 0,
+    "id": 341839,
+    "logo_img": {
+      "origin": "https://static.wanted.co.kr/images/wdes/0_4.9b006933.jpg",
+      "thumb": "https://static.wanted.co.kr/images/wdes/0_5.9b006933.jpg"
+    },
+    "address": {
+      "location_key": "gyeonggi",
+      "district": "용인시",
+      "country": "한국",
+      "location": "경기",
+      "full_location": "경기도 용인시 수지구 포은대로59번길 18 고영테크놀러지 R&D센터",
+      "district_key": "gyeonggi.yongin-si"
+    },
+    "matching_score": null,
+    "position": "급여/근태 실무 담당자",
+    "is_recommended": false,
+    "reward": {
+      "formatted_total": "100만원",
+      "formatted_recommender": "50만원",
+      "formatted_recommendee": "50만원"
+    },
+    "category_tags": [
+      {
+        "parent_id": 517,
+        "id": 643
+      },
+      {
+        "parent_id": 517,
+        "id": 645
+      },
+      {
+        "parent_id": 517,
+        "id": 650
+      }
+    ],
+    "annual_from": 2
+  },
+  {
+    "status": "active",
+    "hidden": false,
+    "is_like": false,
+    "score": null,
+    "is_bookmark": false,
+    "company": {
+      "id": 35213,
+      "industry_name": "IT, 컨텐츠",
+      "application_response_stats": {
+        "avg_rate": 82.32,
+        "level": "normal",
+        "delayed_count": 0,
+        "avg_day": null,
+        "remained_count": 0,
+        "type": "applied_reply_done"
+      },
+      "name": "파인더갭"
+    },
+    "annual_to": 10,
+    "title_img": {
+      "origin": "https://static.wanted.co.kr/images/company/35213/6toqcqrt6zzhdv9d__1080_790.jpg",
+      "thumb": "https://static.wanted.co.kr/images/company/35213/6toqcqrt6zzhdv9d__400_400.jpg"
+    },
+    "compare_country": true,
+    "due_time": null,
+    "like_count": 0,
+    "id": 340394,
+    "logo_img": {
+      "origin": "https://static.wanted.co.kr/images/wdes/0_4.63e1b3d9.jpg",
+      "thumb": "https://static.wanted.co.kr/images/wdes/0_5.63e1b3d9.jpg"
+    },
+    "address": {
+      "location_key": "seoul",
+      "district": "강남구",
+      "country": "한국",
+      "location": "서울",
+      "full_location": "서울 강남구 역삼로 160",
+      "district_key": "seoul.gangnam-gu"
+    },
+    "matching_score": null,
+    "position": "인사 및 경영지원 팀원",
+    "is_recommended": false,
+    "reward": {
+      "formatted_total": "100만원",
+      "formatted_recommender": "50만원",
+      "formatted_recommendee": "50만원"
+    },
+    "category_tags": [
+      {
+        "parent_id": 517,
+        "id": 643
+      },
+      {
+        "parent_id": 517,
+        "id": 647
+      },
+      {
+        "parent_id": 517,
+        "id": 650
+      }
+    ],
+    "annual_from": 4
+  },
+  {
+    "status": "active",
+    "hidden": false,
+    "is_like": false,
+    "score": null,
+    "is_bookmark": false,
+    "company": {
+      "id": 28564,
+      "industry_name": "IT, 컨텐츠",
+      "application_response_stats": {
+        "avg_rate": 70.78,
+        "level": "low",
+        "delayed_count": 0,
+        "avg_day": null,
+        "remained_count": 0,
+        "type": "applied_reply_done"
+      },
+      "name": "아정네트웍스"
+    },
+    "annual_to": 14,
+    "title_img": {
+      "origin": "https://static.wanted.co.kr/images/company/28564/b2xcqdcjutb0cfbj__1080_790.jpg",
+      "thumb": "https://static.wanted.co.kr/images/company/28564/b2xcqdcjutb0cfbj__400_400.jpg"
+    },
+    "compare_country": true,
+    "due_time": null,
+    "like_count": 0,
+    "id": 339675,
+    "logo_img": {
+      "origin": "https://static.wanted.co.kr/images/wdes/0_5.e924f34b.png",
+      "thumb": "https://static.wanted.co.kr/images/wdes/0_4.e924f34b.png"
+    },
+    "address": {
+      "location_key": "seoul",
+      "district": "강남구",
+      "country": "한국",
+      "location": "서울",
+      "full_location": "서울 강남구 테헤란로 124 삼원타워 19층",
+      "district_key": "seoul.gangnam-gu"
+    },
+    "matching_score": null,
+    "position": "[아정당] 서울 HR운영팀 리드",
+    "is_recommended": false,
+    "reward": {
+      "formatted_total": "100만원",
+      "formatted_recommender": "50만원",
+      "formatted_recommendee": "50만원"
+    },
+    "category_tags": [
+      {
+        "parent_id": 517,
+        "id": 643
+      },
+      {
+        "parent_id": 517,
+        "id": 647
+      },
+      {
+        "parent_id": 517,
+        "id": 650
+      }
+    ],
+    "annual_from": 7
+  },
+  {
+    "status": "active",
+    "hidden": false,
+    "is_like": false,
+    "score": null,
+    "is_bookmark": false,
+    "company": {
+      "id": 5273,
+      "industry_name": "IT, 컨텐츠",
+      "application_response_stats": {
+        "avg_rate": 42.41,
+        "level": "very_low",
+        "delayed_count": 0,
+        "avg_day": null,
+        "remained_count": 0,
+        "type": "applied_reply_done"
+      },
+      "name": "에이아이웍스"
+    },
+    "annual_to": 8,
+    "title_img": {
+      "origin": "https://static.wanted.co.kr/images/company/5273/bwls6xchtsdud8l2__1080_790.jpg",
+      "thumb": "https://static.wanted.co.kr/images/company/5273/bwls6xchtsdud8l2__400_400.jpg"
+    },
+    "compare_country": true,
+    "due_time": null,
+    "like_count": 0,
+    "id": 339535,
+    "logo_img": {
+      "origin": "https://static.wanted.co.kr/images/wdes/0_5.eb26276f.png",
+      "thumb": "https://static.wanted.co.kr/images/wdes/0_4.eb26276f.png"
+    },
+    "address": {
+      "location_key": "seoul",
+      "district": "송파구",
+      "country": "한국",
+      "location": "서울",
+      "full_location": "서울 송파구 백제고분로41길 42-19, 2~4층",
+      "district_key": "seoul.songpa-gu"
+    },
+    "matching_score": null,
+    "position": "HRM 매니저",
+    "is_recommended": false,
+    "reward": {
+      "formatted_total": "100만원",
+      "formatted_recommender": "50만원",
+      "formatted_recommendee": "50만원"
+    },
+    "category_tags": [
+      {
+        "parent_id": 517,
+        "id": 650
+      }
+    ],
+    "annual_from": 3
+  }
+]
