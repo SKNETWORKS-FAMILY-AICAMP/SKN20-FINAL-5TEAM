@@ -8,7 +8,7 @@
     <div v-if="isOpen" class="modal-overlay notice-overlay" @click.self="closeNotice">
       <div class="notice-container" style="font-family: var(--font-main);">
         <div class="notice-badge" style="background: var(--accent); font-family: var(--font-retro); font-size: 8px;">SECURITY</div>
-        <h2 class="notice-title" style="font-weight: 800; letter-spacing: -0.02em;">Architecture Gym 보안 고도화 안내</h2>
+        <h2 class="notice-title" style="font-weight: 800; letter-spacing: -0.02em;">AI-Arcade 보안 고도화 안내</h2>
         <div class="notice-body">
           <p style="line-height: 1.6;">안녕하세요, 엔지니어 여러분! 여러분의 훈련 데이터를 보호하기 위해 <strong>시스템 보안 체계</strong>가 강화되었습니다.</p>
           <ul class="notice-list">

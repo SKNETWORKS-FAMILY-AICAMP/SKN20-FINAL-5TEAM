@@ -7,7 +7,7 @@
     <div v-if="isOpen" class="modal-overlay">
       <div class="auth-container">
         <header class="auth-header">
-          <div class="auth-badge">ANTIGRAVITY PROFILE</div>
+          <div class="auth-badge">AI-ARCADE PROFILE</div>
           <h2 class="auth-title">Update Your Gear</h2>
           <p class="auth-subtitle">엔지니어의 정보를 최신 상태로 유지하세요.</p>
         </header>
