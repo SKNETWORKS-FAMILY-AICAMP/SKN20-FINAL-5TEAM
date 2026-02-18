@@ -1,5 +1,5 @@
 # 수정일: 2026-01-25
-# 수정내용: Antigravity - 모델 구조에 맞춰 관리자 화면 구성 최종 정리
+# 수정내용: 모델 구조에 맞춰 관리자 화면 구성 최종 정리
 
 from django.contrib import admin
 from core.models import Common, UserProfile, UserDetail, DashboardLog, Practice, PracticeDetail

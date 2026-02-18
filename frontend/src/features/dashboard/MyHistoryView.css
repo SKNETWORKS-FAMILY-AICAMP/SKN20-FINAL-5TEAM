@@ -153,8 +153,28 @@
 .log-header {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 1rem;
     align-items: center;
+    padding: 0.5rem 0.5rem;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.log-header:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.log-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.expand-icon {
+    font-size: 0.8rem;
+    color: var(--primary);
+    width: 20px;
+    text-align: center;
+    transition: transform 0.2s;
 }
 
 .log-title {
@@ -167,6 +187,24 @@
     font-family: 'monospace';
     font-weight: 800;
     color: var(--primary);
+    opacity: 0.8;
+}
+
+.log-details-area {
+    margin-top: 1.5rem;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .log-code {

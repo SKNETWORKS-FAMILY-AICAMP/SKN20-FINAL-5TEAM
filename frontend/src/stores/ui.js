@@ -16,10 +16,33 @@ export const useUiStore = defineStore('ui', {
         isGuidebookOpen: false,
         isAgentModalOpen: false,
         isReportModalOpen: false,
-        isProfileSettingsModalOpen: false
+        isProfileSettingsModalOpen: false,
+
+        // [수정일: 2026-02-16] 전역 토스트 알림 상태
+        toast: {
+            show: false,
+            message: '',
+            type: 'success', // 'success', 'error', 'info', 'warning'
+            duration: 3000
+        }
     }),
 
     actions: {
+        /**
+         * [전역 토스트 표시]
+         * @param {string} message 표시할 메시지
+         * @param {string} type 토스트 타입 (success, error, info, warning)
+         */
+        showToast(message, type = 'success') {
+            this.toast.message = message;
+            this.toast.type = type;
+            this.toast.show = true;
+
+            setTimeout(() => {
+                this.toast.show = false;
+            }, this.toast.duration);
+        },
+
         closeAllModals() {
             this.isLoginModalOpen = false;
             this.isSignUpModalOpen = false;

@@ -31,24 +31,30 @@
         <div v-for="ans in answers" :key="ans.detail_id" class="log-entry">
           <div class="log-marker" :class="{ perfect: ans.is_perfect }"></div>
           <div class="log-content">
-            <div class="log-header">
-              <span class="log-title">{{ ans.title }}</span>
+            <div class="log-header" @click="toggleEntry(ans)" style="cursor: pointer;">
+              <div class="log-header-left">
+                <span class="expand-icon">{{ ans.isExpanded ? '▼' : '▶' }}</span>
+                <span class="log-title">{{ ans.title }}</span>
+              </div>
               <span class="log-score">{{ ans.score }}pts</span>
             </div>
-            <div v-if="isStructuredData(ans.submitted_data)" class="structured-log">
-              <div v-for="(val, key) in ans.submitted_data" :key="key" class="log-section">
-                <div class="log-section-header">
-                  <span class="section-icon">{{ getSectionIcon(key) }}</span>
-                  <span class="section-title">{{ key }}</span>
-                </div>
-                <div class="section-content" :class="{ 'code-mode': key.includes('코드') || key.includes('Implementation') }">
-                  <pre v-if="key.includes('코드') || key.includes('Implementation')">{{ val }}</pre>
-                  <p v-else>{{ val }}</p>
+            
+            <div v-show="ans.isExpanded" class="log-details-area">
+              <div v-if="isStructuredData(ans.submitted_data)" class="structured-log">
+                <div v-for="(val, key) in ans.submitted_data" :key="key" class="log-section">
+                  <div class="log-section-header">
+                    <span class="section-icon">{{ getSectionIcon(key) }}</span>
+                    <span class="section-title">{{ key }}</span>
+                  </div>
+                  <div class="section-content" :class="{ 'code-mode': key.includes('코드') || key.includes('Implementation') }">
+                    <pre v-if="key.includes('코드') || key.includes('Implementation')">{{ val }}</pre>
+                    <p v-else>{{ val }}</p>
+                  </div>
                 </div>
               </div>
+              <pre v-else class="log-code">{{ formatAnswer(ans.submitted_data) }}</pre>
+              <div class="log-date">{{ formatDate(ans.solved_date) }}</div>
             </div>
-            <pre v-else class="log-code">{{ formatAnswer(ans.submitted_data) }}</pre>
-            <div class="log-date">{{ formatDate(ans.solved_date) }}</div>
           </div>
         </div>
       </div>
@@ -89,12 +95,20 @@ const selectUnit = async (unit) => {
   loading.value = true;
   try {
     const res = await axios.get(`/api/core/management/user-answers/${unit.id}/`);
-    answers.value = res.data.answers;
+    // [수정일: 2026-02-16] 아코디언 상태(isExpanded) 초기화 추가
+    answers.value = res.data.answers.map(ans => ({
+      ...ans,
+      isExpanded: false
+    }));
   } catch (err) {
     console.error('Failed to fetch user records:', err);
   } finally {
     loading.value = false;
   }
+};
+
+const toggleEntry = (ans) => {
+  ans.isExpanded = !ans.isExpanded;
 };
 
 const formatAnswer = (data) => {
