@@ -347,9 +347,9 @@ export class PseudocodeValidator {
      * [2026-02-14 추가] 무성의한 입력을 완벽히 걸러내는 정밀 검사 (High-Reject)
      */
     static isMeaningfulInput(text) {
-        if (!text || text.trim().length < 15) return {
+        if (!text || text.trim().length < 5) return {
             valid: false,
-            reason: '설계가 너무 짧습니다. 아키텍처의 의도가 드러나도록 최소 15자 이상 상세히 작성해 주세요.'
+            reason: '설계가 너무 짧습니다. 아키텍처의 의도가 드러나도록 최소 5자 이상 작성해 주세요.'
         };
 
         const giveupKeywords = [

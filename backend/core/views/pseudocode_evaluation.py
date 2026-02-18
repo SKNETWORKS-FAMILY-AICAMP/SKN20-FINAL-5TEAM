@@ -11,6 +11,12 @@ import time
 from typing import Dict, Any
 from core.utils.pseudocode_validator import PseudocodeValidator
 from core.utils.mission_rules import VALIDATION_RULES
+from core.models import UserProfile
+# [2026-02-18 상세] 평가 결과를 데이터베이스에 자동으로 기록하기 위한 공통 서비스 임포트
+from core.services.activity_service import save_user_problem_record
+import logging
+
+logger = logging.getLogger(__name__)
 
 # [2026-02-18 수정] ID 정규화 함수 및 청사진 구성 고도화 (Antigravity)
 def normalize_quest_id(quest_id):
@@ -147,6 +153,23 @@ def evaluate_pseudocode_5d(request):
             review_message = "건전하고 성실한 설계를 부탁드립니다." if has_vulgar else "이것은 설계도가 아닙니다. 기초부터 다시 다져봅시다."
             blueprint = MISSION_BLUEPRINTS.get(normalized_id, MISSION_BLUEPRINTS.get("1"))
             
+            # [2026-02-18 상세] 무성의한 입력(Low effort)이나 포기 발언이 감지된 경우의 처리
+            # - 사용자 경험을 위해 가이드 메시지를 반환함과 동시에, 시도 기록을 0점으로 저장함
+            try:
+                # [2026-02-18 상세] 현재 로그인한 사용자의 프로필 정보를 조회함
+                profile = UserProfile.objects.get(email=request.user.email)
+                
+                # [2026-02-18 상세] 공통 서비스를 통해 0점 처리 및 '무성의 입력' 상태를 상세 데이터에 기록함
+                save_user_problem_record(
+                    user_profile=profile,
+                    detail_id=quest_id if quest_id.startswith('unit') else f"unit01{normalized_id.zfill(2)}",
+                    score=0,
+                    submitted_data={'pseudocode': pseudocode, 'evaluation': 'Low effort / Meaningless input'}
+                )
+            except Exception as e:
+                # [2026-02-18 상세] 저장 중 오류가 발생하더라도 프론트엔드 응답은 유지하여 사용자 흐름을 방해하지 않음
+                logger.error(f"Failed to save low-effort Unit 1 record: {str(e)}")
+
             return Response({
                 'overall_score': 0,
                 'total_score_100': 0,
@@ -207,6 +230,30 @@ def evaluate_pseudocode_5d(request):
             llm_result['recommended_videos'] = search_youtube_videos(query_map.get(weakest_dim, 'ML 전처리'), max_results=2)
         except: pass
             
+        # [2026-02-18 상세] 정상적인 평가가 완료된 후, 결과를 실시간으로 데이터베이스에 반영함
+        try:
+            profile = UserProfile.objects.get(email=request.user.email)
+            target_detail_id = quest_id if quest_id.startswith('unit') and '_' in quest_id else f"unit01_{normalized_id.zfill(2)}"
+            logger.info(f"Attempting to save Unit 1 record: quest_id={quest_id}, target_detail_id={target_detail_id}")
+            
+            # [2026-02-18 상세] 공통 서비스를 호출하여 다음 항목들을 업데이트함:
+            # 1. UserSolvedProblem: 실습 이력 및 획득 점수 저장
+            # 2. UserActivity: 전체 누적 포인트 및 랭킹 정산
+            # 3. UserProgress: 유닛별 진행률 및 로드맵 노드 해금
+            save_user_problem_record(
+                user_profile=profile,
+                detail_id=target_detail_id,
+                score=final_100_score,
+                submitted_data={
+                    'pseudocode': pseudocode,
+                    'evaluation': llm_result
+                }
+            )
+            logger.info(f"Unit 1 record saved successfully for {profile.username}")
+        except Exception as e:
+            # [2026-02-18 상세] 기록 저장 실패 시 로그를 남기되, 사용자에게는 평가 결과를 우선적으로 보여줌
+            logger.error(f"Failed to save Unit 1 record (ID: {target_detail_id}): {str(e)}")
+
         return Response(llm_result, status=status.HTTP_200_OK)
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

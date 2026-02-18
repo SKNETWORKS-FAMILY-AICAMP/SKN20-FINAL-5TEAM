@@ -65,5 +65,5 @@ urlpatterns = [
 
     path('pseudocode/execute/', execute_python_code, name='pseudocode_execute'),
     path('pseudo-agent/', PseudocodeAgentView.as_view(), name='pseudo_agent'),
-    path('pseudocode/evaluate-5d', pseudocode_evaluation.evaluate_pseudocode_5d),
+    path('pseudocode/evaluate-5d/', pseudocode_evaluation.evaluate_pseudocode_5d),
 ]

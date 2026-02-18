@@ -8,6 +8,9 @@ import { VALIDATION_LIBRARY, CODE_VALIDATION_LIBRARY } from './validationRules_C
 export const aiQuests = [
     {
         id: 1,
+        // [2026-02-18 상세] 백엔드 PracticeDetail 모델의 ID와 매핑하여 
+        // 실습 결과가 올바른 DB 항목에 저장되도록 식별자 추가
+        db_id: "unit01_01",
         title: "전처리 데이터 누수 방어 시스템 설계",
         category: "System Reboot",
         emoji: "🚨",
