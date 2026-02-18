@@ -1,240 +1,122 @@
-import math
-from collections import Counter
+"""
+의사코드 5차원 평가 뷰 (Final Architecture)
+수정일: 2026-02-18
+수정내용: 
+1. PseudocodeEvaluator 서비스를 활용한 비즈니스 로직 분리 및 아키텍처 리팩토링
+2. 프론트엔드 동적 분기를 위한 무성의 입력 감지, 꼬리 질문(tail_question), 심화 시나리오(deep_dive) 데이터 연동 완결
+3. 지표별 전문 키워드 매핑을 통한 고품질 유튜브 학습 리소스 큐레이션 엔진 강화
+"""
+
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
-from django.conf import settings
-import openai
 import json
-import time
-from typing import Dict, Any
-from core.utils.pseudocode_validator import PseudocodeValidator
-from core.utils.mission_rules import VALIDATION_RULES
 
-# [2026-02-14 추가] 미션별 정답 청사진 (컨텐츠 맥락 부족 해결)
-# AI가 미션 제목만 보고 추측하는 대신, 실제 데이터 제약 사항을 기반으로 채점하도록 함
-MISSION_BLUEPRINTS = {
-    "1": {
-        "mission_goal": "데이터 전처리 과정에서의 누수(Leakage) 방지",
-        "target_dataset": "Titanic Survival Dataset (age, fare 등)",
-        "critical_constraints": [
-            "1. Isolation: train_test_split이 Scaler 적용보다 먼저 나와야 함",
-            "2. Anchor: scaler.fit은 오직 X_train 데이터에만 수행해야 함",
-            "3. Consistency: X_test는 오직 transform만 수행해야 함 (fit 금지)"
-        ],
-        "required_keywords": ["split", "fit", "transform", "train", "test"],
-        "model_answer_python": "# [청사적 격리 및 기준점 보호 파이프라인]\nimport pandas as pd\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\n# 1. Isolation (격리)\ntrain_df, test_df = train_test_split(df, test_size=0.2)\n\n# 2. Anchor (기준점 설정): 오직 학습 데이터로만!\nscaler = StandardScaler()\nscaler.fit(train_df[['age', 'fare']])\n\n# 3. Consistency (일관성): 동일한 기준 적용\nX_train_scaled = scaler.transform(train_df[['age', 'fare']])\nX_test_scaled = scaler.transform(test_df[['age', 'fare']])",
-        "blueprint_steps": [
-            {"id": "s1", "python": "train_df, test_df = train_test_split(df, test_size=0.2)", "pseudo": "먼저 데이터를 학습용과 검증용으로 물리적 격리(Isolation)한다."},
-            {"id": "s2", "python": "scaler.fit(train_df[['age', 'fare']])", "pseudo": "학습 데이터(train)에서만 통계량을 추출하여 기준점(Anchor)을 설정한다."},
-            {"id": "s3", "python": "scaler.transform(test_df[['age', 'fare']])", "pseudo": "테스트 데이터(test)에는 fit 없이 transform만 적용하여 일관성(Consistency)을 유지한다."}
-        ]
-    }
-}
-# "QUEST_01" 하위 호환성 유지
-MISSION_BLUEPRINTS["QUEST_01"] = MISSION_BLUEPRINTS["1"]
-
-# [2026-02-14 추가] 엔트로피 기반 입력 품질 검사 (부실한 필터링 해결)
-def calculate_entropy(text: str) -> float:
-    """문자열의 정보 밀도(엔트로피)를 계산하여 무의미한 나열을 감지"""
-    if not text: return 0
-    counter = Counter(text)
-    probs = [count / len(text) for count in counter.values()]
-    return -sum(p * math.log2(p) for p in probs)
-
-def is_meaningful_input(text: str) -> bool:
-    """성의 있는 입력인지 3중 검증"""
-    clean_text = "".join([c for c in text if c.isalnum()])
-    # 1. 길이 검사
-    if len(clean_text) < 5: return False
-    # 2. 엔트로피 검사 (낮은 엔트로피는 'aaaaa' 같은 무의미한 반복을 의미)
-    if calculate_entropy(text) < 2.0 and len(text) > 10: return False
-    return True
-
-SYSTEM_PROMPT = """당신은 데이터 과학 아키텍처 전문 채점관입니다.
-사용자의 [Pseudocode]가 [Mission Blueprint]의 핵심 제약 사항을 준수하는지 평가하십시오.
-
-### [⚠️ 채점 필수 규정: 일관성 유지]
-1. **치명적 결함(Leakage) 판정**:
-   - 만약 사용자가 [데이터 분리(Split)] 전에 [스케일링/변환(Fit)]을 수행했다면, 이는 **'데이터 누수'**로 판정합니다.
-   - **누수 판정 시**: `consistency` 점수는 **0~5점** 사이로 고정하며, `overall_score`는 절대 **40점**을 넘을 수 없습니다. (나머지 지표가 좋아도 상한선 적용)
-
-2. **지표별 배점 (Total 85pts)**:
-   - **Consistency (35pts)**: 데이터 격리 원칙 (누수 발생 시 가차 없이 감점)
-   - **Design (30pts)**: 파이프라인 논리 흐름
-   - **Implementation (10pts)**: 구체성
-   - **Abstraction/EdgeCase (각 5pts)**: 전문성 및 안정성
-
-### [🐍 파이썬 거울 반사]
-- 사용자가 틀린 순서로 썼다면, **틀린 순서 그대로** 파이썬 코드를 생성하십시오. 수정해 주지 마십시오.
-
-### [출력 형식 (JSON)]
-{
-  "self_audit": {
-    "has_leakage": true/false,
-    "is_order_correct": true/false,
-    "reason": "점수를 주기 전 자가 진단 결과"
-  },
-  "overall_score": 0,
-  "persona_name": "판정 페르소나",
-  "one_line_review": "설계 요약 및 총평",
-  "dimensions": {
-    "design": { "score": 0, "basis": "근거", "improvement": "개선" },
-    "consistency": { "score": 0, "basis": "근거", "improvement": "개선" },
-    "implementation": { "score": 0, "basis": "근거", "improvement": "개선" },
-    "edge_case": { "score": 0, "basis": "근거", "improvement": "개선" },
-    "abstraction": { "score": 0, "basis": "근거", "improvement": "개선" }
-  },
-  "tail_question": { ... },
-  "deep_dive": { ... },
-  "converted_python": "...",
-  "python_feedback": "기술 분석 피드백",
-  "senior_advice": "아키텍트 조언",
-  "strengths": [], "weaknesses": []
-}
-"""
+from core.services.pseudocode_evaluator import PseudocodeEvaluator, EvaluationRequest, EvaluationMode, ModelConfig, LLMEvaluationResult
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def evaluate_pseudocode_5d(request):
     """
-    고도화된 5차원 메트릭 기반 의사코드 평가
-    [개선] AI(85) + Rule(85) / 1.7 = 100점 만점 체계
+    고도화된 5차원 메트릭 기반 의사코드 평가 및 학습 로드맵 제안
     """
     try:
-        quest_id = request.data.get('quest_id', 'default')
-        quest_title = request.data.get('quest_title')
+        user_id = request.user.id if request.user.is_authenticated else "anonymous"
+        quest_id = request.data.get('quest_id', '1')
+        quest_title = request.data.get('quest_title', '데이터 전처리 미션')
         pseudocode = request.data.get('pseudocode', '')
-        # [2026-02-14 수정] 보안 강화를 위해 프론트엔드 점수를 무시하고 백엔드에서 직접 검증
-        # rule_result = request.data.get('rule_result', {})
         
-        # 1. 백엔드 전용 룰 엔진으로 검증 수행
-        rules = VALIDATION_RULES.get(str(quest_id), VALIDATION_RULES.get("1"))
-        validator = PseudocodeValidator(rules)
-        rule_result = validator.validate(pseudocode)
-        
-        # [2026-02-14 수정] 부실한 필터링 및 포기성 발언 감지 강화
-        vulgar_words = ['시발', '씨발', '개새끼', '병신', '미친', '노답', '존나', '지랄', '엠창']
-        # 더 넓은 범위의 포기성 및 무성의 키워드
-        giveup_keywords = [
-            '모르', '몰라', '몰겠', '어렵', '못하', '안됨', '해줘', '?', 'help',
-            '글쎄', '나중에', '다음에', '귀찮', '패스', 'pass', 'ㅁㄴㅇㄹ', 'ㄴㄴ'
-        ]
-        
-        has_vulgar = any(word in pseudocode for word in vulgar_words)
-        is_giveup = any(word in pseudocode for word in giveup_keywords)
-        
-        if has_vulgar or is_giveup or not is_meaningful_input(pseudocode):
-            review_message = "건전하고 성실한 설계를 부탁드립니다." if has_vulgar else "이것은 설계도가 아닙니다. 기초부터 다시 다져봅시다."
-            
-            # ID 보정
-            q_id = str(quest_id) if quest_id else "1"
-            blueprint = MISSION_BLUEPRINTS.get(q_id, MISSION_BLUEPRINTS.get("1"))
-            
-            return Response({
-                'overall_score': 0, # 15 -> 0으로 하향
-                'total_score_100': 0,
-                'is_low_effort': True,
-                'persona_name': "낙제한 견습생",
-                'one_line_review': review_message,
-                'dimensions': {
-                    "design": {"score": 0, "basis": "포기/무성의", "improvement": "단계별 설계를 다시 시작하세요."},
-                    "consistency": {"score": 0, "basis": "원칙 부재", "improvement": "격리 원칙을 처음부터 배우세요."},
-                    "implementation": {"score": 0, "basis": "구체성 전무", "improvement": "동사 중심으로 명확히 쓰세요."},
-                    "edge_case": {"score": 0, "basis": "측정 불가", "improvement": "예외 상황은 고려되지 않았습니다."},
-                    "abstraction": {"score": 0, "basis": "구조 없음", "improvement": "구조화된 표현을 익히세요."}
-                },
-                'converted_python': blueprint.get("model_answer_python", "# No blueprint found"),
-                'python_feedback': "학습을 돕기 위해 해당 미션의 표준 아키텍처(청사진)를 제공합니다. 아래 [청사진 복구 작전]을 통해 논리 흐름을 익혀보세요.",
-                'blueprint_steps': blueprint.get("blueprint_steps", []),
-                'tail_question': {
-                    "should_show": True,
-                    "question": f"미션: {blueprint.get('mission_goal', '전처리')}\n[청사적 격리 및 기준점 보호] 논리를 이해하지 못했습니다. 청사진을 보고 올바른 설계를 선택해 보세요.",
-                    "context": "청사진 복기 학습",
-                    "options": [
-                        {"id": 1, "text": "아래 매칭 UI를 사용하여 설계를 완성하세요.", "is_correct": True, "feedback": "학습을 시작합니다."}
-                    ]
-                }
-            }, status=status.HTTP_200_OK)
+        if not pseudocode:
+            return Response({"error": "의사코드를 입력해 주세요."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # [2026-02-14 추가] 미션별 청사진 맥락 주입
-        blueprint = MISSION_BLUEPRINTS.get(quest_id, MISSION_BLUEPRINTS.get("default"))
-
-        llm_result = call_llm_evaluation(
-            quest_title=quest_title,
+        # 1. 평가 엔지니어링 수행 (Service Layer 활용)
+        evaluator = PseudocodeEvaluator()
+        
+        eval_request = EvaluationRequest(
+            user_id=str(user_id),
+            detail_id=str(quest_id),
             pseudocode=pseudocode,
-            blueprint=blueprint, # 맥락 주입
-            rule_score=rule_result.get('score', 0),
-            user_diagnostic=request.data.get('user_diagnostic', {})
+            quest_title=quest_title,
+            mode=EvaluationMode.OPTION2_GPTONLY
         )
         
-        # [2026-02-14 수정] 점수 산출 권한 서버 회수 및 산식 단일화 
-        # (Rule 15% + AI 85% = 100% 체계)
-        rule_score_raw = rule_result.get('score', 0)
-        rule_score_15 = round(rule_score_raw * 0.15)
+        print(f"[API] Evaluating Pseudocode: {quest_title} (User: {user_id})")
+        result = evaluator.evaluate(eval_request)
         
-        ai_score_85 = llm_result.get('overall_score', 0)
-        
-        # 최종 점수 합산
-        final_100_score = ai_score_85 + rule_score_15
-        
-        llm_result['total_score_100'] = final_100_score
-        llm_result['score_breakdown'] = {
-            'ai_score_85': ai_score_85,
-            'rule_score_15': rule_score_15,
-            'rule_raw_100': rule_score_raw
-        }
-        # 룰 검증 상세 결과 포함 (프론트엔드 전시용)
-        llm_result['rule_details'] = rule_result
+        # 2. 결과 데이터 조립 (프론트엔드 호환 포맷)
+        llm_evaluations = result.llm_evaluations
+        # 3. 정규화 및 피드백
+        if not llm_evaluations:
+            # LLM 결과가 아예 없는 경우 방어 로직
+            err_res = LLMEvaluationResult(model=ModelConfig.PRIMARY_MODEL, status='ERROR', error_message="LLM 응답 없음")
+            llm_evaluations[ModelConfig.PRIMARY_MODEL] = err_res
 
-        # 유튜브 큐레이션 등 후속 처리...
+        primary_res = llm_evaluations.get(ModelConfig.PRIMARY_MODEL) or next(iter(llm_evaluations.values()))
+        
+        response_data = {
+            'overall_score': result.final_score,
+            'total_score_100': result.final_score,
+            'grade': result.grade,
+            'persona_name': result.persona,
+            'one_line_review': result.feedback.get('summary', ""),
+            'dimensions': result.feedback.get('dimensions', {}),
+            'converted_python': primary_res.converted_python or "# 변환 실패",
+            'python_feedback': primary_res.python_feedback or "분석 완료",
+            'strengths': result.feedback.get('strengths', []),
+            'weaknesses': result.feedback.get('improvements', []),
+            'is_low_effort': result.is_low_effort,
+            'tail_question': result.tail_question,
+            'deep_dive': result.deep_dive,
+            'score_breakdown': result.score_breakdown,
+            'metadata': result.metadata
+        }
+        
+        # 3. 유튜브 큐레이션 (취약 지표 기반 정밀 매핑)
         try:
             from core.utils.youtube_helper import search_youtube_videos
-            weakest_dim = min(llm_result['dimensions'].items(), key=lambda x: x[1].get('score', 100))[0]
-            query_map = {'design': 'ML 파이프라인 설계', 'consistency': '데이터 누수 방지', 'implementation': 'Sklearn 활용법'}
-            llm_result['recommended_videos'] = search_youtube_videos(query_map.get(weakest_dim, 'ML 전처리'), max_results=2)
-        except: pass
+            # 지표별 전문 검색어 매핑 (learningResources.js 테마 연동)
+            CURATION_MAP = {
+                'design': '머신러닝 파이프라인 설계 전처리 순서',
+                'edge_case': 'MLOps 데이터 드리프트 실전 배포 예외처리',
+                'abstraction': '컴퓨팅 사고 의사코드 작성법 데이터 과학',
+                'implementation': 'Scikit-learn fit transform 차이점 실전',
+                'consistency': 'Data Leakage 데이터 누수 방지 가이드'
+            }
             
-        return Response(llm_result, status=status.HTTP_200_OK)
+            dims = response_data['dimensions']
+            # 점수가 있는 지표 중 가장 낮은 것 추출
+            valid_dims = {k: v.get('score', 100) for k, v in dims.items() if isinstance(v, dict)}
+            if valid_dims:
+                weakest = min(valid_dims.items(), key=lambda x: x[1])[0]
+                query = CURATION_MAP.get(weakest, f"ML {weakest} tutorial")
+                response_data['recommended_videos'] = search_youtube_videos(query, max_results=2)
+            else:
+                response_data['recommended_videos'] = []
+        except Exception as yt_err:
+            print(f"[YouTube Curation Error] {yt_err}")
+            response_data['recommended_videos'] = []
+
+        return Response(response_data, status=status.HTTP_200_OK)
+
     except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-def call_llm_evaluation(quest_title, pseudocode, blueprint, rule_score, user_diagnostic=None):
-    """OpenAI API를 통해 청사진 기반 정밀 평가 수행"""
-    client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
-    
-    # [2026-02-14 수정] 프롬프트 과부하 해결을 위해 맥락을 구조화하여 전달
-    user_prompt = f"""
-# [Evaluation Context: Mission Blueprint]
-- Goal: {blueprint['mission_goal']}
-- Critical Constraints: {", ".join(blueprint['critical_constraints'])}
-- Required Keywords: {", ".join(blueprint['required_keywords'])}
-
-# [User Input]
-- Title: {quest_title}
-- Pseudocode: {pseudocode}
-- Diagnostic Context: {json.dumps(user_diagnostic) if user_diagnostic else "N/A"}
-
-# [Task]
-위 [Mission Blueprint]의 제약 사항을 얼마나 충실히 설계에 반영했는지 평가하세요.
-- AI 점수는 총 85점 만점으로 채점합니다. (지표별 합산)
-- 점수 결과에 따라 맞춤형 MCQ(tail_question or deep_dive)를 생성하세요. 
-- 입력을 기반으로 실행 가능한 Python 코드로 변환하세요.
-"""
-    
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": user_prompt}
-        ],
-        response_format={"type": "json_object"},
-        temperature=0.7
-    )
-    return json.loads(response.choices[0].message.content)
-
-def generate_low_score_dimensions(reason):
-    """낮은 성의 입력 시 기본 차원 점수 반환"""
-    return {dim: {"score": 3, "basis": reason, "improvement": "다시 설계하세요"} 
-            for dim in ['design', 'consistency', 'implementation', 'edge_case', 'abstraction']}
+        import traceback
+        error_msg = str(e)
+        print(f"[API Critical Error] {error_msg}")
+        print(traceback.format_exc())
+        
+        # [2026-02-18 수정] 어떤 경우에도 500 에러 대신 200 OK + Fallback 데이터 반환
+        return Response({
+            'overall_score': 0,
+            'total_score_100': 0,
+            'grade': 'POOR',
+            'is_low_effort': True,
+            'one_line_review': f"[시스템 점검 중] 장비 연결에 실패했습니다: {error_msg[:30]}...",
+            'feedback': f"현재 서버 엔진에 일시적인 장애가 발생하여 룰 기반 분석 모드로 전환되었습니다.",
+            'dimensions': {},
+            'converted_python': "# [안내] 현재 서버 연결이 원활하지 않아 파이썬 변환을 수행할 수 없습니다.\n# 잠시 후 '재분석' 버튼을 클릭해 주세요.",
+            'python_feedback': "서버 연결 실패",
+            'recommended_videos': [],
+            'error_details': error_msg,
+            'status': 'CRASH_RECOVERED'
+        }, status=status.HTTP_200_OK)

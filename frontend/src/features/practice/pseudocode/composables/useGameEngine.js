@@ -1,4 +1,4 @@
-import { reactive, computed } from 'vue';
+import { reactive, computed, watch } from 'vue';
 import { aiQuests } from '../data/stages.js';
 import { useGameStore } from '@/stores/game';
 
@@ -220,6 +220,12 @@ export function useGameEngine() {
         addSystemLog(`스테이지 ${stageId}: ${targetQuest.title} 시작`, "INFO");
         setPhase('DIAGNOSTIC_1');
     };
+    // [2026-02-18] 미션 변경 시 플레이스홀더 동적 업데이트
+    watch(() => currentMission.value?.id, (id) => {
+        if (id) {
+            gameState.phase3Placeholder = currentMission.value.placeholder || "";
+        }
+    }, { immediate: true });
 
     return {
         gameState,

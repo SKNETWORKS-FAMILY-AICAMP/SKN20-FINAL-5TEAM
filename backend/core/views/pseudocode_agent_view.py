@@ -113,14 +113,20 @@ class PseudocodeAgentView(APIView):
                     "verdict": "분석 지연",
                     "analysis": f"아카이브를 분석하는 도중 마법 회로에 간섭이 발생했네. (Error: {str(parse_e)})",
                     "advice": "다시 한번 설계도를 보여주게나.",
-                    "metrics": {{ "정합성": 50, "추상화": 50, "예외처리": 50, "구현력": 50, "설계력": 50 }},
-                    "tail_question": {{
+                    "metrics": {
+                        "정합성": {"score": 50, "comment": "응답 파싱 실패"},
+                        "추상화": {"score": 50, "comment": "응답 파싱 실패"},
+                        "예외처리": {"score": 50, "comment": "응답 파싱 실패"},
+                        "구현력": {"score": 50, "comment": "응답 파싱 실패"},
+                        "설계력": {"score": 50, "comment": "응답 파싱 실패"}
+                    },
+                    "tail_question": {
                         "question": "시스템이 불안정할 때 아키텍처를 점검하는 가장 좋은 방법은?",
                         "options": [
-                            {{"text": "로그를 확인한다", "is_correct": True, "reason": "데이터는 거짓말을 하지 않소."}},
-                            {{"text": "기도를 한다", "is_correct": False, "reason": "신앙심은 좋으나 공학적이지 않소."}}
+                            {"text": "로그를 확인한다", "is_correct": True, "reason": "데이터는 거짓말을 하지 않소."},
+                            {"text": "기도를 한다", "is_correct": False, "reason": "신앙심은 좋으나 공학적이지 않소."}
                         ]
-                    }}
+                    }
                 }, status=status.HTTP_200_OK)
 
         except Exception as e:

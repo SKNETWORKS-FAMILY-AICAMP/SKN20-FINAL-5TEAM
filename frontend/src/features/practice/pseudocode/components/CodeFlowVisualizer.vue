@@ -46,7 +46,15 @@
           <span class="title">{{ isBlueprintComplete ? 'SYSTEM RECOVERED' : 'AI ARCHITECT ADVICE' }}</span>
         </div>
         <p class="advice-text">
-            {{ isBlueprintComplete ? '성공적으로 아키텍처를 복구했습니다! 당신은 이제 올바른 설계 원칙을 이해한 아키텍트입니다.' : evaluationFeedback }}
+            <template v-if="isBlueprintComplete">
+              성공적으로 아키텍처를 복구했습니다! 당신은 이제 올바른 설계 원칙을 이해한 아키텍트입니다.
+            </template>
+            <template v-else-if="isLowEffort && pythonCode">
+              청사진(Blueprint)을 통해 올바른 Python 구현을 확인하세요. 아래 문제를 풀어 설계 원리를 완성하세요!
+            </template>
+            <template v-else>
+              {{ evaluationFeedback }}
+            </template>
         </p>
       </div>
 
@@ -120,7 +128,7 @@
             class="option-btn"
             :class="{ 
               'selected': selectedIdx === idx,
-              'correct': isMcqAnswered && (opt.is_correct || opt.correct),
+              'correct': isMcqAnswered && selectedIdx === idx && (opt.is_correct || opt.correct),
               'wrong': isMcqAnswered && selectedIdx === idx && !(opt.is_correct || opt.correct)
             }"
             :disabled="isMcqAnswered"
@@ -132,8 +140,11 @@
         </div>
       </div>
 
-      <div v-if="isMcqAnswered || isBlueprintComplete" class="mcq-feedback-popup">
-          <p class="text-success">🎯 정답입니다! 아키텍처 흐름이 완벽히 복구되었습니다.</p>
+      <div v-if="isBlueprintComplete" class="mcq-feedback-popup">
+          <p class="text-success">🎯 아키텍처 복구 작전 완료! 설계 원칙을 완전히 이해했습니다.</p>
+      </div>
+      <div v-else-if="isMcqAnswered" class="mcq-feedback-popup">
+          <p class="text-success">🎯 정답입니다! 다음 단계로 진행하세요.</p>
       </div>
 
       <div v-if="phase === 'DEEP_DIVE_DESCRIPTIVE'" class="challenge-block descriptive-section">
@@ -194,13 +205,14 @@ const props = defineProps({
   pythonCode: String,
   evaluationScore: Number,
   evaluationFeedback: String,
+  isLowEffort: Boolean,   // is_low_effort 여부 (advice 문구 분기용)
   mcqData: Object,
-  blueprintSteps: Array,      // 추가: [{python, pseudo}]
+  blueprintSteps: Array,
   assignedScenario: Object,
   isMcqAnswered: Boolean
 });
 
-const emit = defineEmits(['answer-mcq', 'submit-descriptive', 'next-phase']);
+const emit = defineEmits(['answer-mcq', 'submit-descriptive', 'next-phase', 'blueprint-complete']);
 
 const currentStepIdx = ref(0);
 const selectedIdx = ref(null);
@@ -210,6 +222,10 @@ const isDescriptionSubmitted = ref(false);
 const manualInput = ref("");
 const showInputError = ref(false);
 const userRestoredSteps = ref([]); // 사용자가 직접 타이핑하거나 선택한 문장 저장
+
+// 청사진 완료 방식 추적: 'keyword'(주관식 입력) | 'block'(객관식 선택)
+// 각 스텝에서 한 번이라도 block 선택을 했으면 'block'으로 기록
+const blueprintCompletionMode = ref('keyword');
 
 const isBlueprintMode = computed(() => props.blueprintSteps && props.blueprintSteps.length > 0);
 const isBlueprintComplete = computed(() => isBlueprintMode.value && currentStepIdx.value >= props.blueprintSteps.length);
@@ -252,7 +268,9 @@ const handleStepPick = (idx) => {
   const opt = blueprintOptions.value[idx];
 
   if (opt.isCorrect) {
-    userRestoredSteps.value[currentStepIdx.value] = opt.pseudo; 
+    userRestoredSteps.value[currentStepIdx.value] = opt.pseudo;
+    // 객관식 선택 사용 → 'block' 모드로 기록
+    blueprintCompletionMode.value = 'block';
     proceedToNextStep();
   } else {
     isStepAnswered.value = true;
@@ -265,14 +283,15 @@ const handleStepPick = (idx) => {
 
 const handleManualSubmit = () => {
     if (!manualInput.value.trim() || isStepAnswered.value) return;
-    
+
     const current = props.blueprintSteps[currentStepIdx.value];
     const targetKeywords = current.keywords || [];
     const matchCount = targetKeywords.filter(k => manualInput.value.includes(k)).length;
-    
-    // [자비로운 검증] 키워드가 1개만 있어도 인정
+
     if (matchCount >= 1 || manualInput.value.length > 30) {
-        userRestoredSteps.value[currentStepIdx.value] = manualInput.value; 
+        userRestoredSteps.value[currentStepIdx.value] = manualInput.value;
+        // 주관식 입력 사용 → 이미 block이 등록된 경우는 유지, 아니면 keyword
+        // (keyword가 기본값이라 별도 승격 없음)
         proceedToNextStep();
         showInputError.value = false;
     } else {
@@ -288,6 +307,11 @@ const proceedToNextStep = () => {
       isStepAnswered.value = false;
       selectedIdx.value = null;
       manualInput.value = "";
+
+      // 모든 스텝 완료 시 emit으로 부모에 알림
+      if (currentStepIdx.value >= (props.blueprintSteps?.length || 0)) {
+        emit('blueprint-complete', blueprintCompletionMode.value);
+      }
     }, 800);
 };
 
@@ -474,6 +498,9 @@ const handleNext = () => {
 
 .python-code {
   color: #34d399;
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-x: hidden;
 }
 
 .validation-area {
