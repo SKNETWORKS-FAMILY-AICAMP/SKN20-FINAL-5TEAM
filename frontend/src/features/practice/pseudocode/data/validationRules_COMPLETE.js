@@ -1,8 +1,7 @@
-/**
- * 검증 규칙 라이브러리 - 즉시 사용 가능
- * stages.js에 복사해서 사용
+﻿/**
+ * 寃利?洹쒖튃 ?쇱씠釉뚮윭由?- 利됱떆 ?ъ슜 媛?? * stages.js??蹂듭궗?댁꽌 ?ъ슜
  * 
- * [2026-02-14] 실전 배포 버전
+ * [2026-02-14] ?ㅼ쟾 諛고룷 踰꾩쟾
  */
 
 // ==================== Mission 1: Data Leakage ====================
@@ -12,27 +11,27 @@ export const VALIDATION_DATA_LEAKAGE = {
   criticalPatterns: [
     {
       pattern: {
-        positive: /(전체|모든|all|whole|entire).*(데이터|data).*(fit|학습|fitting)/i,
+        positive: /(?꾩껜|紐⑤뱺|all|whole|entire).*(?곗씠??data).*(fit|?숈뒿|fitting)/i,
         negatives: [
-          /않|안|금지|말|never|not|don't|avoid|prevent/i
+          /????湲덉?|留?never|not|don't|avoid|prevent/i
         ]
       },
-      message: '🚨 데이터 누수: 전체 데이터로 fit 금지',
-      correctExample: 'scaler.fit(X_train) → scaler.transform(X_train), scaler.transform(X_test)',
-      explanation: '스케일러는 학습 데이터의 통계만 학습해야 합니다. 테스트 데이터 정보가 유입되면 과적합됩니다.',
+      message: '?슚 ?곗씠???꾩닔: ?꾩껜 ?곗씠?곕줈 fit 湲덉?',
+      correctExample: 'scaler.fit(X_train) ??scaler.transform(X_train), scaler.transform(X_test)',
+      explanation: '?ㅼ??쇰윭???숈뒿 ?곗씠?곗쓽 ?듦퀎留??숈뒿?댁빞 ?⑸땲?? ?뚯뒪???곗씠???뺣낫媛 ?좎엯?섎㈃ 怨쇱쟻?⑸맗?덈떎.',
       severity: 'CRITICAL'
     },
     {
       pattern: {
-        positive: /(test|테스트|검증).*(fit|학습시키|fitting)/i,
+        positive: /(test|?뚯뒪??寃利?.*(fit|?숈뒿?쒗궎|fitting)/i,
         negatives: [
-          /않|안|금지|never|not|don't/i,
-          /transform/i  // "test를 transform"은 OK
+          /????湲덉?|never|not|don't/i,
+          /transform/i  // "test瑜?transform"? OK
         ]
       },
-      message: '🚨 테스트 데이터로 fit 금지',
-      correctExample: '학습 데이터로만 fit → 테스트는 transform만',
-      explanation: '테스트 데이터는 미래의 보이지 않는 데이터를 시뮬레이션합니다.',
+      message: '?슚 ?뚯뒪???곗씠?곕줈 fit 湲덉?',
+      correctExample: '?숈뒿 ?곗씠?곕줈留?fit ???뚯뒪?몃뒗 transform留?,
+      explanation: '?뚯뒪???곗씠?곕뒗 誘몃옒??蹂댁씠吏 ?딅뒗 ?곗씠?곕? ?쒕??덉씠?섑빀?덈떎.',
       severity: 'CRITICAL'
     }
   ],
@@ -40,112 +39,112 @@ export const VALIDATION_DATA_LEAKAGE = {
   requiredConcepts: [
     {
       id: 'data_split',
-      name: '데이터 분리',
+      name: '?곗씠??遺꾨━',
       weight: 15,
       patterns: [
-        /분리|나누|나눔|split|separate|divide/i,
-        /train.*test|학습.*테스트|training.*testing/i,
+        /遺꾨━|?섎늻|?섎닎|split|separate|divide/i,
+        /train.*test|?숈뒿.*?뚯뒪??training.*testing/i,
         /train_test_split/i
       ],
       hints: [
-        '데이터를 학습용과 테스트용으로 나누는 단계가 필요합니다.',
-        'train_test_split() 같은 함수를 사용하세요.'
+        '?곗씠?곕? ?숈뒿?⑷낵 ?뚯뒪?몄슜?쇰줈 ?섎늻???④퀎媛 ?꾩슂?⑸땲??',
+        'train_test_split() 媛숈? ?⑥닔瑜??ъ슜?섏꽭??'
       ]
     },
     {
       id: 'scaler_create',
-      name: '스케일러 생성',
+      name: '?ㅼ??쇰윭 ?앹꽦',
       weight: 15,
       patterns: [
-        /scaler|스케일러|standardscaler|minmaxscaler/i,
-        /정규화.*도구|normalization.*tool|scaling.*object/i,
+        /scaler|?ㅼ??쇰윭|standardscaler|minmaxscaler/i,
+        /?뺢퇋??*?꾧뎄|normalization.*tool|scaling.*object/i,
         /StandardScaler\(\)|MinMaxScaler\(\)/i
       ],
       hints: [
-        '데이터 스케일링을 위한 객체를 생성해야 합니다.',
-        'StandardScaler 또는 MinMaxScaler를 인스턴스화하세요.'
+        '?곗씠???ㅼ??쇰쭅???꾪븳 媛앹껜瑜??앹꽦?댁빞 ?⑸땲??',
+        'StandardScaler ?먮뒗 MinMaxScaler瑜??몄뒪?댁뒪?뷀븯?몄슂.'
       ]
     },
     {
       id: 'fit_train',
-      name: '학습 데이터로 fit',
+      name: '?숈뒿 ?곗씠?곕줈 fit',
       weight: 20,
       patterns: [
-        /(train|학습|training).*(fit|학습시|fitting)/i,
-        /fit.*train|학습시.*train/i,
+        /(train|?숈뒿|training).*(fit|?숈뒿??fitting)/i,
+        /fit.*train|?숈뒿??*train/i,
         /scaler\.fit\(.*train/i
       ],
       hints: [
-        '스케일러를 학습 데이터로 학습시켜야 합니다.',
-        'scaler.fit(X_train) 형태로 작성하세요.'
+        '?ㅼ??쇰윭瑜??숈뒿 ?곗씠?곕줈 ?숈뒿?쒖폒???⑸땲??',
+        'scaler.fit(X_train) ?뺥깭濡??묒꽦?섏꽭??'
       ]
     },
     {
       id: 'transform_train',
-      name: '학습 데이터 변환',
+      name: '?숈뒿 ?곗씠??蹂??,
       weight: 15,
       patterns: [
-        /(train|학습).*(transform|변환|transforming)/i,
-        /transform.*train|변환.*train/i,
+        /(train|?숈뒿).*(transform|蹂??transforming)/i,
+        /transform.*train|蹂??*train/i,
         /scaler\.transform\(.*train/i
       ],
       hints: [
-        '학습 데이터도 스케일링 변환이 필요합니다.',
+        '?숈뒿 ?곗씠?곕룄 ?ㅼ??쇰쭅 蹂?섏씠 ?꾩슂?⑸땲??',
         'X_train_scaled = scaler.transform(X_train)'
       ]
     },
     {
       id: 'transform_test',
-      name: '테스트 데이터 변환',
+      name: '?뚯뒪???곗씠??蹂??,
       weight: 15,
       patterns: [
-        /(test|테스트|testing).*(transform|변환|transforming)/i,
-        /transform.*test|변환.*test/i,
+        /(test|?뚯뒪??testing).*(transform|蹂??transforming)/i,
+        /transform.*test|蹂??*test/i,
         /scaler\.transform\(.*test/i
       ],
       hints: [
-        '테스트 데이터는 transform만 수행해야 합니다.',
+        '?뚯뒪???곗씠?곕뒗 transform留??섑뻾?댁빞 ?⑸땲??',
         'X_test_scaled = scaler.transform(X_test)'
       ]
     },
     {
       id: 'same_scaler',
-      name: '동일 스케일러 사용',
+      name: '?숈씪 ?ㅼ??쇰윭 ?ъ슜',
       weight: 10,
       patterns: [
-        /같은.*scaler|동일.*scaler|same.*scaler/i,
-        /하나의.*scaler|한.*scaler|one.*scaler/i
+        /媛숈?.*scaler|?숈씪.*scaler|same.*scaler/i,
+        /?섎굹??*scaler|??*scaler|one.*scaler/i
       ],
       hints: [
-        '학습과 테스트에 같은 스케일러 인스턴스를 사용하세요.'
+        '?숈뒿怨??뚯뒪?몄뿉 媛숈? ?ㅼ??쇰윭 ?몄뒪?댁뒪瑜??ъ슜?섏꽭??'
       ]
     }
   ],
 
   dependencies: [
     {
-      name: '분리 → 스케일러 생성',
+      name: '遺꾨━ ???ㅼ??쇰윭 ?앹꽦',
       before: 'data_split',
       after: 'scaler_create',
       points: 8,
       strictness: 'RECOMMENDED'
     },
     {
-      name: 'fit → transform(train)',
+      name: 'fit ??transform(train)',
       before: 'fit_train',
       after: 'transform_train',
       points: 15,
       strictness: 'REQUIRED'
     },
     {
-      name: 'fit → transform(test)',
+      name: 'fit ??transform(test)',
       before: 'fit_train',
       after: 'transform_test',
       points: 15,
       strictness: 'REQUIRED'
     },
     {
-      name: 'transform(train) → transform(test)',
+      name: 'transform(train) ??transform(test)',
       before: 'transform_train',
       after: 'transform_test',
       points: 12,
@@ -171,29 +170,29 @@ export const CODE_VALIDATION_DATA_LEAKAGE = {
   requiredCalls: [
     {
       pattern: /\.fit\s*\(/i,
-      name: 'fit() 메서드',
+      name: 'fit() 硫붿꽌??,
       mustNotContainIn: 'comments'
     },
     {
       pattern: /\.transform\s*\(/i,
-      name: 'transform() 메서드',
+      name: 'transform() 硫붿꽌??,
       mustNotContainIn: 'comments'
     },
     {
       pattern: /train_test_split/i,
-      name: 'train_test_split 함수'
+      name: 'train_test_split ?⑥닔'
     }
   ],
 
   forbiddenPatterns: [
     {
       pattern: /\.fit\s*\(\s*[^)]*test[^)]*\)/i,
-      message: '테스트 데이터로 fit() 호출 금지',
+      message: '?뚯뒪???곗씠?곕줈 fit() ?몄텧 湲덉?',
       excludeComments: true
     },
     {
-      pattern: /\.fit\s*\(\s*X\s*\)/i,  // X만 단독으로 (전체 데이터)
-      message: '전체 데이터(X)로 fit() 호출 금지',
+      pattern: /\.fit\s*\(\s*X\s*\)/i,  // X留??⑤룆?쇰줈 (?꾩껜 ?곗씠??
+      message: '?꾩껜 ?곗씠??X)濡?fit() ?몄텧 湲덉?',
       excludeComments: true
     }
   ],
@@ -212,34 +211,34 @@ export const VALIDATION_CROSS_VALIDATION = {
   criticalPatterns: [
     {
       pattern: {
-        positive: /(test|테스트).*(cross.*validation|cv|교차.*검증)/i,
-        negatives: [/않|안|not|never/i]
+        positive: /(test|?뚯뒪??.*(cross.*validation|cv|援먯감.*寃利?/i,
+        negatives: [/????not|never/i]
       },
-      message: '🚨 CV는 학습 데이터에만 적용',
+      message: '?슚 CV???숈뒿 ?곗씠?곗뿉留??곸슜',
       correctExample: 'cv = cross_val_score(model, X_train, y_train)',
-      explanation: '교차 검증은 학습 단계에서만 사용됩니다.'
+      explanation: '援먯감 寃利앹? ?숈뒿 ?④퀎?먯꽌留??ъ슜?⑸땲??'
     }
   ],
 
   requiredConcepts: [
     {
       id: 'data_split',
-      name: '데이터 분리',
+      name: '?곗씠??遺꾨━',
       weight: 15,
       patterns: [/train_test_split/i]
     },
     {
       id: 'cv_apply',
-      name: 'CV 적용',
+      name: 'CV ?곸슜',
       weight: 25,
       patterns: [
         /cross_val_score|KFold|StratifiedKFold/i,
-        /교차.*검증|cross.*validation/i
+        /援먯감.*寃利?cross.*validation/i
       ]
     },
     {
       id: 'only_train',
-      name: '학습 데이터만 사용',
+      name: '?숈뒿 ?곗씠?곕쭔 ?ъ슜',
       weight: 20,
       patterns: [
         /cv.*train|cross.*validation.*train/i
@@ -247,10 +246,10 @@ export const VALIDATION_CROSS_VALIDATION = {
     },
     {
       id: 'final_test',
-      name: '최종 테스트 평가',
+      name: '理쒖쥌 ?뚯뒪???됯?',
       weight: 20,
       patterns: [
-        /(최종|final).*(test|테스트).*(평가|evaluation)/i
+        /(理쒖쥌|final).*(test|?뚯뒪??.*(?됯?|evaluation)/i
       ]
     }
   ],
@@ -281,40 +280,40 @@ export const VALIDATION_FEATURE_ENGINEERING = {
   criticalPatterns: [
     {
       pattern: {
-        positive: /(test|테스트).*(생성|create|engineer).*(feature|특성)/i,
-        negatives: [/않|안|not/i, /같은|same|identical/i]
+        positive: /(test|?뚯뒪??.*(?앹꽦|create|engineer).*(feature|?뱀꽦)/i,
+        negatives: [/????not/i, /媛숈?|same|identical/i]
       },
-      message: '🚨 특성 엔지니어링을 테스트에 먼저 적용하면 안 됩니다',
-      correctExample: '학습 데이터로 특성 생성 규칙 학습 → 동일 규칙을 테스트에 적용',
-      explanation: '특성 생성 규칙은 학습 데이터에서만 학습되어야 합니다.'
+      message: '?슚 ?뱀꽦 ?붿??덉뼱留곸쓣 ?뚯뒪?몄뿉 癒쇱? ?곸슜?섎㈃ ???⑸땲??,
+      correctExample: '?숈뒿 ?곗씠?곕줈 ?뱀꽦 ?앹꽦 洹쒖튃 ?숈뒿 ???숈씪 洹쒖튃???뚯뒪?몄뿉 ?곸슜',
+      explanation: '?뱀꽦 ?앹꽦 洹쒖튃? ?숈뒿 ?곗씠?곗뿉?쒕쭔 ?숈뒿?섏뼱???⑸땲??'
     }
   ],
 
   requiredConcepts: [
     {
       id: 'feature_idea',
-      name: '특성 아이디어',
+      name: '?뱀꽦 ?꾩씠?붿뼱',
       weight: 20,
       patterns: [
-        /새로운.*특성|new.*feature|feature.*engineering/i,
-        /조합|combination|interaction/i
+        /?덈줈??*?뱀꽦|new.*feature|feature.*engineering/i,
+        /議고빀|combination|interaction/i
       ]
     },
     {
       id: 'train_apply',
-      name: '학습 데이터 적용',
+      name: '?숈뒿 ?곗씠???곸슜',
       weight: 25,
       patterns: [
-        /(train|학습).*(적용|apply|생성|create)/i
+        /(train|?숈뒿).*(?곸슜|apply|?앹꽦|create)/i
       ]
     },
     {
       id: 'test_same_rule',
-      name: '테스트에 동일 규칙',
+      name: '?뚯뒪?몄뿉 ?숈씪 洹쒖튃',
       weight: 25,
       patterns: [
-        /(같은|동일|same|identical).*(규칙|rule|method)/i,
-        /(test|테스트).*(같은|동일|same)/i
+        /(媛숈?|?숈씪|same|identical).*(洹쒖튃|rule|method)/i,
+        /(test|?뚯뒪??.*(媛숈?|?숈씪|same)/i
       ]
     }
   ],
@@ -332,7 +331,7 @@ export const VALIDATION_FEATURE_ENGINEERING = {
   recommendations: { minLines: 3, maxLines: 10 }
 };
 
-// ==================== 라이브러리 (stages.js에서 참조) ====================
+// ==================== ?쇱씠釉뚮윭由?(stages.js?먯꽌 李몄“) ====================
 export const VALIDATION_LIBRARY = {
   data_leakage: VALIDATION_DATA_LEAKAGE,
   cross_validation: VALIDATION_CROSS_VALIDATION,
@@ -344,17 +343,17 @@ export const CODE_VALIDATION_LIBRARY = {
 };
 
 /**
- * stages.js 사용 예시:
+ * stages.js ?ъ슜 ?덉떆:
  * 
  * import { VALIDATION_LIBRARY } from './validationRules_COMPLETE.js';
  * 
  * export const aiQuests = [
  *   {
  *     id: 1,
- *     title: "데이터 누수 방지하기",
+ *     title: "?곗씠???꾩닔 諛⑹??섍린",
  *     validation: VALIDATION_LIBRARY.data_leakage,
  *     codeValidation: CODE_VALIDATION_LIBRARY.data_leakage,
- *     // ... 기타 필드
+ *     // ... 湲고? ?꾨뱶
  *   }
  * ];
  */

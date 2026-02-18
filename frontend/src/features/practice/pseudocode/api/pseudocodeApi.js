@@ -1,40 +1,38 @@
-/**
+﻿/**
  * Pseudocode Practice API Service (v3)
  * 
- * 개선 사항:
- * - LLM 60% + Rule 40% 하이브리드 평가
- * - 5차원 메트릭 실제 계산
- * - Tail Question 자동 생성
+ * 媛쒖꽑 ?ы빆:
+ * - LLM 60% + Rule 40% ?섏씠釉뚮━???됯?
+ * - 5李⑥썝 硫뷀듃由??ㅼ젣 怨꾩궛
+ * - Tail Question ?먮룞 ?앹꽦
  * 
- * [2026-02-12] 전면 개편
+ * [2026-02-12] ?꾨㈃ 媛쒗렪
  */
 
 import { PseudocodeValidator } from '../utils/PseudocodeValidator.js';
 import { safeJSONParse } from '../utils/jsonParser.js';
 import axios from 'axios';
 
-// 캐시
+// 罹먯떆
 const aiCache = new Map();
 const MAX_CACHE_SIZE = 100;
-const CACHE_TTL = 1000 * 60 * 30; // 30분
-
-// 요청 중복 방지
+const CACHE_TTL = 1000 * 60 * 30; // 30遺?
+// ?붿껌 以묐났 諛⑹?
 const ongoingRequests = new Map();
 
 /**
- * 차원 이름 매핑
+ * 李⑥썝 ?대쫫 留ㅽ븨
  */
 const DIMENSION_NAMES = {
-    coherence: '정합성',
-    abstraction: '추상화',
-    exception_handling: '예외처리',
-    implementation: '구현력',
-    architecture: '설계력'
+    design: '?ㅺ퀎??,
+    consistency: '?뺥빀??,
+    implementation: '援ы쁽??,
+    edge_case: '?덉쇅泥섎━',
+    abstraction: '異붿긽??
 };
 
 /**
- * 캐시 관리
- */
+ * 罹먯떆 愿由? */
 function getCacheKey(type, data) {
     return `${type}:${JSON.stringify(data)}`;
 }
@@ -58,13 +56,12 @@ function getCache(key) {
 }
 
 /**
- * ✅ 핵심 함수: 5차원 메트릭 기반 의사코드 평가
- * LLM 60% + Rule 40% 하이브리드
- */
+ * ???듭떖 ?⑥닔: 5李⑥썝 硫뷀듃由?湲곕컲 ?섏궗肄붾뱶 ?됯?
+ * LLM 60% + Rule 40% ?섏씠釉뚮━?? */
 export async function evaluatePseudocode5D(problem, pseudocode, userContext = null) {
     console.log('[5D Evaluation] Starting evaluation...');
 
-    // 레이스 컨디션 방지
+    // ?덉씠??而⑤뵒??諛⑹?
     const requestKey = `5d:${problem.id}:${pseudocode.substring(0, 50)}`;
     if (ongoingRequests.has(requestKey)) {
         console.warn('[Race Prevention] Duplicate request blocked');
@@ -73,12 +70,47 @@ export async function evaluatePseudocode5D(problem, pseudocode, userContext = nu
 
     const evaluationPromise = (async () => {
         try {
-            // STEP 1: 규칙 기반 사전 검증 (40점 만점)
+            // [2026-02-14 異붽?] STEP 0: 臾댁꽦?섑븳 ?낅젰 ?먯쿇 李⑤떒 (鍮꾩떬 AI ?몄텧 諛⑹?)
+            const inputCheck = PseudocodeValidator.isMeaningfulInput(pseudocode);
+            if (!inputCheck.valid) {
+                console.warn('[Validation] High-Reject: Low effort input detected');
+
+                // [2026-02-14 異붽?] ?고????먮윭 諛⑹?瑜??꾪븳 ?붾? 吏덈Ц 諛??ㅼ젣 泥?궗吏??곗씠???곕룞
+                return {
+                    overall_score: 0,
+                    total_score_100: 0,
+                    is_low_effort: true,
+                    one_line_review: inputCheck.reason || "?ㅺ퀎媛 遺議깊빀?덈떎.",
+                    persona_name: "?숈젣??寃ъ뒿??,
+                    dimensions: {
+                        design: { score: 0, basis: "痢≪젙 遺덇?", improvement: "?ㅺ퀎 ?섎룄媛 ?꾪? 蹂댁씠吏 ?딆뒿?덈떎." },
+                        consistency: { score: 0, basis: "?먯튃 臾댁떆", improvement: "寃⑸━ 諛??쇨????먯튃???숈뒿?섏꽭??" },
+                        implementation: { score: 0, basis: "援ы쁽 遺덇?", improvement: "?④퀎蹂??됰룞??援ъ껜?뷀븯?몄슂." },
+                        edge_case: { score: 0, basis: "怨좊젮 遺議?, improvement: "?덉쇅 ?곹솴???앷컖?대낫?몄슂." },
+                        abstraction: { score: 0, basis: "援ъ“ 寃곗뿬", improvement: "?쇰━??援ъ“瑜?媛뽰텛?댁빞 ?⑸땲??" }
+                    },
+                    converted_python: "# [李⑤떒] ?ㅺ퀎瑜??ш린?덇굅???낅젰???덈Т 遺?ㅽ븯??遺꾩꽍??以묐떒?덉뒿?덈떎.",
+                    python_feedback: "?쒓났??泥?궗吏?Blueprint)??蹂듦뎄?섎ŉ ?쇰━ ?먮쫫??泥섏쓬遺???ㅼ떆 ?듯?蹂댁떆湲?諛붾엻?덈떎.",
+                    tail_question: {
+                        should_show: true,
+                        context: "?꾪궎?띿쿂 蹂듦린 ?숈뒿",
+                        question: "?ㅺ퀎 ?댁슜???덈Т 遺?ㅽ븯嫄곕굹 ?ш린?섏뀲?듬땲?? '泥?궗吏?蹂듦뎄 ?ㅼ뒿'?쇰줈 ?꾪솚?섏떆寃좎뒿?덇퉴?",
+                        options: [
+                            { text: "?? 湲곗큹遺???ㅼ떆 諛곗슦寃좎뒿?덈떎.", is_correct: true, reason: "蹂듦뎄 ?숈뒿 紐⑤뱶 ?쒖옉" },
+                            { text: "?꾨땲?? ?ㅼ떆 ?묒꽦??蹂닿쿋?듬땲??", is_correct: false, reason: "?ъ옉??紐⑤뱶" }
+                        ]
+                    },
+                    blueprint_steps: problem.blueprintSteps || [], // stages.js?먯꽌 異붽????④퀎蹂??ㅼ뒿 ?곗씠??                    next_phase: 'TAIL_QUESTION',
+                    hybrid: true
+                };
+            }
+
+            // STEP 1: 洹쒖튃 湲곕컲 ?ъ쟾 寃利?(40??留뚯젏)
             console.log('[5D Evaluation] Step 1: Rule-based validation...');
             const validator = new PseudocodeValidator(problem);
             const ruleResult = validator.validate(pseudocode);
 
-            // 치명적 오류가 있어도 AI 평가는 진행하되, 플래그 설정 및 감점
+            // 移섎챸???ㅻ쪟媛 ?덉뼱??AI ?됯???吏꾪뻾?섎릺, ?뚮옒洹??ㅼ젙 諛?媛먯젏
             let hasCriticalErrors = false;
             if (ruleResult && typeof ruleResult.passed === 'boolean') {
                 hasCriticalErrors = !ruleResult.passed;
@@ -86,13 +118,13 @@ export async function evaluatePseudocode5D(problem, pseudocode, userContext = nu
 
             if (hasCriticalErrors) {
                 console.warn('[5D Evaluation] Critical errors found, but proceeding to AI for feedback');
-                // 감점 로직은 후술
+                // 媛먯젏 濡쒖쭅? ?꾩닠
             }
 
-            // STEP 2: AI 5차원 평가 (60점 만점)
+            // STEP 2: AI 5李⑥썝 ?됯? (60??留뚯젏)
             console.log('[5D Evaluation] Step 2: AI 5D metrics evaluation...');
 
-            // 캐시 확인
+            // 罹먯떆 ?뺤씤
             const cacheKey = getCacheKey('5d', {
                 problemId: problem.id,
                 pseudocodeHash: hashString(pseudocode)
@@ -107,9 +139,8 @@ export async function evaluatePseudocode5D(problem, pseudocode, userContext = nu
             let aiResult;
 
             try {
-                // 백엔드에 5차원 평가 및 Python 변환 요청
-                // 주의: 백엔드는 0-100점 스케일로 반환한다고 가정
-                const response = await axios.post('/api/core/pseudocode/evaluate-5d', {
+                // 諛깆뿏?쒖뿉 5李⑥썝 ?됯? 諛?Python 蹂???붿껌
+                // 二쇱쓽: 諛깆뿏?쒕뒗 0-100???ㅼ??쇰줈 諛섑솚?쒕떎怨?媛??                const response = await axios.post('/api/core/pseudocode/evaluate-5d', {
                     quest_id: problem.id,
                     quest_title: problem.title || problem.missionObjective,
                     pseudocode,
@@ -119,11 +150,11 @@ export async function evaluatePseudocode5D(problem, pseudocode, userContext = nu
                         concepts: Array.from(ruleResult.details.concepts || []),
                         warnings: ruleResult.warnings
                     },
-                    // [2026-02-12] 진단 단계 답변 데이터 추가 송신
+                    // [2026-02-12] 吏꾨떒 ?④퀎 ?듬? ?곗씠??異붽? ?≪떊
                     user_diagnostic: userContext,
-                    // [STEP 3] Python 변환 요청 플래그 추가
+                    // [STEP 3] Python 蹂???붿껌 ?뚮옒洹?異붽?
                     request_python_conversion: true
-                }, { timeout: 35000 }); // 타임아웃 35초로 연장 (변환 시간 고려)
+                }, { timeout: 45000 }); // ??꾩븘??45珥덈줈 ?곗옣 (蹂???쒓컙 怨좊젮)
 
                 aiResult = response.data;
                 console.log('[5D Evaluation] AI response received:', aiResult.overall_score);
@@ -131,93 +162,81 @@ export async function evaluatePseudocode5D(problem, pseudocode, userContext = nu
             } catch (error) {
                 console.error('[AI Evaluation Error]', error.message);
 
-                // Fallback: 규칙 기반으로 5차원 생성
+                // Fallback: 洹쒖튃 湲곕컲?쇰줈 5李⑥썝 ?앹꽦
                 console.log('[5D Evaluation] Fallback to rule-based dimensions');
                 aiResult = {
-                    overall_score: ruleResult.score, // 0-100
+                    overall_score: Math.round(ruleResult.score * 0.85),
                     dimensions: generateRuleBasedDimensions(ruleResult, pseudocode),
-                    strengths: ruleResult.details.structure?.feedback?.filter(f => f.includes('✅')) || [],
+                    strengths: ruleResult.details.structure?.feedback?.filter(f => f.includes('??)) || [],
                     weaknesses: ruleResult.warnings,
-                    tail_question: null
+                    tail_question: null,
+                    converted_python: "# [?ㅻ쪟] AI 遺꾩꽍 以??쒓컙 珥덇낵媛 諛쒖깮?덉뒿?덈떎.\n# 猷?湲곕컲 ?먯닔濡??곗꽑 ?됯?瑜?吏꾪뻾?⑸땲??",
+                    python_feedback: "?섏궗肄붾뱶???듭떖 ?ㅼ썙??寃⑸━, 湲곗??? ?쇨???瑜??ы븿?덈뒗吏 ?뺤씤??二쇱꽭??"
                 };
             }
 
-            // STEP 3: 점수 통합 및 스케일링
-            // 요구사항: AI 5지표 각 12점씩 총 60점 + Rule 40점 = 100점
+            // STEP 3: ?먯닔 ?듯빀 (2026-02-14 ?섏젙: 紐⑤뱺 沅뚰븳 ?쒕쾭 ?뚯닔)
+            // ?쒕쾭?먯꽌 怨꾩궛???꾧껐???먯닔瑜??ъ슜?⑸땲??
+            const combinedScore = aiResult.total_score_100 || 0;
+            const ruleScoreScaled = aiResult.score_breakdown?.rule_score_15 || 0;
+            const aiScoreScaled = aiResult.score_breakdown?.ai_score_85 || 0;
 
-            // 1. Rule 점수 (0-100) -> 40점 만점으로 변환
-            const ruleScoreScaled = Math.round(ruleResult.score * 0.4);
-
-            // 2. AI 점수 (0-100) -> 60점 만점으로 변환
-            let aiScoreScaled = 0;
-
-            // AI Dimensions 스케일링 (100점 -> 12점)
-            if (aiResult.dimensions) {
-                Object.keys(aiResult.dimensions).forEach(key => {
-                    const dim = aiResult.dimensions[key];
-                    // 원본 점수(100만점)를 12점으로 변환
-                    dim.original_score = dim.score; // 백업
-                    dim.score = (dim.score / 100) * 12;
-
-                    // 소수점 1자리까지 (UI 표시용)
-                    dim.score = Math.round(dim.score * 10) / 10;
-
-                    aiScoreScaled += dim.score;
-                });
-            } else {
-                // Dimensions가 없는 경우 overall_score 기반으로 배분
-                aiScoreScaled = (aiResult.overall_score / 100) * 60;
-            }
-
-            aiScoreScaled = Math.round(aiScoreScaled);
-
-            // 3. 최종 점수 합산
-            const combinedScore = ruleScoreScaled + aiScoreScaled;
-
-            console.log('[5D Evaluation] Final Scores:', {
-                rule_raw: ruleResult.score,
-                rule_scaled_40: ruleScoreScaled,
-                ai_raw: aiResult.overall_score,
-                ai_scaled_60: aiScoreScaled,
+            console.log('[5D Evaluation] Server calculated scores:', {
+                rule_raw: aiResult.score_breakdown?.rule_raw_100,
+                rule_scaled_15: ruleScoreScaled,
+                ai_scaled_85: aiScoreScaled,
                 total: combinedScore,
                 hasCriticalErrors
             });
 
-            // STEP 4: Tail Question 생성 (80점 미만 시)
+            // STEP 4: Tail Question ?앹꽦 (80??誘몃쭔 ??
             const tailQuestion = generateTailQuestion(aiResult.dimensions, combinedScore, problem);
 
-            // STEP 5: 다음 단계 결정
-            // 80점 이상 -> DEEP_QUIZ
-            // 80점 미만 -> TAIL_QUESTION
+            // STEP 5: ?ㅼ쓬 ?④퀎 寃곗젙
+            // 80???댁긽 -> DEEP_QUIZ
+            // 80??誘몃쭔 -> TAIL_QUESTION
             const nextPhase = combinedScore >= 80 ? 'DEEP_QUIZ' : 'TAIL_QUESTION';
 
-            // 치명적 오류가 있었다면 강제로 TAIL_QUESTION 및 안내
-            let finalTailQuestion = tailQuestion;
-            if (hasCriticalErrors) {
-                const firstError = ruleResult.criticalErrors[0]?.message || "필수 개념 누락";
+            // 移섎챸???ㅻ쪟媛 ?덉뿀?ㅻ㈃ 湲곕낯?곸쑝濡?TAIL_QUESTION 沅뚯옣
+            // ?? ?ъ슜?먭? ?낅젰???ш린??'is_low_effort' ?곹깭?쇰㈃ 蹂듦린 吏덈Ц?????곗꽑??            let finalTailQuestion = tailQuestion;
+            if (hasCriticalErrors && !aiResult.is_low_effort) {
+                const firstError = ruleResult.criticalErrors[0]?.message || "?꾩닔 媛쒕뀗 ?꾨씫";
                 finalTailQuestion = {
                     should_show: true,
-                    reason: "규칙 위반 (Rule Critical Error)",
-                    question: `설계에서 치명적인 문제가 발견되었습니다: "${firstError}". 이를 해결하기 위해 어떤 수정이 필요할까요?`,
-                    hint: "문제 조건을 다시 한 번 꼼꼼히 읽어보세요.",
+                    reason: "洹쒖튃 ?꾨컲 (Rule Critical Error)",
+                    question: `?ㅺ퀎?먯꽌 移섎챸?곸씤 臾몄젣媛 諛쒓껄?섏뿀?듬땲?? "${firstError}". ?대? ?닿껐?섍린 ?꾪빐 ?대뼡 ?섏젙???꾩슂?좉퉴??`,
+                    hint: "臾몄젣 議곌굔???ㅼ떆 ??踰?瑗쇨세???쎌뼱蹂댁꽭??",
                     options: [
-                        { text: "네, 수정하겠습니다.", is_correct: true, reason: "규칙 준수 필요" },
-                        { text: "아니요, 이대로 진행합니다.", is_correct: false, reason: "규칙 위반 시 감점 요인" }
+                        { text: "?? ?섏젙?섍쿋?듬땲??", is_correct: true, reason: "洹쒖튃 以???꾩슂" },
+                        { text: "?꾨땲?? ?대?濡?吏꾪뻾?⑸땲??", is_correct: false, reason: "洹쒖튃 ?꾨컲 ??媛먯젏 ?붿씤" }
                     ]
                 };
             }
 
-            // [STEP 4-1] Python 피드백이 있다면 이를 우선 반영 (규칙 오류가 없을 때)
-            if (!hasCriticalErrors && combinedScore < 80 && aiResult.python_feedback) {
+            // [STEP 4-1] AI媛 吏곸젒 ?앹꽦??吏덈Ц(tail_question ?먮뒗 deep_dive)???덈떎硫??곗꽑 ?몄텧
+            // 諛깆뿏?쒖쓽 is_low_effort 紐⑤뱶 ??묒슜
+            if (aiResult.tail_question && aiResult.tail_question.question) {
+                finalTailQuestion = {
+                    ...aiResult.tail_question,
+                    should_show: true,
+                    // 諛깆뿏?쒖뿉?????뺤떇???ㅻ? ???덉쑝誘濡?留ㅽ븨 蹂댁셿
+                    options: (aiResult.tail_question.options || []).map(opt => ({
+                        text: opt.text,
+                        is_correct: opt.is_correct ?? opt.correct ?? false,
+                        reason: opt.reason ?? opt.feedback ?? (opt.is_correct ? '?뺣떟?낅땲??' : '?ㅻ떟?낅땲??')
+                    }))
+                };
+            } else if ((!hasCriticalErrors || aiResult.deep_dive?.question) && aiResult.deep_dive && aiResult.deep_dive.question) {
                 finalTailQuestion = {
                     should_show: true,
-                    reason: "Python 변환 중 논리 허점 발견",
-                    question: `작성하신 의사코드를 Python으로 변환하는 과정에서 다음 이슈가 발견되었습니다: "${aiResult.python_feedback}". 이를 보완하시겠습니까?`,
-                    hint: "구체적인 로직(예: fit 호출 전 데이터 분리 등)을 명시하세요.",
-                    options: [
-                        { text: "네, 보완하겠습니다.", is_correct: true, reason: "논리적 완성도 향상" },
-                        { text: "현재 로직으로 충분합니다.", is_correct: false, reason: "잠재적 오류 위험" }
-                    ]
+                    reason: aiResult.is_low_effort ? "?꾪궎?띿쿂 蹂듦린 ?숈뒿" : "?꾪궎?띿쿂 ?ы솕 寃利?,
+                    question: aiResult.deep_dive.question,
+                    hint: aiResult.python_feedback || "?쒓났??紐⑤쾾 ?듭븞(泥?궗吏???蹂닿퀬 ?쇰━瑜?遺꾩꽍??蹂댁꽭??",
+                    options: (aiResult.deep_dive.options || []).map(opt => ({
+                        text: opt.text,
+                        is_correct: opt.is_correct ?? opt.correct ?? false,
+                        reason: opt.reason ?? opt.feedback ?? (opt.is_correct ? '?뺣떟?낅땲??' : '?ㅻ떟?낅땲??')
+                    }))
                 };
             }
 
@@ -225,25 +244,29 @@ export async function evaluatePseudocode5D(problem, pseudocode, userContext = nu
                 overall_score: combinedScore,
                 rule_score: ruleScoreScaled,
                 ai_score: aiScoreScaled,
-                dimensions: aiResult.dimensions, // 이제 12점 스케일
-                grade: getGrade(combinedScore),
+                dimensions: aiResult.dimensions, // ?댁젣 12???ㅼ???                grade: getGrade(combinedScore),
                 strengths: aiResult.strengths || [],
                 weaknesses: [...(aiResult.weaknesses || []), ...(ruleResult.criticalErrors.map(e => e.message))],
                 tail_question: finalTailQuestion,
                 next_phase: hasCriticalErrors ? 'TAIL_QUESTION' : nextPhase,
                 hybrid: true,
                 fallback: false,
-                // ✅ Python 변환 결과 포함
+                // ??Python 蹂??寃곌낵 ?ы븿
                 converted_python: aiResult.converted_python || "",
                 python_feedback: aiResult.python_feedback || "",
-                // ✅ 백엔드에서 생성된 조언 우선 사용
+                // ???ш린/臾댁꽦???묐떟 ?뚮옒洹?                is_low_effort: aiResult.is_low_effort || false,
+                // ??諛깆뿏?쒖뿉???앹꽦??議곗뼵 留ㅽ븨
                 senior_advice: aiResult.senior_advice || "",
-                // ✅ [2026-02-13] 유튜브 추천 영상 포함
-                recommended_videos: getRecommendedVideos(aiResult.dimensions, problem)
+                // ??[2026-02-14] 諛깆뿏?쒖뿉???앹꽦???섎Ⅴ?뚮굹, 珥앺룊, ?좏뒠釉?異붿쿇 ?곸긽 留ㅽ븨
+                persona_name: aiResult.persona_name || "遺꾩꽍 以묒씤 ?꾪궎?랁듃",
+                one_line_review: aiResult.one_line_review || "?꾨컲?곸쑝濡??묓샇???ㅺ퀎?낅땲??",
+                one_point_lesson: aiResult.one_point_lesson || "寃⑸━ ?섏??????믪뿬蹂댁꽭??",
+                // ???숈쟻 Deep Dive ?ы븿
+                deep_dive: aiResult.deep_dive || null,
+                recommended_videos: aiResult.recommended_videos || getRecommendedVideos(aiResult.dimensions, problem)
             };
 
-            // 캐시 저장
-            setCache(cacheKey, result);
+            // 罹먯떆 ???            setCache(cacheKey, result);
 
             return result;
 
@@ -257,10 +280,10 @@ export async function evaluatePseudocode5D(problem, pseudocode, userContext = nu
 }
 
 /**
- * Fallback: 규칙 기반으로 5차원 점수 생성
+ * Fallback: 洹쒖튃 湲곕컲?쇰줈 5李⑥썝 ?먯닔 ?앹꽦
  */
 export async function generatePseudocodeDeepDiveQuestions(problem, pseudocode) {
-    // 캐시 확인
+    // 罹먯떆 ?뺤씤
     const cacheKey = getCacheKey('questions', {
         problemId: problem.id,
         pseudocodeHash: pseudocode.substring(0, 100)
@@ -303,13 +326,12 @@ Format as JSON array:
             temperature: 0.8
         });
 
-        // ✨ 1번 해결: 안전한 JSON 파싱
+        // ??1踰??닿껐: ?덉쟾??JSON ?뚯떛
         const responseData = response.data.content || response.data;
         const questions = typeof responseData === 'string' ? safeJSONParse(responseData, null) : responseData;
 
         if (Array.isArray(questions) && questions.length > 0) {
-            // 캐시 저장
-            setCache(cacheKey, questions);
+            // 罹먯떆 ???            setCache(cacheKey, questions);
             return questions;
         }
 
@@ -318,19 +340,19 @@ Format as JSON array:
     } catch (error) {
         console.error('Question generation failed:', error.message);
 
-        // Fallback 질문
+        // Fallback 吏덈Ц
         const fallback = [
             {
                 category: 'Logic Understanding',
-                question: '이 알고리즘의 핵심 아이디어를 한 문장으로 설명해주세요.'
+                question: '???뚭퀬由ъ쬁???듭떖 ?꾩씠?붿뼱瑜???臾몄옣?쇰줈 ?ㅻ챸?댁＜?몄슂.'
             },
             {
                 category: 'Edge Cases',
-                question: '입력 데이터가 비어있거나 예상과 다른 형식일 때 어떻게 처리하나요?'
+                question: '?낅젰 ?곗씠?곌? 鍮꾩뼱?덇굅???덉긽怨??ㅻⅨ ?뺤떇?????대뼸寃?泥섎━?섎굹??'
             },
             {
                 category: 'Optimization',
-                question: '이 알고리즘의 시간 복잡도는 어떻게 되며, 개선할 수 있는 부분이 있나요?'
+                question: '???뚭퀬由ъ쬁???쒓컙 蹂듭옟?꾨뒗 ?대뼸寃??섎ŉ, 媛쒖꽑?????덈뒗 遺遺꾩씠 ?덈굹??'
             }
         ];
 
@@ -339,8 +361,8 @@ Format as JSON array:
 }
 
 /**
- * [NEW] 백엔드 지능형 에이전트 호출 (Coduck Wizard)
- * 사용자의 전략과 제약사항을 포함하여 정밀 분석을 수행합니다.
+ * [NEW] 諛깆뿏??吏?ν삎 ?먯씠?꾪듃 ?몄텧 (Coduck Wizard)
+ * ?ъ슜?먯쓽 ?꾨왂怨??쒖빟?ы빆???ы븿?섏뿬 ?뺣? 遺꾩꽍???섑뻾?⑸땲??
  */
 export async function runPseudocodeAgent(params) {
     const {
@@ -367,11 +389,11 @@ export async function runPseudocodeAgent(params) {
 }
 
 /**
- * 최종 종합 평가 (의사코드 + 면접 답변)
- * ✨ 4번 해결: Phase 3 결과 재사용 (캐싱)
+ * 理쒖쥌 醫낇빀 ?됯? (?섏궗肄붾뱶 + 硫댁젒 ?듬?)
+ * ??4踰??닿껐: Phase 3 寃곌낵 ?ъ궗??(罹먯떛)
  */
 export async function evaluatePseudocode(problem, pseudocode, deepDiveQnA, phase3Result = null) {
-    // ✨ Phase 3 결과 재사용 (중복 AI 호출 방지)
+    // ??Phase 3 寃곌낵 ?ъ궗??(以묐났 AI ?몄텧 諛⑹?)
     let validationResult;
 
     if (phase3Result) {
@@ -384,15 +406,15 @@ export async function evaluatePseudocode(problem, pseudocode, deepDiveQnA, phase
             warnings: phase3Result.improvements
         };
     } else {
-        // Phase 3 없이 직접 호출된 경우
+        // Phase 3 ?놁씠 吏곸젒 ?몄텧??寃쎌슦
         const validator = new PseudocodeValidator(problem);
         validationResult = validator.validate(pseudocode);
     }
 
-    // 의사코드 점수: 50점 만점으로 환산
+    // ?섏궗肄붾뱶 ?먯닔: 50??留뚯젏?쇰줈 ?섏궛
     const pseudocodeScore = Math.round(validationResult.score * 0.5);
 
-    // 2. 면접 답변 평가 (간단한 휴리스틱)
+    // 2. 硫댁젒 ?듬? ?됯? (媛꾨떒???대━?ㅽ떛)
     const deepDiveArray = Array.isArray(deepDiveQnA) ? deepDiveQnA : [];
 
     let interviewScore = 0;
@@ -407,19 +429,19 @@ export async function evaluatePseudocode(problem, pseudocode, deepDiveQnA, phase
 
         if (wordCount === 0) {
             qScore = 0;
-            feedback = '답변이 없습니다.';
+            feedback = '?듬????놁뒿?덈떎.';
         } else if (wordCount < 10) {
             qScore = 5;
-            feedback = '너무 짧습니다. 더 구체적으로 설명해보세요.';
+            feedback = '?덈Т 吏㏃뒿?덈떎. ??援ъ껜?곸쑝濡??ㅻ챸?대낫?몄슂.';
         } else if (wordCount < 30) {
             qScore = 10;
-            feedback = '기본 개념은 있지만 더 자세한 설명이 필요합니다.';
+            feedback = '湲곕낯 媛쒕뀗? ?덉?留????먯꽭???ㅻ챸???꾩슂?⑸땲??';
         } else {
-            const hasTechTerms = /(알고리즘|복잡도|최적화|데이터구조|시간|공간|효율|성능)/i.test(answer);
+            const hasTechTerms = /(?뚭퀬由ъ쬁|蹂듭옟??理쒖쟻???곗씠?곌뎄議??쒓컙|怨듦컙|?⑥쑉|?깅뒫)/i.test(answer);
             qScore = hasTechTerms ? 15 : 12;
             feedback = hasTechTerms
-                ? '구체적이고 기술적인 답변입니다!'
-                : '좋은 답변입니다. 기술 용어를 추가하면 더 좋겠습니다.';
+                ? '援ъ껜?곸씠怨?湲곗닠?곸씤 ?듬??낅땲??'
+                : '醫뗭? ?듬??낅땲?? 湲곗닠 ?⑹뼱瑜?異붽??섎㈃ ??醫뗪쿋?듬땲??';
         }
 
         interviewScore += qScore;
@@ -434,7 +456,7 @@ export async function evaluatePseudocode(problem, pseudocode, deepDiveQnA, phase
 
     interviewScore = Math.min(50, interviewScore);
 
-    // 3. 최종 통합
+    // 3. 理쒖쥌 ?듯빀
     const totalScore = pseudocodeScore + interviewScore;
 
     let grade;
@@ -459,95 +481,86 @@ export async function evaluatePseudocode(problem, pseudocode, deepDiveQnA, phase
 }
 
 function generateRuleBasedDimensions(ruleResult, pseudocode) {
-    const baseScore = ruleResult.score;
+    const baseScore = ruleResult.score; // 0-100
     const concepts = Array.from(ruleResult.details.concepts || []);
 
+    // 85??留뚯젏 湲곗? 媛?媛以묒튂
+    const scale = 0.85;
+
     return {
-        coherence: {
-            score: concepts.length >= 4 ? Math.min(baseScore + 10, 100) : baseScore * 0.7,
-            basis: concepts.length > 0 ? `필수 개념 ${concepts.length}개 포함` : '핵심 로직이 명시되지 않음',
-            specific_issue: concepts.length < 4 ? '핵심 개념 일부 누락' : null,
-            improvement: concepts.length < 4 ? '데이터 분리, fit, transform 개념을 모두 포함하세요' : '적절한 논리 흐름이 필요합니다'
+        design: {
+            score: Math.round((concepts.length >= 4 ? 25 : 15) * scale),
+            basis: concepts.length >= 4 ? '?듭떖 ?④퀎 援ъ꽦 ?붿냼 ?ы븿' : '?ㅺ퀎 援ъ꽦 ?붿냼 ?쇰? ?꾨씫',
+            improvement: '?꾩쿂由?諛??숈뒿 ?먮쫫??紐낇솗???섏꽭??'
         },
-        abstraction: {
-            score: /IF.*THEN/i.test(pseudocode) ? baseScore : baseScore * 0.6,
-            basis: /IF.*THEN/i.test(pseudocode) ?
-                '조건-행동 구조 사용' :
-                '단순 나열 또는 미완성 구조',
-            specific_issue: /IF.*THEN/i.test(pseudocode) ? null : '단순 키워드 나열',
-            improvement: /IF.*THEN/i.test(pseudocode) ? null :
-                'IF-THEN 구조로 조건과 행동을 분리하세요'
-        },
-        exception_handling: {
-            score: /예외|검증|체크|확인|validation|check|error/i.test(pseudocode) ? 60 : 30,
-            basis: /예외|검증|체크/i.test(pseudocode) ?
-                '예외 처리 키워드 포함' :
-                '예외 처리 로직 부재',
-            specific_issue: /예외|검증|체크/i.test(pseudocode) ? null : '엣지 케이스 처리 누락',
-            improvement: /예외|검증|체크/i.test(pseudocode) ? null :
-                '데이터 검증 단계를 추가하세요 (예: IF 데이터가 None THEN 예외 발생)'
+        consistency: {
+            score: Math.round((ruleResult.passed ? 20 : 10) * scale),
+            basis: ruleResult.passed ? '?곗씠???꾩닔 諛⑹? ?먯튃 以?? : '援먯감 ?ㅼ뿼 媛?μ꽦 諛쒓껄',
+            improvement: '遺꾪븷怨?蹂?섏쓽 ?쒖꽌瑜??ㅼ떆 ?뺤씤?섏꽭??'
         },
         implementation: {
-            score: baseScore,
-            basis: '구조 점수 기반 (규칙 기반 추정)',
-            specific_issue: baseScore < 70 ? '실행 가능성 낮음' : null,
-            improvement: baseScore < 70 ? '각 단계를 더 구체화하세요' : null
+            score: Math.round((baseScore >= 70 ? 10 : 5) * scale),
+            basis: '媛?낆꽦 諛??쇰━ ?꾧컻 ?섏? 湲곕컲',
+            improvement: '??援ъ껜?곸씤 ?숈옉???묒꽦?섏꽭??'
         },
-        architecture: {
-            score: ruleResult.details.flow?.score || baseScore * 0.9,
-            basis: '논리적 순서 분석 (규칙 기반 추정)',
-            specific_issue: (ruleResult.details.flow?.score || 0) < 70 ? '단계 간 연결성 부족' : null,
-            improvement: (ruleResult.details.flow?.score || 0) < 70 ?
-                '순서를 번호로 명시하세요 (예: 1. 분할 → 2. fit → 3. transform)' : null
+        edge_case: {
+            score: Math.round((/?덉쇅|寃利?泥댄겕|?뺤씤|validation|check|error/i.test(pseudocode) ? 15 : 5) * scale),
+            basis: /?덉쇅|寃利?泥댄겕/i.test(pseudocode) ? '?덉쇅 泥섎━ ?ㅼ썙???ы븿' : '?덉쇅 泥섎━ 濡쒖쭅 遺??,
+            improvement: '?곗씠??寃利??④퀎瑜?異붽??섏꽭??(?? IF ?곗씠?곌? None THEN ?덉쇅 諛쒖깮)'
+        },
+        abstraction: {
+            score: Math.round((/IF.*THEN/i.test(pseudocode) ? 15 : 8) * scale),
+            basis: /IF.*THEN/i.test(pseudocode) ? '議곌굔-?됰룞 援ъ“ ?ъ슜' : '?⑥닚 ?섏뿴??援ъ“',
+            improvement: 'IF-THEN 援ъ“濡??쒖뒪???꾪궎?띿쿂瑜??쒗쁽??蹂댁꽭??'
         }
     };
 }
 
 const CONCEPTUAL_FALLBACKS = {
-    // 🚩 미션 1 & 2: Data Leakage / Security
+    // ?슜 誘몄뀡 1 & 2: Data Leakage / Security
     leakage: [
         {
-            question: "작성하신 로직에서 '데이터 누수(Data Leakage)'를 방지하기 위해 가장 주의해야 할 단계는 무엇인가요?",
+            question: "?묒꽦?섏떊 濡쒖쭅?먯꽌 '?곗씠???꾩닔(Data Leakage)'瑜?諛⑹??섍린 ?꾪빐 媛??二쇱쓽?댁빞 ???④퀎??臾댁뾿?멸???",
             options: [
-                { text: "Train 데이터에만 fit을 적용하고 Test 데이터에는 적용하지 않는다.", is_correct: true, reason: "Test 데이터 정보가 학습에 포함되면 성능이 과대평가됩니다." },
-                { text: "모든 데이터(Train+Test)를 합쳐서 한 번에 fit 시킨다.", is_correct: false, reason: "이것이 전형적인 데이터 누수 상황입니다." }
+                { text: "Train ?곗씠?곗뿉留?fit???곸슜?섍퀬 Test ?곗씠?곗뿉???곸슜?섏? ?딅뒗??", is_correct: true, reason: "Test ?곗씠???뺣낫媛 ?숈뒿???ы븿?섎㈃ ?깅뒫??怨쇰??됯??⑸땲??" },
+                { text: "紐⑤뱺 ?곗씠??Train+Test)瑜??⑹퀜????踰덉뿉 fit ?쒗궓??", is_correct: false, reason: "?닿쾬???꾪삎?곸씤 ?곗씠???꾩닔 ?곹솴?낅땲??" }
             ]
         },
         {
-            question: "시계열(Time-series) 데이터 보안 섹터에서 미래 정보를 보호하기 위한 가장 올바른 분할 방식은?",
+            question: "?쒓퀎??Time-series) ?곗씠??蹂댁븞 ?뱁꽣?먯꽌 誘몃옒 ?뺣낫瑜?蹂댄샇?섍린 ?꾪븳 媛???щ컮瑜?遺꾪븷 諛⑹떇??",
             options: [
-                { text: "과거와 미래를 시점 기준으로 나누는 Time-based Split을 사용한다.", is_correct: true, reason: "과거 정보로 학습하고 미래를 예측하는 것이 실제 상황과 일치합니다." },
-                { text: "데이터의 순서를 무작위로 섞은 후 랜덤하게 나눈다(Shuffle).", is_correct: false, reason: "미래의 정보가 과거 학습에 포함되어 '타겟 누수'가 발생합니다." }
+                { text: "怨쇨굅? 誘몃옒瑜??쒖젏 湲곗??쇰줈 ?섎늻??Time-based Split???ъ슜?쒕떎.", is_correct: true, reason: "怨쇨굅 ?뺣낫濡??숈뒿?섍퀬 誘몃옒瑜??덉륫?섎뒗 寃껋씠 ?ㅼ젣 ?곹솴怨??쇱튂?⑸땲??" },
+                { text: "?곗씠?곗쓽 ?쒖꽌瑜?臾댁옉?꾨줈 ?욎? ???쒕뜡?섍쾶 ?섎늿??Shuffle).", is_correct: false, reason: "誘몃옒???뺣낫媛 怨쇨굅 ?숈뒿???ы븿?섏뼱 '?寃??꾩닔'媛 諛쒖깮?⑸땲??" }
             ]
         }
     ],
-    // 🚩 미션 3: Bias Control / Skew
+    // ?슜 誘몄뀡 3: Bias Control / Skew
     skew: [
         {
-            question: "학습 환경(Training)과 전술 환경(Serving)의 데이터 분포 차이(Skew)를 방지하기 위한 핵심 전략은?",
+            question: "?숈뒿 ?섍꼍(Training)怨??꾩닠 ?섍꼍(Serving)???곗씠??遺꾪룷 李⑥씠(Skew)瑜?諛⑹??섍린 ?꾪븳 ?듭떖 ?꾨왂??",
             options: [
-                { text: "학습과 서빙 시 동일한 전처리 파이프라인(Function)을 공용으로 사용한다.", is_correct: true, reason: "로직이 단 1%만 달라도 예측 성능에 치명적인 왜곡이 발생합니다." },
-                { text: "서빙 환경의 특성에 맞춰 실시간으로 전처리 로직을 따로 제작한다.", is_correct: false, reason: "이것이 바로 '학습-서빙 불일치(Skew)'를 유발하는 주원인입니다." }
+                { text: "?숈뒿怨??쒕튃 ???숈씪???꾩쿂由??뚯씠?꾨씪??Function)??怨듭슜?쇰줈 ?ъ슜?쒕떎.", is_correct: true, reason: "濡쒖쭅????1%留??щ씪???덉륫 ?깅뒫??移섎챸?곸씤 ?쒓끝??諛쒖깮?⑸땲??" },
+                { text: "?쒕튃 ?섍꼍???뱀꽦??留욎떠 ?ㅼ떆媛꾩쑝濡??꾩쿂由?濡쒖쭅???곕줈 ?쒖옉?쒕떎.", is_correct: false, reason: "?닿쾬??諛붾줈 '?숈뒿-?쒕튃 遺덉씪移?Skew)'瑜??좊컻?섎뒗 二쇱썝?몄엯?덈떎." }
             ]
         }
     ],
-    // 🚩 미션 4: Evaluation / Policy
+    // ?슜 誘몄뀡 4: Evaluation / Policy
     policy: [
         {
-            question: "비즈니스 리스크가 큰 상황(예: 질병 진단)에서 모델의 임계값(Threshold)을 설정하는 올바른 아키텍처적 판단은?",
+            question: "鍮꾩쫰?덉뒪 由ъ뒪?ш? ???곹솴(?? 吏덈퀝 吏꾨떒)?먯꽌 紐⑤뜽???꾧퀎媛?Threshold)???ㅼ젙?섎뒗 ?щ컮瑜??꾪궎?띿쿂???먮떒??",
             options: [
-                { text: "미탐지(False Negative) 리스크를 줄이기 위해 임계값을 낮추어 재현율(Recall)을 높인다.", is_correct: true, reason: "위험 감지가 우선인 시스템에서는 정밀도보다 재현율이 전략적으로 더 중요합니다." },
-                { text: "시스템 신뢰도를 위해 항상 임계값 0.5를 유지한다.", is_correct: false, reason: "비즈니스 비용(오판 비용)을 고려하지 않은 기계적 판단입니다." }
+                { text: "誘명깘吏(False Negative) 由ъ뒪?щ? 以꾩씠湲??꾪빐 ?꾧퀎媛믪쓣 ??텛???ы쁽??Recall)???믪씤??", is_correct: true, reason: "?꾪뿕 媛먯?媛 ?곗꽑???쒖뒪?쒖뿉?쒕뒗 ?뺣??꾨낫???ы쁽?⑥씠 ?꾨왂?곸쑝濡???以묒슂?⑸땲??" },
+                { text: "?쒖뒪???좊ː?꾨? ?꾪빐 ??긽 ?꾧퀎媛?0.5瑜??좎??쒕떎.", is_correct: false, reason: "鍮꾩쫰?덉뒪 鍮꾩슜(?ㅽ뙋 鍮꾩슜)??怨좊젮?섏? ?딆? 湲곌퀎???먮떒?낅땲??" }
             ]
         }
     ],
-    // 🚩 기타 기본 차원별 퀴즈 (Fallback of fallback)
+    // ?슜 湲고? 湲곕낯 李⑥썝蹂??댁쫰 (Fallback of fallback)
     abstraction: [
         {
-            question: "의사코드의 추상화 수준을 높이기 위해, 상세 구현 코드를 나열하는 것보다 더 권장되는 방식은?",
+            question: "?섏궗肄붾뱶??異붿긽???섏????믪씠湲??꾪빐, ?곸꽭 援ы쁽 肄붾뱶瑜??섏뿴?섎뒗 寃껊낫????沅뚯옣?섎뒗 諛⑹떇??",
             options: [
-                { text: "논리적 선후 관계를 나타내는 키워드(IF-THEN, STEP)를 기반으로 작성한다.", is_correct: true, reason: "의사코드는 구체적인 코드보다 시스템의 '설계 의도'를 보여줘야 합니다." },
-                { text: "파이썬 문법을 최대한 섞어서 구체적으로 작성한다.", is_correct: false, reason: "그것은 단순한 코드 초안이지 설계도가 아닙니다." }
+                { text: "?쇰━???좏썑 愿怨꾨? ?섑??대뒗 ?ㅼ썙??IF-THEN, STEP)瑜?湲곕컲?쇰줈 ?묒꽦?쒕떎.", is_correct: true, reason: "?섏궗肄붾뱶??援ъ껜?곸씤 肄붾뱶蹂대떎 ?쒖뒪?쒖쓽 '?ㅺ퀎 ?섎룄'瑜?蹂댁뿬以섏빞 ?⑸땲??" },
+                { text: "?뚯씠??臾몃쾿??理쒕????욎뼱??援ъ껜?곸쑝濡??묒꽦?쒕떎.", is_correct: false, reason: "洹멸쾬? ?⑥닚??肄붾뱶 珥덉븞?댁? ?ㅺ퀎?꾧? ?꾨떃?덈떎." }
             ]
         }
     ]
@@ -557,22 +570,22 @@ function generateTailQuestion(dimensions, overallScore, problem = null) {
     if (overallScore >= 80) {
         return {
             should_show: false,
-            reason: "점수가 충분히 높아 tail question 불필요"
+            reason: "?먯닔媛 異⑸텇???믪븘 tail question 遺덊븘??
         };
     }
 
-    // 미션 카테고리 식별 (주제별 질문 매칭용)
+    // 誘몄뀡 移댄뀒怨좊━ ?앸퀎 (二쇱젣蹂?吏덈Ц 留ㅼ묶??
     const category = problem?.category?.toLowerCase() || '';
     const missionId = problem?.id || 0;
 
-    // 가장 약한 차원 찾기
+    // 媛???쏀븳 李⑥썝 李얘린
     const dimEntries = Object.entries(dimensions);
     const weakestDim = dimEntries.sort((a, b) => a[1].score - b[1].score)[0];
 
-    // 메타 피드백 필터링 (의미 없는 피드백 제거)
+    // 硫뷀? ?쇰뱶諛??꾪꽣留?(?섎? ?녿뒗 ?쇰뱶諛??쒓굅)
     const isGenericIssue = (issue) => {
         if (!issue) return true;
-        const metaKeywords = ['짧습니다', '부족합니다', '길이', '비어', '입력', '의사코드'];
+        const metaKeywords = ['吏㏃뒿?덈떎', '遺議깊빀?덈떎', '湲몄씠', '鍮꾩뼱', '?낅젰', '?섏궗肄붾뱶'];
         return metaKeywords.some(k => issue.includes(k)) || issue.length < 5;
     };
 
@@ -580,54 +593,53 @@ function generateTailQuestion(dimensions, overallScore, problem = null) {
         const [dimKey, dimData] = weakestDim;
         const dimName = DIMENSION_NAMES[dimKey] || dimKey;
 
-        // 실제 개념 질문이 필요한 상황인지 체크
+        // ?ㅼ젣 媛쒕뀗 吏덈Ц???꾩슂???곹솴?몄? 泥댄겕
         if (isGenericIssue(dimData.specific_issue)) {
-            // 1순위: 미션 주제에 맞는 풀 선택
+            // 1?쒖쐞: 誘몄뀡 二쇱젣??留욌뒗 ? ?좏깮
             let pool = null;
             if (missionId === 1 || missionId === 2 || category.includes('leakage') || category.includes('security')) pool = CONCEPTUAL_FALLBACKS.leakage;
             else if (missionId === 3 || category.includes('skew') || category.includes('bias')) pool = CONCEPTUAL_FALLBACKS.skew;
             else if (missionId === 4 || category.includes('policy') || category.includes('evaluation')) pool = CONCEPTUAL_FALLBACKS.policy;
 
-            // 2순위: 차원별 폴백
+            // 2?쒖쐞: 李⑥썝蹂??대갚
             if (!pool) pool = CONCEPTUAL_FALLBACKS[dimKey] || CONCEPTUAL_FALLBACKS.leakage;
 
             const fallback = pool[Math.floor(Math.random() * pool.length)];
 
             return {
                 should_show: true,
-                reason: `${dimName} 영역 개념 보안 필요`,
+                reason: `${dimName} ?곸뿭 媛쒕뀗 蹂댁븞 ?꾩슂`,
                 question: fallback.question,
-                hint: "해당 도메인의 핵심 설계 원칙입니다.",
+                hint: "?대떦 ?꾨찓?몄쓽 ?듭떖 ?ㅺ퀎 ?먯튃?낅땲??",
                 options: fallback.options
             };
         }
 
-        // AI 질문이 존재할 경우 가공
-        return {
+        // AI 吏덈Ц??議댁옱??寃쎌슦 媛怨?        return {
             should_show: true,
-            reason: `${dimName} 점수 낮음 (${Math.round(dimData.score)}점)`,
+            reason: `${dimName} ?먯닔 ??쓬 (${Math.round(dimData.score)}??`,
             question: dimData.specific_issue,
-            hint: dimData.improvement || '기술적 정밀함을 확보하세요.',
+            hint: dimData.improvement || '湲곗닠???뺣??⑥쓣 ?뺣낫?섏꽭??',
             options: [
-                { text: dimData.improvement || '로직을 보완하겠습니다.', is_correct: true, reason: "적극적인 가이드 수용" },
-                { text: "현재 설계를 유지하겠습니다.", is_correct: false, reason: "보완이 필요한 설계 허점입니다." }
+                { text: dimData.improvement || '濡쒖쭅??蹂댁셿?섍쿋?듬땲??', is_correct: true, reason: "?곴레?곸씤 媛?대뱶 ?섏슜" },
+                { text: "?꾩옱 ?ㅺ퀎瑜??좎??섍쿋?듬땲??", is_correct: false, reason: "蹂댁셿???꾩슂???ㅺ퀎 ?덉젏?낅땲??" }
             ]
         };
     }
 
-    // 정보 전무 시 최종 폴백
+    // ?뺣낫 ?꾨Т ??理쒖쥌 ?대갚
     const finalFallback = CONCEPTUAL_FALLBACKS.leakage[0];
     return {
         should_show: true,
-        reason: "논리 검증 필요",
+        reason: "?쇰━ 寃利??꾩슂",
         question: finalFallback.question,
-        hint: "아키텍처의 기본 무결성 검증입니다.",
+        hint: "?꾪궎?띿쿂??湲곕낯 臾닿껐??寃利앹엯?덈떎.",
         options: finalFallback.options
     };
 }
 
 /**
- * 등급 결정
+ * ?깃툒 寃곗젙
  */
 function getGrade(score) {
     if (score >= 85) return 'excellent';
@@ -637,35 +649,35 @@ function getGrade(score) {
 }
 
 /**
- * 📺 [2026-02-13] 아키텍트 학습 라이브러리 (YouTube)
- * 개념별 엄선된 강의 영상 데이터베이스
+ * ?벟 [2026-02-13] ?꾪궎?랁듃 ?숈뒿 ?쇱씠釉뚮윭由?(YouTube)
+ * 媛쒕뀗蹂??꾩꽑??媛뺤쓽 ?곸긽 ?곗씠?곕쿋?댁뒪
  */
 const YOUTUBE_LIBRARY = {
     leakage: [
-        { id: 'fSytzGwwBVw', title: 'Cross Validation (StatQuest)', desc: '교차 검증의 핵심 원리를 쉽고 재미있게 배워봅니다. 데이터 누수를 방지하는 올바른 분할 전략의 기초입니다.', reason: '데이터 분할과 검증 전략의 기본기를 점검해보세요.' },
-        { id: 'A88rDEf-pfk', title: 'Standardization (StatQuest)', desc: '데이터 표준화의 개념과 올바른 적용 시점을 알아봅니다. fit/transform 순서가 왜 중요한지 이해할 수 있습니다.', reason: '전처리 파이프라인에서 fit/transform 순서와 데이터 누수 방지 원리를 확인하세요.' }
+        { id: 'fSytzGwwBVw', title: 'Cross Validation (StatQuest)', desc: '援먯감 寃利앹쓽 ?듭떖 ?먮━瑜??쎄퀬 ?щ??덇쾶 諛곗썙遊낅땲?? ?곗씠???꾩닔瑜?諛⑹??섎뒗 ?щ컮瑜?遺꾪븷 ?꾨왂??湲곗큹?낅땲??', reason: '?곗씠??遺꾪븷怨?寃利??꾨왂??湲곕낯湲곕? ?먭??대낫?몄슂.' },
+        { id: 'A88rDEf-pfk', title: 'Standardization (StatQuest)', desc: '?곗씠???쒖??붿쓽 媛쒕뀗怨??щ컮瑜??곸슜 ?쒖젏???뚯븘遊낅땲?? fit/transform ?쒖꽌媛 ??以묒슂?쒖? ?댄빐?????덉뒿?덈떎.', reason: '?꾩쿂由??뚯씠?꾨씪?몄뿉??fit/transform ?쒖꽌? ?곗씠???꾩닔 諛⑹? ?먮━瑜??뺤씤?섏꽭??' }
     ],
     skew: [
-        { id: 'EuBBz3bI-aA', title: 'Bias and Variance (StatQuest)', desc: '편향-분산 트레이드오프의 핵심을 직관적으로 설명합니다. 모델 일반화와 환경 차이를 이해하는 기초입니다.', reason: '모델 일반화 성능과 학습-서빙 환경 차이를 이해하는 기본기입니다.' }
+        { id: 'EuBBz3bI-aA', title: 'Bias and Variance (StatQuest)', desc: '?명뼢-遺꾩궛 ?몃젅?대뱶?ㅽ봽???듭떖??吏곴??곸쑝濡??ㅻ챸?⑸땲?? 紐⑤뜽 ?쇰컲?붿? ?섍꼍 李⑥씠瑜??댄빐?섎뒗 湲곗큹?낅땲??', reason: '紐⑤뜽 ?쇰컲???깅뒫怨??숈뒿-?쒕튃 ?섍꼍 李⑥씠瑜??댄빐?섎뒗 湲곕낯湲곗엯?덈떎.' }
     ],
     exception_handling: [
-        { id: 'ZUqGMDppEDs', title: 'Python Exception Handling (NeuralNine)', desc: 'Python에서 견고한 에러 핸들링 패턴을 실습합니다. try/except를 활용한 방어적 코딩 전략을 배워보세요.', reason: '에지 케이스 및 비정상 데이터에 대한 방어 로직이 부족합니다.' }
+        { id: 'ZUqGMDppEDs', title: 'Python Exception Handling (NeuralNine)', desc: 'Python?먯꽌 寃ш퀬???먮윭 ?몃뱾留??⑦꽩???ㅼ뒿?⑸땲?? try/except瑜??쒖슜??諛⑹뼱??肄붾뵫 ?꾨왂??諛곗썙蹂댁꽭??', reason: '?먯? 耳?댁뒪 諛?鍮꾩젙???곗씠?곗뿉 ???諛⑹뼱 濡쒖쭅??遺議깊빀?덈떎.' }
     ],
     architecture: [
-        { id: 'TMuno5RZNeE', title: 'SOLID Principles (Uncle Bob)', desc: '객체지향 설계의 5대 원칙(SOLID)을 창시자 Robert C. Martin이 직접 설명합니다.', reason: '전체적인 컴포넌트 간의 책임 분리(Separation of Concerns)를 연구해보세요.' }
+        { id: 'TMuno5RZNeE', title: 'SOLID Principles (Uncle Bob)', desc: '媛앹껜吏???ㅺ퀎??5? ?먯튃(SOLID)??李쎌떆??Robert C. Martin??吏곸젒 ?ㅻ챸?⑸땲??', reason: '?꾩껜?곸씤 而댄룷?뚰듃 媛꾩쓽 梨낆엫 遺꾨━(Separation of Concerns)瑜??곌뎄?대낫?몄슂.' }
     ],
     abstraction: [
-        { id: 'pTB0EiLXUC8', title: 'OOP Simplified (Programming with Mosh)', desc: '객체지향 프로그래밍의 추상화 개념을 쉽고 명확하게 설명합니다.', reason: '하드코딩된 로직을 일반화하여 확장성을 높여보세요.' }
+        { id: 'pTB0EiLXUC8', title: 'OOP Simplified (Programming with Mosh)', desc: '媛앹껜吏???꾨줈洹몃옒諛띿쓽 異붿긽??媛쒕뀗???쎄퀬 紐낇솗?섍쾶 ?ㅻ챸?⑸땲??', reason: '?섎뱶肄붾뵫??濡쒖쭅???쇰컲?뷀븯???뺤옣?깆쓣 ?믪뿬蹂댁꽭??' }
     ]
 };
 
 /**
- * 약점 기반 유튜브 영상 추천 로직
+ * ?쎌젏 湲곕컲 ?좏뒠釉??곸긽 異붿쿇 濡쒖쭅
  */
 function getRecommendedVideos(dimensions, problem = null) {
     const dimEntries = Object.entries(dimensions);
-    // 가장 점수가 낮은 차원 찾기 (원본 100점 기준 80점 미만 대상)
-    // 주의: 이 시점에서 d.score는 12점 만점으로 스케일링된 상태이므로 original_score 사용
+    // 媛???먯닔媛 ??? 李⑥썝 李얘린 (?먮낯 100??湲곗? 80??誘몃쭔 ???
+    // 二쇱쓽: ???쒖젏?먯꽌 d.score??12??留뚯젏?쇰줈 ?ㅼ??쇰쭅???곹깭?대?濡?original_score ?ъ슜
     const weakDims = dimEntries
         .filter(([_, d]) => (d.original_score ?? d.score) < 80)
         .sort((a, b) => (a[1].original_score ?? a[1].score) - (b[1].original_score ?? b[1].score));
@@ -673,7 +685,7 @@ function getRecommendedVideos(dimensions, problem = null) {
     const recommendations = [];
     const usedIds = new Set();
 
-    // 1. 미션별 특수 약점 (Leakage 등) 우선 체크
+    // 1. 誘몄뀡蹂??뱀닔 ?쎌젏 (Leakage ?? ?곗꽑 泥댄겕
     const category = problem?.category?.toLowerCase() || '';
     if (category.includes('leakage') || category.includes('security')) {
         YOUTUBE_LIBRARY.leakage.forEach(v => {
@@ -681,7 +693,7 @@ function getRecommendedVideos(dimensions, problem = null) {
         });
     }
 
-    // 2. 가장 약한 차원 1~2개 추가
+    // 2. 媛???쏀븳 李⑥썝 1~2媛?異붽?
     weakDims.slice(0, 2).forEach(([key, _]) => {
         const pool = YOUTUBE_LIBRARY[key] || [];
         pool.forEach(v => {
@@ -692,16 +704,16 @@ function getRecommendedVideos(dimensions, problem = null) {
         });
     });
 
-    // 3. 만약 추천이 너무 적으면 기본 아키텍처 영상 추가
+    // 3. 留뚯빟 異붿쿇???덈Т ?곸쑝硫?湲곕낯 ?꾪궎?띿쿂 ?곸긽 異붽?
     if (recommendations.length < 1) {
         recommendations.push(YOUTUBE_LIBRARY.architecture[0]);
     }
 
-    return recommendations.slice(0, 2); // 최대 2개 추천
+    return recommendations.slice(0, 2); // 理쒕? 2媛?異붿쿇
 }
 
 /**
- * 간단한 해시 함수 (캐시 키용)
+ * 媛꾨떒???댁떆 ?⑥닔 (罹먯떆 ?ㅼ슜)
  */
 function hashString(str) {
     let hash = 0;
@@ -714,12 +726,12 @@ function hashString(str) {
 }
 
 /**
- * AI 멘토 코칭 생성
+ * AI 硫섑넗 肄붿묶 ?앹꽦
  */
 export async function generateSeniorAdvice(evaluation, gameState) {
     console.log('[Senior Advice] Generating...');
 
-    // 캐시 확인
+    // 罹먯떆 ?뺤씤
     const cacheKey = getCacheKey('advice', {
         score: evaluation.overall_score,
         hp: gameState.playerHP
@@ -735,25 +747,25 @@ export async function generateSeniorAdvice(evaluation, gameState) {
     const weakestDim = dimEntries.sort((a, b) => a[1].score - b[1].score)[0];
     const strongestDim = dimEntries.sort((a, b) => b[1].score - a[1].score)[0];
 
-    const systemPrompt = `당신은 20년 경력의 시니어 아키텍트입니다.
-후배에게 따뜻하지만 정확한 피드백을 제공하세요.
+    const systemPrompt = `?뱀떊? 20??寃쎈젰???쒕땲???꾪궎?랁듃?낅땲??
+?꾨같?먭쾶 ?곕쑜?섏?留??뺥솗???쇰뱶諛깆쓣 ?쒓났?섏꽭??
 
-규칙:
-- 100자 이내로 간결하게 작성
-- 구체적인 개선점 제시
-- 종합 점수가 50점 미만이면 '엄격한 경고와 근본적인 재작성 권고' 위주로 작성
-- 종합 점수가 50점 이상 70점 미만이면 '격려와 구체적인 보완점 제시' 위주로 작성
-- 종합 점수가 80점 이상이면 '격려와 심화 조언' 위주로 작성
-- 말투: 시니어 아키텍트다운 전문적이고 신뢰감 있는 어조 (무조건적인 비난 금지)`; ㅉㅉㅉ
+洹쒖튃:
+- 100???대궡濡?媛꾧껐?섍쾶 ?묒꽦
+- 援ъ껜?곸씤 媛쒖꽑???쒖떆
+- 醫낇빀 ?먯닔媛 50??誘몃쭔?대㈃ '?꾧꺽??寃쎄퀬? 洹쇰낯?곸씤 ?ъ옉??沅뚭퀬' ?꾩＜濡??묒꽦
+- 醫낇빀 ?먯닔媛 50???댁긽 70??誘몃쭔?대㈃ '寃⑸젮? 援ъ껜?곸씤 蹂댁셿???쒖떆' ?꾩＜濡??묒꽦
+- 醫낇빀 ?먯닔媛 80???댁긽?대㈃ '寃⑸젮? ?ы솕 議곗뼵' ?꾩＜濡??묒꽦
+- 留먰닾: ?쒕땲???꾪궎?랁듃?ㅼ슫 ?꾨Ц?곸씠怨??좊ː媛??덈뒗 ?댁“ (臾댁“嫄댁쟻??鍮꾨궃 湲덉?)`;
 
-    const userPrompt = `학생 평가 결과:
-- 종합 점수: ${evaluation.overall_score}/100
-- 강점: ${DIMENSION_NAMES[strongestDim[0]]} (${Math.round(strongestDim[1].score)}점)
-  → ${strongestDim[1].basis}
-- 약점: ${DIMENSION_NAMES[weakestDim[0]]} (${Math.round(weakestDim[1].score)}점)
-  → ${weakestDim[1].specific_issue || '개선 필요'}
+    const userPrompt = `?숈깮 ?됯? 寃곌낵:
+- 醫낇빀 ?먯닔: ${evaluation.overall_score}/100
+- 媛뺤젏: ${DIMENSION_NAMES[strongestDim[0]]} (${Math.round(strongestDim[1].score)}??
+  ??${strongestDim[1].basis}
+- ?쎌젏: ${DIMENSION_NAMES[weakestDim[0]]} (${Math.round(weakestDim[1].score)}??
+  ??${weakestDim[1].specific_issue || '媛쒖꽑 ?꾩슂'}
 
-시니어 관점의 조언을 작성하세요.`;
+?쒕땲??愿?먯쓽 議곗뼵???묒꽦?섏꽭??`;
 
     try {
         const response = await axios.post('/api/core/ai-proxy/', {
@@ -768,11 +780,10 @@ export async function generateSeniorAdvice(evaluation, gameState) {
 
         const advice = response.data.content?.trim() ||
             (evaluation.overall_score >= 50
-                ? "훌륭한 시도였습니다. 실전에서 적용하며 계속 발전시켜 나가세요."
-                : "로직의 설계 의도가 명확하지 않습니다. 구성 요소를 다시 검토하고 뼈대부터 다시 작성해보세요.");
+                ? "?뚮????쒕룄??듬땲?? ?ㅼ쟾?먯꽌 ?곸슜?섎ŉ 怨꾩냽 諛쒖쟾?쒖폒 ?섍??몄슂."
+                : "濡쒖쭅???ㅺ퀎 ?섎룄媛 紐낇솗?섏? ?딆뒿?덈떎. 援ъ꽦 ?붿냼瑜??ㅼ떆 寃?좏븯怨?堉덈?遺???ㅼ떆 ?묒꽦?대낫?몄슂.");
 
-        // 캐시 저장
-        setCache(cacheKey, advice);
+        // 罹먯떆 ???        setCache(cacheKey, advice);
 
         return advice;
 
@@ -781,16 +792,15 @@ export async function generateSeniorAdvice(evaluation, gameState) {
 
         // Fallback
         if (evaluation.overall_score >= 80) {
-            return `${DIMENSION_NAMES[strongestDim[0]]} 영역이 특히 우수합니다. ${DIMENSION_NAMES[weakestDim[0]]} 부분을 보완하면 완벽한 설계가 될 것입니다.`;
+            return `${DIMENSION_NAMES[strongestDim[0]]} ?곸뿭???뱁엳 ?곗닔?⑸땲?? ${DIMENSION_NAMES[weakestDim[0]]} 遺遺꾩쓣 蹂댁셿?섎㈃ ?꾨꼍???ㅺ퀎媛 ??寃껋엯?덈떎.`;
         } else {
-            return `기본기는 갖추었습니다. ${DIMENSION_NAMES[weakestDim[0]]} 영역을 집중적으로 보강하세요.`;
+            return `湲곕낯湲곕뒗 媛뽰텛?덉뒿?덈떎. ${DIMENSION_NAMES[weakestDim[0]]} ?곸뿭??吏묒쨷?곸쑝濡?蹂닿컯?섏꽭??`;
         }
     }
 }
 
 /**
- * 캐시 관리
- */
+ * 罹먯떆 愿由? */
 export function clearAICache() {
     aiCache.clear();
     console.log('[AI Cache] Cleared');
@@ -805,49 +815,48 @@ export function getAICacheStats() {
 }
 
 /**
- * ✅ [2026-02-12] 신규: 서술형 진단 문제 AI 평가
+ * ??[2026-02-12] ?좉퇋: ?쒖닠??吏꾨떒 臾몄젣 AI ?됯?
  */
 export async function evaluateDiagnosticAnswer(question, userAnswer) {
     const rubric = question.evaluationRubric || {};
     const isOrdering = question.type === 'ORDERING';
 
-    let systemPrompt = `당신은 데이터 과학 교육 전문가입니다.
-학생의 진단 문제 답변을 평가하고 JSON으로 응답하세요.
+    let systemPrompt = `?뱀떊? ?곗씠??怨쇳븰 援먯쑁 ?꾨Ц媛?낅땲??
+?숈깮??吏꾨떒 臾몄젣 ?듬????됯??섍퀬 JSON?쇰줈 ?묐떟?섏꽭??
 
-# 정답 논리
-${rubric.correctAnswer || "데이터 누수 차이 설명"}
+# ?뺣떟 ?쇰━
+${rubric.correctAnswer || "?곗씠???꾩닔 李⑥씠 ?ㅻ챸"}
 
-# 루브릭
-- 키워드: ${rubric.keyKeywords?.join(', ') || "leakage, fit"}
-- 채점 기준: ${JSON.stringify(rubric.gradingCriteria || [])}
+# 猷⑤툕由?- ?ㅼ썙?? ${rubric.keyKeywords?.join(', ') || "leakage, fit"}
+- 梨꾩젏 湲곗?: ${JSON.stringify(rubric.gradingCriteria || [])}
 
-# 출력 형식 (JSON)
+# 異쒕젰 ?뺤떇 (JSON)
 {
   "score": 0-100,
   "is_correct": boolean,
-  "feedback": "전문적이고 친절한 피드백 (한글, 150자 이내)",
-  "analysis": "어떤 부분이 맞고 틀렸는지에 대한 간략한 분석"
+  "feedback": "?꾨Ц?곸씠怨?移쒖젅???쇰뱶諛?(?쒓?, 150???대궡)",
+  "analysis": "?대뼡 遺遺꾩씠 留욊퀬 ??몃뒗吏?????媛꾨왂??遺꾩꽍"
 }`;
 
     if (isOrdering) {
-        systemPrompt = `당신은 데이터 과학 교육 전문가입니다.
-학생이 제출한 '정렬 순서'의 논리적 타당성을 평가하고 JSON으로 응답하세요.
+        systemPrompt = `?뱀떊? ?곗씠??怨쇳븰 援먯쑁 ?꾨Ц媛?낅땲??
+?숈깮???쒖텧??'?뺣젹 ?쒖꽌'???쇰━????뱀꽦???됯??섍퀬 JSON?쇰줈 ?묐떟?섏꽭??
 
-# 정답 순서 설명
+# ?뺣떟 ?쒖꽌 ?ㅻ챸
 ${rubric.correctAnswer || ""}
 ${rubric.modelAnswerExplanation || ""}
 
-# 채점 가이드
-- 학생은 여러 개의 단계(options)를 특정 순서로 정렬했습니다.
-- 단순히 순서가 틀렸다고 감점하기보다, 그 순서가 가질 수 있는 위험성(예: 데이터 누수 탐지 실패)을 지적해 주세요.
-- 모든 순서가 완벽하면 100점, 논리적 허점이 있다면 그에 비례해 감점하세요.
+# 梨꾩젏 媛?대뱶
+- ?숈깮? ?щ윭 媛쒖쓽 ?④퀎(options)瑜??뱀젙 ?쒖꽌濡??뺣젹?덉뒿?덈떎.
+- ?⑥닚???쒖꽌媛 ??몃떎怨?媛먯젏?섍린蹂대떎, 洹??쒖꽌媛 媛吏????덈뒗 ?꾪뿕???? ?곗씠???꾩닔 ?먯? ?ㅽ뙣)??吏?곹빐 二쇱꽭??
+- 紐⑤뱺 ?쒖꽌媛 ?꾨꼍?섎㈃ 100?? ?쇰━???덉젏???덈떎硫?洹몄뿉 鍮꾨???媛먯젏?섏꽭??
 
-# 출력 형식 (JSON)
+# 異쒕젰 ?뺤떇 (JSON)
 {
   "score": 0-100,
   "is_correct": boolean,
-  "feedback": "순서에 대한 논리적 피드백 (한글, 150자 이내)",
-  "analysis": "왜 이 순서가 위험하거나 비효율적인지에 대한 단계별 분석"
+  "feedback": "?쒖꽌??????쇰━???쇰뱶諛?(?쒓?, 150???대궡)",
+  "analysis": "?????쒖꽌媛 ?꾪뿕?섍굅??鍮꾪슚?⑥쟻?몄???????④퀎蹂?遺꾩꽍"
 }`;
     }
 
@@ -858,8 +867,8 @@ ${rubric.modelAnswerExplanation || ""}
                 { role: 'system', content: systemPrompt },
                 {
                     role: 'user', content: isOrdering
-                        ? `학생이 제출한 정렬 결과: ${userAnswer}\n\n이 순서가 논리적인지 분석해 주세요.`
-                        : `학생의 답변: "${userAnswer}"`
+                        ? `?숈깮???쒖텧???뺣젹 寃곌낵: ${userAnswer}\n\n???쒖꽌媛 ?쇰━?곸씤吏 遺꾩꽍??二쇱꽭??`
+                        : `?숈깮???듬?: "${userAnswer}"`
                 }
             ],
             response_format: { type: "json_object" }
@@ -869,26 +878,26 @@ ${rubric.modelAnswerExplanation || ""}
         if (typeof result === 'string') {
             result = safeJSONParse(result);
         }
-        return result || { score: 50, is_correct: false, feedback: "분석을 완료하지 못했습니다." };
+        return result || { score: 50, is_correct: false, feedback: "遺꾩꽍???꾨즺?섏? 紐삵뻽?듬땲??" };
 
     } catch (error) {
         console.error('[Diagnostic Evaluation Error]', error);
         return {
             score: 70,
             is_correct: true,
-            feedback: "진지한 추론 시도에 감사드립니다. (서버 연결 지연으로 기본 통과 처리)"
+            feedback: "吏꾩???異붾줎 ?쒕룄??媛먯궗?쒕┰?덈떎. (?쒕쾭 ?곌껐 吏?곗쑝濡?湲곕낯 ?듦낵 泥섎━)"
         };
     }
 }
 
 /**
- * 정합성 체크 (Reasoning vs Implementation)
+ * ?뺥빀??泥댄겕 (Reasoning vs Implementation)
  * [2026-02-12] Added to support useCodeRunner.js
  */
 export async function checkConsistency(reasoning, implementation, type = 'general') {
     console.log('[Consistency Check] Starting...', { type });
 
-    // 캐시 확인
+    // 罹먯떆 ?뺤씤
     const cacheKey = getCacheKey('consistency', {
         reasoningHash: hashString(reasoning),
         implHash: hashString(implementation),
@@ -929,16 +938,15 @@ Return JSON:
             result = safeJSONParse(result);
         }
 
-        if (!result) result = { score: 50, gaps: ["AI 응답 파싱 실패"] };
+        if (!result) result = { score: 50, gaps: ["AI ?묐떟 ?뚯떛 ?ㅽ뙣"] };
 
-        // 캐시 저장
-        setCache(cacheKey, result);
+        // 罹먯떆 ???        setCache(cacheKey, result);
 
         return result;
 
     } catch (error) {
         console.error('[Consistency Check Error]', error);
-        // Fail-safe: 통과 처리 (사용자 흐름 방해 방지)
+        // Fail-safe: ?듦낵 泥섎━ (?ъ슜???먮쫫 諛⑺빐 諛⑹?)
         return {
             score: 100,
             gaps: []
