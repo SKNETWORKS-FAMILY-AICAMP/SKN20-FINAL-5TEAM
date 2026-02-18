@@ -16,7 +16,6 @@ export const useGameStore = defineStore('game', {
         chapters: [],
         unitProgress: {
             'Pseudo Practice': [0],
-            // [수정일: 2026-01-28] 난이도별(초/중/고) 첫 문제를 기본 해금하여 즉시 선택 가능하도록 설정
             'Debug Practice': [0],
             'System Practice': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
             'Ops Practice': [0],
@@ -149,7 +148,7 @@ export const useGameStore = defineStore('game', {
             const unitTitle = rawTitle.toLowerCase().replace(/\s+/g, '');
 
             // [Unit 1] Pseudo Practice 처리
-            if (unitTitle === 'pseudopractice') {
+            if (unitTitle.includes('pseudo')) {
                 // unit1Mode에 따라 서로 다른 문제 세트 매핑 및 반환
                 if (this.unit1Mode === 'pseudo-practice') {
                     return aiQuests.map((q, idx) => ({
@@ -212,8 +211,8 @@ export const useGameStore = defineStore('game', {
                 */
             }
 
-            // [Unit 2] Debug Practice 처리
-            if (unitTitle === 'debugpractice' && progressiveData.progressiveProblems) {
+            // [Unit 2] Debug Practice 처리 (Bug Hunt)
+            if (unitTitle.includes('debug') && progressiveData.progressiveProblems) {
                 return progressiveData.progressiveProblems.map((m, idx) => ({
                     id: m.id,
                     missionId: m.id,
@@ -225,7 +224,7 @@ export const useGameStore = defineStore('game', {
             }
 
             // [Unit 3] System Practice 처리
-            if (unitTitle === 'systempractice') {
+            if (unitTitle.includes('system')) {
                 return [
                     { id: 1, title: 'Instagram Home Feed', displayNum: '3-1', problemIndex: 0 },
                     { id: 2, title: 'YouTube VOD 업로드/스트리밍', displayNum: '3-2', problemIndex: 1 },
@@ -338,7 +337,7 @@ export const useGameStore = defineStore('game', {
             const rawTitle = state.activeUnit.name || state.activeUnit.title || '';
             const unitTitle = rawTitle.toLowerCase().replace(/\s+/g, '');
 
-            if (unitTitle === 'debugpractice') {
+            if (unitTitle.includes('debug')) {
                 return state.unitProgress['Debug Practice'] || [0];
             }
 

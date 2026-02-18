@@ -75,7 +75,7 @@ export const useAuthStore = defineStore('auth', {
 
                 if (response.status === 200 && response.data.user) {
                     this.setLoginSuccess(response.data.user);
-                    return { success: true };
+                    return { success: true, user: response.data.user };
                 }
                 return { success: false, error: '응답 형식이 올바르지 않습니다.' };
             } catch (error) {
