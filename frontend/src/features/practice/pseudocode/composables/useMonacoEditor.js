@@ -10,7 +10,10 @@ export function useMonacoEditor(currentMission, editorState) {
 
     const monacoOptions = {
         automaticLayout: true, // [2026-02-12] 필수: 멈춤 및 입력 불가 현상 방지
-        fontSize: 14,
+        /* [수정 2026-02-14] VS Code 스타일 가독성 최적화 */
+        fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace",
+        fontSize: 15,
+        lineHeight: 1.6,
         minimap: { enabled: false },
         scrollBeyondLastLine: false,
         wordWrap: 'on',
@@ -163,4 +166,3 @@ export function useMonacoEditor(currentMission, editorState) {
         insertCodeSnippet
     };
 }
-
