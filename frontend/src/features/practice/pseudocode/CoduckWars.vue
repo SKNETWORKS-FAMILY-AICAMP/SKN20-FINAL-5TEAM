@@ -1,6 +1,7 @@
-﻿<!--
-?섏젙?? 2026-02-14
-?섏젙 ?댁슜: 5? 吏???됯? ?쒖뒪???꾩쟾 ?듯빀 諛??꾨━誘몄뾼 由ы룷??UI ?곸슜
+<!--
+수정일: 2026-02-18
+수정 내용: pseudo_tts 브랜치와 프론트엔드 UI 및 로직 완전 동기화 (한글 인코딩 복구 포함)
+이전 내역: 5대 지표 평가 시스템 완전 통합 및 프리미엄 리포트 UI 적용 (2026-02-14)
 -->
 <template>
   <div class="coduck-wars-container">
@@ -11,47 +12,47 @@
     <!-- HEADER -->
     <header class="war-room-header">
       <div class="chapter-info">
-        <span class="chapter-title">CHAPTER {{ gameState.currentStageId }}: {{ currentMission.title || '濡쒕뵫 以?..' }}</span>
+        <span class="chapter-title">CHAPTER {{ gameState.currentStageId }}: {{ currentMission.title || '로딩 중...' }}</span>
         <span class="sub-info">{{ currentMission.subModuleTitle || 'LEAKAGE_GUARD' }}</span>
       </div>
-      <!-- [2026-02-14 ?섏젙] ??좊━??踰꾪듉 諛??ㅼ뒿 醫낅즺 踰꾪듉 遺꾨━ -->
+      <!-- [2026-02-14 수정] 듀토리얼 버튼 및 실습 종료 버튼 분리 -->
       <div class="header-actions">
-        <!-- [2026-02-14] ?뚰듃蹂닿린 踰꾪듉 ?ㅻ뜑 - ?먯뿰???쒖닠 ?④퀎?먯꽌留??몄텧 (遺꾩꽍 ????? -->
+        <!-- [2026-02-14] 힌트보기 버튼 헤더 - 자연어 서술 단계에서만 노출 (분석 시 은닉) -->
         <button v-if="isNaturalLanguagePhase" class="btn-hint-header" @click="toggleHintDuck" :class="{ 'is-active': showHintDuck }">
-           <Lightbulb class="w-4 h-4 mr-1.5" /> ?뚰듃蹂닿린
+           <Lightbulb class="w-4 h-4 mr-1.5" /> 힌트보기
         </button>
         <button class="btn-tutorial-trigger" @click="startTutorial">
-          <BookOpen class="w-4 h-4 mr-2" /> ?ъ슜踰??쒗넗由ъ뼹)
+          <BookOpen class="w-4 h-4 mr-2" /> 사용법(튜토리얼)
         </button>
         <button class="btn-practice-close" @click="closePractice">
-          <X class="w-4 h-4 mr-2" /> ?ㅼ뒿 醫낅즺
+          <X class="w-4 h-4 mr-2" /> 실습 종료
         </button>
       </div>
     </header>
 
-    <!-- MAIN VIEWPORT [2026-02-11] UI ?덉씠?꾩썐 2??援ъ꽦(Battle Grid) 蹂듭썝 -->
+    <!-- MAIN VIEWPORT [2026-02-11] UI 레이아웃 2단 구성(Battle Grid) 복원 -->
     <main class="viewport">
         
-      <!-- [2026-02-14 ?섏젙] ?됯? ?④퀎?먯꽌??媛?대뱶 踰꾪듉 ?④? -->
+      <!-- [2026-02-14 수정] 평가 단계에서는 가이드 버튼 숨김 -->
       <button v-if="gameState.phase !== 'EVALUATION'" class="btn-guide-floating" @click="toggleGuide" :class="{ 'is-open': isGuideOpen }">
           <span class="icon">?</span>
           <span class="label">CHAPTER</span>
       </button>
 
-      <!-- [2026-02-11] ?ъ씠?쒕컮 媛?대뱶 ?⑤꼸 -->
+      <!-- [2026-02-11] 사이드바 가이드 패널 -->
       <div class="guide-sidebar" :class="{ 'sidebar-open': isGuideOpen }">
           <div class="sidebar-header">
               <span class="sh-title">MISSION CHAPTERS</span>
-              <button class="sh-close" @click="toggleGuide">횞</button>
+              <button class="sh-close" @click="toggleGuide">×</button>
           </div>
           <div class="sidebar-content">
-              <!-- [2026-02-11] 誘몄뀡 ?붿??덉뼱留?媛?대뱶 (?섏궗肄붾뱶 ?묒꽦 ?먯튃) -->
+              <!-- [2026-02-11] 미션 엔지니어링 가이드 (의사코드 작성 원칙) -->
             <div v-if="currentMission.designContext?.writingGuide" class="guide-step-card g-active mt-4">
                 <div class="gs-header-row">
                     <div class="gs-icon"><Lightbulb class="w-5 h-5 text-blue-400" /></div>
                     <div class="gs-info">
                         <span class="gs-step text-blue-400">ENGINEERING_GUIDE</span>
-                        <p class="gs-text">?섏궗肄붾뱶 ?묒꽦 ?꾨왂</p>
+                        <p class="gs-text">의사코드 작성 전략</p>
                     </div>
                 </div>
                 <div class="gs-hint-content hint-box-blue">
@@ -73,17 +74,17 @@
                       </div>
                   </div>
                   <div class="gs-hint-content" v-if="idx === selectedGuideIdx">
-                      <div class="hint-label">?뮕 TACTICAL ADVICE</div>
+                      <div class="hint-label">💡 TACTICAL ADVICE</div>
                       <p class="hint-body text-[11px] leading-tight">"{{ guide.coduckMsg }}"</p>
                   </div>
               </div>
           </div>
       </div>
 
-      <!-- [2026-02-14 ?섏젙] 2???덉씠?꾩썐 ?듭떖 而⑦뀒?대꼫 (EVALUATION ??1?⑥쑝濡?蹂寃? -->
+      <!-- [2026-02-14 수정] 2단 레이아웃 핵심 컨테이너 (EVALUATION 시 1단으로 변경) -->
       <div class="combat-grid w-full h-full" :class="{ 'full-width-layout': gameState.phase === 'EVALUATION' }">
           
-          <!-- LEFT PANEL: ENTITY CARD [2026-02-14 ?섏젙] ?됯? ?④퀎?먯꽌??醫뚯륫 ?⑤꼸 ???-->
+          <!-- LEFT PANEL: ENTITY CARD [2026-02-14 수정] 평가 단계에서는 좌측 패널 은닉 -->
           <aside v-if="gameState.phase !== 'EVALUATION'" class="entity-card">
               <div class="entity-header">
                   <span class="e-type">ANALYZE_UNIT</span>
@@ -91,24 +92,24 @@
               </div>
 
               <div class="visual-frame">
-                  <!-- [2026-02-11] 肄붾뜒 罹먮┃???대?吏 ?곌껐 [2026-02-14] ?대┃ ???ㅼ떆媛??뚰듃 ?좉? -->
+                  <!-- [2026-02-11] 코덕 캐릭터 이미지 연결 [2026-02-14] 클릭 시 실시간 힌트 토글 -->
                   <img src="@/assets/image/duck_det.png" alt="Coduck Detective" class="coduck-portrait cursor-pointer hover:scale-105 transition-transform" @click="toggleHintDuck" />
                   <div class="scan-overlay"></div>
                   
-                  <!-- [2026-02-11] ?먯긽 ???쒖떆 -->
+                  <!-- [2026-02-11] 손상 시 표시 -->
                   <div v-if="gameState.playerHP < 40" class="disconnect-tag">INTEGRITY_COMPROMISED</div>
               </div>
 
-              <!-- [2026-02-11] 肄붾뜒 ?ㅼ떆媛???ъ갹 [2026-02-14 ?섏젙] ?됯? 諛?寃곌낵 ?붾㈃?먯꽌???쒕굹由ъ삤 諛뺤뒪 ???-->
+              <!-- [2026-02-11] 코덕 실시간 대사창 [2026-02-14 수정] 평가 및 결과 화면에서는 시나리오 박스 은닉 -->
               <div v-if="gameState.phase !== 'EVALUATION'" class="dialogue-box">
-                  <span class="speaker">臾몄젣 ?쒕굹由ъ삤</span>
-                  <p class="dialogue-text">"{{ (isInteractionPhase && currentMission.scenario) ? currentMission.scenario : (gameState.coduckMessage || '?곗씠???먮쫫??遺꾩꽍 以묒엯?덈떎...') }}"</p>
+                  <span class="speaker">문제 시나리오</span>
+                  <p class="dialogue-text">"{{ (isInteractionPhase && currentMission.scenario) ? currentMission.scenario : (gameState.coduckMessage || '데이터 흐름을 분석 중입니다...') }}"</p>
               </div>
 
 
           </aside>
 
-          <!-- RIGHT PANEL: DECISION ENGINE [2026-02-11] ?④퀎蹂??명꽣?숈뀡 ?곸뿭 -->
+          <!-- RIGHT PANEL: DECISION ENGINE [2026-02-11] 단계별 인터랙션 영역 -->
           <section class="decision-panel relative" :class="{ 'visualization-p-zero': ['PYTHON_VISUALIZATION', 'TAIL_QUESTION', 'DEEP_DIVE_DESCRIPTIVE'].includes(gameState.phase) }">
               <div v-if="gameState.phase.startsWith('DIAGNOSTIC')">
                   <div class="system-status-row">
@@ -116,7 +117,7 @@
                       <span v-else-if="gameState.phase === 'PSEUDO_WRITE'">STEP_02: PSEUDO_ARCHITECTURE</span>
                   </div>
                   
-                  <!-- 吏臾???肄붾뱶 釉붾줉 ?뚮뜑留??곸뿭 [2026-02-12] ?섏씠利?臾닿??섍쾶 而⑦뀓?ㅽ듃媛 ?덉쑝硫??쒖떆 -->
+                  <!-- 지문 내 코드 블록 렌더링 영역 [2026-02-12] 페이즈 무관하게 컨텍스트가 있으면 표시 -->
                   <div v-if="diagnosticProblemParts" class="diagnostic-code-box">
                       <div class="diagnostic-instruction">{{ diagnosticProblemParts.instruction }}</div>
                       <div class="diagnostic-code">{{ diagnosticProblemParts.code }}</div>
@@ -126,9 +127,9 @@
                       {{ diagnosticQuestion.question }}
                   </h3>
                   
-                  <!-- [2026-02-12] PHASE 1 ?꾩슜 釉붾줉 -->
+                  <!-- [2026-02-12] PHASE 1 전용 블록 -->
                   <div v-if="gameState.phase === 'DIAGNOSTIC_1'" class="diagnostic-content-area">
-                      <!-- ?쒖닠??UI -->
+                      <!-- 서술형 UI -->
                       <div v-if="diagnosticQuestion.type === 'DESCRIPTIVE'" class="descriptive-interaction-area">
                           <div v-if="gameState.diagnosticResult && !gameState.isEvaluatingDiagnostic" class="diagnostic-result-card animate-fadeIn">
                               <div class="dr-header">
@@ -138,17 +139,17 @@
                               <div class="dr-analysis">"{{ gameState.diagnosticResult.analysis }}"</div>
                               <div class="dr-feedback">{{ gameState.diagnosticResult.feedback }}</div>
                               <div v-if="diagnosticQuestion.evaluationRubric?.correctAnswer" class="model-answer-box animate-fadeIn">
-                                  <div class="ma-header"><Brain class="w-4 h-4 text-purple-400" /><span class="ma-label">紐⑤쾾 ?듭븞</span></div>
+                                  <div class="ma-header"><Brain class="w-4 h-4 text-purple-400" /><span class="ma-label">모범 답안</span></div>
                                   <p class="ma-content">{{ diagnosticQuestion.evaluationRubric.correctAnswer }}</p>
                               </div>
                           </div>
-                          <textarea v-model="gameState.diagnosticAnswer" class="diagnostic-textarea" placeholder="遺꾩꽍 ?댁슜???낅젰?섏꽭??.." :disabled="gameState.isEvaluatingDiagnostic"></textarea>
+                          <textarea v-model="gameState.diagnosticAnswer" class="diagnostic-textarea" placeholder="분석 내용을 입력하세요..." :disabled="gameState.isEvaluatingDiagnostic"></textarea>
                           
                           <div class="actions relative mt-4">
                               <Transition name="fade-slide">
-                                <div v-if="showHintDuck && isNaturalLanguagePhase" class="hint-duck-wrapper" @click="toggleHintDuck" title="?대┃?섎㈃ ?ㅼ떆 ?④퉩?덈떎">
+                                <div v-if="showHintDuck && isNaturalLanguagePhase" class="hint-duck-wrapper" @click="toggleHintDuck" title="클릭하면 다시 숨깁니다">
                                     <div class="hint-bubble">
-                                        <div class="hb-content">{{ dynamicHintMessage || '遺꾩꽍 以묒엯?덈떎...' }}</div>
+                                        <div class="hb-content">{{ dynamicHintMessage || '분석 중입니다...' }}</div>
                                         <div class="hb-tail"></div>
                                     </div>
                                     <img src="@/assets/image/unit_duck.png" alt="Hint Duck" class="hint-unit-img clickable-duck" />
@@ -156,13 +157,13 @@
                               </Transition>
 
                               <button @click="submitDiagnostic()" class="btn-execute-large w-full-btn" :disabled="(!gameState.diagnosticAnswer || gameState.diagnosticAnswer.trim().length < 5) && !gameState.diagnosticResult || gameState.isEvaluatingDiagnostic">
-                                  <template v-if="gameState.isEvaluatingDiagnostic">遺꾩꽍 以?.. <RotateCcw class="w-5 h-5 ml-2 animate-spin" /></template>
-                                  <template v-else-if="gameState.diagnosticResult">?ㅼ쓬 ?④퀎 吏꾪뻾 <ArrowRight class="w-5 h-5 ml-2" /></template>
-                                  <template v-else>遺꾩꽍 ?꾨즺 ?쒖텧 <CheckCircle class="w-5 h-5 ml-2" /></template>
+                                  <template v-if="gameState.isEvaluatingDiagnostic">분석 중... <RotateCcw class="w-5 h-5 ml-2 animate-spin" /></template>
+                                  <template v-else-if="gameState.diagnosticResult">다음 단계 진행 <ArrowRight class="w-5 h-5 ml-2" /></template>
+                                  <template v-else>분석 완료 제출 <CheckCircle class="w-5 h-5 ml-2" /></template>
                               </button>
                           </div>
                       </div>
-                      <!-- 媛앷???UI (CHOICE) [2026-02-14 ?섏젙] ?쇰뱶諛?猷⑦봽 異붽? -->
+                      <!-- 객관식 UI (CHOICE) [2026-02-14 수정] 피드백 루프 추가 -->
                       <div v-else-if="diagnosticQuestion.type === 'CHOICE'" class="choice-interaction-area">
                           <div class="choice-visual-frame mb-8">
                               <div class="choice-coduck">
@@ -196,41 +197,41 @@
                               </div>
                           </div>
 
-                          <!-- [異붽?] ?ㅼ쓬 ?④퀎 吏꾪뻾 踰꾪듉 (?듬? ?꾩뿉留??깆옣) -->
+                          <!-- [추가] 다음 단계 진행 버튼 (답변 후에만 등장) -->
                           <div v-if="gameState.isDiagnosticAnswered" class="mt-8 animate-fadeIn">
                               <button @click="submitDiagnostic()" class="btn-execute-large w-full-btn">
-                                  ?ㅼ쓬 遺꾩꽍 ?④퀎濡?吏꾪뻾 <ArrowRight class="w-5 h-5 ml-2" />
+                                  다음 분석 단계로 진행 <ArrowRight class="w-5 h-5 ml-2" />
                               </button>
                           </div>
                       </div>
                   </div>
-                  <!-- AI ?꾪궎?랁듃 遺꾩꽍 ?ㅻ쾭?덉씠 (吏꾨떒 ?④퀎) -->
+                  <!-- AI 아키텍트 분석 오버레이 (진단 단계) -->
                   <div v-if="gameState.isEvaluatingDiagnostic" class="ai-loading-overlay">
-                      <LoadingDuck message="?곗씠???먮쫫 諛??쇰━????뱀꽦???뺣? 遺꾩꽍 以묒엯?덈떎..." />
+                      <LoadingDuck message="데이터 흐름 및 논리적 타당성을 정밀 분석 중입니다..." />
                   </div>
               </div>
 
-              <!-- [2026-02-11] PHASE: PSEUDO_WRITE (Step 2: ?꾪궎?띿쿂 ?ㅺ퀎) -->
+              <!-- [2026-02-11] PHASE: PSEUDO_WRITE (Step 2: 아키텍처 설계) -->
               <div v-else-if="gameState.phase === 'PSEUDO_WRITE'" class="space-y-4 flex flex-col h-full max-w-5xl mx-auto w-full">
-                  <!-- AI ?꾪궎?랁듃 遺꾩꽍 ?ㅻ쾭?덉씠 (?섏궗肄붾뱶 ?ы솕 遺꾩꽍 ?④퀎) [異붽?: 2026-02-13] -->
+                  <!-- AI 아키텍트 분석 오버레이 (의사코드 심화 분석 단계) [추가: 2026-02-13] -->
                   <div v-if="isProcessing" class="ai-loading-overlay">
-                      <LoadingDuck message="?묒꽦?섏떊 ?ㅺ퀎??5李⑥썝 ?꾪궎?띿쿂 ?뺣? 遺꾩꽍 諛?Python 肄붾뱶 蹂??以묒엯?덈떎..." />
+                      <LoadingDuck message="작성하신 설계의 5차원 아키텍처 정밀 분석 및 Python 코드 변환 중입니다..." />
                   </div>
-                  <!-- [2026-02-12] ?대?吏 ?깊겕: 硫붿씤 ??댄? 諛??ㅻ챸 媛쒗렪 (誘몄뀡/?쒖빟議곌굔 ?몄텧) [?고듃 ?곹뼢 諛?以묐났 ?쒓굅] -->
+                  <!-- [2026-02-12] 이미지 싱크: 메인 타이틀 및 설명 개편 (미션/제약조건 노출) [폰트 상향 및 중복 제거] -->
                   <div class="mission-instruction-compact">
                       <div class="mi-section">
-                          <h4 class="mi-title text-blue-400">[誘몄뀡]</h4>
+                          <h4 class="mi-title text-blue-400">[미션]</h4>
                           <p class="mi-desc">{{ currentMission.designContext?.description }}</p>
                       </div>
                       <div class="mi-section mi-border-top">
-                          <h4 class="mi-title text-amber-400">[?꾩닔 ?ы븿 議곌굔 (Constraint)]</h4>
-                          <p class="mi-desc-small">{{ currentMission.designContext?.writingGuide?.replace('[?꾩닔 ?ы븿 議곌굔 (Constraint)]\n', '') }}</p>
+                          <h4 class="mi-title text-amber-400">[필수 포함 조건 (Constraint)]</h4>
+                          <p class="mi-desc-small">{{ currentMission.designContext?.writingGuide?.replace('[필수 포함 조건 (Constraint)]\n', '') }}</p>
                       </div>
                   </div>
 
                   <div class="editor-layout w-full flex flex-col flex-1">
                       <div class="editor-body w-full flex-1 flex flex-col">
-                          <!-- ?섏궗肄붾뱶 ?낅젰 ?먮뵒??-->
+                          <!-- 의사코드 입력 에디터 -->
                           <div class="monaco-wrapper w-full h-[320px] border border-slate-700/50 rounded-xl overflow-hidden shadow-2xl">
                               <VueMonacoEditor
                                   theme="vs-dark"
@@ -243,7 +244,7 @@
                       </div>
 
                        <div class="editor-header w-full mt-4 flex justify-between items-end">
-                          <!-- [2026-02-13] ?ㅼ떆媛?洹쒖튃 泥댄겕由ъ뒪??UI: ?섎떒 諛곗튂 -->
+                          <!-- [2026-02-13] 실시간 규칙 체크리스트 UI: 하단 배치 -->
                           <div class="rule-checklist-bar flex flex-wrap gap-2 mb-2">
                               <div 
                                   v-for="rule in ruleChecklist" 
@@ -258,11 +259,11 @@
                           </div>
 
                           <div class="actions flex items-center justify-end gap-4 relative">
-                              <!-- [2026-02-14] ?ㅼ떆媛??뚰듃 ?ㅻ━ & 留먰뭾??(遺꾩꽍 以묒씪 ?뚮뒗 ??? -->
+                              <!-- [2026-02-14] 실시간 힌트 오리 & 말풍선 (분석 중일 때는 은닉) -->
                               <Transition name="fade-slide">
-                                <div v-if="showHintDuck && isNaturalLanguagePhase" class="hint-duck-wrapper" @click="toggleHintDuck" title="?대┃?섎㈃ ?ㅼ떆 ?④퉩?덈떎">
+                                <div v-if="showHintDuck && isNaturalLanguagePhase" class="hint-duck-wrapper" @click="toggleHintDuck" title="클릭하면 다시 숨깁니다">
                                     <div class="hint-bubble">
-                                        <div class="hb-content">{{ dynamicHintMessage || '遺꾩꽍 以묒엯?덈떎...' }}</div>
+                                        <div class="hb-content">{{ dynamicHintMessage || '분석 중입니다...' }}</div>
                                         <div class="hb-tail"></div>
                                     </div>
                                     <img src="@/assets/image/unit_duck.png" alt="Hint Duck" class="hint-unit-img clickable-duck" />
@@ -274,14 +275,14 @@
                                   @click="submitPseudo"
                                   class="btn-execute-large"
                               >
-                                  ?ы솕 遺꾩꽍 ?쒖옉 <Play class="w-4 h-4 ml-1.5" />
+                                  심화 분석 시작 <Play class="w-4 h-4 ml-1.5" />
                               </button>
                           </div>
                       </div>
                   </div>
               </div>
 
-              <!-- [STEP 3] ?꾩닠 ?쒓컖??諛?2?④퀎 寃利?(MCQ + ?ㅻТ ?쒕굹由ъ삤) -->
+              <!-- [STEP 3] 전술 시각화 및 2단계 검증 (MCQ + 실무 시나리오) -->
               <div v-else-if="['PYTHON_VISUALIZATION', 'TAIL_QUESTION', 'DEEP_DIVE_DESCRIPTIVE'].includes(gameState.phase)" class="visualization-phase flex-1 flex flex-col min-h-0">
                   <CodeFlowVisualizer
                     :phase="gameState.phase"
@@ -299,28 +300,28 @@
                   />
               </div>
 
-              <!-- [STEP 4] 理쒖쥌 由ы룷??(EVALUATION) [2026-02-13] decision-panel ?대?濡??대룞 -->
+              <!-- [STEP 4] 최종 리포트 (EVALUATION) [2026-02-13] decision-panel 내부로 이동 -->
               <div v-else-if="gameState.phase === 'EVALUATION'" class="evaluation-phase relative flex-1 flex flex-col h-full scroll-smooth">
-                  <!-- [2026-02-13] 蹂듦린 ?숈뒿 紐⑤뱶 ??誘몄뀡 ?뺣낫 ?щ끂異?-->
+                  <!-- [2026-02-13] 복기 학습 모드 시 미션 정보 재노출 -->
                   <div v-if="evaluationResult?.is_low_effort || gameState.hasUsedBlueprint" class="mission-instruction-compact animate-slideDownFade mb-6">
                       <div class="mi-section">
-                          <h4 class="mi-title text-blue-400">[誘몄뀡]</h4>
+                          <h4 class="mi-title text-blue-400">[미션]</h4>
                           <p class="mi-desc">{{ currentMission?.designContext?.description }}</p>
                       </div>
                       <div class="mi-section mi-border-top">
-                          <h4 class="mi-title text-amber-400">[?꾩닔 ?ы븿 議곌굔 (Constraint)]</h4>
-                          <p class="mi-desc-small">{{ currentMission?.designContext?.writingGuide?.replace('[?꾩닔 ?ы븿 議곌굔 (Constraint)]\n', '') }}</p>
+                          <h4 class="mi-title text-amber-400">[필수 포함 조건 (Constraint)]</h4>
+                          <p class="mi-desc-small">{{ currentMission?.designContext?.writingGuide?.replace('[필수 포함 조건 (Constraint)]\n', '') }}</p>
                       </div>
                   </div>
-                  <!-- [2026-02-14 ?섏젙] 濡쒕뵫 ?붾㈃??1踰덉㎏ ?대?吏 ?ㅽ??쇰줈 蹂寃?(Full Width & Background Sync) -->
+                  <!-- [2026-02-14 수정] 로딩 화면을 1번째 이미지 스타일로 변경 (Full Width & Background Sync) -->
                   <div v-if="tutorialAnalyzing || (isProcessing && gameState.phase === 'EVALUATION')" class="ai-analysis-simulation absolute inset-0 z-[100] bg-[#050505] flex flex-col items-center justify-center rounded-2xl border border-emerald-500/30">
                       <LoadingDuck 
-                        :message="tutorialAnalyzing ? '?쒗넗由ъ뼹 遺꾩꽍 以?..' : '?묒꽦?댁＜???먮쫫 諛뷀깢?쇰줈 醫낇빀?됯? 吏꾪뻾 以묒엯?덈떎...'" 
+                        :message="tutorialAnalyzing ? '튜토리얼 분석 중...' : '작성해주신 흐름 바탕으로 종합평가 진행 중입니다...'" 
                         :duration="4000"
                       />
                   </div>
 
-                  <!-- [2026-02-14] 理쒖쥌 ?꾪궎?띿쿂 由ы룷???ы깉 (PPT ?덉씠?꾩썐 理쒖쟻?? -->
+                  <!-- [2026-02-14] 최종 아키텍처 리포트 포탈 (PPT 레이아웃 최적화) -->
                   <div v-if="!tutorialAnalyzing && showMetrics && finalReport" class="architect-report-portal animate-fadeIn">
                       
                       <!-- Part 1: Strategic Billboard (Score & Grade) -->
@@ -343,7 +344,7 @@
                                       <span class="label">STATUS</span>
                                   </div>
                                   <div class="verdict-wrapper">
-                                      <h3 class="persona-title">理쒖쥌 吏꾨떒: {{ finalReport.finalReport.persona }}</h3>
+                                      <h3 class="persona-title">최종 진단: {{ finalReport.finalReport.persona }}</h3>
                                       <h2 class="verdict-headline">"{{ finalReport.finalReport.summary }}"</h2>
                                   </div>
                               </div>
@@ -425,11 +426,11 @@
                       <!-- Part 4: Continuous Learning Path (YouTube) -->
                       <div class="pathway-section-neo">
                           <div class="curation-header">
-                              <h3 class="path-heading-neo"><Play size="18" class="mr-2" /> ?벟 ?ㅼ떆媛?留욎땄???숈뒿 ?먮젅?댁뀡 (YouTube API 湲곕컲)</h3>
+                              <h3 class="path-heading-neo"><Play size="18" class="mr-2" /> 📺 실시간 맞춤형 학습 큐레이션 (YouTube API 기반)</h3>
                           </div>
                           
                           <div class="path-grid-neo">
-                               <!-- [2026-02-14] API濡??ㅼ떆媛??곕룞??異붿쿇 ?곸긽 紐⑸줉 ?쒖떆 -->
+                               <!-- [2026-02-14] API로 실시간 연동된 추천 영상 목록 표시 -->
                                <div v-for="video in evaluationResult.supplementaryVideos" :key="video.videoId" class="path-card-neo curation-card">
                                   <a :href="video.url" target="_blank" class="p-link-neo">
                                       <div class="p-thumbnail border-b border-white/5 overflow-hidden rounded-t-xl mb-3">
@@ -444,12 +445,12 @@
                                   </a>
                                </div>
 
-                               <!-- API 寃곌낵媛 ?놁쓣 寃쎌슦 湲곗〈 Resource ?대갚 -->
+                               <!-- API 결과가 없을 경우 기존 Resource 폴백 -->
                                <div v-if="!evaluationResult.supplementaryVideos?.length && weakestMetricKey" class="path-card-neo curation-card weakest-focus">
-                                  <div class="weakest-badge">?슚 痍⑥빟 吏??吏묒쨷 蹂댁셿</div>
+                                  <div class="weakest-badge">🚨 취약 지표 집중 보완</div>
                                   <a :href="getMetricVideo(weakestMetricKey).url" target="_blank" class="p-link-neo">
                                       <div class="p-index">{{ LEARNING_RESOURCES[weakestMetricKey].metric }}</div>
-                                      <div class="p-theme-tag">?뚮쭏: {{ LEARNING_RESOURCES[weakestMetricKey].theme }}</div>
+                                      <div class="p-theme-tag">테마: {{ LEARNING_RESOURCES[weakestMetricKey].theme }}</div>
                                       <div class="p-content-box mt-4">
                                           <div class="p-curation-msg-box">
                                               <span class="quote-icon">"</span>
@@ -461,11 +462,11 @@
                                </div>
                           </div>
 
-                          <!-- [2026-02-14] 留덉뒪???덈꺼 ?꾩슜 肄섑뀗痢?-->
+                          <!-- [2026-02-14] 마스터 레벨 전용 콘텐츠 -->
                           <div v-if="evaluationResult.overall_score >= 80" class="master-next-level mt-10">
                               <div class="master-header">
-                                  <h3 class="path-heading-neo master-glow"><CheckCircle size="18" class="mr-2" /> ?룇 S-CLASS ?꾪궎?랁듃 ?꾩슜 ?ы솕 ?몄뀡</h3>
-                                  <p class="master-message">?대? ?ㅺ퀎 ?먯튃???꾨꼍???댄빐?섏뀲援곗슂! ?댁젣???뷀꽣?꾨씪?댁쫰 ?덈꺼???뺤옣??怨좊????뚯엯?덈떎.</p>
+                                  <h3 class="path-heading-neo master-glow"><CheckCircle size="18" class="mr-2" /> 🏆 S-CLASS 아키텍트 전용 심화 세션</h3>
+                                  <p class="master-message">이미 설계 원칙을 완벽히 이해하셨군요! 이제는 엔터프라이즈 레벨의 확장을 고민할 때입니다.</p>
                               </div>
                           </div>
                       </div>
@@ -485,14 +486,14 @@
               </section>
           </div>
       
-      <!-- BugHunt ?ㅽ????ㅻ━ ?뚰듃 ?쒖뒪??[2026-02-13] - viewport ?섎떒 諛곗튂 -->
+      <!-- BugHunt 스타일 오리 힌트 시스템 [2026-02-13] - viewport 하단 배치 -->
       <transition name="duck-pop">
         <div v-if="gameState.showHint" class="hint-duck-container">
             <div class="hint-speech-bubble">
                 <div class="bubble-header">DUC-TIP!</div>
                 <div class="bubble-content">
                     <p v-for="(hintText, hIdx) in currentMission.validation?.concepts?.flatMap(c => c.hints || [])" :key="hIdx" class="hint-li">
-                        ??{{ hintText }}
+                        • {{ hintText }}
                     </p>
                 </div>
             </div>
@@ -501,7 +502,7 @@
       </transition>
     </main>
 
-    <!-- [2026-02-14 ?섏젙] ??좊━???ㅻ쾭?덉씠 異붽? (?섏씠利?蹂寃?由ъ뒪??異붽?) -->
+    <!-- [2026-02-14 수정] 듀토리얼 오버레이 추가 (페이즈 변경 리스너 추가) -->
     <PseudocodeTutorialOverlay
       v-if="showTutorial"
       @complete="onTutorialComplete"
@@ -519,8 +520,8 @@
 
 <script setup>
 /**
- * ?섏젙?? 2026-02-14
- * ?섏젙 ?댁슜: 5? 吏???됯? ?쒖뒪???꾩쟾 ?듯빀 諛??꾨━誘몄뾼 由ы룷??UI ?곸슜
+ * 수정일: 2026-02-14
+ * 수정 내용: 5대 지표 평가 시스템 완전 통합 및 프리미엄 리포트 UI 적용
  */
 import { computed, ref, reactive, onMounted, watch, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
@@ -548,7 +549,7 @@ const router = useRouter();
 const gameStore = useGameStore();
 const emit = defineEmits(['close']);
 
-// [2026-02-14] ?쒗넗由ъ뼹 諛?由ы룷??愿???곹깭 蹂???좎뼵 (理쒖긽???대룞)
+// [2026-02-14] 튜토리얼 및 리포트 관련 상태 변수 선언 (최상단 이동)
 const showTutorial = ref(false);
 const originalPhase = ref(null);
 const tutorialAnalyzing = ref(false);
@@ -557,7 +558,7 @@ const finalReport = ref(null);
 const radarChartCanvas = ref(null);
 let radarChartInstance = null;
 
-// [2026-02-14] useCoduckWars 遺꾨━ 諛??곗씠???좎뼵 (?곷떒 ?대룞)
+// [2026-02-14] useCoduckWars 분리 및 데이터 선언 (상단 이동)
 const coduckWarsComposable = useCoduckWars();
 const { resetHintTimer } = coduckWarsComposable;
 const originalSubmitPseudo = coduckWarsComposable.submitPseudo;
@@ -600,44 +601,44 @@ onMounted(() => {
 });
 
 const startTutorial = () => {
-    // ?쒗넗由ъ뼹 ?쒖옉 ???꾩옱 ?섏씠利?諛깆뾽
+    // 튜토리얼 시작 시 현재 페이즈 백업
     originalPhase.value = gameState.phase;
     showTutorial.value = true;
 };
 
 /**
- * [2026-02-14 ?섏젙] ?쒗넗由ъ뼹 吏꾪뻾???곕Ⅸ ?섏씠利??먮룞 ?꾪솚 諛?紐⑦궧
+ * [2026-02-14 수정] 튜토리얼 진행에 따른 페이즈 자동 전환 및 모킹
  */
 const handleTutorialPhaseChange = (targetPhase) => {
     gameState.phase = targetPhase;
 
-    // ?쒗넗由ъ뼹 以??붾㈃??鍮꾩뼱 蹂댁씠吏 ?딅룄濡?紐⑦겕 ?곗씠??二쇱엯
+    // 튜토리얼 중 화면이 비어 보이지 않도록 모크 데이터 주입
     if (targetPhase === 'DIAGNOSTIC_1') {
-        // 吏꾨떒 ?④퀎?먯꽌 吏덈Ц ?곗씠?곌? ?녿뒗 寃쎌슦瑜??鍮꾪븳 紐⑦궧
+        // 진단 단계에서 질문 데이터가 없는 경우를 대비한 모킹
     }
 
     if (targetPhase === 'PSEUDO_WRITE') {
-        // [?섏젙] ?ъ슜?먭? 吏곸젒 ?묒꽦?????덈룄濡??먮룞 梨꾩슦湲?濡쒖쭅 ?쒓굅
+        // [수정] 사용자가 직접 작성할 수 있도록 자동 채우기 로직 제거
     }
 
     if (targetPhase === 'PYTHON_VISUALIZATION') {
-        // evaluationResult??reactive 媛앹껜?대?濡?.value ?놁씠 ?묎렐
+        // evaluationResult는 reactive 객체이므로 .value 없이 접근
         if (!evaluationResult.converted_python) {
             Object.assign(evaluationResult, {
-                converted_python: "import pandas as pd\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\n# 1. Isolation: 臾쇰━??寃⑸━\ntrain_df, test_df = train_test_split(df, test_size=0.2)\n\n# 2. Anchor: ?숈뒿 ?명듃?먯꽌留??듦퀎??異붿텧\nscaler = StandardScaler()\nscaler.fit(train_df[['age', 'income']])\n\n# 3. Consistency: ?숈씪??蹂???곸슜\ntrain_scaled = scaler.transform(train_df[['age', 'income']])\ntest_scaled = scaler.transform(test_df[['age', 'income']])",
-                feedback: "?곗씠???꾩닔 諛⑹? ?먯튃???뺥솗?섍쾶 以?섑븳 ?ㅺ퀎?낅땲?? ?뱁엳 湲곗????ㅼ젙???뚮??⑸땲??",
+                converted_python: "import pandas as pd\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\n# 1. Isolation: 물리적 격리\ntrain_df, test_df = train_test_split(df, test_size=0.2)\n\n# 2. Anchor: 학습 세트에서만 통계량 추출\nscaler = StandardScaler()\nscaler.fit(train_df[['age', 'income']])\n\n# 3. Consistency: 동일한 변환 적용\ntrain_scaled = scaler.transform(train_df[['age', 'income']])\ntest_scaled = scaler.transform(test_df[['age', 'income']])",
+                feedback: "데이터 누수 방지 원칙을 정확하게 준수한 설계입니다. 특히 기준점 설정이 훌륭합니다.",
                 overall_score: 88,
-                one_line_review: "?곗씠???꾩닔 李⑤떒???꾪븳 寃⑸━(Isolation)? 湲곗???Anchor) ?ㅼ젙??留ㅼ슦 ?쇰━?곸엯?덈떎."
+                one_line_review: "데이터 누수 차단을 위한 격리(Isolation)와 기준점(Anchor) 설정이 매우 논리적입니다."
             });
         }
-        // deepQuizQuestion? computed?대?濡?吏곸젒 ?좊떦 遺덇? -> evaluationResult ?곗씠???섏젙?쇰줈 ?고쉶
+        // deepQuizQuestion은 computed이므로 직접 할당 불가 -> evaluationResult 데이터 수정으로 우회
         if (!evaluationResult.tail_question && !evaluationResult.deep_dive) {
            evaluationResult.tail_question = {
                should_show: true,
-               question: "紐⑤뜽 諛고룷 ???곗씠??遺꾪룷媛 湲됯꺽??蹂?섎뒗 'Data Drift'媛 諛쒖깮?섎㈃, 湲곗〈??湲곗???Anchor)???대뼸寃?泥섎━?댁빞 ?좉퉴??",
+               question: "모델 배포 후 데이터 분포가 급격히 변하는 'Data Drift'가 발생하면, 기존의 기준점(Anchor)을 어떻게 처리해야 할까요?",
                options: [
-                   { id: 1, text: "?덈줈???곗씠?곗뿉 留욎떠 湲곗??먯쓣 利됱떆 ?ы븰??Re-fit)?쒕떎.", is_correct: true, feedback: "?덉젙?깆쓣 ?꾪빐 二쇨린?곸씤 湲곗????낅뜲?댄듃媛 ?꾩슂?⑸땲??" },
-                   { id: 2, text: "紐⑤뜽???쇨??깆쓣 ?꾪빐 珥덇린 湲곗??먯쓣 ?덈? 諛붽씀吏 ?딅뒗??", is_correct: false, feedback: "?곗씠??遺꾪룷 蹂?붿뿉 ??묓븯吏 紐삵빐 ?깅뒫????섎맆 ???덉뒿?덈떎." }
+                   { id: 1, text: "새로운 데이터에 맞춰 기준점을 즉시 재학습(Re-fit)한다.", is_correct: true, feedback: "안정성을 위해 주기적인 기준점 업데이트가 필요합니다." },
+                   { id: 2, text: "모델의 일관성을 위해 초기 기준점을 절대 바꾸지 않는다.", is_correct: false, feedback: "데이터 분포 변화에 대응하지 못해 성능이 저하될 수 있습니다." }
                ]
            };
         }
@@ -646,31 +647,32 @@ const handleTutorialPhaseChange = (targetPhase) => {
     if (targetPhase === 'EVALUATION') {
         if (!finalReport.value) {
             tutorialAnalyzing.value = true;
-            // ?쒗넗由ъ뼹??鍮좊Ⅸ ?쒕??덉씠??            setTimeout(() => {
+            // 튜토리얼용 빠른 시뮬레이션
+            setTimeout(() => {
                 tutorialAnalyzing.value = false;
                 showMetrics.value = true;
                 finalReport.value = {
                     totalScore: 88,
                     grade: { grade: 'A+', description: 'Exceptional System Integrity' },
                     metrics: {
-                        design: { name: '?붿옄??, percentage: 92, score: 92, max: 100 },
-                        edgeCase: { name: '?덉쇅泥섎━', percentage: 85, score: 85, max: 100 },
-                        abstraction: { name: '異붿긽??, percentage: 95, score: 95, max: 100 },
-                        implementation: { name: '援ы쁽??, percentage: 78, score: 78, max: 100 },
-                        consistency: { name: '?뺥빀??, percentage: 90, score: 90, max: 100 }
+                        design: { name: '디자인', percentage: 92, score: 92, max: 100 },
+                        edgeCase: { name: '예외처리', percentage: 85, score: 85, max: 100 },
+                        abstraction: { name: '추상화', percentage: 95, score: 95, max: 100 },
+                        implementation: { name: '구현력', percentage: 78, score: 78, max: 100 },
+                        consistency: { name: '정합성', percentage: 90, score: 90, max: 100 }
                     },
                     finalReport: {
                         persona: 'Architect Duck',
-                        summary: '???ㅺ퀎???꾨꼍??寃⑸━? 湲곗???蹂댄샇 ?꾨왂??蹂댁뿬二쇰뒗 ?쒕낯?낅땲??',
-                        strength: { metric: 'Consistency', feedback: '?곗씠???뺥빀???좎?瑜??꾪빐 湲곗??먯쓣 ?숈뒿 ?곗씠?곗뿉留?怨좎젙?섍퀬 ?뚯뒪???곗씠?곗뿉 ?쇨??섍쾶 ?꾪뙆?덉뒿?덈떎.' },
-                        weakness: { metric: 'Implementation', feedback: '?ㅼ젣 ?꾨줈?뺤뀡 ?섍꼍?먯꽌??湲곗????낅뜲?댄듃(Re-fitting) 二쇨린瑜??먮룞?뷀븯??肄붾뱶瑜?異붽??섎㈃ ?붿슧 寃ш퀬?댁쭏 寃껋엯?덈떎.' },
-                        lesson: '?곗씠???꾩닔???ъ냼??fit() ??踰덉쑝濡??쒖옉?⑸땲?? ??긽 Anchor(湲곗???媛 ?대뵒?몄? ?먭컖?섏떗?쒖삤.'
+                        summary: '이 설계는 완벽한 격리와 기준점 보호 전략을 보여주는 표본입니다.',
+                        strength: { metric: 'Consistency', feedback: '데이터 정합성 유지를 위해 기준점을 학습 데이터에만 고정하고 테스트 데이터에 일관되게 전파했습니다.' },
+                        weakness: { metric: 'Implementation', feedback: '실제 프로덕션 환경에서는 기준점 업데이트(Re-fitting) 주기를 자동화하는 코드를 추가하면 더욱 견고해질 것입니다.' },
+                        lesson: '데이터 누수는 사소한 fit() 한 번으로 시작됩니다. 항상 Anchor(기준점)가 어디인지 자각하십시오.'
                     },
                     recommendedContent: {
-                        curationMessage: '?꾪궎?띿쿂 ?ㅺ퀎 ??웾?????④퀎 ???믪뿬以?異붿쿇 媛뺤쓽?낅땲??',
+                        curationMessage: '아키텍처 설계 역량을 한 단계 더 높여줄 추천 강의입니다.',
                         videos: [
-                            { title: 'MLOps?먯꽌???곗씠???뺤젣 ?꾨왂', channel: 'Tech Insight', duration: '12:45', url: '#', curationPoint: '?ㅻТ ?뚯씠?꾨씪??援ъ텞', difficulty: 'expert' },
-                            { title: 'Data Leakage ?꾨꼍 媛?대뱶', channel: 'AI School', duration: '18:20', url: '#', curationPoint: '?ㅼ뼇???꾩닔 ?щ? 遺꾩꽍', difficulty: 'expert' }
+                            { title: 'MLOps에서의 데이터 정제 전략', channel: 'Tech Insight', duration: '12:45', url: '#', curationPoint: '실무 파이프라인 구축', difficulty: 'expert' },
+                            { title: 'Data Leakage 완벽 가이드', channel: 'AI School', duration: '18:20', url: '#', curationPoint: '다양한 누수 사례 분석', difficulty: 'expert' }
                         ]
                     }
                 };
@@ -686,7 +688,7 @@ const handleTutorialPhaseChange = (targetPhase) => {
 
 const onTutorialComplete = () => {
     showTutorial.value = false;
-    // ?ㅼ젣 吏꾪뻾 以묒씠???섏씠利덈줈 蹂듦뎄
+    // 실제 진행 중이던 페이즈로 복구
     if (originalPhase.value) {
         gameState.phase = originalPhase.value;
     }
@@ -694,7 +696,7 @@ const onTutorialComplete = () => {
 };
 
 const closePractice = () => {
-  if (confirm('?ㅼ뒿??醫낅즺?섍퀬 紐⑸줉?쇰줈 ?뚯븘媛?쒓쿋?듬땲源?')) {
+  if (confirm('실습을 종료하고 목록으로 돌아가시겠습니까?')) {
     emit('close');
   }
 };
@@ -704,7 +706,7 @@ const resetFlow = () => {
     finalReport.value = null;
     showMetrics.value = false;
     showHintDuck.value = false;
-    addSystemLog("?쒖뒪?쒖쓣 泥섏쓬遺???ㅼ떆 ?쒖옉?⑸땲??", "INFO");
+    addSystemLog("시스템을 처음부터 다시 시작합니다.", "INFO");
 };
 
 const completeMission = () => {
@@ -713,7 +715,7 @@ const completeMission = () => {
     if (stageIdx < 9) {
         gameStore.selectedQuestIndex = stageIdx + 1;
     }
-    addSystemLog(`誘몄뀡 ?꾨즺: ?ㅽ뀒?댁? ${gameState.currentStageId} ?곗씠?곕쿋?댁뒪 湲곕줉??`, "SUCCESS");
+    addSystemLog(`미션 완료: 스테이지 ${gameState.currentStageId} 데이터베이스 기록됨.`, "SUCCESS");
     emit('close');
 };
 
@@ -724,14 +726,14 @@ const isNaturalLanguagePhase = computed(() => {
     return false;
 });
 
-// [2026-02-14] 5? 吏???됯? ?쒖뒪??異붽? (?곹깭 蹂?섎뒗 ?곷떒?쇰줈 ?대룞??
+// [2026-02-14] 5대 지표 평가 시스템 추가 (상태 변수는 상단으로 이동됨)
 
 async function runComprehensiveEvaluation() {
   if (finalReport.value || isProcessing.value) return;
   
   try {
     isProcessing.value = true;
-    gameState.feedbackMessage = "?쒕땲???꾪궎?랁듃媛 理쒖쥌 寃??以묒엯?덈떎...";
+    gameState.feedbackMessage = "시니어 아키텍트가 최종 검토 중입니다...";
     
     const evaluator = new ComprehensiveEvaluator(getApiKey());
     const evaluationResults = await evaluator.evaluate({
@@ -783,7 +785,7 @@ function renderRadarChart() {
         metrics.consistency.name
       ],
       datasets: [{
-        label: '?뱀떊???먯닔',
+        label: '당신의 점수',
         data: [
           metrics.abstraction.percentage,
           metrics.implementation.percentage,
@@ -888,7 +890,7 @@ const { monacoOptions, handleMonacoMount } = useMonacoEditor(
 <style scoped src="./CoduckWars.css"></style>
 
 <style scoped>
-/* [2026-02-14] 肄붾뜒 罹먮┃???대┃ ?좊룄 ?④낵 ?쒓굅 (?ъ슜???붿껌: ?섎룞 ?뚰듃留??쒓났) */
+/* [2026-02-14] 코덕 캐릭터 클릭 유도 효과 제거 (사용자 요청: 수동 힌트만 제공) */
 .visual-frame {
     position: relative;
     cursor: pointer;
@@ -924,7 +926,7 @@ const { monacoOptions, handleMonacoMount } = useMonacoEditor(
 </style>
 
 <style scoped>
-/* 2026-02-14 ?섏젙: ?ㅻ뜑 ?좉퇋 踰꾪듉 ?ㅽ???(?쒗넗由ъ뼹, ?ㅼ뒿 醫낅즺) */
+/* 2026-02-14 수정: 헤더 신규 버튼 스타일 (튜토리얼, 실습 종료) */
 .btn-tutorial-trigger {
   background: rgba(59, 130, 246, 0.1);
   border: 1px solid rgba(59, 130, 246, 0.3);
@@ -967,7 +969,7 @@ const { monacoOptions, handleMonacoMount } = useMonacoEditor(
   box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
 }
 
-/* [2026-02-14] ?ㅻ뜑???뚰듃 踰꾪듉 (遺됱????꾩튂) */
+/* [2026-02-14] 헤더용 힌트 버튼 (붉은색 위치) */
 .btn-hint-header {
   background: rgba(251, 191, 36, 0.1);
   border: 1px solid rgba(251, 191, 36, 0.3);

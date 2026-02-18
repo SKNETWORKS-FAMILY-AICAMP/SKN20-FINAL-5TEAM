@@ -1,19 +1,19 @@
-﻿<template>
+<template>
   <div class="code-flow-visualizer">
-    <!-- ?곷떒: ?議??곸뿭 (?섏궗肄붾뱶 vs Python) -->
+    <!-- 상단: 대조 영역 (의사코드 vs Python) -->
     <div class="comparison-area">
       <!-- Left: Input Pseudocode -->
       <div class="code-panel pseudocode-panel">
         <div class="panel-header">
-          <span class="icon">?뱷</span>
+          <span class="icon">📝</span>
           <span class="title">INPUT_LOGIC (PSEUDO CODE)</span>
         </div>
-        <!-- [蹂듦뎄 ?묒쟾 紐⑤뱶] ?쇰㈃ ?꾩옱 吏꾪뻾 ?곹솴 ?쒖떆 -->
+        <!-- [복구 작전 모드] 라면 현재 진행 상황 표시 -->
         <div v-if="isBlueprintMode" class="code-content pre-wrap reconstruction-list">
            <div v-for="(s, idx) in blueprintSteps" :key="idx" 
                 class="recon-step" :class="{ 'active': currentStepIdx === idx, 'completed': currentStepIdx > idx }">
               <span class="step-num">{{ idx + 1 }}</span>
-              <span class="step-pseudo">{{ currentStepIdx > idx ? (userRestoredSteps[idx] || s.pseudo) : (currentStepIdx === idx ? '?? ?ㅺ퀎 吏꾪뻾 以???' : '...') }}</span>
+              <span class="step-pseudo">{{ currentStepIdx > idx ? (userRestoredSteps[idx] || s.pseudo) : (currentStepIdx === idx ? '?? 설계 진행 중 ??' : '...') }}</span>
            </div>
         </div>
         <div v-else class="code-content pre-wrap">{{ pseudocode }}</div>
@@ -22,11 +22,11 @@
       <!-- Right: Generated Python -->
       <div class="code-panel python-panel">
         <div class="panel-header">
-          <span class="icon">?릫</span>
+          <span class="icon">🐍</span>
           <span class="title">AI_IMPLEMENTATION (PYTHON)</span>
         </div>
         <div class="code-content">
-          <!-- [蹂듦뎄 ?묒쟾 紐⑤뱶] ?꾩옱 留욎텣 ?④퀎源뚯? ?섏씠?쇱씠??-->
+          <!-- [복구 작전 모드] 현재 맞춘 단계까지 하이라이트 -->
           <div v-if="isBlueprintMode" class="blueprint-python-viewer">
              <div v-for="(s, idx) in blueprintSteps" :key="idx" 
                   class="py-step-block" :class="{ 'highlight': currentStepIdx === idx, 'faded': currentStepIdx < idx }">
@@ -38,51 +38,51 @@
       </div>
     </div>
 
-    <!-- ?섎떒: ?④퀎蹂?寃利??곸뿭 -->
+    <!-- 하단: 단계별 검증 영역 -->
     <div class="validation-area">
       <div class="advice-block" :class="{ 'is-recovery-complete': isBlueprintComplete }">
         <div class="advice-header">
-          <span class="icon">?뮕</span>
+          <span class="icon">💡</span>
           <span class="title">{{ isBlueprintComplete ? 'SYSTEM RECOVERED' : 'AI ARCHITECT ADVICE' }}</span>
         </div>
         <p class="advice-text">
-            {{ isBlueprintComplete ? '?깃났?곸쑝濡??꾪궎?띿쿂瑜?蹂듦뎄?덉뒿?덈떎! ?뱀떊? ?댁젣 ?щ컮瑜??ㅺ퀎 ?먯튃???댄빐???꾪궎?랁듃?낅땲??' : evaluationFeedback }}
+            {{ isBlueprintComplete ? '성공적으로 아키텍처를 복구했습니다! 당신은 이제 올바른 설계 원칙을 이해한 아키텍트입니다.' : evaluationFeedback }}
         </p>
       </div>
 
-      <!-- 2-1?④퀎: [蹂듦뎄 ?묒쟾] 留ㅼ묶 ?곸뿭 -->
+      <!-- 2-1단계: [복구 작전] 매칭 영역 -->
       <div v-if="isBlueprintMode && !isBlueprintComplete" class="challenge-block blueprint-section recovery-action">
         <div class="challenge-header">
            <div class="recovery-guide-banner">
-              <span class="guide-icon">?썱截?/span>
+              <span class="guide-icon">🛠️</span>
               <div class="guide-text">
-                <strong>?꾪궎?띿쿂 蹂듦뎄 ?묒쟾:</strong> ?섏씠?쇱씠?몃맂 ?뚯씠??肄붾뱶???뚮쭪? ?ㅺ퀎 ?섎룄(?섏궗肄붾뱶)瑜?<span class="highlight-text">吏곸젒 ?낅젰</span>?섍굅???꾨옒?먯꽌 <span class="highlight-text">?좏깮</span>?섏꽭??
+                <strong>아키텍처 복구 작전:</strong> 하이라이트된 파이썬 코드에 알맞은 설계 의도(의사코드)를 <span class="highlight-text">직접 입력</span>하거나 아래에서 <span class="highlight-text">선택</span>하세요.
               </div>
            </div>
         </div>
 
         <div class="recovery-interaction-hub">
-           <!-- [NEW] ?듭떖 ?ㅼ썙??媛?대뱶 ?곸뿭 -->
+           <!-- [NEW] 핵심 키워드 가이드 영역 -->
            <div class="keyword-hint-area">
-              <span class="hint-label">?뵎 ?듭떖 ?ㅼ썙??</span>
+              <span class="hint-label">🔑 핵심 키워드:</span>
               <div class="keyword-tags">
                  <span v-for="k in currentStepKeywords" :key="k" class="keyword-tag">{{ k }}</span>
               </div>
            </div>
 
-           <!-- [NEW] ?섎룞 ?낅젰 紐⑤뱶 -->
+           <!-- [NEW] 수동 입력 모드 -->
            <div class="manual-input-zone">
               <input 
                 v-model="manualInput" 
                 class="recovery-input" 
                 :class="{ 'error-shake': showInputError }"
-                placeholder="?ㅼ썙?쒕? ?쒖슜???ㅺ퀎 ?섎룄瑜??묒꽦??蹂댁꽭??.."
+                placeholder="키워드를 활용해 설계 의도를 작성해 보세요..."
                 @keyup.enter="handleManualSubmit"
               />
-              <button class="btn-verify" @click="handleManualSubmit">?뺤씤</button>
+              <button class="btn-verify" @click="handleManualSubmit">확인</button>
            </div>
            <div v-if="showInputError" class="input-error-msg animate-fadeIn">
-              ?낅젰?섏떊 ?댁슜???듭떖 ?ㅼ썙?쒓? 遺議깊빀?덈떎. ???뚰듃瑜?李멸퀬??蹂댁꽭??
+              입력하신 내용에 핵심 키워드가 부족합니다. 위 힌트를 참고해 보세요!
            </div>
 
            <div class="divider"><span>OR SELECT BELOW</span></div>
@@ -106,11 +106,11 @@
         </div>
       </div>
 
-      <!-- 2-2?④퀎: ?쇰컲 MCQ ?먮뒗 ?꾨즺 ???몄텧 -->
+      <!-- 2-2단계: 일반 MCQ 또는 완료 후 노출 -->
       <div v-else-if="(phase === 'PYTHON_VISUALIZATION' || phase === 'TAIL_QUESTION') && !isBlueprintMode" class="challenge-block mcq-section">
         <div class="challenge-header">
           <span class="badge">DEEP DIVE CHALLENGE</span>
-          <h4 class="challenge-question">[{{ mcqData?.context || '寃利? }}] {{ mcqData?.question || '?곗씠?곕? 遺꾩꽍?????놁뒿?덈떎.' }}</h4>
+          <h4 class="challenge-question">[{{ mcqData?.context || '검증' }}] {{ mcqData?.question || '데이터를 분석할 수 없습니다.' }}</h4>
         </div>
         
         <div class="options-grid">
@@ -133,18 +133,18 @@
       </div>
 
       <div v-if="isMcqAnswered || isBlueprintComplete" class="mcq-feedback-popup">
-          <p class="text-success">?렞 ?뺣떟?낅땲?? ?꾪궎?띿쿂 ?먮쫫???꾨꼍??蹂듦뎄?섏뿀?듬땲??</p>
+          <p class="text-success">🎯 정답입니다! 아키텍처 흐름이 완벽히 복구되었습니다.</p>
       </div>
 
       <div v-if="phase === 'DEEP_DIVE_DESCRIPTIVE'" class="challenge-block descriptive-section">
         <div class="challenge-header">
-          <span class="badge scenario-badge">{{ assignedScenario?.axis }}??異?梨뚮┛吏</span>
+          <span class="badge scenario-badge">{{ assignedScenario?.axis }}의 축 챌린지</span>
           <div class="scenario-intent-guide">
-            <span class="guide-label">?렞 ?ㅺ퀎 ?섎룄:</span>
+            <span class="guide-label">🎯 설계 의도:</span>
             <span class="guide-text">{{ assignedScenario?.intent }}</span>
           </div>
           <h4 class="challenge-question">
-            <strong>[?쒕굹由ъ삤: {{ assignedScenario?.title }}]</strong><br/>
+            <strong>[시나리오: {{ assignedScenario?.title }}]</strong><br/>
             {{ assignedScenario?.question }}
           </h4>
         </div>
@@ -153,20 +153,20 @@
           <textarea 
             v-model="descriptiveAnswer"
             class="descriptive-textarea"
-            placeholder="?쒕굹由ъ삤??????닿껐梨낆쓣 1~2臾몄옣???먯뿰?대줈 ?쒖닠?섏꽭??.."
+            placeholder="시나리오에 대한 해결책을 1~2문장의 자연어로 서술하세요..."
             :disabled="isDescriptionSubmitted"
           ></textarea>
         </div>
 
-        <!-- [異붽?] 紐⑤쾾 ?듭븞 ?몄텧 ?곸뿭 -->
+        <!-- [추가] 모범 답안 노출 영역 -->
         <div v-if="isDescriptionSubmitted" class="model-answer-block animate-fadeIn">
             <div class="model-answer-header">
-                <span class="model-icon">?룇</span>
-                <strong>AI ?꾪궎?랁듃??紐⑤쾾 ?듭븞</strong>
+                <span class="model-icon">🏆</span>
+                <strong>AI 아키텍트의 모범 답안</strong>
             </div>
             <p class="model-answer-text">{{ assignedScenario?.modelAnswer }}</p>
             <div class="model-answer-tip">
-                * ?ㅼ젣 ?됯? ?먯닔??由ы룷???앹꽦 ??5李⑥썝 硫뷀듃由?쑝濡??곸꽭 遺꾩꽍?⑸땲??
+                * 실제 평가 점수는 리포트 생성 시 5차원 메트릭으로 상세 분석됩니다.
             </div>
         </div>
       </div>
@@ -178,13 +178,17 @@
           :disabled="!isPhaseReady"
           @click="handleNext"
         >
-          {{ nextButtonText }} ??        </button>
+          {{ nextButtonText }} →
+        </button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
+/**
+ * [2026-02-18] pseudo_tts 브랜치와 프론트엔드 UI 및 로직 완전 동기화 (한글 인코딩 복구 포함)
+ */
 import { ref, computed, watch } from 'vue';
 
 const props = defineProps({
@@ -194,7 +198,7 @@ const props = defineProps({
   evaluationScore: Number,
   evaluationFeedback: String,
   mcqData: Object,
-  blueprintSteps: Array,      // 異붽?: [{python, pseudo}]
+  blueprintSteps: Array,      // 추가: [{python, pseudo}]
   assignedScenario: Object,
   isMcqAnswered: Boolean
 });
@@ -208,7 +212,8 @@ const descriptiveAnswer = ref("");
 const isDescriptionSubmitted = ref(false);
 const manualInput = ref("");
 const showInputError = ref(false);
-const userRestoredSteps = ref([]); // ?ъ슜?먭? 吏곸젒 ??댄븨?섍굅???좏깮??臾몄옣 ???
+const userRestoredSteps = ref([]); // 사용자가 직접 타이핑하거나 선택한 문장 저장
+
 const isBlueprintMode = computed(() => props.blueprintSteps && props.blueprintSteps.length > 0);
 const isBlueprintComplete = computed(() => isBlueprintMode.value && currentStepIdx.value >= props.blueprintSteps.length);
 
@@ -217,7 +222,7 @@ const currentStepKeywords = computed(() => {
     return props.blueprintSteps[currentStepIdx.value]?.keywords || [];
 });
 
-// 泥?궗吏?紐⑤뱶???쒕뜡 ?듭뀡 ?앹꽦 (?뺣떟 + ?ㅻ떟 ?욊린)
+// 청사진 모드용 랜덤 옵션 생성 (정답 + 오답 섞기)
 const blueprintOptions = computed(() => {
   if (!isBlueprintMode.value || isBlueprintComplete.value) return [];
   const current = props.blueprintSteps[currentStepIdx.value];
@@ -238,10 +243,10 @@ const isPhaseReady = computed(() => {
 });
 
 const nextButtonText = computed(() => {
-  if (isBlueprintMode.value && !isBlueprintComplete.value) return "?ㅺ퀎 蹂듦뎄 吏꾪뻾 以?;
-  if (props.phase === 'PYTHON_VISUALIZATION' || props.phase === 'TAIL_QUESTION') return "DEEP DIVE 吏꾩엯";
-  if (props.phase === 'DEEP_DIVE_DESCRIPTIVE') return "理쒖쥌 ?됯? 由ы룷???앹꽦";
-  return "?ㅼ쓬 ?④퀎";
+  if (isBlueprintMode.value && !isBlueprintComplete.value) return "설계 복구 진행 중";
+  if (props.phase === 'PYTHON_VISUALIZATION' || props.phase === 'TAIL_QUESTION') return "DEEP DIVE 진입";
+  if (props.phase === 'DEEP_DIVE_DESCRIPTIVE') return "최종 평가 리포트 생성";
+  return "다음 단계";
 });
 
 const handleStepPick = (idx) => {
@@ -268,7 +273,7 @@ const handleManualSubmit = () => {
     const targetKeywords = current.keywords || [];
     const matchCount = targetKeywords.filter(k => manualInput.value.includes(k)).length;
     
-    // [?먮퉬濡쒖슫 寃利? ?ㅼ썙?쒓? 1媛쒕쭔 ?덉뼱???몄젙
+    // [자비로운 검증] 키워드가 1개만 있어도 인정
     if (matchCount >= 1 || manualInput.value.length > 30) {
         userRestoredSteps.value[currentStepIdx.value] = manualInput.value; 
         proceedToNextStep();
@@ -319,10 +324,10 @@ const handleNext = () => {
   grid-template-columns: 1fr 1fr;
   gap: 1.5rem;
   padding: 1.5rem;
-  min-height: 55vh; /* [2026-02-14] ?섎떒 踰꾪듉 ?몄텧 ?뺣낫瑜??꾪빐 ?섑뼢 */
+  min-height: 55vh; /* [2026-02-14] 하단 버튼 노출 확보를 위해 하향 */
 }
 
-/* [2026-02-14] 蹂듦뎄 ?묒쟾 ?꾩슜 UI ?ㅽ???*/
+/* [2026-02-14] 복구 작전 전용 UI 스타일 */
 .recovery-guide-banner {
   background: rgba(59, 130, 246, 0.15);
   border: 1px solid rgba(59, 130, 246, 0.3);
@@ -369,7 +374,7 @@ const handleNext = () => {
   cursor: pointer;
 }
 
-/* [2026-02-14] ?ㅼ썙???뚰듃 ?ㅽ???*/
+/* [2026-02-14] 키워드 힌트 스타일 */
 .keyword-hint-area {
   display: flex;
   align-items: center;
@@ -464,7 +469,7 @@ const handleNext = () => {
   flex: 1;
   padding: 1.5rem;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 1rem; /* ?고듃 ?ш린 ?뚰룺 ?곹뼢 */
+  font-size: 1rem; /* 폰트 크기 소폭 상향 */
   line-height: 1.7;
   white-space: pre-wrap;
   word-break: break-all;
@@ -636,7 +641,7 @@ const handleNext = () => {
   border-color: #fbbf24;
 }
 
-/* [2026-02-14] 紐⑤쾾 ?듭븞 ?ㅽ???*/
+/* [2026-02-14] 모범 답안 스타일 */
 .model-answer-block {
   background: rgba(251, 191, 36, 0.08);
   border: 1px solid rgba(251, 191, 36, 0.3);
@@ -711,7 +716,7 @@ const handleNext = () => {
   box-shadow: none;
 }
 
-/* [泥?궗吏?蹂듦뎄 ?묒쟾 ?꾩슜 ?ㅽ??? */
+/* [청사진 복구 작전 전용 스타일] */
 .reconstruction-list {
   display: flex;
   flex-direction: column;

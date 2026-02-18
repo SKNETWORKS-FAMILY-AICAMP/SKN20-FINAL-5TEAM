@@ -1,13 +1,15 @@
-﻿/**
+/**
  * useCoduckWars.js - Refactored (Restored and Fixed)
  * 
- * 媛쒖꽑 ?ы빆:
- * - 5李⑥썝 硫뷀듃由?湲곕컲 ?됯? ?곸슜
- * - Tail Question 遺꾧린 濡쒖쭅 異붽?
- * - 吏꾨떒 ?④퀎 ?곕룞 (diagnosticQuestion, submitDiagnostic)
- * - ?먮룞 ?뚰듃 ??대㉧ ?섎룞??(?ъ슜???붿껌)
+ * [2026-02-18] pseudo_tts 브랜치와 프론트엔드 UI 및 로직 완전 동기화 (한글 인코딩 복구 포함)
  * 
- * [2026-02-14] 癒몄? ?댁뒋 諛??고????먮윭(TypeError) ?꾩쟾 ?닿껐
+ * 개선 사항:
+ * - 5차원 메트릭 기반 평가 적용
+ * - Tail Question 분기 로직 추가
+ * - 진단 단계 연동 (diagnosticQuestion, submitDiagnostic)
+ * - 자동 힌트 타이머 수동화 (사용자 요청)
+ * 
+ * [2026-02-14] 머지 이슈 및 런타임 에러(TypeError) 완전 해결
  */
 
 import { ref, computed, reactive, watch } from 'vue';
@@ -45,14 +47,14 @@ export function useCoduckWars() {
         submitPythonFill
     } = useCodeRunner(gameState, currentMission, addSystemLog, setPhase);
 
-    // 以묐났 ?붿껌 李⑤떒
+    // 중복 요청 차단
     const isProcessing = ref(false);
 
     // UI State
     const isGuideOpen = ref(false);
     const selectedGuideIdx = ref(0);
     const showModelAnswer = ref(false);
-    const isEvaluating = ref(false); // [NEW] ?됯? 以??곹깭
+    const isEvaluating = ref(false); // [NEW] 평가 중 상태
 
     const toggleGuide = () => { isGuideOpen.value = !isGuideOpen.value; };
     const handleGuideClick = (idx) => { selectedGuideIdx.value = idx; };
@@ -67,14 +69,14 @@ export function useCoduckWars() {
     const submitDiagnostic = async (answer) => {
         if (!diagnosticQuestion.value || isProcessing.value) return;
 
-        // ?대? ?듬? ?꾨즺???곹깭?먯꽌 ?몄텧?섎㈃ ?ㅼ쓬 ?④퀎濡?吏꾪뻾
+        // 이미 답변 완료된 상태에서 호출되면 다음 단계로 진행
         if (gameState.isDiagnosticAnswered) {
             moveNextDiagnosticStep();
             return;
         }
 
         try {
-            // [媛앷???泥섎━]
+            // [객관식 처리]
             if (diagnosticQuestion.value.type === 'CHOICE') {
                 const idx = answer;
                 const opt = diagnosticQuestion.value.options[idx];
@@ -84,19 +86,19 @@ export function useCoduckWars() {
 
                 if (opt.correct || opt.is_correct) {
                     gameState.score += 100;
-                    gameState.coduckMessage = opt.feedback || '?뺥솗??媛쒕뀗 ?댄빐?낅땲??';
-                    addSystemLog("?뺥솗??遺꾩꽍?낅땲?? ?ㅺ퀎 ?λ젰??利앸챸?섏뿀?듬땲??", "SUCCESS");
+                    gameState.coduckMessage = opt.feedback || '정확한 개념 이해입니다.';
+                    addSystemLog("정확한 분석입니다! 설계 능력이 증명되었습니다.", "SUCCESS");
                 } else {
                     handleDamage(15);
-                    gameState.coduckMessage = `?ㅻ떟?낅땲?? ${opt.feedback || '?쇰━???덉젏??諛쒓껄?섏뿀?듬땲??'}`;
-                    addSystemLog(`遺꾩꽍 ?ㅻ쪟媛 媛먯??섏뿀?듬땲??`, "WARN");
+                    gameState.coduckMessage = `오답입니다: ${opt.feedback || '논리적 허점이 발견되었습니다.'}`;
+                    addSystemLog(`분석 오류가 감지되었습니다.`, "WARN");
                 }
                 return;
             }
 
-            // [?쒖닠??泥섎━ - 湲곗〈 濡쒖쭅 ?좎??섎릺 ?쇰뱶諛?猷⑦봽 異붽? ?꾩슂???섏젙 ?덉젙]
+            // [서술형 처리 - 기존 로직 유지하되 피드백 루프 추가 필요시 수정 예정]
             isProcessing.value = true;
-            addSystemLog("二쇨????듬? 遺꾩꽍 以?..", "INFO");
+            addSystemLog("주관식 답변 분석 중...", "INFO");
 
             const result = await evaluateDiagnosticAnswer(diagnosticQuestion.value, answer.text || answer);
 
@@ -104,18 +106,18 @@ export function useCoduckWars() {
             gameState.diagnosticScores.push(result.score || 0);
 
             if (result.is_correct) {
-                gameState.coduckMessage = `?뚮??⑸땲?? ${result.feedback || '?ㅺ퀎 ?λ젰??利앸챸?섏뿀?듬땲??'}`;
-                addSystemLog("?뺥솗??遺꾩꽍?낅땲??", "SUCCESS");
+                gameState.coduckMessage = `훌륭합니다! ${result.feedback || '설계 능력이 증명되었습니다.'}`;
+                addSystemLog("정확한 분석입니다!", "SUCCESS");
             } else {
                 handleDamage(10);
-                gameState.coduckMessage = `蹂댁땐???꾩슂?⑸땲?? ${result.feedback || '?쇰━???덉젏??諛쒓껄?섏뿀?듬땲??'}`;
-                addSystemLog(`遺꾩꽍 ?ㅻ쪟: ${result.feedback}`, "WARN");
+                gameState.coduckMessage = `보충이 필요합니다: ${result.feedback || '논리적 허점이 발견되었습니다.'}`;
+                addSystemLog(`분석 오류: ${result.feedback}`, "WARN");
             }
 
             gameState.isDiagnosticAnswered = true;
         } catch (error) {
             console.error("Diagnostic Evaluation Error:", error);
-            addSystemLog("吏꾨떒 ?됯? 以??ㅻ쪟", "ERROR");
+            addSystemLog("진단 평가 중 오류", "ERROR");
             moveNextDiagnosticStep();
         } finally {
             isProcessing.value = false;
@@ -125,7 +127,7 @@ export function useCoduckWars() {
     const moveNextDiagnosticStep = () => {
         gameState.isDiagnosticAnswered = false;
         gameState.diagnosticAnswerIdx = null;
-        gameState.coduckMessage = "?ㅼ쓬 ?곗씠??遺꾩꽍???쒖옉?⑸땲??";
+        gameState.coduckMessage = "다음 데이터 분석을 시작합니다.";
 
         const totalQuestions = currentMission.value?.interviewQuestions?.length || 0;
         if (gameState.diagnosticStep < totalQuestions - 1) {
@@ -135,27 +137,27 @@ export function useCoduckWars() {
         }
     };
 
-    // --- Checklist (洹쒖튃 湲곕컲 ?ㅼ떆媛??쇰뱶諛? ---
+    // --- Checklist (규칙 기반 실시간 피드백) ---
     const ruleChecklist = ref([
         {
             id: 'check_isolation',
-            label: '寃⑸━ (Isolation) ?ы븿',
-            patterns: [/寃⑸━|遺꾨━|?섎늻|?섎닎|isolation|split/i],
-            hint: "?곗씠?곕? ?섎늻??'寃⑸━' 媛쒕뀗???ы븿?섏뼱???⑸땲??",
+            label: '격리 (Isolation) 포함',
+            patterns: [/격리|분리|나누|나눔|isolation|split/i],
+            hint: "데이터를 나누는 '격리' 개념이 포함되어야 합니다.",
             completed: false
         },
         {
             id: 'check_anchor',
-            label: '湲곗???(Anchor) ?뺤쓽',
-            patterns: [/湲곗???湲곗?|?듦퀎??fit|anchor|?숈뒿/i],
-            hint: "?듦퀎?됱쓣 異붿텧????곸씤 '湲곗?????紐낆떆?섏뼱???⑸땲??",
+            label: '기준점 (Anchor) 정의',
+            patterns: [/기준점|기준|통계량|fit|anchor|학습/i],
+            hint: "통계량을 추출할 대상인 '기준점'이 명시되어야 합니다.",
             completed: false
         },
         {
             id: 'check_consistency',
-            label: '?쇨???(Consistency) ?뺣낫',
-            patterns: [/?쇨????숈씪|蹂??consistency|transform/i],
-            hint: "?숈뒿怨??댁쁺 ?섍꼍??'?쇨??? ?덈뒗 蹂??諛⑹떇???ы븿?섏뼱???⑸땲??",
+            label: '일관성 (Consistency) 확보',
+            patterns: [/일관성|동일|변환|consistency|transform/i],
+            hint: "학습과 운영 환경의 '일관성' 있는 변환 방식이 포함되어야 합니다.",
             completed: false
         }
     ]);
@@ -172,11 +174,11 @@ export function useCoduckWars() {
         gameState.phase3Reasoning.trim().length > 0
     );
 
-    // [2026-02-14 ?섏젙] ?섎룞 ?뚰듃 ?꾪솚?쇰줈 ?명븳 ??대㉧ 鍮꾪솢?깊솕
+    // [2026-02-14 수정] 수동 힌트 전환으로 인한 타이머 비활성화
     const startHintTimer = () => { };
     const resetHintTimer = () => { };
 
-    // ?ㅼ떆媛??뚰듃 ?ㅻ━ 愿???곹깭
+    // 실시간 힌트 오리 관련 상태
     const showHintDuck = ref(false);
     const dynamicHintMessage = ref("");
 
@@ -195,24 +197,24 @@ export function useCoduckWars() {
         const code = gameState.phase3Reasoning || "";
         const HINT_DATA = {
             surrender: {
-                title: "?맋 [蹂듦린 ?숈뒿 ?쒖븞]",
-                pool: ["?ㅺ퀎媛 留됰쭑?섏떊媛?? [?ы솕 遺꾩꽍 ?쒖옉]???뚮윭 泥?궗吏꾩쓣 ?뺤씤?대낫?몄슂."]
+                title: "🐣 [복기 학습 제안]",
+                pool: ["설계가 막막하신가요? [심화 분석 시작]을 눌러 청사진을 확인해보세요."]
             },
             isolation: {
-                title: "?맋 [寃⑸━ ?좊룄]",
-                pool: ["?곗씠??遺꾪븷 ?쒖젏???곸젅?쒖? ?ㅼ떆 ?쒕쾲 ?앷컖?대낫?몄슂."]
+                title: "🐣 [격리 유도]",
+                pool: ["데이터 분할 시점이 적절한지 다시 한번 생각해보세요."]
             },
             anchor: {
-                title: "?맋 [湲곗???援먯젙 ?뚰듃]",
-                pool: ["?뺣떟吏(Test)媛 湲곗????ㅼ젙???ы븿?섏????딆븯?섏슂?"]
+                title: "🐣 [기준점 교정 힌트]",
+                pool: ["정답지(Test)가 기준점 설정에 포함되지는 않았나요?"]
             },
             consistency: {
-                title: "?맋 [?쇨???媛뺤“ ?뚰듃]",
-                pool: ["?숈뒿 ???쇰뜕 ?숈씪??蹂??諛⑹떇???뚯뒪?몄뿉???곸슜?덈굹??"]
+                title: "🐣 [일관성 강조 힌트]",
+                pool: ["학습 때 썼던 동일한 변환 방식을 테스트에도 적용했나요?"]
             },
             abstraction: {
-                title: "?맋 [援ъ“???낅젮 ?뚰듃]",
-                pool: ["?ㅺ퀎???멸낵愿怨꾧? ???쒕윭?섎룄濡?臾몄옣???ㅻ벉?대낫?몄슂."]
+                title: "🐣 [구조화 독려 힌트]",
+                pool: ["설계의 인과관계가 잘 드러나도록 문장을 다듬어보세요."]
             }
         };
 
@@ -223,25 +225,25 @@ export function useCoduckWars() {
             dynamicHintMessage.value = `${entry.title}\n\n${randomSentence}`;
         };
 
-        const surrenderKeywords = /??s*紐⑤Ⅴ寃좊떎|紐⑤쫫|紐곕씪|?대졄???대젮???ш린|?섎뱾??i;
+        const surrenderKeywords = /잘\s*모르겠다|모름|몰라|어렵다|어려워|포기|힘들어/i;
         if (surrenderKeywords.test(code) || (code.trim().length > 0 && code.trim().length < 5)) {
             setHint('surrender');
             return;
         }
 
-        const isolationKeywords = /split|遺꾪븷|?섎늻湲?履쇨컻湲?寃⑸━/i;
+        const isolationKeywords = /split|분할|나누기|쪼개기|격리/i;
         if (!isolationKeywords.test(code)) {
             setHint('isolation');
             return;
         }
 
-        const anchorError = /fit\s*\(\s*(total|all|df|?꾩껜|?뚯뒪??test)/i.test(code);
+        const anchorError = /fit\s*\(\s*(total|all|df|전체|테스트|test)/i.test(code);
         if (anchorError) {
             setHint('anchor');
             return;
         }
 
-        const consistencyKeywords = /transform|蹂???곸슜|?숈씪?섍쾶|?묎컳??i;
+        const consistencyKeywords = /transform|변환|적용|동일하게|똑같이/i;
         if (!consistencyKeywords.test(code)) {
             setHint('consistency');
             return;
@@ -252,7 +254,7 @@ export function useCoduckWars() {
             return;
         }
 
-        dynamicHintMessage.value = "?맋 [?ㅺ퀎 ?꾨즺]\n\n?꾨꼍??媛源뚯슫 ?ㅺ퀎?낅땲?? ?뱀씤???붿껌??蹂댁꽭??";
+        dynamicHintMessage.value = "🐣 [설계 완료]\n\n완벽에 가까운 설계입니다! 승인을 요청해 보세요.";
     };
 
     watch(() => gameState.phase3Reasoning, (newCode) => {
@@ -282,14 +284,15 @@ export function useCoduckWars() {
         one_line_review: "",
         persona_name: "Senior Architect",
         details: [],
-        supplementaryVideos: [] // CoduckWars.vue UI ?곕룞??    });
+        supplementaryVideos: [] // CoduckWars.vue UI 연동용
+    });
 
     const submitPseudo = async () => {
         if (isProcessing.value || !canSubmitPseudo.value) return;
         isProcessing.value = true;
 
         try {
-            gameState.feedbackMessage = "遺꾩꽍 以?..";
+            gameState.feedbackMessage = "분석 중...";
             const diagnosticContext = {
                 answers: [gameState.diagnosticAnswer],
                 scores: gameState.diagnosticScores
@@ -298,13 +301,13 @@ export function useCoduckWars() {
             const evaluation = await evaluatePseudocode5D(currentMission.value, gameState.phase3Reasoning, diagnosticContext);
             Object.assign(evaluationResult, evaluation);
             evaluationResult.finalScore = evaluation.overall_score;
-            // [2026-02-14] UI ?명솚?깆쓣 ?꾪빐 異붿쿇 ?곸긽 留ㅽ븨
+            // [2026-02-14] UI 호환성을 위해 추천 영상 매핑
             evaluationResult.supplementaryVideos = evaluation.recommended_videos || [];
 
             setPhase('PYTHON_VISUALIZATION');
         } catch (error) {
             console.error(error);
-            addSystemLog("?됯? ?쒖뒪???쇱떆 ?μ븷", "ERROR");
+            addSystemLog("평가 시스템 일시 장애", "ERROR");
         } finally {
             isProcessing.value = false;
         }
@@ -314,34 +317,35 @@ export function useCoduckWars() {
 
     const retryDesign = () => {
         setPhase('PSEUDO_WRITE');
-        addSystemLog("?ㅺ퀎 蹂댁셿 紐⑤뱶 ?쒖꽦??, "INFO");
+        addSystemLog("설계 보완 모드 활성화", "INFO");
     };
 
     /**
-     * Python ?쒓컖???④퀎?먯꽌 '?ㅼ쓬(DEEP DIVE 吏꾩엯)' ?대┃ ??     */
+     * Python 시각화 단계에서 '다음(DEEP DIVE 진입)' 클릭 시
+     */
     const handlePythonVisualizationNext = () => {
-        // [2026-02-14 ?섏젙] 臾댁꽦???낅젰 蹂듦뎄 紐⑤뱶(is_low_effort)??寃쎌슦 MCQ ?듬? 泥댄겕 ?고쉶
+        // [2026-02-14 수정] 무성의 입력 복구 모드(is_low_effort)인 경우 MCQ 답변 체크 우회
         if (!gameState.isMcqAnswered && !evaluationResult.is_low_effort) {
-            addSystemLog("?꾪궎?띿쿂 寃고븿 蹂댁셿 臾몄젣瑜?癒쇱? ?꾨즺?댁＜?몄슂.", "WARN");
+            addSystemLog("아키텍처 결함 보완 문제를 먼저 완료해주세요.", "WARN");
             return;
         }
 
-        // 3? ?ㅻТ ?쒕굹由ъ삤 以??섎굹 ?쒕뜡 ?좊떦 (?대? ?좊떦?섏? ?딆? 寃쎌슦)
+        // 3대 실무 시나리오 중 하나 랜덤 할당 (이미 할당되지 않은 경우)
         if (!gameState.assignedScenario) {
             const scenarios = currentMission.value?.deepDiveScenarios || [];
             if (scenarios.length > 0) {
-                // 臾댁옉??異붿텧
+                // 무작위 추출
                 gameState.assignedScenario = scenarios[Math.floor(Math.random() * scenarios.length)];
             }
         }
 
-        // ?쒖닠??Deep Dive ?섏씠利덈줈 ?꾪솚
+        // 서술형 Deep Dive 페이즈로 전환
         setPhase('DEEP_DIVE_DESCRIPTIVE');
-        addSystemLog(`[?ㅻТ 梨뚮┛吏] ${gameState.assignedScenario?.title} ?쒕굹由ъ삤媛 ?쒖떆?섏뿀?듬땲??`, "INFO");
+        addSystemLog(`[실무 챌린지] ${gameState.assignedScenario?.title} 시나리오가 제시되었습니다.`, "INFO");
     };
 
     /**
-     * MCQ ?듬? 泥섎━ (Tail Question / Deep Quiz 怨듭슜)
+     * MCQ 답변 처리 (Tail Question / Deep Quiz 공용)
      */
     const handleMcqAnswer = async (idx) => {
         const question = deepQuizQuestion.value;
@@ -351,21 +355,21 @@ export function useCoduckWars() {
         }
 
         const selected = question.options[idx];
-        gameState.isMcqAnswered = true; // ?듬? ?꾨즺 湲곕줉
+        gameState.isMcqAnswered = true; // 답변 완료 기록
 
         if (selected.is_correct || selected.correct) {
             gameState.score += 150;
-            gameState.coduckMessage = selected.feedback || '?ㅺ퀎 寃고븿???깃났?곸쑝濡?蹂댁셿?섏뿀?듬땲??';
-            addSystemLog("?곸썡???먮떒?낅땲?? ?ㅺ퀎 寃고븿???깃났?곸쑝濡?蹂댁셿?섏뿀?듬땲??", "SUCCESS");
+            gameState.coduckMessage = selected.feedback || '설계 결함이 성공적으로 보완되었습니다.';
+            addSystemLog("탁월한 판단입니다! 설계 결함이 성공적으로 보완되었습니다.", "SUCCESS");
         } else {
             handleDamage(15);
-            gameState.coduckMessage = `?ㅻ떟?낅땲?? ${selected.feedback || '?꾪궎?띿쿂 臾닿껐?깆씠 ?먯긽?섏뿀?듬땲??'}`;
-            addSystemLog("?먮떒 ?ㅻ쪟?낅땲?? ?꾪궎?띿쿂 臾닿껐?깆씠 ?먯긽?섏뿀?듬땲??", "WARN");
+            gameState.coduckMessage = `오답입니다: ${selected.feedback || '아키텍처 무결성이 손상되었습니다.'}`;
+            addSystemLog("판단 오류입니다. 아키텍처 무결성이 손상되었습니다.", "WARN");
         }
     };
 
     /**
-     * 理쒖쥌 ?ㅻТ ?쒕굹由ъ삤(?쒖닠?? ?쒖텧 泥섎━
+     * 최종 실무 시나리오(서술형) 제출 처리
      */
     const submitDescriptiveDeepDive = async (userAnswer) => {
         if (!userAnswer.trim() || isProcessing.value) return;
@@ -374,21 +378,21 @@ export function useCoduckWars() {
             isProcessing.value = true;
             gameState.deepDiveAnswer = userAnswer;
 
-            addSystemLog("理쒖쥌 ?ㅻТ ?쒕굹由ъ삤 ?ㅺ퀎 遺꾩꽍 以?..", "INFO");
+            addSystemLog("최종 실무 시나리오 설계 분석 중...", "INFO");
 
-            // [2026-02-14 異붽?] 臾댁꽦???낅젰(Low Effort) 蹂듦뎄 ?섎젴 ?꾨즺 ???먯닔 ???蹂댁젙
+            // [2026-02-14 추가] 무성의 입력(Low Effort) 복구 수련 완료 시 점수 대폭 보정
             if (evaluationResult.is_low_effort) {
-                evaluationResult.overall_score = 75; // 0??-> 75?먯쑝濡?蹂듦뎄
+                evaluationResult.overall_score = 75; // 0점 -> 75점으로 복구
                 evaluationResult.total_score_100 = 75;
-                evaluationResult.persona_name = "媛곸꽦???ㅺ퀎 吏留앹깮";
-                evaluationResult.one_line_review = "遺議깊븿???몄젙?섍퀬 ?앷퉴吏 ?꾪궎?띿쿂瑜?蹂듦뎄?대궦 ?덇린媛 ?뗫낫?낅땲??";
+                evaluationResult.persona_name = "각성한 설계 지망생";
+                evaluationResult.one_line_review = "부족함을 인정하고 끝까지 아키텍처를 복구해낸 끈기가 돋보입니다.";
 
-                // 媛?李⑥썝 ?먯닔??'蹂듦뎄???쇰줈 ?낅뜲?댄듃 (諛⑹궗??李⑦듃 諛섏쁺??
+                // 각 차원 점수도 '복구됨'으로 업데이트 (방사형 차트 반영용)
                 const dims = evaluationResult.dimensions;
                 Object.keys(dims).forEach(key => {
-                    dims[key].score = 7; // 10??留뚯젏??7???섏??쇰줈 蹂듦뎄
-                    dims[key].basis = "?숈뒿???듯븳 ?ㅺ퀎 蹂듦뎄 ?깃났";
-                    dims[key].improvement = "?욎쑝濡쒕룄 ???ㅺ퀎 ?먯튃???딆? 留덉꽭??";
+                    dims[key].score = 7; // 10점 만점에 7점 수준으로 복구
+                    dims[key].basis = "학습을 통한 설계 복구 성공";
+                    dims[key].improvement = "앞으로도 이 설계 원칙을 잊지 마세요.";
                 });
             }
 
@@ -404,10 +408,10 @@ export function useCoduckWars() {
     const submitDeepQuiz = async (answer) => {
         if (answer.is_correct) {
             gameState.score += 150;
-            addSystemLog("?ы솕 ?댁쫰 ?뺣떟! ?쒖뒪??肄붿뼱媛 媛뺥솕?섏뿀?듬땲??", "SUCCESS");
+            addSystemLog("심화 퀴즈 정답! 시스템 코어가 강화되었습니다.", "SUCCESS");
         } else {
             handleDamage(15);
-            addSystemLog("?ㅻ떟?낅땲?? ?꾪궎?띿쿂 寃고븿???먯??섏뿀?듬땲??", "WARN");
+            addSystemLog("오답입니다. 아키텍처 결함이 탐지되었습니다.", "WARN");
         }
         setPhase('EVALUATION');
     };
@@ -415,11 +419,11 @@ export function useCoduckWars() {
     const handleTailSelection = (option) => {
         if (option.is_correct) {
             gameState.score += 100;
-            addSystemLog("?쎌젏 蹂댁셿 ?꾨즺!", "SUCCESS");
+            addSystemLog("약점 보완 완료!", "SUCCESS");
             setPhase('DEEP_QUIZ');
         } else {
             handleDamage(10);
-            addSystemLog("異붽? 吏덈Ц ?ㅻ떟 - ?ъ쟻???덈젴???꾩슂?⑸땲??", "WARN");
+            addSystemLog("추가 질문 오답 - 재적응 훈련이 필요합니다.", "WARN");
             retryDesign();
         }
     };
@@ -428,7 +432,7 @@ export function useCoduckWars() {
         const aiTq = evaluationResult.tail_question;
         const aiDq = evaluationResult.deep_dive;
 
-        // ?쒓컖???④퀎(PYTHON_VISUALIZATION)??瑗щ━ 吏덈Ц ?④퀎?먯꽌 ?곗씠??諛섑솚
+        // 시각화 단계(PYTHON_VISUALIZATION)나 꼬리 질문 단계에서 데이터 반환
         if (['PYTHON_VISUALIZATION', 'TAIL_QUESTION', 'DEEP_DIVE_DESCRIPTIVE'].includes(gameState.phase)) {
             return aiTq || aiDq || null;
         }

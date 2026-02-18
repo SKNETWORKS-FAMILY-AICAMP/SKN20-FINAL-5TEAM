@@ -1,5 +1,6 @@
-﻿// ========================================
-// stages.js - Quest ?꾩쟾??// [2026-02-14] 5李⑥썝 硫뷀듃由?諛?2?④퀎 寃利?Trigger MCQ -> 3? ?쒕굹由ъ삤 Deep Dive) ?듯빀
+// ========================================
+// stages.js - Quest 완전판
+// [2026-02-18] pseudo_tts 브랜치와 프론트엔드 UI 및 로직 완전 동기화 (한글 인코딩 복구 포함)
 // ========================================
 
 import { VALIDATION_LIBRARY, CODE_VALIDATION_LIBRARY } from './validationRules_COMPLETE.js';
@@ -7,139 +8,142 @@ import { VALIDATION_LIBRARY, CODE_VALIDATION_LIBRARY } from './validationRules_C
 export const aiQuests = [
     {
         id: 1,
-        title: "?꾩쿂由??곗씠???꾩닔 諛⑹뼱 ?쒖뒪???ㅺ퀎",
+        title: "전처리 데이터 누수 방어 시스템 설계",
         category: "System Reboot",
-        emoji: "?슚",
-        desc: "AI 紐⑤뜽???좊ː?깆쓣 ?뚭눼?섎뒗 ?꾩쿂由??곗씠???꾩닔瑜?李⑤떒?섍퀬 寃ш퀬??寃利?洹쒖튃???ㅺ퀎?⑸땲??",
+        emoji: "🚨",
+        desc: "AI 모델의 신뢰성을 파괴하는 전처리 데이터 누수를 차단하고 견고한 검증 규칙을 설계합니다.",
         rewardXP: 500,
         subModuleTitle: "LEAKAGE_GUARD",
         character: { name: "Coduck", image: "/assets/characters/coduck.png" },
-        scenario: "?좎엯 媛쒕컻?먭? ?묒꽦???댄깉 ?덉륫 紐⑤뜽??寃利?Validation) ?뺥솗??95%瑜?湲곕줉?섎ŉ 諛고룷?섏뿀?쇰굹, ?ㅼ젣 怨좉컼 ?곗씠?곌? ?ㅼ뼱?ㅻ뒗 ?댁쁺(Serving) ?섍꼍?먯꽌??68%???깅뒫??蹂댁씠硫?鍮꾩쫰?덉뒪?????먯떎???낇삍?듬땲?? 議곗궗 寃곌낵, ?곗씠???꾩쿂由??④퀎?먯꽌 '?뺣낫 ?좎텧(Leakage)'??諛쒖깮??寃껋쑝濡??뚯븙?섏뿀?듬땲??",
+        scenario: "신입 개발자가 작성한 이탈 예측 모델이 검증(Validation) 정확도 95%를 기록하며 배포되었으나, 실제 고객 데이터가 들어오는 운영(Serving) 환경에서는 68%의 성능을 보이며 비즈니스에 큰 손실을 입혔습니다. 조사 결과, 데이터 전처리 단계에서 '정보 유출(Leakage)'이 발생한 것으로 파악되었습니다.",
 
         cards: [
-            { icon: "?쉻", text: "STEP 1: ?꾪뿕 吏꾨떒", coduckMsg: "二쇰땲??媛쒕컻?먯쓽 移섎챸?곸씤 ?ㅼ닔媛 諛쒓껄?섏뿀?듬땲?? 臾댁뾿??臾몄젣?몄? 癒쇱? ?뚯븙?⑹떆??" },
-            { icon: "?뱷", text: "STEP 2: 洹쒖튃 ?ㅺ퀎", coduckMsg: "?대윴 ?ㅼ닔媛 ?щ컻?섏? ?딅룄濡?AI媛 ?먮룞?쇰줈 媛먯??????덈뒗 寃利?洹쒖튃??留뚮뱶?몄슂." },
-            { icon: "?뮲", text: "STEP 3: ?ы솕 寃利?, coduckMsg: "?⑥닚??洹쒖튃???섏뼱, ??援먮쵖???꾩닔 ?⑦꽩???≪븘?????덈뒗吏 ?뺤씤??遊낆떆??" },
-            { icon: "?뽳툘", text: "STEP 4: 理쒖쥌 ?됯?", coduckMsg: "?뱀떊???꾪궎?띿쿂 ?ㅺ퀎 ?λ젰??AI ?꾪궎?랁듃媛 ?뺣? ?됯??⑸땲??" }
+            { icon: "🚑", text: "STEP 1: 위험 진단", coduckMsg: "주니어 개발자의 치명적인 실수가 발견되었습니다. 무엇이 문제인지 먼저 파악합시다." },
+            { icon: "📝", text: "STEP 2: 규칙 설계", coduckMsg: "이런 실수가 재발하지 않도록 AI가 자동으로 감지할 수 있는 검증 규칙을 만드세요." },
+            { icon: "💻", text: "STEP 3: 심화 검증", coduckMsg: "단순한 규칙을 넘어, 더 교묘한 누수 패턴도 잡아낼 수 있는지 확인해 봅시다." },
+            { icon: "⚖️", text: "STEP 4: 최종 평가", coduckMsg: "당신의 아키텍처 설계 능력을 AI 아키텍트가 정밀 평가합니다." }
         ],
 
         blueprint: `
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
-# 1. Isolation: ?꾩쿂由???臾쇰━??遺꾨━ (理쒖슦??諛⑹뼱??
+# 1. Isolation: 전처리 전 물리적 분리 (최우선 방어선)
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
-# 2. Anchor: ?ㅼ쭅 ?숈뒿 ?곗씠?곕줈留??듦퀎??fit) 異붿텧
+# 2. Anchor: 오직 학습 데이터로만 통계량(fit) 추출
 scaler = StandardScaler()
 scaler.fit(X_train)
 
-# 3. Consistency: ?숈뒿?뗭쓽 湲곗??먯쑝濡??뚯뒪?몄뀑源뚯? 蹂??X_train_scaled = scaler.transform(X_train)
+# 3. Consistency: 학습셋의 기준점으로 테스트셋까지 변환
+X_train_scaled = scaler.transform(X_train)
 X_test_scaled = scaler.transform(X_test)
         `.trim(),
 
         blueprintSteps: [
-            { id: "s1", python: "X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)", pseudo: "癒쇱? ?곗씠?곕? ?숈뒿?⑷낵 寃利앹슜?쇰줈 臾쇰━??寃⑸━(Isolation)?쒕떎.", keywords: ["寃⑸━", "遺꾨━", "?숈뒿/寃利?, "Isolation"] },
-            { id: "s2", python: "scaler.fit(X_train)", pseudo: "?숈뒿 ?곗씠??train)?먯꽌留??듦퀎?됱쓣 異붿텧?섏뿬 湲곗???Anchor)???ㅼ젙?쒕떎.", keywords: ["湲곗???, "?숈뒿?곗씠??, "?듦퀎??, "fit"] },
-            { id: "s3", python: "scaler.transform(X_test)", pseudo: "?뚯뒪???곗씠??test)?먮뒗 fit ?놁씠 transform留??곸슜?섏뿬 ?쇨???Consistency)???좎??쒕떎.", keywords: ["?쇨???, "?뚯뒪?몃뜲?댄꽣", "transform", "?숈씪蹂??] }
+            { id: "s1", python: "X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)", pseudo: "먼저 데이터를 학습용과 검증용으로 물리적 격리(Isolation)한다.", keywords: ["격리", "분리", "학습/검증", "Isolation"] },
+            { id: "s2", python: "scaler.fit(X_train)", pseudo: "학습 데이터(train)에서만 통계량을 추출하여 기준점(Anchor)을 설정한다.", keywords: ["기준점", "학습데이터", "통계량", "fit"] },
+            { id: "s3", python: "scaler.transform(X_test)", pseudo: "테스트 데이터(test)에는 fit 없이 transform만 적용하여 일관성(Consistency)을 유지한다.", keywords: ["일관성", "테스트데이터", "transform", "동일변환"] }
         ],
 
         interviewQuestions: [
             {
                 id: "concept_1_choice",
                 type: "CHOICE",
-                question: "Q1. [寃⑸━???쒖젏] ?곗씠???ㅼ뿼??留됰뒗 泥?踰덉㎏ 諛⑹뼱??n?좎엯 媛쒕컻?먭? 踰뷀븳 媛?????ㅼ닔??scaler.fit(df)瑜??듯빐 ?꾩껜 ?곗씠?곗쓽 ?뺣낫瑜??욎뼱踰꾨┛ 寃껋엯?덈떎. ?대? 諛⑹??섍린 ?꾪븳 媛???곗꽑?곸씤 議곗튂??臾댁뾿?멸???",
+                question: "Q1. [격리의 시점] 데이터 오염을 막는 첫 번째 방어선\n신입 개발자가 범한 가장 큰 실수는 scaler.fit(df)를 통해 전체 데이터의 정보를 섞어버린 것입니다. 이를 방지하기 위한 가장 우선적인 조치는 무엇인가요?",
                 options: [
-                    { text: "??留롮? ?곗씠?곕? ?섏쭛?섏뿬 紐⑤뜽??蹂듭옟?섍쾶 留뚮뱺??", correct: false, feedback: "?곗씠???묒쓣 ?섎━??寃껉낵 ?뺣낫 ?좎텧 諛⑹???臾닿??⑸땲??" },
-                    { text: "?꾩쿂由?Scaling)瑜?紐⑤몢 留덉튇 ???곗씠?곕? ?섎늿??", correct: false, feedback: "?닿쾬??諛붾줈 ?좎엯 媛쒕컻?먭? 踰뷀븳 ?ㅼ닔(?꾩닔 諛쒖깮)?낅땲??" },
-                    { text: "?곗씠???꾩쿂由??꾨줈?몄뒪媛 ?쒖옉?섍린 ?? ?숈뒿(Train)怨??뚯뒪??Test) ?곗씠?곕? 臾쇰━?곸쑝濡?遺꾨━(寃⑸━)?쒕떎.", correct: true, feedback: "?뺣떟?낅땲?? ?꾩쿂由???遺꾨━媛 媛???뺤떎??諛⑹뼱?좎엯?덈떎." },
-                    { text: "?댁쁺 ?섍꼍?먯꽌???꾩쿂由щ? ?앸왂?쒕떎.", correct: false, feedback: "?숈뒿 ?뚯? ?숈씪???꾩쿂由ш? ?댁쁺 ?섍꼍?먯꽌??諛섎뱶???꾩슂?⑸땲??" }
+                    { text: "더 많은 데이터를 수집하여 모델을 복잡하게 만든다.", correct: false, feedback: "데이터 양을 늘리는 것과 정보 유출 방지는 무관합니다." },
+                    { text: "전처리(Scaling)를 모두 마친 후 데이터를 나눈다.", correct: false, feedback: "이것이 바로 신입 개발자가 범한 실수(누수 발생)입니다." },
+                    { text: "데이터 전처리 프로세스가 시작되기 전, 학습(Train)과 테스트(Test) 데이터를 물리적으로 분리(격리)한다.", correct: true, feedback: "정답입니다! 전처리 전 분리가 가장 확실한 방어선입니다." },
+                    { text: "운영 환경에서는 전처리를 생략한다.", correct: false, feedback: "학습 때와 동일한 전처리가 운영 환경에서도 반드시 필요합니다." }
                 ],
-                context: "?곗씠???꾩쿂由??꾩닔(Leakage) ?먯쿇 李⑤떒 ?꾨왂"
+                context: "데이터 전처리 누수(Leakage) 원천 차단 전략"
             },
             {
                 id: "concept_2_choice",
                 type: "CHOICE",
-                question: "Q2. [湲곗??먯쓽 ?ㅼ젙] '???? 臾댁뾿?쇰줈 留뚮뱾?댁빞 ?섎뒗媛?\n?곗씠?곕? 遺꾨━???? ?쒖???Standardization)瑜??꾪븳 ?됯퇏怨??쒖??몄감 媛믪? ?대뒓 ?곗씠?곗뀑?먯꽌 異붿텧?댁빞 ?섎굹??",
+                question: "Q2. [기준점의 설정] '저울'은 무엇으로 만들어야 하는가?\n데이터를 분리한 후, 표준화(Standardization)를 위한 평균과 표준편차 값은 어느 데이터셋에서 추출해야 하나요?",
                 options: [
-                    { text: "?꾩껜 ?곗씠?곗뀑: ?곗씠?곌? 留롮쓣?섎줉 ?듦퀎?됱씠 ?뺥솗?섍린 ?뚮Ц?대떎.", correct: false, feedback: "?꾩껜 ?곗씠?곕? ?ъ슜?섎㈃ ?뚯뒪???곗씠?곗쓽 ?뺣낫媛 ?ㅻŉ?ㅼ뼱 '?곗씠???꾩닔'媛 諛쒖깮?⑸땲??" },
-                    { text: "?뚯뒪???곗씠?곗뀑: ?ㅼ젣 ?댁쁺 ?섍꼍怨??좎궗??遺꾪룷瑜?媛?몄빞 ?섍린 ?뚮Ц?대떎.", correct: false, feedback: "?뚯뒪???곗씠?곕뒗 誘몃옒???곗씠????븷???댁빞 ?섎ŉ, ?대? 湲곗??쇰줈 ?쇱븘?쒕뒗 ???⑸땲??" },
-                    { text: "?숈뒿 ?곗씠?곗뀑: 紐⑤뜽??'?대? ?뚭퀬 ?덈뒗 怨쇨굅???뺣낫'留뚯쓣 湲곗??쇰줈 ?쇱븘???섍린 ?뚮Ц?대떎.", correct: true, feedback: "?뺣떟?낅땲?? ?숈뒿 ?곗씠?곗뿉???살? '????됯퇏/?쒖??몄감)'濡?紐⑤뱺 ?곗씠?곕? 痢≪젙?댁빞 ?뺣낫 ?좎텧???놁뒿?덈떎." },
-                    { text: "臾댁옉??異붿텧: ?명뼢??諛⑹??섍린 ?꾪빐 留ㅻ쾲 ?덈줈 怨꾩궛?댁빞 ?쒕떎.", correct: false, feedback: "湲곗????????留ㅻ쾲 諛붾뚮㈃ 紐⑤뜽???먮떒 湲곗????붾뱾由ш쾶 ?⑸땲??" }
+                    { text: "전체 데이터셋: 데이터가 많을수록 통계량이 정확하기 때문이다.", correct: false, feedback: "전체 데이터를 사용하면 테스트 데이터의 정보가 스며들어 '데이터 누수'가 발생합니다." },
+                    { text: "테스트 데이터셋: 실제 운영 환경과 유사한 분포를 가져야 하기 때문이다.", correct: false, feedback: "테스트 데이터는 미래의 데이터 역할을 해야 하며, 이를 기준으로 삼아서는 안 됩니다." },
+                    { text: "학습 데이터셋: 모델이 '이미 알고 있는 과거의 정보'만을 기준으로 삼아야 하기 때문이다.", correct: true, feedback: "정답입니다! 학습 데이터에서 얻은 '저울(평균/표준편차)'로 모든 데이터를 측정해야 정보 유출이 없습니다." },
+                    { text: "무작위 추출: 편향을 방지하기 위해 매번 새로 계산해야 한다.", correct: false, feedback: "기준점(저울)이 매번 바뀌면 모델의 판단 기준이 흔들리게 됩니다." }
                 ],
-                context: "?좊ː?????덈뒗 紐⑤뜽 ?됯? 湲곗? ?뺣┰"
+                context: "신뢰할 수 있는 모델 평가 기준 확립"
             },
         ],
 
         designContext: {
-            title: "[誘몄뀡] ?곗씠???ㅼ뿼 ?먯쿇 李⑤떒 ?ㅺ퀎",
-            description: "?ㅼ젣 ?댁쁺 ?섍꼍?먯꽌 ??紐⑤뜽??'諛붾낫'媛 ?섏? ?딅룄濡? ?곗씠???ㅼ뿼???먯쿇 李⑤떒?섎뒗 ?꾩쿂由??뚯씠?꾨씪?몄쓽 ?ㅺ퀎 ?먯튃怨?洹??쒖꽌瑜?'?섏궗肄붾뱶(Pseudo Code)' ?뺥깭濡??쒖닠?섏꽭??",
+            title: "[미션] 데이터 오염 원천 차단 설계",
+            description: "실제 운영 환경에서 이 모델이 '바보'가 되지 않도록, 데이터 오염을 원천 차단하는 전처리 파이프라인의 설계 원칙과 그 순서를 '의사코드(Pseudo Code)' 형태로 서술하세요.",
             incidentCode: `
 scaler = StandardScaler()
-scaler.fit(df)  # ?좑툘 ?꾩껜 ?곗씠?곕줈 fit
+scaler.fit(df)  # ⚠️ 전체 데이터로 fit
 X_train = scaler.transform(df[:800])
 X_test = scaler.transform(df[800:])
             `.trim(),
-            incidentProblem: "fit() ?ㅽ뻾 ?쒖젏??Train/Test 遺꾪븷???섏? ?딆븘 Test ?듦퀎?됱씠 Train???곹뼢",
+            incidentProblem: "fit() 실행 시점에 Train/Test 분할이 되지 않아 Test 통계량이 Train에 영향",
             currentIncident: `
-?슚 湲닿툒 ?ш퀬 蹂닿퀬: ?꾩쿂由??곗씠???꾩닔 媛먯?
-二쇰땲??媛쒕컻?먭? ?묒꽦???꾩쿂由?肄붾뱶媛 Production??諛고룷?섏뿀?듬땲??
-fit() ?ㅽ뻾 ?쒖젏??Train/Test 遺꾪븷???섏? ?딆븘 Test ?듦퀎?됱씠 Train???곹뼢??二쇱뿀?듬땲??
+🚨 긴급 사고 보고: 전처리 데이터 누수 감지
+주니어 개발자가 작성한 전처리 코드가 Production에 배포되었습니다.
+fit() 실행 시점에 Train/Test 분할이 되지 않아 Test 통계량이 Train에 영향을 주었습니다.
 
-寃곌낵: Train ?뺥솗??95% ??Test ?뺥솗??68% (27%p ??씫)
+결과: Train 정확도 95% → Test 정확도 68% (27%p 폭락)
             `.trim(),
             engineeringRules: [
-                "Train ?곗씠?곕줈留?fit ?쒕떎.",
-                "Test ?곗씠?곕뒗 transform留??섑뻾?쒕떎.",
-                "誘몃옒 ?곗씠?곗쓽 ?뺣낫???ъ슜?섏? ?딅뒗??",
-                "?숈뒿怨??쒕튃? ?숈씪???꾩쿂由??먮쫫???ъ슜?쒕떎."
+                "Train 데이터로만 fit 한다.",
+                "Test 데이터는 transform만 수행한다.",
+                "미래 데이터의 정보는 사용하지 않는다.",
+                "학습과 서빙은 동일한 전처리 흐름을 사용한다."
             ],
             writingGuide: `
-[?꾩닔 ?ы븿 議곌굔 (Constraint)]
-?듭씠 ?щ윭 媛덈옒濡??吏 ?딅룄濡??ㅼ쓬 3媛吏 ?ㅼ썙?쒕? 諛섎뱶???ъ슜?섏뿬 ?쇰━瑜?援ъ꽦?섍쾶 ?⑸땲??
-寃⑸━ (Isolation): ?곗씠?곕? ?섎늻???쒖젏
-湲곗???(Anchor): ?듦퀎??fit)??異붿텧??????쇨???(Consistency): ?숈뒿怨??댁쁺 ?섍꼍???숈씪??蹂??諛⑹떇
+[필수 포함 조건 (Constraint)]
+답이 여러 갈래로 튀지 않도록 다음 3가지 키워드를 반드시 사용하여 논리를 구성하게 합니다:
+격리 (Isolation): 데이터를 나누는 시점
+기준점 (Anchor): 통계량(fit)을 추출할 대상
+일관성 (Consistency): 학습과 운영 환경의 동일한 변환 방식
             `.trim()
         },
 
-        // [2026-02-14] ?ㅻТ 3? ?ы솕 ?쒕굹由ъ삤 (?쒖닠???몄뀡)
+        // [2026-02-14] 실무 3대 심화 시나리오 (서술형 세션)
         deepDiveScenarios: [
             {
                 id: "drift",
                 type: "SCENARIO_DESCRIPTIVE",
-                axis: "?쒓컙",
-                title: "?곗씠???쒕━?꾪듃 ?쒕굹由ъ삤",
-                question: "1????怨좉컼痢?蹂?붾줈 ?곗씠??遺꾪룷媛 諛붾뚯뿀?듬땲?? 湲곗〈 湲곗???Anchor)??怨좎닔?섎㈃ ?깅뒫???⑥뼱吏??먮뜲, '?쇨??? ?먯튃??源④퀬 湲곗????ㅼ떆媛꾩쑝濡?諛붽? 寃껋씤媛?? ?꾨땲硫??ㅻⅨ ??덉씠 ?덈굹??",
-                intent: "紐⑤뜽???명썑?붾? ?몄??섍퀬 二쇨린?곸씤 ?ы븰???뚯씠?꾨씪???ㅺ퀎 ??웾 ?뺤씤.",
-                scoringKeywords: ["紐⑤땲?곕쭅", "?ы븰??, "湲곗???媛깆떊", "Retraining"],
-                modelAnswer: "?ㅼ떆媛꾩쑝濡?湲곗???諛붽씀硫??먮떒 洹쇨굅媛 ?붾뱾由쎈땲?? ???'紐⑤땲?곕쭅'???듯빐 ?깅뒫 ??섎? 媛먯??섍퀬, ?덈줈???곗씠?곕줈 '二쇨린?곸씤 ?ы븰????吏꾪뻾?섏뿬 湲곗???Anchor)??怨듭떇?곸쑝濡?媛깆떊?댁빞 ?⑸땲??"
+                axis: "시간",
+                title: "데이터 드리프트 시나리오",
+                question: "1년 뒤 고객층 변화로 데이터 분포가 바뀌었습니다. 기존 기준점(Anchor)을 고수하면 성능이 떨어질 텐데, '일관성' 원칙을 깨고 기준을 실시간으로 바꿀 것인가요? 아니면 다른 대안이 있나요?",
+                intent: "모델의 노후화를 인지하고 주기적인 재학습 파이프라인 설계 역량 확인.",
+                scoringKeywords: ["모니터링", "재학습", "기준점 갱신", "Retraining"],
+                modelAnswer: "실시간으로 기준을 바꾸면 판단 근거가 흔들립니다. 대신 '모니터링'을 통해 성능 저하를 감지하고, 새로운 데이터로 '주기적인 재학습'을 진행하여 기준점(Anchor)을 공식적으로 갱신해야 합니다."
             },
             {
                 id: "realtime",
                 type: "SCENARIO_DESCRIPTIVE",
-                axis: "?섍꼍",
-                title: "?ㅼ떆媛??쒕튃 ?쒕굹由ъ삤",
-                question: "0.1珥????묐떟???꾩슂???쒖뒪?쒖엯?덈떎. 留ㅻ쾲 寃⑸━? 湲곗???fit) 怨꾩궛??諛섎났?????녿뒗?? ?뺥솗?꾨? 吏?ㅻŉ ?띾룄瑜??뺣낫???붿??덉뼱留곸쟻 諛⑸쾿? 臾댁뾿?멸???",
-                intent: "?숈뒿 ?쒖쓽 ?곹깭瑜??쒕튃 ?섍꼍?쇰줈 ?꾩씠?섎뒗 吏곷젹??湲곗닠 ?뺤씤.",
-                scoringKeywords: ["Pickle", "Joblib", "吏곷젹??, "媛앹껜??, "Serialization"],
-                modelAnswer: "?숈뒿 ?④퀎?먯꽌 ?앹꽦??Scaler 媛앹껜瑜?'Pickle'?대굹 'Joblib'?쇰줈 吏곷젹??Serialization)?섏뿬 ??ν빀?덈떎. ?댁쁺 ?섍꼍?먯꽌???대? 濡쒕뱶?섏뿬 fit 怨쇱젙 ?놁씠 transform留??섑뻾?⑥쑝濡쒖뜥 ?뺥솗?꾩? ?띾룄瑜??숈떆???≪뒿?덈떎."
+                axis: "환경",
+                title: "실시간 서빙 시나리오",
+                question: "0.1초 내 응답이 필요한 시스템입니다. 매번 격리와 기준점(fit) 계산을 반복할 순 없는데, 정확도를 지키며 속도를 확보할 엔지니어링적 방법은 무엇인가요?",
+                intent: "학습 시의 상태를 서빙 환경으로 전이하는 직렬화 기술 확인.",
+                scoringKeywords: ["Pickle", "Joblib", "직렬화", "객체화", "Serialization"],
+                modelAnswer: "학습 단계에서 생성된 Scaler 객체를 'Pickle'이나 'Joblib'으로 직렬화(Serialization)하여 저장합니다. 운영 환경에서는 이를 로드하여 fit 과정 없이 transform만 수행함으로써 정확도와 속도를 동시에 잡습니다."
             },
             {
                 id: "scarcity",
                 type: "SCENARIO_DESCRIPTIVE",
-                axis: "?쒓퀎",
-                title: "?곗씠??遺議?諛?遺덇퇏???쒕굹由ъ삤",
-                question: "?곗씠?곌? 100嫄대퓧?대씪 寃⑸━瑜??섎㈃ ?숈뒿?????섍퀬, ???섏옄???ㅼ뿼??嫄깆젙?⑸땲?? ?먯튃??吏?ㅻ㈃?쒕룄 紐⑤뜽???쒕?濡?寃利앺븷 ?꾨왂??",
-                intent: "?뚮웾 ?곗씠?곗뀑?먯꽌???듦퀎???좎쓽???뺣낫 ?λ젰 ?뺤씤.",
-                scoringKeywords: ["K-Fold", "Stratified", "援먯감 寃利?, "痢듯솕"],
-                modelAnswer: "?⑥닚 遺꾪븷 ???'K-Fold 援먯감 寃利??대굹 'Stratified Sampling(痢듯솕 異붿텧)'???ъ슜?⑸땲?? ?곗씠?곕? ?щ윭 議곌컖?쇰줈 ?섎늻??紐⑤뱺 ?곗씠?곌? ??踰덉뵫? 寃利앹슜?쇰줈 ?곗씠寃??섎릺, 留?猷⑦봽留덈떎 寃⑸━ ?먯튃? ?꾧꺽??吏?듬땲??"
+                axis: "한계",
+                title: "데이터 부족 및 불균형 시나리오",
+                question: "데이터가 100건뿐이라 격리를 하면 학습이 안 되고, 안 하자니 오염이 걱정됩니다. 원칙을 지키면서도 모델을 제대로 검증할 전략은?",
+                intent: "소량 데이터셋에서의 통계적 유의성 확보 능력 확인.",
+                scoringKeywords: ["K-Fold", "Stratified", "교차 검증", "층화"],
+                modelAnswer: "단순 분할 대신 'K-Fold 교차 검증'이나 'Stratified Sampling(층화 추출)'을 사용합니다. 데이터를 여러 조각으로 나누어 모든 데이터가 한 번씩은 검증용으로 쓰이게 하되, 매 루프마다 격리 원칙은 엄격히 지킵니다."
             }
         ],
 
-        // [2026-02-14] ??COMPLETE 踰꾩쟾 寃利?洹쒖튃 ?곸슜
+        // [2026-02-14] ✅ COMPLETE 버전 검증 규칙 적용
         validation: VALIDATION_LIBRARY.data_leakage,
         codeValidation: CODE_VALIDATION_LIBRARY.data_leakage,
 
         mapPos: { x: 100, y: 450 }
     }
-    // ... 異붽? ?ㅽ뀒?댁???Quest 1怨??숈씪??援ъ“濡??뺤옣 媛??];
+    // ... 추가 스테이지는 Quest 1과 동일한 구조로 확장 가능
+];
