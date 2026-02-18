@@ -242,3 +242,13 @@
     color: var(--text-muted);
     margin-top: 1rem;
 }
+
+/* [수정일: 2026-02-18] Mermaid 다이어그램 래퍼 스타일 추가 */
+.mermaid-log-wrapper {
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 10px;
+    padding: 10px;
+    border: 1px solid rgba(188, 19, 254, 0.2);
+    margin-top: 10px;
+    overflow-x: auto;
+}

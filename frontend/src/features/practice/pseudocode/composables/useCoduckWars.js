@@ -1,7 +1,7 @@
 /**
  * useCoduckWars.js - Refactored (Restored and Fixed)
  * 
- * [2026-02-18] pseudo_tts 브랜치와 프론트엔드 UI 및 로직 완전 동기화 (한글 인코딩 복구 포함)
+ * [2026-02-18] pseudo_tts 브랜치와 프론트엔드 UI 및 로직 완전 동기화 (HMR 에러 및 인코딩 복구)
  * 
  * 개선 사항:
  * - 5차원 메트릭 기반 평가 적용

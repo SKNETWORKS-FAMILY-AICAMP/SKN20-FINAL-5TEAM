@@ -41,11 +41,17 @@
                   <span class="section-icon">{{ getSectionIcon(key) }}</span>
                   <span class="section-title">{{ key }}</span>
                 </div>
-                <div class="section-content" :class="{ 'code-mode': key.includes('코드') || key.includes('Implementation') }">
-                  <pre v-if="key.includes('코드') || key.includes('Implementation')">{{ val }}</pre>
+                <div class="section-content" :class="{ 'code-mode': key.includes('코드') || key.includes('Implementation') || isMermaidCode(val) }">
+                  <template v-if="isMermaidCode(val)">
+                    <MermaidRenderer :code="val" :id="`mermaid-${ans.detail_id}-${key}`" />
+                  </template>
+                  <pre v-else-if="key.includes('코드') || key.includes('Implementation')">{{ val }}</pre>
                   <p v-else>{{ val }}</p>
                 </div>
               </div>
+            </div>
+            <div v-else-if="isMermaidCode(ans.submitted_data)" class="mermaid-log-wrapper">
+              <MermaidRenderer :code="ans.submitted_data" :id="`mermaid-${ans.detail_id}-full`" />
             </div>
             <pre v-else class="log-code">{{ formatAnswer(ans.submitted_data) }}</pre>
             <div class="log-date">{{ formatDate(ans.solved_date) }}</div>
@@ -60,6 +66,7 @@
 import { ref, onMounted, defineEmits } from 'vue';
 import axios from 'axios';
 import { useAuthStore } from '@/stores/auth';
+import MermaidRenderer from '@/components/MermaidRenderer.vue';
 
 const emit = defineEmits(['close']);
 const authStore = useAuthStore();
@@ -67,6 +74,16 @@ const units = ref([]);
 const selectedUnitId = ref('');
 const answers = ref([]);
 const loading = ref(false);
+
+const isMermaidCode = (text) => {
+  if (!text || typeof text !== 'string') return false;
+  const trimmed = text.trim();
+  const mermaidKeywords = [
+    'graph', 'flowchart', 'sequenceDiagram', 'gantt', 
+    'classDiagram', 'stateDiagram', 'erDiagram', 'pie', 'journey'
+  ];
+  return mermaidKeywords.some(keyword => trimmed.startsWith(keyword));
+};
 
 const padNumber = (num) => {
   return String(num).padStart(2, '0');

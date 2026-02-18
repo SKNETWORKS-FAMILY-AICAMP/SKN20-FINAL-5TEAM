@@ -1,6 +1,6 @@
 <!--
 수정일: 2026-02-18
-수정 내용: pseudo_tts 브랜치와 프론트엔드 UI 및 로직 완전 동기화 (한글 인코딩 복구 포함)
+수정 내용: pseudo_tts 브랜치와 프론트엔드 UI 및 로직 완전 동기화 (HMR 에러 및 인코딩 복구)
 이전 내역: 5대 지표 평가 시스템 완전 통합 및 프리미엄 리포트 UI 적용 (2026-02-14)
 -->
 <template>
@@ -520,6 +520,9 @@
 
 <script setup>
 /**
+ * [2026-02-18] pseudo_tts 브랜치와 프론트엔드 UI 및 로직 완전 동기화 (HMR 에러 및 인코딩 복구)
+ */
+/**
  * 수정일: 2026-02-14
  * 수정 내용: 5대 지표 평가 시스템 완전 통합 및 프리미엄 리포트 UI 적용
  */
@@ -539,11 +542,12 @@ import { generateCompleteLearningReport } from './reportGenerator.js';
 import { filterByScore, LEARNING_RESOURCES } from './learningResources.js';
 import Chart from 'chart.js/auto';
 
-const activeYoutubeId = ref(null);
 import CodeFlowVisualizer from './components/CodeFlowVisualizer.vue';
 import LoadingDuck from '../components/LoadingDuck.vue';
 import PseudocodeTutorialOverlay from './components/PseudocodeTutorialOverlay.vue';
 import { BookOpen } from 'lucide-vue-next';
+
+const activeYoutubeId = ref(null);
 
 const router = useRouter();
 const gameStore = useGameStore();
