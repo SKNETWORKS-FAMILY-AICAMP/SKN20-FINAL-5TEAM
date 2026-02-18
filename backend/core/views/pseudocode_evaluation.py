@@ -12,8 +12,25 @@ from typing import Dict, Any
 from core.utils.pseudocode_validator import PseudocodeValidator
 from core.utils.mission_rules import VALIDATION_RULES
 
+# [2026-02-18 수정] ID 정규화 함수 및 청사진 구성 고도화 (Antigravity)
+def normalize_quest_id(quest_id):
+    """
+    다양한 형식의 quest_id를 MISSION_BLUEPRINTS 키로 정규화
+    예: 'unit01_01' -> '1', 'QUEST_01' -> '1'
+    """
+    if not quest_id: return "1"
+    q_str = str(quest_id)
+    # unit01_01 형식이면 숫자만 추출
+    if q_str.startswith('unit'):
+        import re
+        match = re.search(r'unit(\d+)', q_str)
+        if match: return str(int(match.group(1)))
+    # QUEST_01 형식이면 숫자만 추출
+    if q_str.startswith('QUEST_'):
+        return str(int(q_str.replace('QUEST_', '')))
+    return q_str
+
 # [2026-02-14 추가] 미션별 정답 청사진 (컨텐츠 맥락 부족 해결)
-# AI가 미션 제목만 보고 추측하는 대신, 실제 데이터 제약 사항을 기반으로 채점하도록 함
 MISSION_BLUEPRINTS = {
     "1": {
         "mission_goal": "데이터 전처리 과정에서의 누수(Leakage) 방지",
@@ -32,8 +49,9 @@ MISSION_BLUEPRINTS = {
         ]
     }
 }
-# "QUEST_01" 하위 호환성 유지
+# 하위 호환성 유지 및 기본값 설정
 MISSION_BLUEPRINTS["QUEST_01"] = MISSION_BLUEPRINTS["1"]
+MISSION_BLUEPRINTS["default"] = MISSION_BLUEPRINTS["1"]
 
 # [2026-02-14 추가] 엔트로피 기반 입력 품질 검사 (부실한 필터링 해결)
 def calculate_entropy(text: str) -> float:
@@ -106,17 +124,17 @@ def evaluate_pseudocode_5d(request):
         quest_id = request.data.get('quest_id', 'default')
         quest_title = request.data.get('quest_title')
         pseudocode = request.data.get('pseudocode', '')
-        # [2026-02-14 수정] 보안 강화를 위해 프론트엔드 점수를 무시하고 백엔드에서 직접 검증
-        # rule_result = request.data.get('rule_result', {})
         
-        # 1. 백엔드 전용 룰 엔진으로 검증 수행
-        rules = VALIDATION_RULES.get(str(quest_id), VALIDATION_RULES.get("1"))
+        # [2026-02-18 추가] quest_id 정규화 적용
+        normalized_id = normalize_quest_id(quest_id)
+        
+        # 1. 백엔드 전용 룰 엔진으로 검증 수행 (정규화된 ID 사용)
+        rules = VALIDATION_RULES.get(normalized_id, VALIDATION_RULES.get("1"))
         validator = PseudocodeValidator(rules)
         rule_result = validator.validate(pseudocode)
         
         # [2026-02-14 수정] 부실한 필터링 및 포기성 발언 감지 강화
         vulgar_words = ['시발', '씨발', '개새끼', '병신', '미친', '노답', '존나', '지랄', '엠창']
-        # 더 넓은 범위의 포기성 및 무성의 키워드
         giveup_keywords = [
             '모르', '몰라', '몰겠', '어렵', '못하', '안됨', '해줘', '?', 'help',
             '글쎄', '나중에', '다음에', '귀찮', '패스', 'pass', 'ㅁㄴㅇㄹ', 'ㄴㄴ'
@@ -127,13 +145,10 @@ def evaluate_pseudocode_5d(request):
         
         if has_vulgar or is_giveup or not is_meaningful_input(pseudocode):
             review_message = "건전하고 성실한 설계를 부탁드립니다." if has_vulgar else "이것은 설계도가 아닙니다. 기초부터 다시 다져봅시다."
-            
-            # ID 보정
-            q_id = str(quest_id) if quest_id else "1"
-            blueprint = MISSION_BLUEPRINTS.get(q_id, MISSION_BLUEPRINTS.get("1"))
+            blueprint = MISSION_BLUEPRINTS.get(normalized_id, MISSION_BLUEPRINTS.get("1"))
             
             return Response({
-                'overall_score': 0, # 15 -> 0으로 하향
+                'overall_score': 0,
                 'total_score_100': 0,
                 'is_low_effort': True,
                 'persona_name': "낙제한 견습생",
@@ -158,25 +173,22 @@ def evaluate_pseudocode_5d(request):
                 }
             }, status=status.HTTP_200_OK)
 
-        # [2026-02-14 추가] 미션별 청사진 맥락 주입
-        blueprint = MISSION_BLUEPRINTS.get(quest_id, MISSION_BLUEPRINTS.get("default"))
+        # [2026-02-18 수정] 안전한 Blueprint 획득 및 폴백 강화
+        blueprint = MISSION_BLUEPRINTS.get(normalized_id, MISSION_BLUEPRINTS.get("1"))
 
         llm_result = call_llm_evaluation(
             quest_title=quest_title,
             pseudocode=pseudocode,
-            blueprint=blueprint, # 맥락 주입
+            blueprint=blueprint,
             rule_score=rule_result.get('score', 0),
             user_diagnostic=request.data.get('user_diagnostic', {})
         )
         
         # [2026-02-14 수정] 점수 산출 권한 서버 회수 및 산식 단일화 
-        # (Rule 15% + AI 85% = 100% 체계)
         rule_score_raw = rule_result.get('score', 0)
         rule_score_15 = round(rule_score_raw * 0.15)
-        
         ai_score_85 = llm_result.get('overall_score', 0)
         
-        # 최종 점수 합산
         final_100_score = ai_score_85 + rule_score_15
         
         llm_result['total_score_100'] = final_100_score
@@ -185,7 +197,6 @@ def evaluate_pseudocode_5d(request):
             'rule_score_15': rule_score_15,
             'rule_raw_100': rule_score_raw
         }
-        # 룰 검증 상세 결과 포함 (프론트엔드 전시용)
         llm_result['rule_details'] = rule_result
 
         # 유튜브 큐레이션 등 후속 처리...
