@@ -45,13 +45,55 @@ class LeaderboardView(APIView):
             if activity.active_avatar and activity.active_avatar.image_url:
                 avatar_url = activity.active_avatar.image_url
 
+            # [2026-02-19 추가] 유닛 마스터 정보 집계 (Antigravity)
+            # - UserProgress에서 각 유닛의 진행률(100%) 확인
+            # - UserSolvedProblem에서 모든 문제의 최고 점수가 90점 이상인지 확인
+            mastered_units = []
+            user_progresses = UserProgress.objects.filter(user=activity.user).select_related('practice')
+            
+            for p in user_progresses:
+                # 해당 유닛의 전체 문제수
+                total_count = PracticeDetail.objects.filter(practice=p.practice, detail_type='PROBLEM').count()
+                
+                # 유저가 한 번이라도 풀어서 점수가 있는 문제수 (고유 문제 개수)
+                solved_count = UserSolvedProblem.objects.filter(
+                    user=activity.user, 
+                    practice_detail__practice=p.practice
+                ).values('practice_detail').distinct().count()
+
+                # 해당 유닛의 모든 문제가 90점 이상인지 체크
+                # 1. 유저가 푼 문제들 중 90점 미만인 문제가 하나라도 있는지 확인
+                has_subpar_score = UserSolvedProblem.objects.filter(
+                    user=activity.user, 
+                    practice_detail__practice=p.practice
+                ).values('practice_detail').annotate(max_score=Max('score')).filter(max_score__lt=90).exists()
+                
+                # 2. 유저가 90점 이상으로 완벽하게 풀어낸 고유 문제 개수
+                perfect_count = UserSolvedProblem.objects.filter(
+                    user=activity.user, 
+                    practice_detail__practice=p.practice
+                ).values('practice_detail').annotate(max_score=Max('score')).filter(max_score__gte=90).count()
+
+                is_perfect_master = (not has_subpar_score) and (perfect_count == total_count) and (total_count > 0)
+
+                mastered_units.append({
+                    'unit_id': p.practice.id,
+                    'unit_number': p.practice.unit_number,
+                    'is_completed': p.progress_rate >= 100,
+                    'is_perfect': is_perfect_master,
+                    'solved_count': solved_count,
+                    'total_count': total_count,
+                    'perfect_count': perfect_count
+                })
+
             leaderboard_data.append({
                 'id': activity.user.id,
                 'rank': i,
                 'nickname': user_nickname,
                 'points': activity.total_points,
                 'current_grade': activity.current_rank,
-                'avatar_url': avatar_url
+                'avatar_url': avatar_url,
+                'mastered_units': mastered_units
             })
             
         return Response({

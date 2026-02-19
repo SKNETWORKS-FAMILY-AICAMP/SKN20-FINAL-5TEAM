@@ -1239,9 +1239,100 @@
     height: 18px;
 }
 
-.row-rank-1 {
-    background: linear-gradient(90deg, rgba(250, 204, 21, 0.08), rgba(250, 204, 21, 0.02)) !important;
-    border-left: 4px solid #facc15 !important;
+/* [2026-02-19 추가] 유닛 마스터 배지 스타일 */
+.unit-badges-container {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.unit-badge-mini {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 900;
+    font-family: 'Orbitron', sans-serif;
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+/* 유닛별 고유 컬러 (진도 100% 시) */
+.unit-badge-mini.unit-color-1:not(.locked) {
+    background: rgba(88, 204, 2, 0.15);
+    color: #58cc02;
+    border-color: rgba(88, 204, 2, 0.4);
+    box-shadow: 0 0 10px rgba(88, 204, 2, 0.1);
+}
+
+.unit-badge-mini.unit-color-2:not(.locked) {
+    background: rgba(255, 165, 0, 0.15);
+    color: #ffa500;
+    border-color: rgba(255, 165, 0, 0.4);
+    box-shadow: 0 0 10px rgba(255, 165, 0, 0.1);
+}
+
+.unit-badge-mini.unit-color-3:not(.locked) {
+    background: rgba(99, 102, 241, 0.15);
+    color: #6366f1;
+    border-color: rgba(99, 102, 241, 0.4);
+    box-shadow: 0 0 10px rgba(99, 102, 241, 0.1);
+}
+
+/* 마스터 상태 (모든 문제 90점 이상) - 황금빛 효과 */
+.unit-badge-mini.mastered {
+    border-color: #facc15 !important;
+    color: #facc15 !important;
+    background: rgba(250, 204, 21, 0.1) !important;
+    box-shadow: 0 0 15px rgba(250, 204, 21, 0.4) !important;
+    animation: badge-glow 2s ease-in-out infinite;
+}
+
+.unit-badge-mini.mastered::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg,
+            transparent,
+            rgba(255, 255, 255, 0.1),
+            transparent);
+    transform: rotate(45deg);
+    animation: shine-swipe 3s infinite;
+}
+
+@keyframes badge-glow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 10px rgba(250, 204, 21, 0.3);
+    }
+
+    50% {
+        box-shadow: 0 0 20px rgba(250, 204, 21, 0.6);
+    }
+}
+
+@keyframes shine-swipe {
+    0% {
+        left: -100%;
+        top: -100%;
+    }
+
+    20%,
+    100% {
+        left: 100%;
+        top: 100%;
+    }
 }
 
 .playground-footer {

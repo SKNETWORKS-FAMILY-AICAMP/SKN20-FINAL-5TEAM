@@ -7,7 +7,7 @@
     <div v-if="isOpen" class="modal-overlay">
       <div class="auth-container">
         <header class="auth-header">
-          <div class="auth-badge">ANTIGRAVITY LOGIN</div>
+          <div class="auth-badge">AI-ARCADE LOGIN</div>
           <h2 class="auth-title">Welcome Back</h2>
           <p class="auth-subtitle">엔지니어 신원 확인을 위해 접속 보안 코드를 입력하세요.</p>
         </header>

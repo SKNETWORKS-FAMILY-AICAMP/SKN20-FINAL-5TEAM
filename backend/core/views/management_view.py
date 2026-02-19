@@ -77,18 +77,38 @@ class UserAnswersView(APIView):
         if practice_id:
             query = query.filter(practice_detail__practice_id=practice_id)
             
-        solved_list = query.order_by('practice_detail__display_order')
+        # [2026-02-19 수정] 문제별 시도 내역 그룹화 (Antigravity)
+        # - 최신 기록부터 먼저 정렬하여 그룹화 처리
+        solved_list = query.order_by('-solved_date')
         
-        answers = []
+        group_map = {}
         for solved in solved_list:
-            answers.append({
-                'detail_id': solved.practice_detail.id,
-                'title': solved.practice_detail.detail_title,
+            detail_id = solved.practice_detail.id
+            if detail_id not in group_map:
+                group_map[detail_id] = {
+                    'detail_id': detail_id,
+                    'title': solved.practice_detail.detail_title,
+                    'display_order': solved.practice_detail.display_order,
+                    'attempts': []
+                }
+            
+            # 각 시도 기록을 attempts 리스트에 추가
+            group_map[detail_id]['attempts'].append({
                 'score': solved.score,
                 'is_perfect': solved.is_perfect,
                 'submitted_data': solved.submitted_data,
                 'solved_date': solved.solved_date
             })
+            
+        # 3. display_order 기준 정렬 및 최종 포맷팅
+        grouped_answers = sorted(
+            group_map.values(), 
+            key=lambda x: x['display_order']
+        )
+        
+        # 반환용 리스트에서 display_order 필드 제거
+        for group in grouped_answers:
+            group.pop('display_order', None)
             
         return Response({
             'user': {
@@ -96,5 +116,5 @@ class UserAnswersView(APIView):
                 'email': target_profile.email
             },
             'practice_id': practice_id,
-            'answers': answers
+            'answers': grouped_answers
         }, status=status.HTTP_200_OK)

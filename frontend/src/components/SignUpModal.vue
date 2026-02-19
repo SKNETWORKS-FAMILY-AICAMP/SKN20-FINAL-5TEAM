@@ -8,7 +8,7 @@
       <div class="auth-container">
         <template v-if="!isSuccess">
           <header class="auth-header">
-            <div class="auth-badge">ANTIGRAVITY SYSTEM</div>
+            <div class="auth-badge">AI-ARCADE SYSTEM</div>
             <h2 class="auth-title">Become an Engineer</h2>
             <p class="auth-subtitle">아키텍처 훈련센터의 정식 요원으로 등록하세요.</p>
           </header>
