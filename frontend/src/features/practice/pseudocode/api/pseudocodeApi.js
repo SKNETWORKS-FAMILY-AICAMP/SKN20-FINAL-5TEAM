@@ -23,7 +23,7 @@ import axios from 'axios';
  */
 export async function requestEvaluation(questId, questTitle, pseudocode) {
     return axios.post(
-        '/api/core/pseudocode/evaluate-5d',
+        '/api/core/pseudocode/evaluate-5d/',
         { quest_id: questId, quest_title: questTitle, pseudocode },
         { timeout: 45000 },
     );
