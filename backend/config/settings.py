@@ -160,6 +160,7 @@ SESSION_COOKIE_HTTPONLY = True
 
 # AI Service Settings
 OPENAI_API_KEY = env('OPENAI_API_KEY', default='')
+GOOGLE_API_KEY = env('GOOGLE_API_KEY', default='')
 
 # Job Planner Agent - Python path 추가
 # job-planner-agent 폴더 이름에 하이픈(-)이 있어서 직접 import 불가

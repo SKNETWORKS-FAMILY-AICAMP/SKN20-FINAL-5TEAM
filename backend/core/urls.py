@@ -14,6 +14,7 @@ from core.views import (
     AIEvaluationView,
     AIProxyView,
     BugHuntEvaluationView,
+    BugHuntInterviewView,
     CodeExecutionView,
     BehaviorVerificationView,
     OverallProgressView,
@@ -59,6 +60,7 @@ urlpatterns = [
     path('ai-evaluate/', AIEvaluationView.as_view(), name='ai_evaluate'),
     path('ai-proxy/', AIProxyView.as_view(), name='ai_proxy'),
     path('ai-bughunt-evaluate/', BugHuntEvaluationView.as_view(), name='bughunt_evaluate'),
+    path('ai-bughunt-interview/', BugHuntInterviewView.as_view(), name='bughunt_interview'),
 
     # 코드 실행 샌드박스 API
     path('execute-code/', CodeExecutionView.as_view(), name='execute_code'),

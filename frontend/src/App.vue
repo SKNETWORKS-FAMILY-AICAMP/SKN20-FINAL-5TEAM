@@ -101,7 +101,7 @@
                       v-if="problem.questIndex === currentMaxIdx"
                       :src="auth.userAvatarUrl" 
                       :rank="auth.userRank" 
-                      size="50px" 
+                      size="100px" 
                       class="duck-on-node-v3 user-avatar-on-node"
                     />
                     <div style="width: 20px; height: 20px; background: #b6ff40; border-radius: 50%; box-shadow: 0 0 10px #b6ff40;"></div>
