@@ -46,7 +46,15 @@
           <span class="title">{{ isBlueprintComplete ? 'SYSTEM RECOVERED' : 'AI ARCHITECT ADVICE' }}</span>
         </div>
         <p class="advice-text">
-            {{ isBlueprintComplete ? '성공적으로 아키텍처를 복구했습니다! 당신은 이제 올바른 설계 원칙을 이해한 아키텍트입니다.' : evaluationFeedback }}
+            <template v-if="isBlueprintComplete">
+              성공적으로 아키텍처를 복구했습니다! 당신은 이제 올바른 설계 원칙을 이해한 아키텍트입니다.
+            </template>
+            <template v-else-if="isLowEffort && pythonCode">
+              청사진(Blueprint)을 통해 올바른 Python 구현을 확인하세요. 아래 문제를 풀어 설계 원리를 완성하세요!
+            </template>
+            <template v-else>
+              {{ evaluationFeedback }}
+            </template>
         </p>
       </div>
 
@@ -120,20 +128,34 @@
             class="option-btn"
             :class="{ 
               'selected': selectedIdx === idx,
-              'correct': isMcqAnswered && (opt.is_correct || opt.correct),
+              'correct': isMcqAnswered && selectedIdx === idx && (opt.is_correct || opt.correct),
               'wrong': isMcqAnswered && selectedIdx === idx && !(opt.is_correct || opt.correct)
             }"
             :disabled="isMcqAnswered"
             @click="handleMcqSelect(idx)"
           >
-            <span class="option-label">{{ String.fromCharCode(65 + idx) }}</span>
-            <span class="option-text">{{ opt.text }}</span>
+            <div class="option-content-wrapper">
+              <div class="option-main">
+                <span class="option-label">{{ String.fromCharCode(65 + idx) }}</span>
+                <span class="option-text">{{ opt.text }}</span>
+              </div>
+              <div v-if="isMcqAnswered && selectedIdx === idx" class="option-feedback animate-fadeIn">
+                {{ opt.feedback || '설계 원칙에 따른 분석 결과입니다.' }}
+              </div>
+            </div>
           </button>
         </div>
       </div>
 
-      <div v-if="isMcqAnswered || isBlueprintComplete" class="mcq-feedback-popup">
-          <p class="text-success">🎯 정답입니다! 아키텍처 흐름이 완벽히 복구되었습니다.</p>
+      <div v-if="isBlueprintComplete" class="mcq-feedback-popup">
+          <p class="text-success">🎯 아키텍처 복구 작전 완료! 설계 원칙을 완전히 이해했습니다.</p>
+      </div>
+      <div v-else-if="isMcqAnswered" class="mcq-feedback-popup">
+          <p v-if="selectedMcqIsCorrect" class="text-success animate-fadeIn">🎯 정답입니다! 다음 단계로 진행하세요.</p>
+          <div v-else class="incorrect-feedback-with-retry animate-shake">
+             <p class="text-error">❌ 오답입니다. 설계적 결함이 감지되었습니다. (피드백을 확인하세요)</p>
+             <button class="btn-retry-mcq-action" @click="handleMcqRetry">아키텍처 다시 보완하기</button>
+          </div>
       </div>
 
       <div v-if="phase === 'DEEP_DIVE_DESCRIPTIVE'" class="challenge-block descriptive-section">
@@ -164,31 +186,35 @@
                 <span class="model-icon">🏆</span>
                 <strong>AI 아키텍트의 모범 답안</strong>
             </div>
-            <p class="model-answer-text">{{ assignedScenario?.modelAnswer }}</p>
+            <div class="model-answer-content">
+                <p class="model-answer-text">{{ assignedScenario?.modelAnswer }}</p>
+                
+                <div v-if="assignedScenario?.scoringKeywords?.length" class="key-points-zone">
+                    <span class="key-label">💡 엔지니어링 핵심 포인트:</span>
+                    <div class="key-tags">
+                        <span v-for="tag in assignedScenario.scoringKeywords" :key="tag" class="key-tag">#{{ tag }}</span>
+                    </div>
+                </div>
+            </div>
             <div class="model-answer-tip">
                 * 실제 평가 점수는 리포트 생성 시 5차원 메트릭으로 상세 분석됩니다.
             </div>
         </div>
       </div>
-
-      <div class="action-footer">
-        <button 
-          v-if="!isDescriptionSubmitted"
-          class="final-btn" 
-          :disabled="!isPhaseReady"
-          @click="handleNext"
-        >
-          {{ nextButtonText }} →
-        </button>
+        <div class="action-footer">
+          <button 
+            class="final-btn" 
+            :disabled="!isPhaseReady"
+            @click="handleNext"
+          >
+            {{ nextButtonText }} →
+          </button>
+        </div>
       </div>
     </div>
-  </div>
 </template>
 
 <script setup>
-/**
- * [2026-02-18] pseudo_tts 브랜치와 프론트엔드 UI 및 로직 완전 동기화 (HMR 에러 및 인코딩 복구)
- */
 import { ref, computed, watch } from 'vue';
 
 const props = defineProps({
@@ -197,13 +223,14 @@ const props = defineProps({
   pythonCode: String,
   evaluationScore: Number,
   evaluationFeedback: String,
+  isLowEffort: Boolean,   // is_low_effort 여부 (advice 문구 분기용)
   mcqData: Object,
-  blueprintSteps: Array,      // 추가: [{python, pseudo}]
+  blueprintSteps: Array,
   assignedScenario: Object,
   isMcqAnswered: Boolean
 });
 
-const emit = defineEmits(['answer-mcq', 'submit-descriptive', 'next-phase']);
+const emit = defineEmits(['answer-mcq', 'retry-mcq', 'submit-descriptive', 'next-phase', 'blueprint-complete']);
 
 const currentStepIdx = ref(0);
 const selectedIdx = ref(null);
@@ -213,6 +240,10 @@ const isDescriptionSubmitted = ref(false);
 const manualInput = ref("");
 const showInputError = ref(false);
 const userRestoredSteps = ref([]); // 사용자가 직접 타이핑하거나 선택한 문장 저장
+
+// 청사진 완료 방식 추적: 'keyword'(주관식 입력) | 'block'(객관식 선택)
+// 각 스텝에서 한 번이라도 block 선택을 했으면 'block'으로 기록
+const blueprintCompletionMode = ref('keyword');
 
 const isBlueprintMode = computed(() => props.blueprintSteps && props.blueprintSteps.length > 0);
 const isBlueprintComplete = computed(() => isBlueprintMode.value && currentStepIdx.value >= props.blueprintSteps.length);
@@ -242,10 +273,18 @@ const isPhaseReady = computed(() => {
   return true;
 });
 
+const selectedMcqIsCorrect = computed(() => {
+  if (selectedIdx.value === null || !props.mcqData?.options) return false;
+  const opt = props.mcqData.options[selectedIdx.value];
+  return opt?.is_correct || opt?.correct;
+});
+
 const nextButtonText = computed(() => {
   if (isBlueprintMode.value && !isBlueprintComplete.value) return "설계 복구 진행 중";
   if (props.phase === 'PYTHON_VISUALIZATION' || props.phase === 'TAIL_QUESTION') return "DEEP DIVE 진입";
-  if (props.phase === 'DEEP_DIVE_DESCRIPTIVE') return "최종 평가 리포트 생성";
+  if (props.phase === 'DEEP_DIVE_DESCRIPTIVE') {
+    return isDescriptionSubmitted.value ? "최종 리포트 확인하기" : "답안 제출 및 분석";
+  }
   return "다음 단계";
 });
 
@@ -255,7 +294,9 @@ const handleStepPick = (idx) => {
   const opt = blueprintOptions.value[idx];
 
   if (opt.isCorrect) {
-    userRestoredSteps.value[currentStepIdx.value] = opt.pseudo; 
+    userRestoredSteps.value[currentStepIdx.value] = opt.pseudo;
+    // 객관식 선택 사용 → 'block' 모드로 기록
+    blueprintCompletionMode.value = 'block';
     proceedToNextStep();
   } else {
     isStepAnswered.value = true;
@@ -268,14 +309,15 @@ const handleStepPick = (idx) => {
 
 const handleManualSubmit = () => {
     if (!manualInput.value.trim() || isStepAnswered.value) return;
-    
+
     const current = props.blueprintSteps[currentStepIdx.value];
     const targetKeywords = current.keywords || [];
     const matchCount = targetKeywords.filter(k => manualInput.value.includes(k)).length;
-    
-    // [자비로운 검증] 키워드가 1개만 있어도 인정
+
     if (matchCount >= 1 || manualInput.value.length > 30) {
-        userRestoredSteps.value[currentStepIdx.value] = manualInput.value; 
+        userRestoredSteps.value[currentStepIdx.value] = manualInput.value;
+        // 주관식 입력 사용 → 이미 block이 등록된 경우는 유지, 아니면 keyword
+        // (keyword가 기본값이라 별도 승격 없음)
         proceedToNextStep();
         showInputError.value = false;
     } else {
@@ -287,26 +329,40 @@ const handleManualSubmit = () => {
 const proceedToNextStep = () => {
     isStepAnswered.value = true;
     setTimeout(() => {
-      currentStepIdx.value++;
-      isStepAnswered.value = false;
-      selectedIdx.value = null;
-      manualInput.value = "";
+        currentStepIdx.value++;
+        isStepAnswered.value = false;
+        selectedIdx.value = null;
+        manualInput.value = "";
+
+        // 모든 스텝 완료 시 emit으로 부모에 알림
+        if (currentStepIdx.value >= (props.blueprintSteps?.length || 0)) {
+            emit('blueprint-complete', blueprintCompletionMode.value);
+        }
     }, 800);
 };
 
 const handleMcqSelect = (idx) => {
-  if (props.isMcqAnswered) return;
-  selectedIdx.value = idx;
-  emit('answer-mcq', idx);
+    if (props.isMcqAnswered) return;
+    selectedIdx.value = idx;
+    emit('answer-mcq', idx);
+};
+
+const handleMcqRetry = () => {
+    selectedIdx.value = null;
+    emit('retry-mcq');
 };
 
 const handleNext = () => {
-  if (props.phase === 'DEEP_DIVE_DESCRIPTIVE') {
-    isDescriptionSubmitted.value = true;
-    emit('submit-descriptive', descriptiveAnswer.value);
-  } else {
-    emit('next-phase');
-  }
+    if (props.phase === 'DEEP_DIVE_DESCRIPTIVE') {
+        if (!isDescriptionSubmitted.value) {
+            isDescriptionSubmitted.value = true;
+            emit('submit-descriptive', descriptiveAnswer.value);
+        } else {
+            emit('next-phase');
+        }
+    } else {
+        emit('next-phase');
+    }
 };
 </script>
 
@@ -320,6 +376,7 @@ const handleNext = () => {
 }
 
 .comparison-area {
+  flex-shrink: 0; /* 상단 고정 */
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1.5rem;
@@ -477,6 +534,9 @@ const handleNext = () => {
 
 .python-code {
   color: #34d399;
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-x: hidden;
 }
 
 .validation-area {
@@ -791,11 +851,180 @@ const handleNext = () => {
   padding: 1.2rem;
   border-radius: 12px;
   text-align: center;
-  animation: fadeIn 0.4s ease;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.text-success { color: #10b981; font-weight: 800; }
+.text-error { color: #ef4444; font-weight: 800; }
+.animate-shake { animation: shake 0.4s ease-in-out; }
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  75% { transform: translateX(8px); }
 }
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+.incorrect-feedback-with-retry {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.btn-retry-mcq-action {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid #ef4444;
+  color: #ef4444;
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-retry-mcq-action:hover {
+  background: #ef4444;
+  color: white;
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+}
+
+/* [NEW] MCQ 피드백 스타일 */
+.option-content-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  text-align: left;
+}
+
+.option-main {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.option-feedback {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  padding-left: 2rem;
+  line-height: 1.5;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 0.5rem;
+}
+
+.option-btn.correct .option-feedback {
+  color: #a7f3d0;
+}
+
+.option-btn.wrong .option-feedback {
+  color: #fecaca;
+}
+
+/* [NEW] 서술형 모범 답안 강화 스타일 */
+.model-answer-block {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-top: 1rem;
+}
+
+.model-answer-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  color: #60a5fa;
+  font-size: 1rem;
+}
+
+.model-answer-text {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #f1f5f9;
+  margin-bottom: 1.25rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+}
+
+.key-points-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.key-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.key-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.key-tag {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.model-answer-tip {
+  margin-top: 1.5rem;
+  font-size: 0.75rem;
+  color: #64748b;
+  font-style: italic;
+}
+
+.model-answer-tip {
+  margin-top: 1.5rem;
+  font-size: 0.75rem;
+  color: #64748b;
+  font-style: italic;
+}
+
+.action-footer {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+}
+
+.final-btn {
+  padding: 1rem 3rem;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 99px;
+  font-weight: 800;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+}
+
+.final-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background: #1d4ed8;
+}
+
+.final-btn:disabled {
+  background: #334155;
+  color: #64748b;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 </style>

@@ -2,13 +2,13 @@
  * 검증 규칙 라이브러리 - 즉시 사용 가능
  * stages.js에 복사해서 사용
  * 
- * [2026-02-18] pseudo_tts 브랜치와 프론트엔드 UI 및 로직 완전 동기화 (HMR 에러 및 인코딩 복구)
+ * [2026-02-14] 실전 배포 버전
  */
 
 // ==================== Mission 1: Data Leakage ====================
 export const VALIDATION_DATA_LEAKAGE = {
   type: 'data_leakage',
-
+  
   criticalPatterns: [
     {
       pattern: {
@@ -208,7 +208,7 @@ export const CODE_VALIDATION_DATA_LEAKAGE = {
 // ==================== Mission 2: Cross Validation ====================
 export const VALIDATION_CROSS_VALIDATION = {
   type: 'cross_validation',
-
+  
   criticalPatterns: [
     {
       pattern: {
@@ -277,7 +277,7 @@ export const VALIDATION_CROSS_VALIDATION = {
 // ==================== Mission 3: Feature Engineering ====================
 export const VALIDATION_FEATURE_ENGINEERING = {
   type: 'feature_engineering',
-
+  
   criticalPatterns: [
     {
       pattern: {

@@ -1,5 +1,11 @@
+"""
+의사코드 로컬 검증 엔진
+수정일: 2026-02-18
+수정내용: 엔트로피 및 키워드 매칭 기반 무성의 입력(Low Effort) 감지 로직 추가 (프론트엔드 연동용)
+"""
 import re
 import math
+from collections import Counter
 
 class PseudocodeValidator:
     def __init__(self, rules):
@@ -9,13 +15,16 @@ class PseudocodeValidator:
         normalized = self.normalize(pseudocode)
         soft_normalized = self.soft_normalize(pseudocode)
         
+        is_low_effort, low_effort_reason = self.check_low_effort(pseudocode)
         critical_errors = self.check_critical_errors(normalized)
         concepts = self.extract_concepts(soft_normalized)
         structure_results = self.analyze_structure(pseudocode, soft_normalized, concepts)
         
         return {
-            'passed': len(critical_errors) == 0,
-            'score': structure_results['score'],
+            'passed': len(critical_errors) == 0 and not is_low_effort,
+            'score': 0 if is_low_effort else structure_results['score'],
+            'is_low_effort': is_low_effort,
+            'low_effort_reason': low_effort_reason,
             'criticalErrors': critical_errors,
             'warnings': structure_results['warnings'],
             'details': {
@@ -25,6 +34,29 @@ class PseudocodeValidator:
             }
         }
 
+    def check_low_effort(self, text: str):
+        """성의 없는 입력인지 검증 (프론트엔드 동기화 및 강화)"""
+        if not text or len(text.strip()) < 10:
+            return True, "분석을 시작하기엔 설계 내용이 너무 짧습니다."
+        
+        # 1. 포기성/무의미 키워드
+        giveup_keywords = [
+            r'모르', r'몰라', r'몰겠', r'어렵', r'못하', r'안됨', r'해줘', r'\?', r'help',
+            r'글쎄', r'나중에', r'다음에', r'귀찮', r'패스', r'pass', r'ㅁㄴㅇㄹ', r'ㄴㄴ'
+        ]
+        if any(re.search(kw, text) for kw in giveup_keywords):
+            return True, "설계를 포기하시거나 질문을 하셨군요. 이 단계는 당신의 '설계안'을 제출하는 곳입니다."
+            
+        # 2. 엔트로피 검사 (무의미한 반복 문자열 aaaaa... 등)
+        clean_text = "".join([c for c in text if c.isalnum()])
+        if len(clean_text) > 5:
+            counter = Counter(clean_text)
+            probs = [count / len(clean_text) for count in counter.values()]
+            entropy = -sum(p * math.log2(p) for p in probs)
+            if entropy < 2.0:
+                return True, "의미를 알 수 없는 단어의 나열이 감지되었습니다."
+        
+        return False, None
     def normalize(self, text):
         if not text: return ""
         text = text.lower()

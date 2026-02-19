@@ -212,8 +212,19 @@
               <span class="username-premium">{{ user.nickname }}</span>
             </div>
             <div class="col-solved">
-              <span class="solved-count-v2">{{ user.solved }}</span>
-              <span class="label-v2">UNITS</span>
+              <div class="unit-badges-container">
+                <div v-for="unit in (user.mastered_units || [])" 
+                     :key="unit.unit_id" 
+                     class="unit-badge-mini"
+                     :class="[
+                       'unit-color-' + unit.unit_number,
+                       { 'locked': !unit.is_completed, 'mastered': unit.is_perfect }
+                     ]"
+                     :title="getUnitTooltip(unit)"
+                >
+                  U{{ unit.unit_number }}
+                </div>
+              </div>
             </div>
             <div class="col-shakes">
               <div class="shake-badge-v2">
@@ -471,6 +482,24 @@ export default {
         this.$emit('open-unit', chapter);
       } else {
         this.currentIdx = idx;
+      }
+    },
+    /**
+     * [배지 툴팁 텍스트 생성]
+     * - 유닛의 진행 상태(미션 완료 수, 완벽 정복 수)를 기반으로 상세 정보를 제공합니다.
+     */
+    getUnitTooltip(unit) {
+      if (!unit) return '';
+      const { unit_number, is_perfect, is_completed, solved_count, total_count, perfect_count } = unit;
+      
+      const header = `UNIT ${unit_number}: `;
+      if (is_perfect) {
+        return `${header}완벽 정복! (${perfect_count}/${total_count} 미션 마스터 🏆)`;
+      } else if (is_completed) {
+        return `${header}모든 미션 완료 (${solved_count}/${total_count} 미션 통과 ✅)`;
+      } else {
+        const progressPercent = total_count > 0 ? Math.round((solved_count / total_count) * 100) : 0;
+        return `${header}${progressPercent}% 진행 중 (${solved_count}/${total_count} 미션 미달성 🏃)`;
       }
     }
   },

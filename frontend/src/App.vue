@@ -56,7 +56,7 @@
             <header class="unit-modal-header-v3">
               <div class="title-section-v3">
                 <div class="unit-label-v3">
-                  {{ game.activeUnit?.name === 'Debug Practice' ? 'DEBUG ARCADE' : 'UNIT ' + (game.chapters.indexOf(game.activeUnit) + 1) }}
+                  {{ game.activeUnit?.name === 'Debug Practice' ? 'DEBUG ARCADE' : 'UNIT ' + (game.activeUnit?.unit_number || game.chapters.indexOf(game.activeUnit) + 1) }}
                 </div>
                 <h2 class="unit-name-v3">
                   <template v-if="game.activeUnit?.name === 'Debug Practice'">
@@ -82,8 +82,16 @@
 
             <div class="unit-modal-body-v3">
               <div class="path-container-v3">
-                <svg class="path-svg-v3" viewBox="0 0 800 1500">
-                  <path class="path-line-v3" d="M400,100 L560,250 L280,400 L520,550 L360,700 L400,850 L480,1000 L320,1150 L560,1300 L400,1450" fill="none" stroke="rgba(148, 163, 184, 0.2)" stroke-width="3" stroke-dasharray="10,5" />
+                <!-- [2026-02-14] 징검다리 연결선 동적 렌더링 (해금 시 초록색 실선으로 변경) -->
+                <svg class="path-svg-v3" viewBox="0 0 800 3100">
+                  <line 
+                    v-for="(p, i) in pathPoints.slice(0, -1)" 
+                    :key="i"
+                    :x1="p[0]" :y1="p[1]"
+                    :x2="pathPoints[i+1][0]" :y2="pathPoints[i+1][1]"
+                    class="path-line-v3"
+                    :class="{ 'line-unlocked': isUnlocked(i + 1) }"
+                  />
                 </svg>
 
                 <div v-for="(problem, pIdx) in displayProblems" :key="problem.id" class="node-platform-v3"
@@ -91,6 +99,7 @@
                   active: problem.questIndex === currentMaxIdx,
                   unlocked: game.currentUnitProgress.includes(problem.questIndex)
                 }]"
+                :style="{ left: pathPoints[pIdx][0] + 'px', top: pathPoints[pIdx][1] + 'px' }"
                 @click="isUnlocked(problem.questIndex) && selectProblem(problem)">
 
                 <div class="platform-glow-v3" v-if="problem.questIndex === currentMaxIdx"></div>
@@ -101,7 +110,7 @@
                       v-if="problem.questIndex === currentMaxIdx"
                       :src="auth.userAvatarUrl" 
                       :rank="auth.userRank" 
-                      size="100px" 
+                      size="50px" 
                       class="duck-on-node-v3 user-avatar-on-node"
                     />
                     <div style="width: 20px; height: 20px; background: #b6ff40; border-radius: 50%; box-shadow: 0 0 10px #b6ff40;"></div>
@@ -118,7 +127,8 @@
 
               <!-- Decorative Locked Nodes -->
               <div v-for="i in displayLabelsCount" :key="'extra-' + i" class="node-platform-v3 locked"
-                :class="'node-' + (displayProblems.length + i - 1)">
+                :class="'node-' + (displayProblems.length + i - 1)"
+                :style="{ left: pathPoints[displayProblems.length + i - 1][0] + 'px', top: pathPoints[displayProblems.length + i - 1][1] + 'px' }">
                 <div class="platform-circle-v3">
                   <i data-lucide="lock" class="lock-icon-v3"></i>
                 </div>
@@ -223,6 +233,24 @@ const displayLabelsCount = computed(() => {
   return Math.max(0, targetCount - currentCount);
 });
 
+// [2026-02-14] 징검다리 노드 위치 좌표 계산 (지그재그 패턴)
+const pathPoints = computed(() => {
+  const count = Math.max(displayProblems.value?.length || 0, 10) + displayLabelsCount.value;
+  const points = [];
+  for (let i = 0; i < count; i++) {
+    const y = 100 + i * 150;
+    let x;
+    const mod = i % 5;
+    if (mod === 0) x = 400;
+    else if (mod === 1) x = 560;
+    else if (mod === 2) x = 280;
+    else if (mod === 3) x = 520;
+    else x = 360;
+    points.push([x, y]);
+  }
+  return points;
+});
+
 const currentMaxIdx = computed(() => {
   const progress = game.currentUnitProgress;
   const displayedIndices = displayProblems.value.map(p => p.questIndex);
@@ -315,20 +343,20 @@ function selectProblem(problem) {
   const rawName = game.activeUnit?.name || '';
   const chapterName = rawName.toLowerCase().replace(/\s+/g, '');
 
-  if (chapterName === 'pseudopractice') {
+  if (chapterName.includes('pseudo')) {
     game.selectedQuestIndex = problem.questIndex || 0;
     // [수정일: 2026-02-06] 의사코드(Pseudocode) 관련 파일들은 이제 pseudocode 폴더에서 관리됩니다.
     router.push('/practice/pseudo-code');
-  } else if (chapterName === 'systempractice') {
+  } else if (chapterName.includes('system')) {
     game.selectedSystemProblemIndex = problem.problemIndex || 0;
     router.push({ path: '/practice/system-architecture', query: { problem: problem.problemIndex || 0 } });
-  } else if (chapterName === 'debugpractice') {
+  } else if (chapterName.includes('debug')) {
     // Bug Hunt 미션으로 이동
     router.push({
       path: '/practice/bug-hunt',
       query: { missionId: problem.id, mapMode: 'true' }
     });
-  } else if (chapterName === 'Agent Practice') {
+  } else if (chapterName.includes('agent')) {
     ui.isAgentModalOpen = true;
     nextTick(() => {
       if (window.lucide) window.lucide.createIcons();

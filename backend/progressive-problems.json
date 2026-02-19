@@ -656,21 +656,6 @@
             "suggestion": "loss.backward() 호출 전에 optimizer.zero_grad()를 추가하세요."
           },
           "coaching": "S4는 실전 시작 단계입니다. 먼저 표준 학습 루프 순서를 몸에 익히세요.",
-          "interview_rubric": {
-            "core_concepts": [
-              "zero_grad() 누락",
-              "gradient 누적"
-            ],
-            "mechanism_concepts": [
-              "backward()가 .grad에 += 연산",
-              "배치마다 gradient가 커짐"
-            ],
-            "application_concepts": [
-              "표준 루프 순서: zero_grad → forward → backward → step",
-              "의도적 gradient accumulation과의 차이"
-            ],
-            "first_question": "방금 optimizer.zero_grad()를 추가하셨는데, 이 코드가 없으면 구체적으로 어떤 일이 일어나나요?"
-          },
           "fix_mode": "free_code"
         },
         {
@@ -696,21 +681,6 @@
             "suggestion": "검증 루프 시작 전에 model.eval()을 호출하세요."
           },
           "coaching": "학습(train)과 검증(eval) 모드 분리는 실전에서 성능 재현성의 기본입니다.",
-          "interview_rubric": {
-            "core_concepts": [
-              "model.eval() 누락",
-              "train/eval 모드 미전환"
-            ],
-            "mechanism_concepts": [
-              "Dropout이 validation에서도 활성화",
-              "BatchNorm이 배치 통계를 사용"
-            ],
-            "application_concepts": [
-              "torch.no_grad()와 model.eval()의 차이",
-              "Dropout과 BatchNorm의 모드별 동작 차이"
-            ],
-            "first_question": "model.eval()을 추가하셨는데, 이게 빠지면 validation 결과에 어떤 영향을 주나요?"
-          },
           "fix_mode": "free_code"
         },
         {
@@ -736,21 +706,6 @@
             "suggestion": "스케줄러의 step() 호출 위치와 빈도를 확인하세요."
           },
           "coaching": "실전에서는 LR 로그를 항상 남겨야 스케줄러 버그를 빠르게 찾을 수 있습니다.",
-          "interview_rubric": {
-            "core_concepts": [
-              "scheduler.step()이 배치 루프 안에서 호출",
-              "에포크가 아닌 배치 단위로 LR 감소"
-            ],
-            "mechanism_concepts": [
-              "StepLR의 step_size가 step() 호출 횟수 기준",
-              "LR이 의도보다 훨씬 빠르게 감소"
-            ],
-            "application_concepts": [
-              "scheduler.step()은 에포크 루프 레벨에서 호출해야 함",
-              "학습률 로깅의 중요성"
-            ],
-            "first_question": "scheduler.step()의 위치를 옮기셨는데, 원래 위치에서는 learning rate가 어떻게 변했을까요?"
-          },
           "fix_mode": "free_code"
         }
       ],
@@ -777,9 +732,12 @@
           "hint": "GPU는 8%만 사용되고 CPU 1개 코어만 97%입니다. 데이터를 준비하는 동안 GPU가 놀고 있다면, 데이터를 미리 준비해둘 수 있는 방법이 있지 않을까요?",
           "debugging_guide": "nvidia-smi로 GPU 사용률을 확인해보세요. 30% 미만이면 데이터 병목을 의심하세요.",
           "solution_check": {
-            "type": "regex",
-            "value": "DataLoader\\((?=[\\s\\S]*?num_workers\\s*=\\s*[1-9])(?=[\\s\\S]*?pin_memory\\s*=\\s*True)[\\s\\S]*?\\)",
-            "flags": ""
+            "type": "multi_condition",
+            "required_all": [
+              "num_workers=",
+              "pin_memory=True"
+            ],
+            "forbidden": []
           },
           "error_info": {
             "type": "I/O Bottleneck",
@@ -787,12 +745,6 @@
             "suggestion": "데이터 로딩 병렬화와 메모리 전송 최적화를 확인하세요."
           },
           "coaching": "nvidia-smi로 GPU 사용률을 확인하세요. 30% 미만이면 데이터 로딩 병목을 의심하세요.",
-          "interview_rubric": {
-            "core_concepts": ["num_workers=0이 병목 원인", "CPU 데이터 로딩 vs GPU 연산 불균형"],
-            "mechanism_concepts": ["num_workers로 멀티프로세스 데이터 로딩", "pin_memory로 CPU→GPU 전송 최적화"],
-            "application_concepts": ["GPU utilization 확인 방법 (nvidia-smi)", "num_workers 적정값 설정 기준"],
-            "first_question": "num_workers를 추가하셨는데, 이 값이 0일 때와 0보다 클 때 데이터 로딩 방식이 어떻게 달라지나요?"
-          },
           "fix_mode": "free_code"
         },
         {
@@ -808,9 +760,12 @@
           "hint": "딥러닝에서 '랜덤'이 개입하는 곳이 몇 군데인지 세어보세요. 하나만 고정해서는 부족합니다.",
           "debugging_guide": "torch.initial_seed()와 torch.cuda.initial_seed()를 출력해서 시드가 설정되었는지 확인하세요.",
           "solution_check": {
-            "type": "regex",
-            "value": "def\\s+set_seed[\\s\\S]*?torch\\.manual_seed\\([\\s\\S]*?torch\\.cuda\\.manual_seed\\([\\s\\S]*?deterministic\\s*=\\s*True",
-            "flags": ""
+            "type": "multi_condition",
+            "required_all": [
+              "torch.manual_seed(",
+              "torch.cuda.manual_seed("
+            ],
+            "forbidden": []
           },
           "error_info": {
             "type": "Reproducibility Issue",
@@ -818,12 +773,6 @@
             "suggestion": "딥러닝에서 난수가 사용되는 모든 곳을 확인하세요."
           },
           "coaching": "실험 재현성은 연구와 디버깅의 기본입니다. 시드 고정 함수를 만들어 재사용하세요.",
-          "interview_rubric": {
-            "core_concepts": ["torch.manual_seed 누락", "여러 난수 소스가 존재"],
-            "mechanism_concepts": ["Python random, numpy, torch, cuda 각각 별도 시드", "cudnn.deterministic과 benchmark 역할"],
-            "application_concepts": ["DataLoader의 worker별 시드 고정 (generator)", "재현성 vs 성능 트레이드오프"],
-            "first_question": "시드를 추가로 고정하셨는데, 원래 코드에서는 어떤 난수 소스들이 제어되지 않고 있었나요?"
-          },
           "fix_mode": "free_code"
         },
         {
@@ -840,9 +789,17 @@
           "hint": "Val 성능은 높은데 Test에서 급락한다면, Validation 세트가 '공정하지 않을' 가능성이 있습니다. 데이터를 언제 분할했는지, 통계를 어떤 데이터로 계산했는지 확인해보세요.",
           "debugging_guide": "Val 데이터의 이미지가 Train 데이터의 어떤 이미지와 '거의 동일'한지 확인해보세요.",
           "solution_check": {
-            "type": "regex",
-            "value": "train_test_split\\(original_images[\\s\\S]*?np\\.mean\\(X_train[\\s\\S]*?np\\.std\\(X_train",
-            "flags": ""
+            "type": "multi_condition",
+            "required_all": [
+              "train_test_split(original_images",
+              "np.mean(X_train",
+              "np.std(X_train"
+            ],
+            "forbidden": [
+              "train_test_split(augmented",
+              "np.mean(original_images)",
+              "np.std(original_images)"
+            ]
           },
           "error_info": {
             "type": "Data Leakage",
@@ -850,12 +807,6 @@
             "suggestion": "데이터 전처리와 분할의 순서를 점검하세요."
           },
           "coaching": "Data Leakage는 여러 곳에서 동시에 발생합니다. Val 성능이 유난히 좋으면 파이프라인 전체를 점검하세요.",
-          "interview_rubric": {
-            "core_concepts": ["augmentation 후 split → 같은 원본이 train/val에 분산", "전체 데이터로 정규화 통계 계산 → 정보 유출"],
-            "mechanism_concepts": ["augmented 이미지가 원본과 유사하여 val이 train 정보를 가짐", "전체 mean/std에 val 데이터 포함 → 간접 유출"],
-            "application_concepts": ["올바른 순서: split 먼저 → augmentation → 정규화", "Val-Test 성능 갭으로 leakage 감지"],
-            "first_question": "데이터 분할 순서를 바꾸셨는데, 원래 코드에서는 구체적으로 어떤 경로로 데이터가 유출되고 있었나요?"
-          },
           "fix_mode": "free_code"
         }
       ],
@@ -882,9 +833,12 @@
           "hint": "torch.load()가 반환한 객체의 타입을 확인해보세요. 모델 자체인가요, 아니면 다른 무언가인가요?",
           "debugging_guide": "type(torch.load('model.pth'))를 출력해보세요. OrderedDict가 나오면 state_dict를 저장한 것입니다.",
           "solution_check": {
-            "type": "regex",
-            "value": "MyModel\\(\\)[\\s\\S]*?load_state_dict\\(\\s*torch\\.load\\(",
-            "flags": ""
+            "type": "multi_condition",
+            "required_all": [
+              "load_state_dict(",
+              "MyModel()"
+            ],
+            "forbidden": []
           },
           "error_info": {
             "type": "Save/Load Mismatch",
@@ -892,12 +846,6 @@
             "suggestion": "저장 코드와 로드 코드가 짝이 맞는지 확인하세요."
           },
           "coaching": "state_dict 방식이 표준입니다. optimizer.state_dict()도 함께 저장하면 학습을 이어서 할 수 있습니다.",
-          "interview_rubric": {
-            "core_concepts": ["torch.save(model) vs torch.save(model.state_dict())", "저장/로드 방식 불일치"],
-            "mechanism_concepts": ["pickle 직렬화로 전체 모델 저장 시 클래스 의존성 발생", "state_dict는 가중치만 저장하여 유연성 확보"],
-            "application_concepts": ["state_dict 저장이 표준인 이유", "optimizer state도 함께 저장하는 경우"],
-            "first_question": "저장/로드 방식을 수정하셨는데, torch.save(model)과 torch.save(model.state_dict())의 차이가 무엇인가요?"
-          },
           "fix_mode": "free_code"
         },
         {
@@ -914,9 +862,16 @@
           "hint": "모델 가중치만 복원하면 '어디까지 학습했는지'는 알지만, '어떻게 학습하고 있었는지'는 모릅니다. 학습 상태를 구성하는 요소가 모델 외에 또 무엇이 있을까요?",
           "debugging_guide": "재개 직후 scheduler.get_last_lr()와 scaler.get_scale()을 출력해서 저장 시점과 같은지 확인하세요.",
           "solution_check": {
-            "type": "regex",
-            "value": "(?=[\\s\\S]*optimizer\\.state_dict\\(\\))(?=[\\s\\S]*scheduler\\.state_dict\\(\\))(?=[\\s\\S]*scaler\\.state_dict\\(\\))(?=[\\s\\S]*optimizer\\.load_state_dict\\()(?=[\\s\\S]*scheduler\\.load_state_dict\\()[\\s\\S]*scaler\\.load_state_dict\\(",
-            "flags": ""
+            "type": "multi_condition",
+            "required_all": [
+              "optimizer.state_dict()",
+              "scheduler.state_dict()",
+              "scaler.state_dict()",
+              "optimizer.load_state_dict(",
+              "scheduler.load_state_dict(",
+              "scaler.load_state_dict("
+            ],
+            "forbidden": []
           },
           "error_info": {
             "type": "Incomplete Checkpoint",
@@ -924,12 +879,6 @@
             "suggestion": "학습 루프를 구성하는 모든 stateful 컴포넌트를 확인하세요."
           },
           "coaching": "대규모 학습에서 체크포인트 누락은 GPU 비용 낭비입니다. save/load 함수를 템플릿화하세요.",
-          "interview_rubric": {
-            "core_concepts": ["optimizer/scheduler state 미복원", "체크포인트에 학습 상태 누락"],
-            "mechanism_concepts": ["optimizer 미복원 시 momentum/adaptive state 초기화됨", "scheduler 미복원 시 LR이 처음부터 다시 시작"],
-            "application_concepts": ["체크포인트에 포함해야 할 항목 목록", "epoch/step 카운터 복원의 중요성"],
-            "first_question": "체크포인트 복원 코드를 수정하셨는데, 원래 코드에서 복원이 안 된 학습 상태가 구체적으로 무엇이었나요?"
-          },
           "fix_mode": "free_code"
         },
         {
@@ -945,9 +894,11 @@
           "hint": "모델을 저장할 때 텐서가 어떤 디바이스에 있었는지도 함께 저장됩니다. 다른 환경에서 로드할 때 이 정보를 어떻게 처리할 수 있을까요?",
           "debugging_guide": "에러 메시지를 자세히 읽어보세요. PyTorch가 해결책을 알려주고 있습니다.",
           "solution_check": {
-            "type": "regex",
-            "value": "load_state_dict\\(\\s*torch\\.load\\([^)]*map_location",
-            "flags": ""
+            "type": "multi_condition",
+            "required_all": [
+              "map_location"
+            ],
+            "forbidden": []
           },
           "error_info": {
             "type": "Device Compatibility",
@@ -955,12 +906,6 @@
             "suggestion": "로드 시 디바이스 매핑을 지정하는 방법을 확인하세요."
           },
           "coaching": "GPU에서 학습하고 CPU에서 서빙하는 경우가 많습니다. map_location 사용을 습관화하세요.",
-          "interview_rubric": {
-            "core_concepts": ["GPU 저장 모델을 CPU에서 로드 시 디바이스 불일치", "map_location 미지정"],
-            "mechanism_concepts": ["텐서에 디바이스 정보가 포함되어 저장됨", "map_location으로 로드 시 디바이스 재매핑"],
-            "application_concepts": ["GPU 학습 → CPU 서빙 파이프라인", "map_location='cpu' 패턴"],
-            "first_question": "map_location을 추가하셨는데, 이게 없으면 CPU 환경에서 왜 에러가 나는 건가요?"
-          },
           "verification_code": "import torch\nimport torch.nn as nn\nimport json\nimport tempfile, os\n\nmodel = nn.Linear(10, 2)\ntmp = tempfile.NamedTemporaryFile(suffix='.pth', delete=False)\ntorch.save(model.state_dict(), tmp.name)\ntmp.close()\n\n__USER_CODE__\n\nresult = {'passed': False, 'message': ''}\ntry:\n    # map_location이 사용되었는지 확인 (코드 문자열 검사는 solution_check에서)\n    # 여기서는 실제 로드 가능 여부 확인\n    loaded = torch.load(tmp.name, map_location='cpu', weights_only=True)\n    new_model = nn.Linear(10, 2)\n    new_model.load_state_dict(loaded)\n    output = new_model(torch.randn(1, 10))\n    if output.shape == (1, 2):\n        result['verified'] = True\n        result['message'] = 'PASS: map_location을 사용하여 CPU에서 정상 로드됩니다'\n    else:\n        result['message'] = 'FAIL: 로드 후 추론 결과가 비정상입니다'\n    os.unlink(tmp.name)\nexcept Exception as e:\n    result['message'] = f'ERROR: {str(e)}'\n    os.unlink(tmp.name)\nprint(json.dumps(result))",
           "fix_mode": "free_code"
         }
@@ -988,9 +933,11 @@
           "hint": "짧은 문장의 유사도가 비정상적으로 높다면, 실제 '의미'가 아닌 다른 무언가가 임베딩에 영향을 주고 있을 수 있습니다. tokenizer 출력을 직접 확인해보세요.",
           "debugging_guide": "tokens['attention_mask']를 출력해보세요. 1은 실제 토큰, 0은 패딩입니다.",
           "solution_check": {
-            "type": "regex",
-            "value": "model\\([\\s\\S]*?attention_mask[\\s\\S]*?\\)",
-            "flags": ""
+            "type": "multi_condition",
+            "required_all": [
+              "attention_mask"
+            ],
+            "forbidden": []
           },
           "error_info": {
             "type": "Embedding Contamination",
@@ -998,12 +945,6 @@
             "suggestion": "모델에 전달하는 입력을 확인하세요. tokenizer가 반환하는 모든 것을 활용하고 있나요?"
           },
           "coaching": "Transformer 모델을 사용할 때 attention_mask는 필수입니다. 특히 배치 처리 시 반드시 마스킹해야 합니다.",
-          "interview_rubric": {
-            "core_concepts": ["attention_mask 미전달", "패딩 토큰이 임베딩 계산에 포함됨"],
-            "mechanism_concepts": ["패딩 토큰도 self-attention에 참여하여 임베딩 오염", "mean pooling 시 패딩이 평균값을 왜곡"],
-            "application_concepts": ["tokenizer 반환값에서 attention_mask 활용", "배치 처리 시 패딩 마스킹의 필요성"],
-            "first_question": "attention_mask를 추가하셨는데, 이게 없으면 모델 내부에서 패딩 토큰이 어떻게 처리되나요?"
-          },
           "verification_code": "import json\n\ntry:\n    from transformers import BertModel, BertTokenizer\n    import torch\n    \n    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')\n    model = BertModel.from_pretrained('bert-base-uncased')\n    model.eval()\n    \n    __USER_CODE__\n    \n    result = {'passed': False, 'message': ''}\n    \n    # attention_mask가 사용되는지 확인\n    tokens = tokenizer(['test', 'test longer sentence'], padding=True, return_tensors='pt')\n    with torch.no_grad():\n        outputs = model(tokens['input_ids'], attention_mask=tokens['attention_mask'])\n    \n    result['verified'] = True\n    result['message'] = 'PASS: attention_mask가 올바르게 전달되고 있습니다'\nexcept Exception as e:\n    result = {'passed': False, 'message': f'ERROR: {str(e)}'}\nprint(json.dumps(result))",
           "fix_mode": "free_code"
         },
@@ -1020,9 +961,14 @@
           "hint": "모델이 학습할 때 본 token ID와 지금 입력되는 token ID가 같은지 확인해보세요. 같은 단어여도 tokenizer마다 다른 ID를 부여합니다.",
           "debugging_guide": "tokenizer.vocab_size와 model.config.vocab_size를 비교해보세요.",
           "solution_check": {
-            "type": "regex",
-            "value": "tokenizer\\s*=\\s*\\w+\\.from_pretrained\\(\\s*['\"](\\.\\/my_finetuned_model|bert-base-uncased)['\"]",
-            "flags": ""
+            "type": "multi_condition",
+            "required_any": [
+              "'./my_finetuned_model'",
+              "'bert-base-uncased'"
+            ],
+            "forbidden": [
+              "'bert-large-uncased'"
+            ]
           },
           "error_info": {
             "type": "Tokenizer Mismatch",
@@ -1030,12 +976,6 @@
             "suggestion": "모델과 tokenizer가 동일한 것인지 확인하세요."
           },
           "coaching": "HuggingFace 모델 배포 시 모델+tokenizer+config를 세트로 관리하세요.",
-          "interview_rubric": {
-            "core_concepts": ["학습 때와 추론 때 다른 tokenizer 사용", "토큰 ID 매핑 불일치"],
-            "mechanism_concepts": ["다른 tokenizer는 같은 단어를 다른 ID로 변환", "임베딩 테이블에서 엉뚱한 벡터를 참조하게 됨"],
-            "application_concepts": ["모델과 tokenizer를 항상 세트로 저장/로드", "AutoTokenizer.from_pretrained 사용법"],
-            "first_question": "tokenizer를 모델과 일치시키셨는데, 서로 다른 tokenizer를 쓰면 내부적으로 어떤 문제가 생기나요?"
-          },
           "verification_code": "import json\n\nresult = {'passed': False, 'message': ''}\ntry:\n    from transformers import BertTokenizer\n    \n    __USER_CODE__\n    \n    # tokenizer가 bert-base-uncased 또는 fine-tuned 모델의 것인지 확인\n    test_token = tokenizer.encode('great', add_special_tokens=False)\n    base_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')\n    base_token = base_tokenizer.encode('great', add_special_tokens=False)\n    \n    if test_token == base_token:\n        result['verified'] = True\n        result['message'] = 'PASS: tokenizer가 학습 시 사용한 것과 일치합니다'\n    else:\n        result['message'] = f'FAIL: token ID 불일치 - 현재: {test_token}, 필요: {base_token}'\nexcept Exception as e:\n    result['message'] = f'ERROR: {str(e)}'\nprint(json.dumps(result))",
           "fix_mode": "free_code"
         },
@@ -1053,9 +993,20 @@
           "hint": "3가지 문제가 동시에 나타나고 있습니다: (1) 속도가 느림 - 이전 계산을 재활용하고 있나요? (2) 반복 - 항상 가장 확률 높은 토큰만 선택하면? (3) 경고 메시지 - pad_token 관련",
           "debugging_guide": "generate 전후로 시간을 측정해보세요. 또한 출력에 반복되는 패턴이 있는지 확인하세요.",
           "solution_check": {
-            "type": "regex",
-            "value": "(?=[\\s\\S]*pad_token)(?=[\\s\\S]*use_cache\\s*=\\s*True)(?=[\\s\\S]*do_sample\\s*=\\s*True)(?=[\\s\\S]*(?:temperature|top_p|repetition_penalty)\\s*=)",
-            "flags": ""
+            "type": "multi_condition",
+            "required_all": [
+              "use_cache=True",
+              "do_sample=True",
+              "pad_token"
+            ],
+            "required_any": [
+              "temperature=",
+              "top_p=",
+              "repetition_penalty="
+            ],
+            "forbidden": [
+              "use_cache=False"
+            ]
           },
           "error_info": {
             "type": "Generation Configuration Error",
@@ -1063,12 +1014,6 @@
             "suggestion": "generate() 함수의 주요 파라미터들을 확인하세요."
           },
           "coaching": "LLM 서빙에서 KV cache 미사용은 GPU 비용 낭비입니다. vLLM의 PagedAttention 같은 기술을 공부하세요.",
-          "interview_rubric": {
-            "core_concepts": ["use_cache=False로 KV cache 비활성화", "pad_token 미설정으로 생성 오류"],
-            "mechanism_concepts": ["KV cache가 이전 토큰 재계산을 방지하는 원리", "pad_token 없으면 배치 생성 시 에러 또는 이상 동작"],
-            "application_concepts": ["use_cache=True의 속도 이점", "eos_token을 pad_token으로 설정하는 패턴"],
-            "first_question": "use_cache와 pad_token 설정을 수정하셨는데, use_cache=False이면 생성 과정에서 어떤 비효율이 발생하나요?"
-          },
           "verification_code": "import json\n\nresult = {'passed': False, 'message': ''}\ntry:\n    from transformers import GPT2LMHeadModel, GPT2Tokenizer\n    import torch\n    \n    tokenizer = GPT2Tokenizer.from_pretrained('gpt2')\n    model = GPT2LMHeadModel.from_pretrained('gpt2')\n    model.eval()\n    \n    __USER_CODE__\n    \n    checks = []\n    # pad_token 설정 확인\n    if tokenizer.pad_token is not None:\n        checks.append('pad_token')\n    \n    # generate 파라미터 확인 (코드 문자열 기반은 solution_check에서)\n    inputs = tokenizer('Once upon a time', return_tensors='pt')\n    with torch.no_grad():\n        outputs = model.generate(\n            inputs['input_ids'],\n            max_new_tokens=20,\n            use_cache=True,\n            do_sample=True,\n            temperature=0.8,\n            pad_token_id=tokenizer.pad_token_id\n        )\n    text = tokenizer.decode(outputs[0], skip_special_tokens=True)\n    \n    # 반복 체크\n    words = text.split()\n    unique_ratio = len(set(words)) / len(words) if words else 0\n    if unique_ratio > 0.3:\n        checks.append('no_repetition')\n    \n    if len(checks) >= 2:\n        result['verified'] = True\n        result['message'] = f'PASS: 생성 설정이 올바릅니다. Output: {text[:100]}'\n    else:\n        result['message'] = f'FAIL: 통과한 검증: {checks}'\nexcept Exception as e:\n    result['message'] = f'ERROR: {str(e)}'\nprint(json.dumps(result))",
           "fix_mode": "free_code"
         }

@@ -110,6 +110,8 @@
         </div>
       </div>
     </transition>
+    <!-- [전역 토스트 알림] -->
+    <GlobalToast />
 
     <!-- [Job Planner 모달] -->
     <JobPlannerModal
@@ -131,6 +133,7 @@ import LoginModal from './LoginModal.vue';
 import SignUpModal from './SignUpModal.vue';
 import ConstructionModal from './ConstructionModal.vue';
 import ProfileSettingsModal from './ProfileSettingsModal.vue';
+import GlobalToast from './GlobalToast.vue'; // [수정일: 2026-02-16] 전역 토스트 추가
 import LogicMirrorGuidebook from '../features/practice/pseudocode/components/LogicMirrorGuidebook.vue'; // [수정일: 2026-02-06] 폴더 계층화(components) 반영
 import JobPlannerModal from './JobPlannerModal.vue';
 
@@ -147,6 +150,10 @@ const router = useRouter();
 const onLoginSuccess = (user) => {
     auth.setLoginSuccess(user);
     ui.isLoginModalOpen = false;
+    
+    // [수정일: 2026-02-16] 로그인 성공 시 사용자 환영 메시지 표시 (Toast 적용)
+    const nickname = (user && (user.nickname || user.username)) || auth.sessionNickname || '엔지니어';
+    ui.showToast(`${nickname}님, 환영합니다! AI-Arcade 보안 시스템에 접속되었습니다.`, 'success');
 };
 
 const onSignUpSuccess = (nickname) => {

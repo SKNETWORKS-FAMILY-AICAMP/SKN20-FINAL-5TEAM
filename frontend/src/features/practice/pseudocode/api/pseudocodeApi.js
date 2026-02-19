@@ -11,10 +11,6 @@
 
 import { PseudocodeValidator } from '../utils/PseudocodeValidator.js';
 import { safeJSONParse } from '../utils/jsonParser.js';
-/**
- * pseudocodeApi.js
- * [2026-02-18] pseudo_tts 브랜치와 프론트엔드 UI 및 로직 완전 동기화 (HMR 에러 및 인코딩 복구)
- */
 import axios from 'axios';
 
 // 캐시
@@ -77,11 +73,10 @@ export async function evaluatePseudocode5D(problem, pseudocode, userContext = nu
 
     const evaluationPromise = (async () => {
         try {
-            console.log('[5D Evaluation] Validation check for:', pseudocode);
             // [2026-02-14 추가] STEP 0: 무성의한 입력 원천 차단 (비싼 AI 호출 방지)
             const inputCheck = PseudocodeValidator.isMeaningfulInput(pseudocode);
             if (!inputCheck.valid) {
-                console.warn('[Validation] High-Reject:', inputCheck.reason);
+                console.warn('[Validation] High-Reject: Low effort input detected');
 
                 // [2026-02-14 추가] 런타임 에러 방지를 위한 더미 질문 및 실제 청사진 데이터 연동
                 return {
@@ -108,7 +103,7 @@ export async function evaluatePseudocode5D(problem, pseudocode, userContext = nu
                             { text: "아니요, 다시 작성해 보겠습니다.", is_correct: false, reason: "재작성 모드" }
                         ]
                     },
-                    blueprint_steps: problem.blueprintSteps || [], // stages.js에서 추가한 단계별 실습 데이터
+                    blueprint_steps: problem.blueprintSteps || [],
                     next_phase: 'TAIL_QUESTION',
                     hybrid: true
                 };
@@ -150,10 +145,8 @@ export async function evaluatePseudocode5D(problem, pseudocode, userContext = nu
             try {
                 // 백엔드에 5차원 평가 및 Python 변환 요청
                 // 주의: 백엔드는 0-100점 스케일로 반환한다고 가정
-                const response = await axios.post('/api/core/pseudocode/evaluate-5d/', {
-                    // [2026-02-18 상세] stages.js에 정의된 db_id가 있으면 우선적으로 사용하고, 
-                    // 없으면 기존의 id를 quest_id로 전달하여 백엔드에서 정확한 저장이 가능하도록 함
-                    quest_id: problem.db_id || problem.id,
+                const response = await axios.post('/api/core/pseudocode/evaluate-5d', {
+                    quest_id: problem.id,
                     quest_title: problem.title || problem.missionObjective,
                     pseudocode,
                     validation_rules: problem.validation,
@@ -164,8 +157,6 @@ export async function evaluatePseudocode5D(problem, pseudocode, userContext = nu
                     },
                     // [2026-02-12] 진단 단계 답변 데이터 추가 송신
                     user_diagnostic: userContext,
-                    // [2026-02-18 상세] 하위 호환성을 위해 id가 숫자여도 안전하게 처리
-                    normalized_id: String(problem.id).includes('-') ? String(problem.id).split('-').pop() : String(problem.id),
                     // [STEP 3] Python 변환 요청 플래그 추가
                     request_python_conversion: true
                 }, { timeout: 45000 }); // 타임아웃 45초로 연장 (변환 시간 고려)
@@ -910,6 +901,22 @@ ${rubric.modelAnswerExplanation || ""}
             is_correct: true,
             feedback: "진지한 추론 시도에 감사드립니다. (서버 연결 지연으로 기본 통과 처리)"
         };
+    }
+}
+
+/**
+ * [2026-02-19] 최종 리포트 단계에서 실시간 유튜브 추천 영상을 가져옵니다.
+ */
+export async function getYouTubeRecommendations(dimensions, questTitle) {
+    try {
+        const response = await axios.post('/api/core/youtube/recommendations', {
+            dimensions,
+            quest_title: questTitle
+        });
+        return response.data.videos || [];
+    } catch (error) {
+        console.error('YouTube recommendations fetch failed:', error);
+        return [];
     }
 }
 

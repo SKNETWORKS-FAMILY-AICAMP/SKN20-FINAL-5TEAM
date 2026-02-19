@@ -16,7 +16,6 @@
       "Bash(do echo \"=== Checking $commit ===\")",
       "Bash(done)",
       "Bash(npm run build:*)",
-      "Bash(docker compose exec backend python:*)",
       "Bash(docker ps:*)",
       "Bash(docker restart:*)",
       "Bash(pip install:*)",

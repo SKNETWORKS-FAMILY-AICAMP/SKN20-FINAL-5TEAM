@@ -223,25 +223,6 @@ export const useGameStore = defineStore('game', {
                 }));
             }
 
-            // [Unit 3] System Practice 처리
-            if (unitTitle.includes('system')) {
-                return [
-                    { id: 1, title: 'Instagram Home Feed', displayNum: '3-1', problemIndex: 0 },
-                    { id: 2, title: 'YouTube VOD 업로드/스트리밍', displayNum: '3-2', problemIndex: 1 },
-                    { id: 3, title: '실시간 메시징', displayNum: '3-3', problemIndex: 2 },
-                    { id: 4, title: '라이드헤일링 실시간 배차', displayNum: '3-4', problemIndex: 3 },
-                    { id: 5, title: '짧은 영상 추천 피드', displayNum: '3-5', problemIndex: 4 },
-                    { id: 6, title: 'Drive/Dropbox 파일 저장', displayNum: '3-6', problemIndex: 5 },
-                    { id: 7, title: 'Checkout 주문/결제', displayNum: '3-7', problemIndex: 6 },
-                    { id: 8, title: '실시간 검색 + 트렌딩', displayNum: '3-8', problemIndex: 7 },
-                    { id: 9, title: '화상회의(WebRTC)', displayNum: '3-9', problemIndex: 8 },
-                    { id: 10, title: 'RTB 광고 입찰', displayNum: '3-10', problemIndex: 9 }
-                ].map(p => ({
-                    ...p,
-                    questIndex: p.problemIndex
-                }));
-            }
-
             // 그 외 유닛: DB 상세 데이터(PracticeDetail)를 기반으로 동적 구성
             if (!unit.details || unit.details.length === 0) {
                 return [];
