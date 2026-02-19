@@ -21,7 +21,8 @@
       "Bash(docker restart:*)",
       "Bash(pip install:*)",
       "Bash(PYTHONIOENCODING=utf-8 python:*)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(Select-String -Pattern \"추천|사람인|잡코리아|크롤링|CRAWLER\" -Context 2)"
     ]
   }
 }

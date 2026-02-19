@@ -1331,6 +1331,12 @@ class JobPlannerRecommendView(APIView):
                 }, status=status.HTTP_400_BAD_REQUEST)
 
             print(f"🔍 추천 공고 검색 시작 (준비도: {readiness_score}, 스킬: {user_skills})")
+            print(f"📍 원본 직무: '{job_position}'")
+
+            # 직무명을 검색에 적합하게 정제
+            search_keyword = self._simplify_job_position(job_position)
+            print(f"🔍 검색 키워드: '{search_keyword}'")
+
             if current_job_url:
                 print(f"🚫 제외할 공고: {current_job_company} - {current_job_title}")
 
@@ -1338,12 +1344,13 @@ class JobPlannerRecommendView(APIView):
             job_listings = []
 
             # 사람인 크롤링
-            saramin_jobs = self._crawl_saramin(job_position)
+            print(f"🔍 사람인 크롤링 시작: '{search_keyword}' 검색")
+            saramin_jobs = self._crawl_saramin(search_keyword)
             job_listings.extend(saramin_jobs)
             print(f"✅ 사람인: {len(saramin_jobs)}개 공고")
 
             # 잡코리아 크롤링
-            jobkorea_jobs = self._crawl_jobkorea(job_position)
+            jobkorea_jobs = self._crawl_jobkorea(search_keyword)
             job_listings.extend(jobkorea_jobs)
             print(f"✅ 잡코리아: {len(jobkorea_jobs)}개 공고")
 
@@ -1406,6 +1413,84 @@ class JobPlannerRecommendView(APIView):
 
         return filtered
 
+    def _simplify_job_position(self, job_position: str) -> str:
+        """
+        직무명을 검색에 적합한 간단한 키워드로 정제합니다.
+
+        예시:
+        - "AI리서치엔지니어-LLM포스트트레이닝" → "AI 엔지니어"
+        - "(주)헥토 AI개발" → "AI개발"
+        - "백엔드 개발자 (Python/Django)" → "백엔드 개발자"
+        - "데이터 분석가 [신입/경력]" → "데이터 분석가"
+
+        Args:
+            job_position (str): 원본 직무명
+
+        Returns:
+            str: 정제된 검색 키워드
+        """
+        import re
+
+        # 괄호와 그 내용 제거 (영어 괄호)
+        simplified = re.sub(r'\([^)]*\)', '', job_position)
+        # 대괄호와 그 내용 제거
+        simplified = re.sub(r'\[[^\]]*\]', '', simplified)
+        # 중괄호와 그 내용 제거
+        simplified = re.sub(r'\{[^}]*\}', '', simplified)
+
+        # 하이픈 이후 제거 (보통 상세 설명)
+        if '-' in simplified:
+            simplified = simplified.split('-')[0]
+
+        # 슬래시로 구분된 경우 첫 번째 항목만
+        if '/' in simplified:
+            parts = simplified.split('/')
+            # 가장 긴 부분 선택 (보통 메인 직무명)
+            simplified = max(parts, key=len)
+
+        # 회사명 패턴 제거
+        simplified = re.sub(r'(주\)|㈜|\(주\))', '', simplified)
+
+        # 특수문자 제거하되 공백은 유지
+        simplified = re.sub(r'[^\w\s가-힣]', ' ', simplified)
+
+        # 다중 공백을 단일 공백으로
+        simplified = ' '.join(simplified.split())
+
+        # 핵심 키워드 추출 시도
+        # AI/데이터/개발 관련 키워드가 있으면 우선 사용
+        keywords_priority = {
+            'AI': ['AI', '인공지능', 'LLM', 'GPT'],
+            '머신러닝': ['머신러닝', 'ML', '기계학습'],
+            '딥러닝': ['딥러닝', 'DL', '심층학습'],
+            '데이터': ['데이터', 'Data'],
+            '백엔드': ['백엔드', 'Backend', '서버'],
+            '프론트엔드': ['프론트엔드', 'Frontend', '프론트'],
+            '풀스택': ['풀스택', 'Full Stack', 'Fullstack'],
+            'DevOps': ['DevOps', '데브옵스'],
+            '클라우드': ['클라우드', 'Cloud'],
+            'QA': ['QA', '테스트', 'Test']
+        }
+
+        for main_keyword, variants in keywords_priority.items():
+            for variant in variants:
+                if variant in simplified:
+                    # 해당 키워드와 "엔지니어", "개발자", "분석가" 등이 함께 있는지 확인
+                    if any(role in simplified for role in ['엔지니어', '개발자', '분석가', '매니저', 'Engineer', 'Developer', 'Analyst']):
+                        # 키워드와 역할을 함께 반환
+                        for role in ['엔지니어', '개발자', '분석가', '매니저', 'Engineer', 'Developer', 'Analyst']:
+                            if role in simplified:
+                                return f"{main_keyword} {role}"
+                    # 역할이 없으면 키워드만 반환
+                    return main_keyword
+
+        # 우선순위 키워드가 없으면 정제된 텍스트 그대로 반환
+        # 단, 너무 길면 앞부분만 (15자 제한)
+        if len(simplified) > 15:
+            simplified = simplified[:15].strip()
+
+        return simplified.strip() if simplified.strip() else '개발자'
+
     def _crawl_saramin(self, job_position):
         """
         사람인에서 채용공고 크롤링 (정확도순)
@@ -1456,6 +1541,9 @@ class JobPlannerRecommendView(APIView):
                     # 스킬/기술 스택
                     skills_elem = item.select('.job_sector a')
                     skills = [s.get_text(strip=True) for s in skills_elem]
+
+                    # 디버그: 스킬 추출 결과 확인
+                    print(f"  [사람인] {company_name} - 추출된 스킬: {skills if skills else '없음'}")
 
                     # 지역
                     location_elem = item.select_one('.job_condition span:first-child')
@@ -1532,6 +1620,9 @@ class JobPlannerRecommendView(APIView):
                     skills_elem = item.select('.etc .tag')
                     skills = [s.get_text(strip=True) for s in skills_elem]
 
+                    # 디버그: 스킬 추출 결과 확인
+                    print(f"  [잡코리아] {company_name} - 추출된 스킬: {skills if skills else '없음'}")
+
                     # 지역
                     location = conditions[0] if conditions else ""
 
@@ -1571,7 +1662,7 @@ class JobPlannerRecommendView(APIView):
         Returns:
             list: 추천 공고 리스트 (매칭률 순으로 정렬)
         """
-        MIN_MATCH_RATE = 0.30  # 최소 30% 이상 매칭되어야 추천
+        MIN_MATCH_RATE = 0.20  # 최소 20% 이상 매칭되어야 추천 (크롤링 공고는 스킬 정보가 적어 완화)
 
         # 사용자 스킬 정규화
         user_skills_normalized = [self._normalize_skill(s) for s in user_skills]
@@ -1581,6 +1672,7 @@ class JobPlannerRecommendView(APIView):
 
         for job in job_listings:
             job_skills = job.get('skills', [])
+            print(f"  🔍 [{job.get('source', '')}] {job['company_name']} - 스킬 개수: {len(job_skills)}")
 
             # 스킬 정보가 없으면 제목/설명에서 추출 시도
             if not job_skills:
@@ -1683,10 +1775,16 @@ class JobPlannerRecommendView(APIView):
             # 조건 2: 다음 중 하나를 만족
             #   - 현재 준비도보다 높은 매칭률 (더 적합한 공고)
             #   - 준비도의 90% 이상이면서 95% 미만 (비슷한 수준 + 새 기술 학습 기회)
+
+            # 디버그: 모든 공고의 매칭률 출력
+            print(f"  📊 [{job.get('source', '')}] {job['company_name']} - {job['title'][:30]}...")
+            print(f"     매칭: {matched_count}/{len(job_skills)} ({match_rate*100:.1f}%), 평균 유사도: {avg_similarity*100:.1f}%")
+
             if match_rate >= MIN_MATCH_RATE and (
                 match_rate > readiness_score or
                 (match_rate >= readiness_score * 0.9 and match_rate < 0.95)
             ):
+                print(f"     ✅ 추천 조건 만족!")
                 recommendations.append({
                     "source": job.get('source', ''),
                     "company_name": job['company_name'],
@@ -1701,6 +1799,12 @@ class JobPlannerRecommendView(APIView):
                     "total_skills": len(job_skills),
                     "reason": self._generate_recommendation_reason(match_rate, readiness_score, matched_count, len(job_skills))
                 })
+            else:
+                # 필터링 이유 출력
+                if match_rate < MIN_MATCH_RATE:
+                    print(f"     ❌ 필터링: 매칭률 {match_rate*100:.1f}% < 최소 {MIN_MATCH_RATE*100:.0f}%")
+                else:
+                    print(f"     ❌ 필터링: 현재 공고({readiness_score*100:.1f}%)보다 유의미하게 높지 않음")
 
         # 매칭률 순으로 정렬 (가장 적합한 공고가 맨 위로)
         recommendations.sort(key=lambda x: x['match_rate'], reverse=True)
