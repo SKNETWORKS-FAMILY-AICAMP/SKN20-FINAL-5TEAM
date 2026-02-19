@@ -18,3 +18,9 @@ google-generativeai
 groq
 boto3
 django-storages
+
+# Job Planner Agent
+sentence-transformers>=2.2.0
+torch>=2.0.0
+requests>=2.31.0
+beautifulsoup4>=4.12.0

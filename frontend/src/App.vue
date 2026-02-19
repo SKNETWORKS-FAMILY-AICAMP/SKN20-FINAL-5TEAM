@@ -19,6 +19,7 @@
       @change-page="fetchLeaderboard"
       @go-to-playground="handleGoToPlayground"
       @open-unit="openUnitPopup"
+      @open-job-planner="handleOpenJobPlanner"
     >
       <template #auth-buttons>
         <template v-if="!auth.isLoggedIn">
@@ -373,6 +374,10 @@ function handleGoToPlayground() {
   } else {
     ui.isAuthRequiredModalOpen = true;
   }
+}
+
+function handleOpenJobPlanner() {
+  ui.isJobPlannerModalOpen = true;
 }
 
 function handleGuidebookClick() {

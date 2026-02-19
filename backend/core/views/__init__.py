@@ -12,3 +12,11 @@ from . import activity_view
 from .ai_proxy_view import AIProxyView
 from .pseudocode_execution import execute_python_code
 from .pseudocode_agent_view import PseudocodeAgentView
+from .job_planner_view import (
+    JobPlannerParseView,
+    JobPlannerAnalyzeView,
+    JobPlannerCompanyAnalyzeView,
+    JobPlannerAgentQuestionsView,
+    JobPlannerAgentReportView,
+    JobPlannerRecommendView
+)

@@ -110,6 +110,12 @@
         </div>
       </div>
     </transition>
+
+    <!-- [Job Planner 모달] -->
+    <JobPlannerModal
+        :isOpen="ui.isJobPlannerModalOpen"
+        @close="ui.isJobPlannerModalOpen = false"
+    />
   </div>
 </template>
 
@@ -126,6 +132,7 @@ import SignUpModal from './SignUpModal.vue';
 import ConstructionModal from './ConstructionModal.vue';
 import ProfileSettingsModal from './ProfileSettingsModal.vue';
 import LogicMirrorGuidebook from '../features/practice/pseudocode/components/LogicMirrorGuidebook.vue'; // [수정일: 2026-02-06] 폴더 계층화(components) 반영
+import JobPlannerModal from './JobPlannerModal.vue';
 
 /**
  * [수정일: 2026-01-24] 
