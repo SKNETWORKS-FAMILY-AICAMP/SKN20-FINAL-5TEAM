@@ -1045,7 +1045,7 @@ footer {
 .path-container-v3 {
     position: relative;
     width: 800px;
-    height: 3100px;
+    height: 4700px;
     margin: 0 auto;
 }
 
@@ -1079,6 +1079,7 @@ footer {
     height: 100px;
     z-index: 5;
     cursor: pointer;
+    /* [수정일: 2026-02-19] 동적 pathPoints 스타일 사용 (Vue inline style) */
     transform: translate(-50%, -50%);
     transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
@@ -1141,107 +1142,8 @@ footer {
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
 }
 
-/* 노드 위치 정의 (지그재그 패턴) */
-.node-0 {
-    top: 100px;
-    left: 50%;
-}
-
-.node-1 {
-    top: 250px;
-    left: 70%;
-}
-
-.node-2 {
-    top: 400px;
-    left: 35%;
-}
-
-.node-3 {
-    top: 550px;
-    left: 65%;
-}
-
-.node-4 {
-    top: 700px;
-    left: 45%;
-}
-
-.node-5 {
-    top: 850px;
-    left: 30%;
-}
-
-.node-6 {
-    top: 1000px;
-    left: 60%;
-}
-
-.node-7 {
-    top: 1150px;
-    left: 40%;
-}
-
-.node-8 {
-    top: 1300px;
-    left: 70%;
-}
-
-.node-9 {
-    top: 1450px;
-    left: 50%;
-}
-
-/* 추가 노드들 (시스템 아키텍처 같이 10개 이상 문제 있는 유닛) */
-.node-10 {
-    top: 1600px;
-    left: 35%;
-}
-
-.node-11 {
-    top: 1750px;
-    left: 65%;
-}
-
-.node-12 {
-    top: 1900px;
-    left: 45%;
-}
-
-.node-13 {
-    top: 2050px;
-    left: 30%;
-}
-
-.node-14 {
-    top: 2200px;
-    left: 60%;
-}
-
-.node-15 {
-    top: 2350px;
-    left: 50%;
-}
-
-.node-16 {
-    top: 2500px;
-    left: 35%;
-}
-
-.node-17 {
-    top: 2650px;
-    left: 70%;
-}
-
-.node-18 {
-    top: 2800px;
-    left: 45%;
-}
-
-.node-19 {
-    top: 2950px;
-    left: 55%;
-}
+/* [2026-02-19] hardcoded node 위치 제거 (Vue inline style :style 사용) */
+/* 이제 pathPoints computed에서 동적으로 계산되므로 CSS 위치 정의 불필요 */
 
 @keyframes duckBounceV3 {
 

@@ -17,7 +17,7 @@ export const useGameStore = defineStore('game', {
         unitProgress: {
             'Pseudo Practice': [0],
             'Debug Practice': [0],
-            'System Practice': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+            'System Practice': [0],
             'Ops Practice': [0],
             'Agent Practice': [0],
             // [수정일: 2026-01-28] Pseudo Forest 전용 진행도 초기값 추가
@@ -223,6 +223,41 @@ export const useGameStore = defineStore('game', {
                 }));
             }
 
+            // [Unit 3] System Practice 처리
+            if (unitTitle.includes('system')) {
+                // DB details 우선 사용
+                if (unit.details && Array.isArray(unit.details) && unit.details.length > 0) {
+                    const dbProblems = unit.details
+                        .filter(d => d.detail_type === 'PROBLEM' && d.is_active)
+                        .sort((a, b) => a.display_order - b.display_order);
+                    if (dbProblems.length > 0) {
+                        return dbProblems.map((d, idx) => ({
+                            id: d.id,
+                            title: d.detail_title,
+                            displayNum: `3-${idx + 1}`,
+                            problemIndex: idx,
+                            questIndex: idx,
+                            difficulty: d.content_data?.difficulty || 'medium',
+                            config: d.content_data
+                        }));
+                    }
+                }
+
+                // DB 데이터 없을 때 하드코딩 폴백 배열 반환
+                return [
+                    { id: 1, title: 'Instagram Home Feed', displayNum: '3-1', problemIndex: 0 },
+                    { id: 2, title: 'YouTube VOD 업로드/스트리밍', displayNum: '3-2', problemIndex: 1 },
+                    { id: 3, title: '실시간 메시징', displayNum: '3-3', problemIndex: 2 },
+                    { id: 4, title: '라이드헤일링 실시간 배차', displayNum: '3-4', problemIndex: 3 },
+                    { id: 5, title: '짧은 영상 추천 피드', displayNum: '3-5', problemIndex: 4 },
+                    { id: 6, title: 'Drive/Dropbox 파일 저장', displayNum: '3-6', problemIndex: 5 },
+                    { id: 7, title: 'Checkout 주문/결제', displayNum: '3-7', problemIndex: 6 },
+                    { id: 8, title: '실시간 검색 + 트렌딩', displayNum: '3-8', problemIndex: 7 },
+                    { id: 9, title: '화상회의(WebRTC)', displayNum: '3-9', problemIndex: 8 },
+                    { id: 10, title: 'RTB 광고 입찰', displayNum: '3-10', problemIndex: 9 }
+                ].map(p => ({ ...p, questIndex: p.problemIndex }));
+            }
+
             // 그 외 유닛: DB 상세 데이터(PracticeDetail)를 기반으로 동적 구성
             if (!unit.details || unit.details.length === 0) {
                 return [];
@@ -263,12 +298,12 @@ export const useGameStore = defineStore('game', {
                 progress.push(index);
             }
             const nextIdx = index + 1;
-            // [수정일: 2026-01-28] 유닛별 최대 문제 수에 맞춰 해금 제한 동적 조절
+            // 유닛별 최대 문제 수에 맞춰 해금 제한 동적 조절
             const maxCount = targetKey === 'AI Detective'
                 ? 30
                 : targetKey === 'Debug Practice'
                     ? (progressiveData.progressiveProblems?.length || 0)
-                    : 10;
+                    : (this.activeUnit?.problems?.length || 0);
             if (progress && nextIdx < maxCount && !progress.includes(nextIdx)) {
                 progress.push(nextIdx);
             }
@@ -323,7 +358,7 @@ export const useGameStore = defineStore('game', {
             }
 
             if (unitTitle === 'systempractice') {
-                return state.unitProgress['System Practice'] || [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+                return state.unitProgress['System Practice'] || [0];
             }
 
             return state.unitProgress[state.activeUnit.name] || [0];
