@@ -7,13 +7,14 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
-from django.http import StreamingHttpResponse
+import environ
 import os
 import json
 import re
 import sys
-import time
 import traceback
+
+env = environ.Env()
 
 @method_decorator(csrf_exempt, name='dispatch')
 class AIChatView(APIView):
@@ -263,24 +264,19 @@ class AIEvaluationView(APIView):
 @method_decorator(csrf_exempt, name='dispatch')
 class BugHuntEvaluationView(APIView):
     """
-    [수정일: 2026-02-11]
-    Step별 딥다이브 면접 결과를 종합하여 최종 평가를 생성합니다.
-    면접 점수를 재채점하지 않고, 기존 면접 결과를 종합·분석하여
-    전체적인 디버깅 역량 요약과 학습 방향을 제시합니다.
+    [수정일: 2026-01-27]
+    JSON 정답 데이터를 기반으로 사용자의 디버깅 사고 전략을 평가합니다.
     """
     authentication_classes = []
     permission_classes = [AllowAny]
 
-    EVAL_MODEL = "gpt-5-mini"
-
     def post(self, request):
         data = request.data
         mission_title = data.get('missionTitle', 'Unknown Mission')
-        steps = data.get('steps', [])
+        steps = data.get('steps', []) # JSON의 원본 데이터가 포함된 배열
         explanations = data.get('explanations', {})
         user_codes = data.get('userCodes', {})
         performance = data.get('performance', {})
-        interview_results = data.get('interviewResults', {})
 
         if not steps:
             return Response({"error": "Steps data is required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -292,116 +288,270 @@ class BugHuntEvaluationView(APIView):
 
             client = openai.OpenAI(api_key=api_key)
 
-            # Step별 컨텍스트 구성
-            step_context_parts = []
+            # [변경 사항] 각 단계별 '정답 데이터'를 컨텍스트에 포함시켜 LLM의 평가 기준을 명확히 함
+            step_context = []
             for idx, s in enumerate(steps):
                 step_num = idx + 1
-                step_num_str = str(step_num)
                 original_code = s.get('buggy_code', '')
-                modified_code = user_codes.get(step_num_str, '')
-                true_cause = s.get('error_info', {}).get('description', '정보 없음')
-                correct_logic = s.get('error_info', {}).get('suggestion', '정보 없음')
+                modified_code = user_codes.get(str(step_num), '')
+                explanation = explanations.get(str(step_num), '설명 없음')
+                
+                # JSON 파일 내의 정답 정보 추출
+                true_cause = s.get('error_info', {}).get('description', '정보 없음') # 
+                correct_logic = s.get('error_info', {}).get('suggestion', '정보 없음') # 
+                coaching_point = s.get('coaching', '정보 없음') # 
 
-                # 면접 결과가 있는 경우
-                iv = interview_results.get(step_num_str, {})
-                iv_score = iv.get('score', '없음')
-                iv_level = iv.get('understanding_level', '없음')
-                iv_concepts = ', '.join(iv.get('matched_concepts', [])) or '없음'
-                iv_weak = iv.get('weak_point', '없음') or '없음'
-
-                step_context_parts.append(f"""### Step {step_num}: {s.get('title', '')}
-- 버그 원인(정답): {true_cause}
+                step_context.append(f"""### Step {step_num}: {s.get('title', '')}
+- 문제 원인(정답): {true_cause}
 - 권장 해결책(정답): {correct_logic}
-- 원본 코드 → 사용자 수정 코드: (코드 수정 완료됨)
-- [면접 결과] 점수: {iv_score}/100 | 이해 수준: {iv_level}
-- [면접 결과] 파악한 개념: {iv_concepts}
-- [면접 결과] 보완 필요: {iv_weak}""")
+- 실무 코칭 가이드: {coaching_point}
 
-            step_context_str = '\n\n'.join(step_context_parts)
+- 원본 버그 코드:
+```python
+{original_code}
+```
 
-            # 면접 점수 통계
-            iv_scores = []
-            for idx in range(len(steps)):
-                iv = interview_results.get(str(idx + 1), {})
-                if isinstance(iv.get('score'), (int, float)):
-                    iv_scores.append(iv['score'])
-            avg_score = round(sum(iv_scores) / len(iv_scores)) if iv_scores else 50
+- 사용자 수정 코드:
+```python
+{modified_code}
+```
 
-            system_message = """너는 주니어 AI 엔지니어의 디버깅 역량을 종합 평가하는 시니어 멘토이다.
+- 사용자 설명: {explanation}""")
 
-[역할]
-- 각 Step별 딥다이브 면접 결과가 이미 채점되어 있다.
-- 너는 점수를 재채점하지 않는다.
-- 면접 결과를 종합 분석하여 전체적인 디버깅 역량 평가와 학습 방향을 제시한다.
-- 교육적이고 격려하는 톤을 유지하되, 부족한 점은 명확히 짚어준다.
-- 존댓말을 사용한다."""
+            step_context_str = '\n\n'.join(step_context)
 
-            prompt = f"""## 종합 평가 대상
+            system_message = """너는 디버깅 사고를 평가하는 시스템이다.
+정오답이 아니라 "디버깅 사고의 질"을 평가한다.
+냉철하고 객관적으로 평가하되, 교육적인 관점을 유지한다.
+
+**평가는 반드시 아래의 5가지 평가 기준을 따라 체계적으로 수행한다.**"""
+
+            prompt = f"""## 평가 대상 데이터
 
 미션: {mission_title}
 
-[풀이 성과]
+[사용자 성과 지표]
+- 퀴즈 오답 횟수: {performance.get('quizIncorrectCount', 0)}회
 - 코드 제출 실패: {performance.get('codeSubmitFailCount', 0)}회
-- 힌트 사용: {performance.get('hintCount', 0)}회
+- 힌트 사용 횟수: {performance.get('hintCount', 0)}회
 - 총 소요 시간: {performance.get('totalDebugTime', 0)}초
 
-[Step별 면접 결과]
 {step_context_str}
-
-[면접 점수 평균]: {avg_score}/100
 
 ---
 
-## 종합 평가 지침
+## 평가 기준 (총 100점)
 
-1. **Step별 면접 점수를 그대로 인정**한다. 재채점하지 않는다.
-2. **thinking_score**는 면접 점수 평균({avg_score})을 기본으로 하되, 아래 보정을 적용한다:
-   - 힌트 0회 + 제출 실패 0회 → +3점 보너스
-   - 힌트 3회 이상 → -2점
-   - 전 Step 이해 수준이 모두 Deep 이상 → +5점 보너스
-   - 보정 후 0~100 범위로 클램프
-3. **code_risk**: 이해 수준이 낮을수록 위험도가 높다.
-   - Deep → 10, Conceptual → 25, Surface → 50, None/Unknown → 70
-   - 여러 Step의 평균으로 계산
-4. **thinking_pass**: thinking_score >= 60이면 true
-5. **step_feedbacks**: 각 Step별로 면접에서 드러난 강점과 약점을 1~2문장으로 요약
-6. **총평**: 전체 디버깅 역량을 3~5문장으로 종합 분석. 잘한 점, 부족한 점, 구체적 학습 방향을 포함
+각 영역을 20점 만점으로 평가하고, 합산하여 총점을 계산한다.
+
+### 1. 버그 원인 식별 (20점)
+**평가 내용**: 사용자가 버그의 근본 원인을 정확히 파악했는가?
+
+- **18-20점 (우수)**: 근본 원인까지 정확히 설명 (예: "데이터 누수는 train_test_split 전에 스케일링을 하면 테스트 데이터 정보가 학습에 유출되기 때문")
+- **15-17점 (양호)**: 직접 원인은 언급했으나 근본 원인 설명 부족 (예: "전체 데이터로 스케일링하면 안됨")
+- **10-14점 (보통)**: 원인을 언급했으나 불명확하거나 부정확함
+- **5-9점 (미흡)**: 원인 언급 없이 수정 방법만 제시
+- **0-4점 (매우 미흡)**: 원인을 잘못 이해하거나 관련 없는 내용
+
+### 2. 수정-원인 논리적 연결 (20점)
+**평가 내용**: 언급한 원인과 실제 코드 수정이 논리적으로 일치하는가?
+
+- **18-20점 (우수)**: 원인과 수정이 완벽하게 일치하며 인과관계 명확
+- **15-17점 (양호)**: 원인과 수정이 연결되나 논리적 설명 부족
+- **10-14점 (보통)**: 원인과 수정의 연결이 약하거나 모호함
+- **5-9점 (미흡)**: 원인과 수정이 일치하지 않음
+- **0-4점 (매우 미흡)**: 완전히 다른 방향의 수정
+
+### 3. 해결 방법의 구체성 (20점)
+**평가 내용**: 제시한 해결 방법이 구체적이고 실행 가능한가?
+
+- **18-20점 (우수)**: 매우 구체적이고 즉시 적용 가능 (예: "scaler.fit(X_train)으로 fit하고 transform만 사용")
+- **15-17점 (양호)**: 방향성은 맞으나 구체성 부족 (예: "train 데이터만 사용")
+- **10-14점 (보통)**: 추상적이거나 불완전한 설명
+- **5-9점 (미흡)**: 해결 방법이 모호하거나 비현실적
+- **0-4점 (매우 미흡)**: 해결 방법 미제시 또는 잘못된 방법
+
+### 4. 부작용 고려 (20점)
+**평가 내용**: 수정으로 인한 부작용이나 주의사항을 고려했는가?
+
+- **18-20점 (우수)**: 부작용을 명시하고 대응 방안까지 제시
+- **15-17점 (양호)**: 부작용을 언급했으나 대응 방안 부족
+- **10-14점 (보통)**: 부작용을 일부 고려했으나 불완전
+- **5-9점 (미흡)**: 부작용 고려 없음
+- **0-4점 (매우 미흡)**: 수정이 오히려 새로운 버그 유발
+
+### 5. 설명의 명확성 (20점)
+**평가 내용**: 설명이 기술적으로 정확하고 이해하기 쉬운가?
+
+- **18-20점 (우수)**: 기술적으로 정확하고 매우 명확함
+- **15-17점 (양호)**: 대체로 명확하나 일부 모호한 부분 존재
+- **10-14점 (보통)**: 이해 가능하나 명확성 부족
+- **5-9점 (미흡)**: 모호하거나 용어 사용 부정확
+- **0-4점 (매우 미흡)**: 이해 불가능하거나 완전히 잘못된 설명
+
+---
+
+## Few-shot 예시
+
+### 예시 1: Excellent (97점)
+
+**사용자 답변**:
+"train_test_split 전에 전체 데이터로 StandardScaler를 fit하면 테스트 데이터의 통계 정보(평균, 표준편차)가 학습에 유출됩니다.
+스케일링은 train 데이터로만 fit한 후, test 데이터에는 transform만 적용해야 합니다.
+수정: scaler.fit(X_train); X_train_scaled = scaler.transform(X_train); X_test_scaled = scaler.transform(X_test)"
+
+**평가**:
+{{
+  "detailed_scores": {{
+    "cause_identification": 20,
+    "logic_connection": 19,
+    "solution_quality": 20,
+    "side_effects": 18,
+    "explanation_clarity": 20
+  }},
+  "total_score": 97,
+  "quality_level": "Excellent"
+}}
+
+### 예시 2: Good (78점)
+
+**사용자 답변**:
+"전체 데이터로 스케일링하면 안됩니다. train 데이터만 사용해야 합니다.
+수정: scaler.fit(X_train)"
+
+**평가**:
+{{
+  "detailed_scores": {{
+    "cause_identification": 15,
+    "logic_connection": 16,
+    "solution_quality": 17,
+    "side_effects": 14,
+    "explanation_clarity": 16
+  }},
+  "total_score": 78,
+  "quality_level": "Good"
+}}
+
+**Excellent와 Good의 핵심 차이**:
+- Excellent: "왜(정보 유출)" + "어떻게(transform만)" + "구체적 코드"
+- Good: "무엇(안됨)" + "간단한 방향(train만)"
+
+### 예시 3: Average (46점)
+
+**사용자 답변**:
+"스케일링 위치를 바꿨습니다.
+수정: scaler.fit(X)"
+
+**평가**:
+{{
+  "detailed_scores": {{
+    "cause_identification": 8,
+    "logic_connection": 10,
+    "solution_quality": 12,
+    "side_effects": 5,
+    "explanation_clarity": 11
+  }},
+  "total_score": 46,
+  "quality_level": "Average"
+}}
+
+---
+
+## 평가 수행 지침
+
+1. **각 Step별로 위의 5가지 기준을 적용**하여 세부 점수를 산정한다.
+2. **Few-shot 예시를 참고**하여 품질 레벨을 구분한다:
+   - Excellent (85-100점): 모든 영역에서 우수
+   - Good (70-84점): 대부분 양호, 일부 개선 필요
+   - Average (55-69점): 기본은 갖췄으나 여러 부분 보완 필요
+   - Poor (35-54점): 여러 영역에서 미흡
+   - Very Poor (0-34점): 대부분 영역에서 매우 미흡
+
+3. **성과 지표를 참고**하되 과도하게 반영하지 않는다:
+   - 힌트 사용이 많더라도 최종 설명이 우수하면 높은 점수 부여 가능
+   - 오답이 많아도 최종적으로 올바른 이해에 도달했으면 인정
+
+4. **일관성을 유지**한다:
+   - 동일한 품질의 답변은 동일한 점수 부여
+   - Few-shot 예시의 점수 수준을 기준으로 삼음
 
 ---
 
 ## 출력 형식
 
-**반드시 아래 JSON만 출력하라. 다른 텍스트 금지.**
+**반드시 아래 JSON 형식만 출력하라. 다른 텍스트는 포함하지 마라.**
 
 {{
   "thinking_pass": true,
-  "code_risk": 25,
-  "thinking_score": {avg_score},
-  "총평": "종합 평가 내용을 존댓말로 작성",
+  "code_risk": 10,
+  "thinking_score": 85,
+  "detailed_scores": {{
+    "cause_identification": 18,
+    "logic_connection": 17,
+    "solution_quality": 19,
+    "side_effects": 16,
+    "explanation_clarity": 20
+  }},
+  "quality_level": "Excellent",
+  "총평": "전체 평가를 요약하여 시니어 엔지니어 입장에서 설명하고 존댓말로 입력",
   "step_feedbacks": [
-    {{"step": 1, "feedback": "Step 1 면접 결과 기반 요약 피드백", "step_score": 0}},
-    {{"step": 2, "feedback": "Step 2 면접 결과 기반 요약 피드백", "step_score": 0}},
-    {{"step": 3, "feedback": "Step 3 면접 결과 기반 요약 피드백", "step_score": 0}}
+    {{
+      "step": 1,
+      "feedback": "실제 Step 1 사용자 설명을 분석한 구체적인 피드백",
+      "detailed_scores": {{
+        "cause_identification": 18,
+        "logic_connection": 17,
+        "solution_quality": 19,
+        "side_effects": 16,
+        "explanation_clarity": 20
+      }},
+      "step_score": 90
+    }},
+    {{
+      "step": 2,
+      "feedback": "실제 Step 2 사용자 설명을 분석한 구체적인 피드백",
+      "detailed_scores": {{
+        "cause_identification": 16,
+        "logic_connection": 18,
+        "solution_quality": 17,
+        "side_effects": 15,
+        "explanation_clarity": 18
+      }},
+      "step_score": 84
+    }},
+    {{
+      "step": 3,
+      "feedback": "실제 Step 3 사용자 설명을 분석한 구체적인 피드백",
+      "detailed_scores": {{
+        "cause_identification": 15,
+        "logic_connection": 16,
+        "solution_quality": 18,
+        "side_effects": 14,
+        "explanation_clarity": 17
+      }},
+      "step_score": 80
+    }}
   ]
 }}
 
-**주의**:
-- step_feedbacks의 step_score는 해당 Step의 면접 점수를 그대로 사용
-- step_feedbacks 개수는 실제 Step 수({len(steps)}개)와 일치
-- thinking_score는 보정 적용된 최종 값
+**중요**:
+- step_feedbacks는 반드시 3개 항목 포함
+- 각 step에 detailed_scores와 step_score 포함
+- thinking_score는 모든 step_score의 평균값
+- quality_level은 thinking_score 기준: 85-100(Excellent), 70-84(Good), 55-69(Average), 35-54(Poor), 0-34(Very Poor)
 """
 
             response = client.chat.completions.create(
-                model=self.EVAL_MODEL,
+                model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": system_message},
                     {"role": "user", "content": prompt}
                 ],
-                max_completion_tokens=2000
+                max_tokens=4000,
+                temperature=0.5
             )
 
             response_text = response.choices[0].message.content.strip()
-            print(f"[BugHuntEval] Raw response: {response_text[:500]}")
 
             # JSON 파싱
             json_match = None
@@ -411,306 +561,125 @@ class BugHuntEvaluationView(APIView):
 
             if json_match:
                 result = json.loads(json_match)
-                print(f"[BugHuntEval] Parsed result: thinking_score={result.get('thinking_score')}")
+                print(f"AI Response Result: {result}")
+                print(f"Step Feedbacks: {result.get('step_feedbacks', [])}")
                 return Response({
                     "thinking_pass": bool(result.get('thinking_pass', False)),
                     "code_risk": int(result.get('code_risk', 50)),
-                    "thinking_score": int(result.get('thinking_score', avg_score)),
+                    "thinking_score": int(result.get('thinking_score', 50)),
                     "총평": result.get('총평', result.get('summary', '평가를 완료했습니다.')),
                     "step_feedbacks": result.get('step_feedbacks', [])
                 }, status=status.HTTP_200_OK)
             else:
-                print(f"[BugHuntEval] JSON parse failed, raw: {response_text}")
                 return Response({"error": "Invalid JSON format from AI"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         except Exception as e:
-            print(f"[BugHuntEval] Exception: {e}")
+            print(f"Bug Hunt Evaluation Exception: {e}")
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @method_decorator(csrf_exempt, name='dispatch')
-class BugHuntInterviewView(APIView):
+class FollowUpIntentCheckView(APIView):
     """
-    S4+ 딥다이브 면접 API.
-    Step별로 LLM 면접관이 유저와 2~3턴 대화하며 이해도를 평가한다.
+    [추가일: 2026-02-12]
+    버그헌트 꼬리질문에 대한 사용자 답변의 의도를 파악합니다.
+    사용자가 "모르겠다", "넘어가고 싶다" 등의 의도를 표현했는지 LLM이 판단합니다.
     """
     authentication_classes = []
     permission_classes = [AllowAny]
 
-    MAX_TURNS = 3
-    INTERVIEW_MODEL = "gpt-5.2"
-
-    @staticmethod
-    def _parse_json_object(raw_text):
-        if not raw_text:
-            raise json.JSONDecodeError("empty response", "", 0)
-
-        cleaned = raw_text.strip()
-        if cleaned.startswith("```"):
-            cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
-            cleaned = re.sub(r"\s*```$", "", cleaned)
-
-        try:
-            return json.loads(cleaned)
-        except json.JSONDecodeError:
-            match = re.search(r"\{[\s\S]*\}", cleaned)
-            if not match:
-                raise
-            return json.loads(match.group(0))
-
     def post(self, request):
-        data = request.data
-        step_context = data.get('step_context', {})
-        conversation = data.get('conversation', [])
-        turn = data.get('turn', 0)
-        candidate_name = data.get('candidate_name', '')
-        use_stream = bool(data.get('stream', False))
+        question = request.data.get('question', '')
+        answer = request.data.get('answer', '')
 
-        if not step_context:
-            return Response({"error": "step_context is required"}, status=status.HTTP_400_BAD_REQUEST)
+        if not question or not answer:
+            return Response({"error": "Question and answer are required"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            api_key = getattr(settings, "OPENAI_API_KEY", "") or os.getenv("OPENAI_API_KEY", "")
+            api_key = settings.OPENAI_API_KEY
             if not api_key:
-                return Response({"error": "OPENAI_API_KEY not configured"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response({"error": "API Key not configured"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
             client = openai.OpenAI(api_key=api_key)
 
-            rubric = step_context.get('interview_rubric', {})
-            is_final_turn = (turn > self.MAX_TURNS)
+            system_prompt = """당신은 사용자의 답변 의도를 파악하는 전문가입니다.
+사용자가 꼬리질문에 답변했을 때, 그 답변이 다음 중 어떤 의도인지 판단하세요:
 
-            # 스트리밍은 질문 턴에서만 사용 (최종 평가는 구조화 JSON 유지)
-            if use_stream and not is_final_turn:
-                return self._stream_question_response(
-                    client=client,
-                    step_context=step_context,
-                    rubric=rubric,
-                    conversation=conversation,
-                    turn=turn,
-                    candidate_name=candidate_name
-                )
+1. "모르겠다" - 사용자가 질문에 답할 수 없거나 모르겠다는 의도
+   예시: "모르겠어요", "잘 모르겠습니다", "???", "글쎄요...", "어렵네요", "이해가 안 가요"
 
-            system_prompt = self._build_system_prompt(step_context, rubric, is_final_turn, candidate_name)
+2. "넘어가고 싶다" - 사용자가 이 질문을 건너뛰고 싶어하는 의도
+   예시: "넘어갈게요", "다음으로", "패스", "skip", "이거 안 할래요"
 
-            messages = [{"role": "system", "content": system_prompt}]
-            messages.extend(conversation)
+3. "유의미한 답변" - 사용자가 질문에 대해 진지하게 답변하려는 시도
+
+**판단 기준**:
+- 답변이 5자 이하로 너무 짧으면 대부분 의미 없음
+- 온점, 물음표만 있거나 의미없는 기호만 있으면 의미 없음
+- "모르다", "넘어가다" 등의 키워드가 있으면 해당 의도로 분류
+- 질문과 관련된 실질적인 내용이 있으면 유의미한 답변
+
+**반드시 JSON 형식으로만 응답하세요**:
+{{
+  "intent": "dont_know" | "skip" | "meaningful",
+  "confidence": 0.0-1.0,
+  "reason": "판단 이유를 간단히 설명",
+  "showSkipButton": true/false
+}}
+
+showSkipButton 규칙:
+- intent가 "dont_know" 또는 "skip"이면 true
+- intent가 "meaningful"이면 false
+"""
+
+            user_prompt = f"""질문: {question}
+
+사용자 답변: {answer}
+
+위 답변의 의도를 파악하여 JSON으로 응답하세요."""
 
             response = client.chat.completions.create(
-                model=self.INTERVIEW_MODEL,
-                messages=messages,
-                temperature=0.6,
-                max_completion_tokens=800,
-                response_format={"type": "json_object"}
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.3,
+                max_tokens=300
             )
 
-            raw = response.choices[0].message.content
-            result = self._parse_json_object(raw)
+            content = response.choices[0].message.content.strip()
 
-            if not isinstance(result, dict):
-                raise json.JSONDecodeError("result is not object", str(raw), 0)
-
-            if is_final_turn:
-                result.setdefault("type", "evaluation")
-                result.setdefault("message", "답변을 종합해 보면 핵심 개념 이해는 좋지만 근거를 더 구체화하면 좋겠습니다.")
-                result.setdefault("score", 65)
-                result.setdefault("understanding_level", "Surface")
-                result.setdefault("matched_concepts", [])
-                result.setdefault("weak_point", "답변 근거의 구체성")
-            else:
-                result.setdefault("type", "question")
-                result.setdefault("message", "좋은 설명입니다. 한 단계 더 깊게 설명해주시겠어요?")
-
-            return Response(result, status=status.HTTP_200_OK)
-
-        except json.JSONDecodeError:
-            if is_final_turn:
-                return Response({
-                    "type": "evaluation",
-                    "message": "종합적으로 핵심은 이해하셨습니다. 다만 실무 적용 근거를 더 구체적으로 말하면 더 높은 점수를 받을 수 있습니다.",
-                    "score": 60,
-                    "understanding_level": "Surface",
-                    "matched_concepts": [],
-                    "weak_point": "실무 적용 근거의 구체성"
-                }, status=status.HTTP_200_OK)
-            return Response({
-                "type": "question",
-                "message": "답변을 분석하고 있습니다. 조금 더 구체적으로 설명해주시겠어요?",
-                "turn": turn
-            }, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    def _stream_question_response(self, client, step_context, rubric, conversation, turn, candidate_name=''):
-        system_prompt = self._build_stream_prompt(step_context, rubric, turn, candidate_name)
-        messages = [{"role": "system", "content": system_prompt}] + conversation
-
-        def event_stream():
+            # JSON 파싱
             try:
-                stream = client.chat.completions.create(
-                    model=self.INTERVIEW_MODEL,
-                    messages=messages,
-                    temperature=0.6,
-                    max_completion_tokens=400,
-                    stream=True,
-                )
-                for chunk in stream:
-                    delta = chunk.choices[0].delta if chunk.choices else None
-                    token = getattr(delta, "content", None) or ""
-                    if token:
-                        payload = json.dumps({"token": token}, ensure_ascii=False)
-                        yield f"data: {payload}\n\n"
-                yield "data: [DONE]\n\n"
-            except Exception as e:
-                payload = json.dumps({"error": str(e)}, ensure_ascii=False)
-                yield f"data: {payload}\n\n"
-                yield "data: [DONE]\n\n"
+                if "```" in content:
+                    content = content.split("```")[1]
+                    if content.startswith("json"):
+                        content = content[4:]
 
-        response = StreamingHttpResponse(
-            event_stream(),
-            content_type='text/event-stream; charset=utf-8'
-        )
-        response['Cache-Control'] = 'no-cache'
-        response['X-Accel-Buffering'] = 'no'
-        return response
+                result = json.loads(content.strip())
 
-    def _build_system_prompt(self, step_context, rubric, is_final_turn, candidate_name=''):
-        buggy_code = step_context.get('buggy_code', '')
-        user_code = step_context.get('user_code', '')
-        error_info = step_context.get('error_info', {})
-        display_name = (candidate_name or '').strip() or '지원자'
+                return Response({
+                    "intent": result.get("intent", "meaningful"),
+                    "confidence": result.get("confidence", 0.5),
+                    "reason": result.get("reason", ""),
+                    "showSkipButton": result.get("showSkipButton", False)
+                }, status=status.HTTP_200_OK)
 
-        core = rubric.get('core_concepts', [])
-        mechanism = rubric.get('mechanism_concepts', [])
-        application = rubric.get('application_concepts', [])
+            except json.JSONDecodeError as parse_e:
+                print(f"[DEBUG] Intent JSON Parse Fail: {parse_e}", flush=True)
+                # 파싱 실패 시 안전한 기본값
+                return Response({
+                    "intent": "meaningful",
+                    "confidence": 0.5,
+                    "reason": "파싱 실패, 안전을 위해 유의미한 답변으로 처리",
+                    "showSkipButton": False
+                }, status=status.HTTP_200_OK)
 
-        rubric_text = (
-            f"핵심 개념 (core): {', '.join(core)}\n"
-            f"메커니즘 개념 (mechanism): {', '.join(mechanism)}\n"
-            f"응용 개념 (application): {', '.join(application)}"
-        )
-
-        if is_final_turn:
-            return f"""너는 주니어 AI 엔지니어 기술 면접관이다. 한국어로 대화한다.
-{display_name}님이 아래 코드의 버그를 수정했고, 지금까지 대화를 나눴다.
-이번이 마지막 턴이다. {display_name}님의 마지막 답변을 평가하고 종합 평가를 JSON으로 반환하라.
-
-[버그 코드]
-{buggy_code}
-
-[유저가 수정한 코드]
-{user_code}
-
-[버그 정보]
-타입: {error_info.get('type', '')}
-설명: {error_info.get('description', '')}
-
-[평가 기준 - 채점 루브릭]
-{rubric_text}
-
-[채점 방법 - 주니어 엔지니어 기준으로 관대하게 채점하라]
-대화 전체를 종합해서 채점하라 (마지막 답변만이 아님).
-피드백 문장에서는 반드시 "{display_name}님" 호칭을 사용하라.
-
-1) core (40점 만점):
-   - 핵심 원인을 자기 말로 설명했으면 30~40점 (전문 용어 불필요, 의미가 맞으면 충분)
-   - 방향은 맞지만 부정확하면 15~25점
-   - 전혀 모르면 0~10점
-
-2) mechanism (35점 만점):
-   - 내부 동작을 구체적으로 설명했으면 25~35점
-   - 개념은 알지만 설명이 모호하면 10~20점
-   - 언급 없으면 0~5점
-
-3) application (25점 만점):
-   - 실무 적용 방법을 1가지라도 구체적으로 제시하면 15~25점
-   - 추상적으로만 언급하면 5~12점
-   - 언급 없으면 0점
-
-[understanding_level 기준]
-- 90점 이상: "Excellent"
-- 70~89점: "Good"
-- 40~69점: "Surface"
-- 39점 이하: "Poor"
-
-반드시 아래 JSON 형식으로만 응답하라:
-{{
-  "type": "evaluation",
-  "message": "2~3문장의 종합 피드백 (잘한 점 + 부족한 점)",
-  "score": 0에서 100 사이 정수,
-  "understanding_level": "Excellent|Good|Surface|Poor",
-  "matched_concepts": ["유저가 보여준 개념들"],
-  "weak_point": "부족한 부분 (없으면 null)"
-}}"""
-
-    def _build_stream_prompt(self, step_context, rubric, turn, candidate_name=''):
-        buggy_code = step_context.get('buggy_code', '')
-        user_code = step_context.get('user_code', '')
-        error_info = step_context.get('error_info', {})
-        display_name = (candidate_name or '').strip() or '지원자'
-        remaining = self.MAX_TURNS - turn
-
-        core = rubric.get('core_concepts', [])
-        mechanism = rubric.get('mechanism_concepts', [])
-        application = rubric.get('application_concepts', [])
-
-        rubric_text = (
-            f"핵심 개념 (core): {', '.join(core)}\n"
-            f"메커니즘 개념 (mechanism): {', '.join(mechanism)}\n"
-            f"응용 개념 (application): {', '.join(application)}"
-        )
-
-        return f"""너는 주니어 AI 엔지니어를 면접하는 기술 면접관이다. 한국어로 대화한다.
-{display_name}님이 아래 코드의 버그를 수정했다. 수정 이유와 이해도를 파악하기 위해 질문한다.
-
-[대상 수준 - 매우 중요]
-상대방은 AI/ML을 배우고 있는 주니어 엔지니어다.
-- 물어봐도 되는 것: 개념의 "왜", 내부 동작 원리, 코드 동작 순서, 해당 버그와 직접 관련된 내용
-- 절대 물어보면 안 되는 것: gradient accumulation 구현, loss scaling, learning rate scheduling 전략, 분산 학습, 커스텀 옵티마이저 등 시니어 레벨 주제
-- 루브릭에 있는 개념 범위 안에서만 질문하라. 루브릭에 없는 심화 주제로 넘어가지 마라.
-
-[현재 진행 상황]
-현재 {turn}/{self.MAX_TURNS}턴 (남은 질문 기회: {remaining}회)
-
-턴별 질문 방향:
-- 1턴 (첫 답변 후): core 개념을 정확히 이해했는지 확인. 틀린 부분이 있으면 반드시 짚어라.
-- 2턴: mechanism 개념으로 넘어가라. "내부적으로 어떤 일이 일어나는지" 물어라.
-- 3턴 (마지막): application 개념을 물어라. 단, 주니어 수준의 실무 (디버깅 방법, 확인 방법) 한정.
-
-[버그 코드]
-{buggy_code}
-
-[유저가 수정한 코드]
-{user_code}
-
-[버그 정보]
-타입: {error_info.get('type', '')}
-설명: {error_info.get('description', '')}
-
-[평가 기준 - 채점 루브릭]
-{rubric_text}
-
-[적응형 질문 전략 - 유저의 직전 답변을 기준으로 판단하라]
-
-1) 답변이 정확하고 구체적인 경우:
-   → "잘 이해하고 계시네요"를 짧게 인정한 뒤, 루브릭의 다음 단계 개념을 물어라.
-   → 단, 반드시 루브릭 범위 안의 개념만 물어라.
-
-2) 방향은 맞지만 부정확하거나 빠진 부분이 있는 경우:
-   → 틀린 부분을 부드럽게 짚어라. (예: "~라고 하셨는데, 실제로는 조금 다릅니다. 그러면 ~는 어떤 식으로 동작할까요?")
-   → 틀린 것을 그냥 넘어가지 마라. 교정이 최우선이다.
-
-3) "모르겠다" 또는 매우 모호한 답변인 경우:
-   → 난이도를 확 낮춰라. 같은 개념을 더 쉽게 다시 물어라.
-   → 짧은 힌트를 제시하라. (예: "힌트를 드리자면, backward()를 호출할 때 .grad 값이 어떻게 변하는지 생각해보시면 됩니다. 혹시 아시나요?")
-   → 절대로 같은 난이도나 더 어려운 질문을 내지 마라.
-
-4) 완전히 방향이 틀린 경우:
-   → 틀린 부분을 정중하게 알려주고, 올바른 방향의 단서를 준 뒤 더 쉬운 질문을 하라.
-
-[규칙]
-- 정답을 직접 알려주지 마라. 유도 질문만 하라.
-- 질문은 1~2문장으로 짧고 명확하게 하라. 한 번에 여러 질문을 하지 마라.
-- 반드시 존댓말을 사용하라.
-- 유저를 부를 때는 반드시 "{display_name}님" 호칭을 사용하라.
-- 내부 평가/분석 과정은 절대 노출하지 마라.
-- 출력은 JSON이 아닌, 사용자에게 보여줄 "질문 문장만" 출력하라.
-"""
+        except Exception as e:
+            print(f"[ERROR] Follow-up Intent Check: {e}", flush=True)
+            return Response({
+                "error": str(e),
+                "intent": "meaningful",
+                "showSkipButton": False
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

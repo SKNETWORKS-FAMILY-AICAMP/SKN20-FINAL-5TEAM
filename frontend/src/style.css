@@ -909,71 +909,30 @@ footer {
     backdrop-filter: blur(30px);
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 28px;
-    padding: 2rem 3rem;
-    /* [2026-02-19 수정] 여백 최적화 */
-    width: 95%;
-    /* [2026-02-19 수정] 유동적인 너비 확보 */
-    max-width: 800px;
-    /* [2026-02-19 수정] 너비 확대 (600px -> 800px) */
-    max-height: 92vh;
-    /* [2026-02-19 수정] 높이 소폭 확장 */
-    display: flex;
-    flex-direction: column;
+    padding: 3.5rem;
+    width: 100%;
+    max-width: 600px;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
     animation: authSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
     z-index: 1001;
-}
-
-.auth-body {
-    flex: 1;
+    /* [수정일: 2026-02-19] 모달 스크롤바 추가: 긴 폼 처리를 위해 최대 높이 및 오버플로우 설정 */
+    max-height: 95vh;
     overflow-y: auto;
-    padding-right: 1.2rem;
-    margin-bottom: 3rem;
-    /* [2026-02-19 수정] 푸터와 간격 추가 확대 */
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary) transparent;
 }
 
-/* [2026-02-19 추가] 인증 모달 헤더/푸터 구조화 */
-.auth-header {
-    margin-bottom: 3.5rem;
-    /* [2026-02-19 수정] 헤더 아래 공간 추가 확대 */
-    flex-shrink: 0;
-}
-
-.auth-footer {
-    display: flex;
-    gap: 1.5rem;
-    margin-top: 1rem;
-    padding-top: 2.5rem;
-    /* [2026-02-19 수정] 푸터 상단 여백 추가 확대 */
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    flex-shrink: 0;
-}
-
-/* [2026-02-19 수정] 모달 내부 커스텀 스크롤바 스타일 */
-.auth-body::-webkit-scrollbar {
+.auth-container::-webkit-scrollbar {
     width: 6px;
 }
 
-.auth-body::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
+.auth-container::-webkit-scrollbar-thumb {
+    background: var(--primary);
     border-radius: 10px;
 }
 
-.auth-body::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.2);
-}
-
-/* [2026-02-19 수정] 모달 내 폼 레이아웃 최적화 */
-.auth-container form {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    overflow: hidden;
-}
-
 .auth-title {
-    font-size: 1.8rem;
-    /* [2026-02-19 수정] 제목 크기 축소로 수직 공간 절약 */
+    font-size: 2.2rem;
     font-weight: 800;
     margin-bottom: 0.5rem;
     background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
@@ -1156,12 +1115,10 @@ footer {
 }
 
 .duck-on-node-v3 {
-    width: auto;
-    /* [2026-02-19 수정] AvatarFrame의 size prop(100px) 사용을 위해 너비 고정 해제 */
+    width: 150px;
     height: auto;
     position: absolute;
-    top: -85px;
-    /* [2026-02-19 수정] 100px로 커진 아바타에 맞춰 위치 보정 */
+    top: -55px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 10;

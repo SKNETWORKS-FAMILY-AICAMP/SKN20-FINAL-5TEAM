@@ -1,7 +1,6 @@
 <!--
-수정일: 2026-02-18
-수정 내용: pseudo_tts 브랜치와 프론트엔드 UI 및 로직 완전 동기화 (HMR 에러 및 인코딩 복구)
-이전 내역: 5대 지표 평가 시스템 완전 통합 및 프리미엄 리포트 UI 적용 (2026-02-14)
+수정일: 2026-02-14
+수정 내용: 5대 지표 평가 시스템 완전 통합 및 프리미엄 리포트 UI 적용
 -->
 <template>
   <div class="coduck-wars-container">
@@ -33,53 +32,7 @@
     <!-- MAIN VIEWPORT [2026-02-11] UI 레이아웃 2단 구성(Battle Grid) 복원 -->
     <main class="viewport">
         
-      <!-- [2026-02-14 수정] 평가 단계에서는 가이드 버튼 숨김 -->
-      <button v-if="gameState.phase !== 'EVALUATION'" class="btn-guide-floating" @click="toggleGuide" :class="{ 'is-open': isGuideOpen }">
-          <span class="icon">?</span>
-          <span class="label">CHAPTER</span>
-      </button>
 
-      <!-- [2026-02-11] 사이드바 가이드 패널 -->
-      <div class="guide-sidebar" :class="{ 'sidebar-open': isGuideOpen }">
-          <div class="sidebar-header">
-              <span class="sh-title">MISSION CHAPTERS</span>
-              <button class="sh-close" @click="toggleGuide">×</button>
-          </div>
-          <div class="sidebar-content">
-              <!-- [2026-02-11] 미션 엔지니어링 가이드 (의사코드 작성 원칙) -->
-            <div v-if="currentMission.designContext?.writingGuide" class="guide-step-card g-active mt-4">
-                <div class="gs-header-row">
-                    <div class="gs-icon"><Lightbulb class="w-5 h-5 text-blue-400" /></div>
-                    <div class="gs-info">
-                        <span class="gs-step text-blue-400">ENGINEERING_GUIDE</span>
-                        <p class="gs-text">의사코드 작성 전략</p>
-                    </div>
-                </div>
-                <div class="gs-hint-content hint-box-blue">
-                    <p class="hint-text-small">{{ currentMission.designContext.writingGuide }}</p>
-                </div>
-            </div>
-
-            <div v-for="(guide, idx) in currentMission.guides" 
-                  :key="idx"
-                  class="guide-step-card"
-                  :class="{ 'g-active': idx === selectedGuideIdx }"
-                  @click="handleGuideClick(idx)"
-              >
-                  <div class="gs-header-row">
-                      <div class="gs-icon">{{ guide.icon }}</div>
-                      <div class="gs-info">
-                          <div class="gs-step">STEP {{ idx + 1 }}</div>
-                          <div class="gs-text">{{ guide.text.split(':')[1] || guide.text }}</div>
-                      </div>
-                  </div>
-                  <div class="gs-hint-content" v-if="idx === selectedGuideIdx">
-                      <div class="hint-label">💡 TACTICAL ADVICE</div>
-                      <p class="hint-body text-[11px] leading-tight">"{{ guide.coduckMsg }}"</p>
-                  </div>
-              </div>
-          </div>
-      </div>
 
       <!-- [2026-02-14 수정] 2단 레이아웃 핵심 컨테이너 (EVALUATION 시 1단으로 변경) -->
       <div class="combat-grid w-full h-full" :class="{ 'full-width-layout': gameState.phase === 'EVALUATION' }">
@@ -105,8 +58,6 @@
                   <span class="speaker">문제 시나리오</span>
                   <p class="dialogue-text">"{{ (isInteractionPhase && currentMission.scenario) ? currentMission.scenario : (gameState.coduckMessage || '데이터 흐름을 분석 중입니다...') }}"</p>
               </div>
-
-
           </aside>
 
           <!-- RIGHT PANEL: DECISION ENGINE [2026-02-11] 단계별 인터랙션 영역 -->
@@ -232,7 +183,11 @@
                   <div class="editor-layout w-full flex flex-col flex-1">
                       <div class="editor-body w-full flex-1 flex flex-col">
                           <!-- 의사코드 입력 에디터 -->
-                          <div class="monaco-wrapper w-full h-[320px] border border-slate-700/50 rounded-xl overflow-hidden shadow-2xl">
+                          <div class="monaco-wrapper w-full h-[320px] border border-slate-700/50 rounded-xl overflow-hidden shadow-2xl relative">
+                              <!-- [2026-02-19 추가] 플레이스홀더 오버레이 -->
+                              <div v-if="!gameState.phase3Reasoning" class="monaco-placeholder-overlay pointer-events-none">
+                                  <pre class="placeholder-text">{{ currentMission.placeholder || '이곳에 의사코드를 설계하세요...' }}</pre>
+                              </div>
                               <VueMonacoEditor
                                   theme="vs-dark"
                                   language="python"
@@ -295,24 +250,16 @@
                     :assigned-scenario="gameState.assignedScenario"
                     :is-mcq-answered="gameState.isMcqAnswered"
                     @answer-mcq="handleMcqAnswer"
+                    @retry-mcq="retryMcq"
                     @submit-descriptive="submitDescriptiveDeepDive"
                     @next-phase="handlePythonVisualizationNext"
                   />
               </div>
 
-              <!-- [STEP 4] 최종 리포트 (EVALUATION) [2026-02-13] decision-panel 내부로 이동 -->
+                  <!-- [STEP 4] 최종 리포트 (EVALUATION) [2026-02-13] decision-panel 내부로 이동 -->
               <div v-else-if="gameState.phase === 'EVALUATION'" class="evaluation-phase relative flex-1 flex flex-col h-full scroll-smooth">
                   <!-- [2026-02-13] 복기 학습 모드 시 미션 정보 재노출 -->
-                  <div v-if="evaluationResult?.is_low_effort || gameState.hasUsedBlueprint" class="mission-instruction-compact animate-slideDownFade mb-6">
-                      <div class="mi-section">
-                          <h4 class="mi-title text-blue-400">[미션]</h4>
-                          <p class="mi-desc">{{ currentMission?.designContext?.description }}</p>
-                      </div>
-                      <div class="mi-section mi-border-top">
-                          <h4 class="mi-title text-amber-400">[필수 포함 조건 (Constraint)]</h4>
-                          <p class="mi-desc-small">{{ currentMission?.designContext?.writingGuide?.replace('[필수 포함 조건 (Constraint)]\n', '') }}</p>
-                      </div>
-                  </div>
+                  <!-- [2026-02-13] 복기 학습 모드 시 미션 정보 재노출 (사용자 요청으로 제거됨) -->
                   <!-- [2026-02-14 수정] 로딩 화면을 1번째 이미지 스타일로 변경 (Full Width & Background Sync) -->
                   <div v-if="tutorialAnalyzing || (isProcessing && gameState.phase === 'EVALUATION')" class="ai-analysis-simulation absolute inset-0 z-[100] bg-[#050505] flex flex-col items-center justify-center rounded-2xl border border-emerald-500/30">
                       <LoadingDuck 
@@ -448,17 +395,38 @@
                                <!-- API 결과가 없을 경우 기존 Resource 폴백 -->
                                <div v-if="!evaluationResult.supplementaryVideos?.length && weakestMetricKey" class="path-card-neo curation-card weakest-focus">
                                   <div class="weakest-badge">🚨 취약 지표 집중 보완</div>
-                                  <a :href="getMetricVideo(weakestMetricKey).url" target="_blank" class="p-link-neo">
-                                      <div class="p-index">{{ LEARNING_RESOURCES[weakestMetricKey].metric }}</div>
-                                      <div class="p-theme-tag">테마: {{ LEARNING_RESOURCES[weakestMetricKey].theme }}</div>
-                                      <div class="p-content-box mt-4">
-                                          <div class="p-curation-msg-box">
-                                              <span class="quote-icon">"</span>
-                                              {{ LEARNING_RESOURCES[weakestMetricKey].curationMessage }}
-                                              <span class="quote-icon">"</span>
-                                          </div>
+                                  
+                                  <div class="mb-5">
+                                      <h4 class="text-blue-400 font-bold text-lg mb-1">{{ LEARNING_RESOURCES[weakestMetricKey].metric }}</h4>
+                                      <p class="text-slate-400 text-sm">테마: {{ LEARNING_RESOURCES[weakestMetricKey].theme }}</p>
+                                  </div>
+
+                                  <div class="p-content-box mb-6">
+                                      <div class="p-curation-msg-box">
+                                          <span class="quote-icon">"</span>
+                                          {{ LEARNING_RESOURCES[weakestMetricKey].curationMessage }}
+                                          <span class="quote-icon">"</span>
                                       </div>
-                                  </a>
+                                  </div>
+
+                                  <div class="space-y-3">
+                                      <div v-for="(video, vIdx) in LEARNING_RESOURCES[weakestMetricKey].videos" :key="vIdx">
+                                          <a :href="video.url" target="_blank" class="flex items-start gap-4 p-3 bg-black/20 rounded-lg border border-white/5 hover:border-blue-500/50 hover:bg-blue-500/5 transition-all group">
+                                              <!-- 썸네일 플레이스홀더 -->
+                                              <div class="w-32 h-20 bg-slate-800 rounded flex items-center justify-center flex-shrink-0 group-hover:bg-blue-900/30 transition-colors relative overflow-hidden">
+                                                   <img v-if="video.thumbnail" :src="video.thumbnail" class="w-full h-full object-cover" />
+                                                   <Play v-else class="text-slate-500 group-hover:text-blue-400 w-8 h-8" />
+                                              </div>
+                                              
+                                              <!-- 비디오 정보 -->
+                                              <div class="flex-1 min-w-0 py-1">
+                                                  <h5 class="text-white font-bold text-sm mb-1 truncate group-hover:text-blue-300">{{ video.title }}</h5>
+                                                  <div class="text-slate-400 text-xs mb-2">{{ video.channel }}</div>
+                                                  <p class="text-slate-500 text-xs line-clamp-2 leading-relaxed">{{ video.curationPoint }}</p>
+                                              </div>
+                                          </a>
+                                      </div>
+                                  </div>
                                </div>
                           </div>
 
@@ -481,8 +449,9 @@
                               </button>
                           </div>
                   </div>
+              </div>
 
-                  </div>
+              <!-- [2026-02-19 수정] 구조 정상화 (불필요 태그 제거) -->
               </section>
           </div>
       
@@ -515,13 +484,34 @@
     <div v-if="gameState.feedbackMessage && gameState.phase !== 'EVALUATION'" class="feedback-toast">
       <span class="toast-icon">!</span> {{ gameState.feedbackMessage }}
     </div>
+
+    <!-- [2026-02-19] 무성의 입력 경고용 프리미엄 모달 (NeoModal) -->
+    <Transition name="fade-in">
+      <div v-if="showLowEffortModal" class="neo-modal-overlay">
+        <div class="neo-modal-card">
+          <div class="modal-header-neo">
+            <AlertTriangle class="text-amber-400 w-6 h-6 mr-2" />
+            <h3 class="modal-title-neo">아키텍처 분석 가이드</h3>
+          </div>
+          <div class="modal-body-neo">
+            <p class="modal-main-text">"{{ lowEffortReason }}"</p>
+            <p class="modal-sub-text">분석을 위해 설계 내용을 보강하시겠습니까, 아니면 [청사진 복구 실습]을 통해 기초부터 다시 설계하시겠습니까?</p>
+          </div>
+          <div class="modal-footer-neo">
+            <button class="btn-modal-cancel" @click="showLowEffortModal = false">
+              더 보완하기
+            </button>
+            <button class="btn-modal-confirm" @click="confirmLowEffortProceed">
+              기초부터 배우기 <ArrowRight class="w-4 h-4 ml-1" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
 <script setup>
-/**
- * [2026-02-18] pseudo_tts 브랜치와 프론트엔드 UI 및 로직 완전 동기화 (HMR 에러 및 인코딩 복구)
- */
 /**
  * 수정일: 2026-02-14
  * 수정 내용: 5대 지표 평가 시스템 완전 통합 및 프리미엄 리포트 UI 적용
@@ -535,19 +525,19 @@ import { useMonacoEditor } from './composables/useMonacoEditor.js';
 import { 
   AlertOctagon, Info, ArrowRight, Lightbulb, 
   RotateCcw, Play, X, Brain, CheckCircle,
-  Activity, Layers, Cpu
+  Activity, Layers, Cpu, Target, PlusCircle, AlertCircle, 
+  PlaySquare, AlertTriangle, User
 } from 'lucide-vue-next';
 import { ComprehensiveEvaluator } from './evaluationEngine.js';
 import { generateCompleteLearningReport } from './reportGenerator.js';
 import { filterByScore, LEARNING_RESOURCES } from './learningResources.js';
 import Chart from 'chart.js/auto';
 
+const activeYoutubeId = ref(null);
 import CodeFlowVisualizer from './components/CodeFlowVisualizer.vue';
 import LoadingDuck from '../components/LoadingDuck.vue';
 import PseudocodeTutorialOverlay from './components/PseudocodeTutorialOverlay.vue';
 import { BookOpen } from 'lucide-vue-next';
-
-const activeYoutubeId = ref(null);
 
 const router = useRouter();
 const gameStore = useGameStore();
@@ -581,6 +571,9 @@ const {
     toggleHintDuck,
     dynamicHintMessage,
     retryDesign,
+    showLowEffortModal,
+    lowEffortReason,
+    confirmLowEffortProceed,
 
     toggleGuide,
     handleGuideClick,
@@ -591,11 +584,10 @@ const {
     submitDescriptiveDeepDive,
     handlePythonVisualizationNext,
     handleTailSelection: originalHandleTailSelection,
-    resetFlow: engineResetFlow,
-    toggleHint,
-    handlePracticeClose,
     addSystemLog,
-    handleReSubmitPseudo
+    handleReSubmitPseudo,
+    retryMcq,
+    submitPseudo
 } = coduckWarsComposable;
 
 onMounted(() => {
@@ -747,9 +739,15 @@ async function runComprehensiveEvaluation() {
       deepdiveScenario: gameState.assignedScenario || deepQuizQuestion.value || {}
     });
 
+    // [2026-02-19] 최종 리포트 단계에서 실시간 유튜브 추천 영상 가져오기
+    const { getYouTubeRecommendations } = await import('./api/pseudocodeApi.js');
+    const ytVideos = await getYouTubeRecommendations(evaluationResults.metrics, currentMission.value?.title);
+    evaluationResult.supplementaryVideos = ytVideos;
+
     finalReport.value = await generateCompleteLearningReport(
       evaluationResults,
-      getApiKey()
+      getApiKey(),
+      ytVideos // 실시간 검색 결과 전달
     );
 
     showMetrics.value = true;
@@ -813,7 +811,7 @@ function renderRadarChart() {
         r: {
           beginAtZero: true,
           max: 100,
-          ticks: { stepSize: 20, color: '#999' },
+          ticks: { stepSize: 20, color: '#999', display: false }, // [수정] 숫자 제거
           grid: { color: '#333' },
           pointLabels: { color: '#fff', font: { size: 12 } }
         }
@@ -860,7 +858,6 @@ function getMetricVideo(metricKey) {
   return LEARNING_RESOURCES[metricKey].videos[0];
 }
 
-const submitPseudo = submitPseudoEnhanced;
 
 const isInteractionPhase = computed(() => {
     const p = gameState.phase;

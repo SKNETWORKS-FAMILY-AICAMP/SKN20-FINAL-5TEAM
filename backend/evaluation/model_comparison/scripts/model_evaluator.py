@@ -154,11 +154,16 @@ class GeminiEvaluator(ModelEvaluator):
     def __init__(self, model_name, api_key=None):
         super().__init__(model_name)
         self.api_key = api_key or os.getenv('GOOGLE_API_KEY')
+        
+        if not self.api_key:
+            raise ValueError("GOOGLE_API_KEY is not set in environment variables")
 
         try:
             import google.generativeai as genai
             genai.configure(api_key=self.api_key)
-            self.model = genai.GenerativeModel(model_name)
+            # 404 에러 방지를 위해 명시적으로 models/ 접두어 확인
+            actual_model_name = model_name if model_name.startswith('models/') else f"models/{model_name}"
+            self.model = genai.GenerativeModel(actual_model_name)
         except ImportError:
             raise ImportError("google-generativeai package not installed")
 
@@ -218,6 +223,9 @@ class GroqEvaluator(ModelEvaluator):
     def __init__(self, model_name, api_key=None):
         super().__init__(model_name)
         self.api_key = api_key or os.getenv('GROQ_API_KEY')
+        
+        if not self.api_key:
+            raise ValueError("GROQ_API_KEY is not set in environment variables. Please check your .env file.")
 
         try:
             from groq import Groq
@@ -285,19 +293,26 @@ def get_evaluator(model_name):
     if model_name in openai_models:
         return OpenAIEvaluator(model_name)
 
-    # Google Gemini 모델
+    # Google Gemini 모델 (명칭 정규화 추가)
     gemini_models = [
-        'gemini-2.5-flash', 'gemini-2.5-pro',  # 최신
+        'gemini-2.5-flash', 'gemini-2.5-pro',
         'gemini-2.0-flash-exp', 'gemini-2.0-flash',
         'gemini-1.5-flash', 'gemini-1.5-pro'
     ]
     if model_name in gemini_models:
+        # 404 에러 방지를 위해 models/ 접두어가 필요한 경우 대응
+        return GeminiEvaluator(model_name)
+    if model_name.startswith('models/gemini-'):
         return GeminiEvaluator(model_name)
 
     # Groq 모델 (Llama, Mixtral)
-    groq_models = ['llama-3.3-70b-versatile', 'mixtral-8x7b-32768']
+    groq_models = [
+        'llama-3.3-70b-versatile', 
+        'llama3-70b-8192', 
+        'llama3-8b-8192',
+        'mixtral-8x7b-32768'
+    ]
     if model_name in groq_models:
         return GroqEvaluator(model_name)
-
 
     raise ValueError(f"Unknown model: {model_name}")

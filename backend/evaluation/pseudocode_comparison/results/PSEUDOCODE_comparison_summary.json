@@ -1,0 +1,831 @@
+{
+  "gpt-4o-mini": {
+    "model": "gpt-4o-mini",
+    "evaluations": [
+      {
+        "sample_id": "P01_EXCELLENT_01",
+        "quality_level": "excellent",
+        "expected_range": [
+          80,
+          85
+        ],
+        "trials": [
+          {
+            "success": true,
+            "result": {
+              "self_audit": {
+                "has_leakage": false,
+                "is_order_correct": true,
+                "reason": "데이터 분리 후 스케일링이 이루어져 누수가 발생하지 않음."
+              },
+              "overall_score": 85,
+              "persona_name": "판정 페르소나",
+              "one_line_review": "데이터 전처리 과정에서 누수를 효과적으로 방지한 설계입니다.",
+              "dimensions": {
+                "design": {
+                  "score": 30,
+                  "basis": "데이터 분리와 스케일링 순서가 올바름",
+                  "improvement": "추가적인 예외 처리 고려"
+                },
+                "consistency": {
+                  "score": 35,
+                  "basis": "누수 없이 일관성 유지",
+                  "improvement": "일관성 있는 변환 로직 강화"
+                },
+                "implementation": {
+                  "score": 10,
+                  "basis": "구체적인 단계가 명확하게 나열됨",
+                  "improvement": "코드 예시 추가"
+                },
+                "edge_case": {
+                  "score": 5,
+                  "basis": "테스트 데이터에 대한 변환만 수행",
+                  "improvement": "엣지 케이스에 대한 설명 추가"
+                },
+                "abstraction": {
+                  "score": 5,
+                  "basis": "전반적인 프로세스가 잘 추상화됨",
+                  "improvement": "추가적인 설명으로 명확성 증가"
+                }
+              },
+              "tail_question": {
+                "question": "데이터 전처리 과정에서 어떤 추가적인 조치를 취할 수 있을까요?",
+                "options": [
+                  "A. 데이터 시각화를 통해 이상치를 확인한다.",
+                  "B. 학습 데이터와 테스트 데이터의 비율을 조정한다.",
+                  "C. 모든 데이터에 대해 동일한 스케일러를 적용한다.",
+                  "D. 데이터 전처리 후 모델 성능을 평가한다."
+                ],
+                "correct_answer": "A"
+              },
+              "deep_dive": {
+                "suggestions": [
+                  "데이터 전처리 후 모델 성능을 평가하는 방법에 대해 논의해보세요.",
+                  "다양한 스케일링 기법의 장단점을 비교해보세요."
+                ]
+              },
+              "converted_python": "from sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\n# 데이터 분리\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)\n\n# 스케일러 정의\nscaler = StandardScaler()\n\n# 학습 데이터에만 fit 수행\nscaler.fit(X_train)\n\n# 학습 데이터와 테스트 데이터 변환\nX_train_scaled = scaler.transform(X_train)\nX_test_scaled = scaler.transform(X_test)",
+              "python_feedback": "코드가 명확하고 각 단계가 잘 설명되어 있습니다. 추가적인 예외 처리나 주석이 있으면 더 좋을 것 같습니다.",
+              "senior_advice": "데이터 전처리 과정에서의 누수를 방지하기 위해 항상 데이터 분리 후 스케일링을 수행하는 것을 잊지 마세요.",
+              "strengths": [
+                "데이터 분리와 스케일링 순서가 올바름",
+                "누수 방지 원칙을 잘 준수함"
+              ],
+              "weaknesses": [
+                "엣지 케이스에 대한 설명이 부족함",
+                "추가적인 예외 처리 고려 필요"
+              ]
+            },
+            "tokens": {
+              "input": 926,
+              "output": 755,
+              "total": 1681
+            },
+            "cost": 0.0005919,
+            "time": 18.843522548675537
+          },
+          {
+            "success": true,
+            "result": {
+              "self_audit": {
+                "has_leakage": false,
+                "is_order_correct": true,
+                "reason": "데이터 분리 후 스케일링이 수행되어 누수가 발생하지 않음."
+              },
+              "overall_score": 85,
+              "persona_name": "판정 페르소나",
+              "one_line_review": "데이터 전처리 과정에서 누수를 효과적으로 방지한 설계입니다.",
+              "dimensions": {
+                "design": {
+                  "score": 30,
+                  "basis": "데이터 전처리 과정이 명확하게 설계됨.",
+                  "improvement": "추가적인 예외 처리 로직을 고려할 수 있음."
+                },
+                "consistency": {
+                  "score": 35,
+                  "basis": "데이터 격리 원칙을 완벽하게 준수함.",
+                  "improvement": "특별한 개선 필요 없음."
+                },
+                "implementation": {
+                  "score": 10,
+                  "basis": "구체적인 구현 단계가 명시됨.",
+                  "improvement": "코드 예시 추가 시 더 좋을 것."
+                },
+                "edge_case": {
+                  "score": 5,
+                  "basis": "일반적인 경우에 대한 처리만 포함됨.",
+                  "improvement": "엣지 케이스에 대한 고려 필요."
+                },
+                "abstraction": {
+                  "score": 5,
+                  "basis": "전반적인 과정이 잘 추상화됨.",
+                  "improvement": "추가적인 설명이 있으면 더 좋음."
+                }
+              },
+              "tail_question": {
+                "question": "데이터 전처리 과정에서 어떤 엣지 케이스를 고려해야 할까요?",
+                "options": [
+                  "결측치 처리",
+                  "이상치 탐지",
+                  "데이터 타입 변환",
+                  "모두 해당"
+                ],
+                "correct_answer": "모두 해당"
+              },
+              "deep_dive": {
+                "suggestion": "스케일링 후 데이터의 분포를 시각화하여 확인하는 것이 좋습니다."
+              },
+              "converted_python": "from sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\n# 데이터 분리\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)\n\n# 스케일러 정의\nscaler = StandardScaler()\n\n# 학습 데이터에만 fit 수행\nscaler.fit(X_train)\n\n# 학습 및 테스트 데이터 변환\nX_train_scaled = scaler.transform(X_train)\nX_test_scaled = scaler.transform(X_test)",
+              "python_feedback": "코드가 명확하고, 데이터 전처리 과정이 잘 정의되어 있습니다.",
+              "senior_advice": "데이터 전처리 과정에서 항상 엣지 케이스를 고려하여 설계를 강화하세요.",
+              "strengths": [
+                "데이터 누수 방지",
+                "명확한 설계",
+                "구체적인 구현"
+              ],
+              "weaknesses": [
+                "엣지 케이스 처리 부족"
+              ]
+            },
+            "tokens": {
+              "input": 926,
+              "output": 659,
+              "total": 1585
+            },
+            "cost": 0.0005342999999999999,
+            "time": 13.866179466247559
+          }
+        ]
+      },
+      {
+        "sample_id": "P01_GOOD_01",
+        "quality_level": "good",
+        "expected_range": [
+          70,
+          79
+        ],
+        "trials": [
+          {
+            "success": true,
+            "result": {
+              "self_audit": {
+                "has_leakage": false,
+                "is_order_correct": true,
+                "reason": "데이터 분리 후 스케일링을 수행하여 누수 없이 올바른 순서로 진행됨."
+              },
+              "overall_score": 85,
+              "persona_name": "판정 페르소나",
+              "one_line_review": "데이터 전처리 과정에서 누수를 방지하는 올바른 설계입니다.",
+              "dimensions": {
+                "design": {
+                  "score": 30,
+                  "basis": "데이터 분리 후 스케일러 학습 및 변환 순서가 올바름",
+                  "improvement": "특별한 개선 필요 없음"
+                },
+                "consistency": {
+                  "score": 35,
+                  "basis": "데이터 격리 원칙을 잘 준수함",
+                  "improvement": "특별한 개선 필요 없음"
+                },
+                "implementation": {
+                  "score": 10,
+                  "basis": "구체적인 단계가 명확하게 제시됨",
+                  "improvement": "특별한 개선 필요 없음"
+                },
+                "edge_case": {
+                  "score": 5,
+                  "basis": "누수 방지에 대한 고려가 충분함",
+                  "improvement": "특별한 개선 필요 없음"
+                },
+                "abstraction": {
+                  "score": 5,
+                  "basis": "전반적인 과정이 잘 추상화됨",
+                  "improvement": "특별한 개선 필요 없음"
+                }
+              },
+              "tail_question": {
+                "question": "데이터 전처리 과정에서 누수를 방지하기 위해 어떤 추가적인 방법을 고려할 수 있을까요?",
+                "options": [
+                  "1. Cross-validation을 사용하여 모델을 평가한다.",
+                  "2. 모든 데이터에 대해 스케일러를 학습(fit)한다.",
+                  "3. 데이터 전처리 후에 모델을 학습한다.",
+                  "4. 데이터 분리 후에 스케일러를 학습(fit)한다."
+                ],
+                "correct_answer": "1"
+              },
+              "deep_dive": {
+                "suggestions": "데이터 전처리 과정에서의 누수 방지를 위한 다양한 기법을 탐색해보세요."
+              },
+              "converted_python": "from sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\n# 데이터 분리\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)\n\n# 스케일러 학습\nscaler = StandardScaler()\nscaler.fit(X_train)\n\n# 데이터 변환\nX_train_scaled = scaler.transform(X_train)\nX_test_scaled = scaler.transform(X_test)",
+              "python_feedback": "전처리 과정이 명확하게 구현되어 있으며, 누수 방지 원칙을 잘 따르고 있습니다.",
+              "senior_advice": "데이터 전처리 과정에서의 누수 방지에 대한 이해를 지속적으로 깊이 있게 다루어야 합니다.",
+              "strengths": [
+                "올바른 데이터 분리 순서",
+                "누수 방지 원칙 준수",
+                "구체적인 단계 제시"
+              ],
+              "weaknesses": []
+            },
+            "tokens": {
+              "input": 924,
+              "output": 696,
+              "total": 1620
+            },
+            "cost": 0.0005562,
+            "time": 17.069741010665894
+          },
+          {
+            "success": true,
+            "result": {
+              "self_audit": {
+                "has_leakage": false,
+                "is_order_correct": true,
+                "reason": "데이터 분리 후 스케일러를 학습시키고 변환을 수행하여 누수 없이 올바른 순서로 진행됨."
+              },
+              "overall_score": 85,
+              "persona_name": "판정 페르소나",
+              "one_line_review": "데이터 전처리 과정에서 누수 없이 잘 설계되었습니다.",
+              "dimensions": {
+                "design": {
+                  "score": 30,
+                  "basis": "데이터 분리 후 스케일러 학습 및 변환 순서가 올바름",
+                  "improvement": "추가적인 예외 처리 로직 필요"
+                },
+                "consistency": {
+                  "score": 35,
+                  "basis": "데이터 격리 원칙을 준수하여 누수 없음",
+                  "improvement": "일관성 있는 데이터 처리 흐름 유지"
+                },
+                "implementation": {
+                  "score": 10,
+                  "basis": "구체적인 단계가 명확하게 기술됨",
+                  "improvement": "코드 예시 추가"
+                },
+                "edge_case": {
+                  "score": 5,
+                  "basis": "일반적인 경우에 대한 처리만 언급됨",
+                  "improvement": "엣지 케이스에 대한 고려 필요"
+                },
+                "abstraction": {
+                  "score": 5,
+                  "basis": "전반적인 구조가 명확함",
+                  "improvement": "추가적인 설명으로 가독성 향상"
+                }
+              },
+              "tail_question": {
+                "question": "데이터 전처리 과정에서 엣지 케이스를 어떻게 처리할 것인가요?",
+                "options": [
+                  "1. 모든 데이터를 동일하게 처리한다.",
+                  "2. 특정 조건에 따라 다르게 처리한다.",
+                  "3. 엣지 케이스는 무시한다.",
+                  "4. 데이터에 대한 추가 분석을 통해 처리한다."
+                ],
+                "correct_answer": "2"
+              },
+              "deep_dive": {
+                "suggestions": [
+                  "데이터 전처리 과정에서 발생할 수 있는 다양한 엣지 케이스를 식별하고 처리하는 방법을 구체적으로 설명하세요.",
+                  "스케일링 외에 다른 전처리 기법을 고려할 수 있는 방법에 대해 논의하세요."
+                ]
+              },
+              "converted_python": "from sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\n# 데이터 분리\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)\n\n# 스케일러 학습\nscaler = StandardScaler()\nscaler.fit(X_train)\n\n# 데이터 변환\nX_train_scaled = scaler.transform(X_train)\nX_test_scaled = scaler.transform(X_test)",
+              "python_feedback": "코드가 명확하고 데이터 전처리 과정이 잘 나타나 있습니다. 추가적인 예외 처리를 고려하면 더욱 좋습니다.",
+              "senior_advice": "전처리 과정에서 발생할 수 있는 다양한 엣지 케이스를 미리 고려하여 설계하는 것이 중요합니다.",
+              "strengths": [
+                "데이터 전처리 과정의 순서가 올바르며 누수가 없습니다.",
+                "구체적인 단계가 명확하게 기술되어 있습니다."
+              ],
+              "weaknesses": [
+                "엣지 케이스에 대한 고려가 부족합니다.",
+                "추가적인 예외 처리 로직이 필요합니다."
+              ]
+            },
+            "tokens": {
+              "input": 924,
+              "output": 767,
+              "total": 1691
+            },
+            "cost": 0.0005987999999999999,
+            "time": 15.981773376464844
+          }
+        ]
+      },
+      {
+        "sample_id": "P01_AVERAGE_01",
+        "quality_level": "average",
+        "expected_range": [
+          40,
+          59
+        ],
+        "trials": [
+          {
+            "success": true,
+            "result": {
+              "self_audit": {
+                "has_leakage": true,
+                "is_order_correct": false,
+                "reason": "스케일링이 데이터 분리 전에 수행되어 데이터 누수가 발생함."
+              },
+              "overall_score": 40,
+              "persona_name": "판정 페르소나",
+              "one_line_review": "데이터 누수로 인해 전처리 과정이 부적절하게 설계됨.",
+              "dimensions": {
+                "design": {
+                  "score": 0,
+                  "basis": "데이터 분리 전에 스케일링이 수행됨",
+                  "improvement": "스케일링을 데이터 분리 이후에 수행해야 함"
+                },
+                "consistency": {
+                  "score": 0,
+                  "basis": "스케일링이 전체 데이터에 적용되어 누수 발생",
+                  "improvement": "train_test_split 이후에 scaler.fit을 수행해야 함"
+                },
+                "implementation": {
+                  "score": 0,
+                  "basis": "구체적인 구현이 없음",
+                  "improvement": "구체적인 코드 예시를 추가해야 함"
+                },
+                "edge_case": {
+                  "score": 0,
+                  "basis": "엣지 케이스에 대한 고려가 없음",
+                  "improvement": "엣지 케이스를 처리하는 로직 추가"
+                },
+                "abstraction": {
+                  "score": 0,
+                  "basis": "추상화 수준이 낮음",
+                  "improvement": "모듈화된 함수로 구현하여 재사용성 높이기"
+                }
+              },
+              "tail_question": {
+                "question": "데이터 전처리 과정에서 누수를 방지하기 위해 어떤 순서로 작업을 수행해야 할까요?",
+                "options": [
+                  "1. 전체 데이터에 스케일링 후 분리",
+                  "2. 데이터 분리 후 스케일링",
+                  "3. 스케일링 없이 데이터 분리",
+                  "4. 데이터 분리 후 스케일링 후 변환"
+                ],
+                "correct_answer": "2"
+              },
+              "deep_dive": {
+                "suggestion": "스케일링과 데이터 분리의 올바른 순서를 이해하고, 이를 기반으로 코드를 작성하는 것이 중요합니다."
+              },
+              "converted_python": "from sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\n# 전체 데이터\nX, y = load_data()  # 데이터 로드\n\n# 1. 전체 데이터에 대해 스케일링을 수행한 뒤에 나중에 split 한다.\nscaler = StandardScaler()\nX_scaled = scaler.fit_transform(X)  # 잘못된 순서\n\n# 2. 데이터 분리\nX_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)",
+              "python_feedback": "스케일링과 데이터 분리의 순서가 잘못되어 있습니다. 데이터 분리 후에 스케일링을 수행해야 합니다.",
+              "senior_advice": "데이터 전처리 과정에서의 순서를 항상 확인하고, 누수를 방지하기 위한 원칙을 철저히 지켜야 합니다.",
+              "strengths": [],
+              "weaknesses": [
+                "데이터 누수 발생",
+                "구체적인 구현 부족",
+                "엣지 케이스 고려 부족",
+                "추상화 수준 낮음"
+              ]
+            },
+            "tokens": {
+              "input": 888,
+              "output": 733,
+              "total": 1621
+            },
+            "cost": 0.0005729999999999999,
+            "time": 15.557068824768066
+          },
+          {
+            "success": true,
+            "result": {
+              "self_audit": {
+                "has_leakage": true,
+                "is_order_correct": false,
+                "reason": "데이터 누수 발생: 스케일링이 데이터 분리 전에 수행됨."
+              },
+              "overall_score": 40,
+              "persona_name": "판정 페르소나",
+              "one_line_review": "데이터 누수 방지 원칙을 위반하여 낮은 점수를 받았습니다.",
+              "dimensions": {
+                "design": {
+                  "score": 0,
+                  "basis": "스케일링이 분리 전에 수행됨",
+                  "improvement": "스케일링을 train_test_split 이후에 수행해야 함"
+                },
+                "consistency": {
+                  "score": 0,
+                  "basis": "데이터 누수 발생",
+                  "improvement": "fit과 transform의 순서를 올바르게 설정해야 함"
+                },
+                "implementation": {
+                  "score": 0,
+                  "basis": "구체적인 구현 없음",
+                  "improvement": "구체적인 코드 예시 필요"
+                },
+                "edge_case": {
+                  "score": 0,
+                  "basis": "엣지 케이스 고려 부족",
+                  "improvement": "다양한 데이터 상황에 대한 고려 필요"
+                },
+                "abstraction": {
+                  "score": 0,
+                  "basis": "추상화 부족",
+                  "improvement": "모듈화 및 재사용성 고려 필요"
+                }
+              },
+              "tail_question": {
+                "question": "데이터 전처리 과정에서 누수를 방지하기 위한 올바른 순서는 무엇인가요?",
+                "options": [
+                  "1. 스케일링 -> 데이터 분리",
+                  "2. 데이터 분리 -> 스케일링",
+                  "3. 데이터 분리 -> 스케일링 -> 변환",
+                  "4. 스케일링 -> 변환 -> 데이터 분리"
+                ],
+                "correct_answer": "2"
+              },
+              "deep_dive": {
+                "topic": "데이터 전처리의 올바른 순서",
+                "details": "데이터를 스케일링하기 전에 반드시 train과 test로 분리해야 합니다."
+              },
+              "converted_python": "from sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\n# 전체 데이터\nX, y = ... # 데이터 로드\n\n# 데이터 분리\nX_train, X_test, y_train, y_test = train_test_split(X, y)\n\n# 스케일링\nscaler = StandardScaler()\nscaler.fit(X_train)\nX_train_scaled = scaler.transform(X_train)\nX_test_scaled = scaler.transform(X_test)",
+              "python_feedback": "스케일링과 데이터 분리의 순서가 잘못되어 있습니다. 올바른 순서를 따르세요.",
+              "senior_advice": "데이터 전처리의 순서를 항상 확인하고, 각 단계에서 어떤 데이터가 사용되는지 명확히 해야 합니다.",
+              "strengths": [],
+              "weaknesses": [
+                "데이터 누수",
+                "구체적인 구현 부족",
+                "엣지 케이스 고려 부족",
+                "추상화 부족"
+              ]
+            },
+            "tokens": {
+              "input": 888,
+              "output": 675,
+              "total": 1563
+            },
+            "cost": 0.0005382,
+            "time": 12.253108501434326
+          }
+        ]
+      },
+      {
+        "sample_id": "P01_POOR_01",
+        "quality_level": "poor",
+        "expected_range": [
+          20,
+          39
+        ],
+        "trials": [
+          {
+            "success": true,
+            "result": {
+              "self_audit": {
+                "has_leakage": true,
+                "is_order_correct": false,
+                "reason": "fit_transform이 train_test_split보다 먼저 수행되어 데이터 누수가 발생함."
+              },
+              "overall_score": 40,
+              "persona_name": "판정 페르소나",
+              "one_line_review": "데이터 누수 방지 원칙을 위반하여 점수가 제한됨.",
+              "dimensions": {
+                "design": {
+                  "score": 0,
+                  "basis": "train_test_split이 먼저 나오지 않음",
+                  "improvement": "스케일링 전에 데이터 분리 수행"
+                },
+                "consistency": {
+                  "score": 0,
+                  "basis": "fit_transform이 데이터 분리 전에 수행됨",
+                  "improvement": "fit_transform을 train_test_split 이후에 수행"
+                },
+                "implementation": {
+                  "score": 0,
+                  "basis": "구체적인 코드가 없음",
+                  "improvement": "구체적인 스케일링 및 분리 코드 추가"
+                },
+                "edge_case": {
+                  "score": 0,
+                  "basis": "엣지 케이스 고려 없음",
+                  "improvement": "엣지 케이스 처리 로직 추가"
+                },
+                "abstraction": {
+                  "score": 0,
+                  "basis": "추상화 부족",
+                  "improvement": "함수로 분리하여 코드의 재사용성 높이기"
+                }
+              },
+              "tail_question": {
+                "question": "데이터 전처리 과정에서 누수를 방지하기 위해 어떤 순서로 작업을 수행해야 할까요?",
+                "options": [
+                  "1. 스케일링 -> 데이터 분리",
+                  "2. 데이터 분리 -> 스케일링",
+                  "3. 스케일링 -> 변환 -> 데이터 분리",
+                  "4. 데이터 분리 -> 변환"
+                ],
+                "correct_answer": "2"
+              },
+              "deep_dive": {
+                "explanation": "데이터 전처리에서 fit_transform을 사용하기 전에 반드시 train_test_split을 통해 데이터를 분리해야 합니다. 이를 통해 모델이 테스트 데이터에 대해 학습하지 않도록 해야 합니다."
+              },
+              "converted_python": "from sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\n# 데이터 준비\nX, y = ... # 데이터 로드\n\n# 데이터 분리\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)\n\n# 스케일링\nscaler = StandardScaler()\nscaler.fit(X_train)\nX_train_scaled = scaler.transform(X_train)\nX_test_scaled = scaler.transform(X_test)",
+              "python_feedback": "데이터 분리 후 스케일링을 수행하는 것이 중요합니다. 현재 코드에서는 fit_transform이 먼저 호출되어 데이터 누수가 발생합니다.",
+              "senior_advice": "데이터 전처리의 순서를 항상 확인하고, fit과 transform의 사용을 명확히 구분하세요. 이 원칙을 지키면 모델의 일반화 성능이 향상됩니다.",
+              "strengths": [],
+              "weaknesses": [
+                "데이터 누수 발생",
+                "순서 오류",
+                "구체적인 코드 부족"
+              ]
+            },
+            "tokens": {
+              "input": 871,
+              "output": 703,
+              "total": 1574
+            },
+            "cost": 0.00055245,
+            "time": 16.98837637901306
+          },
+          {
+            "success": true,
+            "result": {
+              "self_audit": {
+                "has_leakage": true,
+                "is_order_correct": false,
+                "reason": "fit_transform이 데이터 분리 전에 수행되어 데이터 누수가 발생함."
+              },
+              "overall_score": 40,
+              "persona_name": "판정 페르소나",
+              "one_line_review": "데이터 분리 없이 스케일링을 수행하여 누수가 발생했습니다.",
+              "dimensions": {
+                "design": {
+                  "score": 0,
+                  "basis": "데이터 분리 없이 스케일링을 시도함",
+                  "improvement": "데이터 분리 후 스케일링을 적용해야 함"
+                },
+                "consistency": {
+                  "score": 0,
+                  "basis": "fit_transform이 train_test_split 전에 호출됨",
+                  "improvement": "split 후 fit_transform을 사용해야 함"
+                },
+                "implementation": {
+                  "score": 0,
+                  "basis": "구체적인 구현이 없음",
+                  "improvement": "구체적인 파이프라인을 제시해야 함"
+                },
+                "edge_case": {
+                  "score": 0,
+                  "basis": "엣지 케이스 고려 부족",
+                  "improvement": "엣지 케이스에 대한 처리 방안을 추가해야 함"
+                },
+                "abstraction": {
+                  "score": 0,
+                  "basis": "추상화 부족",
+                  "improvement": "추상화된 함수 및 클래스를 사용해야 함"
+                }
+              },
+              "tail_question": {
+                "question": "데이터 전처리 과정에서 누수를 방지하기 위해 어떤 순서로 작업을 수행해야 할까요?",
+                "options": [
+                  "1. 데이터 분리 후 스케일링",
+                  "2. 스케일링 후 데이터 분리",
+                  "3. 스케일링과 데이터 분리를 동시에 수행"
+                ],
+                "correct_answer": "1. 데이터 분리 후 스케일링"
+              },
+              "deep_dive": {
+                "question": "데이터 전처리에서 fit과 transform의 차이는 무엇인가요?",
+                "answer": "fit은 모델이 데이터를 학습하는 과정이고, transform은 학습된 모델을 사용하여 새로운 데이터를 변환하는 과정입니다."
+              },
+              "converted_python": "scaler = StandardScaler()\nX_train_scaled = scaler.fit_transform(X_train)\nX_test_scaled = scaler.transform(X_test)",
+              "python_feedback": "fit_transform을 사용하기 전에 train_test_split을 수행해야 합니다.",
+              "senior_advice": "데이터 전처리 시 항상 데이터 분리 후 스케일링을 적용하여 누수를 방지하세요.",
+              "strengths": [],
+              "weaknesses": [
+                "데이터 분리 전 스케일링 수행",
+                "구체적인 구현 부족",
+                "엣지 케이스 고려 부족"
+              ]
+            },
+            "tokens": {
+              "input": 871,
+              "output": 607,
+              "total": 1478
+            },
+            "cost": 0.00049485,
+            "time": 11.487740278244019
+          }
+        ]
+      },
+      {
+        "sample_id": "P01_VERY_POOR_01",
+        "quality_level": "very_poor",
+        "expected_range": [
+          0,
+          10
+        ],
+        "trials": [
+          {
+            "success": true,
+            "result": {
+              "self_audit": {
+                "has_leakage": false,
+                "is_order_correct": false,
+                "reason": "사용자가 구체적인 Pseudocode를 제공하지 않아 데이터 분리 및 스케일링 순서를 평가할 수 없음."
+              },
+              "overall_score": 0,
+              "persona_name": "판정 페르소나",
+              "one_line_review": "구체적인 코드가 없어 평가 불가.",
+              "dimensions": {
+                "design": {
+                  "score": 0,
+                  "basis": "구체적인 설계가 없음",
+                  "improvement": "구체적인 전처리 과정을 포함해야 함"
+                },
+                "consistency": {
+                  "score": 0,
+                  "basis": "데이터 누수 여부를 판단할 수 없음",
+                  "improvement": "데이터 분리 및 스케일링 순서를 명확히 해야 함"
+                },
+                "implementation": {
+                  "score": 0,
+                  "basis": "구체적인 구현 내용이 없음",
+                  "improvement": "실제 코드 예시를 제공해야 함"
+                },
+                "edge_case": {
+                  "score": 0,
+                  "basis": "엣지 케이스 처리에 대한 언급 없음",
+                  "improvement": "엣지 케이스를 고려한 설계 필요"
+                },
+                "abstraction": {
+                  "score": 0,
+                  "basis": "추상화된 개념이 없음",
+                  "improvement": "추상화된 개념을 포함하여 설계해야 함"
+                }
+              },
+              "tail_question": {
+                "question": "데이터 전처리 과정에서 누수를 방지하기 위해 어떤 순서로 작업을 수행해야 할까요?",
+                "options": [
+                  "1. 스케일링 -> 데이터 분리",
+                  "2. 데이터 분리 -> 스케일링",
+                  "3. 스케일링 -> 변환",
+                  "4. 변환 -> 데이터 분리"
+                ],
+                "correct_answer": "2"
+              },
+              "deep_dive": {
+                "question": "데이터 전처리에서 fit과 transform의 차이점은 무엇인가요?",
+                "options": [
+                  "1. fit은 데이터에 대한 정보를 학습하고, transform은 그 정보를 바탕으로 데이터를 변환한다.",
+                  "2. fit은 데이터를 변환하고, transform은 데이터를 학습한다.",
+                  "3. fit과 transform은 동일한 작업을 수행한다.",
+                  "4. fit은 테스트 데이터에만 적용된다."
+                ],
+                "correct_answer": "1"
+              },
+              "converted_python": "X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)\nscaler = StandardScaler()\nscaler.fit(X_train)\nX_train_scaled = scaler.transform(X_train)\nX_test_scaled = scaler.transform(X_test)",
+              "python_feedback": "구체적인 Pseudocode가 없으므로, 전처리 과정의 순서를 명확히 해야 함.",
+              "senior_advice": "데이터 전처리 과정에서의 누수를 방지하기 위해서는 항상 데이터 분리 후에 스케일링을 적용해야 합니다.",
+              "strengths": [],
+              "weaknesses": [
+                "구체적인 Pseudocode 부족",
+                "전처리 과정의 순서 미제시"
+              ]
+            },
+            "tokens": {
+              "input": 868,
+              "output": 715,
+              "total": 1583
+            },
+            "cost": 0.0005592,
+            "time": 15.41780710220337
+          },
+          {
+            "success": true,
+            "result": {
+              "self_audit": {
+                "has_leakage": false,
+                "is_order_correct": false,
+                "reason": "사용자가 pseudocode를 제공하지 않아 누수 여부 및 순서 확인이 불가능함"
+              },
+              "overall_score": 0,
+              "persona_name": "판정 페르소나",
+              "one_line_review": "제공된 정보가 부족하여 평가 불가",
+              "dimensions": {
+                "design": {
+                  "score": 0,
+                  "basis": "pseudocode 미제공",
+                  "improvement": "구체적인 pseudocode 제공 필요"
+                },
+                "consistency": {
+                  "score": 0,
+                  "basis": "pseudocode 미제공",
+                  "improvement": "데이터 분리 및 스케일링 순서 명시 필요"
+                },
+                "implementation": {
+                  "score": 0,
+                  "basis": "pseudocode 미제공",
+                  "improvement": "구체적인 구현 내용 추가 필요"
+                },
+                "edge_case": {
+                  "score": 0,
+                  "basis": "pseudocode 미제공",
+                  "improvement": "엣지 케이스 처리 방안 제시 필요"
+                },
+                "abstraction": {
+                  "score": 0,
+                  "basis": "pseudocode 미제공",
+                  "improvement": "추상화된 개념 설명 필요"
+                }
+              },
+              "tail_question": {
+                "question": "데이터 전처리 과정에서 누수를 방지하기 위한 올바른 순서는 무엇인가요?",
+                "options": [
+                  "1. 스케일링 -> 데이터 분리",
+                  "2. 데이터 분리 -> 스케일링",
+                  "3. 스케일링 -> 변환 -> 데이터 분리",
+                  "4. 데이터 분리 -> 변환 -> 스케일링"
+                ],
+                "correct_answer": "2"
+              },
+              "deep_dive": {
+                "question": "데이터 전처리에서 fit과 transform의 차이점은 무엇인가요?",
+                "answer": "fit은 모델이 데이터를 학습하는 과정이며, transform은 학습된 모델을 사용하여 새로운 데이터를 변환하는 과정입니다."
+              },
+              "converted_python": "X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)\nscaler = StandardScaler()\nscaler.fit(X_train)\nX_train_scaled = scaler.transform(X_train)\nX_test_scaled = scaler.transform(X_test)",
+              "python_feedback": "구체적인 pseudocode가 없으므로, 제공된 정보로는 정확한 피드백을 제공하기 어려움.",
+              "senior_advice": "데이터 전처리 과정에서의 누수를 방지하기 위해, 각 단계의 순서를 명확히 하고, pseudocode를 구체적으로 작성하는 것이 중요합니다.",
+              "strengths": [],
+              "weaknesses": [
+                "pseudocode 미제공으로 인한 평가 불가"
+              ]
+            },
+            "tokens": {
+              "input": 868,
+              "output": 637,
+              "total": 1505
+            },
+            "cost": 0.0005124,
+            "time": 11.843578100204468
+          }
+        ]
+      }
+    ],
+    "stats": {
+      "model": "gpt-4o-mini",
+      "total_cost": 0.005511299999999999,
+      "total_tokens": 15901,
+      "avg_time": 14.930889558792114,
+      "total_evaluations": 10
+    }
+  },
+  "gemini-1.5-flash": {
+    "model": "gemini-1.5-flash",
+    "evaluations": [
+      {
+        "sample_id": "P01_EXCELLENT_01",
+        "quality_level": "excellent",
+        "expected_range": [
+          80,
+          85
+        ],
+        "trials": []
+      },
+      {
+        "sample_id": "P01_GOOD_01",
+        "quality_level": "good",
+        "expected_range": [
+          70,
+          79
+        ],
+        "trials": []
+      },
+      {
+        "sample_id": "P01_AVERAGE_01",
+        "quality_level": "average",
+        "expected_range": [
+          40,
+          59
+        ],
+        "trials": []
+      },
+      {
+        "sample_id": "P01_POOR_01",
+        "quality_level": "poor",
+        "expected_range": [
+          20,
+          39
+        ],
+        "trials": []
+      },
+      {
+        "sample_id": "P01_VERY_POOR_01",
+        "quality_level": "very_poor",
+        "expected_range": [
+          0,
+          10
+        ],
+        "trials": []
+      }
+    ],
+    "stats": {
+      "model": "gemini-1.5-flash",
+      "total_cost": 0,
+      "total_tokens": 0,
+      "avg_time": 0,
+      "total_evaluations": 0
+    }
+  }
+}
