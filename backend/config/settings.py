@@ -160,3 +160,11 @@ SESSION_COOKIE_HTTPONLY = True
 
 # AI Service Settings
 OPENAI_API_KEY = env('OPENAI_API_KEY', default='')
+
+# Job Planner Agent - Python path 추가
+# job-planner-agent 폴더 이름에 하이픈(-)이 있어서 직접 import 불가
+# Django 시작 시 sys.path에 경로를 추가하여 'from collectors import' 가능하게 설정
+import sys
+job_planner_agent_path = BASE_DIR.parent / "job-planner-agent"
+if job_planner_agent_path.exists() and str(job_planner_agent_path) not in sys.path:
+    sys.path.insert(0, str(job_planner_agent_path))

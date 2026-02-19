@@ -244,6 +244,62 @@
             <h3 class="step-title">내 정보를 입력하세요</h3>
 
             <div class="profile-form">
+              <!-- 기업분석 섹션 (먼저 실행되도록 최상단 배치) -->
+              <div class="company-analysis-section">
+                <h4 class="section-subtitle">🏢 기업 분석 (선택사항)</h4>
+                <p class="section-hint">⏱️ 시간이 걸리니 먼저 분석을 시작하고, 아래 정보를 입력하세요</p>
+
+                <div class="company-input-tabs">
+                  <button
+                    :class="['company-tab', { active: companyAnalysisType === 'url' }]"
+                    @click="companyAnalysisType = 'url'"
+                  >
+                    🔗 URL
+                  </button>
+                  <button
+                    :class="['company-tab', { active: companyAnalysisType === 'text' }]"
+                    @click="companyAnalysisType = 'text'"
+                  >
+                    📝 텍스트
+                  </button>
+                </div>
+
+                <div v-if="companyAnalysisType === 'url'" class="company-input-panel">
+                  <input
+                    v-model="companyUrl"
+                    type="text"
+                    placeholder="https://company.com 또는 https://www.wanted.co.kr/company/..."
+                    class="company-input"
+                  >
+                </div>
+
+                <div v-else class="company-input-panel">
+                  <textarea
+                    v-model="companyText"
+                    rows="4"
+                    placeholder="회사 정보를 입력하세요 (예: 설립연도, 사업 분야, 기술 스택, 복지 등)"
+                    class="company-textarea"
+                  ></textarea>
+                </div>
+
+                <button
+                  v-if="(companyAnalysisType === 'url' && companyUrl) || (companyAnalysisType === 'text' && companyText)"
+                  class="btn-company-analyze"
+                  @click="analyzeCompany"
+                  :disabled="isAnalyzingCompany"
+                >
+                  <span v-if="!isAnalyzingCompany">🔍 기업 분석하기</span>
+                  <span v-else>⏳ 분석 중...</span>
+                </button>
+
+                <div v-if="companyAnalysis" class="company-analysis-preview">
+                  <div class="preview-badge">✅ 기업분석 완료</div>
+                  <div class="preview-score">
+                    종합 점수: {{ (companyAnalysis.overall_score?.total_score * 100).toFixed(0) }}점
+                  </div>
+                </div>
+              </div>
+
               <!-- 기본 정보 -->
               <div class="form-section">
                 <h4 class="form-section-title">📝 기본 정보</h4>
@@ -370,62 +426,6 @@
                 </div>
               </div>
 
-              <!-- 기업분석 섹션 (선택사항) -->
-              <div class="company-analysis-section">
-                <h4 class="section-subtitle">🏢 기업 분석 (선택사항)</h4>
-                <p class="section-hint">회사 홈페이지나 채용 페이지 URL 또는 회사 정보를 입력하여 기업을 분석하세요</p>
-
-                <div class="company-input-tabs">
-                  <button
-                    :class="['company-tab', { active: companyAnalysisType === 'url' }]"
-                    @click="companyAnalysisType = 'url'"
-                  >
-                    🔗 URL
-                  </button>
-                  <button
-                    :class="['company-tab', { active: companyAnalysisType === 'text' }]"
-                    @click="companyAnalysisType = 'text'"
-                  >
-                    📝 텍스트
-                  </button>
-                </div>
-
-                <div v-if="companyAnalysisType === 'url'" class="company-input-panel">
-                  <input
-                    v-model="companyUrl"
-                    type="text"
-                    placeholder="https://company.com 또는 https://www.wanted.co.kr/company/..."
-                    class="company-input"
-                  >
-                </div>
-
-                <div v-else class="company-input-panel">
-                  <textarea
-                    v-model="companyText"
-                    rows="4"
-                    placeholder="회사 정보를 입력하세요 (예: 설립연도, 사업 분야, 기술 스택, 복지 등)"
-                    class="company-textarea"
-                  ></textarea>
-                </div>
-
-                <button
-                  v-if="(companyAnalysisType === 'url' && companyUrl) || (companyAnalysisType === 'text' && companyText)"
-                  class="btn-company-analyze"
-                  @click="analyzeCompany"
-                  :disabled="isAnalyzingCompany"
-                >
-                  <span v-if="!isAnalyzingCompany">🔍 기업 분석하기</span>
-                  <span v-else>⏳ 분석 중...</span>
-                </button>
-
-                <div v-if="companyAnalysis" class="company-analysis-preview">
-                  <div class="preview-badge">✅ 기업분석 완료</div>
-                  <div class="preview-score">
-                    종합 점수: {{ (companyAnalysis.overall_score?.total_score * 100).toFixed(0) }}점
-                  </div>
-                </div>
-              </div>
-
               <button
                 class="btn-analyze"
                 @click="analyzeMatch"
@@ -476,7 +476,7 @@
               </button>
               <button
                 class="btn-generate-report"
-                @click="generateFinalReport"
+                @click="generateFinalReport(true)"
                 :disabled="isGeneratingReport"
               >
                 <span v-if="!isGeneratingReport">🚀 최종 보고서 생성</span>
@@ -563,10 +563,7 @@
                   :key="'missing-' + idx"
                   class="skill-item"
                 >
-                  <span class="skill-required">{{ miss.required }}</span>
-                  <span class="skill-arrow">→</span>
-                  <span class="skill-closest">{{ miss.closest_match }}</span>
-                  <span class="skill-similarity weak">{{ (miss.similarity * 100).toFixed(0) }}%</span>
+                  <span class="skill-name">{{ miss.required }}</span>
                 </div>
               </div>
             </div>
@@ -1336,7 +1333,7 @@ export default {
       }
     },
 
-    async generateFinalReport() {
+    async generateFinalReport(autoNavigate = false) {
       this.isGeneratingReport = true;
       this.errorMessage = '';
 
@@ -1349,7 +1346,11 @@ export default {
         });
 
         this.finalReport = response.data;
-        this.currentStep = 'result';
+
+        // autoNavigate가 true일 때만 자동으로 페이지 전환
+        if (autoNavigate) {
+          this.currentStep = 'result';
+        }
 
       } catch (error) {
         console.error('보고서 생성 실패:', error);
@@ -1360,9 +1361,9 @@ export default {
     },
 
     skipAgentQuestions() {
-      // 질문 건너뛰고 바로 최종 보고서 생성
+      // 질문 건너뛰고 바로 최종 보고서 생성 (자동 페이지 전환)
       this.agentAnswers = {};
-      this.generateFinalReport();
+      this.generateFinalReport(true);  // autoNavigate = true
     },
 
     async fetchRecommendations() {
