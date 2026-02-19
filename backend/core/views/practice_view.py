@@ -32,6 +32,7 @@ class PracticeViewSet(viewsets.ModelViewSet):
     - 정렬: 사용자 지정 순서(display_order)와 유닛 번호 기준
     """
     queryset = Practice.objects.all().order_by('display_order', 'unit_number')
+    # queryset = Practice.objects.prefetch_related('details').all().order_by('display_order', 'unit_number')
     serializer_class = PracticeSerializer
 
 class PracticeDetailViewSet(viewsets.ModelViewSet):

@@ -1,137 +1,118 @@
 /**
- * 학습 리소스 큐레이션 시스템
- * 취약 지표별 맞춤형 콘텐츠 추천
+ * learningResources.js - 큐레이션 학습 리소스 (단순화)
+ * 수정일: 2026-02-19
+ *
+ * [변경 사항]
+ * - YouTube API 엔드포인트 제거 (pseudocodeApi.js의 getYouTubeRecommendations 제거됨)
+ * - 하드코딩 큐레이션으로 단순화 (항상 같은 영상이 나오던 것을 솔직하게 유지)
+ * - 차원별로 2~3개씩 엄선된 영상 목록 관리
+ * - getRecommendedVideos() 함수 하나로 외부에 노출
+ *
+ * 영상 추가/교체: 이 파일의 CURATED_VIDEOS 객체만 편집하면 됩니다.
  */
 
-export const LEARNING_RESOURCES = {
-  // ==================== 지표별 콘텐츠 ====================
-  design: {
-    metric: '설계력 (Design)',
-    theme: '데이터 전처리 파이프라인 설계 원칙',
-    curationMessage: '설계의 뼈대가 흔들리면 모델도 흔들립니다. 파이프라인 설계의 정석을 확인하세요.',
-    videos: [
-      {
-        title: '머신러닝파이프라인',
-        url: 'https://www.youtube.com/watch?v=example1',
-        channel: 'StatQuest',
-        curationPoint: '전처리 순서가 왜 중요한지, 데이터 분할이 왜 가장 먼저여야 하는지 논리적 흐름을 잡아줍니다.',
-        difficulty: 'intermediate'
-      }
-    ]
-  },
+// ── 차원별 큐레이션 영상 ────────────────────────────────────────────────────
+// 각 차원에 2~3개 제한. 검증된 영상만 등록하세요.
 
-  edgeCase: {
-    metric: '예외처리 (Edge Case)',
-    theme: 'MLOps, 데이터 드리프트, 실전 배포',
-    curationMessage: '이론은 완벽하지만 실전은 변수 투성이입니다. 변화하는 데이터에 대응하는 법을 배우세요.',
-    videos: [
-      {
-        title: '예외처리',
-        url: 'https://www.youtube.com/watch?v=example3',
-        channel: 'MLOps Community',
-        curationPoint: '배포 후 데이터 분포가 변했을 때(Drift) 발생하는 문제와 재학습의 필요성을 실무 관점에서 설명합니다.',
-        difficulty: 'advanced'
-      }
-    ]
-  },
-
-  abstraction: {
-    metric: '추상화 (Abstraction)',
-    theme: '데이터 과학 사고법, 의사코드 작성법',
-    curationMessage: '개념을 코드로 옮기는 "생각의 근육"이 필요합니다. 구조적으로 사고하는 법을 추천합니다.',
-    videos: [
-      {
-        title: '문제구조화',
-        url: 'https://www.youtube.com/watch?v=example5',
-        channel: 'Data School',
-        curationPoint: '복잡한 머신러닝 개념을 의사코드와 도식으로 단순화하여 시스템적으로 사고하는 법을 알려줍니다.',
-        difficulty: 'beginner'
-      }
-    ]
-  },
-
-  implementation: {
-    metric: '구현력 (Implementation)',
-    theme: 'Scikit-learn 실전 활용법, 파이썬 코딩 팁',
-    curationMessage: '머릿속 설계를 손 끝으로 완벽하게 구현하는 기술, 라이브러리 활용 팁을 모았습니다.',
-    videos: [
-      {
-        title: 'Scikit-learn fit transform 차이',
-        url: 'https://www.youtube.com/watch?v=example7',
-        channel: 'StatQuest',
-        curationPoint: 'fit, transform을 실수 없이 연결하는 실제 파이썬 코딩 테크닉과 라이브러리 활용법을 다룹니다.',
-        difficulty: 'beginner'
-      }
-    ]
-  },
-
-  consistency: {
-    metric: '정합성 (Consistency)',
-    theme: '데이터 누수(Leakage) 방지 심화 강의',
-    curationMessage: '작은 틈새가 모델을 망칩니다. 일관성을 유지하는 완벽한 방어 기제를 확인하세요.',
-    videos: [
-      {
-        title: 'Data Leakage(데이터 누수) 완벽 가이드',
-        url: 'https://www.youtube.com/watch?v=example10',
-        channel: 'Kaggle',
-        curationPoint: '사소한 코딩 실수가 어떻게 모델의 성능을 뻥튀기시키고 "거짓 모델"을 만드는지 경각심을 줍니다.',
-        difficulty: 'intermediate'
-      }
-    ]
-  },
-
-  // ==================== 마스터 레벨 (80점 이상) ====================
-  master: {
-    metric: '마스터 레벨',
-    theme: 'Enterprise Scale ML in Production',
-    curationMessage: '"이미 완벽한 당신, 이제는 수조 개의 데이터를 처리하는 기업형 AI 시스템 설계에 도전할 때입니다. 개별 모델을 넘어 전체 시스템의 효율을 극대화하는 법을 확인하세요."',
-    videos: [
-      {
-        title: 'Enterprise Scale Machine Learning in Production',
-        url: 'https://www.youtube.com/watch?v=example12',
-        channel: 'Netflix Tech Blog',
-        curationPoint: '단순히 "맞는" 설계가 아니라, "확장 가능한(Scalable)" 인프라적 관점으로 시야를 넓혀줍니다.',
-        difficulty: 'expert'
-      }
-    ]
-  }
+const CURATED_VIDEOS = {
+    consistency: [
+        {
+            id: 'fSytzGwwBVw',
+            title: 'Cross Validation Explained (StatQuest)',
+            desc: '교차 검증의 핵심 원리. 데이터 누수를 방지하는 올바른 분할 전략의 기초입니다.',
+            reason: '데이터 분할과 검증 전략의 기본기를 점검해 보세요.',
+        },
+        {
+            id: 'A88rDEf-pfk',
+            title: 'Standardization vs Normalization (StatQuest)',
+            desc: '데이터 표준화의 개념과 올바른 적용 시점. fit/transform 순서가 왜 중요한지 이해할 수 있습니다.',
+            reason: '전처리 파이프라인에서 fit/transform 순서와 데이터 누수 방지 원리를 확인하세요.',
+        },
+    ],
+    design: [
+        {
+            id: 'TMuno5RZNeE',
+            title: 'SOLID Principles (Uncle Bob)',
+            desc: '객체지향 설계의 5대 원칙. 컴포넌트 간 책임 분리(SoC)의 기초입니다.',
+            reason: '전체적인 파이프라인 설계 구조를 개선해 보세요.',
+        },
+    ],
+    abstraction: [
+        {
+            id: 'pTB0EiLXUC8',
+            title: 'OOP & Abstraction (Programming with Mosh)',
+            desc: '추상화 개념을 쉽고 명확하게 설명합니다.',
+            reason: '하드코딩된 로직을 일반화하여 확장성을 높여 보세요.',
+        },
+    ],
+    edge_case: [
+        {
+            id: 'ZUqGMDppEDs',
+            title: 'Python Exception Handling (NeuralNine)',
+            desc: 'try/except를 활용한 방어적 코딩 전략.',
+            reason: '에지 케이스 및 비정상 데이터에 대한 방어 로직이 부족합니다.',
+        },
+    ],
+    implementation: [
+        {
+            id: 'EuBBz3bI-aA',
+            title: 'Bias and Variance (StatQuest)',
+            desc: '편향-분산 트레이드오프. 모델 일반화와 구현 전략 이해의 기초.',
+            reason: '모델 구현 수준과 일반화 성능을 함께 고려해 보세요.',
+        },
+    ],
 };
 
-/**
- * 취약 지표에 맞는 콘텐츠 추천
- */
-export function recommendContent(weakestMetric, totalScore) {
-  // 80점 이상이면 마스터 콘텐츠
-  if (totalScore >= 80) {
-    return LEARNING_RESOURCES.master;
-  }
-
-  // 취약 지표 매핑
-  const metricMap = {
-    'abstraction': 'abstraction',
-    'implementation': 'implementation',
-    'design': 'design',
-    'edgeCase': 'edgeCase',
-    'consistency': 'consistency'
-  };
-
-  const key = metricMap[weakestMetric] || 'design';
-  return LEARNING_RESOURCES[key];
-}
+// ── 외부 노출 함수 ────────────────────────────────────────────────────────
 
 /**
- * 점수 구간별 필터링
+ * 취약 차원 기반으로 추천 영상을 반환합니다.
+ *
+ * @param {Object} dimensions - 평가 결과의 dimensions 객체
+ *                              { design: {score, max}, consistency: {score, max}, ... }
+ * @param {number} maxCount   - 최대 반환 개수 (기본 2)
+ * @returns {Array}           - 추천 영상 배열
  */
-export function filterByScore(resources, score) {
-  if (score >= 80) {
-    return resources.videos.filter(v => v.difficulty === 'expert');
-  } else if (score >= 60) {
-    return resources.videos.filter(v =>
-      v.difficulty === 'intermediate' || v.difficulty === 'advanced'
-    );
-  } else {
-    return resources.videos.filter(v =>
-      v.difficulty === 'beginner' || v.difficulty === 'intermediate'
-    );
-  }
+export function getRecommendedVideos(dimensions = {}, maxCount = 2) {
+    const DIMENSION_ORDER = ['consistency', 'design', 'abstraction', 'edge_case', 'implementation'];
+
+    // camelCase → snake_case 키 매핑 (reportGenerator의 edgeCase → edge_case)
+    const ALIAS = { edgeCase: 'edge_case' };
+    const normalized = {};
+    for (const [k, v] of Object.entries(dimensions)) {
+        normalized[ALIAS[k] || k] = v;
+    }
+
+    // 점수 비율 기준으로 취약한 차원 정렬
+    const sorted = DIMENSION_ORDER
+        .map((dim) => {
+            const d = normalized[dim];
+            if (!d) return { dim, ratio: 1 };
+            // percentage가 있으면 우선 사용, 없으면 score/max 비율
+            const ratio = d.percentage != null ? d.percentage / 100 : (d.max > 0 ? d.score / d.max : 1);
+            return { dim, ratio };
+        })
+        .sort((a, b) => a.ratio - b.ratio);
+
+    const result = [];
+    const usedIds = new Set();
+
+    for (const { dim } of sorted) {
+        if (result.length >= maxCount) break;
+        const pool = CURATED_VIDEOS[dim] || [];
+        for (const video of pool) {
+            if (result.length >= maxCount) break;
+            if (!usedIds.has(video.id)) {
+                result.push(video);
+                usedIds.add(video.id);
+            }
+        }
+    }
+
+    // 추천이 없으면 consistency 기본값 반환
+    if (result.length === 0) {
+        return CURATED_VIDEOS.consistency.slice(0, maxCount);
+    }
+
+    return result;
 }

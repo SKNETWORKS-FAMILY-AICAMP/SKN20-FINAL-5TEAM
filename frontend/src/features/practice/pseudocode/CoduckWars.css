@@ -2791,6 +2791,39 @@
   margin: 0;
 }
 
+/* --- Deduction Analysis Section [2026-02-19] --- */
+.deduction-analysis-neo {
+  background: rgba(244, 63, 94, 0.1);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  border-radius: 16px;
+  padding: 1.5rem 2rem;
+  margin-bottom: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.da-header {
+  display: flex;
+  align-items: center;
+}
+
+.da-title {
+  font-size: 0.9rem;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.da-content {
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: #ffdde1;
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 500;
+  margin: 0;
+}
+
 /* --- Curation List & Master Section --- */
 .curation-header {
   margin-bottom: 2rem;

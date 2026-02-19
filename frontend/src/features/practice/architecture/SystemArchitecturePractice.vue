@@ -26,8 +26,8 @@
       @complete="handleComplete"
     />
 
-    <!-- ✅ NEW: 잠금 화면 -->
-    <div v-else-if="!isProblemUnlocked" class="locked-screen">
+    <!-- ✅ 미션 잠금 화면 제거 (모든 미션이 항상 해금됨) -->
+    <!-- <div v-else-if="!isProblemUnlocked" class="locked-screen">
       <div class="locked-content">
         <div class="lock-icon">🔒</div>
         <h2>MISSION LOCKED</h2>
@@ -36,7 +36,7 @@
           진행 가능한 미션으로 이동
         </button>
       </div>
-    </div>
+    </div> -->
 
     <!-- 메인 게임 화면 -->
     <template v-else>
@@ -267,14 +267,14 @@ export default {
       return this.problems[this.currentProblemIndex];
     },
     isProblemUnlocked() {
-      // 첫 번째 문제는 항상 해금
-      if (this.currentProblemIndex === 0) return true;
+      // ✅ 모든 문제가 항상 해금됨 (순차 잠금 제거)
+      return true;
 
-      // 이전 문제가 완료되어야 현재 문제 해금
-      const prevProblem = this.problems[this.currentProblemIndex - 1];
-      if (!prevProblem) return false;
-
-      return this.isProblemCompleted(prevProblem.problem_id);
+      // 이전 코드 (순차 해금 시스템 - 비활성화):
+      // if (this.currentProblemIndex === 0) return true;
+      // const prevProblem = this.problems[this.currentProblemIndex - 1];
+      // if (!prevProblem) return false;
+      // return this.isProblemCompleted(prevProblem.problem_id);
     },
     allProblemsCompleted() {
       return this.problems.every(p => this.isProblemCompleted(p.problem_id));
@@ -309,10 +309,10 @@ export default {
 
     await this.loadProblems();
 
-    // ✅ 해금되지 않은 문제라면 첫 번째 미완료 문제로 이동
-    if (!this.isProblemUnlocked) {
-      this.currentProblemIndex = this.getFirstUncompletedProblemIndex();
-    }
+    // ✅ 미션 순차 해금 기능 제거 (모든 미션이 항상 해금됨)
+    // if (!this.isProblemUnlocked) {
+    //   this.currentProblemIndex = this.getFirstUncompletedProblemIndex();
+    // }
 
     // 인트로 건너뛰는 경우 가이드 메시지 표시
     if (!this.showIntro) {
@@ -648,10 +648,13 @@ export default {
             );
           }
         } else {
+          // ✅ 60점 이상 요구 메시지 제거
           this.showToastMessage(
-            `[RETRY] 60점 이상 필요합니다. (현재: ${score}점) 꽥!`,
-            'warning'
+            `[평가 완료] 점수: ${score}점 꽥!`,
+            'info'
           );
+          // 이전 코드 (60점 이상 필수):
+          // `[RETRY] 60점 이상 필요합니다. (현재: ${score}점) 꽥!`,
         }
       }
     }
@@ -869,8 +872,8 @@ export default {
   pointer-events: none;
 }
 
-/* ✅ NEW: 잠금 화면 */
-.locked-screen {
+/* ✅ 미션 잠금 화면 스타일 제거 (모든 미션 자유 접근) */
+/* .locked-screen {
   position: fixed;
   top: 0;
   left: 0;
@@ -939,7 +942,7 @@ export default {
 .unlock-btn:hover {
   transform: translateY(-3px);
   box-shadow: 0 10px 30px rgba(188, 19, 254, 0.5);
-}
+} */
 
 /* === 5. 스크롤바 커스텀 === */
 ::-webkit-scrollbar {

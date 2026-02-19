@@ -1,139 +1,132 @@
+"""
+의사코드 힌트 에이전트 뷰 (Coduck Wizard)
+수정일: 2026-02-19
+
+[변경 사항 / 역할 재정의]
+- 기존: 평가 + 5차원 점수 산출 (pseudocode_evaluation.py와 중복)
+- 변경: 대화형 힌트 전용
+  · 학생이 막혔을 때 힌트를 요청하는 용도
+  · 점수를 내지 않음 (score 필드 없음)
+  · 최종 제출 평가는 pseudocode_evaluation.py 에서만 수행
+
+엔드포인트: POST /api/core/pseudo-agent/
+"""
+
+import logging
+import json
+import re
+
 try:
     import openai
 except ImportError:
     openai = None
-import json
-import re
-import traceback
+
 from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import AllowAny
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
+from rest_framework.permissions import IsAuthenticated
+
+logger = logging.getLogger(__name__)
+
 
 @method_decorator(csrf_exempt, name='dispatch')
 class PseudocodeAgentView(APIView):
     """
-    [수정일: 2026-02-10]
-    수도코드 전용 지능형 에이전트 (Coduck Wizard)
-    단순 평가를 넘어 사용자의 설계 의도를 분석하고 맞춤형 피드백을 제공합니다.
+    대화형 힌트 에이전트.
+    학생이 설계 중 막혔을 때 힌트를 요청하면 방향만 제시합니다.
+    정답이나 점수는 제공하지 않습니다.
     """
-    authentication_classes = []
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        user_logic = request.data.get('user_logic', '')
+        user_logic = request.data.get('user_logic', '').strip()
         quest_title = request.data.get('quest_title', '알 수 없는 미션')
         quest_description = request.data.get('quest_description', '')
         selected_strategy = request.data.get('selected_strategy', '')
         constraints = request.data.get('constraints', [])
+        hint_level = request.data.get('hint_level', 1)  # 1=가벼운 힌트, 2=구체적 방향, 3=핵심 짚어주기
 
         if not user_logic:
-            return Response({"error": "User logic is required"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "user_logic 필드가 비어 있습니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not openai or not getattr(settings, 'OPENAI_API_KEY', None):
+            return Response(
+                {"error": "LLM_UNAVAILABLE", "hint": "현재 힌트 서비스를 사용할 수 없습니다."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
 
         try:
-            api_key = settings.OPENAI_API_KEY
-            if not api_key:
-                return Response({"error": "OpenAI API Key is missing"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
 
-            if not openai:
-                return Response({"error": "OpenAI library is not installed in the system environment."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-                
-            client = openai.OpenAI(api_key=api_key)
+            hint_instructions = {
+                1: "정답은 주지 말고, 학생이 스스로 생각할 수 있도록 방향만 제시하세요. 질문 형태로 유도해도 좋습니다.",
+                2: "설계의 어느 부분이 부족한지 구체적으로 짚어주되, 답은 쓰지 마세요.",
+                3: "핵심 개념과 올바른 접근 방향을 명확히 알려주세요. 단, 코드나 완성된 의사코드는 제공하지 마세요.",
+            }.get(hint_level, "방향만 제시하세요.")
 
-            system_prompt = f"""
-            당신은 20년 경력의 시니어 소프트웨어 아키텍트이자 교육자인 'Coduck Wizard'입니다.
-            현재 사용자는 '{quest_title}' 미션을 수행 중입니다.
-            
-            [미션 배경]
-            {quest_description}
-            
-            [사용자의 사전 선택 전략]
-            - 선택한 전략: {selected_strategy}
-            - 준수해야 할 제약 사항: {', '.join(constraints)}
-            
-            [역할 및 지침]
-            1. 페르소나: 현명하고 예리하며, 때로는 엄격하지만 교육적인 JRPG 마법사 아키텍트 말투(~하오, ~하게나, ~인가 등)를 사용하십시오.
-            2. 분석: 사용자가 서술한 수도코드가 '선택한 전략'과 '제약 사항'을 충실히 반영했는지 검증하십시오.
-            3. 평가: 논리적 타당성, 정합성, 예외 처리, 추상화 수준을 평가하십시오.
-            4. 피드백: 단순한 정답 확인이 아니라, "왜 이 설계가 위험한지" 또는 "어떻게 하면 더 견고해지는지" 시니어의 관점에서 조언하십시오.
-            
-            [응답 형식]
-            반드시 아래 JSON 형식으로만 응답해야 합니다.
-            
-            {{
-              "score": 0-100,
-              "verdict": "도전 성공 / 보완 필요 / 설계 실패 등",
-              "analysis": "사용자 설계에 대한 종합적인 비평 (2~3문단)",
-              "advice": "다음 단계를 위한 핵심 조언",
-              "metrics": {{
-                "정합성": {{ "score": 0-100, "comment": "요구사항 준수 여부" }},
-                "추상화": {{ "score": 0-100, "comment": "모듈화 및 논리 분리 수준" }},
-                "예외처리": {{ "score": 0-100, "comment": "엣지 케이스 고려 여부" }},
-                "구현력": {{ "score": 0-100, "comment": "설계의 구체성" }},
-                "설계력": {{ "score": 0-100, "comment": "전체적인 아키텍처 완성도" }}
-              }},
-              "tail_question": {{
-                "question": "현재 설계의 허점을 찌르는 날카로운 질문",
-                "options": [
-                  {{"text": "통찰력 있는 답변", "is_correct": true, "reason": "이유"}},
-                  {{"text": "일반적인 답변", "is_correct": false, "reason": "이유"}},
-                  {{"text": "잘못된 접근", "is_correct": false, "reason": "이유"}}
-                ]
-              }}
-            }}
-            """
+            system_prompt = f"""당신은 20년 경력의 시니어 아키텍트 'Coduck Wizard'입니다.
+현재 학생은 '{quest_title}' 미션을 수행 중입니다.
 
-            user_msg = f"""
-            [사용자 수도코드 설계]
-            {user_logic}
-            
-            위 설계를 아키텍트의 관점에서 분석하여 리포트를 작성하라.
-            """
+[역할 규칙]
+1. 이 엔드포인트는 힌트 전용입니다. 점수를 산출하거나 "몇 점" 이라고 말하지 마세요.
+2. {hint_instructions}
+3. 말투: 현명하고 때로는 엄격하지만 교육적인 아키텍트 말투(~하오, ~하게나)를 사용하십시오.
+
+[미션 배경]
+{quest_description}
+
+[사용자가 선택한 전략]: {selected_strategy}
+[준수해야 할 제약]: {', '.join(constraints) if constraints else '없음'}
+
+응답은 반드시 아래 JSON 형식으로만 하십시오:
+{{
+  "hint": "힌트 메시지 (2~4문장)",
+  "focus_point": "학생이 다시 생각해봐야 할 핵심 포인트 (1문장)",
+  "guiding_question": "학생 스스로 답할 수 있도록 유도하는 질문 (선택, 없으면 null)"
+}}"""
+
+            user_msg = f"""[내 설계 초안]
+{user_logic}
+
+위 설계에서 부족한 부분에 대해 힌트를 주십시오."""
 
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_msg}
+                    {"role": "user", "content": user_msg},
                 ],
-                temperature=0.7
+                response_format={"type": "json_object"},
+                temperature=0.5,
+                timeout=20,
             )
 
             content = response.choices[0].message.content
-            
-            # JSON 추출 및 파싱
             try:
-                if "```" in content:
-                    content = content.split("```")[1]
-                    if content.startswith("json"):
-                        content = content[4:]
-                
-                result = json.loads(content.strip())
-                return Response(result, status=status.HTTP_200_OK)
-            except Exception as parse_e:
-                return Response({
-                    "score": 50,
-                    "verdict": "분석 지연",
-                    "analysis": f"아카이브를 분석하는 도중 마법 회로에 간섭이 발생했네. (Error: {str(parse_e)})",
-                    "advice": "다시 한번 설계도를 보여주게나.",
-                    "metrics": {
-                        "정합성": {"score": 50, "comment": "응답 파싱 실패"},
-                        "추상화": {"score": 50, "comment": "응답 파싱 실패"},
-                        "예외처리": {"score": 50, "comment": "응답 파싱 실패"},
-                        "구현력": {"score": 50, "comment": "응답 파싱 실패"},
-                        "설계력": {"score": 50, "comment": "응답 파싱 실패"}
-                    },
-                    "tail_question": {
-                        "question": "시스템이 불안정할 때 아키텍처를 점검하는 가장 좋은 방법은?",
-                        "options": [
-                            {"text": "로그를 확인한다", "is_correct": True, "reason": "데이터는 거짓말을 하지 않소."},
-                            {"text": "기도를 한다", "is_correct": False, "reason": "신앙심은 좋으나 공학적이지 않소."}
-                        ]
-                    }
-                }, status=status.HTTP_200_OK)
+                result = json.loads(content)
+            except json.JSONDecodeError:
+                match = re.search(r'\{[\s\S]*\}', content)
+                result = json.loads(match.group(0)) if match else {
+                    "hint": content,
+                    "focus_point": "",
+                    "guiding_question": None,
+                }
+
+            return Response(result, status=status.HTTP_200_OK)
 
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            logger.error(f"[PseudocodeAgent] 힌트 생성 실패: {e}", exc_info=True)
+            return Response(
+                {
+                    "error": "SERVER_ERROR",
+                    "hint": "잠시 마법 회로에 간섭이 생겼네. 다시 한 번 설계도를 보여주게나.",
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
