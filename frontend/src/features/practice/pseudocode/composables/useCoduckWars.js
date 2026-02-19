@@ -12,7 +12,8 @@
 
 import { ref, computed, reactive, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { evaluatePseudocode5D, evaluateDiagnosticAnswer } from '../api/pseudocodeApi.js';
+import { evaluateDiagnosticAnswer } from '../api/pseudocodeApi.js';
+import { useEvaluationOrchestrator, EvaluationErrorType } from './useEvaluationOrchestrator.js';
 import { useGameEngine } from './useGameEngine.js';
 import { useCodeRunner } from './useCodeRunner.js';
 
@@ -47,6 +48,9 @@ export function useCoduckWars() {
 
     // 중복 요청 차단
     const isProcessing = ref(false);
+
+    // 평가 오케스트레이터
+    const { evaluate, errorType, errorMessage } = useEvaluationOrchestrator();
 
     // UI State
     const isGuideOpen = ref(false);
@@ -245,24 +249,7 @@ export function useCoduckWars() {
     const submitPseudo = async () => {
         if (isProcessing.value || !canSubmitPseudo.value) return;
         isProcessing.value = true;
-
-        try {
-            // [2026-02-19] 무성의 입력 필터링 강화
-            const { PseudocodeValidator } = await import('../utils/PseudocodeValidator.js');
-            const inputCheck = PseudocodeValidator.isMeaningfulInput(gameState.phase3Reasoning);
-
-            if (!inputCheck.valid) {
-                lowEffortReason.value = inputCheck.reason;
-                showLowEffortModal.value = true;
-                isProcessing.value = false;
-                return;
-            }
-
-            await runEvaluationProcess();
-        } catch (error) {
-            console.error("Evaluation Error:", error);
-            isProcessing.value = false;
-        }
+        await runEvaluationProcess();
     };
 
     // [2026-02-19] 무성의 입력 경고 후 강제 진행 처리
@@ -276,16 +263,43 @@ export function useCoduckWars() {
     const runEvaluationProcess = async () => {
         try {
             gameState.feedbackMessage = "분석 중...";
-            const diagnosticContext = {
-                answers: [gameState.diagnosticAnswer],
-                scores: gameState.diagnosticScores
-            };
 
-            const evaluation = await evaluatePseudocode5D(currentMission.value, gameState.phase3Reasoning, diagnosticContext);
-            Object.assign(evaluationResult, evaluation);
-            evaluationResult.finalScore = evaluation.overall_score;
-            // [2026-02-14] UI 호환성을 위해 추천 영상 매핑
-            evaluationResult.supplementaryVideos = evaluation.recommended_videos || [];
+            const result = await evaluate(currentMission.value, gameState.phase3Reasoning);
+
+            // 네트워크 에러 / LLM 장애로 null 반환 시
+            if (!result) {
+                if (errorType.value === EvaluationErrorType.AI_TIMEOUT) {
+                    addSystemLog("AI 응답 시간 초과. 잠시 후 다시 시도해 주세요.", "WARN");
+                } else {
+                    addSystemLog("평가 시스템 일시 장애. 관리자에게 문의해 주세요.", "ERROR");
+                }
+                return;
+            }
+
+            // 평가 결과 반영
+            Object.assign(evaluationResult, {
+                finalScore:          result.score,
+                overall_score:       result.score,
+                total_score_100:     result.score,
+                dimensions:          result.dimensions,
+                feedback:            result.oneLineReview,
+                strengths:           result.strengths,
+                weaknesses:          result.weaknesses,
+                tail_question:       result.tailQuestion,
+                deep_dive:           result.deepDive,
+                converted_python:    result.convertedPython,
+                one_line_review:     result.oneLineReview,
+                persona_name:        result.persona,
+                is_low_effort:       result.isLowEffort,
+                supplementaryVideos: [],
+            });
+
+            // low_effort → 모달 띄우고 멈춤 (confirmLowEffortProceed에서 재개)
+            if (result.isLowEffort) {
+                lowEffortReason.value = result.oneLineReview;
+                showLowEffortModal.value = true;
+                return;
+            }
 
             setPhase('PYTHON_VISUALIZATION');
         } catch (error) {

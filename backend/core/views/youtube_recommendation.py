@@ -1,12 +1,15 @@
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
+from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from core.utils.youtube_helper import search_youtube_videos
 
+@csrf_exempt
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@authentication_classes([])
+@permission_classes([AllowAny])
 def get_youtube_recommendations(request):
     """
     취약 지표(Weak Dimensions)를 기반으로 맞춤형 유튜브 영상을 추천합니다.
@@ -26,7 +29,6 @@ def get_youtube_recommendations(request):
         }
         
         # 점수가 있는 지표 중 가장 낮은 것 추출
-        # dimensions가 { design: { score: 90 }, edgeCase: { score: 70 } ... } 형태라고 가정
         valid_dims = {}
         for k, v in dimensions.items():
             if isinstance(v, dict) and 'percentage' in v:
