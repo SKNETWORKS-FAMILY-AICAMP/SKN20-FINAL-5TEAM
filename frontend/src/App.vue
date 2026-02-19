@@ -81,8 +81,8 @@
 
             <div class="unit-modal-body-v3">
               <div class="path-container-v3">
-                <svg class="path-svg-v3" viewBox="0 0 800 1500">
-                  <path class="path-line-v3" d="M400,100 L560,250 L280,400 L520,550 L360,700 L400,850 L480,1000 L320,1150 L560,1300 L400,1450" fill="none" stroke="rgba(148, 163, 184, 0.2)" stroke-width="3" stroke-dasharray="10,5" />
+                <svg class="path-svg-v3" viewBox="0 0 800 4700">
+                  <path class="path-line-v3" d="M400,100 L560,250 L280,400 L520,550 L360,700 L240,850 L480,1000 L320,1150 L560,1300 L400,1450 L280,1600 L520,1750 L360,1900 L240,2050 L480,2200 L400,2350 L280,2500 L560,2650 L360,2800 L440,2950 L480,3100 L320,3250 L560,3400 L280,3550 L520,3700 L360,3850 L440,4000 L240,4150 L560,4300 L400,4450 L480,4600" fill="none" stroke="rgba(148, 163, 184, 0.2)" stroke-width="3" stroke-dasharray="10,5" />
                 </svg>
 
                 <div v-for="(problem, pIdx) in displayProblems" :key="problem.id" class="node-platform-v3"
@@ -210,10 +210,9 @@ const displayProblems = computed(() => {
   const activeUnit = game.activeUnit;
   if (!activeUnit) return [];
 
-  // [수정일: 2026-01-31] 모든 유닛에 대해 최신 매핑 데이터 사용 (일부 유닛의 캐시 문제 해결)
-  const unitIndex = game.chapters.indexOf(activeUnit);
-  const problems = game.mapDetailsToProblems(activeUnit, unitIndex + 1);
-  return problems;
+  // [수정일: 2026-02-19] initGame에서 이미 계산된 problems 직접 사용
+  // (activeUnit은 이미 변환된 chapters 객체이므로 mapDetailsToProblems 재호출 불필요)
+  return activeUnit.problems || [];
 });
 
 const displayLabelsCount = computed(() => {

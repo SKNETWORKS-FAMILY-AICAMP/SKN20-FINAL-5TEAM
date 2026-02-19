@@ -1086,7 +1086,7 @@ footer {
 .path-container-v3 {
     position: relative;
     width: 800px;
-    height: 3100px;
+    height: 4700px;
     margin: 0 auto;
 }
 
@@ -1284,6 +1284,62 @@ footer {
 .node-19 {
     top: 2950px;
     left: 55%;
+}
+
+/* System Practice 31개 문제 지원 (node-20~30) */
+.node-20 {
+    top: 3100px;
+    left: 60%;
+}
+
+.node-21 {
+    top: 3250px;
+    left: 40%;
+}
+
+.node-22 {
+    top: 3400px;
+    left: 70%;
+}
+
+.node-23 {
+    top: 3550px;
+    left: 35%;
+}
+
+.node-24 {
+    top: 3700px;
+    left: 65%;
+}
+
+.node-25 {
+    top: 3850px;
+    left: 45%;
+}
+
+.node-26 {
+    top: 4000px;
+    left: 55%;
+}
+
+.node-27 {
+    top: 4150px;
+    left: 30%;
+}
+
+.node-28 {
+    top: 4300px;
+    left: 70%;
+}
+
+.node-29 {
+    top: 4450px;
+    left: 50%;
+}
+
+.node-30 {
+    top: 4600px;
+    left: 60%;
 }
 
 @keyframes duckBounceV3 {
