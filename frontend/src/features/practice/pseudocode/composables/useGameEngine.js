@@ -1,4 +1,4 @@
-import { reactive, computed } from 'vue';
+import { reactive, computed, watch } from 'vue';
 import { aiQuests } from '../data/stages.js';
 import { useGameStore } from '@/stores/game';
 
@@ -24,22 +24,15 @@ export function useGameEngine() {
         diagnosticAnswer: "",
         diagnosticResult: null,
         isEvaluatingDiagnostic: false,
+        isDiagnosticAnswered: false,   // [2026-02-14] 진단 단계 답변 완료 여부
+        diagnosticAnswerIdx: null,      // [2026-02-14] 진단 단계 선택 인덱스
+        isMcqAnswered: false,       // [2026-02-14] MCQ 답변 완료 여부
+        assignedScenario: null,     // [2026-02-14] 할당된 심화 시나리오 (Drift/Real-time/Scarcity)
+        deepDiveAnswer: "",         // [2026-02-14] 사용자의 시나리오 서술형 답변
 
         // Phase 3 State
         phase3Reasoning: "",
-        phase3Placeholder: `IF 코드에 'scaler.fit(' 또는 'encoder.fit(' 패턴이 있음
-AND 그 이전 줄에 'train_test_split' 또는 '[: 슬라이싱]'이 없음
-THEN
-  경고: '분할 전 통계량 산출 감지'
-  설명: 'Test 데이터 통계량이 Train 학습에 영향을 줍니다'
-  해결책: 'Train/Test 분할 후 scaler.fit(X_train)으로 변경하세요'
-
-또는:
-
-규칙 1: fit() 메서드 호출 검사
-- 탐지: StandardScaler().fit(), MinMaxScaler().fit(), LabelEncoder().fit()
-- 조건: fit() 이전에 데이터 분할 코드가 없는 경우
-- 경고 메시지: 'Train set으로만 fit 해야 합니다'`,
+        phase3Placeholder: "격리, 기준점, 일관성 원칙을 바탕으로 당신만의 데이터 전처리 설계를 서술하세요...\n예: 1. train_test_split으로 데이터를 분리한다.",
         phase3Score: 0,
         phase3Feedback: "",
         phase3EvaluationResult: null,
@@ -48,6 +41,7 @@ THEN
         // [2026-02-13] 통합 채점 시스템 (3-Stage Scoring)
         diagnosticScores: [],       // 각 진단 문항 점수 저장
         iterativeScore: 0,          // 꼬리 질문/심화 퀴즈 성공 여부 (0-100)
+        hasUsedBlueprint: false,    // 청사진(모범답안)을 참고했는지 여부 (페널티 로직용)
         finalWeightedScore: 0,      // 최종 가중 합산 점수
 
         // Interactive Messages
@@ -164,6 +158,24 @@ THEN
     const restartMission = () => {
         addSystemLog("시스템 재부팅 시퀀스 초기화...", "WARN");
         gameState.playerHP = 100;
+        gameState.phase3Reasoning = "";
+        gameState.phase3Feedback = "";
+
+        // [2026-02-14] 판단 및 진행 데이터 완전 초기화
+        gameState.diagnosticStep = 0;
+        gameState.diagnosticScores = [];
+        gameState.diagnosticAnswer = "";
+        gameState.diagnosticResult = null;
+        gameState.isDiagnosticAnswered = false;
+        gameState.diagnosticAnswerIdx = null;
+
+        gameState.isMcqAnswered = false;
+        gameState.assignedScenario = null;
+        gameState.deepDiveAnswer = "";
+
+        gameState.phase3EvaluationResult = null;
+        gameState.finalWeightedScore = 0;
+
         setPhase('DIAGNOSTIC_1');
     };
 
@@ -171,6 +183,25 @@ THEN
         gameState.currentStageId = 1;
         gameState.score = 0;
         gameState.playerHP = 100;
+        gameState.phase3Reasoning = "";
+        gameState.phase3Feedback = "";
+
+        // [2026-02-14] 전체 데이터 완전 초기화
+        gameState.diagnosticStep = 0;
+        gameState.diagnosticScores = [];
+        gameState.diagnosticAnswer = "";
+        gameState.diagnosticResult = null;
+        gameState.isDiagnosticAnswered = false;
+        gameState.diagnosticAnswerIdx = null;
+
+        gameState.isMcqAnswered = false;
+        gameState.assignedScenario = null;
+        gameState.deepDiveAnswer = "";
+
+        gameState.phase3EvaluationResult = null;
+        gameState.finalWeightedScore = 0;
+        gameState.hasUsedBlueprint = false;
+
         gameState.systemLogs = [];
         addSystemLog("시스템 부팅... 초기화 완료.", "READY");
         setPhase('DIAGNOSTIC_1');
@@ -184,10 +215,17 @@ THEN
         gameState.currentStageId = stageId;
         gameState.playerHP = 100;
         gameState.score = 0;
+        gameState.hasUsedBlueprint = false;
         gameState.systemLogs = [];
         addSystemLog(`스테이지 ${stageId}: ${targetQuest.title} 시작`, "INFO");
         setPhase('DIAGNOSTIC_1');
     };
+    // [2026-02-18] 미션 변경 시 플레이스홀더 동적 업데이트
+    watch(() => currentMission.value?.id, (id) => {
+        if (id) {
+            gameState.phase3Placeholder = currentMission.value.placeholder || "";
+        }
+    }, { immediate: true });
 
     return {
         gameState,

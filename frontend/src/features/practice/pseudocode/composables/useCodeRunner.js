@@ -1,7 +1,3 @@
-/**
- * useCodeRunner.js
- * [2026-02-18] pseudo_tts 브랜치와 프론트엔드 UI 및 로직 완전 동기화 (HMR 에러 및 인코딩 복구)
- */
 import { ref, reactive, computed } from 'vue';
 import axios from 'axios';
 import { checkConsistency } from '../api/pseudocodeApi.js';

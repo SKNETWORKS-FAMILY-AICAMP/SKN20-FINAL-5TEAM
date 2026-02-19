@@ -9,7 +9,7 @@
         <header class="auth-header">
           <div class="auth-badge">AI-ARCADE LOGIN</div>
           <h2 class="auth-title">Welcome Back</h2>
-          <p class="auth-subtitle">엔지니어 신원 확인을 위해 접속 보안 코드를 입력하세요.</p>
+          <p class="auth-subtitle">AI-Arcade에 로그인하기 위해 접속 보안 코드를 입력하세요.</p>
         </header>
 
         <form @submit.prevent="handleLogin">
@@ -90,7 +90,8 @@ export default {
         
         if (result.success) {
           // 3. 성공 시 모달 닫기 요청 및 성공 이벤트 발생 (부모 컴포넌트 연동)
-          this.$emit('login-success'); // 2026-01-25: 스토어 상태는 이미 반영됨
+          // [수정일: 2026-02-16] 성공 알림 표시를 위해 유저 정보 전달
+          this.$emit('login-success', result.user); 
           this.$emit('close');
         } else {
           // 4. 실패 시 서버 에러 메시지 표시

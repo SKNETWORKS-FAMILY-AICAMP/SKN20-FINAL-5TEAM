@@ -14,7 +14,6 @@ from core.views import (
     AIEvaluationView,
     AIProxyView,
     BugHuntEvaluationView,
-    BugHuntInterviewView,
     CodeExecutionView,
     BehaviorVerificationView,
     OverallProgressView,
@@ -23,7 +22,7 @@ from core.views import (
     PseudocodeAgentView
 )
 from core.views.pseudocode_execution import execute_python_code
-from core.views import pseudocode_evaluation
+from core.views import pseudocode_evaluation, youtube_recommendation
 
 router = DefaultRouter()
 router.register(r'users', UserProfileViewSet, basename='users')
@@ -54,7 +53,6 @@ urlpatterns = [
     path('ai-evaluate/', AIEvaluationView.as_view(), name='ai_evaluate'),
     path('ai-proxy/', AIProxyView.as_view(), name='ai_proxy'),
     path('ai-bughunt-evaluate/', BugHuntEvaluationView.as_view(), name='bughunt_evaluate'),
-    path('ai-bughunt-interview/', BugHuntInterviewView.as_view(), name='bughunt_interview'),
 
     # 코드 실행 샌드박스 API
     path('execute-code/', CodeExecutionView.as_view(), name='execute_code'),
@@ -67,5 +65,6 @@ urlpatterns = [
 
     path('pseudocode/execute/', execute_python_code, name='pseudocode_execute'),
     path('pseudo-agent/', PseudocodeAgentView.as_view(), name='pseudo_agent'),
-    path('pseudocode/evaluate-5d/', pseudocode_evaluation.evaluate_pseudocode_5d),
+    path('pseudocode/evaluate-5d', pseudocode_evaluation.evaluate_pseudocode_5d),
+    path('youtube/recommendations', youtube_recommendation.get_youtube_recommendations),
 ]

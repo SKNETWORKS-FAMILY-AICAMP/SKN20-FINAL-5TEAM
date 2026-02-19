@@ -7,9 +7,7 @@ from rest_framework import status, permissions
 from django.db.models import Sum, Count, Max
 from core.models import UserActivity, UserSolvedProblem, UserProgress, UserAvatar, Practice, PracticeDetail
 from django.shortcuts import get_object_or_404
-from core.nanobanana_utils import generate_nano_banana_avatar 
-# [2026-02-18 상세] Unit 1/Unit 3 기록 저장 로직을 공통화하여 관리하는 서비스 추가
-from core.services.activity_service import save_user_problem_record
+from core.nanobanana_utils import generate_nano_banana_avatar # [수정일: 2026-02-06] 추가
 
 from django.core.paginator import Paginator
 
@@ -146,28 +144,72 @@ class SubmitProblemView(APIView):
         
         detail = get_object_or_404(PracticeDetail, id=detail_id)
         
-        detail_id = request.data.get('detail_id')
-        score = request.data.get('score', 0)
-        submitted_data = request.data.get('submitted_data', {})
+        # [2026-02-12] 1. 문제 해결 기록 저장 (항상 누적 저장)
+        solved = UserSolvedProblem.objects.create(
+            user=profile,
+            practice_detail=detail,
+            score=max(score, 0),
+            submitted_data=submitted_data,
+            is_perfect=score >= 90
+        )
         
+        # [2026-02-12] 2. 유저 전체 활동(포인트) 업데이트
+        # 로직 변경: 모든 기록의 단순 합산이 아닌, '각 문제별 최고 점수의 합'으로 계산하여 중복 점수 합산 방지
+        activity, _ = UserActivity.objects.get_or_create(user=profile)
+        
+        # [단계별 해석]
+        # 1. filter(user=profile): 해당 사용자의 모든 해결 기록 수집
+        # 2. values('practice_detail'): 문제별(GROUP BY)로 묶음
+        # 3. annotate(max_score=Max('score')): 각 문제 그룹 내 최고 점수 추출
+        # 4. aggregate(total=Sum('max_score')): 추출된 최고 점수들을 최종 합산
+        total_points_data = UserSolvedProblem.objects.filter(user=profile) \
+            .values('practice_detail') \
+            .annotate(max_score=Max('score')) \
+            .aggregate(total=Sum('max_score'))
+            
+        total_points = total_points_data['total'] or 0
+        activity.total_points = total_points
+        
+        # [2026-02-10] 랭킹(등급) 업데이트 로직 최적화
+        if total_points > 3000:
+            activity.current_rank = 'ENGINEER'
+        elif total_points > 1000:
+            activity.current_rank = 'GOLD'
+        elif total_points > 500:
+            activity.current_rank = 'SILVER'
+        else:
+            activity.current_rank = 'BRONZE'
+            
+        activity.save()
+        
+        # 3. 유닛 진행도 업데이트
+        practice = detail.practice
+        progress, _ = UserProgress.objects.get_or_create(user=profile, practice=practice)
+        
+        # 푼 문제 리스트 갱신 (중복 제거)
+        current_nodes = set(progress.unlocked_nodes)
+        # detail_id의 마지막 번호 등을 추출하여 인덱스화하는 로직 필요 (여기서는 단순 예시)
         try:
-            # [2026-02-18 상세] 비즈니스 로직(DB 저장, 포인트 정계산, 진도 업데이트)을 
-            # 전용 서비스(activity_service.py)로 이관하여 코드 중복을 제거하고 
-            # 향후 Unit 1 등 신규 컨텐츠 확장을 용이하게 함 (기존 API 규격은 완벽히 유지)
-            result = save_user_problem_record(profile, detail_id, score, submitted_data)
+            node_idx = int(detail_id[-2:]) # 예: unit0101 -> 01
+            current_nodes.add(node_idx)
+        except:
+            pass
             
-            # [2026-02-18 상세] 서비스 실행 후 업데이트된 최신 정보(포인트, 등급, 진행률)를 프론트엔드에 반환함
-            return Response({
-                'message': 'Progress updated successfully',
-                'total_points': result['total_points'],
-                'current_rank': result['current_rank'],
-                'progress_rate': result['progress_rate']
-            }, status=status.HTTP_200_OK)
+        progress.unlocked_nodes = sorted(list(current_nodes))
+        
+        # 진행률 계산: (해결한 문제 수 / 유닛의 전체 문제 수)
+        total_unit_problems = PracticeDetail.objects.filter(practice=practice).count()
+        if total_unit_problems > 0:
+            progress.progress_rate = (len(current_nodes) / total_unit_problems) * 100
             
-        except ValueError as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            return Response({'error': 'Internal server error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        progress.save()
+        
+        return Response({
+            'message': 'Progress updated successfully',
+            'total_points': total_points,
+            'current_rank': activity.current_rank,
+            'progress_rate': progress.progress_rate
+        }, status=status.HTTP_200_OK)
 
 class UserSolvedProblemView(APIView):
     """

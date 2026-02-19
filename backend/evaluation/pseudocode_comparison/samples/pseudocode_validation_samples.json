@@ -1,0 +1,79 @@
+[
+    {
+        "sample_id": "P01_EXCELLENT_01",
+        "quest_id": "1",
+        "quest_title": "데이터 전처리 누수 차단",
+        "pseudocode": "1. 데이터를 train_test_split으로 학습용과 테스트용으로 물리적으로 격리시킨다.\n2. 학습 데이터(train)에만 scaler.fit을 수행하여 평균/표준편차를 추출한다.\n3. 추출된 기준점을 사용하여 학습 데이터와 테스트 데이터를 모두 transform 한다.",
+        "quality_level": "excellent",
+        "expected_score_range": [
+            80,
+            85
+        ],
+        "critical_points": [
+            "Isolation (split first)",
+            "Anchor (fit only on train)",
+            "Consistency (transform on both)"
+        ]
+    },
+    {
+        "sample_id": "P01_GOOD_01",
+        "quest_id": "1",
+        "quest_title": "데이터 전처리 누수 차단",
+        "pseudocode": "먼저 데이터를 학습셋과 실험셋으로 분리합니다. 그 다음에 학습셋의 통계량을 가지고 스케일러를 학습(fit)시킵니다. 마지막으로 분리된 두 셋에 동일한 스케일러를 적용해서 변환합니다.",
+        "quality_level": "good",
+        "expected_score_range": [
+            70,
+            79
+        ],
+        "critical_points": [
+            "Correct sequence",
+            "Clear intent",
+            "Terminology is informal but correct"
+        ]
+    },
+    {
+        "sample_id": "P01_AVERAGE_01",
+        "quest_id": "1",
+        "quest_title": "데이터 전처리 누수 차단",
+        "pseudocode": "1. 전체 데이터에 대해 스케일링을 수행한 뒤에 나중에 split 한다.\n2. StandardScaler를 사용한다.",
+        "quality_level": "average",
+        "expected_score_range": [
+            40,
+            59
+        ],
+        "critical_points": [
+            "Leakage failure (split later)",
+            "Too short"
+        ]
+    },
+    {
+        "sample_id": "P01_POOR_01",
+        "quest_id": "1",
+        "quest_title": "데이터 전처리 누수 차단",
+        "pseudocode": "데이터를 스케일링한다. fit_transform을 사용한다.",
+        "quality_level": "poor",
+        "expected_score_range": [
+            20,
+            39
+        ],
+        "critical_points": [
+            "Missing isolation",
+            "No sequence logic"
+        ]
+    },
+    {
+        "sample_id": "P01_VERY_POOR_01",
+        "quest_id": "1",
+        "quest_title": "데이터 전처리 누수 차단",
+        "pseudocode": "몰라요 어려워요 도와주세요",
+        "quality_level": "very_poor",
+        "expected_score_range": [
+            0,
+            10
+        ],
+        "critical_points": [
+            "Give up",
+            "Non-technical"
+        ]
+    }
+]

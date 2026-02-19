@@ -83,9 +83,9 @@ const STEPS = [
   },
   {
     targetPhase: 'PSEUDO_WRITE',
-    selector: '.btn-hint-toggle',
+    selector: '.btn-hint-header',
     title: 'DUCK_TIP HINT',
-    description: '설계가 막힌다면 힌트 버튼을 눌러 실시간 조언을 받으세요. 오리 형사가 여러분의 설계를 분석해 도와줍니다.',
+    description: '설계가 막힌다면 힌트 버튼을 눌러 실시간 조언을 받으세요. 오리가 여러분의 설계를 분석해 도와줍니다.',
     cardPosition: 'top'
   },
   {
