@@ -178,9 +178,45 @@
       <div class="lb-energy-pulse"></div>
       <div class="lb-header-v2">
         <span class="lb-subtitle">ENGINEER RANKING</span>
-        <h2>오늘의 명예 전당 🏆</h2>
+        <div class="title-row-with-btn">
+          <h2>오늘의 명예 전당 🏆</h2>
+          <button @click="showBadgeGuide = !showBadgeGuide" class="btn-guide-toggle" :class="{ 'active': showBadgeGuide }">
+            <Info class="icon-info" v-if="!showBadgeGuide" />
+            <span v-if="!showBadgeGuide">배지 등급 가이드</span>
+            <span v-else>가이드 닫기</span>
+          </button>
+        </div>
         <p>아키텍처 마스터들이 아케이드를 빛내고 있습니다. (Page {{ leaderboardCurrentPage }} / {{ leaderboardTotalPages }})</p>
       </div>
+
+      <!-- [2026-02-19 추가] 배지 등급 가이드 (Guide) - 토글식으로 변경 -->
+      <transition name="guide-slide">
+        <div v-if="showBadgeGuide" class="lb-badge-guide">
+          <div class="guide-title">BADGE PROGRESS GUIDE</div>
+          <div class="guide-items">
+            <div class="guide-item locked">
+              <div class="unit-badge-mini locked">U0</div>
+              <span>Locked (0%)</span>
+            </div>
+            <div class="guide-item started">
+              <div class="unit-badge-mini started unit-color-1">U1</div>
+              <span>Started (1-49%)</span>
+            </div>
+            <div class="guide-item advanced">
+              <div class="unit-badge-mini advanced unit-color-1">U1</div>
+              <span>Advanced (50-99%)</span>
+            </div>
+            <div class="guide-item completed">
+              <div class="unit-badge-mini completed unit-color-1">U1</div>
+              <span>Completed (100%)</span>
+            </div>
+            <div class="guide-item mastered">
+              <div class="unit-badge-mini mastered">U1</div>
+              <span>Mastered (Perfect)</span>
+            </div>
+          </div>
+        </div>
+      </transition>
       
       <div class="lb-glass-table-v2">
           <div class="lb-table-head">
@@ -214,6 +250,7 @@
                      class="unit-badge-mini"
                      :class="[
                        'unit-color-' + unit.unit_number,
+                       (unit.unit_status || 'LOCKED').toLowerCase(),
                        { 'locked': !unit.is_completed, 'mastered': unit.is_perfect }
                      ]"
                      :title="getUnitTooltip(unit)"
@@ -292,7 +329,8 @@ import {
   Play,
   Settings,
   History,
-  LogOut
+  LogOut,
+  Info
 } from 'lucide-vue-next';
 import AvatarFrame from '@/components/AvatarFrame.vue';
 
@@ -313,7 +351,8 @@ export default {
     Gamepad2,
     LayoutGrid,
     Trophy,
-    ArrowRight
+    ArrowRight,
+    Info
   },
   props: {
     isLoggedIn: Boolean,
@@ -332,7 +371,8 @@ export default {
       isDragging: false,
       dragMoved: false,
       dragStartX: 0,
-      dragThreshold: 120
+      dragThreshold: 120,
+      showBadgeGuide: false
     };
   },
   computed: {
@@ -484,16 +524,23 @@ export default {
      */
     getUnitTooltip(unit) {
       if (!unit) return '';
-      const { unit_number, is_perfect, is_completed, solved_count, total_count, perfect_count } = unit;
+      const { unit_number, unit_status, solved_count, total_count, perfect_count } = unit;
       
       const header = `UNIT ${unit_number}: `;
-      if (is_perfect) {
+      const statusLabel = unit_status || 'LOCKED';
+
+      if (statusLabel === 'MASTERED') {
         return `${header}완벽 정복! (${perfect_count}/${total_count} 미션 마스터 🏆)`;
-      } else if (is_completed) {
+      } else if (statusLabel === 'COMPLETED') {
         return `${header}모든 미션 완료 (${solved_count}/${total_count} 미션 통과 ✅)`;
-      } else {
+      } else if (statusLabel === 'ADVANCED') {
         const progressPercent = total_count > 0 ? Math.round((solved_count / total_count) * 100) : 0;
-        return `${header}${progressPercent}% 진행 중 (${solved_count}/${total_count} 미션 미달성 🏃)`;
+        return `${header}심화 진행 중 (${progressPercent}%, ${solved_count}/${total_count} 완료 🚀)`;
+      } else if (statusLabel === 'STARTED') {
+        const progressPercent = total_count > 0 ? Math.round((solved_count / total_count) * 100) : 0;
+        return `${header}기초 진행 중 (${progressPercent}%, ${solved_count}/${total_count} 완료 🏃)`;
+      } else {
+        return `${header}데이터 없음 (학습 전 🔒)`;
       }
     }
   },
