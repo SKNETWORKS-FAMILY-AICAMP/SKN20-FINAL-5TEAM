@@ -74,14 +74,28 @@ class LeaderboardView(APIView):
 
                 is_perfect_master = (not has_subpar_score) and (perfect_count == total_count) and (total_count > 0)
 
+                # [2026-02-19] 세분화된 상태값 계산
+                progress_rate = p.progress_rate
+                if is_perfect_master:
+                    unit_status = 'MASTERED'
+                elif progress_rate >= 100:
+                    unit_status = 'COMPLETED'
+                elif progress_rate >= 50:
+                    unit_status = 'ADVANCED'
+                elif solved_count > 0:
+                    unit_status = 'STARTED'
+                else:
+                    unit_status = 'LOCKED'
+
                 mastered_units.append({
                     'unit_id': p.practice.id,
                     'unit_number': p.practice.unit_number,
-                    'is_completed': p.progress_rate >= 100,
+                    'is_completed': solved_count > 0, # 0개라도 풀었으면 활성 상태로 간주
                     'is_perfect': is_perfect_master,
                     'solved_count': solved_count,
                     'total_count': total_count,
-                    'perfect_count': perfect_count
+                    'perfect_count': perfect_count,
+                    'unit_status': unit_status # 세분화된 상태 추가
                 })
 
             leaderboard_data.append({
