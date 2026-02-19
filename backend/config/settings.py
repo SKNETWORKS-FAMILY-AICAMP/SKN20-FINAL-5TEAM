@@ -160,3 +160,4 @@ SESSION_COOKIE_HTTPONLY = True
 
 # AI Service Settings
 OPENAI_API_KEY = env('OPENAI_API_KEY', default='')
+GOOGLE_API_KEY = env('GOOGLE_API_KEY', default='')

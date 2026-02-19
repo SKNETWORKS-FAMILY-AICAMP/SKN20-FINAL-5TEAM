@@ -15,7 +15,8 @@
       "Bash(for commit in c514f15 f11e910 4d62afd 9cf468b 873fbd0)",
       "Bash(do echo \"=== Checking $commit ===\")",
       "Bash(done)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(docker compose exec backend python:*)"
     ]
   }
 }
