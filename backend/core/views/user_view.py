@@ -6,6 +6,7 @@ from rest_framework import viewsets, serializers, permissions, status
 from rest_framework.response import Response
 from rest_framework.authentication import SessionAuthentication
 from django.contrib.auth.hashers import make_password
+from django.contrib.auth import update_session_auth_hash # [2026-02-19 추가] 세션 유지용
 from django.contrib.auth.models import User
 from core.models import UserProfile, UserDetail, UserAvatar, UserActivity
 from core.nanobanana_utils import generate_nano_banana_avatar # 나노바나나 연동
@@ -153,6 +154,12 @@ class UserProfileSerializer(serializers.ModelSerializer):
                 auth_user = User.objects.get(email=instance.email)
                 auth_user.set_password(raw_password)
                 auth_user.save()
+                
+                # [2026-02-19 추가] 비밀번호 변경 후 로그아웃 방지를 위한 세션 갱신
+                request = self.context.get('request')
+                if request and request.user == auth_user:
+                    update_session_auth_hash(request, auth_user)
+                    print(f"DEBUG: Session auth hash updated for user: {auth_user.username}", flush=True)
             except User.DoesNotExist:
                 pass
         
