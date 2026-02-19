@@ -146,7 +146,7 @@ const STEPS = [
   },
   {
     targetPhase: 'EVALUATION',
-    selector: '.pathway-section-neo',
+    selector: '.video-scroll-container-neo',
     title: 'CONTINUOUS LEARNING',
     description: '부족한 부분을 채워줄 맞춤형 학습 경로를 추천합니다. 영상 강의를 통해 아키텍처 실무 역량을 더욱 강화하세요.',
     cardPosition: 'top'
@@ -226,6 +226,19 @@ const computeCardStyle = (rect, position) => {
     }
   }
 
+  // [2026-02-19] 최종 위치 보정 (화면 밖으로 나가지 않도록 강제 클램핑)
+  if (style.top) {
+    const numericTop = parseInt(style.top);
+    // 카드 높이(약 250px)를 고려하여 하단 잘림 방지
+    const safeTop = Math.min(Math.max(16, numericTop), vh - 280); 
+    style.top = `${safeTop}px`;
+  }
+  if (style.left) {
+    const numericLeft = parseInt(style.left);
+    const safeLeft = Math.min(Math.max(16, numericLeft), vw - cardWidth - 16);
+    style.left = `${safeLeft}px`;
+  }
+
   return style;
 };
 
@@ -246,9 +259,16 @@ const updatePosition = () => {
         cardStyle.value = { left: '50%', top: '50%', transform: 'translate(-50%, -50%)', width: '340px' };
         return;
       }
-      const rect = el.getBoundingClientRect();
-      targetRect.value = rect;
-      cardStyle.value = computeCardStyle(rect, step.cardPosition);
+      
+      // [2026-02-19] 타겟 요소가 화면에 보이도록 자동 스크롤
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+      // 스크롤 후 위치 계산을 위해 잠시 대기
+      setTimeout(() => {
+        const rect = el.getBoundingClientRect();
+        targetRect.value = rect;
+        cardStyle.value = computeCardStyle(rect, step.cardPosition);
+      }, 500);
     }, 150); // UI 전환 및 애니메이션 대기 시간 확보
   });
 };
