@@ -263,7 +263,7 @@ export class ReportGenerator {
 /**
  * 완전한 학습 리포트 생성
  */
-export async function generateCompleteLearningReport(evaluationResults, apiKey) {
+export async function generateCompleteLearningReport(evaluationResults, apiKey, existingVideos = []) {
   const generator = new ReportGenerator(apiKey);
 
   // 1. 최종 진단 리포트
@@ -282,6 +282,12 @@ export async function generateCompleteLearningReport(evaluationResults, apiKey) 
   const { weakest } = generator.analyzeMetrics(evaluationResults.metrics);
   const { recommendContent } = await import('./learningResources.js');
   const recommendedContent = recommendContent(weakest.key, evaluationResults.total);
+
+  // [2026-02-19] 실시간 유튜브 영상이 있으면 local 추천 대신 (또는 병합하여) 사용 가능하도록 구성
+  // UI 연동을 위해 existingVideos 정보를 보존함
+  if (existingVideos && existingVideos.length > 0) {
+    recommendedContent.videos = existingVideos;
+  }
 
   return {
     finalReport,

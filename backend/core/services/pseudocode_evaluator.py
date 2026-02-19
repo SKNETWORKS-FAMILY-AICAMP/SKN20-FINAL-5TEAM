@@ -11,7 +11,10 @@ import re
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, asdict
 from enum import Enum
-import openai
+try:
+    import openai
+except ImportError:
+    openai = None
 from django.conf import settings
 from core.models import UserProfile, PracticeDetail, UserSolvedProblem
 from core.utils.pseudocode_validator import PseudocodeValidator
@@ -154,7 +157,10 @@ class LLMEvaluationEngine:
     """LLM 기반 평가 및 코드 생성"""
     
     def __init__(self):
-        self.client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
+        if openai:
+            self.client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
+        else:
+            self.client = None
     
     def evaluate_with_single_model(
         self, 
@@ -294,6 +300,9 @@ is_low_effort가 true인 경우에도 학습을 위해 converted_python에는 �
         return system, user
 
     def _call_openai(self, system, user, model, timeout):
+        if not self.client:
+            raise Exception("OpenAI 라이브러리가 설치되지 않았거나 클라이언트 초기화에 실패했습니다.")
+            
         response = self.client.chat.completions.create(
             model=model,
             messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],

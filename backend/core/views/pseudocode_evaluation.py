@@ -72,31 +72,6 @@ def evaluate_pseudocode_5d(request):
             'metadata': result.metadata
         }
         
-        # 3. 유튜브 큐레이션 (취약 지표 기반 정밀 매핑)
-        try:
-            from core.utils.youtube_helper import search_youtube_videos
-            # 지표별 전문 검색어 매핑 (learningResources.js 테마 연동)
-            CURATION_MAP = {
-                'design': '머신러닝 파이프라인 설계 전처리 순서',
-                'edge_case': 'MLOps 데이터 드리프트 실전 배포 예외처리',
-                'abstraction': '컴퓨팅 사고 의사코드 작성법 데이터 과학',
-                'implementation': 'Scikit-learn fit transform 차이점 실전',
-                'consistency': 'Data Leakage 데이터 누수 방지 가이드'
-            }
-            
-            dims = response_data['dimensions']
-            # 점수가 있는 지표 중 가장 낮은 것 추출
-            valid_dims = {k: v.get('score', 100) for k, v in dims.items() if isinstance(v, dict)}
-            if valid_dims:
-                weakest = min(valid_dims.items(), key=lambda x: x[1])[0]
-                query = CURATION_MAP.get(weakest, f"ML {weakest} tutorial")
-                response_data['recommended_videos'] = search_youtube_videos(query, max_results=2)
-            else:
-                response_data['recommended_videos'] = []
-        except Exception as yt_err:
-            print(f"[YouTube Curation Error] {yt_err}")
-            response_data['recommended_videos'] = []
-
         return Response(response_data, status=status.HTTP_200_OK)
 
     except Exception as e:

@@ -18,3 +18,4 @@ google-generativeai
 groq
 boto3
 django-storages
+google-api-python-client==2.116.0

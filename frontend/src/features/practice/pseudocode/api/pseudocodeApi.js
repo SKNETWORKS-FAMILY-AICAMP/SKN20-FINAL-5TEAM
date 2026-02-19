@@ -103,7 +103,7 @@ export async function evaluatePseudocode5D(problem, pseudocode, userContext = nu
                             { text: "아니요, 다시 작성해 보겠습니다.", is_correct: false, reason: "재작성 모드" }
                         ]
                     },
-                    blueprint_steps: problem.blueprintSteps || [], // stages.js에서 추가한 단계별 실습 데이터
+                    blueprint_steps: problem.blueprintSteps || [],
                     next_phase: 'TAIL_QUESTION',
                     hybrid: true
                 };
@@ -901,6 +901,22 @@ ${rubric.modelAnswerExplanation || ""}
             is_correct: true,
             feedback: "진지한 추론 시도에 감사드립니다. (서버 연결 지연으로 기본 통과 처리)"
         };
+    }
+}
+
+/**
+ * [2026-02-19] 최종 리포트 단계에서 실시간 유튜브 추천 영상을 가져옵니다.
+ */
+export async function getYouTubeRecommendations(dimensions, questTitle) {
+    try {
+        const response = await axios.post('/api/core/youtube/recommendations', {
+            dimensions,
+            quest_title: questTitle
+        });
+        return response.data.videos || [];
+    } catch (error) {
+        console.error('YouTube recommendations fetch failed:', error);
+        return [];
     }
 }
 

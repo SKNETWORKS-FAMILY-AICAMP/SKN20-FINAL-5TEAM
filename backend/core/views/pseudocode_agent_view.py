@@ -1,4 +1,7 @@
-import openai
+try:
+    import openai
+except ImportError:
+    openai = None
 import json
 import re
 import traceback
@@ -35,6 +38,9 @@ class PseudocodeAgentView(APIView):
             if not api_key:
                 return Response({"error": "OpenAI API Key is missing"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+            if not openai:
+                return Response({"error": "OpenAI library is not installed in the system environment."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                
             client = openai.OpenAI(api_key=api_key)
 
             system_prompt = f"""

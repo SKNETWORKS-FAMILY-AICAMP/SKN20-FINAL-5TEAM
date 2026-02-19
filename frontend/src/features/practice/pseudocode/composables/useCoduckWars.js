@@ -54,6 +54,10 @@ export function useCoduckWars() {
     const showModelAnswer = ref(false);
     const isEvaluating = ref(false); // [NEW] 평가 중 상태
 
+    // [2026-02-19] 커스텀 모달 상태 (무성의 입력 경고용)
+    const showLowEffortModal = ref(false);
+    const lowEffortReason = ref("");
+
     const toggleGuide = () => { isGuideOpen.value = !isGuideOpen.value; };
     const handleGuideClick = (idx) => { selectedGuideIdx.value = idx; };
 
@@ -136,29 +140,19 @@ export function useCoduckWars() {
     };
 
     // --- Checklist (규칙 기반 실시간 피드백) ---
-    const ruleChecklist = ref([
-        {
-            id: 'check_isolation',
-            label: '격리 (Isolation) 포함',
-            patterns: [/격리|분리|나누|나눔|isolation|split/i],
-            hint: "데이터를 나누는 '격리' 개념이 포함되어야 합니다.",
-            completed: false
-        },
-        {
-            id: 'check_anchor',
-            label: '기준점 (Anchor) 정의',
-            patterns: [/기준점|기준|통계량|fit|anchor|학습/i],
-            hint: "통계량을 추출할 대상인 '기준점'이 명시되어야 합니다.",
-            completed: false
-        },
-        {
-            id: 'check_consistency',
-            label: '일관성 (Consistency) 확보',
-            patterns: [/일관성|동일|변환|consistency|transform/i],
-            hint: "학습과 운영 환경의 '일관성' 있는 변환 방식이 포함되어야 합니다.",
-            completed: false
+    // [2026-02-19 수정] 하드코딩 제거 및 미션별 동적 로드
+    const ruleChecklist = ref([]);
+
+    // 미션이 변경될 때 체크리스트 초기화
+    watch(currentMission, (newMission) => {
+        if (newMission && newMission.checklist) {
+            ruleChecklist.value = newMission.checklist.map(c => ({
+                ...c,
+                completed: false,
+                hint: c.hint || `${c.label} 개념이 포함되어야 합니다.`
+            }));
         }
-    ]);
+    }, { immediate: true });
 
     const completedChecksCount = computed(() =>
         ruleChecklist.value.filter(c => c.completed).length
@@ -193,66 +187,29 @@ export function useCoduckWars() {
 
     const updateDynamicHint = () => {
         const code = gameState.phase3Reasoning || "";
-        const HINT_DATA = {
-            surrender: {
-                title: "🐣 [복기 학습 제안]",
-                pool: ["설계가 막막하신가요? [심화 분석 시작]을 눌러 청사진을 확인해보세요."]
-            },
-            isolation: {
-                title: "🐣 [격리 유도]",
-                pool: ["데이터 분할 시점이 적절한지 다시 한번 생각해보세요."]
-            },
-            anchor: {
-                title: "🐣 [기준점 교정 힌트]",
-                pool: ["정답지(Test)가 기준점 설정에 포함되지는 않았나요?"]
-            },
-            consistency: {
-                title: "🐣 [일관성 강조 힌트]",
-                pool: ["학습 때 썼던 동일한 변환 방식을 테스트에도 적용했나요?"]
-            },
-            abstraction: {
-                title: "🐣 [구조화 독려 힌트]",
-                pool: ["설계의 인과관계가 잘 드러나도록 문장을 다듬어보세요."]
-            }
-        };
 
-        const setHint = (typeKey) => {
-            const entry = HINT_DATA[typeKey];
-            if (!entry) return;
-            const randomSentence = entry.pool[Math.floor(Math.random() * entry.pool.length)];
-            dynamicHintMessage.value = `${entry.title}\n\n${randomSentence}`;
-        };
-
+        // [2026-02-19 수정] 미션별 동적 힌트 로직
+        // 1. 포기/의지 부족 감지
         const surrenderKeywords = /잘\s*모르겠다|모름|몰라|어렵다|어려워|포기|힘들어/i;
         if (surrenderKeywords.test(code) || (code.trim().length > 0 && code.trim().length < 5)) {
-            setHint('surrender');
+            dynamicHintMessage.value = "🐣 [복기 학습 제안]\n\n설계가 막막하신가요? [심화 분석 시작]을 눌러 청사진을 확인해보세요.";
             return;
         }
 
-        const isolationKeywords = /split|분할|나누기|쪼개기|격리/i;
-        if (!isolationKeywords.test(code)) {
-            setHint('isolation');
+        // 2. 미완료된 규칙 기반 힌트 제공
+        const pendingRule = ruleChecklist.value.find(r => !r.completed);
+        if (pendingRule) {
+            dynamicHintMessage.value = `🐣 [설계 가이드]\n\n'${pendingRule.label}' 개념이 누락된 것 같아요. ${pendingRule.hint}`;
             return;
         }
 
-        const anchorError = /fit\s*\(\s*(total|all|df|전체|테스트|test)/i.test(code);
-        if (anchorError) {
-            setHint('anchor');
+        // 3. 분량 부족
+        if (code.replace(/\s/g, '').length < 30) {
+            dynamicHintMessage.value = "🐣 [구조화 독려]\n\n설계의 인과관계가 잘 드러나도록 문장을 조금 더 다듬어보세요.";
             return;
         }
 
-        const consistencyKeywords = /transform|변환|적용|동일하게|똑같이/i;
-        if (!consistencyKeywords.test(code)) {
-            setHint('consistency');
-            return;
-        }
-
-        if (code.replace(/\s/g, '').length < 40) {
-            setHint('abstraction');
-            return;
-        }
-
-        dynamicHintMessage.value = "🐣 [설계 완료]\n\n완벽에 가까운 설계입니다! 승인을 요청해 보세요.";
+        dynamicHintMessage.value = "🐣 [설계 완료]\n\n훌륭한 설계입니다! 아키텍트의 승인을 요청해 보세요.";
     };
 
     watch(() => gameState.phase3Reasoning, (newCode) => {
@@ -290,6 +247,34 @@ export function useCoduckWars() {
         isProcessing.value = true;
 
         try {
+            // [2026-02-19] 무성의 입력 필터링 강화
+            const { PseudocodeValidator } = await import('../utils/PseudocodeValidator.js');
+            const inputCheck = PseudocodeValidator.isMeaningfulInput(gameState.phase3Reasoning);
+
+            if (!inputCheck.valid) {
+                lowEffortReason.value = inputCheck.reason;
+                showLowEffortModal.value = true;
+                isProcessing.value = false;
+                return;
+            }
+
+            await runEvaluationProcess();
+        } catch (error) {
+            console.error("Evaluation Error:", error);
+            isProcessing.value = false;
+        }
+    };
+
+    // [2026-02-19] 무성의 입력 경고 후 강제 진행 처리
+    const confirmLowEffortProceed = async () => {
+        showLowEffortModal.value = false;
+        isProcessing.value = true;
+        await runEvaluationProcess();
+    };
+
+    // 공통 평가 프로세스 분리
+    const runEvaluationProcess = async () => {
+        try {
             gameState.feedbackMessage = "분석 중...";
             const diagnosticContext = {
                 answers: [gameState.diagnosticAnswer],
@@ -325,6 +310,13 @@ export function useCoduckWars() {
         // [2026-02-14 수정] 무성의 입력 복구 모드(is_low_effort)인 경우 MCQ 답변 체크 우회
         if (!gameState.isMcqAnswered && !evaluationResult.is_low_effort) {
             addSystemLog("아키텍처 결함 보완 문제를 먼저 완료해주세요.", "WARN");
+            return;
+        }
+
+        // 현재 서술형 Deep Dive 단계라면 최종 리포트로 이동
+        if (gameState.phase === 'DEEP_DIVE_DESCRIPTIVE') {
+            setPhase('EVALUATION');
+            addSystemLog("모든 설계 검증이 완료되었습니다. 리포트를 생성합니다.", "SUCCESS");
             return;
         }
 
@@ -394,10 +386,10 @@ export function useCoduckWars() {
                 });
             }
 
-            setPhase('EVALUATION');
+            // [2026-02-19] 즉시 평가로 넘어가지 않고 UI에서 모범 답안을 보여주도록 변경
+            addSystemLog("서술형 설계가 기록되었습니다. 모범 답안을 확인해 보세요.", "INFO");
         } catch (error) {
             console.error(error);
-            setPhase('EVALUATION');
         } finally {
             isProcessing.value = false;
         }
@@ -424,6 +416,14 @@ export function useCoduckWars() {
             addSystemLog("추가 질문 오답 - 재적응 훈련이 필요합니다.", "WARN");
             retryDesign();
         }
+    };
+
+    /**
+     * MCQ 오답 시 재시도
+     */
+    const retryMcq = () => {
+        gameState.isMcqAnswered = false;
+        addSystemLog("설계 결함 보완 재시도 모드 활성화", "INFO");
     };
 
     const deepQuizQuestion = computed(() => {
@@ -480,10 +480,14 @@ export function useCoduckWars() {
         toggleHintDuck,
         toggleHint,
         handlePythonVisualizationNext,
+        showLowEffortModal,
+        lowEffortReason,
+        confirmLowEffortProceed,
         handleTailSelection,
         handleMcqAnswer,
         submitDescriptiveDeepDive,
         handleReSubmitPseudo,
+        retryMcq,
         resetFlow: engineResetFlow,
         resetHintTimer,
         handlePracticeClose: () => router.push('/practice')
