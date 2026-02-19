@@ -915,6 +915,20 @@ footer {
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
     animation: authSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
     z-index: 1001;
+    /* [수정일: 2026-02-19] 모달 스크롤바 추가: 긴 폼 처리를 위해 최대 높이 및 오버플로우 설정 */
+    max-height: 95vh;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary) transparent;
+}
+
+.auth-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.auth-container::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 10px;
 }
 
 .auth-title {
@@ -1128,28 +1142,106 @@ footer {
 }
 
 /* 노드 위치 정의 (지그재그 패턴) */
-.node-0 { top: 100px; left: 50%; }
-.node-1 { top: 250px; left: 70%; }
-.node-2 { top: 400px; left: 35%; }
-.node-3 { top: 550px; left: 65%; }
-.node-4 { top: 700px; left: 45%; }
-.node-5 { top: 850px; left: 30%; }
-.node-6 { top: 1000px; left: 60%; }
-.node-7 { top: 1150px; left: 40%; }
-.node-8 { top: 1300px; left: 70%; }
-.node-9 { top: 1450px; left: 50%; }
+.node-0 {
+    top: 100px;
+    left: 50%;
+}
+
+.node-1 {
+    top: 250px;
+    left: 70%;
+}
+
+.node-2 {
+    top: 400px;
+    left: 35%;
+}
+
+.node-3 {
+    top: 550px;
+    left: 65%;
+}
+
+.node-4 {
+    top: 700px;
+    left: 45%;
+}
+
+.node-5 {
+    top: 850px;
+    left: 30%;
+}
+
+.node-6 {
+    top: 1000px;
+    left: 60%;
+}
+
+.node-7 {
+    top: 1150px;
+    left: 40%;
+}
+
+.node-8 {
+    top: 1300px;
+    left: 70%;
+}
+
+.node-9 {
+    top: 1450px;
+    left: 50%;
+}
 
 /* 추가 노드들 (시스템 아키텍처 같이 10개 이상 문제 있는 유닛) */
-.node-10 { top: 1600px; left: 35%; }
-.node-11 { top: 1750px; left: 65%; }
-.node-12 { top: 1900px; left: 45%; }
-.node-13 { top: 2050px; left: 30%; }
-.node-14 { top: 2200px; left: 60%; }
-.node-15 { top: 2350px; left: 50%; }
-.node-16 { top: 2500px; left: 35%; }
-.node-17 { top: 2650px; left: 70%; }
-.node-18 { top: 2800px; left: 45%; }
-.node-19 { top: 2950px; left: 55%; }
+.node-10 {
+    top: 1600px;
+    left: 35%;
+}
+
+.node-11 {
+    top: 1750px;
+    left: 65%;
+}
+
+.node-12 {
+    top: 1900px;
+    left: 45%;
+}
+
+.node-13 {
+    top: 2050px;
+    left: 30%;
+}
+
+.node-14 {
+    top: 2200px;
+    left: 60%;
+}
+
+.node-15 {
+    top: 2350px;
+    left: 50%;
+}
+
+.node-16 {
+    top: 2500px;
+    left: 35%;
+}
+
+.node-17 {
+    top: 2650px;
+    left: 70%;
+}
+
+.node-18 {
+    top: 2800px;
+    left: 45%;
+}
+
+.node-19 {
+    top: 2950px;
+    left: 55%;
+}
 
 @keyframes duckBounceV3 {
 
