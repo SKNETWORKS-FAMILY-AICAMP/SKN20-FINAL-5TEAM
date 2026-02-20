@@ -492,18 +492,26 @@ class ArchitectureEvaluationView(APIView):
 
             client = openai.OpenAI(api_key=api_key)
 
-            # Step 2: LLM 호출
+            # Step 2: LLM 호출 (gpt-4o-mini 사용)
+            print(f"[DEBUG] Calling AI for Evaluation with gpt-4o-mini...", flush=True)
+            print(f"[DEBUG] Prompt length: {len(prompt)}, System prompt length: {len(system_message)}", flush=True)
+
             response = client.chat.completions.create(
-                model="gpt-5-mini",
+                model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": system_message},
                     {"role": "user", "content": prompt}
                 ],
+                temperature=0.7,
                 max_completion_tokens=4500
             )
 
-            content = response.choices[0].message.content.strip()
-            print(f"[ArchEval] Raw response: {content[:500]}", flush=True)
+            print(f"[DEBUG] Response received: {response}", flush=True)
+            content = response.choices[0].message.content
+            if content:
+                content = content.strip()
+            print(f"[DEBUG] Raw AI Response: {content[:500] if content else 'EMPTY'}", flush=True)
+            print(f"[ArchEval] Raw response: {content[:500] if content else 'EMPTY'}", flush=True)
 
             # Step 3: JSON 파싱 (BugHuntEval 패턴 적용)
             json_match = None
@@ -546,7 +554,9 @@ class ArchitectureEvaluationView(APIView):
                 )
 
         except Exception as e:
-            print(f"[ERROR] Architecture Evaluation: {traceback.format_exc()}", file=sys.stderr, flush=True)
+            tb = traceback.format_exc()
+            print(f"[CRITICAL] Architecture Evaluation Error: {e}", flush=True)
+            print(f"[CRITICAL] Traceback:\n{tb}", file=sys.stderr, flush=True)
             return Response(
                 {"error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -581,6 +591,7 @@ class ArchitectureQuestionGeneratorView(APIView):
                 )
 
             client = openai.OpenAI(api_key=api_key)
+            print(f"[DEBUG] OpenAI Client Initialized", flush=True)
 
             # 컴포넌트 분류
             categorized = categorize_components(components)
@@ -710,17 +721,24 @@ class ArchitectureQuestionGeneratorView(APIView):
 }}
 ```"""
 
+            print(f"[DEBUG] Calling AI for Question Generation with gpt-5-mini...", flush=True)
+            print(f"[DEBUG] Prompt length: {len(prompt)}, System prompt length: {len(system_message)}", flush=True)
+
             response = client.chat.completions.create(
                 model="gpt-5-mini",
                 messages=[
                     {"role": "system", "content": system_message},
                     {"role": "user", "content": prompt}
                 ],
-                max_completion_tokens=2000
+                max_completion_tokens=4000
             )
 
-            content = response.choices[0].message.content.strip()
-            print(f"[ArchQuestion] Raw response: {content[:500]}", flush=True)
+            print(f"[DEBUG] Response received: {response}", flush=True)
+            content = response.choices[0].message.content
+            if content:
+                content = content.strip()
+            print(f"[DEBUG] Raw AI Response: {content[:500] if content else 'EMPTY'}", flush=True)
+            print(f"[ArchQuestion] Raw response: {content[:500] if content else 'EMPTY'}", flush=True)
 
             # JSON 파싱 (BugHuntEval 패턴 적용)
             json_match = None
@@ -748,7 +766,9 @@ class ArchitectureQuestionGeneratorView(APIView):
                 )
 
         except Exception as e:
-            print(f"[ERROR] Question Generation: {traceback.format_exc()}", file=sys.stderr, flush=True)
+            tb = traceback.format_exc()
+            print(f"[CRITICAL] Question Generation Error: {e}", flush=True)
+            print(f"[CRITICAL] Traceback:\n{tb}", file=sys.stderr, flush=True)
             return Response(
                 {"error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
