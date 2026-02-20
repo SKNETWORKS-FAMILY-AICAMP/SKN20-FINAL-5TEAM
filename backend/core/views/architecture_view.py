@@ -218,13 +218,12 @@ def generate_rubric_prompt(problem, architecture_context, user_explanation, deep
     rubric_format = format_rubric_for_prompt()
     axis_rubric_format = format_axis_specific_rubrics()
 
+    # System Message 분리
+    system_message = """당신은 **시니어 클라우드 솔루션 아키텍트**입니다.
+지원자의 시스템 아키텍처 설계와 질문 답변을 루브릭 기준으로 평가합니다."""
+
     # 프롬프트 작성
-    prompt = f"""당신은 **시니어 클라우드 솔루션 아키텍트**입니다.
-지원자의 시스템 아키텍처 설계와 질문 답변을 루브릭 기준으로 평가합니다.
-
----
-
-## 📋 문제 정보
+    prompt = f"""## 📋 문제 정보
 
 ### 시나리오
 {problem.get('scenario', '시스템 아키텍처 설계') if isinstance(problem, dict) else '시스템 아키텍처 설계'}
@@ -357,7 +356,7 @@ def generate_rubric_prompt(problem, architecture_context, user_explanation, deep
 - 각 expectedAnswer는 구체적인 기술명/수치를 포함해야 함
 - 반드시 JSON 형식만 출력"""
 
-    return prompt
+    return system_message, prompt
 
 
 def select_relevant_pillars(scenario, missions, constraints):
@@ -484,7 +483,7 @@ class ArchitectureEvaluationView(APIView):
                 )
 
             # Step 1: 백엔드에서 프롬프트 생성
-            prompt = generate_rubric_prompt(
+            system_message, prompt = generate_rubric_prompt(
                 problem,
                 architecture_context,
                 user_explanation,
@@ -495,21 +494,26 @@ class ArchitectureEvaluationView(APIView):
 
             # Step 2: LLM 호출
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-5-mini",
                 messages=[
+                    {"role": "system", "content": system_message},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.5,
-                max_tokens=4500
+                max_completion_tokens=4500
             )
 
-            content = response.choices[0].message.content
-            print(f"[DEBUG] LLM Response received", flush=True)
+            content = response.choices[0].message.content.strip()
+            print(f"[ArchEval] Raw response: {content[:500]}", flush=True)
 
-            # Step 3: JSON 파싱
-            json_match = re.search(r'\{[\s\S]*\}', content)
+            # Step 3: JSON 파싱 (BugHuntEval 패턴 적용)
+            json_match = None
+            match = re.search(r'\{[\s\S]*\}', content)
+            if match:
+                json_match = match.group()
+
             if json_match:
-                result = json.loads(json_match.group())
+                result = json.loads(json_match)
+                print(f"[ArchEval] Parsed result: overallScore={result.get('overallScore')}", flush=True)
 
                 # 전체 점수 계산
                 evaluations = result.get('evaluations', [])
@@ -534,11 +538,12 @@ class ArchitectureEvaluationView(APIView):
                     "weaknesses": result.get('weaknesses', []),
                     "recommendations": result.get('recommendations', [])
                 }, status=status.HTTP_200_OK)
-
-            return Response(
-                {"error": "Invalid JSON format from AI"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            else:
+                print(f"[ArchEval] JSON parse failed, raw: {content}", flush=True)
+                return Response(
+                    {"error": "Invalid JSON format from AI"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
 
         except Exception as e:
             print(f"[ERROR] Architecture Evaluation: {traceback.format_exc()}", file=sys.stderr, flush=True)
@@ -614,16 +619,15 @@ class ArchitectureQuestionGeneratorView(APIView):
 
             architecture_overview = '\n\n'.join(category_texts)
 
-            # 프롬프트 생성
-            prompt = f"""당신은 **시니어 클라우드 솔루션 아키텍트**입니다.
+            # System Message 분리
+            system_message = """당신은 **시니어 클라우드 솔루션 아키텍트**입니다.
 
 ## 🎯 당신의 임무
 1. 지원자의 아키텍처를 **비판적으로 분석** (안티패턴 체크)
-2. 부족한 영역 3가지에 대해 **날카로운 질문** 생성
+2. 부족한 영역 3가지에 대해 **날카로운 질문** 생성"""
 
----
-
-## 📋 문제 상황
+            # 프롬프트 생성
+            prompt = f"""## 📋 문제 상황
 
 ### 시나리오
 {scenario or '시스템 아키텍처 설계'}
@@ -707,20 +711,26 @@ class ArchitectureQuestionGeneratorView(APIView):
 ```"""
 
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-5-mini",
                 messages=[
+                    {"role": "system", "content": system_message},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.7,
-                max_tokens=2000
+                max_completion_tokens=2000
             )
 
-            content = response.choices[0].message.content
+            content = response.choices[0].message.content.strip()
+            print(f"[ArchQuestion] Raw response: {content[:500]}", flush=True)
 
-            # JSON 파싱
-            json_match = re.search(r'\{[\s\S]*\}', content)
+            # JSON 파싱 (BugHuntEval 패턴 적용)
+            json_match = None
+            match = re.search(r'\{[\s\S]*\}', content)
+            if match:
+                json_match = match.group()
+
             if json_match:
-                result = json.loads(json_match.group())
+                result = json.loads(json_match)
+                print(f"[ArchQuestion] Parsed result: questions_count={len(result.get('questions', []))}", flush=True)
 
                 return Response({
                     "questions": result.get('questions', []),
@@ -730,11 +740,12 @@ class ArchitectureQuestionGeneratorView(APIView):
                         "connectionCount": len(connections)
                     }
                 }, status=status.HTTP_200_OK)
-
-            return Response(
-                {"error": "Invalid JSON format from AI"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            else:
+                print(f"[ArchQuestion] JSON parse failed, raw: {content}", flush=True)
+                return Response(
+                    {"error": "Invalid JSON format from AI"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
 
         except Exception as e:
             print(f"[ERROR] Question Generation: {traceback.format_exc()}", file=sys.stderr, flush=True)
