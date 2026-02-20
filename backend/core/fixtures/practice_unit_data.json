@@ -52,41 +52,5 @@
             "update_date": "2026-01-25T11:00:00Z",
             "use_yn": "Y"
         }
-    },
-    {
-        "model": "core.practice",
-        "pk": "unit04",
-        "fields": {
-            "unit_number": 4,
-            "level": 40,
-            "title": "Ops Practice",
-            "subtitle": "Endurance Training",
-            "participant_count": 38,
-            "color_code": "#ce82ff",
-            "icon_name": "zap",
-            "display_order": 4,
-            "is_active": true,
-            "create_date": "2026-01-25T11:00:00Z",
-            "update_date": "2026-01-25T11:00:00Z",
-            "use_yn": "Y"
-        }
-    },
-    {
-        "model": "core.practice",
-        "pk": "unit05",
-        "fields": {
-            "unit_number": 5,
-            "level": 50,
-            "title": "Agent Practice",
-            "subtitle": "AI Training",
-            "participant_count": 24,
-            "color_code": "#ff4b4b",
-            "icon_name": "bot",
-            "display_order": 5,
-            "is_active": true,
-            "create_date": "2026-01-25T11:00:00Z",
-            "update_date": "2026-01-25T11:00:00Z",
-            "use_yn": "Y"
-        }
     }
 ]

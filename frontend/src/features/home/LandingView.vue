@@ -33,6 +33,10 @@
           <button @click="scrollToLeaderboard" class="btn-social-v2">
             전당 확인
           </button>
+          <button @click="$emit('open-job-planner')" class="btn-job-planner">
+            <Briefcase class="btn-icon" />
+            <span>Job Planner</span>
+          </button>
         </div>
       </div>
 
@@ -315,11 +319,11 @@
 </template>
 
 <script>
-import { 
-  Gamepad2, 
-  LayoutGrid, 
-  Trophy, 
-  Zap, 
+import {
+  Gamepad2,
+  LayoutGrid,
+  Trophy,
+  Zap,
   ArrowRight,
   ChevronLeft,
   ChevronRight,
@@ -330,7 +334,8 @@ import {
   Settings,
   History,
   LogOut,
-  Info
+  Info,
+  Briefcase
 } from 'lucide-vue-next';
 import AvatarFrame from '@/components/AvatarFrame.vue';
 
@@ -338,10 +343,10 @@ export default {
   name: 'LandingView',
   components: {
     AvatarFrame,
-    Users, 
-    Crown, 
-    Zap, 
-    ChevronLeft, 
+    Users,
+    Crown,
+    Zap,
+    ChevronLeft,
     ChevronRight,
     Play,
     Settings,
@@ -352,7 +357,8 @@ export default {
     LayoutGrid,
     Trophy,
     ArrowRight,
-    Info
+    Info,
+    Briefcase
   },
   props: {
     isLoggedIn: Boolean,
