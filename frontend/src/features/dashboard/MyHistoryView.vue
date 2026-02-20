@@ -312,7 +312,13 @@ const shouldRenderSection = (key) => {
     'user_explanation',      // Unit 3 설계 설명 (질답 1번과 중복)
     'problem_id',           // 내부 ID
     'components',           // 머메이드용 로우 데이터
-    'connections'           // 머메이드용 로우 데이터
+    'connections',          // 머메이드용 로우 데이터
+
+    // [2026-02-20 추가] 버그헌트 에이전트 학습용 데이터 (마이 히스토리에서 숨김)
+    'step_codes',           // 단계별 코드 로그
+    'behavior_log',         // 행동 패턴 로그
+    'weakness_indicators',  // 약점 분석 지표
+    'track_type'            // 트랙 타입 메타데이터
   ];
   return !blackList.includes(key);
 };

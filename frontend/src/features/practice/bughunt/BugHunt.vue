@@ -2372,18 +2372,41 @@ function completeMission() {
 // Activity API에 점수 제출 (Protein Shake 적립)
 async function submitToActivity() {
   try {
-    const detail_id = `bughunt01_${currentProgressiveMission.value.id}`;
+    const detail_id = currentProgressiveMission.value.practice_detail_id;
     const score = progressiveMissionScore.value;
 
     await axios.post('/api/core/activity/submit/', {
       detail_id: detail_id,
       score: score,
       submitted_data: {
+        // === 기본 정보 ===
         mission_id: currentProgressiveMission.value.id,
         completed_steps: progressiveCompletedSteps.value.length,
         total_steps: currentProgressiveMission.value.totalSteps,
         hint_used: Object.values(progressiveHintUsed.value).filter(v => v).length,
-        retry_count: codeSubmitFailCount.value
+        retry_count: codeSubmitFailCount.value,
+        track_type: 'bughunt',
+
+        // === 단계별 코드 로그 (에이전트 학습용) ===
+        step_codes: progressiveStepCodes.value,
+
+        // === 행동 패턴 로그 (에이전트 학습용) ===
+        behavior_log: {
+          total_debug_time_seconds: totalDebugTime.value,
+          hint_usage_per_step: progressiveHintUsed.value,
+          perfect_clears: evaluationStats.perfectClears,
+          timestamp: new Date().toISOString()
+        },
+
+        // === 약점 분석 지표 (에이전트가 맞춤 문제 생성용) ===
+        weakness_indicators: {
+          retry_count: codeSubmitFailCount.value,
+          hints_needed: Object.values(progressiveHintUsed.value).filter(v => v).length,
+          struggled_steps: progressiveCompletedSteps.value.length < currentProgressiveMission.value.totalSteps
+            ? Array.from({length: currentProgressiveMission.value.totalSteps}, (_, i) => i + 1)
+                .filter(step => !progressiveCompletedSteps.value.includes(step))
+            : []
+        }
       }
     });
 
@@ -2772,7 +2795,7 @@ const fetchProgressiveProblems = async () => {
     error.value = null;
 
     // Practice API를 사용해서 전체 details를 가져오기
-    const response = await axios.get('/api/core/practices/bughunt01/');
+    const response = await axios.get('/api/core/practices/unit02/');
 
     console.log('🔍 API Response:', response);
     console.log('📦 Response Data:', response.data);
@@ -2782,7 +2805,7 @@ const fetchProgressiveProblems = async () => {
     // details는 [{ id: 'bughunt01_S1', content_data: {...} }, ...] 형태
     if (response.data.details && Array.isArray(response.data.details)) {
       progressiveProblems.value = response.data.details
-        .map(detail => detail.content_data)
+        .map(detail => ({ ...detail.content_data, practice_detail_id: detail.id }))
         .filter(data => data && data.id); // id가 있는 유효한 문제만 필터링
     } else {
       progressiveProblems.value = [];
