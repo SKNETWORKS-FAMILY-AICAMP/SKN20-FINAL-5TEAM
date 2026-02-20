@@ -20,6 +20,7 @@
       >
         {{ isHintActive ? 'HINT_OFF' : 'HINT_ON' }}
       </button>
+      <button class="ctrl-btn home" @click="goToHome">HOME</button>
     </div>
   </div>
 </template>
@@ -37,7 +38,12 @@ export default {
       default: false
     }
   },
-  emits: ['toggle-mode', 'clear-canvas', 'toggle-hint']
+  emits: ['toggle-mode', 'clear-canvas', 'toggle-hint'],
+  methods: {
+    goToHome() {
+      this.$router.push('/');
+    }
+  }
 };
 </script>
 
@@ -147,6 +153,17 @@ export default {
   color: white;
   border-color: transparent;
   animation: hint-pulse 1.5s infinite;
+}
+
+.ctrl-btn.home {
+  border-color: rgba(188, 19, 254, 0.4);
+  color: var(--neon-purple);
+}
+
+.ctrl-btn.home:hover {
+  background: rgba(188, 19, 254, 0.15);
+  border-color: var(--neon-purple);
+  box-shadow: 0 0 20px rgba(188, 19, 254, 0.3);
 }
 
 @keyframes hint-pulse {

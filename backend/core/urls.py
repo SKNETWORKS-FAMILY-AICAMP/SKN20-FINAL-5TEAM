@@ -29,6 +29,7 @@ from core.views import (
 )
 from core.views.pseudocode_execution import execute_python_code
 from core.views import pseudocode_evaluation, youtube_recommendation
+from core.views.architecture_view import ArchitectureEvaluationView, ArchitectureQuestionGeneratorView
 
 router = DefaultRouter()
 router.register(r'users', UserProfileViewSet, basename='users')
@@ -59,6 +60,10 @@ urlpatterns = [
     path('ai-evaluate/', AIEvaluationView.as_view(), name='ai_evaluate'),
     path('ai-proxy/', AIProxyView.as_view(), name='ai_proxy'),
     path('ai-bughunt-evaluate/', BugHuntEvaluationView.as_view(), name='bughunt_evaluate'),
+
+    # Architecture Practice 평가 및 질문 생성 API [작성일: 2026-02-20]
+    path('architecture/evaluate/', ArchitectureEvaluationView.as_view(), name='architecture_evaluate'),
+    path('architecture/generate-questions/', ArchitectureQuestionGeneratorView.as_view(), name='architecture_questions'),
 
     # 코드 실행 샌드박스 API
     path('execute-code/', CodeExecutionView.as_view(), name='execute_code'),
