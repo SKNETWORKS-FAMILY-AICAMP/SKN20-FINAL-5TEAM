@@ -158,7 +158,6 @@ import { useCanvasState } from './composables/useCanvasState';
 import { useEvaluation } from './composables/useEvaluation';
 
 // Services & Utils
-import { fetchProblems } from './services/architectureApiFastTest';
 import { transformProblems } from './utils/architectureUtils';
 
 // [2026-02-20 수정] 맵 진행도 해금을 위해 게임 스토어 추가
@@ -363,8 +362,17 @@ export default {
     // === Problem Loading ===
     async loadProblems() {
       try {
-        const data = await fetchProblems();
-        this.problems = transformProblems(data);
+        // DB에서 문제 데이터 로드
+        const response = await fetch('/api/core/practices/unit03/');
+        const practiceData = await response.json();
+
+        // details 배열에서 content_data 추출하고 practice_detail_id 추가
+        const problemsFromDB = practiceData.details.map(detail => ({
+          ...detail.content_data,
+          practice_detail_id: detail.id  // DB ID를 추가로 저장 (제출 시 사용)
+        }));
+
+        this.problems = transformProblems(problemsFromDB);
         if (this.currentProblemIndex >= this.problems.length) {
           this.currentProblemIndex = 0;
         }
