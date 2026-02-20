@@ -323,9 +323,23 @@ def generate_rubric_prompt(problem, architecture_context, user_explanation, deep
       "weight": 30,
       "grade": "good",
       "score": 82,
-      "feedback": "구체적인 피드백"
+      "feedback": "구체적인 피드백 (5-7문장)",
+      "expectedAnswer": "이 기둥에 대해 기대했던 모범 답변/설계 방향"
     }},
     ...정확히 6개...
+  ],
+  "referenceAnswers": [
+    {{
+      "questionIndex": 0,
+      "question": "원본 질문",
+      "expectedAnswer": "기대했던 모범 답변 (구체적 기술/수치 포함)"
+    }},
+    {{
+      "questionIndex": 1,
+      "question": "원본 질문",
+      "expectedAnswer": "기대했던 모범 답변"
+    }},
+    ...질문 개수만큼...
   ],
   "overallScore": 76,
   "overallGrade": "good",
@@ -337,8 +351,10 @@ def generate_rubric_prompt(problem, architecture_context, user_explanation, deep
 ```
 
 **주의사항**:
-- 반드시 정확히 6개 기둥
+- 반드시 정확히 6개 기둥 + 각 기둥별 expectedAnswer
 - 각 기둥 점수는 0-100 정수
+- referenceAnswers는 사용자가 답변한 질문 개수만큼 포함
+- 각 expectedAnswer는 구체적인 기술명/수치를 포함해야 함
 - 반드시 JSON 형식만 출력"""
 
     return prompt
@@ -510,6 +526,7 @@ class ArchitectureEvaluationView(APIView):
 
                 return Response({
                     "evaluations": evaluations,
+                    "referenceAnswers": result.get('referenceAnswers', []),
                     "overallScore": overall_score,
                     "overallGrade": result.get('overallGrade', 'fair'),
                     "summary": result.get('summary', '평가 완료'),

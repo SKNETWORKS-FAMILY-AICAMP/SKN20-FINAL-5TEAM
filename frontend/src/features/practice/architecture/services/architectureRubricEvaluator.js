@@ -54,12 +54,33 @@ export async function evaluateWithRubric(
     console.log(`✅ 루브릭 평가 완료 (${((endTime - startTime) / 1000).toFixed(1)}s)`);
 
     // Step 3: 응답 결과 처리
-    const questionEvaluations = (result.evaluations || []).slice(0, 3).map((ev, idx) => ({
-      ...ev,
-      question: qnaArray[idx]?.question || '',
-      userAnswer: qnaArray[idx]?.answer || '',
-      category: qnaArray[idx]?.category || ev.axisName || ''
-    }));
+    const referenceAnswers = result.referenceAnswers || [];
+
+    // 사용자 질문 순서에 맞춰 평가 결과 매핑
+    const questionEvaluations = qnaArray.map((qa, idx) => {
+      // 사용자의 질문 카테고리와 일치하는 평가 항목 찾기
+      const evaluation = (result.evaluations || []).find(ev => {
+        const axisLower = (ev.axis || '').toLowerCase();
+        const categoryLower = (qa.category || '').toLowerCase();
+        const axisNameLower = (ev.axisName || '').toLowerCase();
+
+        // 직접 매칭 또는 부분 매칭
+        return axisLower.includes(categoryLower) ||
+               categoryLower.includes(axisLower) ||
+               axisNameLower.includes(categoryLower) ||
+               categoryLower.includes(axisNameLower.split('(')[0].trim());
+      });
+
+      return {
+        ...(evaluation || {}),
+        question: qa.question || '',
+        userAnswer: qa.answer || '',
+        category: qa.category || evaluation?.axisName || '',
+        modelAnswer: referenceAnswers[idx]?.expectedAnswer || evaluation?.expectedAnswer || '(모범답안을 생성할 수 없습니다)',
+        feedback: evaluation?.feedback || '',
+        score: evaluation?.score || 0
+      };
+    });
 
     return {
       score: result.overallScore,
@@ -70,6 +91,7 @@ export async function evaluateWithRubric(
       weaknesses: result.weaknesses || [],
       suggestions: result.recommendations || [],
       evaluations: result.evaluations || [],
+      referenceAnswers: referenceAnswers,
       weightedScores: result.weightedScores || {},
       questionEvaluations,
       pillarScores: buildPillarScores(result.evaluations || []),
@@ -187,12 +209,29 @@ function generateFallbackResult(qnaArray, axisWeights) {
     };
   });
 
-  const questionEvaluations = baseEvaluations.slice(0, 3).map((ev, idx) => ({
-    ...ev,
-    question: qnaArray[idx]?.question || '',
-    userAnswer: qnaArray[idx]?.answer || '',
-    category: qnaArray[idx]?.category || ev.axisName || ''
-  }));
+  // 사용자 질문 순서에 맞춰 평가 결과 매핑 (fallback)
+  const questionEvaluations = qnaArray.map((qa, idx) => {
+    const evaluation = baseEvaluations.find(ev => {
+      const axisLower = (ev.axis || '').toLowerCase();
+      const categoryLower = (qa.category || '').toLowerCase();
+      const axisNameLower = (ev.axisName || '').toLowerCase();
+
+      return axisLower.includes(categoryLower) ||
+             categoryLower.includes(axisLower) ||
+             axisNameLower.includes(categoryLower) ||
+             categoryLower.includes(axisNameLower.split('(')[0].trim());
+    });
+
+    return {
+      ...(evaluation || {}),
+      question: qa.question || '',
+      userAnswer: qa.answer || '',
+      category: qa.category || evaluation?.axisName || '',
+      modelAnswer: '평가 중 오류가 발생했습니다. 다시 시도해주세요.',
+      feedback: evaluation?.feedback || '피드백을 생성할 수 없습니다.',
+      score: evaluation?.score || 0
+    };
+  });
 
   const weightedScores = {};
   let totalWeightedScore = 0;
