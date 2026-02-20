@@ -72,10 +72,6 @@
                 </h2>
               </div>
               <div class="header-actions-v3">
-                <button class="guidebook-btn-v3" @click="handleGuidebookClick">
-                  <span class="btn-icon-wrapper"><i data-lucide="book-open"></i></span>
-                  GUIDEBOOK
-                </button>
                 <button class="close-btn-v3" @click="ui.isUnitModalOpen = false">&times;</button>
               </div>
             </header>
@@ -139,19 +135,9 @@
           </div>
 
             <footer class="unit-stats-bar-v3">
-              <!-- [수정일: 2026-01-31] Unit 1(Pseudo Practice) 전용 하단 모드 전환 버튼 제거 -->
-              <!-- 기존의 ai detective, pseudo forest 등 모드 전환 기능을 제거하고 통합된 연습 경험을 제공합니다. -->
-
-              <!-- Debug Practice 버튼 (Bug Hunt만 표시) -->
-              <template v-if="game.activeUnit?.name === 'Debug Practice'">
-                <button class="game-mode-btn bug-hunt active">🐞 Bug Hunt</button>
-              </template>
-
-              <!-- 일반 상태 표시 (진행도/잠금) -->
-              <template v-else>
-                <div class="stat-pill-v3 active"><i data-lucide="check-circle" style="width: 16px;"></i>{{ game.currentUnitProgress.length }}개 활성화</div>
-                <div class="stat-pill-v3 locked"><i data-lucide="lock" style="width: 16px;"></i>{{ displayProblems.length - game.currentUnitProgress.length }}개 잠금</div>
-              </template>
+              <!-- [수정일: 2026-02-19] 모든 트랙에 동일한 stat-pill 스타일 적용 -->
+              <div class="stat-pill-v3 active"><i data-lucide="check-circle" style="width: 16px;"></i>{{ game.currentUnitProgress.length }}개 활성화</div>
+              <div class="stat-pill-v3 locked"><i data-lucide="lock" style="width: 16px;"></i>{{ displayProblems.length - game.currentUnitProgress.length }}개 잠금</div>
             </footer>
           </div>
         </div>
@@ -420,10 +406,6 @@ function handleGoToPlayground() {
 
 function handleOpenJobPlanner() {
   ui.isJobPlannerModalOpen = true;
-}
-
-function handleGuidebookClick() {
-  ui.isGuidebookOpen = true;
 }
 
 // Lifecycle

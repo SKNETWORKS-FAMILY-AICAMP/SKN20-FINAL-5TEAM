@@ -18,8 +18,6 @@ export const useGameStore = defineStore('game', {
             'Pseudo Practice': [0],
             'Debug Practice': [0],
             'System Practice': [0],
-            'Ops Practice': [0],
-            'Agent Practice': [0],
             // [수정일: 2026-01-28] Pseudo Forest 전용 진행도 초기값 추가
             'Pseudo Forest': [0],
             // [수정일: 2026-01-29] Pseudo Company 전용 진행도 초기값 추가
@@ -57,19 +55,12 @@ export const useGameStore = defineStore('game', {
                 const iconMap = {
                     'Pseudo Practice': 'gamepad-2',
                     'Debug Practice': 'bug',
-                    'System Practice': 'layers',
-                    'Ops Practice': 'zap',
-                    'Agent Practice': 'bot'
+                    'System Practice': 'layers'
                 };
                 const imageMap = {
                     'Pseudo Practice': '/image/unit_code.png',
                     'Debug Practice': '/image/unit_debug.png',
                     'System Practice': '/image/unit_system.png'
-                    /* [수정일: 2026-01-31] 비활성 이미지 맵 주석 처리
-                    
-                    'Ops Practice': '/image/unit_ops.png',
-                    'Agent Practice': '/image/unit_agent.png'
-                    */
                 };
 
                 // [데이터 매핑 로직] DB 필드값을 UI 카드 컴포넌트의 props 형식에 맞게 변환하여 chapters 배열 구성
@@ -81,8 +72,6 @@ export const useGameStore = defineStore('game', {
                     if (lowerTitle.includes('pseudo')) normalizedTitle = 'Pseudo Practice';
                     else if (lowerTitle.includes('debug')) normalizedTitle = 'Debug Practice';
                     else if (lowerTitle.includes('system')) normalizedTitle = 'System Practice';
-                    else if (lowerTitle.includes('ops')) normalizedTitle = 'Ops Practice';
-                    else if (lowerTitle.includes('agent')) normalizedTitle = 'Agent Practice';
 
                     const problems = this.mapDetailsToProblems({ ...item, title: normalizedTitle }, idx + 1);
                     const isDebugPractice = normalizedTitle === 'Debug Practice';
