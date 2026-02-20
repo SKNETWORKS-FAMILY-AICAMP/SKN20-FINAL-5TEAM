@@ -374,7 +374,13 @@ export function useEvaluation() {
           evaluation_result: {
             totalScore: evaluationResult.totalScore,
             pillarScores: evaluationResult.pillarScores,
+            nfrScores: evaluationResult.nfrScores,
+            evaluations: evaluationResult.evaluations,
+            referenceAnswers: evaluationResult.referenceAnswers,
             summary: evaluationResult.summary,
+            strengths: evaluationResult.strengths,
+            weaknesses: evaluationResult.weaknesses,
+            suggestions: evaluationResult.suggestions,
             evaluatedAt: new Date().toISOString()
           }
         }

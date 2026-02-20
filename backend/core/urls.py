@@ -19,11 +19,16 @@ from core.views import (
     OverallProgressView,
     UserAnswersView,
     activity_view,
-    PseudocodeAgentView
+    PseudocodeAgentView,
+    JobPlannerParseView,
+    JobPlannerAnalyzeView,
+    JobPlannerCompanyAnalyzeView,
+    JobPlannerAgentQuestionsView,
+    JobPlannerAgentReportView,
+    JobPlannerRecommendView
 )
 from core.views.pseudocode_execution import execute_python_code
 from core.views import pseudocode_evaluation, youtube_recommendation
-from core.views.vulnerability_view import VulnerabilityAnalysisView
 
 router = DefaultRouter()
 router.register(r'users', UserProfileViewSet, basename='users')
@@ -68,9 +73,6 @@ urlpatterns = [
     # Pseudocode API
     path('pseudocode/execute/', execute_python_code, name='pseudocode_execute'),
     path('pseudo-agent/', PseudocodeAgentView.as_view(), name='pseudo_agent'),
-    path('pseudocode/evaluate-5d', pseudocode_evaluation.evaluate_pseudocode_5d),
+    path('pseudocode/evaluate-5d/', pseudocode_evaluation.evaluate_pseudocode_5d),
     path('youtube/recommendations', youtube_recommendation.get_youtube_recommendations),
-
-    # Vulnerability Analysis API
-    path('vulnerability/analyze/', VulnerabilityAnalysisView.as_view(), name='vulnerability_analyze'),
 ]

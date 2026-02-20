@@ -203,16 +203,16 @@ const QUEST_VIDEOS = {
         // 예외처리 부족: class_weight 비용함수, 분류 임계값 조정
         edgeCase: [
             {
-                id: 'u2WNMEbKxL8',
-                title: 'Precision-Recall Curve & 임계값 조정 (StatQuest)',
-                desc: '이상 거래 1건 놓치면 $10,000 손실 — class_weight 설정과 분류 임계값 조정으로 비용 불균형 대응.',
-                reason: 'deepDive "비용 민감 학습·임계값 조정 시나리오"의 핵심을 학습하세요.',
+                id: 'RwtP8TToimY',
+                title: 'Class Weights & Cost-Sensitive Learning (Krish Naik)',
+                desc: '이상 거래 1건 놓치면 $10,000 손실 — class_weight="balanced" 설정과 sample_weight로 비용 불균형 대응.',
+                reason: 'deepDive "비용 민감 학습·임계값 조정 시나리오"의 핵심인 class_weight를 학습하세요.',
             },
         ],
         // 추상화 부족: StratifiedKFold — 불균형 유지하며 교차검증
         abstraction: [
             {
-                id: 'JnlM4yLFNuo',
+                id: 'gJo0uNL-5Lw',
                 title: 'StratifiedKFold & 계층화 분할 (StatQuest)',
                 desc: '불균형 데이터를 무작위 분할하면 한쪽에 이상 케이스가 몰릴 수 있다 — stratify=y로 해결.',
                 reason: 'deepDive "계층화된 분할 시나리오"의 핵심인 StratifiedKFold를 이해하세요.',

@@ -4,8 +4,11 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
+import logging
+logger = logging.getLogger(__name__)
 from django.db.models import Sum, Count, Max
-from core.models import UserActivity, UserSolvedProblem, UserProgress, UserAvatar, Practice, PracticeDetail
+from core.models import UserActivity, UserSolvedProblem, UserProgress, UserAvatar, Practice, PracticeDetail, UserProfile
+from core.services.activity_service import save_user_problem_record
 from django.shortcuts import get_object_or_404
 from core.nanobanana_utils import generate_nano_banana_avatar # [수정일: 2026-02-06] 추가
 
@@ -43,13 +46,69 @@ class LeaderboardView(APIView):
             if activity.active_avatar and activity.active_avatar.image_url:
                 avatar_url = activity.active_avatar.image_url
 
+            # [2026-02-19 추가] 유닛 마스터 정보 집계 (Antigravity)
+            # - UserProgress에서 각 유닛의 진행률(100%) 확인
+            # - UserSolvedProblem에서 모든 문제의 최고 점수가 90점 이상인지 확인
+            mastered_units = []
+            user_progresses = UserProgress.objects.filter(user=activity.user).select_related('practice')
+            
+            for p in user_progresses:
+                # 해당 유닛의 전체 문제수
+                total_count = PracticeDetail.objects.filter(practice=p.practice, detail_type='PROBLEM').count()
+                
+                # 유저가 한 번이라도 풀어서 점수가 있는 문제수 (고유 문제 개수)
+                solved_count = UserSolvedProblem.objects.filter(
+                    user=activity.user, 
+                    practice_detail__practice=p.practice
+                ).values('practice_detail').distinct().count()
+
+                # 해당 유닛의 모든 문제가 90점 이상인지 체크
+                # 1. 유저가 푼 문제들 중 90점 미만인 문제가 하나라도 있는지 확인
+                has_subpar_score = UserSolvedProblem.objects.filter(
+                    user=activity.user, 
+                    practice_detail__practice=p.practice
+                ).values('practice_detail').annotate(max_score=Max('score')).filter(max_score__lt=90).exists()
+                
+                # 2. 유저가 90점 이상으로 완벽하게 풀어낸 고유 문제 개수
+                perfect_count = UserSolvedProblem.objects.filter(
+                    user=activity.user, 
+                    practice_detail__practice=p.practice
+                ).values('practice_detail').annotate(max_score=Max('score')).filter(max_score__gte=90).count()
+
+                is_perfect_master = (not has_subpar_score) and (perfect_count == total_count) and (total_count > 0)
+
+                # [2026-02-19] 세분화된 상태값 계산
+                progress_rate = p.progress_rate
+                if is_perfect_master:
+                    unit_status = 'MASTERED'
+                elif progress_rate >= 100:
+                    unit_status = 'COMPLETED'
+                elif progress_rate >= 50:
+                    unit_status = 'ADVANCED'
+                elif solved_count > 0:
+                    unit_status = 'STARTED'
+                else:
+                    unit_status = 'LOCKED'
+
+                mastered_units.append({
+                    'unit_id': p.practice.id,
+                    'unit_number': p.practice.unit_number,
+                    'is_completed': solved_count > 0, # 0개라도 풀었으면 활성 상태로 간주
+                    'is_perfect': is_perfect_master,
+                    'solved_count': solved_count,
+                    'total_count': total_count,
+                    'perfect_count': perfect_count,
+                    'unit_status': unit_status # 세분화된 상태 추가
+                })
+
             leaderboard_data.append({
                 'id': activity.user.id,
                 'rank': i,
                 'nickname': user_nickname,
                 'points': activity.total_points,
                 'current_grade': activity.current_rank,
-                'avatar_url': avatar_url
+                'avatar_url': avatar_url,
+                'mastered_units': mastered_units
             })
             
         return Response({
@@ -102,72 +161,22 @@ class SubmitProblemView(APIView):
         
         detail = get_object_or_404(PracticeDetail, id=detail_id)
         
-        # [2026-02-12] 1. 문제 해결 기록 저장 (항상 누적 저장)
-        solved = UserSolvedProblem.objects.create(
-            user=profile,
-            practice_detail=detail,
-            score=max(score, 0),
-            submitted_data=submitted_data,
-            is_perfect=score >= 90
-        )
-        
-        # [2026-02-12] 2. 유저 전체 활동(포인트) 업데이트
-        # 로직 변경: 모든 기록의 단순 합산이 아닌, '각 문제별 최고 점수의 합'으로 계산하여 중복 점수 합산 방지
-        activity, _ = UserActivity.objects.get_or_create(user=profile)
-        
-        # [단계별 해석]
-        # 1. filter(user=profile): 해당 사용자의 모든 해결 기록 수집
-        # 2. values('practice_detail'): 문제별(GROUP BY)로 묶음
-        # 3. annotate(max_score=Max('score')): 각 문제 그룹 내 최고 점수 추출
-        # 4. aggregate(total=Sum('max_score')): 추출된 최고 점수들을 최종 합산
-        total_points_data = UserSolvedProblem.objects.filter(user=profile) \
-            .values('practice_detail') \
-            .annotate(max_score=Max('score')) \
-            .aggregate(total=Sum('max_score'))
-            
-        total_points = total_points_data['total'] or 0
-        activity.total_points = total_points
-        
-        # [2026-02-10] 랭킹(등급) 업데이트 로직 최적화
-        if total_points > 3000:
-            activity.current_rank = 'ENGINEER'
-        elif total_points > 1000:
-            activity.current_rank = 'GOLD'
-        elif total_points > 500:
-            activity.current_rank = 'SILVER'
-        else:
-            activity.current_rank = 'BRONZE'
-            
-        activity.save()
-        
-        # 3. 유닛 진행도 업데이트
-        practice = detail.practice
-        progress, _ = UserProgress.objects.get_or_create(user=profile, practice=practice)
-        
-        # 푼 문제 리스트 갱신 (중복 제거)
-        current_nodes = set(progress.unlocked_nodes)
-        # detail_id의 마지막 번호 등을 추출하여 인덱스화하는 로직 필요 (여기서는 단순 예시)
+        # [2026-02-18 상세] 공통 서비스를 통해 문제 해결 기록 저장 및 포인트/등급/진행도 원스톱 갱신
         try:
-            node_idx = int(detail_id[-2:]) # 예: unit0101 -> 01
-            current_nodes.add(node_idx)
-        except:
-            pass
+            result = save_user_problem_record(profile, detail_id, score, submitted_data)
             
-        progress.unlocked_nodes = sorted(list(current_nodes))
-        
-        # 진행률 계산: (해결한 문제 수 / 유닛의 전체 문제 수)
-        total_unit_problems = PracticeDetail.objects.filter(practice=practice).count()
-        if total_unit_problems > 0:
-            progress.progress_rate = (len(current_nodes) / total_unit_problems) * 100
+            return Response({
+                'message': 'Progress updated successfully',
+                'total_points': result['total_points'],
+                'current_rank': result['current_rank'],
+                'progress_rate': result['progress_rate']
+            }, status=status.HTTP_200_OK)
             
-        progress.save()
-        
-        return Response({
-            'message': 'Progress updated successfully',
-            'total_points': total_points,
-            'current_rank': activity.current_rank,
-            'progress_rate': progress.progress_rate
-        }, status=status.HTTP_200_OK)
+        except ValueError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f"Error saving problem record: {str(e)}")
+            return Response({'error': 'Internal server error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class UserSolvedProblemView(APIView):
     """
@@ -191,7 +200,7 @@ class UserSolvedProblemView(APIView):
                 'score': sp.score,
                 'submitted_data': sp.submitted_data,
                 'is_perfect': sp.is_perfect,
-                'updated_at': sp.updated_at
+                'updated_at': sp.update_date
             })
             
         return Response(data, status=status.HTTP_200_OK)

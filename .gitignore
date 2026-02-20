@@ -1,4 +1,4 @@
-# 수정일: 2026-01-20
+# 수정일: 2026-02-11
 # 수정내용: 프로젝트 협업을 위한 .gitignore 설정 (Python, Node, Docker 관련 제외 항목)
 
 # Python
@@ -31,6 +31,7 @@ doc/
 
 # Agent Skills
 antigravity-skills/
+.agents/skills/
 01pseudocode.html
 02pseudocode.html
 03pseudocode.html

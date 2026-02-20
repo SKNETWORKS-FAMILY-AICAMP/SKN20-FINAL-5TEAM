@@ -349,6 +349,15 @@
                                   </div>
                               </div>
                               
+                              <!-- [2026-02-19] 감점 요인 및 점수 분석 (신규) -->
+                              <div v-if="finalReport.finalReport.scoringAnalysis" class="deduction-analysis-neo">
+                                  <div class="da-header">
+                                      <AlertCircle class="w-5 h-5 text-rose-400 mr-2" />
+                                      <span class="da-title text-rose-400">SCORE ANALYSIS (감점 요인 분석)</span>
+                                  </div>
+                                  <p class="da-content">{{ finalReport.finalReport.scoringAnalysis }}</p>
+                              </div>
+
                               <div class="feedback-dual-grid">
                                   <div class="fb-item-neo plus">
                                       <span class="tag-neo text-emerald-400">CORE STRENGTH</span>
@@ -373,12 +382,12 @@
                       <!-- Part 4: Continuous Learning Path (YouTube) -->
                       <div class="pathway-section-neo">
                           <div class="curation-header">
-                              <h3 class="path-heading-neo"><Play size="18" class="mr-2" /> 📺 실시간 맞춤형 학습 큐레이션 (YouTube API 기반)</h3>
+                              <h3 class="path-heading-neo"><Play size="18" class="mr-2" /> 📺 취약 지표 기반 맞춤 학습 큐레이션</h3>
                           </div>
                           
-                          <div class="path-grid-neo">
+                          <div class="video-scroll-container-neo">
                                <!-- [2026-02-14] API로 실시간 연동된 추천 영상 목록 표시 -->
-                               <div v-for="video in evaluationResult.supplementaryVideos" :key="video.videoId" class="path-card-neo curation-card">
+                               <div v-for="video in (evaluationResult.supplementaryVideos || [])" :key="video.videoId" class="path-card-neo curation-card scroll-item">
                                   <a :href="video.url" target="_blank" class="p-link-neo">
                                       <div class="p-thumbnail border-b border-white/5 overflow-hidden rounded-t-xl mb-3">
                                           <img :src="video.thumbnail" :alt="video.title" class="w-full h-auto transform hover:scale-105 transition-transform" />
@@ -392,41 +401,10 @@
                                   </a>
                                </div>
 
-                               <!-- API 결과가 없을 경우 기존 Resource 폴백 -->
-                               <div v-if="!evaluationResult.supplementaryVideos?.length && weakestMetricKey" class="path-card-neo curation-card weakest-focus">
+                                           <!-- 추천 영상이 없을 경우 폴백 -->
+                               <div v-if="!evaluationResult.supplementaryVideos?.length" class="path-card-neo curation-card scroll-item weakest-focus">
                                   <div class="weakest-badge">🚨 취약 지표 집중 보완</div>
-                                  
-                                  <div class="mb-5">
-                                      <h4 class="text-blue-400 font-bold text-lg mb-1">{{ LEARNING_RESOURCES[weakestMetricKey].metric }}</h4>
-                                      <p class="text-slate-400 text-sm">테마: {{ LEARNING_RESOURCES[weakestMetricKey].theme }}</p>
-                                  </div>
-
-                                  <div class="p-content-box mb-6">
-                                      <div class="p-curation-msg-box">
-                                          <span class="quote-icon">"</span>
-                                          {{ LEARNING_RESOURCES[weakestMetricKey].curationMessage }}
-                                          <span class="quote-icon">"</span>
-                                      </div>
-                                  </div>
-
-                                  <div class="space-y-3">
-                                      <div v-for="(video, vIdx) in LEARNING_RESOURCES[weakestMetricKey].videos" :key="vIdx">
-                                          <a :href="video.url" target="_blank" class="flex items-start gap-4 p-3 bg-black/20 rounded-lg border border-white/5 hover:border-blue-500/50 hover:bg-blue-500/5 transition-all group">
-                                              <!-- 썸네일 플레이스홀더 -->
-                                              <div class="w-32 h-20 bg-slate-800 rounded flex items-center justify-center flex-shrink-0 group-hover:bg-blue-900/30 transition-colors relative overflow-hidden">
-                                                   <img v-if="video.thumbnail" :src="video.thumbnail" class="w-full h-full object-cover" />
-                                                   <Play v-else class="text-slate-500 group-hover:text-blue-400 w-8 h-8" />
-                                              </div>
-                                              
-                                              <!-- 비디오 정보 -->
-                                              <div class="flex-1 min-w-0 py-1">
-                                                  <h5 class="text-white font-bold text-sm mb-1 truncate group-hover:text-blue-300">{{ video.title }}</h5>
-                                                  <div class="text-slate-400 text-xs mb-2">{{ video.channel }}</div>
-                                                  <p class="text-slate-500 text-xs line-clamp-2 leading-relaxed">{{ video.curationPoint }}</p>
-                                              </div>
-                                          </a>
-                                      </div>
-                                  </div>
+                                  <p class="text-slate-400 text-sm mt-4">추천 영상을 불러오는 중입니다...</p>
                                </div>
                           </div>
 
@@ -530,7 +508,7 @@ import {
 } from 'lucide-vue-next';
 import { ComprehensiveEvaluator } from './evaluationEngine.js';
 import { generateCompleteLearningReport } from './reportGenerator.js';
-import { filterByScore, LEARNING_RESOURCES } from './learningResources.js';
+import { getRecommendedVideos } from './learningResources.js';
 import Chart from 'chart.js/auto';
 
 const activeYoutubeId = ref(null);
@@ -678,6 +656,10 @@ const handleTutorialPhaseChange = (targetPhase) => {
             }, 1800);
         } else {
             showMetrics.value = true;
+            // [2026-02-19] 이미 데이터가 있더라도 캔버스가 다시 그려질 수 있도록 차트 렌더링 호출 보장
+            nextTick(() => {
+                if (typeof renderRadarChart === 'function') renderRadarChart();
+            });
         }
     }
 };
@@ -739,16 +721,18 @@ async function runComprehensiveEvaluation() {
       deepdiveScenario: gameState.assignedScenario || deepQuizQuestion.value || {}
     });
 
-    // [2026-02-19] 최종 리포트 단계에서 실시간 유튜브 추천 영상 가져오기
-    const { getYouTubeRecommendations } = await import('./api/pseudocodeApi.js');
-    const ytVideos = await getYouTubeRecommendations(evaluationResults.metrics, currentMission.value?.title);
-    evaluationResult.supplementaryVideos = ytVideos;
+    // Quest ID 주입 (취약 차원 기반 유튜브 큐레이션에 사용)
+    evaluationResults.questId = gameState.currentStageId || 1;
 
     finalReport.value = await generateCompleteLearningReport(
       evaluationResults,
-      getApiKey(),
-      ytVideos // 실시간 검색 결과 전달
+      getApiKey()
     );
+
+    // YouTube API 결과 (thumbnail 포함) 를 supplementaryVideos에 저장
+    if (finalReport.value?.recommendedContent?.videos?.length) {
+      evaluationResult.supplementaryVideos = finalReport.value.recommendedContent.videos;
+    }
 
     showMetrics.value = true;
     await nextTick();

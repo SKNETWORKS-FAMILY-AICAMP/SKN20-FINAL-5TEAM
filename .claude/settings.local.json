@@ -15,7 +15,17 @@
       "Bash(for commit in c514f15 f11e910 4d62afd 9cf468b 873fbd0)",
       "Bash(do echo \"=== Checking $commit ===\")",
       "Bash(done)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker restart:*)",
+      "Bash(pip install:*)",
+      "Bash(PYTHONIOENCODING=utf-8 python:*)",
+      "Bash(findstr:*)",
+      "Bash(Select-String -Pattern \"추천|사람인|잡코리아|크롤링|CRAWLER\" -Context 2)",
+      "Bash(docker-compose logs:*)",
+      "Bash(docker-compose restart:*)",
+      "Bash(docker-compose exec backend cat:*)",
+      "Bash(MSYS_NO_PATHCONV=1 docker exec:*)"
     ]
   }
 }

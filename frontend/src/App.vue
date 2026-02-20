@@ -19,6 +19,7 @@
       @change-page="fetchLeaderboard"
       @go-to-playground="handleGoToPlayground"
       @open-unit="openUnitPopup"
+      @open-job-planner="handleOpenJobPlanner"
     >
       <template #auth-buttons>
         <template v-if="!auth.isLoggedIn">
@@ -71,20 +72,17 @@
                 </h2>
               </div>
               <div class="header-actions-v3">
-                <button class="guidebook-btn-v3" @click="handleGuidebookClick">
-                  <span class="btn-icon-wrapper"><i data-lucide="book-open"></i></span>
-                  GUIDEBOOK
-                </button>
                 <button class="close-btn-v3" @click="ui.isUnitModalOpen = false">&times;</button>
               </div>
             </header>
 
             <div class="unit-modal-body-v3">
-              <div class="path-container-v3">
-                <!-- [2026-02-14] 징검다리 연결선 동적 렌더링 (해금 시 초록색 실선으로 변경) -->
-                <svg class="path-svg-v3" viewBox="0 0 800 3100">
-                  <line 
-                    v-for="(p, i) in pathPoints.slice(0, -1)" 
+              <!-- [2026-02-19] path-container-v3 높이를 문제 개수에 맞춰 동적 계산 -->
+              <div class="path-container-v3" :style="{ height: containerHeight + 'px' }">
+                <!-- [2026-02-19] SVG 동적 생성 복구 (문제 개수에 따라 자동 조절) -->
+                <svg class="path-svg-v3" :viewBox="`0 0 800 ${svgViewBoxHeight}`">
+                  <line
+                    v-for="(p, i) in pathPoints.slice(0, -1)"
                     :key="i"
                     :x1="p[0]" :y1="p[1]"
                     :x2="pathPoints[i+1][0]" :y2="pathPoints[i+1][1]"
@@ -93,11 +91,12 @@
                   />
                 </svg>
 
+                <!-- [2026-02-19] pathPoints 동적 스타일 복구 (문제 개수에 따라 자동 배치) -->
                 <div v-for="(problem, pIdx) in displayProblems" :key="problem.id" class="node-platform-v3"
-                :class="['node-' + pIdx, {
+                :class="{
                   active: problem.questIndex === currentMaxIdx,
                   unlocked: game.currentUnitProgress.includes(problem.questIndex)
-                }]"
+                }"
                 :style="{ left: pathPoints[pIdx][0] + 'px', top: pathPoints[pIdx][1] + 'px' }"
                 @click="isUnlocked(problem.questIndex) && selectProblem(problem)">
 
@@ -125,8 +124,8 @@
               </div>
 
               <!-- Decorative Locked Nodes -->
+              <!-- [2026-02-19] pathPoints 동적 스타일 복구 -->
               <div v-for="i in displayLabelsCount" :key="'extra-' + i" class="node-platform-v3 locked"
-                :class="'node-' + (displayProblems.length + i - 1)"
                 :style="{ left: pathPoints[displayProblems.length + i - 1][0] + 'px', top: pathPoints[displayProblems.length + i - 1][1] + 'px' }">
                 <div class="platform-circle-v3">
                   <i data-lucide="lock" class="lock-icon-v3"></i>
@@ -136,19 +135,9 @@
           </div>
 
             <footer class="unit-stats-bar-v3">
-              <!-- [수정일: 2026-01-31] Unit 1(Pseudo Practice) 전용 하단 모드 전환 버튼 제거 -->
-              <!-- 기존의 ai detective, pseudo forest 등 모드 전환 기능을 제거하고 통합된 연습 경험을 제공합니다. -->
-
-              <!-- Debug Practice 버튼 (Bug Hunt만 표시) -->
-              <template v-if="game.activeUnit?.name === 'Debug Practice'">
-                <button class="game-mode-btn bug-hunt active">🐞 Bug Hunt</button>
-              </template>
-
-              <!-- 일반 상태 표시 (진행도/잠금) -->
-              <template v-else>
-                <div class="stat-pill-v3 active"><i data-lucide="check-circle" style="width: 16px;"></i>{{ game.currentUnitProgress.length }}개 활성화</div>
-                <div class="stat-pill-v3 locked"><i data-lucide="lock" style="width: 16px;"></i>{{ displayProblems.length - game.currentUnitProgress.length }}개 잠금</div>
-              </template>
+              <!-- [수정일: 2026-02-19] 모든 트랙에 동일한 stat-pill 스타일 적용 -->
+              <div class="stat-pill-v3 active"><i data-lucide="check-circle" style="width: 16px;"></i>{{ game.currentUnitProgress.length }}개 활성화</div>
+              <div class="stat-pill-v3 locked"><i data-lucide="lock" style="width: 16px;"></i>{{ displayProblems.length - game.currentUnitProgress.length }}개 잠금</div>
             </footer>
           </div>
         </div>
@@ -220,10 +209,9 @@ const displayProblems = computed(() => {
   const activeUnit = game.activeUnit;
   if (!activeUnit) return [];
 
-  // [수정일: 2026-01-31] 모든 유닛에 대해 최신 매핑 데이터 사용 (일부 유닛의 캐시 문제 해결)
-  const unitIndex = game.chapters.indexOf(activeUnit);
-  const problems = game.mapDetailsToProblems(activeUnit, unitIndex + 1);
-  return problems;
+  // [수정일: 2026-02-19] initGame에서 이미 계산된 problems 직접 사용
+  // (activeUnit은 이미 변환된 chapters 객체이므로 mapDetailsToProblems 재호출 불필요)
+  return activeUnit.problems || [];
 });
 
 const displayLabelsCount = computed(() => {
@@ -232,12 +220,13 @@ const displayLabelsCount = computed(() => {
   return Math.max(0, targetCount - currentCount);
 });
 
-// [2026-02-14] 징검다리 노드 위치 좌표 계산 (지그재그 패턴)
+// [2026-02-19] 징검다리 노드 위치 좌표 계산 (지그재그 패턴, Y축 +40px 조정)
 const pathPoints = computed(() => {
-  const count = Math.max(displayProblems.value?.length || 0, 10) + displayLabelsCount.value;
+  // [수정일: 2026-02-19] displayProblems의 실제 길이 사용 (Math.max 제거)
+  const count = (displayProblems.value?.length || 10) + displayLabelsCount.value;
   const points = [];
   for (let i = 0; i < count; i++) {
-    const y = 100 + i * 150;
+    const y = 100 + i * 150 + 40;  // Y축 +40px (노드와 정렬)
     let x;
     const mod = i % 5;
     if (mod === 0) x = 400;
@@ -248,6 +237,18 @@ const pathPoints = computed(() => {
     points.push([x, y]);
   }
   return points;
+});
+
+// [2026-02-19] SVG viewBox 높이 동적 계산 (문제 개수에 정확히 맞춤)
+const svgViewBoxHeight = computed(() => {
+  const count = (displayProblems.value?.length || 10) + displayLabelsCount.value;
+  return 140 + (count - 1) * 150;
+});
+
+// [2026-02-19] path-container-v3 높이 동적 계산 (문제 개수에 따라)
+const containerHeight = computed(() => {
+  const count = (displayProblems.value?.length || 10) + displayLabelsCount.value;
+  return 140 + (count - 1) * 150 + 100;  // 마지막 노드 아래 여유 공간
 });
 
 const currentMaxIdx = computed(() => {
@@ -403,8 +404,8 @@ function handleGoToPlayground() {
   }
 }
 
-function handleGuidebookClick() {
-  ui.isGuidebookOpen = true;
+function handleOpenJobPlanner() {
+  ui.isJobPlannerModalOpen = true;
 }
 
 // Lifecycle
