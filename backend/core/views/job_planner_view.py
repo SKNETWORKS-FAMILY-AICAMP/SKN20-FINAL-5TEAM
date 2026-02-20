@@ -285,6 +285,9 @@ class JobPlannerParseView(APIView):
         Returns:
             dict: 구조화된 채용공고 정보
         """
+        print(f"\n📄 [LLM 파싱] 입력 텍스트 ({len(text)}자)")
+        print(f"   앞 500자: {text[:500]}")
+
         api_key = os.getenv('OPENAI_API_KEY')
         if not api_key:
             # Fallback: API 키가 없을 때 기본 응답 반환
@@ -362,6 +365,15 @@ JSON 형식:
             parsed_data = json.loads(content)
             parsed_data['source'] = source
             parsed_data['raw_text'] = text
+
+            # 파싱 결과 로그 출력
+            print(f"\n✅ [LLM 파싱 완료]")
+            print(f"   회사명: {parsed_data.get('company_name', '없음')}")
+            print(f"   포지션: {parsed_data.get('position', '없음')}")
+            print(f"   필수 스킬: {len(parsed_data.get('required_skills', []))}개 - {parsed_data.get('required_skills', [])}")
+            print(f"   우대 스킬: {len(parsed_data.get('preferred_skills', []))}개 - {parsed_data.get('preferred_skills', [])}")
+            print(f"   주요 업무: {len(parsed_data.get('job_responsibilities', ''))}자 - {parsed_data.get('job_responsibilities', '')[:100]}...")
+            print(f"   필수 요건: {len(parsed_data.get('required_qualifications', ''))}자 - {parsed_data.get('required_qualifications', '')[:100]}...")
 
             return parsed_data
 

@@ -2379,11 +2379,34 @@ async function submitToActivity() {
       detail_id: detail_id,
       score: score,
       submitted_data: {
+        // === 기본 정보 ===
         mission_id: currentProgressiveMission.value.id,
         completed_steps: progressiveCompletedSteps.value.length,
         total_steps: currentProgressiveMission.value.totalSteps,
         hint_used: Object.values(progressiveHintUsed.value).filter(v => v).length,
-        retry_count: codeSubmitFailCount.value
+        retry_count: codeSubmitFailCount.value,
+        track_type: 'bughunt',
+
+        // === 단계별 코드 로그 (에이전트 학습용) ===
+        step_codes: progressiveStepCodes.value,
+
+        // === 행동 패턴 로그 (에이전트 학습용) ===
+        behavior_log: {
+          total_debug_time_seconds: totalDebugTime.value,
+          hint_usage_per_step: progressiveHintUsed.value,
+          perfect_clears: evaluationStats.perfectClears,
+          timestamp: new Date().toISOString()
+        },
+
+        // === 약점 분석 지표 (에이전트가 맞춤 문제 생성용) ===
+        weakness_indicators: {
+          retry_count: codeSubmitFailCount.value,
+          hints_needed: Object.values(progressiveHintUsed.value).filter(v => v).length,
+          struggled_steps: progressiveCompletedSteps.value.length < currentProgressiveMission.value.totalSteps
+            ? Array.from({length: currentProgressiveMission.value.totalSteps}, (_, i) => i + 1)
+                .filter(step => !progressiveCompletedSteps.value.includes(step))
+            : []
+        }
       }
     });
 

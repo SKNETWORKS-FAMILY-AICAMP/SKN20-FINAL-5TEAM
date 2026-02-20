@@ -95,9 +95,12 @@ class SaraminCollector(BaseCollector):
                         # 각 셀렉터로 요소 찾기
                         elements = page.query_selector_all(selector)
                         if elements:
-                            for elem in elements:
+                            print(f"[DEBUG] 사람인 셀렉터 '{selector}': {len(elements)}개 요소 발견")
+                            for i, elem in enumerate(elements):
                                 text = elem.inner_text()
                                 if text and len(text) > 100:  # 의미 있는 텍스트만
+                                    print(f"[DEBUG] 사람인 '{selector}' 요소 #{i}: {len(text)}자 추출")
+                                    print(f"[DEBUG] 앞 200자: {text[:200]}")
                                     extracted_text += text + "\n\n"
                     except Exception as e:
                         continue

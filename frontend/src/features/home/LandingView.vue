@@ -356,7 +356,9 @@ export default {
     Gamepad2,
     LayoutGrid,
     Trophy,
-    ArrowRight
+    ArrowRight,
+    Info,
+    Briefcase
   },
   props: {
     isLoggedIn: Boolean,
