@@ -87,8 +87,12 @@ class JobPlannerParseView(APIView):
         Collector 레이어를 통해 채용공고 텍스트를 수집한 후,
         LLM으로 구조화된 정보를 파싱합니다.
 
-        Phase 1: StaticCollector (requests + BeautifulSoup)
-        Phase 2+: BrowserCollector, ApiCollector 추가 예정
+        Collector 시스템 단계별 설명:
+        - Phase 1: StaticCollector (requests + BeautifulSoup)
+          → 정적 HTML 페이지 크롤링 (서버에서 완성된 HTML을 반환하는 사이트)
+        - Phase 2+: BrowserCollector, ApiCollector 추가 예정
+          → BrowserCollector: JavaScript로 렌더링되는 SPA 사이트 크롤링 (Selenium/Playwright)
+          → ApiCollector: 채용 사이트 공식 API를 통한 데이터 수집
 
         Args:
             request: URL이 포함된 HTTP 요청 객체
@@ -333,7 +337,7 @@ JSON 형식:
   "company_name": "회사명",
   "position": "포지션",
 
-  "job_responsibilities": "주요 업무 내용 (원문 그대로, 3-5개 항목)",
+  "job_responsibilities": "주요 업무 내용 (원문 그대로)",
   "required_qualifications": "필수 요건 (원문 그대로, 자격 요건)",
   "preferred_qualifications": "우대 조건 (원문 그대로, 플러스 요소)",
 
@@ -415,58 +419,56 @@ class JobPlannerAnalyzeView(APIView):
     # 한영 스킬 동의어 사전
     # 다양한 표기를 통일된 형태로 정규화하기 위한 매핑 테이블
     # 예: "파이썬", "Python", "python" → 모두 "python"으로 통일
+    # 참고: 'python': 'python' 같은 중복은 불필요 (_normalize_skill에서 자동 처리)
     SKILL_SYNONYMS = {
         # 프로그래밍 언어
-        '파이썬': 'python', 'python': 'python',
-        '자바': 'java', 'java': 'java',
-        '자바스크립트': 'javascript', 'javascript': 'javascript', 'js': 'javascript',
-        '타입스크립트': 'typescript', 'typescript': 'typescript', 'ts': 'typescript',
-        'C++': 'cpp', 'c++': 'cpp', 'cpp': 'cpp',
-        'C#': 'csharp', 'c#': 'csharp', 'csharp': 'csharp', '씨샵': 'csharp',
-        '고': 'go', 'go': 'go', 'golang': 'go',
-        '코틀린': 'kotlin', 'kotlin': 'kotlin',
-        '스위프트': 'swift', 'swift': 'swift',
-        'R': 'r', 'r': 'r',
-        '루비': 'ruby', 'ruby': 'ruby',
-        'PHP': 'php', 'php': 'php',
+        '파이썬': 'python',
+        '자바': 'java',
+        '자바스크립트': 'javascript', 'js': 'javascript',
+        '타입스크립트': 'typescript', 'ts': 'typescript',
+        'c++': 'cpp',
+        'c#': 'csharp', '씨샵': 'csharp',
+        '고': 'go', 'golang': 'go',
+        '코틀린': 'kotlin',
+        '스위프트': 'swift',
+        '루비': 'ruby',
 
         # 프레임워크/라이브러리
-        '장고': 'django', 'django': 'django',
-        '플라스크': 'flask', 'flask': 'flask',
-        '스프링': 'spring', 'spring': 'spring', '스프링부트': 'springboot', 'springboot': 'springboot',
-        '리액트': 'react', 'react': 'react', 'reactjs': 'react',
-        '뷰': 'vue', 'vue': 'vue', 'vuejs': 'vue',
-        '앵귤러': 'angular', 'angular': 'angular',
-        '노드': 'node', 'node': 'node', 'nodejs': 'node', 'node.js': 'node',
-        '익스프레스': 'express', 'express': 'express', 'expressjs': 'express',
-        '넥스트': 'next', 'next': 'next', 'nextjs': 'next', 'next.js': 'next',
+        '장고': 'django',
+        '플라스크': 'flask',
+        '스프링': 'spring', '스프링부트': 'springboot',
+        '리액트': 'react', 'reactjs': 'react',
+        '뷰': 'vue', 'vuejs': 'vue',
+        '앵귤러': 'angular',
+        '노드': 'node', 'nodejs': 'node', 'node.js': 'node',
+        '익스프레스': 'express', 'expressjs': 'express',
+        '넥스트': 'next', 'nextjs': 'next', 'next.js': 'next',
         '넥스트제이에스': 'next',
         '넥스트js': 'next',
 
         # 데이터베이스
-        'MySQL': 'mysql', 'mysql': 'mysql', '마이에스큐엘': 'mysql',
-        'PostgreSQL': 'postgresql', 'postgresql': 'postgresql', '포스트그레': 'postgresql',
-        'MongoDB': 'mongodb', 'mongodb': 'mongodb', '몽고디비': 'mongodb',
-        'Redis': 'redis', 'redis': 'redis', '레디스': 'redis',
-        'Oracle': 'oracle', 'oracle': 'oracle', '오라클': 'oracle',
+        '마이에스큐엘': 'mysql',
+        '포스트그레': 'postgresql',
+        '몽고디비': 'mongodb',
+        '레디스': 'redis',
+        '오라클': 'oracle',
 
         # 클라우드/인프라
-        'AWS': 'aws', 'aws': 'aws',
-        'Azure': 'azure', 'azure': 'azure', '애저': 'azure',
-        'GCP': 'gcp', 'gcp': 'gcp', '구글클라우드': 'gcp',
-        '도커': 'docker', 'docker': 'docker',
-        '쿠버네티스': 'kubernetes', 'kubernetes': 'kubernetes', 'k8s': 'kubernetes',
+        '애저': 'azure',
+        '구글클라우드': 'gcp',
+        '도커': 'docker',
+        '쿠버네티스': 'kubernetes', 'k8s': 'kubernetes',
 
         # AI/ML
-        '텐서플로': 'tensorflow', 'tensorflow': 'tensorflow',
-        '파이토치': 'pytorch', 'pytorch': 'pytorch',
-        '케라스': 'keras', 'keras': 'keras',
-        '사이킷런': 'sklearn', 'sklearn': 'sklearn', 'scikit-learn': 'sklearn',
+        '텐서플로': 'tensorflow',
+        '파이토치': 'pytorch',
+        '케라스': 'keras',
+        '사이킷런': 'sklearn', 'scikit-learn': 'sklearn',
 
         # 도구
-        '깃': 'git', 'git': 'git',
-        '깃허브': 'github', 'github': 'github',
-        '지라': 'jira', 'jira': 'jira',
+        '깃': 'git',
+        '깃허브': 'github',
+        '지라': 'jira',
     }
 
     def _normalize_skill(self, skill):
@@ -696,20 +698,20 @@ class JobPlannerAnalyzeView(APIView):
                         # 코사인 유사도 계산 (정규화된 벡터의 내적)
                         similarity = float((user_emb @ req_emb.T)[0][0])
 
-                        # 높은 threshold (0.75) - 정확한 매칭만 허용
+                        # 높은 threshold (0.85) - 정확한 매칭만 허용
                         # 너무 낮은 유사도는 오매칭 가능성이 높음
-                        if similarity >= 0.75 and similarity > best_score:
+                        if similarity >= 0.85 and similarity > best_score:
                             best_match = user_skill
                             best_score = similarity
                             best_idx = j
                             match_type = "similar"
 
                 # 매칭 결과 저장
-                if best_match and best_score >= 0.75:  # 최소 75% 유사도 기준
+                if best_match and best_score >= 0.85:  # 최소 85% 유사도 기준
                     matched_skills.append({
                         "required": req_skill,        # 채용공고의 필수 스킬
                         "user_skill": best_match,     # 매칭된 사용자 스킬
-                        "similarity": round(best_score, 3),  # 유사도 점수 (0.75~1.0)
+                        "similarity": round(best_score, 3),  # 유사도 점수 (0.85~1.0)
                         "match_type": match_type      # 매칭 방식 (exact/synonym/similar)
                     })
                     matched_indices.add(best_idx)  # 중복 매칭 방지
@@ -1283,11 +1285,11 @@ class JobPlannerRecommendView(APIView):
     채용공고 추천 API
 
     현재 분석 중인 공고보다 더 적합한 대안 공고를 추천합니다.
-    사람인, 잡코리아를 실시간 크롤링하여 최신 공고를 수집하고,
+    사람인을 실시간 크롤링하여 최신 공고를 수집하고,
     3단계 매칭 시스템으로 사용자 스킬과 비교합니다.
 
     주요 기능:
-    - 실시간 채용공고 크롤링 (사람인, 잡코리아)
+    - 실시간 채용공고 크롤링 (사람인)
     - 3단계 스킬 매칭 시스템 적용
     - 중복 공고 필터링
     - 매칭률 기반 정렬 및 추천 이유 생성
@@ -1352,19 +1354,14 @@ class JobPlannerRecommendView(APIView):
             if current_job_url:
                 print(f"🚫 제외할 공고: {current_job_company} - {current_job_title}")
 
-            # 1. 사람인과 잡코리아에서 공고 크롤링 (정확도순, 각 최대 15개)
+            # 1. 사람인에서 공고 크롤링 (정확도순, 최대 30개)
             job_listings = []
 
             # 사람인 크롤링
             print(f"🔍 사람인 크롤링 시작: '{search_keyword}' 검색")
-            saramin_jobs = self._crawl_saramin(search_keyword)
+            saramin_jobs = self._crawl_saramin(search_keyword, limit=30)
             job_listings.extend(saramin_jobs)
             print(f"✅ 사람인: {len(saramin_jobs)}개 공고")
-
-            # 잡코리아 크롤링
-            jobkorea_jobs = self._crawl_jobkorea(search_keyword)
-            job_listings.extend(jobkorea_jobs)
-            print(f"✅ 잡코리아: {len(jobkorea_jobs)}개 공고")
 
             if not job_listings:
                 return Response({
@@ -1386,7 +1383,7 @@ class JobPlannerRecommendView(APIView):
             print(f"✅ 최종 추천: {len(recommendations)}개")
 
             return Response({
-                "recommendations": recommendations[:10],  # 최대 10개
+                "recommendations": recommendations[:5],  # 최대 10개
                 "total_found": len(job_listings),
                 "total_recommendations": len(recommendations)
             }, status=status.HTTP_200_OK)
@@ -1503,7 +1500,7 @@ class JobPlannerRecommendView(APIView):
 
         return simplified.strip() if simplified.strip() else '개발자'
 
-    def _crawl_saramin(self, job_position):
+    def _crawl_saramin(self, job_position, limit=15):
         """
         사람인에서 채용공고 크롤링 (정확도순)
 
@@ -1512,9 +1509,10 @@ class JobPlannerRecommendView(APIView):
 
         Args:
             job_position (str): 검색할 직무 (예: "백엔드 개발자", "Python 개발자")
+            limit (int): 최대 수집 공고 수 (기본값: 15)
 
         Returns:
-            list: 채용공고 리스트 (최대 10개)
+            list: 채용공고 리스트
         """
         jobs = []
         try:
@@ -1533,7 +1531,7 @@ class JobPlannerRecommendView(APIView):
             soup = BeautifulSoup(response.text, 'html.parser')
 
             # 채용공고 아이템 찾기 (실제 HTML 구조에 맞게 조정 필요)
-            job_items = soup.select('.item_recruit')[:10]  # 최대 15개
+            job_items = soup.select('.item_recruit')[:limit]
 
             for item in job_items:
                 try:
@@ -1581,82 +1579,6 @@ class JobPlannerRecommendView(APIView):
 
         return jobs
 
-    def _crawl_jobkorea(self, job_position):
-        """
-        잡코리아에서 채용공고 크롤링 (정확도순)
-
-        잡코리아 검색 결과를 크롤링하여 채용공고 정보를 수집합니다.
-        회사명, 공고 제목, URL, 스킬, 지역, 조건 등을 파싱합니다.
-
-        Args:
-            job_position (str): 검색할 직무 (예: "백엔드 개발자", "Python 개발자")
-
-        Returns:
-            list: 채용공고 리스트 (최대 10개)
-        """
-        jobs = []
-        try:
-            # 잡코리아 검색 URL (정확도순 - 기본값)
-            search_url = f"https://www.jobkorea.co.kr/Search/?stext={job_position}"
-
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-            }
-
-            response = requests.get(search_url, headers=headers, timeout=15)
-            response.raise_for_status()
-
-            soup = BeautifulSoup(response.text, 'html.parser')
-
-            # 채용공고 아이템 찾기
-            job_items = soup.select('.list-post article')[:10]  # 최대 15개
-
-            for item in job_items:
-                try:
-                    # 회사명
-                    company_elem = item.select_one('.name')
-                    company_name = company_elem.get_text(strip=True) if company_elem else "알 수 없음"
-
-                    # 채용 제목
-                    title_elem = item.select_one('.title a')
-                    title = title_elem.get_text(strip=True) if title_elem else "채용 공고"
-                    job_url = title_elem['href'] if title_elem and title_elem.get('href') else ""
-                    if job_url and not job_url.startswith('http'):
-                        job_url = "https://www.jobkorea.co.kr" + job_url
-
-                    # 조건
-                    conditions_elem = item.select('.option li')
-                    conditions = [c.get_text(strip=True) for c in conditions_elem]
-
-                    # 기술 스택 (있으면)
-                    skills_elem = item.select('.etc .tag')
-                    skills = [s.get_text(strip=True) for s in skills_elem]
-
-                    # 디버그: 스킬 추출 결과 확인
-                    print(f"  [잡코리아] {company_name} - 추출된 스킬: {skills if skills else '없음'}")
-
-                    # 지역
-                    location = conditions[0] if conditions else ""
-
-                    jobs.append({
-                        "source": "잡코리아",
-                        "company_name": company_name,
-                        "title": title,
-                        "url": job_url,
-                        "skills": skills if skills else [],
-                        "location": location,
-                        "conditions": conditions,
-                        "description": f"{title} - {company_name}"
-                    })
-
-                except Exception as e:
-                    print(f"⚠️  잡코리아 아이템 파싱 실패: {e}")
-                    continue
-
-        except Exception as e:
-            print(f"⚠️  잡코리아 크롤링 실패: {e}")
-
-        return jobs
 
     def _match_jobs_with_skills(self, job_listings, user_skills, skill_levels, readiness_score):
         """
@@ -1756,15 +1678,15 @@ class JobPlannerRecommendView(APIView):
                         user_emb = embedding_model.encode([user_normalized], normalize_embeddings=True)
                         similarity = float((user_emb @ job_emb.T)[0][0])
 
-                        # 높은 threshold (0.75)
-                        if similarity >= 0.75 and similarity > best_score:
+                        # 높은 threshold (0.85)
+                        if similarity >= 0.85 and similarity > best_score:
                             best_match = user_skill
                             best_score = similarity
                             best_user_idx = j
                             match_type = "similar"
 
-                # 매칭 성공 시 저장 (75% 이상)
-                if best_match and best_score >= 0.75:
+                # 매칭 성공 시 저장 (85% 이상)
+                if best_match and best_score >= 0.85:
                     matched_skills.append({
                         "job_skill": job_skill,
                         "user_skill": best_match,

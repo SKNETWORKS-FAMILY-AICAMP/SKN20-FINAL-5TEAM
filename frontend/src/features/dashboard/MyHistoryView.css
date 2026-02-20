@@ -656,3 +656,341 @@
 .fade-leave-to {
     opacity: 0;
 }
+
+/* ============================================================ */
+/* [2026-02-20] 버그헌트 전용 UI 스타일 */
+/* ============================================================ */
+
+.bughunt-log {
+  margin-top: 16px;
+}
+
+.bughunt-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e0e0e0;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ============================================================ */
+/* [2026-02-20] 꼬리질문 면접 UI 스타일 */
+/* ============================================================ */
+
+.step-number {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.bughunt-interview {
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.interview-card {
+  background: rgba(103, 126, 234, 0.03);
+  border: 1px solid rgba(103, 126, 234, 0.15);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.interview-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.interview-score {
+  background: rgba(76, 175, 80, 0.15);
+  color: #4caf50;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.interview-score.perfect {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+}
+
+.interview-score.good {
+  background: rgba(139, 195, 74, 0.15);
+  color: #8bc34a;
+}
+
+.interview-score.average {
+  background: rgba(255, 193, 7, 0.15);
+  color: #ffc107;
+}
+
+.interview-score.low {
+  background: rgba(255, 152, 0, 0.15);
+  color: #ff9800;
+}
+
+.understanding-level {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.understanding-level.deep {
+  background: rgba(76, 175, 80, 0.15);
+  color: #4caf50;
+}
+
+.understanding-level.conceptual {
+  background: rgba(33, 150, 243, 0.15);
+  color: #2196f3;
+}
+
+.understanding-level.surface {
+  background: rgba(255, 193, 7, 0.15);
+  color: #ffc107;
+}
+
+.understanding-level.none {
+  background: rgba(158, 158, 158, 0.15);
+  color: #9e9e9e;
+}
+
+.matched-concepts,
+.conversation,
+.weak-point {
+  margin-top: 12px;
+}
+
+.concepts-label,
+.conversation-label,
+.weak-label {
+  font-size: 11px;
+  color: #9e9e9e;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.concept-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.concept-tag {
+  background: rgba(33, 150, 243, 0.1);
+  color: #64b5f6;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  border: 1px solid rgba(33, 150, 243, 0.2);
+}
+
+/* 채팅창 스타일 */
+.conversation {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.conversation-msg {
+  display: flex;
+  margin-bottom: 12px;
+  gap: 8px;
+}
+
+/* 면접관 메시지 (왼쪽 정렬) */
+.conversation-msg.interviewer {
+  flex-direction: row;
+  justify-content: flex-start;
+}
+
+/* 나의 메시지 (오른쪽 정렬) */
+.conversation-msg.candidate {
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+}
+
+/* 아바타/아이콘 */
+.msg-role {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.conversation-msg.interviewer .msg-role {
+  background: rgba(103, 126, 234, 0.2);
+  color: #667eea;
+  border: 2px solid rgba(103, 126, 234, 0.4);
+}
+
+.conversation-msg.candidate .msg-role {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+  border: 2px solid rgba(76, 175, 80, 0.4);
+}
+
+/* 말풍선 */
+.msg-content {
+  max-width: 70%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+  word-wrap: break-word;
+}
+
+.conversation-msg.interviewer .msg-content {
+  background: rgba(103, 126, 234, 0.12);
+  color: #e0e0e0;
+  border-bottom-left-radius: 4px;
+}
+
+.conversation-msg.candidate .msg-content {
+  background: rgba(76, 175, 80, 0.12);
+  color: #e0e0e0;
+  border-bottom-right-radius: 4px;
+}
+
+.weak-point p {
+  background: rgba(255, 152, 0, 0.08);
+  border-left: 3px solid rgba(255, 152, 0, 0.5);
+  padding: 10px 12px;
+  color: #ffb74d;
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+  border-radius: 4px;
+}
+
+/* ============================================================ */
+/* [2026-02-20] 면접관 종합 총평 스타일 */
+/* ============================================================ */
+
+.final-summary {
+  background: linear-gradient(135deg, rgba(103, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+  border: 2px solid rgba(103, 126, 234, 0.3);
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 20px;
+}
+
+.summary-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(103, 126, 234, 0.2);
+}
+
+.summary-icon {
+  font-size: 20px;
+}
+
+.summary-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #e0e0e0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.summary-content {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+
+.summary-content p {
+  color: #f0f0f0;
+  font-size: 14px;
+  line-height: 1.7;
+  margin: 0;
+}
+
+.summary-scores {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.summary-score-item {
+  flex: 1;
+  min-width: 120px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.summary-score-item .label {
+  font-size: 11px;
+  color: #9e9e9e;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.summary-score-item .value {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+/* 점수 등급별 색상 */
+.summary-score-item .value.perfect {
+  color: #4caf50;
+}
+
+.summary-score-item .value.good {
+  color: #8bc34a;
+}
+
+.summary-score-item .value.average {
+  color: #ffc107;
+}
+
+.summary-score-item .value.low {
+  color: #ff9800;
+}
+
+.summary-score-item .value.risk.high {
+  color: #f44336;
+}
+
+.summary-score-item .value.risk.medium {
+  color: #ff9800;
+}
+
+.summary-score-item .value.risk.low {
+  color: #4caf50;
+}
+
+.summary-score-item .value.safe {
+  color: #4caf50;
+}
+
+.summary-score-item .value.danger {
+  color: #f44336;
+}

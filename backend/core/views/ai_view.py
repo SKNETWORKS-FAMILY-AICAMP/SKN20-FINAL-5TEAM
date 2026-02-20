@@ -635,7 +635,10 @@ class BugHuntInterviewView(APIView):
 {{
   "type": "evaluation",
   "message": "2~3문장의 종합 피드백 (잘한 점 + 부족한 점)",
-  "score": 0에서 100 사이 정수,
+  "score": 0에서 100 사이 정수 (core + mechanism + application의 합),
+  "core_score": 0에서 40 사이 정수,
+  "mechanism_score": 0에서 35 사이 정수,
+  "application_score": 0에서 25 사이 정수,
   "understanding_level": "Excellent|Good|Surface|Poor",
   "matched_concepts": ["유저가 보여준 개념들"],
   "weak_point": "부족한 부분 (없으면 null)"

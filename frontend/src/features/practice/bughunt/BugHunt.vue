@@ -1935,12 +1935,12 @@ function continueStepAfterReview() {
 }
 
 // 다음 문제로 이동 (설명 완료 후)
-function moveToNextStep() {
+async function moveToNextStep() {
   if (currentProgressiveStep.value < totalStepsComputed.value) {
     currentProgressiveStep.value++;
     startDebugPhase();
   } else {
-    completeMission();
+    await completeMission();
   }
 }
 
@@ -2087,6 +2087,12 @@ async function submitInterviewAnswer() {
         });
         interviewResult.value = normalized;
 
+        // [2026-02-20] 면접 대화를 구조화된 데이터로 저장 (마이 히스토리 채팅창 UI용)
+        interviewResult.value.conversation_summary = interviewMessages.value.map(m => ({
+          role: m.role === 'assistant' ? 'interviewer' : 'candidate',
+          content: m.content
+        }));
+
         const conversationSummary = interviewMessages.value
           .map((m) => `${m.role === 'assistant' ? '면접관' : '나'}: ${m.content}`)
           .join('\n');
@@ -2135,8 +2141,8 @@ function finishInterview() {
       }
     }, 500);
   } else {
-    scheduleTimeout(() => {
-      completeMission();
+    scheduleTimeout(async () => {
+      await completeMission();
     }, 500);
   }
 }
@@ -2175,8 +2181,8 @@ function handleStrategySubmit() {
       }
     }, 500);
   } else {
-    scheduleTimeout(() => {
-      completeMission();
+    scheduleTimeout(async () => {
+      await completeMission();
     }, 500);
   }
 }
@@ -2325,7 +2331,7 @@ function submitTutorialChoice() {
 }
 
 // Tutorial Phase C - 리뷰 + 스테이지 클리어
-function completeTutorialStage() {
+async function completeTutorialStage() {
   const totalSteps = currentProgressiveMission.value.totalSteps || 1;
 
   if (currentProgressiveStep.value < totalSteps) {
@@ -2357,7 +2363,7 @@ function completeTutorialStage() {
     });
   } else {
     // 마지막 step → 미션 완료
-    completeMission();
+    await completeMission();
   }
 }
 
@@ -2392,7 +2398,7 @@ function submitGuidedBlank(stepNum) {
       const totalSteps = currentProgressiveMission.value.totalSteps;
       holdStepResult(stepData, {
         isFinal: stepNum >= totalSteps,
-        onContinue: () => {
+        onContinue: async () => {
           if (stepNum < totalSteps) {
             currentProgressiveStep.value = stepNum + 1;
             const nextStepData = getCurrentStepData();
@@ -2401,7 +2407,7 @@ function submitGuidedBlank(stepNum) {
               clueMessages.value.push({ type: 'ERROR', text: nextStepData.error_log, isNew: true });
             }
           } else {
-            completeMission();
+            await completeMission();
           }
         }
       });
@@ -2488,7 +2494,7 @@ function submitLineEdit() {
       const totalSteps = currentProgressiveMission.value.totalSteps;
       holdStepResult(stepData, {
         isFinal: currentProgressiveStep.value >= totalSteps,
-        onContinue: () => {
+        onContinue: async () => {
           if (currentProgressiveStep.value < totalSteps) {
             currentProgressiveStep.value++;
             lineEditPhase.value = 'find';
@@ -2504,7 +2510,7 @@ function submitLineEdit() {
               clueMessages.value.push({ type: 'ERROR', text: nextStepData.error_log, isNew: true });
             }
           } else {
-            completeMission();
+            await completeMission();
           }
         }
       });
@@ -2706,7 +2712,7 @@ function onBugClick(step) {
 }
 
 // 미션 완료 처리
-function completeMission() {
+async function completeMission() {
   const missionId = `progressive_${currentProgressiveMission.value.id}`;
   if (!gameData.completedProblems.includes(missionId)) {
     gameData.completedProblems.push(missionId);
@@ -2733,11 +2739,15 @@ function completeMission() {
   addXP(progressiveMissionXP.value);
   gameData.totalScore += progressiveMissionScore.value;
 
-  // 백엔드 activity API에 점수 제출 (Protein Shake 적립)
-  submitToActivity();
-
   checkAchievements();
-  showEvaluation();
+
+  // [2026-02-20] AI 평가를 먼저 실행한 후 DB에 저장
+  // 평가 결과가 llm_evaluation 필드에 포함되어야 마이 히스토리에서 총평이 표시됨
+  await showEvaluation();
+
+  // 백엔드 activity API에 점수 제출 (Protein Shake 적립)
+  // 이제 aiEvaluationResult.value가 설정된 상태이므로 llm_evaluation이 포함됨
+  submitToActivity();
 }
 
 // Activity API에 점수 제출 (Protein Shake 적립)
@@ -2755,11 +2765,106 @@ async function submitToActivity() {
       detail_id: detail_id,
       score: score,
       submitted_data: {
-        mission_id: currentProgressiveMission.value.id,
-        completed_steps: progressiveCompletedSteps.value.length,
-        total_steps: currentProgressiveMission.value.totalSteps,
-        hint_used: Object.values(progressiveHintUsed.value).filter(v => v).length,
-        retry_count: codeSubmitFailCount.value
+        // ============================================================
+        // === 기본 정보 ===
+        // ============================================================
+        title: currentProgressiveMission.value.title,                   // 문제 제목 (예: "Python 기초 버그 수정")
+        problem_id: `bughunt01_${currentProgressiveMission.value.id}`,  // 문제 고유 식별자 (예: bughunt01_S4)
+        mission_id: currentProgressiveMission.value.id,                 // 미션 ID (예: S4, S5)
+        completed_steps: progressiveCompletedSteps.value.length,        // 완료한 단계 개수
+        total_steps: currentProgressiveMission.value.totalSteps,        // 전체 단계 개수
+        hint_used: Object.values(progressiveHintUsed.value).filter(v => v).length,  // 사용한 힌트 총 개수
+        retry_count: codeSubmitFailCount.value,                         // 전체 재시도 횟수 (오답 횟수)
+        track_type: 'bughunt',                                          // 트랙 구분자 (버그헌트 식별용)
+
+        // ============================================================
+        // === 사용자 입력 로그 (에이전트 학습용) ===
+        // 각 단계별로 사용자가 입력한 모든 데이터를 배열 형태로 저장
+        // 에이전트가 사용자의 디버깅 패턴과 사고 과정을 학습하는 데 사용
+        // ============================================================
+        user_inputs: Object.keys(stepExplanations).map(step => ({
+          step: parseInt(step),                                                    // 단계 번호 (1, 2, 3...)
+          step_title: currentProgressiveMission.value?.steps?.[step - 1]?.title || `Step ${step}`,  // 단계 제목
+          user_code: progressiveStepCodes.value[step] || '',                       // 사용자가 수정한 코드
+          user_strategy: stepExplanations[step] || '',                             // 사용자가 작성한 디버깅 전략/설명
+          hint_used: progressiveHintUsed.value[step] || false,                     // 해당 단계에서 힌트 사용 여부
+          completed: progressiveCompletedSteps.value.includes(parseInt(step))      // 해당 단계 완료 여부
+        })).filter(item => item.user_code || item.user_strategy),  // 입력이 있는 단계만 저장
+
+        // ============================================================
+        // === LLM 평가 결과 (에이전트 학습용) ===
+        // BugHuntEvaluationView API의 응답 데이터
+        // 사용자의 디버깅 사고력을 5가지 기준으로 평가한 결과
+        // ============================================================
+        llm_evaluation: aiEvaluationResult.value ? {
+          thinking_pass: aiEvaluationResult.value.thinking_pass,        // 사고 방향 안전/위험 여부 (boolean)
+          thinking_score: aiEvaluationResult.value.thinking_score,      // 사고력 점수 (0-100)
+          code_risk: aiEvaluationResult.value.code_risk,                // 코드 위험도 (0-100, 높을수록 위험)
+          overall_feedback: aiEvaluationResult.value.총평,               // AI 평가 총평
+          step_feedbacks: aiEvaluationResult.value.step_feedbacks,      // 단계별 상세 피드백 [{step, feedback}]
+          evaluated_at: new Date().toISOString()                        // 평가 시각
+        } : null,
+
+        // ============================================================
+        // === 딥다이브 면접 결과 (에이전트 학습용) ===
+        // [2026-02-20] S4+ 면접 기능 연동: Step별 면접 대화 및 평가 결과 저장
+        // 사용자의 디버깅 개념 이해도를 파악하기 위한 면접 대화 기록
+        // ============================================================
+        followup_interactions: Object.keys(stepInterviewResults).map(step => {
+          const result = stepInterviewResults[step];
+          return {
+            step: parseInt(step),                                      // 단계 번호
+            score: result.score || 0,                                  // 면접 총점 (0-100)
+            core_score: result.core_score || 0,                        // [2026-02-20] 핵심 원인 이해도 (0-40)
+            mechanism_score: result.mechanism_score || 0,              // [2026-02-20] 내부 동작 이해도 (0-35)
+            application_score: result.application_score || 0,          // [2026-02-20] 실무 적용 능력 (0-25)
+            understanding_level: result.understanding_level || '',     // 이해 수준 (Excellent/Good/Surface/Poor)
+            matched_concepts: result.matched_concepts || [],           // 파악한 개념들
+            weak_point: result.weak_point || '',                       // 보완 필요 사항
+            conversation_summary: result.conversation_summary || [],   // 대화 요약 [{role, content}]
+            evaluated_at: result.evaluated_at || new Date().toISOString()  // 평가 시각
+          };
+        }),
+
+        // ============================================================
+        // === 행동 패턴 로그 (에이전트 학습용) ===
+        // 사용자의 문제 풀이 행동 패턴을 시간, 힌트 사용, 성과 등으로 분석
+        // 에이전트가 사용자의 학습 스타일과 효율성을 파악하는 데 사용
+        // ============================================================
+        behavior_log: {
+          total_debug_time_seconds: totalDebugTime.value,               // 총 디버깅 소요 시간 (초)
+          hint_usage_per_step: progressiveHintUsed.value,               // 단계별 힌트 사용 여부 {1: true, 2: false, ...}
+          perfect_clears: evaluationStats.perfectClears,                // 한 번에 성공한 단계 개수 (완벽 클리어)
+          total_retries: codeSubmitFailCount.value,                     // 전체 재시도 횟수
+          submission_timestamp: new Date().toISOString()                // 제출 시각
+        },
+
+        // ============================================================
+        // === 약점 분석 지표 (에이전트가 맞춤 문제 생성용) ===
+        // 사용자가 어려워하는 부분을 정량적으로 분석한 지표
+        // 에이전트가 이 데이터를 기반으로 취약 영역에 맞춤형 문제를 생성
+        // ============================================================
+        weakness_indicators: {
+          retry_count: codeSubmitFailCount.value,                       // 재시도 횟수 (높을수록 어려움을 겪음)
+          hints_needed: Object.values(progressiveHintUsed.value).filter(v => v).length,  // 필요한 힌트 개수
+          struggled_steps: Array.from({length: currentProgressiveMission.value.totalSteps}, (_, i) => i + 1)
+            .filter(step => !progressiveCompletedSteps.value.includes(step)),  // 완료하지 못한 단계들
+          incomplete_strategies: Object.keys(stepExplanations)
+            .filter(step => progressiveCompletedSteps.value.includes(parseInt(step)) && !stepExplanations[step])
+            .map(step => parseInt(step)),                               // 완료했지만 전략을 작성하지 않은 단계들
+          performance_indicator: score >= 90 ? 'excellent' : score >= 70 ? 'good' : score >= 50 ? 'average' : 'needs_improvement'  // 전반적 성과 지표
+        },
+
+        // ============================================================
+        // === 원본 데이터 보존 (에이전트 학습용) ===
+        // 가공되지 않은 원본 데이터를 그대로 저장
+        // 추후 데이터 재분석이나 새로운 학습 알고리즘 적용 시 활용
+        // ============================================================
+        raw_data: {
+          step_codes: progressiveStepCodes.value,                       // 단계별 코드 원본 {1: '...', 2: '...', ...}
+          step_explanations: stepExplanations,                          // 단계별 설명 원본 {1: '...', 2: '...', ...}
+          clue_messages: clueMessages.value                             // 단서 메시지 로그 (AI가 제공한 힌트들)
+        }
       }
     });
 
