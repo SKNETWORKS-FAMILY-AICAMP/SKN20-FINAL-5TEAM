@@ -32,7 +32,7 @@ export default {
     type: {
       type: String,
       default: 'guide',
-      validator: (value) => ['guide', 'connect', 'place', 'hint'].includes(value)
+      validator: (value) => ['guide', 'connect', 'place', 'hint', 'success'].includes(value)
     }
   },
   emits: ['dismiss']
@@ -90,6 +90,10 @@ export default {
   animation: hint-toast-pulse 1.5s infinite;
 }
 
+.detective-toast.success {
+  border-color: var(--green);
+}
+
 @keyframes hint-toast-pulse {
   0%, 100% { box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); }
   50% { box-shadow: 0 10px 40px rgba(245, 245, 87, 0.3); }
@@ -137,6 +141,10 @@ export default {
 
 .detective-toast.hint .toast-message {
   color: var(--yellow);
+}
+
+.detective-toast.success .toast-message {
+  color: var(--green);
 }
 
 .toast-dismiss {

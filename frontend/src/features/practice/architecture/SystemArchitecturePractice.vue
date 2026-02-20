@@ -158,8 +158,10 @@ import { useCanvasState } from './composables/useCanvasState';
 import { useEvaluation } from './composables/useEvaluation';
 
 // Services & Utils
-import { fetchProblems } from './services/architectureApiFastTest';
 import { transformProblems } from './utils/architectureUtils';
+
+// [2026-02-20 수정] 맵 진행도 해금을 위해 게임 스토어 추가
+import { useGameStore } from '@/stores/game';
 
 export default {
   name: 'SystemArchitectureChallenge',
@@ -360,8 +362,17 @@ export default {
     // === Problem Loading ===
     async loadProblems() {
       try {
-        const data = await fetchProblems();
-        this.problems = transformProblems(data);
+        // DB에서 문제 데이터 로드
+        const response = await fetch('/api/core/practices/unit03/');
+        const practiceData = await response.json();
+
+        // details 배열에서 content_data 추출하고 practice_detail_id 추가
+        const problemsFromDB = practiceData.details.map(detail => ({
+          ...detail.content_data,
+          practice_detail_id: detail.id  // DB ID를 추가로 저장 (제출 시 사용)
+        }));
+
+        this.problems = transformProblems(problemsFromDB);
         if (this.currentProblemIndex >= this.problems.length) {
           this.currentProblemIndex = 0;
         }
@@ -634,6 +645,10 @@ export default {
         // ✅ 60점 이상이면 통과
         if (score >= 60) {
           this.completeProblem(problemId, score);
+
+          // [2026-02-20 수정] 맵 진행도 해금 - gameStore에 현재 문제 인덱스 전달
+          const gameStore = useGameStore();
+          gameStore.unlockNextStage('System Practice', this.currentProblemIndex);
 
           // 다음 문제가 있으면 자동으로 이동 안내
           if (this.currentProblemIndex < this.problems.length - 1) {

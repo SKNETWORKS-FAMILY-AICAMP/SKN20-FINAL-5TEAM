@@ -162,6 +162,11 @@
             <span class="btn-text">TRY AGAIN</span>
             <span class="btn-glow"></span>
           </button>
+          <!-- 홈 버튼 -->
+          <button class="btn-home" @click="goToHome">
+            <span class="btn-text">HOME</span>
+            <span class="btn-glow"></span>
+          </button>
         </div>
       </div>
     </div>
@@ -263,7 +268,9 @@ export default {
     toggleAccordion(index) {
       this.expandedIndex = this.expandedIndex === index ? null : index;
     },
-
+    goToHome() {
+      this.$router.push('/');
+    }
   }
 };
 </script>
@@ -1020,10 +1027,15 @@ export default {
   background: linear-gradient(135deg, #ffd700, #ff8800);
 }
 
+.btn-home {
+  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+}
+
 /* 호버 효과 */
 .btn-retry:hover,
 .btn-next:hover,
-.btn-complete:hover {
+.btn-complete:hover,
+.btn-home:hover {
   transform: translateY(-3px);
 }
 
@@ -1039,9 +1051,14 @@ export default {
   box-shadow: 0 10px 30px rgba(255, 215, 0, 0.4);
 }
 
+.btn-home:hover {
+  box-shadow: 0 10px 30px rgba(139, 92, 246, 0.4);
+}
+
 .btn-retry:hover .btn-glow,
 .btn-next:hover .btn-glow,
-.btn-complete:hover .btn-glow {
+.btn-complete:hover .btn-glow,
+.btn-home:hover .btn-glow {
   left: 100%;
 }
 
