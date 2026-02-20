@@ -15,6 +15,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
+from core.services.activity_service import save_user_problem_record
+from core.models import UserProfile
 
 from core.services.pseudocode_evaluator import (
     PseudocodeEvaluator,
@@ -26,6 +28,30 @@ from core.services.pseudocode_evaluator import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+
+def normalize_quest_id(quest_id):
+    """
+    다양한 형식의 quest_id를 MISSION_BLUEPRINTS와 호환되는 정규화된 형식으로 변환함
+    - 예: 'unit0101' -> '1', 'QUEST_01' -> '1', '1' -> '1'
+    """
+    if not quest_id: return "1"
+    q_str = str(quest_id).upper()
+    
+    if q_str.startswith('UNIT01'):
+        try:
+            return str(int(q_str[6:]))
+        except: pass
+    elif q_str.startswith('QUEST_'):
+        try:
+            return str(int(q_str[6:]))
+        except: pass
+    
+    # 숫자만 추출
+    import re
+    nums = re.findall(r'\d+', q_str)
+    return nums[0] if nums else q_str
 
 
 @api_view(['POST'])
@@ -66,11 +92,57 @@ def evaluate_pseudocode_5d(request):
         result = evaluator.evaluate(eval_request)
         llm = result.llm_result
 
+        # [2026-02-18 상세] 평가 결과를 데이터베이스에 자동으로 기록함 (Antigravity)
+        try:
+            profile = UserProfile.objects.get(email=request.user.email)
+            normalized_id = normalize_quest_id(quest_id)
+            
+            # DB ID가 'unit01_01' 형식인지 확인하고 변환 (호환성 유지)
+            str_quest_id = str(quest_id)
+            target_detail_id = str_quest_id if (str_quest_id.startswith('unit') and '_' in str_quest_id) else f"unit01_{normalized_id.zfill(2)}"
+            
+            logger.info(f"[Evaluate] Auto-saving Unit 1 record: quest_id={quest_id}, target_detail_id={target_detail_id}")
+            
+            save_user_problem_record(
+                profile, 
+                target_detail_id, 
+                result.final_score, 
+                {
+                    'pseudocode': pseudocode,
+                    'evaluation': result.feedback,
+                    'is_auto_saved': True
+                }
+            )
+        except Exception as save_error:
+            logger.error(f"[Evaluate] Failed to auto-save record: {save_error}")
+
         return Response(_build_success_response(result, llm), status=status.HTTP_200_OK)
 
     # ── 무성의 입력 (정상 케이스) ─────────────────────────────────
     except LowEffortError as e:
         logger.info(f"[Evaluate] LowEffort detected for user={user_id}: {e.reason}")
+        
+        # [2026-02-18 상세] 무성의 입력도 기록으로 남김 (Antigravity)
+        try:
+            profile = UserProfile.objects.get(email=request.user.email)
+            normalized_id = normalize_quest_id(quest_id)
+            str_quest_id = str(quest_id)
+            target_detail_id = str_quest_id if (str_quest_id.startswith('unit') and '_' in str_quest_id) else f"unit01_{normalized_id.zfill(2)}"
+            
+            save_user_problem_record(
+                profile, 
+                target_detail_id, 
+                0, # 0점
+                {
+                    'pseudocode': pseudocode,
+                    'reason': e.reason,
+                    'is_low_effort': True,
+                    'is_auto_saved': True
+                }
+            )
+        except Exception as save_error:
+            logger.error(f"[Evaluate] Failed to auto-save low-effort record: {save_error}")
+            
         return Response(
             _build_low_effort_response(e.reason),
             status=status.HTTP_200_OK,

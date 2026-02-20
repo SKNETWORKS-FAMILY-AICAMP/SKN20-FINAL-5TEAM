@@ -200,7 +200,7 @@ class UserSolvedProblemView(APIView):
                 'score': sp.score,
                 'submitted_data': sp.submitted_data,
                 'is_perfect': sp.is_perfect,
-                'updated_at': sp.updated_at
+                'updated_at': sp.update_date
             })
             
         return Response(data, status=status.HTTP_200_OK)

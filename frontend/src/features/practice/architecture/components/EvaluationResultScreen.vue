@@ -143,6 +143,8 @@
           </ul>
         </div>
 
+
+
         <!-- 버튼 -->
         <div class="action-buttons">
           <!-- ✅ 60점 이상이고 다음 문제가 있으면 다음 단계 버튼 표시 -->
@@ -260,7 +262,8 @@ export default {
     },
     toggleAccordion(index) {
       this.expandedIndex = this.expandedIndex === index ? null : index;
-    }
+    },
+
   }
 };
 </script>
@@ -798,6 +801,126 @@ export default {
 
 .feedback-card.strengths { border-color: rgba(0, 243, 255, 0.3); }
 .feedback-card.weaknesses { border-color: rgba(255, 0, 255, 0.3); }
+
+/* Curation Section */
+.curation-section {
+  margin-top: 30px;
+}
+
+.curation-message {
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  margin-bottom: 15px;
+  font-style: italic;
+}
+
+.video-scroll-container {
+  display: flex;
+  gap: 15px;
+  overflow-x: auto;
+  padding-bottom: 15px; /* 스크롤바 공간 확보 */
+  scroll-behavior: smooth;
+  /* 스크롤바 커스텀 */
+  scrollbar-width: thin;
+  scrollbar-color: var(--neon-purple) transparent;
+}
+
+.video-scroll-container::-webkit-scrollbar {
+  height: 6px;
+}
+
+.video-scroll-container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+}
+
+.video-scroll-container::-webkit-scrollbar-thumb {
+  background: var(--neon-purple);
+  border-radius: 3px;
+}
+
+.video-card {
+  min-width: 200px;
+  max-width: 200px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.video-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--neon-cyan);
+  box-shadow: 0 5px 15px rgba(0, 243, 255, 0.2);
+}
+
+.video-thumbnail {
+  width: 100%;
+  padding-top: 56.25%; /* 16:9 비율 */
+  position: relative;
+  background: #000;
+}
+
+.video-thumbnail img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.8;
+  transition: opacity 0.3s;
+}
+
+.video-card:hover .video-thumbnail img {
+  opacity: 1;
+}
+
+.play-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #fff;
+  font-size: 1.5rem;
+  opacity: 0;
+  transition: opacity 0.3s;
+  text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+}
+
+.video-card:hover .play-overlay {
+  opacity: 1;
+}
+
+.video-info {
+  padding: 10px;
+}
+
+.video-title {
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  margin: 0 0 5px 0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  height: 2.8em; /* 2줄 높이 고정 */
+}
+
+.video-channel {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 .feedback-card h4 {
   font-family: 'Orbitron', sans-serif;

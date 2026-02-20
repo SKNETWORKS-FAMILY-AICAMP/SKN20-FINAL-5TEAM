@@ -385,9 +385,9 @@
                               <h3 class="path-heading-neo"><Play size="18" class="mr-2" /> 📺 취약 지표 기반 맞춤 학습 큐레이션</h3>
                           </div>
                           
-                          <div class="path-grid-neo">
+                          <div class="video-scroll-container-neo">
                                <!-- [2026-02-14] API로 실시간 연동된 추천 영상 목록 표시 -->
-                               <div v-for="video in (evaluationResult.supplementaryVideos || []).slice(0, 3)" :key="video.videoId" class="path-card-neo curation-card">
+                               <div v-for="video in (evaluationResult.supplementaryVideos || [])" :key="video.videoId" class="path-card-neo curation-card scroll-item">
                                   <a :href="video.url" target="_blank" class="p-link-neo">
                                       <div class="p-thumbnail border-b border-white/5 overflow-hidden rounded-t-xl mb-3">
                                           <img :src="video.thumbnail" :alt="video.title" class="w-full h-auto transform hover:scale-105 transition-transform" />
@@ -402,7 +402,7 @@
                                </div>
 
                                            <!-- 추천 영상이 없을 경우 폴백 -->
-                               <div v-if="!evaluationResult.supplementaryVideos?.length" class="path-card-neo curation-card weakest-focus">
+                               <div v-if="!evaluationResult.supplementaryVideos?.length" class="path-card-neo curation-card scroll-item weakest-focus">
                                   <div class="weakest-badge">🚨 취약 지표 집중 보완</div>
                                   <p class="text-slate-400 text-sm mt-4">추천 영상을 불러오는 중입니다...</p>
                                </div>

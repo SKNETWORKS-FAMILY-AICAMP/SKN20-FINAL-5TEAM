@@ -3150,3 +3150,32 @@
 .btn-neo-complete:hover::after {
   left: 100%;
 }
+/* [2026-02-19] Horizontal Scroll for YouTube Curation */
+.video-scroll-container-neo {
+  display: flex;
+  overflow-x: auto;
+  gap: 20px;
+  padding-bottom: 20px;
+  scrollbar-width: thin;
+  scrollbar-color: #3b82f6 rgba(255, 255, 255, 0.05);
+}
+
+.video-scroll-container-neo::-webkit-scrollbar {
+  height: 8px;
+}
+
+.video-scroll-container-neo::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.video-scroll-container-neo::-webkit-scrollbar-thumb {
+  background: #3b82f6;
+  border-radius: 4px;
+}
+
+.scroll-item {
+  min-width: 320px;
+  width: 320px;
+  flex-shrink: 0;
+}

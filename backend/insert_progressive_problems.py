@@ -1,5 +1,6 @@
 """
 Progressive Problems 데이터를 gym_practice_detail 테이블에 삽입하는 스크립트
+docker compose exec backend python insert_progressive_problems.py
 """
 import os
 import sys
@@ -28,27 +29,10 @@ def load_progressive_problems():
 def insert_progressive_problems():
     """Progressive Problems를 데이터베이스에 삽입"""
 
-    # 1. Practice 확인 또는 생성 (버그헌트 연습)
-    practice_id = 'bughunt01'
+    # 1. Practice 확인 또는 생성 (fixture의 unit02 활용)
+    practice_id = 'unit02'
     practice, created = Practice.objects.get_or_create(
         id=practice_id,
-        defaults={
-            'unit_number': 99,  # 임시 번호, 필요시 수정
-            'level': 1,
-            'title': 'Bug Hunt Practice',
-            'subtitle': 'Progressive Bug Hunting Problems',
-            'participant_count': 0,
-            'color_code': '#ff6b6b',
-            'icon_name': 'bug',
-            'max_points': 1000,
-            'display_order': 99,
-            'is_active': True,
-            'use_yn': 'Y',
-            'create_id': 'system',
-            'update_id': 'system',
-            'create_date': datetime.now(),
-            'update_date': datetime.now()
-        }
     )
 
     if created:
@@ -65,7 +49,7 @@ def insert_progressive_problems():
     updated_count = 0
 
     for idx, problem in enumerate(problems, 1):
-        detail_id = f"{practice_id}_{problem['id']}"
+        detail_id = f"{practice_id}_{idx:02d}"
 
         # 문제 데이터 준비
         detail_data = {

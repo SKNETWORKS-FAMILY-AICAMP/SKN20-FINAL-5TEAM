@@ -2372,7 +2372,7 @@ function completeMission() {
 // Activity API에 점수 제출 (Protein Shake 적립)
 async function submitToActivity() {
   try {
-    const detail_id = `bughunt01_${currentProgressiveMission.value.id}`;
+    const detail_id = currentProgressiveMission.value.practice_detail_id;
     const score = progressiveMissionScore.value;
 
     await axios.post('/api/core/activity/submit/', {
@@ -2772,7 +2772,7 @@ const fetchProgressiveProblems = async () => {
     error.value = null;
 
     // Practice API를 사용해서 전체 details를 가져오기
-    const response = await axios.get('/api/core/practices/bughunt01/');
+    const response = await axios.get('/api/core/practices/unit02/');
 
     console.log('🔍 API Response:', response);
     console.log('📦 Response Data:', response.data);
@@ -2782,7 +2782,7 @@ const fetchProgressiveProblems = async () => {
     // details는 [{ id: 'bughunt01_S1', content_data: {...} }, ...] 형태
     if (response.data.details && Array.isArray(response.data.details)) {
       progressiveProblems.value = response.data.details
-        .map(detail => detail.content_data)
+        .map(detail => ({ ...detail.content_data, practice_detail_id: detail.id }))
         .filter(data => data && data.id); // id가 있는 유효한 문제만 필터링
     } else {
       progressiveProblems.value = [];
