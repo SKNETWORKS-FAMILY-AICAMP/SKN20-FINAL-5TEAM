@@ -2,21 +2,20 @@
  * Architecture Rubric-Based Evaluation Service
  *
  * 🎯 루브릭 기반 평가 (0점부터 시작)
- * [수정일: 2026-02-20] 완전 리팩토링 - 책임분리 완료
- * - 프롬프트 생성: architecturePromptTemplates.js
+ * [수정일: 2026-02-20] 책임분리 완료
+ * - 프롬프트 생성: 백엔드 (architecture_view.py)
  * - LLM 호출: 백엔드 API
- * - 프론트엔드: 데이터 → 프롬프트 생성 → 백엔드 API 호출 → 결과 처리
+ * - 프론트엔드: 데이터 수집 → 백엔드 API 호출 → 결과 처리
  */
-
-import { generateRubricPrompt, formatAxisWeights } from './architecturePromptTemplates.js';
 
 /**
  * 🔥 루브릭 기반 평가 실행
  *
  * 프로세스:
- * 1. 프롬프트 생성 (architecturePromptTemplates.js)
+ * 1. 데이터 준비 (프롬프트 생성 X - 백엔드에서 처리)
  * 2. 백엔드 API 호출 (/api/core/architecture/evaluate/)
- * 3. 결과 처리 및 변환
+ * 3. 백엔드에서 프롬프트 생성 + LLM 호출
+ * 4. 결과 처리 및 변환
  */
 export async function evaluateWithRubric(
   problem,
@@ -30,15 +29,7 @@ export async function evaluateWithRubric(
   const qnaArray = Array.isArray(deepDiveQnA) ? deepDiveQnA : [];
 
   try {
-    // Step 1: 프롬프트 생성
-    const prompt = generateRubricPrompt(
-      problem,
-      architectureContext,
-      userExplanation,
-      qnaArray
-    );
-
-    // Step 2: 백엔드 API 호출
+    // Step 1: 백엔드 API 호출 (프롬프트는 백엔드에서 생성)
     const response = await fetch('/api/core/architecture/evaluate/', {
       method: 'POST',
       headers: {
@@ -48,8 +39,8 @@ export async function evaluateWithRubric(
         problem,
         architectureContext,
         userExplanation,
-        deepDiveQnA: qnaArray,
-        prompt  // 프롬프트를 백엔드로 전송
+        deepDiveQnA: qnaArray
+        // 프롬프트는 백엔드에서 생성하므로 전송하지 않음
       })
     });
 
@@ -235,7 +226,3 @@ function generateFallbackResult(qnaArray, axisWeights) {
   };
 }
 
-/**
- * 내보내기
- */
-export { formatAxisWeights };
