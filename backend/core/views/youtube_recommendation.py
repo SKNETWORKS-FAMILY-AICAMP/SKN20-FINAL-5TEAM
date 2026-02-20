@@ -20,7 +20,17 @@ def get_youtube_recommendations(request):
         quest_title = request.data.get('quest_title', '머신러닝 전처리')
         
         # 1. 큐레이션 매핑 확인 (Prioritized)
-        from core.utils.curated_videos import QUEST_VIDEO_MAP
+        # [2026-02-21] core.utils.curated_videos 삭제에 따른 통합 리소스(QUEST_VIDEOS)로 변경
+        from core.services.quest_resources import QUEST_VIDEOS
+        from core.views.pseudocode_evaluation import normalize_quest_id
+        
+        # quest_id가 있으면 우선 사용, 없으면 타이틀에서 추출 시도
+        quest_id = request.data.get('quest_id')
+        if not quest_id:
+            from core.services.quest_rubrics import extract_quest_id_from_title
+            quest_id = extract_quest_id_from_title(quest_title)
+        
+        qid = int(normalize_quest_id(quest_id))
         
         # 점수가 있는 지표 중 가장 낮은 것 추출
         valid_dims = {}
@@ -34,14 +44,30 @@ def get_youtube_recommendations(request):
         if valid_dims:
             weakest_dim = min(valid_dims.items(), key=lambda x: x[1])[0]
 
-        # 큐레이션된 영상이 있는지 확인
-        if quest_title in QUEST_VIDEO_MAP and weakest_dim in QUEST_VIDEO_MAP[quest_title]:
-            curated_video = QUEST_VIDEO_MAP[quest_title][weakest_dim]
-            print(f"[YouTube recommendations] Found curated video for {quest_title} -> {weakest_dim}")
-            return Response({
-                'query': f"Curated: {quest_title} - {weakest_dim}",
-                'videos': [curated_video] # 리스트 형태로 반환
-            }, status=status.HTTP_200_OK)
+        # 큐레이션된 영상이 있는지 확인 (Quest ID 기반)
+        if qid in QUEST_VIDEOS:
+            target_video = QUEST_VIDEOS[qid].get(str(weakest_dim))
+            if not target_video:
+                # 해당 차원 영상 없으면 default의 첫 번째 영상 사용
+                defaults = QUEST_VIDEOS[qid].get('default', [])
+                if defaults:
+                    target_video = defaults[0]
+
+            if target_video:
+                curated_video = {
+                    'title': target_video['title'],
+                    'url': f"https://www.youtube.com/watch?v={target_video['id']}",
+                    'thumbnail': f"https://img.youtube.com/vi/{target_video['id']}/hqdefault.jpg",
+                    'videoId': target_video['id'],
+                    'channelTitle': target_video.get('channel', ''),
+                    'description': target_video.get('desc', '')
+                }
+                
+                print(f"[YouTube recommendations] Found curated video for Quest {qid} -> {weakest_dim}")
+                return Response({
+                    'query': f"Curated: Quest {qid} - {weakest_dim}",
+                    'videos': [curated_video]
+                }, status=status.HTTP_200_OK)
 
         # 2. 폴백: 기존 검색 로직
         # 지표별 전문 검색어 매핑 (검색 적중률 향상을 위해 키워드 중심으로 최적화)

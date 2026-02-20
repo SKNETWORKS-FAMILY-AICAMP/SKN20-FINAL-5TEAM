@@ -33,13 +33,15 @@
 -   **`data/stages.js`**: 퀘스트 시나리오, 인터뷰 질문, 제공 스니펫 데이터 정의.
 -   **`backend/core/views/pseudocode_evaluation.py`**: **[핵심 로직]** 수석 아키텍트 관점의 AI 채점 프롬프트 및 규정 관리.
 
+-   **`backend/core/services/quest_resources.py`**: **[리소스 통합]** 모든 유튜브 추천 영상 및 차원별 우선순위 데이터를 관리하는 단일 소스(Source of Truth).
+
 ---
 
 ### 4. 관리 및 유지보수 가이드
--   **스테이지 추가 시**: `data/stages.js`에 시나리오를 추가한 후, 반드시 백엔드의 `MISSION_BLUEPRINTS`에도 해당 미션의 제약 조건을 업데이트해야 정밀한 채점이 가능합니다.
+-   **스테이지 추가 시**: `data/stages.js`에 시나리오를 추가한 후, 백엔드의 `MISSION_BLUEPRINTS`와 `quest_resources.py`에 해당 미션의 제약 조건 및 추천 영상을 업데이트해야 합니다.
 -   **평가 기준 조정**: 채점이 너무 짜거나 후하다고 느껴지면 백엔드의 `SYSTEM_PROMPT` 내 배점 수치(pts)를 조정하십시오.
--   **벤치마크 확인**: 최신 모델별 성능 분석 결과는 `backend/evaluation/pseudocode_comparison/results/` 폴더의 보고서들을 참고하십시오.
+-   **추천 영상 수정**: 프론트엔드의 `learningResources.js`는 폴백용이므로, 실제 추천 영상 데이터는 백엔드의 `quest_resources.py`를 수정하십시오.
 
 ---
-**수정 일자**: 2026.02.15
-**수정 내용**: BUGHUNT 스타일의 고도화된 평가 로직 및 일관성 확보 성과 반영
+**수정 일자**: 2026.02.21
+**수정 내용**: 백엔드 기반 리소스 통합(quest_resources.py) 및 프론트엔드 레거시 로직 제거 반영

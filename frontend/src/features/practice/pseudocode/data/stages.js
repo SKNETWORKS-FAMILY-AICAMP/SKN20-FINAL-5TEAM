@@ -1,9 +1,5 @@
-// ========================================
 // stages.js - Quest 완전판
-// [2026-02-14] 5차원 메트릭 및 2단계 검증(Trigger MCQ -> 3대 시나리오 Deep Dive) 통합
-// ========================================
-
-import { VALIDATION_LIBRARY, CODE_VALIDATION_LIBRARY } from './validationRules_COMPLETE.js';
+// [2026-02-21] 외부 하드코딩 검증 규칙(VALIDATION_LIBRARY) 제거 — 백엔드 기반으로 일원화
 
 export const aiQuests = [
     {
@@ -146,8 +142,6 @@ fit() 실행 시점에 Train/Test 분할이 되지 않아 Test 통계량이 Trai
             { id: 'check_consistency', label: '일관성 (Consistency) 확보', patterns: [/일관성|동일|변환|consistency|transform/i] }
         ],
         placeholder: "격리, 기준점, 일관성 원칙을 바탕으로 당신만의 데이터 전처리 설계를 서술하세요...\n예: 1. train_test_split으로 데이터를 분리한다.",
-        validation: VALIDATION_LIBRARY.data_leakage,
-        codeValidation: CODE_VALIDATION_LIBRARY.data_leakage,
 
         mapPos: { x: 100, y: 350 }
     },
@@ -291,8 +285,6 @@ test_score = 0.42   # 매우 낮음 → 과적합!
             { id: 'check_monitoring', label: '성능 모니터링 (Performance Monitoring)', patterns: [/성능|모니터링|추적|진단|accuracy|score|monitoring/i] }
         ],
         placeholder: "복잡도 제어, 특성 선택, 성능 모니터링 원칙을 바탕으로 과적합 방어 전략을 서술하세요...\n예: 1. Ridge 정규화를 적용하여 가중치를 제어한다.",
-        validation: VALIDATION_LIBRARY.overfitting_control,
-        codeValidation: CODE_VALIDATION_LIBRARY.overfitting_control,
 
         mapPos: { x: 300, y: 350 }
     },
@@ -435,8 +427,6 @@ anomaly_detected = 0  # 그런데 이상 거래는 하나도 찾지 못함
             { id: 'check_evaluation', label: '공정한 평가 (Fair Evaluation)', patterns: [/평가|지표|F1|AUC|Precision|Recall|metric|fair/i] }
         ],
         placeholder: "불균형 진단, 샘플링 전략, 공정한 평가 원칙을 바탕으로 불균형 데이터 처리 설계를 서술하세요...\n예: 1. SMOTE를 사용하여 소수 클래스를 오버샘플링한다.",
-        validation: VALIDATION_LIBRARY.class_imbalance,
-        codeValidation: CODE_VALIDATION_LIBRARY.class_imbalance,
 
         mapPos: { x: 500, y: 350 }
     },
@@ -585,8 +575,6 @@ accuracy = 0.68  # 낮은 성능
             { id: 'check_feature_selection', label: '특성 선택 (Feature Selection)', patterns: [/선택|중요도|제거|selection/i] }
         ],
         placeholder: "특성 창조, 변환, 선택 원칙을 바탕으로 피처 엔지니어링 전략을 서술하세요...\n예: 1. 도메인 지식을 활용해 파생 특성을 생성한다.",
-        validation: VALIDATION_LIBRARY.feature_engineering,
-        codeValidation: CODE_VALIDATION_LIBRARY.feature_engineering,
 
         mapPos: { x: 700, y: 350 }
     },
@@ -737,8 +725,6 @@ Random Forest 모델의 기본값 사용 시 정확도가 78%로 목표(88%)에 
             { id: 'check_cv', label: '교차검증 (Cross-Validation)', patterns: [/교차검증|신뢰|K-Fold|cv|valid/i] }
         ],
         placeholder: "파라미터 공간, 탐색 전략, 교차검증 원칙을 바탕으로 하이퍼파라미터 튜닝 전략을 서술하세요...\n예: 1. GridSearchCV로 최적의 파라미터를 탐색한다.",
-        validation: VALIDATION_LIBRARY.hyperparameter_tuning,
-        codeValidation: CODE_VALIDATION_LIBRARY.hyperparameter_tuning,
 
         mapPos: { x: 900, y: 350 }
     },
@@ -889,8 +875,6 @@ predictions = model.predict(X_test)
             { id: 'check_fairness', label: '공정성 검증 (Fairness Validation)', patterns: [/공정|검증|편향|차별|fair|bias/i] }
         ],
         placeholder: "전역적 해석, 개별적 해석, 공정성 검증 원칙을 바탕으로 모델 해석 시스템을 설계하세요...\n예: 1. SHAP 값을 계산하여 개별 예측의 기여도를 분석한다.",
-        validation: VALIDATION_LIBRARY.explainability,
-        codeValidation: CODE_VALIDATION_LIBRARY.explainability,
 
         mapPos: { x: 1100, y: 350 }
     }

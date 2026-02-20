@@ -244,11 +244,12 @@
                     :pseudocode="gameState.phase3Reasoning"
                     :python-code="evaluationResult.converted_python"
                     :evaluation-score="evaluationResult.overall_score"
-                    :evaluation-feedback="evaluationResult.one_line_review || evaluationResult.feedback"
+                    :evaluation-feedback="evaluationResult.senior_advice || evaluationResult.one_line_review || evaluationResult.feedback"
                     :mcq-data="evaluationResult.tail_question || evaluationResult.deep_dive"
                     :blueprint-steps="evaluationResult.blueprint_steps"
                     :assigned-scenario="gameState.assignedScenario"
                     :is-mcq-answered="gameState.isMcqAnswered"
+                    :is-processing="isProcessing"
                     @answer-mcq="handleMcqAnswer"
                     @retry-mcq="retryMcq"
                     @submit-descriptive="submitDescriptiveDeepDive"
@@ -408,8 +409,8 @@
                                </div>
                           </div>
 
-                          <!-- [2026-02-14] 마스터 레벨 전용 콘텐츠 -->
-                          <div v-if="evaluationResult.overall_score >= 80" class="master-next-level mt-10">
+                          <!-- [2026-02-20 수정] S-CLASS 임계값 상향 (90 -> 92) 및 명칭 동기화 -->
+                          <div v-if="evaluationResult.overall_score >= 92" class="master-next-level mt-10">
                               <div class="master-header">
                                   <h3 class="path-heading-neo master-glow"><CheckCircle size="18" class="mr-2" /> 🏆 S-CLASS 아키텍트 전용 심화 세션</h3>
                                   <p class="master-message">이미 설계 원칙을 완벽히 이해하셨군요! 이제는 엔터프라이즈 레벨의 확장을 고민할 때입니다.</p>
@@ -463,6 +464,30 @@
       <span class="toast-icon">!</span> {{ gameState.feedbackMessage }}
     </div>
 
+    <!-- [2026-02-21] 실습 종료 확인 모달 (NeoModal) -->
+    <Transition name="fade-in">
+      <div v-if="showCloseConfirmModal" class="neo-modal-overlay">
+        <div class="neo-modal-card">
+          <div class="modal-header-neo">
+            <AlertTriangle class="text-rose-400 w-6 h-6 mr-2" />
+            <h3 class="modal-title-neo">실습 종료</h3>
+          </div>
+          <div class="modal-body-neo">
+            <p class="modal-main-text">실습을 종료하고 목록으로 돌아가시겠습니까?</p>
+            <p class="modal-sub-text">현재까지 진행된 내용은 저장되지 않습니다.</p>
+          </div>
+          <div class="modal-footer-neo">
+            <button class="btn-modal-cancel" @click="showCloseConfirmModal = false">
+              계속 진행하기
+            </button>
+            <button class="btn-modal-confirm btn-modal-danger" @click="confirmClosePractice">
+              종료하기 <X class="w-4 h-4 ml-1" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
     <!-- [2026-02-19] 무성의 입력 경고용 프리미엄 모달 (NeoModal) -->
     <Transition name="fade-in">
       <div v-if="showLowEffortModal" class="neo-modal-overlay">
@@ -506,7 +531,8 @@ import {
   Activity, Layers, Cpu, Target, PlusCircle, AlertCircle, 
   PlaySquare, AlertTriangle, User
 } from 'lucide-vue-next';
-import { ComprehensiveEvaluator } from './evaluationEngine.js';
+// [2026-02-21] ComprehensiveEvaluator 삭제: 프론트엔드 독립 GPT 호출 제거
+// import { ComprehensiveEvaluator } from './evaluationEngine.js';
 import { generateCompleteLearningReport } from './reportGenerator.js';
 import { getRecommendedVideos } from './learningResources.js';
 import Chart from 'chart.js/auto';
@@ -673,10 +699,16 @@ const onTutorialComplete = () => {
     localStorage.setItem('pseudocode-tutorial-done', 'true');
 };
 
+// [2026-02-21] 실습 종료 확인 모달 (브라우저 confirm 제거)
+const showCloseConfirmModal = ref(false);
+
 const closePractice = () => {
-  if (confirm('실습을 종료하고 목록으로 돌아가시겠습니까?')) {
-    emit('close');
-  }
+  showCloseConfirmModal.value = true;
+};
+
+const confirmClosePractice = () => {
+  showCloseConfirmModal.value = false;
+  emit('close');
 };
 
 const resetFlow = () => {
@@ -707,38 +739,56 @@ const isNaturalLanguagePhase = computed(() => {
 // [2026-02-14] 5대 지표 평가 시스템 추가 (상태 변수는 상단으로 이동됨)
 
 async function runComprehensiveEvaluation() {
-  if (finalReport.value || isProcessing.value) return;
+  if (finalReport.value) return;
+  // isProcessing 체크 제거: Deep Dive 재평가 완료 직후 EVALUATION 진입 시
+  // isProcessing=true 상태일 수 있어 검정 화면이 되는 문제 방지
+  // 대신 이미 finalReport가 있으면 중복 실행 차단
   
   try {
     isProcessing.value = true;
     gameState.feedbackMessage = "시니어 아키텍트가 최종 검토 중입니다...";
     
-    const evaluator = new ComprehensiveEvaluator(getApiKey());
-    const evaluationResults = await evaluator.evaluate({
-      pseudocode: gameState.phase3Reasoning,
-      pythonCode: evaluationResult.converted_python || '',
-      deepdive: gameState.deepDiveAnswer || gameState.deepQuizAnswer || '',
-      deepdiveScenario: gameState.assignedScenario || deepQuizQuestion.value || {}
-    });
+    // [2026-02-20 수정] 프론트엔드 중복 평가 제거 및 백엔드 결과 단일화
+    // 이전에는 여기서 ComprehensiveEvaluator를 새로 돌렸으나, 
+    // 이제 백엔드(evaluationResult)에서 온 5대 지표 데이터를 그대로 활용함.
+    
+    const resultsForReport = {
+      metrics: evaluationResult.dimensions,
+      total: evaluationResult.overall_score,
+      questId: gameState.currentStageId || 1
+    };
 
-    // Quest ID 주입 (취약 차원 기반 유튜브 큐레이션에 사용)
-    evaluationResults.questId = gameState.currentStageId || 1;
+    // [2026-02-21] 백엔드 feedback 데이터 전달 (프론트 GPT 호출 제거)
+    const backendFeedback = {
+      persona: evaluationResult.persona_name,
+      summary: evaluationResult.one_line_review,
+      strengths: evaluationResult.strengths || [],
+      improvements: evaluationResult.weaknesses || [],
+      senior_advice: evaluationResult.senior_advice,
+    };
 
     finalReport.value = await generateCompleteLearningReport(
-      evaluationResults,
-      getApiKey()
+      resultsForReport,
+      null,
+      backendFeedback
     );
 
-    // YouTube API 결과 (thumbnail 포함) 를 supplementaryVideos에 저장
-    if (finalReport.value?.recommendedContent?.videos?.length) {
+    // 영상 큐레이션: 백엔드 응답에 있으면 우선 사용, 없으면 로컬 reportGenerator 폴백
+    if (evaluationResult.recommended_videos?.length) {
+      // 백엔드에서 제공한 큐레이션 직접 사용 (YouTube API 호출 불필요)
+      evaluationResult.supplementaryVideos = evaluationResult.recommended_videos;
+      console.log('[YouTube] 백엔드 큐레이션 사용:', evaluationResult.supplementaryVideos.length + '개');
+    } else if (finalReport.value?.recommendedContent?.videos?.length) {
+      // 폴백: 로컬 learningResources.js 큐레이션
       evaluationResult.supplementaryVideos = finalReport.value.recommendedContent.videos;
+      console.log('[YouTube] 로컈 폴백 큐레이션 사용:', evaluationResult.supplementaryVideos.length + '개');
     }
 
     showMetrics.value = true;
     await nextTick();
     renderRadarChart();
   } catch (error) {
-    console.error('[5D] Evaluation error:', error);
+    console.error('[5D] Report generation error:', error);
     showMetrics.value = true;
   } finally {
     isProcessing.value = false;
@@ -952,6 +1002,18 @@ const { monacoOptions, handleMonacoMount } = useMonacoEditor(
   border-color: #ef4444;
   color: #fff;
   box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+}
+
+/* [2026-02-21] 실습 종료 모달 위험 버튼 */
+.btn-modal-danger {
+  background: rgba(239, 68, 68, 0.15) !important;
+  border-color: #ef4444 !important;
+  color: #f87171 !important;
+}
+.btn-modal-danger:hover {
+  background: #ef4444 !important;
+  color: #fff !important;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
 }
 
 /* [2026-02-14] 헤더용 힌트 버튼 (붉은색 위치) */

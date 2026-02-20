@@ -241,9 +241,10 @@ export function useCoduckWars() {
         tail_question: null,
         converted_python: "",
         one_line_review: "",
+        senior_advice: "",   // AI ARCHITECT ADVICE에 표시할 GPT 맞춤 코멘트
         persona_name: "Senior Architect",
         details: [],
-        supplementaryVideos: [] // CoduckWars.vue UI 연동용
+        supplementaryVideos: []
     });
 
     const submitPseudo = async () => {
@@ -260,11 +261,17 @@ export function useCoduckWars() {
     };
 
     // 공통 평가 프로세스 분리
-    const runEvaluationProcess = async () => {
+    // tailAnswer, deepAnswer: 최초 제출 시엔 빈 문자열, Deep Dive 제출 후 재평가 시엔 실제 답변 전달
+    const runEvaluationProcess = async (tailAnswer = '', deepAnswer = '') => {
         try {
             gameState.feedbackMessage = "분석 중...";
 
-            const result = await evaluate(currentMission.value, gameState.phase3Reasoning);
+            const result = await evaluate(
+                currentMission.value,
+                gameState.phase3Reasoning,
+                tailAnswer,
+                deepAnswer,
+            );
 
             // 네트워크 에러 / LLM 장애로 null 반환 시
             if (!result) {
@@ -289,9 +296,11 @@ export function useCoduckWars() {
                 deep_dive:           result.deepDive,
                 converted_python:    result.convertedPython,
                 one_line_review:     result.oneLineReview,
-                persona_name:        result.persona,
-                is_low_effort:       result.isLowEffort,
-                supplementaryVideos: [],
+                senior_advice:        result.seniorAdvice,
+                persona_name:         result.persona,
+                is_low_effort:        result.isLowEffort,
+                recommended_videos:   result.recommendedVideos || [],  // 백엔드 큐레이션
+                supplementaryVideos:  [],  // EVALUATION 단계에서 세팅
             });
 
             // low_effort → 모달 띄우고 멈춤 (confirmLowEffortProceed에서 재개)
@@ -359,7 +368,9 @@ export function useCoduckWars() {
         }
 
         const selected = question.options[idx];
-        gameState.isMcqAnswered = true; // 답변 완료 기록
+        gameState.isMcqAnswered = true;
+        // 꼬리질문 선택 텍스트 저장 → Deep Dive 제출 후 재평가 시 백엔드에 전달됨
+        gameState.tailAnswer = selected.text || '';
 
         if (selected.is_correct || selected.correct) {
             gameState.score += 150;
@@ -373,7 +384,8 @@ export function useCoduckWars() {
     };
 
     /**
-     * 최종 실무 시나리오(서술형) 제출 처리
+     * Deep Dive 서술형 제출 → 백엔드 종합 재평가
+     * pseudocode + tail_answer(꼬리질문 선택) + deep_answer(서술형) 3개 모두 전달
      */
     const submitDescriptiveDeepDive = async (userAnswer) => {
         if (!userAnswer.trim() || isProcessing.value) return;
@@ -381,29 +393,44 @@ export function useCoduckWars() {
         try {
             isProcessing.value = true;
             gameState.deepDiveAnswer = userAnswer;
+            addSystemLog("서술형 답변 포함 종합 재평가 중...", "INFO");
 
-            addSystemLog("최종 실무 시나리오 설계 분석 중...", "INFO");
+            const tailAnswer = gameState.tailAnswer || '';
 
-            // [2026-02-14 추가] 무성의 입력(Low Effort) 복구 수련 완료 시 점수 대폭 보정
-            if (evaluationResult.is_low_effort) {
-                evaluationResult.overall_score = 75; // 0점 -> 75점으로 복구
-                evaluationResult.total_score_100 = 75;
-                evaluationResult.persona_name = "각성한 설계 지망생";
-                evaluationResult.one_line_review = "부족함을 인정하고 끝까지 아키텍처를 복구해낸 끈기가 돋보입니다.";
+            const result = await evaluate(
+                currentMission.value,
+                gameState.phase3Reasoning,
+                tailAnswer,
+                userAnswer,
+            );
 
-                // 각 차원 점수도 '복구됨'으로 업데이트 (방사형 차트 반영용)
-                const dims = evaluationResult.dimensions;
-                Object.keys(dims).forEach(key => {
-                    dims[key].score = 7; // 10점 만점에 7점 수준으로 복구
-                    dims[key].basis = "학습을 통한 설계 복구 성공";
-                    dims[key].improvement = "앞으로도 이 설계 원칙을 잊지 마세요.";
-                });
+            if (!result) {
+                addSystemLog("재평가 실패. 현재 점수가 유지됩니다.", "WARN");
+                return;
             }
 
-            // [2026-02-19] 즉시 평가로 넘어가지 않고 UI에서 모범 답안을 보여주도록 변경
-            addSystemLog("서술형 설계가 기록되었습니다. 모범 답안을 확인해 보세요.", "INFO");
+            // [2026-02-21] 점수 하락 방지: max(기존, 재평가)
+            const previousScore = evaluationResult.overall_score || 0;
+            const finalScore = Math.max(previousScore, result.score);
+
+            Object.assign(evaluationResult, {
+                finalScore:       finalScore,
+                overall_score:    finalScore,
+                total_score_100:  finalScore,
+                dimensions:       result.dimensions,
+                feedback:         result.oneLineReview,
+                strengths:        result.strengths,
+                weaknesses:       result.weaknesses,
+                converted_python: result.convertedPython,
+                one_line_review:  result.oneLineReview,
+                persona_name:     result.persona,
+                is_low_effort:    false,
+            });
+
+            addSystemLog(`종합 재평가 완료: ${result.score}점`, "SUCCESS");
         } catch (error) {
             console.error(error);
+            addSystemLog("재평가 중 오류가 발생했습니다.", "ERROR");
         } finally {
             isProcessing.value = false;
         }

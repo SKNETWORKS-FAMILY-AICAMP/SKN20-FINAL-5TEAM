@@ -33,7 +33,7 @@
                 <pre><code>{{ s.python }}</code></pre>
              </div>
           </div>
-          <pre v-else class="python-code"><code>{{ pythonCode }}</code></pre>
+          <pre v-else class="python-code"><code v-html="highlightedPythonCode"></code></pre>
         </div>
       </div>
     </div>
@@ -223,11 +223,12 @@ const props = defineProps({
   pythonCode: String,
   evaluationScore: Number,
   evaluationFeedback: String,
-  isLowEffort: Boolean,   // is_low_effort 여부 (advice 문구 분기용)
+  isLowEffort: Boolean,
   mcqData: Object,
   blueprintSteps: Array,
   assignedScenario: Object,
-  isMcqAnswered: Boolean
+  isMcqAnswered: Boolean,
+  isProcessing: { type: Boolean, default: false },  // 재평가 중 다음 단계 버튼 비활성화
 });
 
 const emit = defineEmits(['answer-mcq', 'retry-mcq', 'submit-descriptive', 'next-phase', 'blueprint-complete']);
@@ -267,9 +268,14 @@ const blueprintOptions = computed(() => {
 });
 
 const isPhaseReady = computed(() => {
+  // [2026-02-21] Deep Dive 서술형은 제출 완료 후 바로 다음 단계 허용 (재평가 대기 불필요)
+  if (props.phase === 'DEEP_DIVE_DESCRIPTIVE') {
+    if (!isDescriptionSubmitted.value) return descriptiveAnswer.value.trim().length >= 10;
+    return true;  // 제출 후에는 즉시 다음 단계 활성화
+  }
+  if (props.isProcessing) return false;
   if (isBlueprintMode.value) return isBlueprintComplete.value;
   if (props.phase === 'PYTHON_VISUALIZATION' || props.phase === 'TAIL_QUESTION') return props.isMcqAnswered;
-  if (props.phase === 'DEEP_DIVE_DESCRIPTIVE') return descriptiveAnswer.value.trim().length >= 10;
   return true;
 });
 
@@ -283,7 +289,8 @@ const nextButtonText = computed(() => {
   if (isBlueprintMode.value && !isBlueprintComplete.value) return "설계 복구 진행 중";
   if (props.phase === 'PYTHON_VISUALIZATION' || props.phase === 'TAIL_QUESTION') return "DEEP DIVE 진입";
   if (props.phase === 'DEEP_DIVE_DESCRIPTIVE') {
-    return isDescriptionSubmitted.value ? "최종 리포트 확인하기" : "답안 제출 및 분석";
+    if (!isDescriptionSubmitted.value) return "답안 제출 및 분석";
+    return "최종 리포트 확인하기";
   }
   return "다음 단계";
 });
@@ -351,6 +358,25 @@ const handleMcqRetry = () => {
     selectedIdx.value = null;
     emit('retry-mcq');
 };
+
+// [2026-02-20] [생각의 빈틈] 주석 하이라이트 로직
+const highlightedPythonCode = computed(() => {
+  if (!props.pythonCode) return "";
+  // HTML 이스케이프 (보안)
+  const escaped = props.pythonCode
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+  
+  // [생각의 빈틈] 패턴을 네온 스팬으로 교체
+  // 주석 기호(#)와 공백을 포함하여 매칭
+  return escaped.replace(
+    /(#\s*\[생각의 빈틈\][^\n]*)/g, 
+    '<span class="thought-gap-neon">$1</span>'
+  );
+});
 
 const handleNext = () => {
     if (props.phase === 'DEEP_DIVE_DESCRIPTIVE') {
@@ -1026,5 +1052,28 @@ const handleNext = () => {
   color: #64748b;
   cursor: not-allowed;
   box-shadow: none;
+}
+/* [2026-02-20] 생각의 빈틈 네온 효과 */
+@keyframes neon-pulse {
+  0%, 100% { 
+    text-shadow: 0 0 5px #ff0000, 0 0 10px #ff0000, 0 0 20px #ff0000; 
+    color: #ff4444;
+    opacity: 1; 
+  }
+  50% { 
+    text-shadow: 0 0 2px #ff0000, 0 0 5px #ff0000; 
+    color: #ff8888;
+    opacity: 0.8; 
+  }
+}
+
+:deep(.thought-gap-neon) {
+  display: inline-block;
+  font-weight: 800;
+  padding: 2px 4px;
+  background: rgba(255, 0, 0, 0.1);
+  border-radius: 4px;
+  animation: neon-pulse 1.5s infinite;
+  font-family: 'JetBrains Mono', monospace;
 }
 </style>
