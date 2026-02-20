@@ -913,6 +913,7 @@
                               </div>
                             </div>
                           </div>
+
                         </div>
 
                         <div v-if="interviewResult" class="interview-result">
@@ -1712,6 +1713,36 @@ function getStepInterviewWeakPoint(step) {
   return stepInterviewResults[step]?.weak_point || null;
 }
 
+function scrollInterviewToBottom() {
+  requestAnimationFrame(() => {
+    const el = document.querySelector('.interview-messages');
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  });
+}
+
+// 메시지 추가 시 자동 스크롤
+watch(
+  () => interviewMessages.value.length,
+  () => {
+    if (showInterviewPanel.value) {
+      scrollInterviewToBottom();
+    }
+  },
+  { flush: 'post' }
+);
+
+// 패널 열림/로딩 상태 변화 시에도 스크롤
+watch(
+  () => [showInterviewPanel.value, isInterviewLoading.value],
+  () => {
+    if (showInterviewPanel.value) {
+      scrollInterviewToBottom();
+    }
+  },
+  { flush: 'post' }
+);
+
 // 현재 스텝 데이터 가져오기
 function getCurrentStepData() {
   return getStepData(currentProgressiveStep.value);
@@ -1951,11 +1982,7 @@ async function startInterview() {
     content: firstQuestion
   });
   interviewTurn.value = 1;
-
-  await nextTick();
-  if (interviewMessagesRef.value) {
-    interviewMessagesRef.value.scrollTop = interviewMessagesRef.value.scrollHeight;
-  }
+  scrollInterviewToBottom();
 }
 
 /**
@@ -1983,10 +2010,7 @@ async function submitInterviewAnswer() {
       { role: 'assistant', content: validation.reason }
     );
     interviewInput.value = '';
-    await nextTick();
-    if (interviewMessagesRef.value) {
-      interviewMessagesRef.value.scrollTop = interviewMessagesRef.value.scrollHeight;
-    }
+    scrollInterviewToBottom();
     return;
   }
 
@@ -1994,11 +2018,7 @@ async function submitInterviewAnswer() {
   interviewInput.value = '';
   isInterviewLoading.value = true;
   interviewHasStreamToken.value = false;
-
-  await nextTick();
-  if (interviewMessagesRef.value) {
-    interviewMessagesRef.value.scrollTop = interviewMessagesRef.value.scrollHeight;
-  }
+  scrollInterviewToBottom();
 
   const stepData = getCurrentStepData();
   const stepContext = {
@@ -2038,11 +2058,7 @@ async function submitInterviewAnswer() {
             interviewHasStreamToken.value = true;
           }
           interviewMessages.value[streamingIndex].content += token;
-          nextTick(() => {
-            if (interviewMessagesRef.value) {
-              interviewMessagesRef.value.scrollTop = interviewMessagesRef.value.scrollHeight;
-            }
-          });
+          scrollInterviewToBottom();
         }
       );
 
@@ -2090,10 +2106,7 @@ async function submitInterviewAnswer() {
     });
   }
 
-  await nextTick();
-  if (interviewMessagesRef.value) {
-    interviewMessagesRef.value.scrollTop = interviewMessagesRef.value.scrollHeight;
-  }
+  scrollInterviewToBottom();
   isInterviewLoading.value = false;
   interviewHasStreamToken.value = false;
 }
@@ -2699,14 +2712,23 @@ function completeMission() {
     gameData.completedProblems.push(missionId);
   }
 
-  // 보상 계산
-  // 보상 계산 (감점 로직 적용)
-  const baseScore = 100;
-  const hintCount = Object.values(progressiveHintUsed.value).filter(v => v).length;
-  const penalty = (codeSubmitFailCount.value * codeRetryPenalty) + (hintCount * 1);
+  // 보상 계산:
+  // - standard(S4+)는 면접 최종 평균 점수 기반
+  // - tutorial/guided/line_edit(S1~S3)는 기존 감점 방식 유지
+  const interviewScore = averageInterviewScore.value;
+  const useInterviewScore = currentStageMode.value === 'standard' && interviewScore !== null;
 
-  progressiveMissionXP.value = 100;
-  progressiveMissionScore.value = Math.max(0, baseScore - penalty);
+  if (useInterviewScore) {
+    progressiveMissionXP.value = 100;
+    progressiveMissionScore.value = Math.max(0, Math.min(100, interviewScore));
+  } else {
+    const baseScore = 100;
+    const hintCount = Object.values(progressiveHintUsed.value).filter(v => v).length;
+    const penalty = (codeSubmitFailCount.value * codeRetryPenalty) + (hintCount * 1);
+
+    progressiveMissionXP.value = 100;
+    progressiveMissionScore.value = Math.max(0, baseScore - penalty);
+  }
 
   addXP(progressiveMissionXP.value);
   gameData.totalScore += progressiveMissionScore.value;
