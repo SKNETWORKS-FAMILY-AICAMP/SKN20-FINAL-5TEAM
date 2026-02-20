@@ -5,7 +5,7 @@ from .dashboard_view import DashboardLogViewSet
 from .common_view import CommonViewSet
 from .practice_view import PracticeViewSet, PracticeDetailViewSet
 from .auth_view import LoginView, LogoutView, SessionCheckView
-from .ai_view import AIEvaluationView, BugHuntEvaluationView
+from .ai_view import AIEvaluationView, BugHuntEvaluationView, BugHuntInterviewView
 from .code_execution_view import CodeExecutionView, BehaviorVerificationView
 from .management_view import OverallProgressView, UserAnswersView
 from . import activity_view
@@ -13,6 +13,7 @@ from .ai_proxy_view import AIProxyView
 from .pseudocode_execution import execute_python_code
 from .pseudocode_agent_view import PseudocodeAgentView
 from .architecture_view import ArchitectureEvaluationView, ArchitectureQuestionGeneratorView
+from .coach_view import AICoachView
 from .job_planner_view import (
     JobPlannerParseView,
     JobPlannerAnalyzeView,

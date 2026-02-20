@@ -14,6 +14,7 @@ from core.views import (
     AIEvaluationView,
     AIProxyView,
     BugHuntEvaluationView,
+    BugHuntInterviewView,
     CodeExecutionView,
     BehaviorVerificationView,
     OverallProgressView,
@@ -30,6 +31,7 @@ from core.views import (
 from core.views.pseudocode_execution import execute_python_code
 from core.views import pseudocode_evaluation, youtube_recommendation
 from core.views.architecture_view import ArchitectureEvaluationView, ArchitectureQuestionGeneratorView
+from core.views.coach_view import AICoachView
 
 router = DefaultRouter()
 router.register(r'users', UserProfileViewSet, basename='users')
@@ -60,6 +62,7 @@ urlpatterns = [
     path('ai-evaluate/', AIEvaluationView.as_view(), name='ai_evaluate'),
     path('ai-proxy/', AIProxyView.as_view(), name='ai_proxy'),
     path('ai-bughunt-evaluate/', BugHuntEvaluationView.as_view(), name='bughunt_evaluate'),
+    path('ai-bughunt-interview/', BugHuntInterviewView.as_view(), name='bughunt_interview'),
 
     # Architecture Practice 평가 및 질문 생성 API [작성일: 2026-02-20]
     path('architecture/evaluate/', ArchitectureEvaluationView.as_view(), name='architecture_evaluate'),
@@ -78,6 +81,9 @@ urlpatterns = [
     path('pseudo-agent/', PseudocodeAgentView.as_view(), name='pseudo_agent'),
     path('pseudocode/evaluate-5d/', pseudocode_evaluation.evaluate_pseudocode_5d),
     path('youtube/recommendations', youtube_recommendation.get_youtube_recommendations),
+
+    # AI Coach Agent API
+    path('ai-coach/chat/', AICoachView.as_view(), name='ai_coach_chat'),
 
     # Job Planner API
     path('job-planner/parse/', JobPlannerParseView.as_view(), name='job_planner_parse'),

@@ -66,14 +66,17 @@ export async function verifyCodeBehavior(userCode, verificationCode, problemId =
 
 /**
  * 디버깅 사고 평가 함수
+ * Step별 딥다이브 면접 결과를 종합하여 최종 평가를 생성합니다.
+ *
  * @param {string} missionTitle - 미션 제목
  * @param {Array} steps - 각 단계 정보 (buggy_code, instruction 등)
  * @param {Object} explanations - 각 단계별 사용자 설명 {1: '...', 2: '...', 3: '...'}
  * @param {Object} userCodes - 각 단계별 사용자 수정 코드 {1: '...', 2: '...', 3: '...'}
  * @param {Object} performance - 풀이 성과 지표 (오답 횟수 등)
+ * @param {Object} interviewResults - 각 단계별 면접 결과 {1: {score, understanding_level, ...}, ...}
  * @returns {Object} 평가 결과 {thinking_pass, code_risk, thinking_score, 총평, step_feedbacks}
  */
-export async function evaluateBugHunt(missionTitle, steps, explanations, userCodes, performance = {}) {
+export async function evaluateBugHunt(missionTitle, steps, explanations, userCodes, performance = {}, interviewResults = {}) {
     try {
         console.log('🚀 API 호출 시작:', API_BASE_URL);
         const response = await fetch(`${API_BASE_URL}/ai-bughunt-evaluate/`, {
@@ -86,7 +89,8 @@ export async function evaluateBugHunt(missionTitle, steps, explanations, userCod
                 steps,
                 explanations,
                 userCodes,
-                performance
+                performance,
+                interviewResults
             })
         });
 
@@ -120,5 +124,116 @@ export async function evaluateBugHunt(missionTitle, steps, explanations, userCod
             총평: "서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.",
             step_feedbacks: []  // ✅ 추가!
         };
+    }
+}
+
+/**
+ * 딥다이브 면접 API 호출
+ * Step별로 LLM 면접관과 대화한다.
+ *
+ * @param {Object} stepContext - 현재 Step 정보 (buggy_code, user_code, error_info, coaching, interview_rubric)
+ * @param {Array} conversation - 대화 내역 [{role, content}, ...]
+ * @param {number} turn - 현재 턴 번호 (1부터 시작)
+ * @param {string} candidateName - 유저 호출명
+ * @returns {Object} {type: 'question'|'evaluation', message, ...}
+ */
+export async function interviewBugHunt(stepContext, conversation, turn, candidateName = '') {
+    try {
+        const response = await fetch(`${API_BASE_URL}/ai-bughunt-interview/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                step_context: stepContext,
+                conversation,
+                turn,
+                candidate_name: candidateName
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `Interview API Error: ${response.status}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Interview API error:', error);
+        return {
+            type: 'evaluation',
+            message: '면접 서버 연결에 실패했습니다. 점수는 코드 수정 결과로 대체됩니다.',
+            score: 50,
+            understanding_level: 'Unknown',
+            matched_concepts: [],
+            weak_point: null
+        };
+    }
+}
+
+/**
+ * 딥다이브 면접 스트리밍 API 호출
+ * 질문 턴에서 LLM 응답을 토큰 단위로 수신합니다.
+ *
+ * @param {Object} stepContext
+ * @param {Array} conversation
+ * @param {number} turn
+ * @param {string} candidateName
+ * @param {(token: string) => void} onToken
+ */
+export async function interviewBugHuntStream(stepContext, conversation, turn, candidateName = '', onToken = () => {}) {
+    const response = await fetch(`${API_BASE_URL}/ai-bughunt-interview/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            step_context: stepContext,
+            conversation,
+            turn,
+            candidate_name: candidateName,
+            stream: true
+        })
+    });
+
+    if (!response.ok || !response.body) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Interview Stream Error: ${response.status}`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let buffer = '';
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        let boundary = buffer.indexOf('\n\n');
+        while (boundary !== -1) {
+            const eventChunk = buffer.slice(0, boundary).trim();
+            buffer = buffer.slice(boundary + 2);
+
+            if (eventChunk.startsWith('data:')) {
+                const payload = eventChunk
+                    .split('\n')
+                    .filter((line) => line.startsWith('data:'))
+                    .map((line) => line.slice(5).trim())
+                    .join('');
+
+                if (payload === '[DONE]') {
+                    return;
+                }
+
+                try {
+                    const parsed = JSON.parse(payload);
+                    if (parsed.token) {
+                        onToken(parsed.token);
+                    } else if (parsed.error) {
+                        throw new Error(parsed.error);
+                    }
+                } catch (e) {
+                    // JSON 파싱 실패 시 무시
+                }
+            }
+            boundary = buffer.indexOf('\n\n');
+        }
     }
 }

@@ -3,7 +3,6 @@ import axios from 'axios';
 import { aiQuests } from '../features/practice/pseudocode/data/stages.js'; // [수정일: 2026-02-06] 폴더 계층화(data) 반영
 // [수정일: 2026-02-06] 비활성 데이터 임포트 경로 수정 (support -> not_use/support)
 // import { aiDetectiveQuests } from '../features/practice/not_use/support/unit1/logic-mirror/data/aiDetectiveQuests.js';
-import progressiveData from '../features/practice/bughunt/problem_data/progressive-problems.json';
 // [수정일: 2026-01-31] 비활성 데이터 임포트 주석 처리
 // import forestGameData from '../features/practice/PseudoForestData.js';
 
@@ -200,15 +199,23 @@ export const useGameStore = defineStore('game', {
                 */
             }
 
-            // [Unit 2] Debug Practice 처리 (Bug Hunt)
-            if (unitTitle.includes('debug') && progressiveData.progressiveProblems) {
-                return progressiveData.progressiveProblems.map((m, idx) => ({
-                    id: m.id,
-                    missionId: m.id,
-                    title: m.stage_title || m.project_title,
+            // [Unit 2] Debug Practice 처리 (Bug Hunt) - DB details 기준 단일화
+            if (unitTitle.includes('debug')) {
+                if (!unit.details || !Array.isArray(unit.details)) {
+                    return [];
+                }
+                const debugProblems = unit.details
+                    .filter(d => d.detail_type === 'PROBLEM' && d.is_active && d.content_data?.id)
+                    .sort((a, b) => a.display_order - b.display_order);
+
+                return debugProblems.map((d, idx) => ({
+                    id: d.content_data.id, // S1, S2 ...
+                    missionId: d.content_data.id,
+                    title: d.content_data.stage_title || d.content_data.project_title || d.detail_title,
                     displayNum: `Stage ${idx + 1}`,
                     questIndex: idx,
-                    mode: m.mode
+                    mode: d.content_data.mode || 'standard',
+                    detailId: d.id // unit02_01 ...
                 }));
             }
 
@@ -290,9 +297,7 @@ export const useGameStore = defineStore('game', {
             // 유닛별 최대 문제 수에 맞춰 해금 제한 동적 조절
             const maxCount = targetKey === 'AI Detective'
                 ? 30
-                : targetKey === 'Debug Practice'
-                    ? (progressiveData.progressiveProblems?.length || 0)
-                    : (this.activeUnit?.problems?.length || 0);
+                : (this.activeUnit?.problems?.length || 0);
             if (progress && nextIdx < maxCount && !progress.includes(nextIdx)) {
                 progress.push(nextIdx);
             }
