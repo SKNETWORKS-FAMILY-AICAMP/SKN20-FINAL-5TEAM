@@ -1,3 +1,12 @@
+"""
+작성일: 2026-02-21
+작성자: Antigravity (수석 에이전트)
+작성내용: 
+- AI-GYM 프로젝트의 모의 면접 시스템 Mockup(PoC) 백엔드 API
+- 클라이언트(프론트엔드)에게 더미 인터뷰 텍스트를 청크 단위로 전송하여
+  LLM 응답 지연(Latency)을 시뮬레이션하기 위한 SSE(Server-Sent Events) 스트리밍 엔드포인트 구현.
+- 기존 PracticeDetail의 JSON 스키마 구조를 모방하여 data 필드 내부에 chunk와 status를 담아 전송함.
+"""
 import time
 import json
 from django.http import StreamingHttpResponse

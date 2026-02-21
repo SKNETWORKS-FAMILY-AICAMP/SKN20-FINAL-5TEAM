@@ -72,11 +72,17 @@
 </template>
 
 <script setup>
+/**
+ * 작성일: 2026-02-21
+ * 작성자: Antigravity (프론트엔드 에이전트)
+ * 작성내용:
+ * - 모의 면접 UI Mockup 페이지 컴포넌트 구현
+ * - 브라우저 내장 API인 `EventSource`를 생성하여 백엔드의 `/api/v1/mock-interview/stream` (SSE API)에 직접 연결을 맺음.
+ * - 수신된 이벤트 데이터를 파싱하여 Pinia 스토어(interviewStore)를 업데이트하고 실시간 글자 타이핑 애니메이션(UX)과 '...' 깜빡임 효과를 제공함.
+ * - "done" 상태 수신 시 연결을 안전하게 종료하도록 생명주기 OnUnmounted 훅 방어 처리 등 포함.
+ */
 import { ref, onUnmounted } from 'vue';
 import { useInterviewStore } from '../stores/interview';
-
-// 수정일: 2026-02-21
-// 변경내용: [PoC] SSE 스트리밍을 통한 프론트엔드 실시간 텍스트 타이핑 렌더링 추가
 
 const interviewStore = useInterviewStore();
 const isInterviewActive = ref(false);
