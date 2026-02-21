@@ -10,11 +10,9 @@
 import time
 import json
 from django.http import StreamingHttpResponse
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
 
-@api_view(['GET'])
-@permission_classes([AllowAny])
+# Django Rest Framework decorators removed to prevent content negotiation (406) errors on text/event-stream.
+# CSRF exemption is sometimes needed if requests come from other origins, but this is a GET request.
 def mock_interview_stream(request):
     """
     모의 면접 Mockup을 위한 SSE 스트리밍 엔드포인트
