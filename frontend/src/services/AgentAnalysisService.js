@@ -7,8 +7,6 @@
 
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/core';
-
 export const AgentAnalysisService = {
   /**
    * 사용자 약점 프로필 조회
@@ -17,7 +15,7 @@ export const AgentAnalysisService = {
    */
   async getWeaknessProfile() {
     try {
-      const response = await axios.get(`${API_BASE_URL}/agents/weakness-profile/`);
+      const response = await axios.get('/api/core/agents/weakness-profile/');
       return response.data;
     } catch (error) {
       console.error('약점 프로필 조회 실패:', error);
@@ -33,7 +31,7 @@ export const AgentAnalysisService = {
    */
   async analyzeLearning(message = '내 학습을 분석해줘') {
     try {
-      const response = await axios.post(`${API_BASE_URL}/agents/analyze/`, {
+      const response = await axios.post('/api/core/agents/analyze/', {
         message: message,
       });
       return response.data;

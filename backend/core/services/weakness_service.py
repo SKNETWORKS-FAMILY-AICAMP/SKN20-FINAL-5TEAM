@@ -30,18 +30,17 @@ def get_user_solved_problems(user_id: int, limit: int = 5) -> List[UserSolvedPro
         return []
 
 
-def parse_submitted_data(submitted_data: dict, unit_id: str) -> Dict[str, Any]:
+def parse_submitted_data(submitted_data: dict, unit_id: str, score: int = 0) -> Dict[str, Any]:
     """
-    submitted_data JSONField 파싱 → 메트릭 추출
+    submitted_data + score 기반 메트릭 추출
 
-    Unit별로 다른 구조를 처리:
-    - Unit 1 (unit01): metrics (logic_flow, edge_case, readability)
-    - Unit 2 (unit02): metrics (bug_detection, root_cause, fix_quality)
-    - Unit 3 (unit03): pillarScores (scalability, reliability, security, ...)
+    현재 submitted_data에 ai_evaluation이 없으므로, 점수를 기반으로 메트릭 생성
+    점수를 0~100 범위로 정규화하여 메트릭으로 사용
 
     Args:
         submitted_data: UserSolvedProblem.submitted_data JSONField
         unit_id: 유닛 ID (unit01, unit02, unit03)
+        score: 풀이 점수 (기반이 될 점수)
 
     Returns:
         표준화된 메트릭 dict
@@ -49,39 +48,39 @@ def parse_submitted_data(submitted_data: dict, unit_id: str) -> Dict[str, Any]:
     if not submitted_data or not isinstance(submitted_data, dict):
         return {}
 
-    ai_eval = submitted_data.get('ai_evaluation', {})
+    # 점수를 0~100 범위로 정규화 (최대 점수를 100으로 가정)
+    # 실제 점수는 보통 100점을 만점으로 함
+    normalized_score = min(score, 100) if score > 0 else 0
 
     if unit_id == 'unit01':
-        # Unit 1: logic_flow, edge_case, readability
-        metrics = ai_eval.get('metrics', {})
+        # Unit 1 (Pseudo Practice): logic_flow, edge_case, readability
+        # 점수를 3개 항목으로 분산
         return {
             'unit': 'unit01',
-            'logic_flow': metrics.get('logic_flow', 0),
-            'edge_case': metrics.get('edge_case', 0),
-            'readability': metrics.get('readability', 0),
+            'logic_flow': normalized_score,
+            'edge_case': normalized_score,
+            'readability': normalized_score,
         }
 
     elif unit_id == 'unit02':
-        # Unit 2: bug_detection, root_cause, fix_quality
-        metrics = ai_eval.get('metrics', {})
+        # Unit 2 (Debug Practice): bug_detection, root_cause, fix_quality
         return {
             'unit': 'unit02',
-            'bug_detection': metrics.get('bug_detection', 0),
-            'root_cause': metrics.get('root_cause', 0),
-            'fix_quality': metrics.get('fix_quality', 0),
+            'bug_detection': normalized_score,
+            'root_cause': normalized_score,
+            'fix_quality': normalized_score,
         }
 
     elif unit_id == 'unit03':
-        # Unit 3: pillarScores (6개)
-        pillar = ai_eval.get('pillarScores', {})
+        # Unit 3 (System Practice): 6개 아키텍처 기둥
         return {
             'unit': 'unit03',
-            'scalability': pillar.get('scalability', 0),
-            'reliability': pillar.get('reliability', 0),
-            'security': pillar.get('security', 0),
-            'performance': pillar.get('performance', 0),
-            'maintainability': pillar.get('maintainability', 0),
-            'cost_efficiency': pillar.get('cost_efficiency', 0),
+            'scalability': normalized_score,
+            'reliability': normalized_score,
+            'security': normalized_score,
+            'performance': normalized_score,
+            'maintainability': normalized_score,
+            'cost_efficiency': normalized_score,
         }
 
     return {}
@@ -170,6 +169,11 @@ def analyze_user_learning(user_id: int) -> Dict[str, Any]:
     """
     solved_list = get_user_solved_problems(user_id, limit=10)
 
+    # [DEBUG] 조회된 풀이 기록 수
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"[약점분석] 사용자 {user_id} - 조회된 풀이 기록: {len(solved_list)}개")
+
     if not solved_list:
         return {
             "user_id": user_id,
@@ -186,10 +190,14 @@ def analyze_user_learning(user_id: int) -> Dict[str, Any]:
 
     for sp in solved_list:
         unit_id = sp.practice_detail.practice_id
-        metrics = parse_submitted_data(sp.submitted_data, unit_id)
+        # score를 메트릭 파싱에 전달
+        metrics = parse_submitted_data(sp.submitted_data, unit_id, sp.score)
+        logger.info(f"[약점분석] {unit_id} - 점수: {sp.score}, 파싱된 메트릭: {metrics}")
 
-        if metrics and any(v > 0 for v in metrics.values() if k != 'unit' for k, v in metrics.items()):
+        if metrics and any(v > 0 for k, v in metrics.items() if k != 'unit'):
             unit_records[unit_id].append(metrics)
+
+    logger.info(f"[약점분석] 유닛별 기록 - Unit1: {len(unit_records['unit01'])}, Unit2: {len(unit_records['unit02'])}, Unit3: {len(unit_records['unit03'])}")
 
     # 유닛별 평균 계산
     unit1_avg = aggregate_metrics(unit_records['unit01'])
@@ -207,9 +215,7 @@ def analyze_user_learning(user_id: int) -> Dict[str, Any]:
         "unit2_metrics": unit2_avg,
         "unit3_metrics": unit3_avg,
         "top_weaknesses": top_weak,
-        "analyzed_submission_count": sum(
-            len(unit_records['unit01']) + len(unit_records['unit02']) + len(unit_records['unit03'])
-        )
+        "analyzed_submission_count": len(unit_records['unit01']) + len(unit_records['unit02']) + len(unit_records['unit03'])
     }
 
 

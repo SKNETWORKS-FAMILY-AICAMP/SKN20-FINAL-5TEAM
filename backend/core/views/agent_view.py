@@ -42,10 +42,12 @@ class UserLearningAnalysisView(APIView):
         사용자 요청 → Orchestrator → 필요 에이전트 병렬 실행 → Integration
         """
         try:
-            user_profile = request.user.userprofile
-        except AttributeError:
+            # UserProfile을 email로 조회 (Django User와의 관계가 email 기반)
+            user_profile = UserProfile.objects.get(email=request.user.email)
+        except (AttributeError, UserProfile.DoesNotExist) as e:
+            logger.error(f"[ERROR] UserProfile 조회 실패: {e}, user: {request.user}, email: {getattr(request.user, 'email', 'N/A')}")
             return Response(
-                {"error": "로그인이 필요합니다"},
+                {"error": "사용자 프로필을 찾을 수 없습니다"},
                 status=status.HTTP_401_UNAUTHORIZED
             )
 
@@ -56,6 +58,7 @@ class UserLearningAnalysisView(APIView):
 
         # Step 1: 사용자 약점 정보 조회
         user_weakness_data = analyze_user_learning(user_profile.id)
+        logger.info(f"[약점분석] 조회된 기록 수: {user_weakness_data.get('analyzed_submission_count')}, 약점: {user_weakness_data.get('top_weaknesses')}")
 
         # Step 2: Orchestrator 실행 - 필요 에이전트 결정
         orchestrator_result = run_orchestrator_agent(
@@ -79,9 +82,12 @@ class UserLearningAnalysisView(APIView):
 
         # Problem Generator Agent
         if "ProblemGenerator" in orchestrator_result.get('agents', []):
+            # Analysis Agent는 dict 리스트를 반환하므로 'name' 필드만 추출
+            analysis_weaknesses = agent_results.get('analysis', {}).get('weaknesses', [])
+            weakness_names = [w.get('name') for w in analysis_weaknesses if isinstance(w, dict)] if analysis_weaknesses else []
+
             focus_weakness = get_focus_weakness(
-                agent_results.get('analysis', {}).get('weaknesses', [])
-                or user_weakness_data.get('top_weaknesses', [])
+                weakness_names or user_weakness_data.get('top_weaknesses', [])
             )
             if focus_weakness:
                 logger.info(f"[Problem Generator] 실행 중... (약점: {focus_weakness})")
@@ -93,9 +99,12 @@ class UserLearningAnalysisView(APIView):
 
         # Learning Guide Agent
         if "LearningGuide" in orchestrator_result.get('agents', []):
+            # Analysis Agent는 dict 리스트를 반환하므로 'name' 필드만 추출
+            analysis_weaknesses = agent_results.get('analysis', {}).get('weaknesses', [])
+            weakness_names = [w.get('name') for w in analysis_weaknesses if isinstance(w, dict)] if analysis_weaknesses else []
+
             focus_weakness = get_focus_weakness(
-                agent_results.get('analysis', {}).get('weaknesses', [])
-                or user_weakness_data.get('top_weaknesses', [])
+                weakness_names or user_weakness_data.get('top_weaknesses', [])
             )
             if focus_weakness:
                 logger.info(f"[Learning Guide] 실행 중... (약점: {focus_weakness})")
@@ -132,15 +141,18 @@ class WeaknessProfileView(APIView):
     def get(self, request):
         """사용자의 약점 프로필 조회"""
         try:
-            user_profile = request.user.userprofile
-        except AttributeError:
+            # UserProfile을 email로 조회 (Django User와의 관계가 email 기반)
+            user_profile = UserProfile.objects.get(email=request.user.email)
+        except (AttributeError, UserProfile.DoesNotExist) as e:
+            logger.error(f"[ERROR] GET UserProfile 조회 실패: {e}, user: {request.user}, email: {getattr(request.user, 'email', 'N/A')}")
             return Response(
-                {"error": "로그인이 필요합니다"},
+                {"error": "사용자 프로필을 찾을 수 없습니다"},
                 status=status.HTTP_401_UNAUTHORIZED
             )
 
         try:
             weakness_data = analyze_user_learning(user_profile.id)
+            logger.info(f"[약점프로필] 사용자 {user_profile.id} - 기록 수: {weakness_data.get('analyzed_submission_count')}, 약점: {weakness_data.get('top_weaknesses')}")
             return Response(weakness_data, status=status.HTTP_200_OK)
         except Exception as e:
             logger.error(f"약점 프로필 조회 오류: {e}")
