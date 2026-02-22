@@ -113,8 +113,21 @@
           <!-- Live Subtitle Display (Like Teams/Zoom Captions) -->
           <transition name="fade">
             <div v-if="interviewStore.isTyping" class="absolute bottom-40 left-0 right-0 flex justify-center px-10 z-20 pointer-events-none">
-               <div class="bg-black/70 backdrop-blur-xl border border-white/10 px-6 py-4 rounded-2xl max-w-3xl w-full text-center shadow-2xl">
-                  <p class="text-[16px] leading-[1.6] font-medium text-white drop-shadow-md">
+               <div class="bg-black/70 backdrop-blur-xl border border-white/10 px-6 py-4 rounded-2xl max-w-3xl w-full flex items-center justify-center shadow-2xl">
+                  
+                  <!-- [수정일: 2026-02-22] 1단계: Analyst 분석 중일 때 강조 UI -->
+                  <div v-if="interviewStore.messages.length === 0" class="flex items-center justify-center gap-4">
+                     <div class="relative flex items-center justify-center w-6 h-6">
+                        <span class="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping"></span>
+                        <div class="relative w-4 h-4 rounded-full bg-emerald-500"></div>
+                     </div>
+                     <p class="text-[16px] leading-[1.6] font-bold text-emerald-300 tracking-wide drop-shadow-md">
+                        {{ interviewStore.currentTypingMessage }}
+                     </p>
+                  </div>
+
+                  <!-- 2단계: 평상시 면접관 스트리밍 자막 -->
+                  <p v-else class="text-[16px] leading-[1.6] font-medium text-white drop-shadow-md text-center">
                      "{{ interviewStore.currentTypingMessage }}"
                      <span class="inline-block animate-pulse ml-1 text-indigo-400 font-bold">...</span>
                   </p>
@@ -175,6 +188,26 @@
                  <svg class="w-12 h-12 text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                  <p class="text-center text-[13px] text-gray-400 font-medium">면접을 시작하면<br/>대화 기록이 이곳에 표시됩니다.</p>
               </div>
+
+              <!-- [수정일: 2026-02-22] Analyst Loading Bubble -->
+              <transition name="fade">
+                 <div v-if="isInterviewActive && interviewStore.messages.length === 0 && interviewStore.isTyping" class="flex flex-col space-y-2 group">
+                    <div class="flex items-center gap-2.5">
+                       <span class="w-7 h-7 rounded bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-[10px] font-black text-white shadow-md border border-emerald-400/50 transform group-hover:scale-110 transition-transform">SYS</span>
+                       <span class="text-[13px] font-bold tracking-wide text-emerald-400">백그라운드 (Analyst AI)</span>
+                    </div>
+                    <div class="text-[14px] leading-relaxed p-4 rounded-xl border bg-emerald-950/20 text-emerald-200 border-emerald-900/50 flex flex-col gap-3 shadow-inner">
+                       <div class="flex items-center gap-3">
+                          <svg class="w-5 h-5 animate-spin text-emerald-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                          <span class="font-bold tracking-wide animate-pulse">면접 전략 수립 중...</span>
+                       </div>
+                       <div class="text-xs text-emerald-300/70 ml-8 leading-relaxed">
+                         {{ interviewStore.currentTypingMessage }}<br>
+                         (최대 10초 정도 소요될 수 있습니다)
+                       </div>
+                    </div>
+                 </div>
+              </transition>
 
               <!-- Iterating messages -->
               <div 
@@ -275,20 +308,42 @@ const latestMessages = computed(() => {
   return msgs.slice(-2);
 });
 
-const startMockInterview = () => {
+const startMockInterview = async () => {
   if (isInterviewActive.value) return;
 
   interviewStore.clearMessages();
   isInterviewActive.value = true;
   interviewStore.setTypingStatus(true);
+  // Custom message while Analyst is working
+  interviewStore.currentTypingMessage = "지원자님의 이력서와 코드를 분석하여 맞춤형 면접 전략을 세우고 있습니다...";
 
-  // [수정일: 2026-02-22] Job Planner 데이터가 존재하면 SSE 스트림(POST) 호출 시 전송
+  // [수정일: 2026-02-22] Job Planner 데이터가 존재하면 POST 바디에 포함
   let bodyData = null;
   if (interviewStore.jobPlannerData) {
     bodyData = { job_planner: interviewStore.jobPlannerData };
   }
 
-  connectSSEFetch('/api/v1/mock-interview/stream', bodyData);
+  try {
+    // 1단계: Pre-computation (Analyst 동작 대기)
+    const initResponse = await fetch('/api/v1/mock-interview/init', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(bodyData || {})
+    });
+    
+    if (!initResponse.ok) throw new Error("분석 초기화 실패");
+    
+    // 2단계: 분석 완료 후 면접관 스트리밍 시작
+    interviewStore.currentTypingMessage = "답변을 작성하고 있습니다...";
+    connectSSEFetch('/api/v1/mock-interview/stream', bodyData);
+    
+  } catch (error) {
+    console.error("Mock Interview Init Error:", error);
+    interviewStore.setTypingStatus(false);
+    isInterviewActive.value = false;
+    alert("면접 초기화 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+  }
 };
 
 const sendMessage = () => {
@@ -341,6 +396,7 @@ const connectSSEFetch = async (endpoint, bodyData = null) => {
     const reader = response.body.getReader();
     const decoder = new TextDecoder('utf-8');
     let buffer = '';
+    let isFirstChunk = true; // [수정일: 2026-02-22] 첫 응답 시 로딩 텍스트 초기화 플래그
 
     while (true) {
       if (!isInterviewActive.value) {
@@ -363,6 +419,11 @@ const connectSSEFetch = async (endpoint, bodyData = null) => {
           try {
             const data = JSON.parse(dataStr);
             if (data.status === 'typing') {
+              // [수정일: 2026-02-22] 첫 텍스트 청크 수신 시 "답변을 작성하고 있습니다..." 같은 로딩 문구 클리어
+              if (isFirstChunk) {
+                interviewStore.currentTypingMessage = '';
+                isFirstChunk = false;
+              }
               interviewStore.appendChunk(data.chunk);
             } else if (data.status === 'done') {
               interviewStore.finalizeMessage();
@@ -381,6 +442,7 @@ const connectSSEFetch = async (endpoint, bodyData = null) => {
     }
   } catch (error) {
     console.error('SSE 스트림 에러 발생', error);
+  } finally {
     interviewStore.finalizeMessage();
     closeConnection(false);
   }

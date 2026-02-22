@@ -18,12 +18,12 @@ export default defineConfig({
     // [수정일: 2026-01-21] 백엔드 API와의 연동을 위한 Proxy 설정 추가
     proxy: {
       '/api': {
-        target: process.env.VITE_API_Target || 'http://backend:8000',
+        target: process.env.VITE_API_Target || 'http://127.0.0.1:8000',
         changeOrigin: true,
         cookieDomainRewrite: "localhost"
       },
       '/media': {
-        target: process.env.VITE_API_Target || 'http://backend:8000',
+        target: process.env.VITE_API_Target || 'http://127.0.0.1:8000',
         changeOrigin: true
       }
     },

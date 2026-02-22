@@ -11,7 +11,7 @@
 import time
 import json
 import os
-from django.http import StreamingHttpResponse
+from django.http import StreamingHttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from openai import OpenAI
 from django.conf import settings
@@ -99,10 +99,9 @@ def run_analyst_agent(request, job_planner_data=None, user_msg=None, history=Non
 """
     try:
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-5",
             messages=[{"role": "user", "content": analyst_prompt}],
-            response_format={ "type": "json_object" },
-            temperature=0.7,
+            response_format={ "type": "json_object" }
         )
         result = json.loads(response.choices[0].message.content)
         attack_vector = result.get("attack_vector", "지원자의 이력과 답변을 바탕으로 핵심 기술 질문을 1개 던지세요.")
@@ -118,28 +117,59 @@ def run_analyst_agent(request, job_planner_data=None, user_msg=None, history=Non
 # ==========================================
 def get_interviewer_prompt(attack_vector):
     """
-    최종 면접관 '도덕'의 깐깐한 시스템 프롬프트.
-    Analyst가 넘겨준 지령(attack_vector)만 수행합니다.
+    Interviewer 에이전트는 사용자와 직접 대면하여 면접을 진행하는 역할입니다.
+    Analyst가 분석해준 공격 벡터를 바탕으로, 실제 면접관처럼 질문을 던집니다.
     """
-    return f"""당신은 픽사 감성의 오리 캐릭터이자 AI-GYM의 수석 기술 면접관 '도덕(Coduck)'입니다.
-진중하고 프로페셔널한 태도를 유지하는 시니어 멘토입니다.
+    return f"""당신은 AI 개발자 모의면접관 '{os.environ.get("INTERVIEWER_PERSONA", "도덕")}' 입니다.
+당신은 지원자의 기술적 깊이를 철저하게 검증하는 깐깐하고 예리한 시니어 수석 아키텍트입니다. 
+말투는 매우 정중하지만, 질문의 내용은 날카롭고 집요해야 합니다. 
+절대로 친절하게 정답을 먼저 알려주거나 힌트를 주지 마십시오.
 
-[당신의 절대 규칙]
-1. 한 번에 **단 한 개의 질문**만 던지세요. 서론이나 칭찬은 아주 짧게, 혹은 생략하세요.
-2. 기계적인 AI 말투나 이모지 남발은 금지합니다. 단, 말투 끝에 약간의 오리 캐릭터성(깐깐함)이 묻어나도 좋습니다.
-3. 마크다운을 적절히 활용하여 핵심 기술명이나 변수명은 강조하세요.
+[Analyst의 분석 결과 (Attack Vector)]
+{attack_vector}
 
-[이번 턴의 핵심 지령 (Attack Vector)]
-백그라운드 분석가가 당신에게 다음 방향으로 질문할 것을 지시했습니다:
-"{attack_vector}"
-
-이 지령을 완벽하게 숙지하고, 지원자에게 날카롭고 직관적인 질문을 스트리밍으로 뱉으세요.
+[당신의 임무]
+1. 위 'Attack Vector'를 바탕으로 지원자에게 던질 첫 번째 면접 질문 하나만 생성하세요.
+2. 만약 이것이 첫 질문이 아니라 이어지는 대화라면, 지원자의 마지막 답변을 분석하여 꼬리 질문을 던지세요.
+3. 질문은 간결하고 명확해야 하며, 한 번에 여러 개의 질문을 던지지 마세요. (최대 1~2문장)
+4. 당신은 면접관이므로, 당신의 답변에는 '질문 내용'만 들어가야 합니다. (예: "~~에 대해 설명해 보시겠습니까?", "방금 말씀하신 ~~의 단점은 무엇일까요?")
+5. 중요: 텍스트에 굵은 글씨(**)나 기울임체(*) 같은 마크다운(Markdown) 서식을 절대 사용하지 마세요. 오직 순수한 텍스트 문자만 사용하세요.
 """
+
+@csrf_exempt
+def mock_interview_init(request):
+    """
+    모의 면접 시작 전(Pre-computation) 호출되는 초기화 엔드포인트.
+    Analyst Agent가 유저 데이터를 분석하여 Attack Vector를 기안하고 세션에 저장합니다.
+    """
+    if request.method == "POST":
+        try:
+            body = json.loads(request.body)
+            job_planner_data = body.get("job_planner")
+            
+            # 1단계: Analyst 가동 (공격 벡터 추출)
+            # 여기서는 면접 시작 시점이므로 history나 user_msg는 없습니다.
+            attack_vector = run_analyst_agent(request, job_planner_data, user_msg=None, history=None)
+            
+            # 2단계: 생성된 전략을 서버 세션에 캐싱
+            request.session['mock_interview_attack_vector'] = attack_vector
+            
+            return JsonResponse({
+                "status": "success", 
+                "message": "Analyst initialization complete.",
+                # Debug 목적으로만 프론트에 내려주고 실제 표출은 안 해도 무방함
+                "attack_vector": attack_vector 
+            })
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": str(e)}, status=500)
+            
+    return JsonResponse({"status": "error", "message": "Method not allowed"}, status=405)
 
 @csrf_exempt
 def mock_interview_stream(request):
     """
     모의 면접 첫 진입 시 호출되는 SSE 스트리밍 (첫 인사 + 첫 질문)
+    Analyst 호출 없이 세션에 저장된 attack_vector를 즉시 활용하여 Latency 최소화.
     """
     job_planner_data = None
     if request.method == "POST":
@@ -151,13 +181,16 @@ def mock_interview_stream(request):
 
     def event_stream():
         try:
-            # 1단계: Analyst 가동 (공격 벡터 추출)
-            attack_vector = run_analyst_agent(request, job_planner_data, user_msg=None, history=None)
+            # 실시간 대화 단계 (Low Latency)
+            # 세션에서 미리 계산된 공격 벡터를 가져옵니다. 없으면 기본값 사용.
+            attack_vector = request.session.get('mock_interview_attack_vector', "지원자의 이력과 답변을 바탕으로 핵심 기술 질문을 1개 던지세요.")
+            
+            # 2단계: Interviewer 가동 (스트리밍 응답)
             
             # 2단계: Interviewer 가동 (스트리밍 응답)
             system_prompt = get_interviewer_prompt(attack_vector)
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4o",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": "지원자가 면접에 방금 입장했습니다. 과장된 인사는 생략하고 실제 면접관처럼 첫 인사를 건넨 뒤, 주어진 지령(Attack Vector)에 따라 첫 질문을 가볍게 던져주세요."}
@@ -214,8 +247,9 @@ def mock_interview_reply(request):
             return
             
         try:
-            # 1단계: Analyst 가동 (유저 답변 기반으로 새로운 공격 벡터 추출)
-            attack_vector = run_analyst_agent(request, job_planner_data, user_msg=user_msg, history=history)
+            # 실시간 대화 단계 (Low Latency)
+            # 매 턴마다 Analyst를 호출하지 않고, 기존에 설정된 공격 기조를 재활용합니다.
+            attack_vector = request.session.get('mock_interview_attack_vector', "지원자의 이력과 답변을 바탕으로 핵심 기술 질문을 1개 던지세요.")
             
             # 2단계: Interviewer 가동 (공격 벡터에 기반한 스트리밍 꼬리 질문 생성)
             system_prompt = get_interviewer_prompt(attack_vector)
@@ -224,7 +258,7 @@ def mock_interview_reply(request):
             messages.extend(history)
             
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4o",
                 messages=messages,
                 stream=True,
                 temperature=0.7,

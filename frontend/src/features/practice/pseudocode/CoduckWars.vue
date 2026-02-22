@@ -680,7 +680,7 @@ const closePractice = () => {
 };
 
 const resetFlow = () => {
-    engineResetFlow();
+    coduckWarsComposable.resetFlow();
     finalReport.value = null;
     showMetrics.value = false;
     showHintDuck.value = false;

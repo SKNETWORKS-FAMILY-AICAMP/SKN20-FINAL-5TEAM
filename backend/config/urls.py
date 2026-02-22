@@ -6,7 +6,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
-from core.views.mock_interview import mock_interview_stream, mock_interview_reply
+from core.views.mock_interview import mock_interview_stream, mock_interview_reply, mock_interview_init
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -15,7 +15,8 @@ urlpatterns = [
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     
-    # 모의면접 PoC 전용 SSE 엔드포인트
+    # 모의면접 PoC 전용 엔드포인트
+    path('api/v1/mock-interview/init', mock_interview_init, name='mock_interview_init'),
     path('api/v1/mock-interview/stream', mock_interview_stream, name='mock_interview_stream'),
     path('api/v1/mock-interview/reply', mock_interview_reply, name='mock_interview_reply'),
     
