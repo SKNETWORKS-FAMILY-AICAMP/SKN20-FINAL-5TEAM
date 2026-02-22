@@ -21,13 +21,14 @@ client = OpenAI()
 AGENT_MODEL = "gpt-4o-mini"
 
 
-def run_orchestrator_agent(user_message: str, user_weaknesses: Dict[str, Any]) -> Dict[str, Any]:
+def run_orchestrator_agent(user_message: str, user_weaknesses: Dict[str, Any], user_context: Dict[str, Any] = None) -> Dict[str, Any]:
     """
     Orchestrator Agent: 사용자 의도 파악 + 필요 에이전트 결정
 
     Args:
         user_message: 사용자 요청 메시지
-        user_weaknesses: 사용자 현재 약점 정보
+        user_weaknesses: 사용자 현재 약점 정보 (Data Analyzer 결과)
+        user_context: 사용자 학습 컨텍스트 (top_weaknesses, submission_count, metrics)
 
     Returns:
         {
@@ -36,13 +37,23 @@ def run_orchestrator_agent(user_message: str, user_weaknesses: Dict[str, Any]) -
             "execution_mode": "PARALLEL" or "SEQUENTIAL"
         }
     """
+    if user_context is None:
+        user_context = {}
+
+    # 컨텍스트 정보 포맷팅
+    context_str = ""
+    if user_context.get('top_weaknesses'):
+        context_str += f"\n사용자 과거 약점 기록: {', '.join(user_context['top_weaknesses'])}"
+    if user_context.get('analyzed_submission_count'):
+        context_str += f"\n풀이한 총 문제 수: {user_context['analyzed_submission_count']}개"
+
     prompt = f"""
 당신은 AI 엔지니어 학습 시스템의 오케스트레이터입니다.
 사용자의 요청을 분석해서 필요한 에이전트를 결정하세요.
 
-사용자 요청: {user_message}
+사용자 요청: {user_message}{context_str}
 
-사용자 현재 약점:
+사용자 현재 약점 (Data Analyzer 분석 결과):
 {json.dumps(user_weaknesses, ensure_ascii=False, indent=2)}
 
 요청 의도 판단:
@@ -296,13 +307,43 @@ def run_data_analyzer_agent(user_profile: UserProfile) -> Dict[str, Any]:
         }
 
 
+def _match_weakness_to_category(weakness_description: str) -> str:
+    """
+    약점 설명을 카테고리로 매칭 (의미 기반)
+
+    Args:
+        weakness_description: 약점 설명 (예: "null/empty 입력 처리 부족")
+
+    Returns:
+        카테고리 키 (예: "edge_case")
+    """
+    desc_lower = weakness_description.lower()
+
+    # 의미 기반 매칭
+    if any(word in desc_lower for word in ['null', 'empty', '입력', '경계', 'boundary', 'edge', '예외']):
+        return "edge_case"
+    elif any(word in desc_lower for word in ['원인', 'root cause', '5why', '분석', 'bug', '버그']):
+        return "root_cause"
+    elif any(word in desc_lower for word in ['보안', 'security', 'owasp', '취약', 'vulnerability']):
+        return "security"
+    elif any(word in desc_lower for word in ['논리', 'logic', '설계', 'design', 'flow']):
+        return "logic_design"
+    elif any(word in desc_lower for word in ['성능', 'performance', '최적화', 'optimize']):
+        return "performance"
+    elif any(word in desc_lower for word in ['가독성', 'readability', '코드 스타일', 'style']):
+        return "readability"
+
+    # 기본값
+    return "general_improvement"
+
+
 def run_problem_generator_agent(user_profile: UserProfile, weakness: str) -> Dict[str, Any]:
     """
-    Problem Generator Agent: 문제 추천 또는 생성 (데모용 간단 버전)
+    Problem Generator Agent: 문제 추천 또는 생성
 
     Args:
         user_profile: 사용자 프로필
-        weakness: 약점 이름
+        weakness: 약점 설명 (예: "null/empty 입력 처리 부족")
 
     Returns:
         {
@@ -316,7 +357,11 @@ def run_problem_generator_agent(user_profile: UserProfile, weakness: str) -> Dic
             ]
         }
     """
-    # 데모용: 하드코딩된 문제 추천
+    # 약점을 카테고리로 매칭
+    category = _match_weakness_to_category(weakness)
+    logger.info(f"[Problem Generator] 약점 매칭: '{weakness}' → '{category}'")
+
+    # 카테고리별 문제 추천
     weakness_to_problems = {
         "edge_case": [
             {
@@ -343,39 +388,67 @@ def run_problem_generator_agent(user_profile: UserProfile, weakness: str) -> Dic
                 "title": "보안 아키텍처 설계",
                 "reason": "OWASP Top 10을 다루는 보안 설계 문제"
             }
+        ],
+        "logic_design": [
+            {
+                "problem_id": "unit0104",
+                "title": "논리 흐름 최적화 문제",
+                "reason": "알고리즘 설계 및 논리 흐름을 체계적으로 개선합니다"
+            }
+        ],
+        "performance": [
+            {
+                "problem_id": "unit0302",
+                "title": "성능 최적화 및 확장성 설계",
+                "reason": "시스템 성능과 확장성을 고려한 아키텍처 설계"
+            }
+        ],
+        "readability": [
+            {
+                "problem_id": "unit0101",
+                "title": "코드 가독성 및 설계 원칙",
+                "reason": "깔끔하고 이해하기 쉬운 코드 작성 방법"
+            }
+        ],
+        "general_improvement": [
+            {
+                "problem_id": "unit0102",
+                "title": "종합 기초 강화 문제",
+                "reason": "기본기를 다시 다지고 약점을 개선하는 문제"
+            }
         ]
     }
 
-    problems = weakness_to_problems.get(weakness, [])
+    problems = weakness_to_problems.get(category, weakness_to_problems["general_improvement"])
 
     return {
         "method": "RECOMMEND",
-        "problems": problems if problems else [
-            {
-                "problem_id": f"unit01_custom_{weakness}",
-                "title": f"{weakness} 집중 연습 문제",
-                "reason": f"{weakness} 약점을 보완하는 맞춤형 문제"
-            }
-        ]
+        "problems": problems,
+        "matched_category": category
     }
 
 
 def run_learning_guide_agent(user_profile: UserProfile, weakness: str) -> Dict[str, Any]:
     """
-    Learning Guide Agent: 학습 경로 + 자료 추천 (데모용 간단 버전)
+    Learning Guide Agent: 학습 경로 + 자료 추천
 
     Args:
         user_profile: 사용자 프로필
-        weakness: 약점 이름
+        weakness: 약점 설명 (예: "null/empty 입력 처리 부족")
 
     Returns:
         {
             "personalized_message": "너는...",
             "learning_path": [...],
-            "estimated_total_hours": 2.25
+            "estimated_total_hours": 2.25,
+            "matched_category": "edge_case"
         }
     """
-    # 데모용: 기본 학습 이정표
+    # 약점을 카테고리로 매칭
+    category = _match_weakness_to_category(weakness)
+    logger.info(f"[Learning Guide] 약점 매칭: '{weakness}' → '{category}'")
+
+    # 카테고리별 학습 경로
     learning_paths = {
         "edge_case": {
             "personalized_message": "null/empty 입력 처리를 설계 단계에서 고려하지 않는 패턴이 보입니다. 방어적 코딩부터 학습하세요.",
@@ -412,9 +485,16 @@ def run_learning_guide_agent(user_profile: UserProfile, weakness: str) -> Dict[s
                     "duration_minutes": 30,
                     "why_important": "근본 원인을 찾아야 같은 실수를 반복하지 않습니다",
                     "resources": []
+                },
+                {
+                    "order": 2,
+                    "concept": "시스템 문제 해결 프로세스",
+                    "duration_minutes": 45,
+                    "why_important": "체계적인 디버깅 방법론 습득",
+                    "resources": []
                 }
             ],
-            "estimated_total_hours": 1.0
+            "estimated_total_hours": 1.25
         },
         "security": {
             "personalized_message": "시스템 설계에서 보안 고려가 부족합니다. OWASP Top 10부터 학습하세요.",
@@ -434,27 +514,75 @@ def run_learning_guide_agent(user_profile: UserProfile, weakness: str) -> Dict[s
                 }
             ],
             "estimated_total_hours": 2.0
+        },
+        "logic_design": {
+            "personalized_message": "논리적 흐름과 설계 능력을 강화해야 합니다. 체계적인 알고리즘 학습으로 개선하세요.",
+            "learning_path": [
+                {
+                    "order": 1,
+                    "concept": "알고리즘 기초",
+                    "duration_minutes": 90,
+                    "why_important": "효율적인 문제 해결을 위한 기본 사고 방식",
+                    "resources": []
+                },
+                {
+                    "order": 2,
+                    "concept": "설계 패턴",
+                    "duration_minutes": 60,
+                    "why_important": "검증된 설계 방법론 습득",
+                    "resources": []
+                }
+            ],
+            "estimated_total_hours": 2.5
+        },
+        "performance": {
+            "personalized_message": "시스템 성능과 확장성을 고려한 설계가 필요합니다. 성능 최적화를 학습하세요.",
+            "learning_path": [
+                {
+                    "order": 1,
+                    "concept": "성능 프로파일링 및 최적화",
+                    "duration_minutes": 75,
+                    "why_important": "병목 지점을 찾아 효율적으로 최적화합니다",
+                    "resources": []
+                }
+            ],
+            "estimated_total_hours": 1.25
+        },
+        "readability": {
+            "personalized_message": "코드의 가독성과 유지보수성을 개선해야 합니다. 깔끔한 코드 작성법을 학습하세요.",
+            "learning_path": [
+                {
+                    "order": 1,
+                    "concept": "클린 코드 원칙",
+                    "duration_minutes": 60,
+                    "why_important": "다른 사람이 쉽게 이해할 수 있는 코드 작성",
+                    "resources": []
+                }
+            ],
+            "estimated_total_hours": 1.0
+        },
+        "general_improvement": {
+            "personalized_message": "종합적인 기초 능력 향상이 필요합니다. 체계적으로 기본부터 다시 다져보세요.",
+            "learning_path": [
+                {
+                    "order": 1,
+                    "concept": "프로그래밍 기초",
+                    "duration_minutes": 90,
+                    "why_important": "모든 고급 기술의 기반이 됩니다",
+                    "resources": []
+                }
+            ],
+            "estimated_total_hours": 1.5
         }
     }
 
-    roadmap = learning_paths.get(weakness, {
-        "personalized_message": f"{weakness} 약점을 보완하기 위한 학습을 추천합니다.",
-        "learning_path": [
-            {
-                "order": 1,
-                "concept": f"{weakness} 개념",
-                "duration_minutes": 60,
-                "why_important": f"{weakness}는 중요한 기술입니다",
-                "resources": []
-            }
-        ],
-        "estimated_total_hours": 1.0
-    })
+    roadmap = learning_paths.get(category, learning_paths["general_improvement"])
+    roadmap["matched_category"] = category
 
     return roadmap
 
 
-def run_integration_agent(agent_results: Dict[str, Any], user_message: str) -> Dict[str, Any]:
+def run_integration_agent(agent_results: Dict[str, Any], user_message: str, user_context: Dict[str, Any] = None, orchestrator_intent: str = "") -> Dict[str, Any]:
     """
     Integration Agent: 모든 에이전트 결과 통합 → 최종 응답
 
@@ -465,6 +593,8 @@ def run_integration_agent(agent_results: Dict[str, Any], user_message: str) -> D
             "guide": {...}
         }
         user_message: 원본 사용자 메시지
+        user_context: 사용자 학습 컨텍스트
+        orchestrator_intent: Orchestrator가 파악한 사용자 의도
 
     Returns:
         {
@@ -473,6 +603,9 @@ def run_integration_agent(agent_results: Dict[str, Any], user_message: str) -> D
             "motivation": "격려 메시지"
         }
     """
+    if user_context is None:
+        user_context = {}
+
     # 분석 결과에서 주요 약점 추출
     analysis = agent_results.get('analysis', {})
     weaknesses = analysis.get('weaknesses', [])
@@ -483,8 +616,16 @@ def run_integration_agent(agent_results: Dict[str, Any], user_message: str) -> D
     problems_json = json.dumps(agent_results.get('problems', {}), ensure_ascii=False, indent=2)
     guide_json = json.dumps(agent_results.get('guide', {}), ensure_ascii=False, indent=2)
 
+    # 컨텍스트 문자열 구성
+    context_str = ""
+    if orchestrator_intent:
+        context_str += f"\n사용자의 의도: {orchestrator_intent}"
+    if user_context.get('analyzed_submission_count'):
+        context_str += f"\n사용자 학습 기록: {user_context['analyzed_submission_count']}개 문제 풀이 분석"
+
     prompt = f"""
 당신은 학습 결과를 종합해서 사용자에게 명확하게 전달하는 커뮤니케이터입니다.
+사용자의 실제 의도를 반영하여 실용적인 조언을 제공하세요.{context_str}
 
 분석 결과:
 {analysis_json}

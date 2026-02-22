@@ -35,18 +35,6 @@
             <p class="overview-text">{{ analysisResult.overview }}</p>
           </section>
 
-          <!-- 상위 약점 (약점 프로필이 있을 때) -->
-          <section v-if="weaknessProfile && weaknessProfile.top_weaknesses" class="result-section">
-            <div class="section-header">
-              <i data-lucide="alert-circle" class="section-icon"></i>
-              <h3>주요 약점</h3>
-            </div>
-            <div class="weakness-tags">
-              <span v-for="(weakness, idx) in weaknessProfile.top_weaknesses" :key="idx" class="weakness-tag">
-                {{ weakness }}
-              </span>
-            </div>
-          </section>
 
           <!-- 실행 계획 -->
           <section v-if="analysisResult.action_plan" class="result-section">
@@ -158,7 +146,6 @@ export default {
     return {
       isLoading: false,
       analysisResult: null,
-      weaknessProfile: null,
       error: null,
       currentAgent: null,
     };
@@ -170,14 +157,8 @@ export default {
       this.currentAgent = 'Orchestrator Agent';
 
       try {
-        // 병렬로 약점 프로필과 분석 요청
-        const [profile, result] = await Promise.all([
-          AgentAnalysisService.getWeaknessProfile().catch(() => null),
-          this.performAnalysis(message),
-        ]);
-
-        this.weaknessProfile = profile;
-        this.analysisResult = result;
+        // AI 기반 학습 분석 (점수 기반 약점 프로필 제거)
+        this.analysisResult = await this.performAnalysis(message);
       } catch (err) {
         this.error = err.message || '분석 중 오류가 발생했습니다';
       } finally {
@@ -226,7 +207,6 @@ export default {
       // 모달 닫을 때 상태 초기화
       setTimeout(() => {
         this.analysisResult = null;
-        this.weaknessProfile = null;
         this.error = null;
       }, 300);
     },
