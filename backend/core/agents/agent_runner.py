@@ -10,7 +10,7 @@ import logging
 from typing import Dict, Any, List
 from openai import OpenAI
 from core.services.weakness_service import analyze_user_learning, get_focus_weakness
-from core.models import UserProfile
+from core.models import UserProfile, UserSolvedProblem
 
 logger = logging.getLogger(__name__)
 
@@ -179,6 +179,120 @@ def run_analysis_agent(user_profile: UserProfile) -> Dict[str, Any]:
                 for w in analysis_data['top_weaknesses']
             ],
             "analyzed_submission_count": analysis_data['analyzed_submission_count']
+        }
+
+
+def run_data_analyzer_agent(user_profile: UserProfile) -> Dict[str, Any]:
+    """
+    Data Analyzer Agent: 모든 형식의 submitted_data 직접 분석
+
+    Unit별 데이터 형식이 다르더라도 자연스러운 약점 표현으로 분석
+
+    Args:
+        user_profile: 사용자 프로필
+
+    Returns:
+        {
+            "analysis_summary": "분석 요약",
+            "weaknesses": [
+                {
+                    "description": "null/empty 입력 처리 부족",
+                    "severity": "HIGH",
+                    "affected_areas": ["Unit1", "Unit2"],
+                    "recommendation": "방어적 프로그래밍 학습"
+                },
+                ...
+            ],
+            "strengths": [
+                {
+                    "description": "논리 흐름 설계 능력",
+                    "evidence": "Unit1에서 일관되게 높은 점수"
+                }
+            ]
+        }
+    """
+    # 1. 사용자의 최근 풀이 기록 조회 (최대 10개)
+    solved_problems = UserSolvedProblem.objects.filter(
+        user=user_profile,
+        submitted_data__isnull=False
+    ).select_related('practice_detail__practice').order_by('-solved_date')[:10]
+
+    if not solved_problems:
+        return {
+            "analysis_summary": "아직 풀이 기록이 없습니다. 문제를 풀어보세요.",
+            "weaknesses": [],
+            "strengths": []
+        }
+
+    # 2. submitted_data를 OpenAI에 분석 요청
+    problems_data = []
+    for sp in solved_problems:
+        problems_data.append({
+            "unit": sp.practice_detail.practice_id,
+            "problem_title": str(sp.practice_detail),
+            "score": sp.score,
+            "submission_data": sp.submitted_data  # 형식 무관하게 전달
+        })
+
+    problems_json = json.dumps(problems_data, ensure_ascii=False, indent=2)
+
+    prompt = f"""
+당신은 AI 엔지니어의 학습을 깊이 있게 분석하는 전문가입니다.
+
+사용자의 최근 풀이 기록을 분석해서:
+1. 실제로 부족한 부분이 무엇인지
+2. 강점이 무엇인지
+자연스러운 표현으로 파악하세요.
+
+데이터 형식:
+{problems_json}
+
+분석 시 고려사항:
+- 제출된 코드/설계의 질
+- 점수 추이
+- 반복되는 패턴 (부족한 부분)
+- 잘하는 부분
+
+다음 JSON 형식으로 응답:
+{{
+  "analysis_summary": "전체 분석 요약 (2~3문장)",
+  "weaknesses": [
+    {{
+      "description": "구체적으로 부족한 부분 (예: null/empty 입력 처리 부족)",
+      "severity": "HIGH/MEDIUM/LOW",
+      "affected_areas": ["Unit1", "Unit2"],
+      "recommendation": "구체적인 학습/개선 방법"
+    }}
+  ],
+  "strengths": [
+    {{
+      "description": "잘하는 부분 (예: 논리 흐름 설계)",
+      "evidence": "근거"
+    }}
+  ]
+}}
+"""
+
+    try:
+        response = client.chat.completions.create(
+            model=AGENT_MODEL,
+            max_tokens=2000,
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        response_text = response.choices[0].message.content
+        response_text = response_text.replace("```json", "").replace("```", "").strip()
+        result = json.loads(response_text)
+
+        logger.info(f"[Data Analyzer] 분석 완료 - 약점 {len(result.get('weaknesses', []))}개, 강점 {len(result.get('strengths', []))}개")
+        return result
+
+    except Exception as e:
+        logger.error(f"Data Analyzer Agent 오류: {e}")
+        return {
+            "analysis_summary": f"분석 중 오류가 발생했습니다: {str(e)}",
+            "weaknesses": [],
+            "strengths": []
         }
 
 

@@ -10,12 +10,12 @@ from rest_framework import status
 from core.models import UserProfile
 from core.agents.agent_runner import (
     run_orchestrator_agent,
-    run_analysis_agent,
+    run_data_analyzer_agent,
     run_problem_generator_agent,
     run_learning_guide_agent,
     run_integration_agent,
 )
-from core.services.weakness_service import analyze_user_learning, get_focus_weakness
+from core.services.weakness_service import analyze_user_learning
 
 logger = logging.getLogger(__name__)
 
@@ -56,63 +56,61 @@ class UserLearningAnalysisView(APIView):
 
         logger.info(f"[에이전트] 사용자 ID {user_profile.id} - 요청: {user_message}")
 
-        # Step 1: 사용자 약점 정보 조회
-        user_weakness_data = analyze_user_learning(user_profile.id)
-        logger.info(f"[약점분석] 조회된 기록 수: {user_weakness_data.get('analyzed_submission_count')}, 약점: {user_weakness_data.get('top_weaknesses')}")
+        # Step 1: Data Analyzer Agent (AI 우선 - 모든 submitted_data 직접 분석)
+        # → 점수 기반 분석은 제거 (Data Analyzer가 이미 깊이 있게 분석)
+        logger.info("[Data Analyzer] 실행 중...")
+        agent_results = {}
+        agent_results['analysis'] = run_data_analyzer_agent(user_profile)
+        logger.info(f"[Data Analyzer] 완료 - 약점: {len(agent_results['analysis'].get('weaknesses', []))} 강점: {len(agent_results['analysis'].get('strengths', []))}")
 
         # Step 2: Orchestrator 실행 - 필요 에이전트 결정
+        # Data Analyzer 결과 기반으로 사용자 의도 파악
+        weaknesses_for_orchestrator = [w.get('description', '') for w in agent_results['analysis'].get('weaknesses', [])]
         orchestrator_result = run_orchestrator_agent(
             user_message=user_message,
             user_weaknesses={
-                "top_weaknesses": user_weakness_data.get('top_weaknesses', []),
-                "summary": user_weakness_data.get('summary', '')
+                "analysis_summary": agent_results['analysis'].get('analysis_summary', ''),
+                "weaknesses": weaknesses_for_orchestrator
             }
         )
 
         logger.info(f"[Orchestrator] 선택 에이전트: {orchestrator_result.get('agents')}")
 
-        # Step 3: 필요한 에이전트 실행
-        agent_results = {}
-
-        # Analysis Agent (항상 실행)
-        if "Analysis" in orchestrator_result.get('agents', []):
-            logger.info("[Analysis Agent] 실행 중...")
-            agent_results['analysis'] = run_analysis_agent(user_profile)
-            logger.info(f"[Analysis Agent] 완료 - 약점: {len(agent_results['analysis'].get('weaknesses', []))}")
+        # Step 3: 필요한 추가 에이전트 실행
 
         # Problem Generator Agent
         if "ProblemGenerator" in orchestrator_result.get('agents', []):
-            # Analysis Agent는 dict 리스트를 반환하므로 'name' 필드만 추출
+            # Data Analyzer의 약점 중 가장 심각한 것 선택
             analysis_weaknesses = agent_results.get('analysis', {}).get('weaknesses', [])
-            weakness_names = [w.get('name') for w in analysis_weaknesses if isinstance(w, dict)] if analysis_weaknesses else []
+            if analysis_weaknesses:
+                # severity 순서: HIGH > MEDIUM > LOW
+                high_severity = [w for w in analysis_weaknesses if w.get('severity') == 'HIGH']
+                focus_weakness = high_severity[0].get('description') if high_severity else analysis_weaknesses[0].get('description', '')
 
-            focus_weakness = get_focus_weakness(
-                weakness_names or user_weakness_data.get('top_weaknesses', [])
-            )
-            if focus_weakness:
-                logger.info(f"[Problem Generator] 실행 중... (약점: {focus_weakness})")
-                agent_results['problems'] = run_problem_generator_agent(
-                    user_profile,
-                    focus_weakness
-                )
-                logger.info("[Problem Generator] 완료")
+                if focus_weakness:
+                    logger.info(f"[Problem Generator] 실행 중... (약점: {focus_weakness})")
+                    agent_results['problems'] = run_problem_generator_agent(
+                        user_profile,
+                        focus_weakness
+                    )
+                    logger.info("[Problem Generator] 완료")
 
         # Learning Guide Agent
         if "LearningGuide" in orchestrator_result.get('agents', []):
-            # Analysis Agent는 dict 리스트를 반환하므로 'name' 필드만 추출
+            # Data Analyzer의 약점 중 가장 심각한 것 선택
             analysis_weaknesses = agent_results.get('analysis', {}).get('weaknesses', [])
-            weakness_names = [w.get('name') for w in analysis_weaknesses if isinstance(w, dict)] if analysis_weaknesses else []
+            if analysis_weaknesses:
+                # severity 순서: HIGH > MEDIUM > LOW
+                high_severity = [w for w in analysis_weaknesses if w.get('severity') == 'HIGH']
+                focus_weakness = high_severity[0].get('description') if high_severity else analysis_weaknesses[0].get('description', '')
 
-            focus_weakness = get_focus_weakness(
-                weakness_names or user_weakness_data.get('top_weaknesses', [])
-            )
-            if focus_weakness:
-                logger.info(f"[Learning Guide] 실행 중... (약점: {focus_weakness})")
-                agent_results['guide'] = run_learning_guide_agent(
-                    user_profile,
-                    focus_weakness
-                )
-                logger.info("[Learning Guide] 완료")
+                if focus_weakness:
+                    logger.info(f"[Learning Guide] 실행 중... (약점: {focus_weakness})")
+                    agent_results['guide'] = run_learning_guide_agent(
+                        user_profile,
+                        focus_weakness
+                    )
+                    logger.info("[Learning Guide] 완료")
 
         # Step 4: Integration Agent - 결과 통합
         logger.info("[Integration Agent] 실행 중...")
