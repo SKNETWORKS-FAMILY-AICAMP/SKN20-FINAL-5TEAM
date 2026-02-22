@@ -31,6 +31,7 @@ from core.views import (
 from core.views.pseudocode_execution import execute_python_code
 from core.views import pseudocode_evaluation, youtube_recommendation
 from core.views.architecture_view import ArchitectureEvaluationView, ArchitectureQuestionGeneratorView
+from core.views.agent_view import UserLearningAnalysisView, WeaknessProfileView
 
 router = DefaultRouter()
 router.register(r'users', UserProfileViewSet, basename='users')
@@ -88,4 +89,8 @@ urlpatterns = [
     path('job-planner/agent-questions/', JobPlannerAgentQuestionsView.as_view(), name='job_planner_agent_questions'),
     path('job-planner/agent-report/', JobPlannerAgentReportView.as_view(), name='job_planner_agent_report'),
     path('job-planner/recommend/', JobPlannerRecommendView.as_view(), name='job_planner_recommend'),
+
+    # 에이전트 기반 학습 분석 API [작성일: 2026-02-22]
+    path('agents/analyze/', UserLearningAnalysisView.as_view(), name='agents_analyze'),
+    path('agents/weakness-profile/', WeaknessProfileView.as_view(), name='weakness_profile'),
 ]

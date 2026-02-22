@@ -118,6 +118,12 @@
         :isOpen="ui.isJobPlannerModalOpen"
         @close="ui.isJobPlannerModalOpen = false"
     />
+
+    <!-- [에이전트 학습 분석 모달] -->
+    <AgentAnalysisModal
+        :isOpen="ui.isLearningAnalyticsOpen"
+        @close="ui.isLearningAnalyticsOpen = false"
+    />
   </div>
 </template>
 
@@ -136,6 +142,7 @@ import ProfileSettingsModal from './ProfileSettingsModal.vue';
 import GlobalToast from './GlobalToast.vue'; // [수정일: 2026-02-16] 전역 토스트 추가
 import LogicMirrorGuidebook from '../features/practice/pseudocode/components/LogicMirrorGuidebook.vue'; // [수정일: 2026-02-06] 폴더 계층화(components) 반영
 import JobPlannerModal from './JobPlannerModal.vue';
+import AgentAnalysisModal from './AgentAnalysisModal.vue'; // [수정일: 2026-02-22] 에이전트 학습 분석 모달
 
 /**
  * [수정일: 2026-01-24] 

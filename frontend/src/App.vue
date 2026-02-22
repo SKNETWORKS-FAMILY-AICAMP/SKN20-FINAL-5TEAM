@@ -20,6 +20,7 @@
       @go-to-playground="handleGoToPlayground"
       @open-unit="openUnitPopup"
       @open-job-planner="handleOpenJobPlanner"
+      @open-learning-analytics="handleOpenLearningAnalytics"
     >
       <template #auth-buttons>
         <template v-if="!auth.isLoggedIn">
@@ -409,6 +410,14 @@ function handleGoToPlayground() {
 
 function handleOpenJobPlanner() {
   ui.isJobPlannerModalOpen = true;
+}
+
+function handleOpenLearningAnalytics() {
+  if (!auth.isLoggedIn) {
+    ui.isAuthRequiredModalOpen = true;
+    return;
+  }
+  ui.isLearningAnalyticsOpen = true;
 }
 
 // Lifecycle

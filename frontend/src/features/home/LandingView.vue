@@ -37,6 +37,10 @@
             <Briefcase class="btn-icon" />
             <span>Job Planner</span>
           </button>
+          <button @click="$emit('open-learning-analytics')" class="btn-analytics">
+            <BarChart3 class="btn-icon" />
+            <span>학습 분석</span>
+          </button>
         </div>
       </div>
 
@@ -335,7 +339,8 @@ import {
   History,
   LogOut,
   Info,
-  Briefcase
+  Briefcase,
+  BarChart3
 } from 'lucide-vue-next';
 import AvatarFrame from '@/components/AvatarFrame.vue';
 
@@ -358,7 +363,8 @@ export default {
     Trophy,
     ArrowRight,
     Info,
-    Briefcase
+    Briefcase,
+    BarChart3
   },
   props: {
     isLoggedIn: Boolean,
