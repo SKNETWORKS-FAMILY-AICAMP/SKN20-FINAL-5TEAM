@@ -197,8 +197,21 @@ export default {
     },
 
     openProblem(problem) {
-      // 문제 풀이 페이지로 이동 (추후 구현)
-      console.log('문제 열기:', problem);
+      // 문제ID를 기반으로 문제 유닛 판단 후 라우팅
+      const problemId = problem.problem_id || '';
+      let routePath = '/';
+
+      // problem_id 형식: unit01xx, unit02xx, unit03xx
+      if (problemId.startsWith('unit01')) {
+        routePath = '/practice/pseudo-code';
+      } else if (problemId.startsWith('unit02')) {
+        routePath = '/practice/system-architecture';
+      } else if (problemId.startsWith('unit03')) {
+        routePath = '/practice/bug-hunt';
+      }
+
+      // 라우팅 후 모달 닫기
+      this.$router.push(routePath);
       this.$emit('close');
     },
 
