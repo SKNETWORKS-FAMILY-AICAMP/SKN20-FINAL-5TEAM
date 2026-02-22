@@ -31,6 +31,7 @@ from core.views import (
 from core.views.pseudocode_execution import execute_python_code
 from core.views import pseudocode_evaluation, youtube_recommendation
 from core.views.architecture_view import ArchitectureEvaluationView, ArchitectureQuestionGeneratorView
+from core.views.mock_interview import mock_interview_stream, mock_interview_reply
 
 router = DefaultRouter()
 router.register(r'users', UserProfileViewSet, basename='users')

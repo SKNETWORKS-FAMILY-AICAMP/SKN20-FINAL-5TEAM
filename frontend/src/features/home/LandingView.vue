@@ -37,6 +37,11 @@
             <Briefcase class="btn-icon" />
             <span>Job Planner</span>
           </button>
+          <!-- [수정일: 2026-02-22] 모의 면접 버튼 스타일 수정 (시인성 개선) -->
+          <button @click="$emit('open-mock-interview')" class="btn-mock-interview">
+            <MessageCircle class="btn-icon" />
+            <span>모의 면접</span>
+          </button>
         </div>
       </div>
 
@@ -335,7 +340,8 @@ import {
   History,
   LogOut,
   Info,
-  Briefcase
+  Briefcase,
+  MessageCircle
 } from 'lucide-vue-next';
 import AvatarFrame from '@/components/AvatarFrame.vue';
 
@@ -358,7 +364,8 @@ export default {
     Trophy,
     ArrowRight,
     Info,
-    Briefcase
+    Briefcase,
+    MessageCircle
   },
   props: {
     isLoggedIn: Boolean,

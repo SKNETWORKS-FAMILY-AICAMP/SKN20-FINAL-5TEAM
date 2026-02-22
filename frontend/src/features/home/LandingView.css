@@ -251,6 +251,36 @@
     height: 20px;
 }
 
+/* [수정일: 2026-02-22] 모의 면접 버튼 클래스 추가 */
+.btn-mock-interview {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.15));
+    backdrop-filter: blur(20px);
+    color: #34d399;
+    /* 밝은 녹색 텍스트로 시인성 개선 */
+    padding: 1.4rem 3rem;
+    border-radius: 16px;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.btn-mock-interview:hover {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(5, 150, 105, 0.25));
+    border-color: rgba(16, 185, 129, 0.5);
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
+}
+
+.btn-mock-interview .btn-icon {
+    width: 20px;
+    height: 20px;
+}
+
 /* [Floating Decor] */
 .hero-decor {
     position: absolute;

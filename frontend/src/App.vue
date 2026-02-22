@@ -20,6 +20,7 @@
       @go-to-playground="handleGoToPlayground"
       @open-unit="openUnitPopup"
       @open-job-planner="handleOpenJobPlanner"
+      @open-mock-interview="handleOpenMockInterview"
     >
       <template #auth-buttons>
         <template v-if="!auth.isLoggedIn">
@@ -410,6 +411,11 @@ function handleGoToPlayground() {
 
 function handleOpenJobPlanner() {
   ui.isJobPlannerModalOpen = true;
+}
+
+// [수정일: 2026-02-21] 랜딩 뷰에서 모의 면접 모달 열기
+function handleOpenMockInterview() {
+  ui.isMockInterviewModalOpen = true;
 }
 
 // Lifecycle

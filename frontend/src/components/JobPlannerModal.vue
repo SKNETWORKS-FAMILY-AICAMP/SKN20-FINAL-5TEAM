@@ -964,6 +964,7 @@
 
 <script>
 import axios from 'axios';
+import { useInterviewStore } from '@/stores/interview';
 
 export default {
   name: 'JobPlannerModal',
@@ -1268,6 +1269,14 @@ export default {
         });
 
         this.analysisResult = response.data;
+
+        // [수정일: 2026-02-22] 모의 면접 컨텍스트용으로 Store에 임시 저장
+        const interviewStore = useInterviewStore();
+        interviewStore.setJobPlannerData({
+          jobData: this.jobData,
+          analysisResult: this.analysisResult,
+          companyAnalysis: this.companyAnalysis
+        });
 
         // 부족한 스킬이 있으면 에이전트 질문 페이지로 이동
         if (this.analysisResult.missing_skills && this.analysisResult.missing_skills.length > 0) {

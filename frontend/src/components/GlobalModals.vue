@@ -118,6 +118,9 @@
         :isOpen="ui.isJobPlannerModalOpen"
         @close="ui.isJobPlannerModalOpen = false"
     />
+
+    <!-- [모의 면접 모달] (신규 추가) -->
+    <MockInterviewRoom />
   </div>
 </template>
 
@@ -136,6 +139,7 @@ import ProfileSettingsModal from './ProfileSettingsModal.vue';
 import GlobalToast from './GlobalToast.vue'; // [수정일: 2026-02-16] 전역 토스트 추가
 import LogicMirrorGuidebook from '../features/practice/pseudocode/components/LogicMirrorGuidebook.vue'; // [수정일: 2026-02-06] 폴더 계층화(components) 반영
 import JobPlannerModal from './JobPlannerModal.vue';
+import MockInterviewRoom from './MockInterviewRoom.vue'; // [수정일: 2026-02-21] 전역 모달로 이동
 
 /**
  * [수정일: 2026-01-24] 

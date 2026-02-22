@@ -18,6 +18,7 @@ export const useUiStore = defineStore('ui', {
         isReportModalOpen: false,
         isProfileSettingsModalOpen: false,
         isJobPlannerModalOpen: false,
+        isMockInterviewModalOpen: false,
 
         // [수정일: 2026-02-16] 전역 토스트 알림 상태
         toast: {
@@ -55,6 +56,7 @@ export const useUiStore = defineStore('ui', {
             this.isAgentModalOpen = false;
             this.isReportModalOpen = false;
             this.isJobPlannerModalOpen = false;
+            this.isMockInterviewModalOpen = false;
         },
 
         openLogin() { this.isLoginModalOpen = true; },
