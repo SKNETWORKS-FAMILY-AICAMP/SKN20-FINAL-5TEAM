@@ -33,10 +33,21 @@ export const useGameStore = defineStore('game', {
         selectedQuestIndex: 0,
         selectedSystemProblemIndex: 0,
         // [수정일: 2026-02-09] 서버에서 불러온 사용자 해결 문제 기록 저장
-        userSolvedProblems: []
+        userSolvedProblems: [],
+        // [수정일: 2026-02-23] Job Planner에서 분석된 최신 JD 데이터 공유 (Coduck Wars 연동용)
+        lastParsedJob: null,
+        // [수정일: 2026-02-23] Coduck Wars 현재 진행 중인 미션 데이터
+        activeWarsMission: null,
+        // [수정일: 2026-02-23] Coduck Wars 최종 평가 결과 및 설계도
+        lastEvaluation: null,
+        lastFinalDesign: '',
+        userRole: 'architect' // [Phase 3] 기본 역할
     }),
 
     actions: {
+        setUserRole(role) {
+            this.userRole = role;
+        },
         /**
          * [초기 게임 데이터 로드]
          * - 백엔드 API(/api/core/practices/)로부터 연습 유닛 목록을 가져와 스토어에 저장합니다.
@@ -333,6 +344,29 @@ export const useGameStore = defineStore('game', {
             } catch (error) {
                 console.error("[GameStore] Failed to fetch solved problems:", error);
             }
+        },
+
+        /**
+         * [수정일: 2026-02-23] Job Planner 분석 결과 저장
+         * - Coduck Wars 섹션에서 '불러오기' 기능을 제공하기 위해 데이터를 저장합니다.
+         */
+        setLastParsedJob(jobData) {
+            this.lastParsedJob = jobData;
+        },
+
+        /**
+         * [수정일: 2026-02-23] Coduck Wars 활성 미션 데이터 저장
+         */
+        setWarsMission(mission) {
+            this.activeWarsMission = mission;
+        },
+
+        /**
+         * [수정일: 2026-02-23] Coduck Wars 평가 결과 저장
+         */
+        setEvaluation(evaluation, finalDesign) {
+            this.lastEvaluation = evaluation;
+            this.lastFinalDesign = finalDesign;
         }
     },
 

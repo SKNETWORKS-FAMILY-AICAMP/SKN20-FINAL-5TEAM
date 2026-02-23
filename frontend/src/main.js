@@ -19,6 +19,10 @@ import BugHunt from './features/practice/bughunt/BugHunt.vue'
 // import OpsPractice from './features/practice/OpsPractice.vue'
 import ManagementView from './features/dashboard/ManagementView.vue'
 import MyHistoryView from './features/dashboard/MyHistoryView.vue'
+import MissionBriefing from './features/wars/MissionBriefing.vue'
+import PressureInterviewRoom from './features/wars/PressureInterviewRoom.vue'
+import GrowthReport from './features/wars/GrowthReport.vue'
+import WarLobby from './features/wars/WarLobby.vue'
 
 // [수정일: 2026-01-31] 사용하지 않는 구버전/비활성 컴포넌트 임포트 주석 처리
 // import AiDetectivePractice from './features/practice/AiDetectivePractice.vue'
@@ -58,7 +62,22 @@ const routes = [
   {
     path: '/practice/coduck-wars',
     name: 'CoduckWars',
-    component: CoduckWars
+    component: MissionBriefing
+  },
+  {
+    path: '/practice/coduck-wars/battle',
+    name: 'PressureInterviewRoom',
+    component: PressureInterviewRoom
+  },
+  {
+    path: '/practice/coduck-wars/report',
+    name: 'GrowthReport',
+    component: GrowthReport
+  },
+  {
+    path: '/practice/coduck-wars/lobby',
+    name: 'WarLobby',
+    component: WarLobby
   },
   /* [수정일: 2026-01-31] 비활성 라우트 주석 처리
   {

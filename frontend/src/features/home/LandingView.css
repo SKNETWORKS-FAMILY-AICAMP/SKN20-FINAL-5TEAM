@@ -251,6 +251,34 @@
     height: 20px;
 }
 
+.btn-coduck-wars {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(124, 58, 237, 0.15));
+    backdrop-filter: blur(20px);
+    color: #a78bfa;
+    padding: 1.4rem 3rem;
+    border-radius: 16px;
+    border: 1px solid rgba(167, 139, 250, 0.3);
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.btn-coduck-wars:hover {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(124, 58, 237, 0.25));
+    border-color: rgba(167, 139, 250, 0.5);
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
+}
+
+.btn-coduck-wars .btn-icon {
+    width: 22px;
+    height: 22px;
+}
+
 /* [Floating Decor] */
 .hero-decor {
     position: absolute;

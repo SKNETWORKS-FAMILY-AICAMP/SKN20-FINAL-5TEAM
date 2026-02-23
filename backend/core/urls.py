@@ -28,6 +28,12 @@ from core.views import (
     JobPlannerAgentReportView,
     JobPlannerRecommendView
 )
+from core.views.coduck_wars_view import (
+    CoduckWarsStartView,
+    CoduckWarsPressureView,
+    CoduckWarsEvaluationView,
+    CoduckWarsAnalyzeCodeView
+)
 from core.views.pseudocode_execution import execute_python_code
 from core.views import pseudocode_evaluation, youtube_recommendation
 
@@ -77,4 +83,18 @@ urlpatterns = [
     path('pseudo-agent/', PseudocodeAgentView.as_view(), name='pseudo_agent'),
     path('pseudocode/evaluate-5d/', pseudocode_evaluation.evaluate_pseudocode_5d),
     path('youtube/recommendations', youtube_recommendation.get_youtube_recommendations),
+
+    # Job Planner API
+    path('job-planner/parse/', JobPlannerParseView.as_view(), name='job_planner_parse'),
+    path('job-planner/analyze/', JobPlannerAnalyzeView.as_view(), name='job_planner_analyze'),
+    path('job-planner/company-analyze/', JobPlannerCompanyAnalyzeView.as_view(), name='job_planner_company_analyze'),
+    path('job-planner/agent-questions/', JobPlannerAgentQuestionsView.as_view(), name='job_planner_agent_questions'),
+    path('job-planner/agent-report/', JobPlannerAgentReportView.as_view(), name='job_planner_agent_report'),
+    path('job-planner/recommend/', JobPlannerRecommendView.as_view(), name='job_planner_recommend'),
+
+    # Coduck Wars API
+    path('wars/start/', CoduckWarsStartView.as_view(), name='wars_start'),
+    path('wars/pressure/', CoduckWarsPressureView.as_view(), name='wars_pressure'),
+    path('wars/evaluate/', CoduckWarsEvaluationView.as_view(), name='wars_evaluate'),
+    path('wars/analyze-code/', CoduckWarsAnalyzeCodeView.as_view(), name='wars_analyze_code'),  # [2026-02-23] ChaosAgent 연결
 ]

@@ -37,6 +37,11 @@
             <Briefcase class="btn-icon" />
             <span>Job Planner</span>
           </button>
+          <!-- [수정일: 2026-02-23] Coduck Wars 진입 버튼 추가 -->
+          <button @click="$emit('open-coduck-wars')" class="btn-coduck-wars">
+            <Gamepad2 class="btn-icon" />
+            <span>Coduck Wars</span>
+          </button>
         </div>
       </div>
 

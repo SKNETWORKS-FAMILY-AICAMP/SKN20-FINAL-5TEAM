@@ -35,7 +35,7 @@
         :key="comp.id"
         :id="comp.id"
         class="dropped-component"
-        :class="[comp.type, { selected: selectedComponentId === comp.id }]"
+        :class="[comp.type, { selected: selectedComponentId === comp.id, error: errorNodeIds.includes(comp.id) }]"
         :style="{ left: comp.x + 'px', top: comp.y + 'px' }"
         @mousedown.stop="onComponentMouseDown($event, comp)"
         @dblclick.stop="startEditingComponent(comp.id)"
@@ -85,6 +85,10 @@ export default {
     hideHeader: {
       type: Boolean,
       default: false
+    },
+    errorNodeIds: {
+      type: Array,
+      default: () => []
     }
   },
   emits: [
@@ -408,6 +412,17 @@ export default {
 @keyframes pulse {
   0%, 100% { box-shadow: 0 0 25px rgba(0, 243, 255, 0.6); }
   50% { box-shadow: 0 0 40px rgba(0, 243, 255, 0.9); }
+}
+
+.dropped-component.error {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 25px rgba(239, 68, 68, 0.6);
+  animation: errorPulse 1s infinite alternate;
+}
+
+@keyframes errorPulse {
+  0% { transform: scale(1); box-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
+  100% { transform: scale(1.05); box-shadow: 0 0 30px rgba(239, 68, 68, 0.9); }
 }
 
 /* Component type styles - Terminal 2077 Theme */

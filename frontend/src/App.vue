@@ -20,6 +20,7 @@
       @go-to-playground="handleGoToPlayground"
       @open-unit="openUnitPopup"
       @open-job-planner="handleOpenJobPlanner"
+      @open-coduck-wars="handleOpenCoduckWars"
     >
       <template #auth-buttons>
         <template v-if="!auth.isLoggedIn">
@@ -198,6 +199,9 @@ const isPracticePage = computed(() => {
     'PseudoCode',
     'SystemArchitecturePractice',
     'BugHunt',
+    'CoduckWars',
+    'PressureInterviewRoom',
+    'GrowthReport',
     'ProgressiveProblems',
     'Management',
     'MyHistory',
@@ -409,6 +413,10 @@ function handleGoToPlayground() {
 
 function handleOpenJobPlanner() {
   ui.isJobPlannerModalOpen = true;
+}
+
+function handleOpenCoduckWars() {
+  router.push('/practice/coduck-wars');
 }
 
 // Lifecycle
