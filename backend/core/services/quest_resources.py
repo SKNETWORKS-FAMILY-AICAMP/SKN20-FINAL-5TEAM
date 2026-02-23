@@ -2,12 +2,109 @@
 [2026-02-21 대폭 개편]
 의사코드 퀘스트별 추천 영상, 차원 우선순위, Deep Dive 패턴 통합 관리 서비스
 
-아키텍처:
-  - QUEST_VIDEOS: 모든 차원이 [list] 구조 (consistency 유지)
-  - DIMENSION_PRIORITY_BY_QUEST: 퀘스트별 차원 가중치
-  - DEEP_DIVE_PATTERNS: 각 Quest의 깊이 학습 시나리오 틀
-  - validate_* 함수들: 데이터 검증 로직
+[2026-02-22 추가]
+- QUEST_BLUEPRINTS: 기초부터 배우기(청사진 모드)를 위한 정답 데이터
 """
+
+import logging
+import re
+
+logger = logging.getLogger(__name__)
+
+
+# ============================================================================
+# 0. 기초부터 배우기 (청사진 모드) 데이터
+# ============================================================================
+
+QUEST_BLUEPRINTS = {
+    '1': [
+        { "id": "s1", "python": "X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)", "pseudo": "먼저 데이터를 학습용과 검증용으로 물리적 격리(Isolation)한다.", "keywords": ["격리", "분리", "학습/검증", "Isolation"] },
+        { "id": "s2", "python": "scaler.fit(X_train)", "pseudo": "학습 데이터(train)에서만 통계량을 추출하여 기준점(Anchor)을 설정한다.", "keywords": ["기준점", "학습데이터", "통계량", "fit"] },
+        { "id": "s3", "python": "scaler.transform(X_test)", "pseudo": "테스트 데이터(test)에는 fit 없이 transform만 적용하여 일관성(Consistency)을 유지한다.", "keywords": ["일관성", "테스트데이터", "transform", "동일변환"] }
+    ],
+    '2': [
+        { "id": "s1", "python": "model = Ridge(alpha=1.0)", "pseudo": "L2 정규화를 통해 모델의 계수 크기를 제어하여 과도한 가중치를 억제한다.", "keywords": ["정규화", "L2", "복잡도제어", "Ridge"] },
+        { "id": "s2", "python": "model.fit(X_train, y_train)", "pseudo": "학습 데이터에서 정규화된 모델을 적합시켜 일반화 성능을 높인다.", "keywords": ["적합", "학습", "정규화"] },
+        { "id": "s3", "python": "score_train vs score_test", "pseudo": "학습 데이터와 검증 데이터의 성능 차이를 모니터링하여 과적합 정도를 진단한다.", "keywords": ["모니터링", "성능차이", "과적합진단"] }
+    ],
+    '3': [
+        { "id": "s1", "python": "print(y_train.value_counts())", "pseudo": "클래스 분포의 불균형을 진단하여 얼마나 심각한 문제인지 파악한다.", "keywords": ["진단", "분포확인", "불균형", "DetectImbalance"] },
+        { "id": "s2", "python": "smote = SMOTE(); X_balanced, y_balanced = smote.fit_resample(X_train, y_train)", "pseudo": "SMOTE 기법을 사용하여 소수 클래스를 합성적으로 생성하고 균형을 맞춘다.", "keywords": ["샘플링", "SMOTE", "오버샘플링", "BalanceClass"] },
+        { "id": "s3", "python": "roc_auc_score(y_test, pred_proba)", "pseudo": "정확도 대신 F1-Score, AUC-ROC 등 다중 평가 지표를 사용하여 공정한 성능 평가를 수행한다.", "keywords": ["평가지표", "F1", "AUC", "Precision"] }
+    ],
+    '4': [
+        { "id": "s1", "python": "df['freq'] = df['count'] / df['days']", "pseudo": "원본 특성들을 조합하여 의미 있는 새로운 특성을 생성한다.", "keywords": ["생성", "조합", "도메인", "FeatureCreation"] },
+        { "id": "s2", "python": "df['log_val'] = np.log1p(df['val'])", "pseudo": "로그 변환 등을 통해 특성의 분포를 개선하고 모델 학습을 촉진한다.", "keywords": ["변환", "정규화", "스케일링", "Transformation"] },
+        { "id": "s3", "python": "model.feature_importances_", "pseudo": "특성 중요도를 분석하여 기여도가 낮은 특성을 제거하여 모델을 단순화한다.", "keywords": ["선택", "중요도", "제거", "Selection"] }
+    ],
+    '5': [
+        { "id": "s1", "python": "param_grid = {'n_estimators': [50, 100], ...}", "pseudo": "튜닝할 하이퍼파라미터와 그 값의 범위를 정의한다.", "keywords": ["정의", "범위", "파라미터", "Space"] },
+        { "id": "s2", "python": "GridSearchCV(..., cv=5)", "pseudo": "K-Fold 교차검증과 함께 그리드 탐색을 수행하여 성능을 평가한다.", "keywords": ["탐색", "교차검증", "조합", "Search"] },
+        { "id": "s3", "python": "best_params = grid.best_params_", "pseudo": "가장 좋은 검증 성능을 보인 파라미터 조합을 추출하여 최종 모델에 적용한다.", "keywords": ["선택", "최적화", "확정", "Best"] }
+    ],
+    '6': [
+        { "id": "s1", "python": "model.feature_importances_", "pseudo": "각 특성이 전체 의사결정에 미치는 영향도를 계산하는 전역적 해석을 수행한다.", "keywords": ["해석", "중요도", "특성", "Global"] },
+        { "id": "s2", "python": "shap_values = explainer.shap_values(X_test)", "pseudo": "SHAP 같은 기법을 사용하여 특정 사례의 모델 예측을 개별적으로 해석한다.", "keywords": ["설명", "SHAP", "개별", "Local"] },
+        { "id": "s3", "python": "performance_by_group", "pseudo": "보호되는 속성에 대해 모델의 성능 및 결정에 편향이 있는지 검증한다.", "keywords": ["검증", "편향", "공정성", "Bias"] }
+    ]
+}
+
+QUEST_RECOVERY_QUESTIONS = {
+    '1': {
+        'question': '데이터 누수 방지를 위해 fit과 transform을 분리하는 이유 중 가장 적절한 것은?',
+        'options': [
+            {'text': '테스트 데이터의 통계량이 학습 데이터에 영향을 주지 않도록 하기 위해', 'is_correct': True, 'reason': '이것이 데이터 격리(Isolation)의 핵심 원칙입니다.'},
+            {'text': '연산 속도를 더 빠르게 높이기 위해', 'is_correct': False, 'reason': '속도보다는 논리적 무결성이 우선입니다.'},
+            {'text': '전체 데이터의 평균값을 더 정확하게 구하기 위해', 'is_correct': False, 'reason': '전체 데이터를 한꺼번에 계산하면 나중에 올 실제 데이터 예측 시 문제가 생깁니다.'}
+        ]
+    },
+    '2': {
+        'question': '릿지(Ridge) 회귀에서 알파(Alpha) 값이 커질 때 발생하는 현상은?',
+        'options': [
+            {'text': '계수(Weight)의 크기가 작아지며 모델이 더 단순해진다', 'is_correct': True, 'reason': '알파는 규제의 강도를 조절하여 과적합을 방지합니다.'},
+            {'text': '모델이 학습 데이터에 더 완벽하게 밀착된다', 'is_correct': False, 'reason': '그것은 알파가 0에 가까울 때의 현상입니다.'},
+            {'text': '계수들의 합이 항상 0이 된다', 'is_correct': False, 'reason': '계수를 줄이는 것이지 무조건 0으로 만드는 것은 아닙니다.'}
+        ]
+    },
+    '3': {
+        'question': '불균형 데이터를 다룰 때 정확도(Accuracy) 지표만 신뢰하면 안 되는 이유는?',
+        'options': [
+            {'text': '다수 클래스만 잘 맞추고 소수 클래스를 놓쳐도 높게 나올 수 있어서', 'is_correct': True, 'reason': '그래서 F1-Score나 AUC-ROC 같은 지표가 필수적입니다.'},
+            {'text': '정확도는 계산 시간이 오래 걸려서', 'is_correct': False, 'reason': '정확도 계산은 매우 빠릅니다.'},
+            {'text': '데이터가 적을 때는 정확도가 항상 0이 되어서', 'is_correct': False, 'reason': '데이터 양과 정확도의 관계는 상황에 따라 다릅니다.'}
+        ]
+    },
+    '4': {
+        'question': '특성 중요도(Feature Importance) 분석의 주된 목적은?',
+        'options': [
+            {'text': '모델의 의사결정에 가장 큰 영향을 준 변수를 파악하기 위해', 'is_correct': True, 'reason': '이를 통해 불필요한 변수를 제거하거나 도메인 인사이트를 얻습니다.'},
+            {'text': '데이터의 결측치를 자동으로 채우기 위해', 'is_correct': False, 'reason': '결측치 처리는 전처리 단계에서 별도로 수행해야 합니다.'},
+            {'text': '전체 학습 속도를 10배 이상 높이기 위해', 'is_correct': False, 'reason': '가독성과 해석력 향상이 주목적입니다.'}
+        ]
+    },
+    '5': {
+        'question': '그리드 탐색(Grid Search) 시 교차 검증(CV)을 함께 사용하는 이유는?',
+        'options': [
+            {'text': '특정 데이터 분할에만 운 좋게 잘 맞는 "우연"을 방지하기 위해', 'is_correct': True, 'reason': '데이터를 여러 개로 쪼개어 평균 성능을 보는 것이 더 강건합니다.'},
+            {'text': '하이퍼파라미터의 범위를 자동으로 무한 확장하기 위해', 'is_correct': False, 'reason': '범위는 사용자가 직접 지정해야 합니다.'},
+            {'text': '모델의 파이썬 코드를 더 짧게 만들기 위해', 'is_correct': False, 'reason': '코딩 스타일과는 무관한 성능 검증 기법입니다.'}
+        ]
+    },
+    '6': {
+        'question': 'SHAP 값(SHAP Value)이 우리에게 알려주는 핵심 정보는?',
+        'options': [
+            {'text': '특정 입력값이 모델의 예측 결과를 정답 대비 얼마나 변화시켰는가', 'is_correct': True, 'reason': '개별 사례에 대한 기여도를 정밀하게 분석할 수 있습니다.'},
+            {'text': '모델이 사용하는 메모리 점유율', 'is_correct': False, 'reason': 'SHAP은 해석용 지표이지 하드웨어 지표가 아닙니다.'},
+            {'text': '학습 데이터에 포함된 욕설이나 비속어 비율', 'is_correct': False, 'reason': '데이터 정제와는 다른 영역입니다.'}
+        ]
+    }
+}
+
+
+def get_quest_blueprint(quest_id: str) -> list:
+    """Quest ID에 맞는 청사진 단계를 반환합니다."""
+    return QUEST_BLUEPRINTS.get(str(quest_id), [])
+
 
 import logging
 
@@ -262,6 +359,21 @@ def get_dimension_priority(quest_id: str) -> list:
     return DIMENSION_PRIORITY_BY_QUEST.get(quest_str, DEFAULT_DIMENSION_PRIORITY)
 
 
+def _enrich_video(video: dict) -> dict:
+    """YouTube 영상 데이터에 thumbnail/url/videoId 필드를 자동 보추합니다."""
+    vid = video.copy()
+    video_id = vid.get('id', '') or vid.get('videoId', '')
+    if video_id:
+        # 항상 thumbnail/url/videoId 재생성 (하드코딩 데이터는 thumbnail 필드가 없으므로)
+        vid['thumbnail'] = f'https://img.youtube.com/vi/{video_id}/mqdefault.jpg'
+        vid['url'] = f'https://www.youtube.com/watch?v={video_id}'
+        vid['videoId'] = video_id
+        # 정적 데이터의 'id' 필드를 'videoId'와 동기화
+        if 'id' in vid:
+            vid['videoId'] = vid['id']
+    return vid
+
+
 def get_quest_videos(quest_id: str) -> dict:
     """
     특정 퀘스트의 모든 영상 데이터를 반환합니다.
@@ -273,7 +385,15 @@ def get_quest_videos(quest_id: str) -> dict:
         영상 맵 (차원명 -> [영상 리스트])
     """
     quest_int = int(quest_id) if isinstance(quest_id, str) else quest_id
-    return QUEST_VIDEOS.get(quest_int, QUEST_VIDEOS[1])  # 기본값: Quest 1
+    raw = QUEST_VIDEOS.get(quest_int, QUEST_VIDEOS[1])  # 기본값: Quest 1
+    # 리스트의 각 영상에 thumbnail/url/videoId 자동 보추
+    enriched = {}
+    for key, videos in raw.items():
+        if isinstance(videos, list):
+            enriched[key] = [_enrich_video(v) for v in videos]
+        else:
+            enriched[key] = videos
+    return enriched
 
 
 def get_deep_dive_pattern(quest_id: str) -> dict:
@@ -403,15 +523,45 @@ def generate_fallback_deep_dive(quest_id: str) -> dict:
 # 6. 하위호환성 유지 (learningResources.js 폴백 호출용)
 # ============================================================================
 
-def get_recommended_videos_legacy(quest_id: str, dimensions: dict, max_count: int = 3) -> list:
+def get_recommended_videos_legacy(
+    quest_id: str, 
+    dimensions: dict, 
+    max_count: int = 3,
+    quest_title: str = ""
+) -> list:
     """
-    [폐기 예정] learningResources.js 호출과의 하위호환성을 위한 래퍼.
-    프론트는 백엔드 recommended_videos를 먼저 사용해야 합니다.
+    [2026-02-23 업그레이드] 
+    1. 정적 큐레이션 데이터(QUEST_VIDEOS) 매핑
+    2. 데이터 부족 시 YouTube Search API를 통한 실시간 검색 폴백 수행
     """
     try:
-        quest_videos = get_quest_videos(quest_id)
-        quest_int = int(quest_id) if isinstance(quest_id, str) else quest_id
-        priority = get_dimension_priority(quest_id)
+        # quest_id 정규화: 'unit01_02' 같은 형태는 숫자 부분만 추출
+        if isinstance(quest_id, str):
+            # '언더스코어' 형태 (e.g., 'unit01_02' -> '2', 'unit01_04' -> '4')
+            if '_' in quest_id:
+                parts = quest_id.split('_')
+                last_nums = re.findall(r'\d+', parts[-1])
+                if last_nums:
+                    n = int(last_nums[-1])
+                    quest_id_normalized = str(n) if 1 <= n <= 6 else '1'
+                else:
+                    quest_id_normalized = '1'
+            else:
+                # 순수 숫자 (e.g., '2', '3')
+                nums = re.findall(r'\d+', quest_id)
+                quest_id_normalized = '1'
+                for n_str in nums:
+                    n = int(n_str)
+                    if 1 <= n <= 6:
+                        quest_id_normalized = str(n)
+                        break
+        else:
+            n = int(quest_id) if quest_id else 1
+            quest_id_normalized = str(n) if 1 <= n <= 6 else '1'
+        
+        quest_videos = get_quest_videos(quest_id_normalized)
+        quest_int = int(quest_id_normalized)
+        priority = get_dimension_priority(quest_id_normalized)
         
         # 취약 차원 정렬
         dim_ratios = []
@@ -421,33 +571,81 @@ def get_recommended_videos_legacy(quest_id: str, dimensions: dict, max_count: in
             dim_ratios.append((dim, pct))
         dim_ratios.sort(key=lambda x: x[1])
         
+        # [수정일: 2026-02-23] 유튜브 큐레이션 동적화: 하이브리드 방식 (정적 1개 + 동적 2개)
         candidates = []
         used_ids = set()
         
-        # 취약 차원 순으로 선택
+        # 1. 정적 큐레이션 데이터에서 가장 취약한 차원의 영상을 1개만 무작위로 선택
+        import random
         for dim, _ in dim_ratios:
-            if len(candidates) >= max_count:
-                break
             videos = quest_videos.get(dim, [])
-            if not isinstance(videos, list):
-                videos = [videos]
-            for video in videos:
+            if videos and isinstance(videos, list):
+                # 셔플하여 '하드코딩된 느낌' 방지
+                random_video = random.choice(videos)
+                candidates.append({**random_video, '_dim': dim, '_source': 'curated'})
+                used_ids.add(random_video['id'])
+                break # 1개만 뽑고 종료
+        
+        # 2. 부족한 부분(나머지 2개 이상)은 실시간 라이브 검색으로 채움
+        from core.utils.youtube_helper import search_youtube_videos
+        
+        # 취약 지표(가장 점수 낮은 것) 추출
+        weakest_dim = dim_ratios[0][0] if dim_ratios else 'default'
+        
+        # 검색 쿼리 정교화
+        search_keywords = {
+            'design': ['ML System Design', '머신러닝 파이프라인 설계'],
+            'consistency': ['Data Leakage prevention', 'ML train test split fit transform'],
+            'abstraction': ['Clean Code Machine Learning', 'ML Architecture Patterns'],
+            'implementation': ['Scikit-learn tutorial', 'ML implementation step by step'],
+            'edgeCase': ['MLOps Monitoring Data Drift', 'Handling ML outliers missing values']
+        }
+        
+        quest_keyword = ""
+        if "누수" in quest_title or quest_id_normalized == "1": quest_keyword = "Data Leakage"
+        elif "과적합" in quest_title or "정규화" in quest_title or quest_id_normalized == "2": quest_keyword = "Regularization Ridge Lasso"
+        elif "불균형" in quest_title or quest_id_normalized == "3": quest_keyword = "Imbalanced Data SMOTE"
+        elif "피처" in quest_title or quest_id_normalized == "4": quest_keyword = "Feature Engineering Selection"
+        elif "하이퍼" in quest_title or quest_id_normalized == "5": quest_keyword = "Hyperparameter Tuning GridSearch"
+        elif "해석" in quest_title or quest_id_normalized == "6": quest_keyword = "Explainable AI SHAP LIME"
+
+        base_keywords = search_keywords.get(weakest_dim, ["Machine Learning Tutorial"])
+        search_query = f"{quest_keyword} {base_keywords[0]}"
+        
+        print(f"[QuestResources] 실시간 하이브리드 검색 수행: {search_query}")
+        
+        # 부족한 개수만큼 라이브 검색 수행 (기본 2개 이상)
+        needed = max_count - len(candidates)
+        if needed > 0:
+            live_videos = search_youtube_videos(search_query, max_results=needed + 2) # 여유있게 검색
+            for lv in live_videos:
+                if len(candidates) >= max_count:
+                    break
+                vid_id = lv.get('videoId')
+                if vid_id and vid_id not in used_ids:
+                    candidates.append({
+                        'id': vid_id,
+                        'title': lv.get('title'),
+                        'channel': lv.get('channelTitle'),
+                        'desc': lv.get('description'),
+                        'videoId': vid_id,
+                        'url': lv.get('url'),
+                        'thumbnail': lv.get('thumbnail'),
+                        '_dim': f"live_{weakest_dim}",
+                        '_source': 'live'
+                    })
+                    used_ids.add(vid_id)
+
+        # 3. 그래도 부족하면 마지막으로 default 정적 데이터로 보완 (셔플 적용)
+        if len(candidates) < max_count:
+            default_videos = list(quest_videos.get('default', []))
+            random.shuffle(default_videos)
+            for video in default_videos:
                 if len(candidates) >= max_count:
                     break
                 if video['id'] not in used_ids:
-                    candidates.append({**video, '_dim': dim})
+                    candidates.append({**video, '_dim': 'default', '_source': 'fallback'})
                     used_ids.add(video['id'])
-        
-        # default로 보완
-        default_videos = quest_videos.get('default', [])
-        if not isinstance(default_videos, list):
-            default_videos = [default_videos]
-        for video in default_videos:
-            if len(candidates) >= max_count:
-                break
-            if video['id'] not in used_ids:
-                candidates.append({**video, '_dim': 'default'})
-                used_ids.add(video['id'])
         
         return candidates
     except Exception as e:

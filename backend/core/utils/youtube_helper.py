@@ -30,12 +30,20 @@ def search_youtube_videos(query, max_results=3):
             print(f"YouTube API Request Failed for query '{search_query}': {e}")
             return []
 
+    # [2026-02-23] 검색 품질 최적화: 교육용 영상 위주로 검색되도록 키워드 보강
+    educational_keywords = "tutorial theory explained 실무 강의"
+    optimized_query = f"{query} {educational_keywords}"
+    
     # 1차 검색 시도
-    items = execute_search(query)
+    items = execute_search(optimized_query)
 
     # 1차 검색 결과가 없으면 쿼리 단순화 후 2차 시도 (Retry Logic)
+    if not items:
+        # 교육용 키워드 제거하고 원본 쿼리만으로 시도
+        items = execute_search(query)
+        
     if not items and len(query.split()) > 1:
-        simplified_query = ' '.join(query.split()[:2])  # 앞의 2단어만 추출 (예: "MLOps Data Drift..." -> "MLOps Data")
+        simplified_query = ' '.join(query.split()[:2])
         print(f"YouTube Search: No results for '{query}'. Retrying with '{simplified_query}'...")
         items = execute_search(simplified_query)
 

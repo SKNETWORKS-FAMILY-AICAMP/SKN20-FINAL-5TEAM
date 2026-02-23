@@ -97,19 +97,19 @@ VALIDATION_RULES = {
                 "id": "regularization",
                 "name": "정규화(Regularization)",
                 "weight": 30,
-                "patterns": [r"정규화|L1|L2|Ridge|Lasso|Elastic|penalty", r"가중치.*제한|weight.*decay|alpha"]
+                "patterns": [r"정규화|규제|L1|L2|Ridge|Lasso|리지|라쏘|Elastic|penalty", r"가중치.*제한|weight.*decay|alpha|계수.*제어|패널티"]
             },
             {
                 "id": "feature_selection",
                 "name": "특성 선택",
                 "weight": 30,
-                "patterns": [r"특성.*선택|제거|중요도|feature.*selection|drop|importance", r"불필요한.*삭제|분산.*필터"]
+                "patterns": [r"특성|피처|변수.*(선택|제거|중요도|삭제)|feature.*selection|drop|importance", r"불필요한.*(삭제|제거)|분산.*필터|Selection"]
             },
             {
                 "id": "monitoring",
                 "name": "모니터링",
                 "weight": 40,
-                "patterns": [r"검증.*분석|val_loss|accuracy.*추적|monitoring|진단", r"학습.*그래프|curve|점수.*비교"]
+                "patterns": [r"검증|val_loss|accuracy.*추적|monitoring|진단|오차|손실|지표", r"학습.*그래프|curve|점수.*비교|시각화|모니터링|early.*stopping|조기.*종료"]
             }
         ],
         "dependencies": [
@@ -154,7 +154,7 @@ VALIDATION_RULES = {
                 "id": "fair_evaluation",
                 "name": "공정한 평가",
                 "weight": 40,
-                "patterns": [r"F1|AUC|ROC|Precision|Recall|재현율|정밀도", r"평가.*지표|metric|confusion.*matrix|혼동.*행렬"]
+                "patterns": [r"F1|AUC|ROC|Precision|Recall|재현율|정밀도|정확도.*(이외|대신|한계)", r"평가.*지표|metric|confusion.*matrix|혼동.*행렬|다양한.*지표"]
             }
         ],
         "dependencies": [
@@ -192,7 +192,7 @@ VALIDATION_RULES = {
                 "id": "feature_selection",
                 "name": "특성 선택",
                 "weight": 35,
-                "patterns": [r"선택|중요도|제거|selection|importanc|drop|제거", r"feature_importances|SelectKBest|RFE|상관관계|correlation"]
+                "patterns": [r"선택|중요도|제거|selection|importanc|drop|제거|피처.*선별", r"feature_importances|SelectKBest|RFE|상관관계|correlation|가중치.*확인"]
             }
         ],
         "dependencies": [

@@ -114,13 +114,20 @@ export function useEvaluationOrchestrator() {
 function _normalizeResult(data) {
     // senior_advice: GPT가 생성한 맞춤 코멘트 — 빈 값이면 one_line_review fallback
     const seniorAdvice = (data.senior_advice || data.one_line_review || '').trim();
+
+    // [2026-02-22 Fix] dimensions이 null/undefined일 때 번파는 것 방지
+    // 백엔드가 feedback.dimensions 또는 dimensions로 넣어줄 수 있으므로 둘 다 시도
+    const dimensions = data.dimensions
+        ?? data.feedback?.dimensions
+        ?? {};
+
     return {
         score: data.total_score_100 ?? data.overall_score ?? 0,
         grade: data.grade ?? 'POOR',
         persona: data.persona_name ?? '아키텍트',
         oneLineReview: data.one_line_review ?? '',
         seniorAdvice,
-        dimensions: data.dimensions ?? {},
+        dimensions,
         convertedPython: data.converted_python ?? '',
         pythonFeedback: data.python_feedback ?? '',
         strengths: data.strengths ?? [],
@@ -133,6 +140,8 @@ function _normalizeResult(data) {
         // 백엔드에서 제공한 영상 큐레이션 (없으면 프론트 폴백)
         recommendedVideos: data.recommended_videos ?? [],
         llmAvailable: data.llm_available ?? true,
+        // [2026-02-22] 기초부터 배우기(청사진 모드) 복구용 데이터
+        blueprintSteps: data.blueprint_steps ?? [],
     };
 }
 

@@ -254,6 +254,7 @@
                     @retry-mcq="retryMcq"
                     @submit-descriptive="submitDescriptiveDeepDive"
                     @next-phase="handlePythonVisualizationNext"
+                    @blueprint-complete="handleBlueprintComplete"
                   />
               </div>
 
@@ -262,11 +263,21 @@
                   <!-- [2026-02-13] 복기 학습 모드 시 미션 정보 재노출 -->
                   <!-- [2026-02-13] 복기 학습 모드 시 미션 정보 재노출 (사용자 요청으로 제거됨) -->
                   <!-- [2026-02-14 수정] 로딩 화면을 1번째 이미지 스타일로 변경 (Full Width & Background Sync) -->
-                  <div v-if="tutorialAnalyzing || (isProcessing && gameState.phase === 'EVALUATION')" class="ai-analysis-simulation absolute inset-0 z-[100] bg-[#050505] flex flex-col items-center justify-center rounded-2xl border border-emerald-500/30">
-                      <LoadingDuck 
-                        :message="tutorialAnalyzing ? '튜토리얼 분석 중...' : '작성해주신 흐름 바탕으로 종합평가 진행 중입니다...'" 
-                        :duration="4000"
-                      />
+                  <!-- [2026-02-22 Fix] isProcessing 단독으로 EVALUATION 로딩을 막지 않도록 수정 -->
+                  <!-- submitDescriptiveDeepDive가 isProcessing=true 상태로 EVALUATION 진입 시 검은 화면 방지 -->
+                  <div v-if="tutorialAnalyzing || isGeneratingReport" class="ai-analysis-simulation fixed inset-0 z-[200] bg-[#050505] flex flex-col items-center justify-center border border-emerald-500/30">
+                      <div v-if="isGeneratingReport && !tutorialAnalyzing" class="pseudo-write-loading w-full h-full flex flex-col items-center justify-center">
+                          <LoadingDuck 
+                            message="작성한 내용 토대로 종합평가 중입니다..."
+                            :duration="4000"
+                          />
+                      </div>
+                      <div v-else>
+                          <LoadingDuck 
+                            :message="'튜토리얼 분석 중...'"
+                            :duration="4000"
+                          />
+                      </div>
                   </div>
 
                   <!-- [2026-02-14] 최종 아키텍처 리포트 포탈 (PPT 레이아웃 최적화) -->
@@ -420,7 +431,7 @@
 
                       <!-- Part 5: Final Actions -->
                           <div class="terminal-actions-neo">
-                              <button @click="resetFlow" class="btn-neo-restart" aria-label="Restart Mission">
+                              <button @click="handleResetFlow" class="btn-neo-restart" aria-label="Restart Mission">
                                   <RotateCcw size="18" class="mr-2" /> RESTART MISSION
                               </button>
                               <button @click="completeMission" class="btn-neo-complete" aria-label="Complete Mission">
@@ -504,7 +515,7 @@
             <button class="btn-modal-cancel" @click="showLowEffortModal = false">
               더 보완하기
             </button>
-            <button class="btn-modal-confirm" @click="confirmLowEffortProceed">
+            <button class="btn-modal-confirm" @click="confirmLowEffortProceed('RECONSTRUCT')">
               기초부터 배우기 <ArrowRight class="w-4 h-4 ml-1" />
             </button>
           </div>
@@ -578,6 +589,7 @@ const {
     showLowEffortModal,
     lowEffortReason,
     confirmLowEffortProceed,
+    handleBlueprintComplete,
 
     toggleGuide,
     handleGuideClick,
@@ -591,7 +603,8 @@ const {
     addSystemLog,
     handleReSubmitPseudo,
     retryMcq,
-    submitPseudo
+    submitPseudo,
+    resetFlow
 } = coduckWarsComposable;
 
 onMounted(() => {
@@ -711,10 +724,12 @@ const confirmClosePractice = () => {
   emit('close');
 };
 
-const resetFlow = () => {
-    engineResetFlow();
+// [2026-02-22 Fix] useCoduckWars에서 resetFlow로 export되므로 engineResetFlow 대신 resetFlow 사용
+const handleResetFlow = () => {
+    resetFlow();              // useCoduckWars의 resetFlow (= engineResetFlow)
     finalReport.value = null;
     showMetrics.value = false;
+    isGeneratingReport.value = false;
     showHintDuck.value = false;
     addSystemLog("시스템을 처음부터 다시 시작합니다.", "INFO");
 };
@@ -738,33 +753,55 @@ const isNaturalLanguagePhase = computed(() => {
 
 // [2026-02-14] 5대 지표 평가 시스템 추가 (상태 변수는 상단으로 이동됨)
 
+// [2026-02-22 Fix] 중복 실행 차단 플래그 (finalReport와 별개)
+const isGeneratingReport = ref(false);
+
 async function runComprehensiveEvaluation() {
-  if (finalReport.value) return;
-  // isProcessing 체크 제거: Deep Dive 재평가 완료 직후 EVALUATION 진입 시
-  // isProcessing=true 상태일 수 있어 검정 화면이 되는 문제 방지
-  // 대신 이미 finalReport가 있으면 중복 실행 차단
-  
+  // [2026-02-22 Fix] 이중 차단: 생성 중이면 스킵 (finalReport.value 체크는 제거하여 강제 갱신 허용)
+  if (isGeneratingReport.value) return;
+  isGeneratingReport.value = true;
+  tutorialAnalyzing.value = false;
+
   try {
-    isProcessing.value = true;
+    // [2026-02-22 Fix] 생성 시작 전 기존 리포트 명시적 파기 (잔상 방지)
+    finalReport.value = null;
     gameState.feedbackMessage = "시니어 아키텍트가 최종 검토 중입니다...";
+
+    // [2026-02-22 Fix] dimensions 데이터 정합성 로그 및 정규화
+    const rawDimensions = { ...evaluationResult.dimensions } || {};
+    console.log('[ReportGen] Evaluating with score:', evaluationResult.overall_score, 'and dimensions keys:', Object.keys(rawDimensions));
     
-    // [2026-02-20 수정] 프론트엔드 중복 평가 제거 및 백엔드 결과 단일화
-    // 이전에는 여기서 ComprehensiveEvaluator를 새로 돌렸으나, 
-    // 이제 백엔드(evaluationResult)에서 온 5대 지표 데이터를 그대로 활용함.
-    
+    const normalizedMetrics = _normalizeDimensions(rawDimensions, evaluationResult.overall_score || 0);
+
     const resultsForReport = {
-      metrics: evaluationResult.dimensions,
-      total: evaluationResult.overall_score,
+      metrics: normalizedMetrics,
+      total: evaluationResult.overall_score || 0,
       questId: gameState.currentStageId || 1
     };
 
-    // [2026-02-21] 백엔드 feedback 데이터 전달 (프론트 GPT 호출 제거)
+    // [2026-02-22 Fix] 최후의 보루 (Last Resort Guard): 
+    // 점수는 60점 이상인데 페르소나가 '학생(저의도)'이거나 요약이 '짧습니다'인 경우 강제 복구
+    let finalPersona = evaluationResult.persona_name;
+    let finalSummary = evaluationResult.one_line_review;
+    
+    if ((evaluationResult.overall_score || 0) >= 60) {
+        // [2026-02-22 Fix] 세분화된 페르소나(주니어, 전략가 등)가 이미 설정되어 있다면 보호
+        const isGenericArchitect = !finalPersona || finalPersona === 'Senior Architect' || finalPersona === '아키텍트';
+        if (finalPersona?.includes('학생') || isGenericArchitect) {
+            finalPersona = "미래를 설계하는 아키텍트";
+        }
+        if (!finalSummary || finalSummary.includes('짧습니다') || finalSummary.includes('부족하여')) {
+            finalSummary = "축하합니다! 핵심 설계 원리를 완벽히 파악하여 시스템 아키텍처를 성공적으로 복구하셨습니다.";
+        }
+    }
+
     const backendFeedback = {
-      persona: evaluationResult.persona_name,
-      summary: evaluationResult.one_line_review,
+      persona: finalPersona,
+      summary: finalSummary,
       strengths: evaluationResult.strengths || [],
       improvements: evaluationResult.weaknesses || [],
       senior_advice: evaluationResult.senior_advice,
+      recommended_videos: evaluationResult.recommended_videos || [], // [2026-02-22 Fix] 유튜브 데이터 전달
     };
 
     finalReport.value = await generateCompleteLearningReport(
@@ -773,15 +810,19 @@ async function runComprehensiveEvaluation() {
       backendFeedback
     );
 
-    // 영상 큐레이션: 백엔드 응답에 있으면 우선 사용, 없으면 로컬 reportGenerator 폴백
+    // 영상 큐레이션: 백엔드 → 로컬 폴백
+    // [2026-02-23 Fix] 백엔드 필드명(channel, id)을 프론트 템플릿(channelTitle, videoId, thumbnail)으로 정규화
     if (evaluationResult.recommended_videos?.length) {
-      // 백엔드에서 제공한 큐레이션 직접 사용 (YouTube API 호출 불필요)
-      evaluationResult.supplementaryVideos = evaluationResult.recommended_videos;
-      console.log('[YouTube] 백엔드 큐레이션 사용:', evaluationResult.supplementaryVideos.length + '개');
+      evaluationResult.supplementaryVideos = evaluationResult.recommended_videos.map(v => ({
+        ...v,
+        videoId: v.videoId || v.id,
+        channelTitle: v.channelTitle || v.channel || '',
+        thumbnail: v.thumbnail || `https://img.youtube.com/vi/${v.videoId || v.id}/mqdefault.jpg`,
+        url: v.url || `https://www.youtube.com/watch?v=${v.videoId || v.id}`,
+        description: v.description || v.desc || '',
+      }));
     } else if (finalReport.value?.recommendedContent?.videos?.length) {
-      // 폴백: 로컬 learningResources.js 큐레이션
       evaluationResult.supplementaryVideos = finalReport.value.recommendedContent.videos;
-      console.log('[YouTube] 로컈 폴백 큐레이션 사용:', evaluationResult.supplementaryVideos.length + '개');
     }
 
     showMetrics.value = true;
@@ -791,7 +832,8 @@ async function runComprehensiveEvaluation() {
     console.error('[5D] Report generation error:', error);
     showMetrics.value = true;
   } finally {
-    isProcessing.value = false;
+    tutorialAnalyzing.value = false;
+    isGeneratingReport.value = false;
   }
 }
 
@@ -801,6 +843,89 @@ async function submitPseudoEnhanced() {
 
 function getApiKey() {
   return import.meta.env.VITE_OPENAI_API_KEY || '';
+}
+
+/**
+ * [2026-02-22 Fix] 백엔드 dimensions 키 → reportGenerator 기대 키 매핑
+ * 백엔드: design, consistency, abstraction, edgeCase, implementation
+ * reportGenerator: design, consistency, abstraction, edgeCase, implementation
+ * 백엔드 키가 coherence, exception_handling 등으로 다를 수 있으므로 정규화
+ */
+function _normalizeDimensions(raw, totalScore) {
+  // [2026-02-22 Fix] raw 데이터가 아예 비어있을 경우 (재평가 실패 등) 
+  // totalScore를 지표별 가중치로 분배하여 최소한의 오각형을 그려줌
+  const hasRawData = raw && Object.keys(raw).length > 0;
+  
+  // 키 매핑 테이블: 백엔드 키 → 프론트 키
+  const KEY_MAP = {
+    design:           'design',
+    consistency:      'consistency',
+    coherence:        'consistency',
+    abstraction:      'abstraction',
+    edgeCase:         'edgeCase',
+    edge_case:        'edgeCase',
+    exception_handling: 'edgeCase',
+    implementation:   'implementation',
+  };
+
+  const DISPLAY_NAMES = {
+    design:         '설계력',
+    consistency:    '정합성',
+    abstraction:    '추상화',
+    edgeCase:       '예외체지력',
+    implementation: '구현력',
+  };
+
+  const DEFAULTS = {
+    design:         { score: 0, max: 25, percentage: 0, comment: '분석 데이터 부족' },
+    consistency:    { score: 0, max: 20, percentage: 0, comment: '분석 데이터 부족' },
+    abstraction:    { score: 0, max: 15, percentage: 0, comment: '분석 데이터 부족' },
+    edgeCase:       { score: 0, max: 15, percentage: 0, comment: '분석 데이터 부족' },
+    implementation: { score: 0, max: 10, percentage: 0, comment: '분석 데이터 부족' },
+  };
+
+  const result = { ...DEFAULTS };
+
+  if (hasRawData) {
+    for (const [rawKey, rawVal] of Object.entries(raw)) {
+      const normalizedKey = KEY_MAP[rawKey];
+      if (!normalizedKey) continue;
+
+      const src = typeof rawVal === 'object' && rawVal !== null ? rawVal : {};
+      const score = src.score ?? 0;
+      const max = src.max ?? DEFAULTS[normalizedKey]?.max ?? 10;
+      const percentage = src.percentage ?? (max > 0 ? Math.round((score / max) * 100) : 0);
+
+      result[normalizedKey] = {
+        score,
+        max,
+        percentage,
+        comment: src.comment ?? src.feedback ?? '',
+        name: DISPLAY_NAMES[normalizedKey],
+      };
+    }
+  } else if (totalScore > 0) {
+    // [2026-02-22 Fix] 데이터가 없는데 점수는 있는 경우 (복구 성공 후 재평가 오염 시)
+    // 점수를 가중치 비율대로 강제 분배하여 차트 0점 현상 방어
+    const ratio = totalScore / 100;
+    for (const key of Object.keys(DEFAULTS)) {
+      const max = DEFAULTS[key].max;
+      result[key] = {
+        score: Math.round(max * ratio),
+        max: max,
+        percentage: Math.round(totalScore),
+        comment: '청사진 기반 설계 복구 완료',
+        name: DISPLAY_NAMES[key]
+      };
+    }
+  }
+
+  // name 필드 최종 보장
+  for (const [key, val] of Object.entries(result)) {
+    if (!val.name) val.name = DISPLAY_NAMES[key] || key;
+  }
+
+  return result;
 }
 
 function renderRadarChart() {
@@ -906,9 +1031,30 @@ const diagnosticProblemParts = computed(() => {
     return { instruction: parts[0], code: parts.slice(1).join('\n\n') };
 });
 
-watch(() => gameState.phase, (newPhase) => {
+watch(() => gameState.phase, async (newPhase) => {
     gameState.showHint = false;
+    
+    // [2026-02-22 Fix] 복구 학습 단계 진입 시 기존 리포트 초기화 (구형 데이터 노출 방지)
+    // 0점 리포트 잔상 해결을 위해 감시하는 페이즈를 대폭 확대
+    const resetPhases = [
+        'PYTHON_VISUALIZATION', 
+        'PSEUDO_WRITE', 
+        'DIAGNOSTIC_1',
+        'TAIL_QUESTION',
+        'DEEP_DIVE_DESCRIPTIVE',
+        'DEEP_QUIZ'
+    ];
+
+    if (resetPhases.includes(newPhase)) {
+        finalReport.value = null;
+        showMetrics.value = false;
+        console.log(`[Phase Reset] ${newPhase} 진입으로 인한 리포트 초기화`);
+    }
+
     if (newPhase === 'EVALUATION' && !showTutorial.value) {
+        // [2026-02-22 Fix] isProcessing이 true인 경우 (submitDescriptiveDeepDive 진행 중)
+        // finally에서 false로 바뀌는 시점을 기다린 후 리포트 생성
+        await nextTick();
         runComprehensiveEvaluation();
     }
 });

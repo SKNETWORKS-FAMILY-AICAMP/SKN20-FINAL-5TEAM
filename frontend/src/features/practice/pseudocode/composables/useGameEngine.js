@@ -29,6 +29,7 @@ export function useGameEngine() {
         isMcqAnswered: false,       // [2026-02-14] MCQ 답변 완료 여부
         assignedScenario: null,     // [2026-02-14] 할당된 심화 시나리오 (Drift/Real-time/Scarcity)
         deepDiveAnswer: "",         // [2026-02-14] 사용자의 시나리오 서술형 답변
+        tailAnswer: "",             // [2026-02-22 Fix] MCQ 꼬리질문 선택 텍스트 (반응성 보장을 위해 초기 선언)
 
         // Phase 3 State
         phase3Reasoning: "",
@@ -172,6 +173,7 @@ export function useGameEngine() {
         gameState.isMcqAnswered = false;
         gameState.assignedScenario = null;
         gameState.deepDiveAnswer = "";
+        gameState.tailAnswer = ""; // [2026-02-22 Fix] 재시작 시 꼬리질문 답변 초기화
 
         gameState.phase3EvaluationResult = null;
         gameState.finalWeightedScore = 0;
@@ -197,6 +199,7 @@ export function useGameEngine() {
         gameState.isMcqAnswered = false;
         gameState.assignedScenario = null;
         gameState.deepDiveAnswer = "";
+        gameState.tailAnswer = ""; // [2026-02-22 Fix]
 
         gameState.phase3EvaluationResult = null;
         gameState.finalWeightedScore = 0;

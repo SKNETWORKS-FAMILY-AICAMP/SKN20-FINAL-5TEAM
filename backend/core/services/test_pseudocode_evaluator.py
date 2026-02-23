@@ -24,7 +24,7 @@ from core.services.pseudocode_evaluator import (
     PseudocodeEvaluator,
     EvaluationRequest,
     EvaluationMode,
-    LocalValidationEngine
+    RuleValidationEngine as LocalValidationEngine  # 구버전 호환
 )
 
 
@@ -245,7 +245,7 @@ request = EvaluationRequest(
     user_id='user_123',
     detail_id='unit0401',
     pseudocode='... 의사코드 ...',
-    mode=EvaluationMode.OPTION1_ALWAYS_MULTIMODEL  # 3개 모델!
+    mode=EvaluationMode.OPTION2_GPTONLY  # 현재 지원 모드
 )
 
 result = evaluator.evaluate(request)
@@ -358,7 +358,7 @@ request = EvaluationRequest(
     user_id='user_123',
     detail_id='unit0401',
     pseudocode='... 의사코드 ...',
-    mode=EvaluationMode.OPTION3_HYBRID  # 동적 선택!
+    mode=EvaluationMode.OPTION2_GPTONLY  # 현재 지원 모드
 )
 
 result = evaluator.evaluate(request)
@@ -398,8 +398,7 @@ def run_test_with_sample(sample_name: str, pseudocode: str):
         user_id='test_user',
         detail_id='test_001',
         pseudocode=pseudocode,
-        mode=EvaluationMode.STANDARD,
-        compare_if_failed=True
+        mode=EvaluationMode.OPTION2_GPTONLY
     )
     
     try:
@@ -563,7 +562,7 @@ if __name__ == '__main__':
             user_id='test_user',
             detail_id='option1_test',
             pseudocode=pseudocode,
-            mode=EvaluationMode.OPTION1_ALWAYS_MULTIMODEL
+            mode=EvaluationMode.OPTION2_GPTONLY
         )
         result = evaluator.evaluate(request)
         print(f"\n최종 점수: {result.final_score}점")
@@ -593,7 +592,7 @@ if __name__ == '__main__':
             user_id='test_user',
             detail_id='option3_test',
             pseudocode=pseudocode,
-            mode=EvaluationMode.OPTION3_HYBRID
+            mode=EvaluationMode.OPTION2_GPTONLY
         )
         result = evaluator.evaluate(request)
         print(f"\n최종 점수: {result.final_score}점")

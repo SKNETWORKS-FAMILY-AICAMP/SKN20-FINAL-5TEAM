@@ -32,175 +32,47 @@ logger = logging.getLogger(__name__)
 
 
 # ============================================================================
-# Quest × 취약 차원 기반 YouTube 큐레이션 (통합 리소스 서비스 사용)
-# [2026-02-21 개편] 구조 통일 + 차원별 우선순위 적용
-# ============================================================================
-from core.services.quest_resources import (
-    QUEST_VIDEOS,
-    get_dimension_priority,
-    get_quest_videos,
-)
-
-
-def _get_recommended_videos(quest_id: str, dimensions: dict, max_count: int = 3) -> list:
-    """Quest ID × 취약 차원 기반 YouTube 영상 추천 목록 반환 (프론트 호환 포맷).
-    
-    [2026-02-21] 개선사항:
-    1. 퀘스트별 차원 우선순위 반영
-    2. 구조 통일 (모든 차원이 [list])
-    3. YouTube Data API 검증 + 폴백 검색
-    """
-    try:
-        qid = int(quest_id)
-    except (ValueError, TypeError):
-        qid = 1
-    
-    # 퀘스트별 영상 풀 가져오기
-    pool = get_quest_videos(quest_id)
-    
-    # 퀘스트별 차원 우선순위 가져오기
-    priority = get_dimension_priority(quest_id)
-
-    # 취약 차원 순 정렬 (낮은 percentage 우선)
-    dim_ratios = []
-    for dim in priority:
-        d = dimensions.get(dim, {})
-        pct = d.get('percentage', 100) if isinstance(d, dict) else 100
-        dim_ratios.append((dim, pct))
-    dim_ratios.sort(key=lambda x: x[1])
-
-    candidates = []
-    used_ids = set()
-
-    # 취약 차원 순으로 선택 (이제 모든 차원이 [list] 구조)
-    for dim, _ in dim_ratios:
-        if len(candidates) >= max_count:
-            break
-        videos = pool.get(dim, [])
-        if not isinstance(videos, list):
-            videos = [videos]
-        for video in videos:
-            if len(candidates) >= max_count:
-                break
-            if video['id'] not in used_ids:
-                candidates.append({**video, '_dim': dim})
-                used_ids.add(video['id'])
-
-    # default로 보완
-    default_videos = pool.get('default', [])
-    if not isinstance(default_videos, list):
-        default_videos = [default_videos]
-    for video in default_videos:
-        if len(candidates) >= max_count:
-            break
-        if video['id'] not in used_ids:
-            candidates.append({**video, '_dim': 'default'})
-            used_ids.add(video['id'])
-
-    # YouTube Data API로 영상 존재 검증 + 폴백 검색
-    result = _verify_and_fallback(candidates)
-
-    return [
-        {
-            'id': v['id'],
-            'videoId': v['id'],
-            'title': v['title'],
-            'channelTitle': v.get('channel', v.get('channelTitle', '')),
-            'thumbnail': f"https://img.youtube.com/vi/{v['id']}/mqdefault.jpg",
-            'url': f"https://www.youtube.com/watch?v={v['id']}",
-            'description': v.get('desc', v.get('description', '')),
-        }
-        for v in result
-    ]
-
-
-def _verify_and_fallback(candidates: list) -> list:
-    """YouTube Data API로 영상 ID 검증. 죽은 링크는 검색으로 대체.
-    
-    API 키가 없으면 검증 없이 그대로 반환.
-    """
-    from django.conf import settings
-    api_key = getattr(settings, 'YOUTUBE_API_KEY', None)
-    if not api_key:
-        # API 키 없으면 검증 불가 → 하드코딩 그대로
-        return candidates
-
-    import requests as http_requests
-    
-    # 일괄 검증: videos.list API (1회 호출로 여러 개 검증)
-    video_ids = [c['id'] for c in candidates]
-    try:
-        resp = http_requests.get(
-            'https://www.googleapis.com/youtube/v3/videos',
-            params={
-                'part': 'id,snippet',
-                'id': ','.join(video_ids),
-                'key': api_key,
-            },
-            timeout=5,
-        )
-        if resp.status_code != 200:
-            logger.warning(f"[YouTube API] 검증 실패 (HTTP {resp.status_code})")
-            return candidates
-        
-        data = resp.json()
-        valid_ids = {item['id'] for item in data.get('items', [])}
-    except Exception as e:
-        logger.warning(f"[YouTube API] 검증 중 예외: {e}")
-        return candidates
-
-    # 죽은 링크 대체
-    result = []
-    from core.utils.youtube_helper import search_youtube_videos
-    
-    for candidate in candidates:
-        if candidate['id'] in valid_ids:
-            # 존재 확인됨 → 실제 제목으로 업데이트
-            api_item = next((item for item in data['items'] if item['id'] == candidate['id']), None)
-            if api_item:
-                candidate['title'] = api_item['snippet'].get('title', candidate['title'])
-                candidate['channel'] = api_item['snippet'].get('channelTitle', candidate.get('channel', ''))
-            result.append(candidate)
-        else:
-            # 죽은 링크 → 검색으로 대체
-            logger.info(f"[YouTube] 죽은 링크 감지: {candidate['id']} ({candidate['title']})")
-            search_query = candidate['title'].split('(')[0].strip()  # "Ridge & Lasso (StatQuest)" → "Ridge & Lasso"
-            replacements = search_youtube_videos(search_query, max_results=1)
-            if replacements:
-                r = replacements[0]
-                result.append({
-                    'id': r['videoId'],
-                    'title': r['title'],
-                    'channel': r.get('channelTitle', ''),
-                    'desc': r.get('description', ''),
-                })
-                logger.info(f"[YouTube] 대체 영상 찾음: {r['videoId']} ({r['title']})")
-            else:
-                # 검색도 실패 → 제외 (죽은 링크 제공하지 않음)
-                logger.warning(f"[YouTube] 대체 영상도 없음: {search_query}")
-    
-    return result
-
-
-# ============================================================================
 # Quest ID 정규화
 # ============================================================================
 def normalize_quest_id(quest_id):
+    """quest_id를 1~6 사이의 Quest 번호로 정규화.
+    
+    입력 예시: 'unit01_02', 'UNIT01_03', '2', 'quest_4', 'QUEST_5'
+    출력 예시: '2', '3', '2', '4', '5'
+    
+    핵심 로직:
+    - 'unit01_XX' 형태: 언더스코어 뒤 숫자가 Quest 번호
+    - 숫자만 있는 경우: 그대로 사용
+    - 1~6 범위 벗어나면 '1' 폴백
+    """
     if not quest_id:
         return "1"
-    q_str = str(quest_id).upper()
-    if q_str.startswith('UNIT01'):
+    q_str = str(quest_id).strip()
+    
+    # 'unit01_02' 형태 처리: 언더스코어 뒤 숫자 추출
+    if '_' in q_str:
+        parts = q_str.split('_')
         try:
-            return str(int(q_str[6:]))
+            # 마지막 부분에서 숫자 추출 (e.g., '02' -> 2)
+            last_part = re.findall(r'\d+', parts[-1])
+            if last_part:
+                n = int(last_part[-1])
+                if 1 <= n <= 6:
+                    return str(n)
         except Exception:
             pass
-    elif q_str.startswith('QUEST_'):
-        try:
-            return str(int(q_str[6:]))
-        except Exception:
-            pass
+    
+    # 'quest_4' 또는 순수 숫자 처리
     nums = re.findall(r'\d+', q_str)
-    return nums[0] if nums else q_str
+    for n_str in nums:
+        try:
+            n = int(n_str)
+            if 1 <= n <= 6:
+                return str(n)
+        except Exception:
+            continue
+    
+    return "1"
 
 
 # ============================================================================
@@ -279,7 +151,7 @@ def evaluate_pseudocode_5d(request):
             )
         except Exception as save_error:
             logger.error(f"[Evaluate] Failed to save low-effort: {save_error}")
-        return Response(_build_low_effort_response(e.reason), status=status.HTTP_200_OK)
+        return Response(_build_low_effort_response(quest_id, e.reason), status=status.HTTP_200_OK)
 
     except LLMTimeoutError as e:
         logger.warning(f"[Evaluate] LLM timeout user={user_id}: {e}")
@@ -324,15 +196,26 @@ def _build_success_response(result, llm, quest_id='1') -> dict:
         'tail_question': result.tail_question,
         'deep_dive': result.deep_dive,
         'score_breakdown': result.score_breakdown,
-        'metadata': result.metadata,
-        # ── 영상 큐레이션: 백엔드에서 항상 제공 ──────────────────────
-        # 프론트는 이 값이 있으면 사용, 없으면 learningResources.js 폴백
-        'recommended_videos': _get_recommended_videos(quest_id, dimensions),
+        'metadata': {
+            **result.metadata,
+            'internal_reasoning': llm.internal_reasoning if llm else ''
+        },
         'llm_available': is_llm_success,
+        'recommended_videos': result.recommended_videos,  # 2026-02-23 추가
     }
 
 
-def _build_low_effort_response(reason: str) -> dict:
+def _build_low_effort_response(quest_id: str, reason: str) -> dict:
+    from core.services.quest_resources import (
+        get_quest_blueprint, 
+        QUEST_RECOVERY_QUESTIONS,
+        get_quest_videos
+    )
+    
+    normalized_id = normalize_quest_id(quest_id)
+    blueprint = get_quest_blueprint(normalized_id)
+    recovery_q = QUEST_RECOVERY_QUESTIONS.get(normalized_id)
+
     return {
         'overall_score': 0,
         'total_score_100': 0,
@@ -352,10 +235,11 @@ def _build_low_effort_response(reason: str) -> dict:
         'strengths': [],
         'weaknesses': [reason],
         'is_low_effort': True,
-        'tail_question': None,
+        'blueprint_steps': blueprint,  # 2026-02-22 추가: 청사진 복구 지원
+        'tail_question': recovery_q,   # [2026-02-22] 복구 후 이해도 측정용 꼬리 질문
         'deep_dive': None,
         'score_breakdown': {},
         'metadata': {'llm_status': 'SKIPPED_LOW_EFFORT'},
-        'recommended_videos': [],
         'llm_available': False,
+        'recommended_videos': get_quest_videos(quest_id).get('default', []),  # 2026-02-23 추가
     }

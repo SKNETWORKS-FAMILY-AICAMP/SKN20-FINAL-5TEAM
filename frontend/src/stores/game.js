@@ -96,28 +96,29 @@ export const useGameStore = defineStore('game', {
                     };
                 });
 
-                // [2026-01-26] 로컬 스토리지에서 저장된 진행도 로드
-                const savedProgress = localStorage.getItem('logic_mirror_progress');
-                if (savedProgress) {
-                    const parsed = JSON.parse(savedProgress);
-
-                    // [수정일: 2026-01-28] 전체 덮어쓰기 대신 기존 초기값(state)과 '병합(Merge)' 처리
-                    // 이렇게 하면 새로운 모드(Pseudo Forest 등)가 추가되어도 기존 유저의 로컬 데이터에 의해 지워지지 않습니다.
-                    Object.keys(this.unitProgress).forEach(key => {
-                        if (parsed[key]) {
-                            // 기존 데이터가 있으면 병합 후 중복 제거
-                            this.unitProgress[key] = Array.from(new Set([...this.unitProgress[key], ...parsed[key]])).sort((a, b) => a - b);
+                // [2026-02-22] RDS에서 진행도 로드 (localStorage는 폴백용)
+                try {
+                    const progressRes = await axios.get('/api/core/activity/progress/', { withCredentials: true });
+                    progressRes.data.forEach(p => {
+                        const key = p.unit_title;
+                        if (key && p.unlocked_nodes?.length) {
+                            const existing = this.unitProgress[key] || [0];
+                            this.unitProgress[key] = Array.from(new Set([...existing, ...p.unlocked_nodes])).sort((a, b) => a - b);
                         }
                     });
-
-                    // [수정일: 2026-01-28] AI Detective 난이도별 시작점 보장
-                    if (this.unitProgress['AI Detective']) {
-                        [0, 10, 20].forEach(idx => {
-                            if (!this.unitProgress['AI Detective'].includes(idx)) {
-                                this.unitProgress['AI Detective'].push(idx);
+                    // RDS 로드 성공 시 localStorage도 동기화
+                    localStorage.setItem('logic_mirror_progress', JSON.stringify(this.unitProgress));
+                } catch (progressError) {
+                    // RDS 실패 시 localStorage 폴백
+                    console.warn('[GameStore] RDS progress load failed, using localStorage fallback:', progressError);
+                    const savedProgress = localStorage.getItem('logic_mirror_progress');
+                    if (savedProgress) {
+                        const parsed = JSON.parse(savedProgress);
+                        Object.keys(this.unitProgress).forEach(key => {
+                            if (parsed[key]) {
+                                this.unitProgress[key] = Array.from(new Set([...this.unitProgress[key], ...parsed[key]])).sort((a, b) => a - b);
                             }
                         });
-                        this.unitProgress['AI Detective'].sort((a, b) => a - b);
                     }
                 }
 
@@ -299,6 +300,16 @@ export const useGameStore = defineStore('game', {
 
             // [2026-01-26] 진행도 로컬 스토리지 저장
             localStorage.setItem('logic_mirror_progress', JSON.stringify(this.unitProgress));
+
+            // [2026-02-22] RDS에도 저장 (비동기 백김드)
+            const practice = this.chapters.find(c => c.name === targetKey);
+            if (practice?.id) {
+                axios.post('/api/core/activity/submit/', {
+                    detail_id: null,
+                    score: 0,
+                    submitted_data: { unlocked_nodes: progress, practice_id: practice.id }
+                }, { withCredentials: true }).catch(e => console.warn('[GameStore] RDS progress save failed:', e));
+            }
         },
 
         setActiveUnit(unit) {

@@ -55,7 +55,12 @@ class PseudocodeValidator:
     def _soft_normalize(self, text: str) -> str:
         if not text:
             return ""
-        return re.sub(r'\s+', ' ', text.lower()).strip()
+        # [2026-02-23 수정] \s+ 대신 가로 공백만 처리하여 \n(개행)을 보존함. 
+        # 이를 통해 _analyze_flow에서 줄 단위 분석이 가능하게 함.
+        text = text.lower()
+        text = re.sub(r'[ \t\r\f\v]+', ' ', text)
+        text = re.sub(r'\n+', '\n', text)
+        return text.strip()
 
     # ── 치명적 오류 체크 ──────────────────────────────────────────
 
@@ -94,7 +99,8 @@ class PseudocodeValidator:
         found: Set[str] = set()
         for concept in self.rules.get('requiredConcepts', []):
             for pattern in concept.get('patterns', []):
-                if re.search(pattern, soft, re.IGNORECASE):
+                # [2026-02-23] re.DOTALL 추가: 개행이 포함된 soft 텍스트에서도 패턴 매칭 원활하게 함
+                if re.search(pattern, soft, re.IGNORECASE | re.DOTALL):
                     found.add(concept['id'])
                     break
         return found
