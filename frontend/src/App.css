@@ -159,6 +159,18 @@
     cursor: pointer;
 }
 
+/* AI Coach 버튼 (Purple Theme) */
+.btn-coach {
+    background: rgba(107, 92, 231, 0.1);
+    color: #8b7cf7;
+    border: 1px solid rgba(107, 92, 231, 0.2);
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
 /* 관리자(Management) 버튼 (Orange Theme) */
 .btn-mgmt {
     background: rgba(255, 150, 0, 0.1);
