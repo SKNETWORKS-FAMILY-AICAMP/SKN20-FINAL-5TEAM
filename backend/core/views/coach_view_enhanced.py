@@ -99,32 +99,41 @@ RESPONSE_STRATEGIES = {
 - 학생의 학습 데이터를 기반으로 현황 진단 및 인사이트 제공
 - 추측 금지, 반드시 도구로 조회한 데이터 기반 답변
 - 단순 숫자 나열 금지: 의미 있는 해석 제시
+- ⭐ NEW: 점수뿐만 아니라 AI 평가 피드백도 함께 분석하여 더 깊은 인사이트 제공
 
 [답변 구조 — 반드시 3파트 포함]
 
 1. **현재 상태 진단** (80%)
    - 조회한 데이터에서 핵심 수치 2~3개를 뽑아 의미 해석
    - "~점이니까 ~수준이야" 처럼 해석, 단순 나열 금지
+   - ⭐ AI 평가 피드백 활용: 도구 결과에 feedback_samples가 있다면, "구체적으로는 ~라는 피드백이 반복되고 있다"는 식으로 실제 사례 제시
+   - 예) "설계 능력이 65점으로 약하네. 구체적으로는 '구조가 복잡해 보인다', '모듈화가 필요하다'는 평가가 반복되고 있어. 즉, 너는 아이디어는 좋은데 그걸 깔끔한 구조로 정리하는 데 어려움이 있는 것 같아."
    - 잘하는 부분은 칭찬, 부족한 부분은 솔직하게
 
-2. **원인 분석 & 인사이트**
+2. **원인 분석 & 인사이트** (+ AI 피드백 기반)
    - 왜 이런 결과가 나왔는지 가능한 원인 1~2개 제시
    - 약점이 있다면 구체적으로 어떤 능력이 부족한 건지 풀어서 설명
+   - ⭐ 약점 메트릭의 feedback_samples를 인용하여 "AI도 지적한 구체적 문제"를 언급
 
 3. **다음 단계** (20%)
    - "~를 다시 풀어봐", "~부터 시작하자" 등 지금 당장 할 수 있는 행동 제시
    - 가능하면 특정 유닛이나 개념을 지목
 
 [형식 규칙]
-- 전체 답변 400~700자
+- 전체 답변 400~800자 (AI 피드백 포함으로 정보 밀도 증가)
 - 영어 metric은 한국어로 번역 필수
 - 마크다운: ##제목 + -불릿 구성
-- 톤: 친근한 선배/코치 말투, 데이터 기반
+- 톤: 친근한 선배/코치 말투, 데이터 + 피드백 기반
 
 [유닛 정보]
 - unit01: Pseudo Practice (의사코드)
 - unit02: Debug Practice (디버깅)
 - unit03: System Practice (시스템아키텍처)
+
+[도구 결과 활용 팁]
+- weak_areas와 all_metrics에 'feedback_samples' 배열이 포함됨
+- 각 메트릭의 feedback_samples는 AI가 과거 평가에서 제시한 구체적인 피드백들
+- 이들을 인용하면 더 설득력 있는 분석 가능
 """,
     },
     "B": {
@@ -137,34 +146,37 @@ RESPONSE_STRATEGIES = {
 - 도구로 사용자의 현재 수준 파악
 - 수준에 맞는 구체적이고 실행 가능한 학습 방법론 제시 (메인)
 - 데이터는 근거로만 언급
+- ⭐ NEW: AI 평가 피드백을 통해 "구체적으로 어떤 능력이 부족한지" 파악하고 맞춤 방법론 제시
 
 [답변 구조]
 
 1. **현재 수준 파악** (20%)
    - 도구로 조회한 데이터를 바탕으로 사용자의 현재 위치 진단
    - "너는 ~에 강하지만, ~에 약해 보여"라고 구체적으로
+   - ⭐ AI 피드백 활용: feedback_samples에서 반복되는 피드백을 인용하여 "구체적으로는 ~라는 지적이 자주 나온다"고 설명
 
 2. **단계별 학습 방법론** (70%)
    - "방법 1: ~로 시작하기"
    - "방법 2: ~를 연습하기"
    - "방법 3: ~로 마무리하기"
-   - 각 단계마다 왜 이 순서인지 근거 제시
+   - 각 단계마다 왜 이 순서인지 근거 제시 (점수 + AI 피드백 활용)
    - 실제 예시나 구체적 작업 기술
+   - ⭐ 약점의 feedback_samples에서 언급된 "반복되는 문제"를 직접 해결하는 방법론 제시
 
 3. **지금 당장의 행동** (10%)
    - 오늘/이번 주 할 수 있는 구체적 행동 1~2개
    - "이 문제부터 풀어봐", "이 개념부터 복습하자" 식으로
 
 [형식 규칙]
-- 전체 답변 450~750자
+- 전체 답변 500~850자 (AI 피드백 기반 설명 추가)
 - 마크다운: ##대제목 + -불릿 + 번호 구성
 - 톤: 격려와 동기부여를 담되, 현실적이고 실행 가능해야 함
-- 각 방법 뒤에 "왜"를 설명 (근거)
+- 각 방법 뒤에 "왜"를 설명 (근거: 점수 + 피드백)
 
 [필수 포함]
-- 도구 조회 데이터 기반 진단 (추측 금지)
+- 도구 조회 데이터 기반 진단 + AI 피드백 인용
 - 약점 메트릭 구체 명시 (예: "설계 능력 부족")
-- 실행 가능한 액션 아이템
+- feedback_samples에서 반복되는 문제점을 해결하는 실행 가능한 액션
 """,
     },
     "C": {
@@ -177,6 +189,7 @@ RESPONSE_STRATEGIES = {
 - 사용자의 감정을 먼저 진심으로 인정
 - 데이터로 실제 성장과 진전을 증명
 - 그들의 노력이 어떤 결과를 만들었는지 구체적으로 보여주기
+- ⭐ NEW: AI 평가 피드백에서 "구체적인 개선 사항"을 언급하여 "너는 정말로 성장하고 있다"는 확신 제공
 - 거짓 격려 금지, 현실적이면서도 따뜻하게
 
 [답변 구조]
@@ -190,22 +203,25 @@ RESPONSE_STRATEGIES = {
    - 도구로 조회한 구체적 데이터를 근거로
    - "너는 지난달/지난주 대비 ~점이 올랐어" (구체적 수치)
    - "특히 ~에서 진전이 눈에 띄어"라고 강조
+   - ⭐ AI 피드백 활용: feedback_samples를 보면 과거에는 "~가 부족했는데", "이제는 ~가 개선되었다"는 식의 긍정적 변화 포착
    - "이건 너의 노력이 실제로 효과를 본 증거야"
 
 3. **구체적 성공 사례 & 다음 목표** (40%)
    - "너가 지난번 풀지 못한 ~를 이번엔 ~점으로 풀었잖아"
    - "이게 바로 성장이야"라고 자신감 심어주기
+   - ⭐ 피드백에서 인용: "지난번 AI 평가에서 '~가 부족하다'는 지적이 있었는데, 이제 '~가 개선되었다'는 평가가 나왔어. 이게 네 실력이 실제로 올랐다는 증거야"
    - "그리고 다음번에는 ~에 도전해보자. 넌 충분히 할 수 있어"
    - 구체적 액션과 함께 기대감 전달
 
 [형식 규칙]
-- 전체 답변 400~650자
+- 전체 답변 450~750자 (AI 피드백으로 성장 증명 강화)
 - "너는 ~", "너의 노력이", "너의 성장" 등으로 개인화
 - 마크다운: ##제목 + 스토리텔링 구조
 - 톤: 따뜻하고 신뢰할 수 있는, 선배의 격려
 
 [필수 포함]
 - 도구 데이터 기반의 구체적 성장 수치
+- ⭐ AI 피드백에서 추출한 "구체적 개선 사항" 언급
 - 감정 공감 (처음에)
 - 미래 기대감 (마지막에)
 - 단순 칭찬 X, 원인-결과-증거 기반
@@ -488,7 +504,7 @@ def tool_get_user_scores(profile):
 
 
 def tool_get_weak_points(profile, unit_id):
-    """특정 유닛의 약점 분석"""
+    """특정 유닛의 약점 분석 (점수 + AI 피드백 통합)"""
     solved_records = UserSolvedProblem.objects.filter(
         user=profile,
         practice_detail__practice_id=unit_id,
@@ -496,22 +512,36 @@ def tool_get_weak_points(profile, unit_id):
     ).select_related('practice_detail')
 
     if not solved_records.exists():
+        logger.info(f"[get_weak_points] {unit_id}: 풀이 기록 없음")
         return {"unit_id": unit_id, "message": "풀이 기록이 없습니다.", "weak_areas": []}
 
     metric_scores = {}
+    feedback_bank = {}  # ← 추가: 피드백 저장소
+
+    logger.info(f"[get_weak_points] {unit_id}: {solved_records.count()}개 기록 분석 중...")
 
     for record in solved_records:
         data = record.submitted_data or {}
         _extract_metrics(data, metric_scores, unit_id)
+        _extract_feedback(data, feedback_bank, unit_id, record.practice_detail.detail_title)  # ← 추가: 피드백 추출
+
+    logger.info(f"[get_weak_points] {unit_id}: 메트릭 {len(metric_scores)}개, 피드백 카테고리 {len(feedback_bank)}개")
 
     weak_areas = []
     all_metrics = []
     for metric, scores in metric_scores.items():
         avg = round(sum(scores) / len(scores), 1) if scores else 0
-        entry = {"metric": metric, "avg_score": avg, "sample_count": len(scores)}
+        feedback_samples = feedback_bank.get(metric, [])
+        entry = {
+            "metric": metric,
+            "avg_score": avg,
+            "sample_count": len(scores),
+            "feedback_samples": feedback_samples  # ← 추가: 해당 메트릭의 피드백 샘플
+        }
         all_metrics.append(entry)
         if avg < 70:
             weak_areas.append(entry)
+            logger.info(f"[Weak Area] {metric}: {avg}점 (피드백 {len(feedback_samples)}개)")
 
     return {
         "unit_id": unit_id,
@@ -524,11 +554,20 @@ def tool_get_weak_points(profile, unit_id):
 def _extract_metrics(data, metric_scores, unit_id):
     """submitted_data에서 유닛별 평가 메트릭 추출"""
     if unit_id == "unit01":
+        # ← 수정: evaluation.dimensions에서 점수 추출 (중첩 dict 구조)
         evaluation = data.get("evaluation", {})
         dimensions = evaluation.get("dimensions", {})
         for dim_name, dim_data in dimensions.items():
-            score = dim_data.get("score", 0) if isinstance(dim_data, dict) else 0
-            metric_scores.setdefault(dim_name, []).append(score)
+            # dimensions: {"design": {"score": 25, "basis": "...", "improvement": "..."}, ...}
+            if isinstance(dim_data, dict):
+                score = dim_data.get("score", 0)
+            else:
+                score = dim_data if isinstance(dim_data, (int, float)) else 0
+
+            # snake_case를 camelCase로 정규화 (edge_case -> edgeCase)
+            normalized_dim = "edgeCase" if dim_name == "edge_case" else dim_name
+            metric_scores.setdefault(normalized_dim, []).append(score)
+            logger.debug(f"[Extract] unit01: {dim_name} ({normalized_dim}) = {score}")
 
     elif unit_id == "unit02":
         llm_eval = data.get("llm_evaluation") or {}
@@ -549,6 +588,77 @@ def _extract_metrics(data, metric_scores, unit_id):
         for pillar, score in pillar_scores.items():
             if isinstance(score, (int, float)):
                 metric_scores.setdefault(pillar, []).append(score)
+
+
+def _extract_feedback(data, feedback_bank, unit_id, problem_title):
+    """
+    [추가 2026-02-23] submitted_data에서 AI 피드백 추출
+    점수 기반 약점 분석을 AI 피드백으로 보강
+    """
+    if unit_id == "unit01":
+        # Unit01: evaluation.improvements + evaluation.senior_advice
+        evaluation = data.get("evaluation", {})
+        improvements = evaluation.get("improvements", [])
+        senior_advice = evaluation.get("senior_advice", "")
+        strengths = evaluation.get("strengths", [])
+
+        # improvements 저장: 각 차원에 해당하는 개선 피드백
+        if improvements:
+            # improvements는 ["안티패턴 1 및 개선안", "안티패턴 2 및 개선안", ...] 형태
+            logger.info(f"[Feedback Extract] Unit01 improvements: {len(improvements)}개")
+            for improvement_text in improvements[:5]:  # 상위 5개까지 저장
+                if not improvement_text:
+                    continue
+                # 키워드 기반 차원 매핑 (간단한 휴리스틱)
+                if any(kw in improvement_text for kw in ["설계", "구조", "아키텍처", "흐름", "design"]):
+                    feedback_bank.setdefault("design", []).append(improvement_text)
+                elif any(kw in improvement_text for kw in ["일관성", "누수", "데이터", "leakage", "정합", "consistency"]):
+                    feedback_bank.setdefault("consistency", []).append(improvement_text)
+                elif any(kw in improvement_text for kw in ["추상화", "모듈", "재사용", "패턴", "abstraction"]):
+                    feedback_bank.setdefault("abstraction", []).append(improvement_text)
+                elif any(kw in improvement_text for kw in ["예외", "엣지", "edge case", "오류", "실패", "edgeCase"]):
+                    feedback_bank.setdefault("edgeCase", []).append(improvement_text)
+                elif any(kw in improvement_text for kw in ["구현", "코드", "라이브러리", "파라미터", "implementation"]):
+                    feedback_bank.setdefault("implementation", []).append(improvement_text)
+                else:
+                    # 기타 피드백은 모든 차원에 공유
+                    for dim in ["design", "consistency", "abstraction", "edgeCase", "implementation"]:
+                        feedback_bank.setdefault(dim, []).append(improvement_text)
+
+        # senior_advice: 전문가의 멘토링 코멘트
+        if senior_advice:
+            logger.info(f"[Feedback Extract] Unit01 senior_advice found")
+            feedback_bank.setdefault("_mentor_advice", []).append(senior_advice)
+
+        # strengths: 강점 (긍정 피드백)
+        if strengths:
+            logger.info(f"[Feedback Extract] Unit01 strengths: {len(strengths)}개")
+            feedback_bank.setdefault("_strengths", []).extend(strengths[:3])
+
+    elif unit_id == "unit02":
+        # Unit02: step_feedbacks의 comment/guidance + thinking feedback
+        llm_eval = data.get("llm_evaluation") or {}
+
+        # step별 피드백
+        step_feedbacks = llm_eval.get("step_feedbacks", [])
+        for step in step_feedbacks[:3]:  # 상위 3개만 저장
+            comment = step.get("comment", "")
+            if comment:
+                feedback_bank.setdefault("디버깅_정확도", []).append(f"Step {step.get('step_number')}: {comment}")
+
+        # 사고 과정 피드백
+        thinking_feedback = llm_eval.get("thinking_feedback", "")
+        if thinking_feedback:
+            feedback_bank.setdefault("사고력", []).append(thinking_feedback)
+
+    elif unit_id == "unit03":
+        # Unit03: pillar별 feedback 텍스트 (구조에 따라 다름)
+        eval_result = data.get("evaluation_result", {})
+        pillar_feedback = eval_result.get("pillarFeedback", {})
+
+        for pillar, feedback_text in pillar_feedback.items():
+            if isinstance(feedback_text, str) and feedback_text:
+                feedback_bank.setdefault(pillar, []).append(feedback_text)
 
 
 def tool_get_recent_activity(profile, limit=10):
