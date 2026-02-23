@@ -13,47 +13,38 @@
 
 import { ref } from 'vue';
 import { requestEvaluation } from '../api/pseudocodeApi.js';
-import { isMeaningfulInput } from '../utils/LowEffortDetector.js';
 
 // ── 에러 타입 상수 ────────────────────────────────────────────────
 export const EvaluationErrorType = {
-    LOW_EFFORT: 'LOW_EFFORT',      // 무성의 입력 (200 응답, is_low_effort=true)
-    AI_TIMEOUT: 'AI_TIMEOUT',      // LLM 타임아웃 (503) → 재시도 가능
-    SERVER_ERROR: 'SERVER_ERROR',  // 서버 오류 (500) → 오류 신고
+    LOW_EFFORT: 'LOW_EFFORT',      // 무성의 입력 (백엔드 판정)
+    AI_TIMEOUT: 'AI_TIMEOUT',      // LLM 타임아웃
+    SERVER_ERROR: 'SERVER_ERROR',  // 서버 오류
     NETWORK_ERROR: 'NETWORK_ERROR',// 네트워크 단절
 };
 
 export function useEvaluationOrchestrator() {
     const isLoading = ref(false);
-    const errorType = ref(null);   // null | EvaluationErrorType.*
+    const errorType = ref(null);
     const errorMessage = ref('');
 
     /**
      * 의사코드 평가 실행.
-     *
-     * @param {Object} problem   - 미션 객체 (id, title 필수)
-     * @param {string} pseudocode
-     * @returns {Object|null}    - 정규화된 평가 결과, 또는 에러 시 null
      */
-    async function evaluate(problem, pseudocode) {
+    async function evaluate(problem, pseudocode, tailAnswer = '', deepAnswer = '') {
         errorType.value = null;
         errorMessage.value = '';
         isLoading.value = true;
 
         try {
-            // ── Step 1: 클라이언트 사전 검증 (빠른 실패, 서버 호출 절약) ──
-            const inputCheck = isMeaningfulInput(pseudocode);
-            if (!inputCheck.valid) {
-                errorType.value = EvaluationErrorType.LOW_EFFORT;
-                errorMessage.value = inputCheck.reason;
-                return _buildLowEffortResult(inputCheck.reason);
-            }
+            // [2026-02-21] 클라이언트 사전 검증 제거 -> 백엔드에서 통합 처리
 
-            // ── Step 2: 백엔드 평가 요청 ──────────────────────────────
+            // ── Step 2: 백엔드 평가 요청 ────────────────
             const response = await requestEvaluation(
                 problem.id,
                 problem.title || problem.missionObjective || '미션',
                 pseudocode,
+                tailAnswer,
+                deepAnswer,
             );
             const data = response.data;
 
@@ -121,12 +112,22 @@ export function useEvaluationOrchestrator() {
  * 컴포넌트는 이 형태만 사용하면 됩니다.
  */
 function _normalizeResult(data) {
+    // senior_advice: GPT가 생성한 맞춤 코멘트 — 빈 값이면 one_line_review fallback
+    const seniorAdvice = (data.senior_advice || data.one_line_review || '').trim();
+
+    // [2026-02-22 Fix] dimensions이 null/undefined일 때 번파는 것 방지
+    // 백엔드가 feedback.dimensions 또는 dimensions로 넣어줄 수 있으므로 둘 다 시도
+    const dimensions = data.dimensions
+        ?? data.feedback?.dimensions
+        ?? {};
+
     return {
         score: data.total_score_100 ?? data.overall_score ?? 0,
         grade: data.grade ?? 'POOR',
         persona: data.persona_name ?? '아키텍트',
         oneLineReview: data.one_line_review ?? '',
-        dimensions: data.dimensions ?? {},
+        seniorAdvice,
+        dimensions,
         convertedPython: data.converted_python ?? '',
         pythonFeedback: data.python_feedback ?? '',
         strengths: data.strengths ?? [],
@@ -136,6 +137,11 @@ function _normalizeResult(data) {
         deepDive: data.deep_dive ?? null,
         scoreBreakdown: data.score_breakdown ?? {},
         metadata: data.metadata ?? {},
+        // 백엔드에서 제공한 영상 큐레이션 (없으면 프론트 폴백)
+        recommendedVideos: data.recommended_videos ?? [],
+        llmAvailable: data.llm_available ?? true,
+        // [2026-02-22] 기초부터 배우기(청사진 모드) 복구용 데이터
+        blueprintSteps: data.blueprint_steps ?? [],
     };
 }
 

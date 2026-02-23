@@ -63,5 +63,6 @@ UPDATE_GUIDE.md
 /backend/media/avatars
 README_PSEUDOCODE.md
 README.md
-
-CLAUDE.md
+backend/test_llm_quick.py
+backend/test_llm_scoring.py
+backend/test_validator.py

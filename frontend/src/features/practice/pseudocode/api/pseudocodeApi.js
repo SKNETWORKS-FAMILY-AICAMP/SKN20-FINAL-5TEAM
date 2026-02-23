@@ -21,10 +21,24 @@ import axios from 'axios';
  * @param {string} pseudocode
  * @returns {Promise<AxiosResponse>}
  */
-export async function requestEvaluation(questId, questTitle, pseudocode) {
+/**
+ * 평가 대상:
+ *   1. pseudocode     — 자연어 의사코드 (필수, Low Effort 판단 대상)
+ *   2. tail_answer    — 꼬리질문(4지선다) 선택 텍스트 (선택)
+ *   3. deep_answer    — Deep Dive 서술형 답변 (선택)
+ *
+ * 평가 대상 아님: 객관식 진단 2문제 (게임 점수에만 반영)
+ */
+export async function requestEvaluation(questId, questTitle, pseudocode, tailAnswer = '', deepAnswer = '') {
     return axios.post(
         '/api/core/pseudocode/evaluate-5d/',
-        { quest_id: questId, quest_title: questTitle, pseudocode },
+        {
+            quest_id:    questId,
+            quest_title: questTitle,
+            pseudocode,
+            tail_answer:  tailAnswer  || '',
+            deep_answer:  deepAnswer  || '',
+        },
         { timeout: 45000 },
     );
 }

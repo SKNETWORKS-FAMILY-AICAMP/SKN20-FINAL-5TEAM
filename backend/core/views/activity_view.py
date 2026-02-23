@@ -144,6 +144,39 @@ class UserProgressView(APIView):
             
         return Response(data, status=status.HTTP_200_OK)
 
+    def post(self, request):
+        """
+        [수정일: 2026-02-23] 사용자의 유닛별 진행도(해금 노드)를 업데이트합니다.
+        - detail_id 없이 진행 상태만 저장해야 하는 경우(예: 미션 완료 후 다음 스테이지 해금) 사용합니다.
+        """
+        user = request.user
+        from core.models import UserProfile, Practice
+        profile = get_object_or_404(UserProfile, email=user.email)
+        
+        practice_id = request.data.get('practice_id')
+        unlocked_nodes = request.data.get('unlocked_nodes', [])
+        
+        if not practice_id:
+            return Response({'error': 'practice_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        practice = get_object_or_404(Practice, id=practice_id)
+        
+        # 진행도 조회 또는 생성
+        progress, created = UserProgress.objects.get_or_create(user=profile, practice=practice)
+        
+        # 기존 노드와 새로운 노드 합치기 (중복 제거 및 정렬)
+        existing_nodes = set(progress.unlocked_nodes or [])
+        new_nodes = set(unlocked_nodes)
+        progress.unlocked_nodes = sorted(list(existing_nodes.union(new_nodes)))
+        
+        progress.save()
+        
+        return Response({
+            'message': 'Progress updated successfully',
+            'unit_title': practice.title,
+            'unlocked_nodes': progress.unlocked_nodes
+        }, status=status.HTTP_200_OK)
+
 class SubmitProblemView(APIView):
     """
     문제 해결 시 점수 저장 및 활동 상태 업데이트
