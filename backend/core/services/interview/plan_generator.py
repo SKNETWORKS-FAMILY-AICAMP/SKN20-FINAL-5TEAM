@@ -1,0 +1,218 @@
+"""
+plan_generator.py — 면접 계획 생성기
+채용공고 + 사용자 취약점 → interview_plan (슬롯 순서 + evidence 정의)
+technical_depth 슬롯의 evidence는 채용공고 기술 스택 기반으로 동적 생성.
+"""
+import json
+import openai
+from django.conf import settings
+
+
+def generate_plan(job_posting, user_weakness: dict) -> dict:
+    """
+    채용공고 + 취약점 → 면접 슬롯 순서와 각 슬롯의 설정 생성.
+
+    Args:
+        job_posting: SavedJobPosting 인스턴스
+        user_weakness: {"weak_topics": [...], "weak_categories": [...], "strength_topics": [...]}
+
+    Returns:
+        {
+            "slots": [...],
+            "total_slots": N,
+            "weakness_boost": [...]
+        }
+    """
+    api_key = getattr(settings, 'OPENAI_API_KEY', '') or ''
+    if not api_key:
+        return _get_default_plan(job_posting, user_weakness)
+
+    client = openai.OpenAI(api_key=api_key)
+    prompt = _build_plan_prompt(job_posting, user_weakness)
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "너는 면접 계획 수립 전문가다. "
+                        "채용공고와 지원자 취약점 데이터를 바탕으로 맞춤형 면접 계획을 JSON으로 생성한다.\n"
+                        "반드시 JSON만 출력한다."
+                    )
+                },
+                {"role": "user", "content": prompt}
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.3,
+            max_tokens=1500,
+        )
+
+        raw = response.choices[0].message.content
+        plan = json.loads(raw)
+        return _validate_and_normalize_plan(plan, job_posting, user_weakness)
+
+    except Exception as e:
+        print(f"[PlanGenerator] 오류: {e}")
+        return _get_default_plan(job_posting, user_weakness)
+
+
+def _build_plan_prompt(job_posting, user_weakness: dict) -> str:
+    """plan_generator LLM 프롬프트 생성"""
+    required_skills = ", ".join(job_posting.required_skills or [])
+    preferred_skills = ", ".join(job_posting.preferred_skills or [])
+    weak_topics = ", ".join(user_weakness.get("weak_topics", []))
+    strength_topics = ", ".join(user_weakness.get("strength_topics", []))
+
+    return f"""다음 채용공고와 지원자 데이터를 바탕으로 면접 계획을 수립하라.
+
+[채용공고]
+- 회사: {job_posting.company_name}
+- 직무: {job_posting.position}
+- 담당 업무: {job_posting.job_responsibilities[:300] if job_posting.job_responsibilities else ""}
+- 필수 기술: {required_skills}
+- 우대 기술: {preferred_skills}
+- 경력: {job_posting.experience_range}
+
+[지원자 데이터]
+- 취약 토픽: {weak_topics if weak_topics else "없음"}
+- 강점 토픽: {strength_topics if strength_topics else "없음"}
+
+[면접 계획 수립 규칙]
+1. 총 4~6개 슬롯을 선택한다.
+2. 슬롯 유형: motivation, technical_depth, collaboration, problem_solving, growth
+3. technical_depth는 1~2개 선택. 반드시 채용공고의 필수 기술(required_skills) 또는 직무 설명에서 언급된 기술로만 선택한다.
+   - 취약 토픽이 채용공고 기술과 관련 없으면 절대 사용하지 않는다.
+   - 채용공고에 기술 스택이 명시되어 있으면 그 기술을 우선한다.
+   - 채용공고에 기술 스택이 없으면 직무명/담당업무에서 핵심 기술을 추론한다.
+4. motivation은 반드시 포함하되 첫 번째로 배치
+5. collaboration과 problem_solving 중 1개 이상 포함
+6. technical_depth 슬롯에는 해당 기술에 맞는 required_evidence를 3~4개 동적 생성
+   - 범용 단어(concept/application/tradeoff) 사용 금지
+   - 해당 기술 구체적인 내용으로 키 생성 (한글 허용, 언더스코어로 구분)
+   - 예: Python 비동기면 → ["asyncio_개념", "실제_사용_경험", "동기방식과_차이", "한계_인식"]
+   - 예: Django ORM이면 → ["ORM_동작방식", "N+1_문제_인식", "쿼리_최적화_경험", "트랜잭션_처리"]
+
+[출력 형식]
+{{
+    "slots": [
+        {{
+            "slot": "motivation",
+            "topic": "지원 동기",
+            "max_attempts": 2,
+            "first_intent": "지원 이유와 직무 적합성 확인"
+        }},
+        {{
+            "slot": "technical_depth",
+            "topic": "Python 비동기",
+            "max_attempts": 3,
+            "first_intent": "비동기 처리 방식 이해 확인",
+            "source": "required_skills",
+            "required_evidence": ["asyncio_개념", "실제_사용_경험", "동기방식과_차이", "한계_인식"],
+            "optional_evidence": ["이벤트루프_이해", "라이브러리_선택"]
+        }},
+        {{
+            "slot": "collaboration",
+            "topic": "팀 협업 경험",
+            "max_attempts": 3,
+            "first_intent": "팀에서의 역할과 기여 확인"
+        }}
+    ],
+    "total_slots": 4,
+    "weakness_boost": ["비동기", "예외처리"]
+}}"""
+
+
+def _validate_and_normalize_plan(plan: dict, job_posting, user_weakness: dict) -> dict:
+    """plan 구조 검증 및 정규화"""
+    if "slots" not in plan or not isinstance(plan["slots"], list):
+        return _get_default_plan(job_posting, user_weakness)
+
+    slots = plan["slots"]
+
+    # 슬롯이 없으면 기본 계획 반환
+    if not slots:
+        return _get_default_plan(job_posting, user_weakness)
+
+    # 각 슬롯 필수 필드 검증
+    required_fields = ["slot", "topic", "max_attempts", "first_intent"]
+    normalized_slots = []
+    for s in slots:
+        if not all(f in s for f in required_fields):
+            continue
+        normalized_slots.append(s)
+
+    if not normalized_slots:
+        return _get_default_plan(job_posting, user_weakness)
+
+    # 중복 슬롯 이름 → 고유 이름으로 변환 (technical_depth → technical_depth_2)
+    seen = {}
+    for s in normalized_slots:
+        name = s["slot"]
+        if name in seen:
+            seen[name] += 1
+            s["slot"] = f"{name}_{seen[name]}"
+        else:
+            seen[name] = 1
+
+    plan["slots"] = normalized_slots
+    plan["total_slots"] = len(normalized_slots)
+    if "weakness_boost" not in plan:
+        plan["weakness_boost"] = user_weakness.get("weak_topics", [])[:3]
+
+    return plan
+
+
+def _get_default_plan(job_posting, user_weakness: dict) -> dict:
+    """LLM 실패 시 기본 면접 계획"""
+    slots = [
+        {
+            "slot": "motivation",
+            "topic": "지원 동기",
+            "max_attempts": 2,
+            "first_intent": "지원 이유와 회사 리서치 여부 확인"
+        },
+        {
+            "slot": "collaboration",
+            "topic": "팀 협업 경험",
+            "max_attempts": 3,
+            "first_intent": "팀에서의 역할과 기여 방식 확인"
+        },
+        {
+            "slot": "problem_solving",
+            "topic": "문제 해결 경험",
+            "max_attempts": 3,
+            "first_intent": "문제 상황과 해결 과정 확인"
+        },
+        {
+            "slot": "growth",
+            "topic": "성장 경험",
+            "max_attempts": 2,
+            "first_intent": "도전 경험과 변화 확인"
+        }
+    ]
+
+    # 채용공고에 기술 스택이 있으면 technical_depth 추가
+    required_skills = job_posting.required_skills or []
+    if required_skills:
+        skill = required_skills[0]
+        slots.insert(1, {
+            "slot": "technical_depth",
+            "topic": skill,
+            "max_attempts": 3,
+            "first_intent": f"{skill} 이해도 확인",
+            "source": "required_skills",
+            "required_evidence": [
+                f"{skill}_개념",
+                f"{skill}_사용_경험",
+                f"{skill}_선택_이유",
+            ],
+            "optional_evidence": [f"{skill}_한계_인식"]
+        })
+
+    return {
+        "slots": slots,
+        "total_slots": len(slots),
+        "weakness_boost": user_weakness.get("weak_topics", [])[:3]
+    }

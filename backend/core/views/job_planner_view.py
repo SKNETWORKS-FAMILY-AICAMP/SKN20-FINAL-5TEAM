@@ -125,6 +125,11 @@ class JobPlannerParseView(APIView):
             # LLM으로 구조화된 채용공고 정보 추출
             parsed_data = self._extract_job_info_with_llm(text, source='url')
 
+            # 파싱 결과 SavedJobPosting에 저장
+            saved_id = self._save_job_posting(request, parsed_data, source='url', source_url=url)
+            if saved_id:
+                parsed_data['saved_posting_id'] = saved_id
+
             return Response(parsed_data, status=status.HTTP_200_OK)
 
         except Exception as e:
@@ -252,6 +257,11 @@ class JobPlannerParseView(APIView):
                 parsed_data['source'] = 'image'
                 parsed_data['raw_text'] = ''
 
+                # 파싱 결과 SavedJobPosting에 저장
+                saved_id = self._save_job_posting(request, parsed_data, source='image', source_url='')
+                if saved_id:
+                    parsed_data['saved_posting_id'] = saved_id
+
                 return Response(parsed_data, status=status.HTTP_200_OK)
             except json.JSONDecodeError:
                 return Response({
@@ -273,7 +283,62 @@ class JobPlannerParseView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         parsed_data = self._extract_job_info_with_llm(text, source='text')
+
+        # 파싱 결과 SavedJobPosting에 저장
+        saved_id = self._save_job_posting(request, parsed_data, source='text', source_url='')
+        if saved_id:
+            parsed_data['saved_posting_id'] = saved_id
+
         return Response(parsed_data, status=status.HTTP_200_OK)
+
+    def _save_job_posting(self, request, parsed_data: dict, source: str, source_url: str) -> int | None:
+        """
+        파싱된 채용공고를 SavedJobPosting에 저장한다.
+        세션에 user_id가 없으면 저장하지 않는다.
+        동일 사용자 + 동일 URL → update_or_create (중복 저장 방지)
+
+        Returns:
+            저장된 SavedJobPosting의 id (실패 시 None)
+        """
+        try:
+            from core.models import SavedJobPosting, UserProfile
+
+            # 세션에서 user_id 추출
+            user_id = request.session.get('user_id') or request.session.get('_auth_user_id')
+            if not user_id:
+                return None
+
+            user = UserProfile.objects.get(pk=user_id)
+
+            defaults = {
+                'company_name': parsed_data.get('company_name', ''),
+                'position': parsed_data.get('position', ''),
+                'job_responsibilities': parsed_data.get('job_responsibilities', ''),
+                'required_qualifications': parsed_data.get('required_qualifications', ''),
+                'preferred_qualifications': parsed_data.get('preferred_qualifications', ''),
+                'required_skills': parsed_data.get('required_skills', []),
+                'preferred_skills': parsed_data.get('preferred_skills', []),
+                'experience_range': parsed_data.get('experience_range', ''),
+                'deadline': parsed_data.get('deadline'),
+                'source': source,
+                'raw_text': parsed_data.get('raw_text', ''),
+                'parsed_data': {k: v for k, v in parsed_data.items()
+                                if k not in ('saved_posting_id',)},
+            }
+
+            if source == 'url' and source_url:
+                saved, _ = SavedJobPosting.objects.update_or_create(
+                    user=user, source_url=source_url, defaults=defaults
+                )
+            else:
+                defaults['source_url'] = ''
+                saved = SavedJobPosting.objects.create(user=user, **defaults)
+
+            return saved.id
+
+        except Exception as e:
+            print(f"[JobPlanner] SavedJobPosting 저장 실패: {e}")
+            return None
 
     def _extract_job_info_with_llm(self, text, source='text'):
         """
@@ -317,45 +382,33 @@ class JobPlannerParseView(APIView):
                 messages=[
                     {
                         "role": "system",
-                        "content": """당신은 채용공고 분석 전문가입니다.
-채용공고에서 다음 정보를 추출하세요:
-1. 주요 업무 (담당 업무, 하게 될 일)
-2. 필수 요건 (자격 요건, 필수 조건)
-3. 우대 조건 (우대 사항, 플러스 요소)
-
-각 항목은 원문 그대로 유지하되, 기술 스택은 별도 배열로 추출하세요.
-정보가 없으면 빈 문자열이나 빈 배열을 사용하세요."""
+                        "content": """당신은 채용공고 파싱 전문가입니다.
+아래 규칙을 반드시 따르세요:
+1. 텍스트에 실제로 존재하는 정보만 추출한다.
+2. 텍스트에 없는 정보는 절대 만들어내지 마라. 없으면 빈 문자열("") 또는 빈 배열([])로 반환한다.
+3. 반드시 JSON만 출력한다."""
                     },
                     {
                         "role": "user",
-                        "content": f"""다음 채용공고에서 정보를 추출하세요:
+                        "content": f"""다음 채용공고 텍스트에서 정보를 추출하세요.
 
-{text}
+{text[:5000]}
 
-JSON 형식:
-{{
-  "company_name": "회사명",
-  "position": "포지션",
-
-  "job_responsibilities": "주요 업무 내용 (원문 그대로)",
-  "required_qualifications": "필수 요건 (원문 그대로, 자격 요건)",
-  "preferred_qualifications": "우대 조건 (원문 그대로, 플러스 요소)",
-
-  "required_skills": ["필수 스킬 배열 - 기술 스택만 추출"],
-  "preferred_skills": ["우대 스킬 배열 - 기술 스택만 추출"],
-
-  "experience_range": "경력 요구사항 (예: 신입, 2-4년, 5년 이상)",
-  "deadline": "마감일 (YYYY-MM-DD 또는 null)"
-}}
-
-주의사항:
-- job_responsibilities: 담당 업무, 하게 될 일 등을 원문 그대로 작성
-- required_qualifications: 필수 자격 요건, 지원 자격을 원문 그대로 작성
-- preferred_qualifications: 우대 사항, 가산점 항목을 원문 그대로 작성
-- required_skills/preferred_skills: 위 내용에서 기술 스택만 배열로 추출 (예: Python, Django, React)"""
+위 텍스트를 바탕으로 아래 JSON 키를 채우세요. 텍스트에 없는 정보는 "" 또는 []로 두세요:
+- company_name: string
+- position: string
+- job_responsibilities: string
+- required_qualifications: string
+- preferred_qualifications: string
+- required_skills: array of strings
+- preferred_skills: array of strings
+- experience_range: string
+- deadline: null"""
                     }
                 ],
-                temperature=0.3
+                response_format={"type": "json_object"},
+                temperature=0.2,
+                max_tokens=2000,
             )
 
             content = response.choices[0].message.content

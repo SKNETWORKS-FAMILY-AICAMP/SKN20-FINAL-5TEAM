@@ -102,6 +102,7 @@ class CollectorRouter:
 
         # Phase 3: 사이트별 최적화 Collector 우선 추가
         url_lower = url.lower()
+        is_spa = False  # SPA 사이트 여부 (StaticCollector 건너뜀)
 
         if 'saramin.co.kr' in url_lower:
             print(f"[INFO] 사람인 URL 감지 -> SaraminCollector 우선 시도")
@@ -110,14 +111,14 @@ class CollectorRouter:
             print(f"[INFO] 잡코리아 URL 감지 -> JobkoreaCollector 우선 시도")
             collectors.append(("Jobkorea", self.jobkorea_collector))
         elif 'wanted.co.kr' in url_lower:
-            print(f"[INFO] 원티드 URL 감지 -> WantedCollector 우선 시도")
+            is_spa = True
+            print(f"[INFO] 원티드 URL 감지 (SPA) -> WantedCollector 우선 시도, StaticCollector 제외")
             collectors.append(("Wanted", self.wanted_collector))
 
-        # Phase 2: 기본 Fallback 체인 추가
-        collectors.extend([
-            ("Static", self.static_collector),
-            ("Browser", self.browser_collector)
-        ])
+        # SPA 사이트는 StaticCollector 제외 (정적 HTML에 본문 없음)
+        if not is_spa:
+            collectors.append(("Static", self.static_collector))
+        collectors.append(("Browser", self.browser_collector))
 
         # Fallback 체인 순차 실행
         for name, collector in collectors:

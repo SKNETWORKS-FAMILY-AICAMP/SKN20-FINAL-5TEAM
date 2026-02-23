@@ -39,6 +39,7 @@
             v-if="auth.isLoggedIn"
           />
           <button class="btn-history" @click="router.push('/my-records')">My Records</button>
+          <button class="btn-history" @click="router.push('/interview')">모의면접</button>
           <button class="btn-coach" @click="router.push('/coach')">AI Coach</button>
           <button v-if="auth.user?.is_superuser" class="btn-mgmt" @click="router.push('/management/progress')">Management</button>
           <button class="btn-profile-settings" @click="ui.isProfileSettingsModalOpen = true">Setting</button>
@@ -201,7 +202,8 @@ const isPracticePage = computed(() => {
     'ProgressiveProblems',
     'Management',
     'MyHistory',
-    'AICoach'
+    'AICoach',
+    'MockInterview'
   ];
   return practiceRoutes.includes(route?.name);
 });

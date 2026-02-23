@@ -19,6 +19,7 @@ import BugHunt from './features/practice/bughunt/BugHunt.vue'
 // import OpsPractice from './features/practice/OpsPractice.vue'
 import ManagementView from './features/dashboard/ManagementView.vue'
 import MyHistoryView from './features/dashboard/MyHistoryView.vue'
+import MockInterview from './features/interview/MockInterview.vue'
 
 // [수정일: 2026-01-31] 사용하지 않는 구버전/비활성 컴포넌트 임포트 주석 처리
 // import AiDetectivePractice from './features/practice/AiDetectivePractice.vue'
@@ -91,6 +92,11 @@ const routes = [
     path: '/my-records',
     name: 'MyHistory',
     component: MyHistoryView
+  },
+  {
+    path: '/interview',
+    name: 'MockInterview',
+    component: MockInterview
   },
   {
     path: '/practice/',

@@ -58,14 +58,36 @@ class StaticCollector(BaseCollector):
             # 2. HTML 파싱
             soup = BeautifulSoup(response.text, 'html.parser')
 
-            # 3. 불필요한 태그 제거 (script, style 등)
-            for script in soup(["script", "style", "meta", "link"]):
-                script.decompose()
+            # 3. 불필요한 태그 제거 (script, style, nav, header, footer 등)
+            for tag in soup(["script", "style", "meta", "link", "nav", "header", "footer",
+                              "noscript", "iframe", "aside"]):
+                tag.decompose()
 
-            # 4. 순수 텍스트 추출
+            # 4. 채용공고 주요 콘텐츠 영역 우선 추출
+            content_selectors = [
+                "main", "article",
+                "[class*='job']", "[class*='recruit']", "[class*='position']",
+                "[class*='content']", "[class*='detail']", "[id*='content']",
+                "section", ".wrap", "#wrap",
+            ]
+            for selector in content_selectors:
+                try:
+                    elements = soup.select(selector)
+                    combined = '\n'.join(
+                        el.get_text(separator='\n', strip=True)
+                        for el in elements
+                        if len(el.get_text(strip=True)) > 200
+                    )
+                    if len(combined) > 300:
+                        print(f"[OK] StaticCollector: {len(combined)} 문자 추출 (selector: {selector})")
+                        return combined
+                except Exception:
+                    continue
+
+            # 5. 콘텐츠 선택자 실패 시 전체 body 텍스트 추출
             text = soup.get_text(separator='\n', strip=True)
 
-            print(f"[OK] StaticCollector: {len(text)} 문자 추출")
+            print(f"[OK] StaticCollector: {len(text)} 문자 추출 (full body)")
             return text
 
         except requests.RequestException as e:
