@@ -374,18 +374,13 @@ export function useCoduckWars() {
                 : "설계 뼈대는 복원했지만, 복잡한 예외 상황에 대한 스스로의 고민이 더 필요합니다.";
         }
 
-        /**
-         * [2026-02-22 Fix] 점수 원상복구 및 진정성 있는 진단 (Archetype: Blueprint Learner)
-         * - 점수는 다시 60~70점 대역으로 원복 (청사진 학습의 한계 인정)
-         * - 오각형 지표를 통해 '무엇이 실제로 부족한지'를 정밀하게 타격
-         */
         const ratio = score / 100;
         const metrics = {
-            abstraction: Math.round(85 * ratio), // 청사진의 우수한 구조 (강점)
-            consistency: Math.round(80 * ratio), // 청사진의 논리적 일관성 (강점)
-            implementation: Math.round(70 * ratio), // 가이드 준수 능력
-            design: Math.round(50 * ratio), // [약점] 스스로의 설계 의도 부재
-            edgeCase: Math.round(45 * ratio), // [약점] 예외 상황에 대한 자가 대응력 부재
+            abstraction: Math.round(85 * ratio),
+            consistency: Math.round(80 * ratio),
+            implementation: Math.round(70 * ratio),
+            design: Math.round(50 * ratio),
+            edgeCase: Math.round(45 * ratio),
         };
 
         evaluationResult.dimensions = {

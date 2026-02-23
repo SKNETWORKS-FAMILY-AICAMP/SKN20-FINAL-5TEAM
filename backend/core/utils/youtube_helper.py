@@ -54,10 +54,16 @@ def search_youtube_videos(query, max_results=3):
         thumbnail_url = thumbnails.get('medium', {}).get('url') or \
                        thumbnails.get('default', {}).get('url') or ""
         
+        # [2026-02-23] 섬네일 폴백 강화
+        fallback_thumb = "https://coduck-assets.s3.ap-northeast-2.amazonaws.com/images/video_fallback.png"
+        final_thumbnail = thumbnail_url if thumbnail_url and "hqdefault_live.jpg" not in thumbnail_url else (
+            f"https://img.youtube.com/vi/{item.get('id', {}).get('videoId')}/mqdefault.jpg" if item.get('id', {}).get('videoId') else fallback_thumb
+        )
+
         videos.append({
             'title': snippet.get('title', 'No Title'),
             'videoId': item.get('id', {}).get('videoId'),
-            'thumbnail': thumbnail_url,
+            'thumbnail': final_thumbnail,
             'channelTitle': snippet.get('channelTitle', 'Unknown Channel'),
             'description': snippet.get('description', ''),
             'url': f"https://www.youtube.com/watch?v={item.get('id', {}).get('videoId', '')}"

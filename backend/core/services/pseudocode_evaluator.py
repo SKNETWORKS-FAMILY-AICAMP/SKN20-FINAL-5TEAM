@@ -556,7 +556,7 @@ class ScoringEngine:
             grade = 'POOR'
 
         return {
-            'final_score': round(final, 1),
+            'final_score': int(round(final)), # [수정 2026-02-23] RDS(IntegerField)와의 정합성을 위해 정수형으로 변환
             'llm_score_85': llm_score_85,
             'rule_score_15': rule_score,
             'rule_validator_raw': validator_raw,
@@ -689,8 +689,10 @@ class PseudocodeEvaluator:
         6. 피드백 생성
         """
         # ── Step 1: Low Effort 감지 ────────────────────────────────
+        # [수정 2026-02-23] 청사진 모드 진입을 위한 첫 제출일 때만 LowEffortError 발생
+        # 이미 꼬리질문(tail_answer)이나 심화 답변(deep_answer)을 한 상태라면 평가를 진행함
         is_low, reason = LowEffortDetector.check(request.pseudocode)
-        if is_low:
+        if is_low and not (request.tail_answer or request.deep_answer):
             raise LowEffortError(reason or "입력이 부실합니다.")
 
         # ── Step 2: Rule 검증 ──────────────────────────────────────
@@ -749,6 +751,19 @@ class PseudocodeEvaluator:
             rule_result, 
             llm_result.dimension_scores
         )
+
+        # [수정 2026-02-23] 청사진 복구 모드 보정 (UI와 RDS 점수 동기화)
+        # 무성의 입력이었으나 회복 답변(tail_answer 등)이 있는 경우, 최소 60점 이상을 보장하여 RDS에 기록되게 함
+        if (request.tail_answer or request.deep_answer):
+            current_score = scoring['final_score']
+            if current_score < 60:
+                logger.info(f"[Evaluate] Recovery boost applied: {current_score} -> 60+")
+                # UI의 variance(60~64)와 유사하게 최소 점수 보정
+                recovery_boost = 60 + (int(request.user_id[-1]) % 5 if request.user_id.isdigit() else 2)
+                scoring['final_score'] = max(current_score, recovery_boost)
+                # 등급 재산정
+                if scoring['final_score'] >= 75: scoring['grade'] = 'GOOD'
+                elif scoring['final_score'] >= 50: scoring['grade'] = 'AVERAGE'
 
         # ── Step 6: 피드백 생성 ───────────────────────────────────
         feedback = self.feedback_engine.generate(llm_result, scoring)

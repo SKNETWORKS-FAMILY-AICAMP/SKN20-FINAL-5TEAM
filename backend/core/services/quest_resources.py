@@ -197,10 +197,10 @@ QUEST_VIDEOS = {
             {'id': '4jRBRDbJemM', 'title': 'ROC Curve & AUC — 불균형 평가의 표준 (StatQuest)', 'channel': 'StatQuest'},
         ],
         'design': [
-            {'id': '_eG4_5tWlM4', 'title': 'Imbalanced Data 처리 전략 설계 (StatQuest)', 'channel': 'StatQuest'},
+            {'id': 'geZDkTfGT-I', 'title': 'Imbalanced Data 처리 전략 설계 (StatQuest)', 'channel': 'StatQuest'},
         ],
         'edgeCase': [
-            {'id': 'RwtP8TToimY', 'title': 'Class Weights & Cost-Sensitive Learning (Krish Naik)', 'channel': 'Krish Naik'},
+            {'id': 'pDw_JHHvj-0', 'title': 'Class Weights & Cost-Sensitive Learning (Krish Naik)', 'channel': 'Krish Naik'},
         ],
         'abstraction': [
             {'id': 'gJo0uNL-5Lw', 'title': 'StratifiedKFold & 계층화 분할 (StatQuest)', 'channel': 'StatQuest'},
@@ -209,7 +209,7 @@ QUEST_VIDEOS = {
             {'id': 'U3X98xZ4_no', 'title': 'SMOTE 완전 구현 (imbalanced-learn)', 'channel': 'imbalanced-learn'},
         ],
         'default': [
-            {'id': '_eG4_5tWlM4', 'title': 'Handling Imbalanced Data', 'channel': 'StatQuest'},
+            {'id': 'geZDkTfGT-I', 'title': 'Handling Imbalanced Data', 'channel': 'StatQuest'},
             {'id': '4jRBRDbJemM', 'title': 'ROC AUC', 'channel': 'StatQuest'},
             {'id': 'U3X98xZ4_no', 'title': 'SMOTE', 'channel': 'imbalanced-learn'},
         ],
@@ -360,17 +360,27 @@ def get_dimension_priority(quest_id: str) -> list:
 
 
 def _enrich_video(video: dict) -> dict:
-    """YouTube 영상 데이터에 thumbnail/url/videoId 필드를 자동 보추합니다."""
+    """YouTube 영상 데이터에 thumbnail/url/videoId 필드를 자동 보충합니다."""
     vid = video.copy()
     video_id = vid.get('id', '') or vid.get('videoId', '')
+    
+    # [수정 2026-02-23] 섬네일 누락 방지 및 폴백 이미지 적용
+    # mqdefault.jpg (320x180) 사용
     if video_id:
-        # 항상 thumbnail/url/videoId 재생성 (하드코딩 데이터는 thumbnail 필드가 없으므로)
-        vid['thumbnail'] = f'https://img.youtube.com/vi/{video_id}/mqdefault.jpg'
-        vid['url'] = f'https://www.youtube.com/watch?v={video_id}'
         vid['videoId'] = video_id
+        vid['url'] = f'https://www.youtube.com/watch?v={video_id}'
+        # 기존 thumbnail이 없거나 가짜(placeholder)인 경우에만 생성
+        if not vid.get('thumbnail') or 'placeholder' in vid.get('thumbnail', ''):
+            vid['thumbnail'] = f'https://img.youtube.com/vi/{video_id}/mqdefault.jpg'
+        
         # 정적 데이터의 'id' 필드를 'videoId'와 동기화
         if 'id' in vid:
-            vid['videoId'] = vid['id']
+            vid['id'] = video_id
+    else:
+        # 비디오 ID조차 없는 경우 (데이터 오류)
+        vid['thumbnail'] = "https://coduck-assets.s3.ap-northeast-2.amazonaws.com/images/video_fallback.png"
+        vid['url'] = "#"
+        
     return vid
 
 

@@ -136,21 +136,7 @@ def evaluate_pseudocode_5d(request):
 
     except LowEffortError as e:
         logger.info(f"[Evaluate] LowEffort user={user_id}: {e.reason}")
-        try:
-            profile = UserProfile.objects.get(email=request.user.email)
-            normalized_id = normalize_quest_id(quest_id)
-            str_quest_id = str(quest_id)
-            target_detail_id = (
-                str_quest_id
-                if (str_quest_id.startswith('unit') and '_' in str_quest_id)
-                else f"unit01_{normalized_id.zfill(2)}"
-            )
-            save_user_problem_record(
-                profile, target_detail_id, 0,
-                {'pseudocode': pseudocode, 'reason': e.reason, 'is_low_effort': True, 'is_auto_saved': True},
-            )
-        except Exception as save_error:
-            logger.error(f"[Evaluate] Failed to save low-effort: {save_error}")
+        # [수정 2026-02-23] 무성의 입력(잘모르겠다 등)은 청사진 모드 진입용이므로 RDS에 0점 기록을 남기지 않음
         return Response(_build_low_effort_response(quest_id, e.reason), status=status.HTTP_200_OK)
 
     except LLMTimeoutError as e:
@@ -178,16 +164,24 @@ def evaluate_pseudocode_5d(request):
 def _build_success_response(result, llm, quest_id='1') -> dict:
     """정상 평가 완료 응답 — 영상 큐레이션 포함."""
     dimensions = result.feedback.get('dimensions', {})
-    is_llm_success = result.metadata.get('llm_status') == 'SUCCESS'
+    
+    # [수정 2026-02-23] 모든 점수 필드 소수점 제거 및 정수화
+    processed_dimensions = {}
+    for dim, data in dimensions.items():
+        processed_dimensions[dim] = {
+            **data,
+            'score': int(round(float(data.get('score', 0)))),
+            'percentage': int(round(float(data.get('percentage', 0))))
+        }
 
     return {
-        'overall_score': result.final_score,
-        'total_score_100': result.final_score,
+        'overall_score': int(result.final_score),
+        'total_score_100': int(result.final_score),
         'grade': result.grade,
         'persona_name': result.persona,
         'one_line_review': result.feedback.get('summary', ''),
         'senior_advice': result.feedback.get('senior_advice', ''),
-        'dimensions': dimensions,
+        'dimensions': processed_dimensions,
         'converted_python': (llm.converted_python if llm else '') or '# 변환 결과 없음',
         'python_feedback': (llm.python_feedback if llm else '') or '',
         'strengths': result.feedback.get('strengths', []),
@@ -200,8 +194,8 @@ def _build_success_response(result, llm, quest_id='1') -> dict:
             **result.metadata,
             'internal_reasoning': llm.internal_reasoning if llm else ''
         },
-        'llm_available': is_llm_success,
-        'recommended_videos': result.recommended_videos,  # 2026-02-23 추가
+        'llm_available': result.metadata.get('llm_status') == 'SUCCESS',
+        'recommended_videos': result.recommended_videos,
     }
 
 
@@ -222,9 +216,9 @@ def _build_low_effort_response(quest_id: str, reason: str) -> dict:
         'grade': 'POOR',
         'persona_name': '성장의 씨앗을 품은 학생',
         'one_line_review': reason,
-        'senior_advice': '',
+        'senior_advice': '설계 내용이 분석하기엔 너무 짧습니다. 아키텍처의 기초부터 차근차근 배워볼까요?',
         'dimensions': {
-            dim: {'score': 0, 'max': max_val, 'percentage': 0, 'comment': '설명이 부족하여 분석할 수 없습니다.'}
+            dim: {'score': 0, 'max': max_val, 'percentage': 0, 'comment': '데이터 부족으로 분석이 생략되었습니다.'}
             for dim, max_val in {
                 'design': 25, 'consistency': 20,
                 'edgeCase': 15, 'abstraction': 15, 'implementation': 10,
@@ -235,11 +229,11 @@ def _build_low_effort_response(quest_id: str, reason: str) -> dict:
         'strengths': [],
         'weaknesses': [reason],
         'is_low_effort': True,
-        'blueprint_steps': blueprint,  # 2026-02-22 추가: 청사진 복구 지원
-        'tail_question': recovery_q,   # [2026-02-22] 복구 후 이해도 측정용 꼬리 질문
+        'blueprint_steps': blueprint,
+        'tail_question': recovery_q,
         'deep_dive': None,
         'score_breakdown': {},
         'metadata': {'llm_status': 'SKIPPED_LOW_EFFORT'},
         'llm_available': False,
-        'recommended_videos': get_quest_videos(quest_id).get('default', []),  # 2026-02-23 추가
+        'recommended_videos': get_quest_videos(quest_id).get('default', []),
     }
