@@ -657,7 +657,24 @@ def get_recommended_videos_legacy(
                     candidates.append({**video, '_dim': 'default', '_source': 'fallback'})
                     used_ids.add(video['id'])
         
-        return candidates
+        # [2026-02-23] 최종 반환 전 존재하지 않는 영상 필터링
+        from core.utils.youtube_helper import filter_valid_videos
+        valid_candidates = filter_valid_videos(candidates)
+        
+        # 필터 후 부족한 경우 default로 보완
+        if len(valid_candidates) < max_count:
+            default_videos = list(quest_videos.get('default', []))
+            random.shuffle(default_videos)
+            for video in default_videos:
+                if len(valid_candidates) >= max_count:
+                    break
+                vid = video.get('id') or video.get('videoId')
+                if vid and vid not in {v.get('id') or v.get('videoId') for v in valid_candidates}:
+                    valid_candidates.append({**video, '_dim': 'default', '_source': 'fallback_recheck'})
+            # 보완된 것도 다시 검증
+            valid_candidates = filter_valid_videos(valid_candidates)
+        
+        return valid_candidates
     except Exception as e:
         logger.error(f"[get_recommended_videos_legacy] Error: {e}")
         return []

@@ -1,5 +1,6 @@
 import requests
 from django.conf import settings
+from django.core.cache import cache
 
 def search_youtube_videos(query, max_results=3):
     """
@@ -70,3 +71,62 @@ def search_youtube_videos(query, max_results=3):
         })
         
     return videos
+
+
+def filter_valid_videos(videos: list) -> list:
+    """
+    YouTube Videos API를 사용하여 실제로 존재하는(공개된) 영상만 반환합니다.
+    존재하지 않거나 삭제/비공개된 영상은 제거됩니다.
+    결과는 캐싱하여 API 쿼터 절약.
+    """
+    api_key = getattr(settings, 'YOUTUBE_API_KEY', None)
+    if not api_key or not videos:
+        return videos
+
+    # videoId 목록 추출
+    video_ids = [v.get('videoId') or v.get('id', '') for v in videos]
+    video_ids = [vid for vid in video_ids if vid]
+
+    if not video_ids:
+        return videos
+
+    # 캐시 확인 (24시간 유지)
+    cache_key = f"yt_valid_{'_'.join(sorted(video_ids))}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        valid_ids = cached
+    else:
+        # YouTube Videos API 호출 (한 번에 최대 50개)
+        url = "https://www.googleapis.com/youtube/v3/videos"
+        params = {
+            'part': 'id,status',
+            'id': ','.join(video_ids),
+            'key': api_key,
+        }
+        try:
+            response = requests.get(url, params=params, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            # 실제로 API 응답에 포함된 id = 공개 영상
+            valid_ids = {
+                item['id'] for item in data.get('items', [])
+                if item.get('status', {}).get('privacyStatus') == 'public'
+            }
+            # 응답에 아예 없는 id = 삭제된 영상
+            cache.set(cache_key, valid_ids, timeout=60 * 60 * 24)  # 24시간
+            print(f"[YouTube Validation] {len(valid_ids)}/{len(video_ids)} videos are valid")
+        except Exception as e:
+            print(f"[YouTube Validation Error] {e}")
+            # 검증 실패 시 그냥 통과 (API 에러로 멀쩡한 영상 제거 방지)
+            return videos
+
+    # 유효한 영상만 필터링
+    result = []
+    for v in videos:
+        vid_id = v.get('videoId') or v.get('id', '')
+        if vid_id in valid_ids:
+            result.append(v)
+        else:
+            print(f"[YouTube Validation] Removed invalid video: {vid_id} — '{v.get('title', '?')}'")
+
+    return result

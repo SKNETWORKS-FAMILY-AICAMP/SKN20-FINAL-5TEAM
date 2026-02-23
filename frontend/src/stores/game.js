@@ -301,13 +301,12 @@ export const useGameStore = defineStore('game', {
             // [2026-01-26] 진행도 로컬 스토리지 저장
             localStorage.setItem('logic_mirror_progress', JSON.stringify(this.unitProgress));
 
-            // [2026-02-22] RDS에도 저장 (비동기 백김드)
+            // [2026-02-23 수정] RDS에도 진행도 저장 (전용 엔드포인트 사용으로 404 방지)
             const practice = this.chapters.find(c => c.name === targetKey);
             if (practice?.id) {
-                axios.post('/api/core/activity/submit/', {
-                    detail_id: null,
-                    score: 0,
-                    submitted_data: { unlocked_nodes: progress, practice_id: practice.id }
+                axios.post('/api/core/activity/progress/', {
+                    practice_id: practice.id,
+                    unlocked_nodes: progress
                 }, { withCredentials: true }).catch(e => console.warn('[GameStore] RDS progress save failed:', e));
             }
         },
