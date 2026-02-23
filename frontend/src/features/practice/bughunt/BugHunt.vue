@@ -815,7 +815,7 @@
               <button class="editor-btn reset-btn" @click="resetCurrentStep">
                 ↺ RESET
               </button>
-              <button class="editor-btn submit-btn" @click="submitProgressiveStep" :disabled="currentProgressiveStep > totalStepsComputed || isRunning || showStepResultOverlay || showStrategyDuck">
+              <button class="editor-btn submit-btn" @click="submitProgressiveStep" :disabled="currentProgressiveStep > totalStepsComputed || isRunning || showStepResultOverlay || showStrategyDuck || showInterviewPanel">
                 🚀 SUBMIT
               </button>
             </div>
@@ -872,7 +872,88 @@
 
                   <!-- 편집 가능한 섹션 (디버그 모드) 또는 읽기 전용 (전략 입력 시) -->
                   <div class="code-editor-wrapper active-wrapper monaco-active-wrapper">
+                    <transition name="duck-pop">
+                      <div v-if="showInterviewPanel && currentStageMode === 'standard'" class="interview-panel">
+                        <div class="interview-header">
+                          <span class="interview-title">Deep Dive Interview</span>
+                          <span class="interview-turn-badge">{{ Math.min(interviewTurn, interviewMaxTurns) }} / {{ interviewMaxTurns }}</span>
+                        </div>
+
+                        <div class="interview-messages" ref="interviewMessagesRef">
+                          <template v-for="(msg, idx) in interviewMessages" :key="idx">
+                            <div
+                              v-if="msg.content"
+                              :class="['interview-msg-row', msg.role === 'assistant' ? 'row-interviewer' : 'row-user']"
+                            >
+                              <img
+                                v-if="msg.role === 'assistant'"
+                                :src="interviewerDuck"
+                                @error="onInterviewerDuckError"
+                                class="interview-speaker-duck"
+                                alt="Interviewer Duck"
+                              >
+                              <div :class="['interview-msg', msg.role === 'assistant' ? 'msg-interviewer' : 'msg-user']">
+                                <div class="msg-role">{{ msg.role === 'assistant' ? 'Interviewer Duck' : 'You' }}</div>
+                                <div class="msg-content">{{ msg.content }}</div>
+                              </div>
+                            </div>
+                          </template>
+
+                          <div v-if="isInterviewLoading && !interviewHasStreamToken" class="interview-msg-row row-interviewer">
+                            <img
+                              :src="interviewerDuck"
+                              @error="onInterviewerDuckError"
+                              class="interview-speaker-duck"
+                              alt="Interviewer Duck"
+                            >
+                            <div class="interview-msg msg-interviewer">
+                              <div class="msg-role">Interviewer Duck</div>
+                              <div class="msg-content typing-indicator">
+                                <span></span><span></span><span></span>
+                              </div>
+                            </div>
+                          </div>
+
+                        </div>
+
+                        <div v-if="interviewResult" class="interview-result">
+                          <div class="result-score">
+                            <span class="result-label">이해도 점수</span>
+                            <span class="result-value">{{ interviewResult.score }}/100</span>
+                            <span :class="['result-level', 'level-' + (interviewResult.understanding_level || '').toLowerCase()]">
+                              {{ interviewResult.understanding_level }}
+                            </span>
+                          </div>
+                          <div v-if="interviewResult.weak_point" class="result-weak">
+                            보완할 점: {{ interviewResult.weak_point }}
+                          </div>
+                          <button class="interview-next-btn" @click="finishInterview">
+                            {{ currentProgressiveStep >= totalStepsComputed ? '미션 완료' : '다음 Step' }}
+                          </button>
+                        </div>
+
+                        <div v-else class="interview-input-area">
+                          <textarea
+                            v-model="interviewInput"
+                            @keydown="handleInterviewKeydown"
+                            placeholder="답변을 입력하세요... (Shift+Enter: 줄바꿈)"
+                            class="interview-textarea"
+                            rows="3"
+                            :disabled="isInterviewLoading"
+                          ></textarea>
+                          <button
+                            class="interview-submit-btn"
+                            @click="submitInterviewAnswer"
+                            :disabled="!interviewInput.trim() || isInterviewLoading"
+                          >
+                            답변
+                          </button>
+                        </div>
+                      </div>
+                    </transition>
+
                     <vue-monaco-editor
+                      v-if="!(showInterviewPanel && currentStageMode === 'standard')"
                       v-model:value="progressiveStepCodes[Number(step)]"
                       theme="vs-dark"
                       language="python"
@@ -912,16 +993,32 @@
 
       <div class="evaluation-content">
         <div class="report-card neon-border">
+          <!-- 리포트 헤더 -->
           <div class="report-header mission-summary">
             <div class="project-info">
               <span class="id-badge">CLEAR!</span>
               <h2>{{ currentProgressiveMission?.stage_title }}</h2>
             </div>
             <div class="score-summary center-focus">
-              <div class="score-item">
+              <!-- S4+: 면접 이해도 평균 점수 -->
+              <div v-if="!isBasicStage && averageInterviewScore !== null" class="score-item">
+                <span class="label">UNDERSTANDING SCORE</span>
+                <div class="score-display">
+                  <span class="value">{{ averageInterviewScore }}</span>
+                  <span class="score-unit">/100</span>
+                </div>
+                <span
+                  v-if="overallGrade"
+                  class="grade-badge"
+                  :class="'grade-' + overallGrade.toLowerCase()"
+                >{{ overallGrade }}</span>
+              </div>
+              <!-- 기본 stage: 기존 점수 -->
+              <div v-else class="score-item">
                 <span class="label">FINAL SCORE</span>
                 <span class="value">{{ progressiveMissionScore }}</span>
               </div>
+
               <div class="shake-earned">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shake-earned-icon">
                   <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
@@ -929,109 +1026,73 @@
                 <span class="shake-earned-text">+{{ progressiveMissionScore }}</span>
               </div>
               <div class="penalty-stats" v-if="hasPenalties">
-                 <div class="penalty-item">
-                   <span class="p-label">CODE RETRY ({{ codeSubmitFailCount }})</span>
-                   <span class="p-value">-{{ codeSubmitFailCount * codeRetryPenalty }}</span>
-                 </div>
-                 <div v-if="currentProgressiveMission?.id !== 'S1'" class="penalty-item">
-                    <span class="p-label">HINTS USED ({{ totalHintCount }})</span>
-                    <span class="p-value">-{{ totalHintCount }}</span>
-                 </div>
+                <div class="penalty-item">
+                  <span class="p-label">CODE RETRY ({{ codeSubmitFailCount }})</span>
+                  <span class="p-value">-{{ codeSubmitFailCount * codeRetryPenalty }}</span>
+                </div>
+                <div v-if="currentProgressiveMission?.id !== 'S1'" class="penalty-item">
+                  <span class="p-label">HINTS USED ({{ totalHintCount }})</span>
+                  <span class="p-value">-{{ totalHintCount }}</span>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- AI 디버깅 사고 평가 섹션 (S4 이후 stage에서만) -->
-          <div v-if="!isBasicStage" class="ai-report-section neon-border">
-            <div class="report-section-title">
-              <span class="ai-icon">🧠</span>
-              디버깅 사고 평가
-            </div>
-
-            <div v-if="isEvaluatingAI" class="ai-loading">
-              <div class="pulse-loader"></div>
-              <p>AI가 당신의 디버깅 사고를 분석 중입니다...</p>
-            </div>
-
-            <div v-else-if="aiEvaluationResult" class="ai-result">
-              <!-- 사고 방향 통과/탈락 -->
-              <div class="thinking-eval-grid">
-                <div class="eval-card thinking-pass-card">
-                  <div class="eval-card-header">
-                    <span class="eval-icon">🎯</span>
-                    <span class="eval-title">사고 방향</span>
-                  </div>
-                  <div class="eval-card-body">
-                    <span
-                      class="pass-badge"
-                      :class="aiEvaluationResult.thinking_pass ? 'pass' : 'fail'"
-                    >
-                      {{ aiEvaluationResult.thinking_pass ? '✅ 안전' : '🚫 위험' }}
-                    </span>
-                  </div>
-                </div>
-
-                <!-- 코드 위험도 -->
-                <div class="eval-card risk-card">
-                  <div class="eval-card-header">
-                    <span class="eval-icon">⚠️</span>
-                    <span class="eval-title">코드 위험도</span>
-                  </div>
-                  <div class="eval-card-body">
-                    <div class="risk-gauge">
-                      <div
-                        class="risk-fill"
-                        :style="{ width: aiEvaluationResult.code_risk + '%' }"
-                        :class="getRiskLevel(aiEvaluationResult.code_risk)"
-                      ></div>
-                    </div>
-                    <span class="risk-value">{{ aiEvaluationResult.code_risk }}/100</span>
-                  </div>
-                </div>
-
-                <!-- 사고력 점수 -->
-                <div class="eval-card thinking-score-card">
-                  <div class="eval-card-header">
-                    <span class="eval-icon">💡</span>
-                    <span class="eval-title">사고력 점수</span>
-                  </div>
-                  <div class="eval-card-body">
-                    <span class="thinking-score-value">{{ aiEvaluationResult.thinking_score }}</span>
-                    <span class="thinking-score-max">/100</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 총평 -->
-              <div class="summary-box">
-                <div class="summary-label">📝 총평</div>
-                <p class="summary-text">{{ aiEvaluationResult.총평 }}</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- DEBUGGING LOG & STRATEGY 섹션 (S4 이후에만 표시) -->
-          <div v-if="!isBasicStage" class="explanations-list">
-            <div class="list-title">📋 DEBBUGING LOG & STRATEGY</div>
+          <!-- Step별 면접 결과 (S4+ 전용) -->
+          <div v-if="!isBasicStage && hasStepInterviewResults" class="step-results-section">
+            <div class="section-title">STEP ANALYSIS</div>
             <div
               v-for="step in totalStepsComputed"
-              :key="'eval-step-' + step"
-              class="eval-step-box"
+              :key="'result-' + step"
+              class="step-result-card"
             >
-              <div class="step-header">
-                <span class="step-num">STEP {{ step }}</span>
-                <span class="step-title">{{ getStepData(step)?.title }}</span>
-              </div>
-              <div class="step-explanation">
-                <span class="label">Strategy:</span>
-                <p>{{ stepExplanations[step] || '설명이 작성되지 않았습니다.' }}</p>
+              <div class="step-result-header">
+                <div class="step-result-info">
+                  <span class="step-num">STEP {{ step }}</span>
+                  <span class="step-title">{{ getStepData(step)?.title }}</span>
+                </div>
+                <div class="step-result-score">
+                  <span class="step-score-value">{{ getStepInterviewScore(step) }}</span>
+                  <span class="step-score-unit">/100</span>
+                  <span
+                    class="step-level-badge"
+                    :class="'level-' + (getStepInterviewLevel(step) || '').toLowerCase()"
+                  >{{ getStepInterviewLevel(step) }}</span>
+                </div>
               </div>
 
-              <!-- AI 피드백 -->
-              <div v-if="getStepFeedback(step)" class="step-feedback">
-                <div class="feedback-label">🤖 AI FEEDBACK</div>
-                <p class="feedback-text">{{ getStepFeedback(step) }}</p>
+              <!-- 파악한 개념 태그 -->
+              <div v-if="getStepInterviewConcepts(step).length" class="concept-tags">
+                <span
+                  v-for="(concept, ci) in getStepInterviewConcepts(step)"
+                  :key="ci"
+                  class="concept-tag"
+                >{{ concept }}</span>
               </div>
+
+              <!-- 보완할 점 -->
+              <div v-if="getStepInterviewWeakPoint(step)" class="weak-point-text">
+                <span class="weak-label">보완할 점:</span>
+                {{ getStepInterviewWeakPoint(step) }}
+              </div>
+
+              <!-- AI 피드백 (종합 평가 API 응답 후 표시) -->
+              <div v-if="getStepFeedback(step)" class="step-ai-feedback">
+                <span class="feedback-icon">🤖</span>
+                {{ getStepFeedback(step) }}
+              </div>
+            </div>
+          </div>
+
+          <!-- AI 종합 분석 (S4+) -->
+          <div v-if="!isBasicStage" class="ai-summary-section">
+            <div v-if="isEvaluatingAI" class="ai-loading">
+              <div class="pulse-loader"></div>
+              <p>AI가 종합 분석 중입니다...</p>
+            </div>
+            <div v-else-if="aiEvaluationResult" class="summary-box">
+              <div class="summary-label">OVERALL ANALYSIS</div>
+              <p class="summary-text">{{ aiEvaluationResult.총평 }}</p>
             </div>
           </div>
 
@@ -1087,10 +1148,11 @@ import duckEating from '@/assets/image/duck_eating.png';
 import duckFlying from '@/assets/image/duck_flying.png';
 import duckSad from '@/assets/image/duck_sad.png';
 import unitDuck from '@/assets/image/unit_duck.png';
+import interviewerDuckAsset from '@/assets/image/interviewer_duck.png';
 import { useRoute, useRouter } from 'vue-router';
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
 import axios from 'axios';
-import { evaluateBugHunt, verifyCodeBehavior } from './api/bugHuntApi';
+import { evaluateBugHunt, verifyCodeBehavior, interviewBugHunt, interviewBugHuntStream } from './api/bugHuntApi';
 import BugHuntTutorialOverlay from './composables/BugHuntTutorialOverlay.vue';
 import { useAuthStore } from '@/stores/auth';
 import './BugHunt.css';
@@ -1098,6 +1160,12 @@ import './BugHunt.css';
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
+const BUGHUNT_PRACTICE_ID = 'unit02';
+const interviewerDuck = ref(interviewerDuckAsset);
+
+function onInterviewerDuckError() {
+  interviewerDuck.value = unitDuck;
+}
 
 // ============================================
 // 게임 상태 저장/로드 (LocalStorage)
@@ -1280,6 +1348,7 @@ function showAchievementUnlock(achievement) {
 // Progressive Mission 시스템
 // ============================================
 const progressiveProblems = ref([]);
+const missionDetailIdMap = ref({});
 const loading = ref(true);
 const error = ref(null);
 const currentProgressiveMission = ref(null);
@@ -1329,6 +1398,18 @@ const showAttentionEffect = ref(false);
 // 전략 입력 관련 상태
 const showStrategyDuck = ref(false);      // 전략 오리 + 말풍선 표시 여부
 const strategyInput = ref('');             // 전략 입력 내용
+
+// 딥다이브 면접 관련 상태
+const interviewMessages = ref([]);          // 대화 내역 [{role, content}, ...]
+const interviewTurn = ref(0);               // 현재 턴
+const interviewMaxTurns = 3;                // 최대 턴
+const interviewInput = ref('');             // 유저 입력
+const isInterviewLoading = ref(false);      // LLM 응답 대기 중
+const interviewHasStreamToken = ref(false); // 토큰 수신 여부 (false면 로딩 버블 표시)
+const interviewResult = ref(null);          // 현재 Step 최종 평가 결과
+const stepInterviewResults = reactive({});  // Step별 면접 결과 저장 {1: {score, understanding_level, ...}, ...}
+const showInterviewPanel = ref(false);      // 면접 패널 표시 여부
+const interviewMessagesRef = ref(null);
 
 // 코드 제출 상태
 const codeSubmitFailCount = ref(0);
@@ -1591,6 +1672,77 @@ function getStepFeedback(stepNum) {
   return feedback?.feedback || null;
 }
 
+// 면접 이해도 점수 평균
+const averageInterviewScore = computed(() => {
+  const scores = Object.values(stepInterviewResults)
+    .map(r => r?.score)
+    .filter(s => typeof s === 'number' && Number.isFinite(s));
+  if (scores.length === 0) return null;
+  return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+});
+
+// 종합 등급
+const overallGrade = computed(() => {
+  const score = averageInterviewScore.value;
+  if (score === null) return null;
+  if (score >= 90) return 'Excellent';
+  if (score >= 70) return 'Good';
+  if (score >= 40) return 'Surface';
+  return 'Poor';
+});
+
+// Step별 면접 결과 존재 여부
+const hasStepInterviewResults = computed(() => {
+  return Object.keys(stepInterviewResults).length > 0;
+});
+
+// Step별 면접 결과 헬퍼
+function getStepInterviewScore(step) {
+  return stepInterviewResults[step]?.score ?? '-';
+}
+
+function getStepInterviewLevel(step) {
+  return stepInterviewResults[step]?.understanding_level || 'Unknown';
+}
+
+function getStepInterviewConcepts(step) {
+  return stepInterviewResults[step]?.matched_concepts || [];
+}
+
+function getStepInterviewWeakPoint(step) {
+  return stepInterviewResults[step]?.weak_point || null;
+}
+
+function scrollInterviewToBottom() {
+  requestAnimationFrame(() => {
+    const el = document.querySelector('.interview-messages');
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  });
+}
+
+// 메시지 추가 시 자동 스크롤
+watch(
+  () => interviewMessages.value.length,
+  () => {
+    if (showInterviewPanel.value) {
+      scrollInterviewToBottom();
+    }
+  },
+  { flush: 'post' }
+);
+
+// 패널 열림/로딩 상태 변화 시에도 스크롤
+watch(
+  () => [showInterviewPanel.value, isInterviewLoading.value],
+  () => {
+    if (showInterviewPanel.value) {
+      scrollInterviewToBottom();
+    }
+  },
+  { flush: 'post' }
+);
+
 // 현재 스텝 데이터 가져오기
 function getCurrentStepData() {
   return getStepData(currentProgressiveStep.value);
@@ -1637,6 +1789,14 @@ function startProgressiveMission(mission, index, startAtStep = 1) {
   pendingStepContinue = null;
   showStrategyDuck.value = false;
   strategyInput.value = '';
+  interviewMessages.value = [];
+  interviewTurn.value = 0;
+  interviewInput.value = '';
+  interviewResult.value = null;
+  // stepInterviewResults 초기화
+  Object.keys(stepInterviewResults).forEach(k => delete stepInterviewResults[k]);
+  isInterviewLoading.value = false;
+  showInterviewPanel.value = false;
 
   currentView.value = 'progressivePractice';
 
@@ -1694,6 +1854,10 @@ function startProgressiveMission(mission, index, startAtStep = 1) {
 function startDebugPhase() {
   currentProgressivePhase.value = 'debug';
   stepStartTime.value = Date.now();
+  showInterviewPanel.value = false;
+  interviewResult.value = null;
+  interviewInput.value = '';
+  isInterviewLoading.value = false;
 }
 
 // 단서 메시지 추가 헬퍼
@@ -1771,12 +1935,215 @@ function continueStepAfterReview() {
 }
 
 // 다음 문제로 이동 (설명 완료 후)
-function moveToNextStep() {
+async function moveToNextStep() {
   if (currentProgressiveStep.value < totalStepsComputed.value) {
     currentProgressiveStep.value++;
     startDebugPhase();
   } else {
-    completeMission();
+    await completeMission();
+  }
+}
+
+/**
+ * 프론트엔드 사전 필터: 비협조적 답변 차단 (LLM 호출 전)
+ */
+function validateInterviewResponse(text) {
+  const trimmed = text.trim();
+  if (trimmed.length < 5) return { valid: false, reason: '조금 더 구체적으로 답변해주세요.' };
+  if (/^(.)\1{3,}$/.test(trimmed)) return { valid: false, reason: '관련 기술 내용으로 답변해주세요.' };
+  if (/^[ㄱ-ㅎㅏ-ㅣ!@#$%^&*().,~\s]+$/.test(trimmed)) return { valid: false, reason: '관련 기술 내용으로 답변해주세요.' };
+  const cleaned = trimmed.replace(/[^가-힣a-zA-Z0-9]/g, '');
+  if (new Set(cleaned).size < 4) return { valid: false, reason: '조금 더 구체적으로 답변해주세요.' };
+  return { valid: true };
+}
+
+/**
+ * 딥다이브 면접 시작 (Step 코드 수정 성공 후 호출)
+ */
+async function startInterview() {
+  const stepData = getCurrentStepData();
+  if (!stepData?.interview_rubric) {
+    // interview_rubric이 없으면 기존 전략 작성 방식으로 폴백
+    showStrategyDuck.value = true;
+    return;
+  }
+
+  interviewMessages.value = [];
+  interviewTurn.value = 0;
+  interviewResult.value = null;
+  interviewInput.value = '';
+  interviewHasStreamToken.value = false;
+  showStrategyDuck.value = false;
+  showInterviewPanel.value = true;
+
+  const firstQuestion = stepData.interview_rubric.first_question;
+  interviewMessages.value.push({
+    role: 'assistant',
+    content: firstQuestion
+  });
+  interviewTurn.value = 1;
+  scrollInterviewToBottom();
+}
+
+/**
+ * 면접 입력창 키보드 핸들러
+ * Enter: 제출 / Shift+Enter: 줄바꿈 / 한글 조합(IME) 중에는 무시
+ */
+function handleInterviewKeydown(event) {
+  if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
+    event.preventDefault();
+    submitInterviewAnswer();
+  }
+}
+
+/**
+ * 유저 답변 제출
+ */
+async function submitInterviewAnswer() {
+  const input = interviewInput.value.trim();
+  if (!input || isInterviewLoading.value) return;
+
+  const validation = validateInterviewResponse(input);
+  if (!validation.valid) {
+    interviewMessages.value.push(
+      { role: 'user', content: input },
+      { role: 'assistant', content: validation.reason }
+    );
+    interviewInput.value = '';
+    scrollInterviewToBottom();
+    return;
+  }
+
+  interviewMessages.value.push({ role: 'user', content: input });
+  interviewInput.value = '';
+  isInterviewLoading.value = true;
+  interviewHasStreamToken.value = false;
+  scrollInterviewToBottom();
+
+  const stepData = getCurrentStepData();
+  const stepContext = {
+    buggy_code: stepData.buggy_code,
+    user_code: progressiveStepCodes.value[currentProgressiveStep.value] || '',
+    error_info: stepData.error_info || {},
+    coaching: stepData.coaching || '',
+    interview_rubric: stepData.interview_rubric || {}
+  };
+
+  const nextTurn = interviewTurn.value + 1;
+  const isFinal = nextTurn > interviewMaxTurns;
+
+  const normalizeInterviewResult = (result) => ({
+    type: 'evaluation',
+    message: result?.message || '평가를 완료했습니다.',
+    score: Number.isFinite(Number(result?.score)) ? Number(result.score) : 60,
+    understanding_level: result?.understanding_level || 'Surface',
+    matched_concepts: Array.isArray(result?.matched_concepts) ? result.matched_concepts : [],
+    weak_point: result?.weak_point ?? null
+  });
+
+  try {
+    if (!isFinal) {
+      // 스트리밍 질문: 빈 메시지를 미리 넣고, 첫 토큰이 오면 로딩→스트리밍 전환
+      const conversationSnapshot = [...interviewMessages.value];
+      interviewMessages.value.push({ role: 'assistant', content: '' });
+      const streamingIndex = interviewMessages.value.length - 1;
+
+      await interviewBugHuntStream(
+        stepContext,
+        conversationSnapshot,
+        nextTurn,
+        authStore.sessionNickname || 'ENGINEER',
+        (token) => {
+          if (!interviewHasStreamToken.value) {
+            interviewHasStreamToken.value = true;
+          }
+          interviewMessages.value[streamingIndex].content += token;
+          scrollInterviewToBottom();
+        }
+      );
+
+      // 스트리밍이 끝났는데 빈 응답이면 폴백 메시지
+      if (!interviewMessages.value[streamingIndex].content.trim()) {
+        interviewHasStreamToken.value = true;
+        interviewMessages.value[streamingIndex].content = '좋은 설명입니다. 그럼 이 원리를 실무에서 어떻게 점검하시겠어요?';
+      }
+      interviewTurn.value = nextTurn;
+    } else {
+      // 최종 평가: 로딩 버블 표시 → 결과 수신 후 표시
+      const result = await interviewBugHunt(
+        stepContext,
+        interviewMessages.value,
+        nextTurn,
+        authStore.sessionNickname || 'ENGINEER'
+      );
+
+      interviewHasStreamToken.value = true; // 로딩 버블 제거
+
+      if (result?.type === 'evaluation') {
+        const normalized = normalizeInterviewResult(result);
+        interviewMessages.value.push({
+          role: 'assistant',
+          content: normalized.message
+        });
+        interviewResult.value = normalized;
+
+        // [2026-02-20] 면접 대화를 구조화된 데이터로 저장 (마이 히스토리 채팅창 UI용)
+        interviewResult.value.conversation_summary = interviewMessages.value.map(m => ({
+          role: m.role === 'assistant' ? 'interviewer' : 'candidate',
+          content: m.content
+        }));
+
+        const conversationSummary = interviewMessages.value
+          .map((m) => `${m.role === 'assistant' ? '면접관' : '나'}: ${m.content}`)
+          .join('\n');
+        stepExplanations[currentProgressiveStep.value] = conversationSummary;
+      } else {
+        interviewMessages.value.push({
+          role: 'assistant',
+          content: result?.message || '좋은 설명입니다. 마지막으로 실무 적용 관점에서 한 번 더 설명해주시겠어요?'
+        });
+      }
+    }
+  } catch (error) {
+    interviewHasStreamToken.value = true;
+    interviewMessages.value.push({
+      role: 'assistant',
+      content: '응답 처리 중 문제가 발생했습니다. 다음 질문으로 넘어갑니다.'
+    });
+  }
+
+  scrollInterviewToBottom();
+  isInterviewLoading.value = false;
+  interviewHasStreamToken.value = false;
+}
+
+/**
+ * 면접 완료 → 다음 Step으로 이동
+ */
+function finishInterview() {
+  // 현재 Step의 면접 결과를 저장
+  if (interviewResult.value) {
+    stepInterviewResults[currentProgressiveStep.value] = { ...interviewResult.value };
+  }
+
+  showInterviewPanel.value = false;
+
+  if (currentProgressiveStep.value < totalStepsComputed.value) {
+    scheduleTimeout(() => {
+      moveToNextStep();
+      const stepData = getCurrentStepData();
+      if (stepData?.error_log) {
+        clueMessages.value = [{
+          type: 'ERROR',
+          text: stepData.error_log,
+          isNew: true
+        }];
+      }
+    }, 500);
+  } else {
+    scheduleTimeout(async () => {
+      await completeMission();
+    }, 500);
   }
 }
 
@@ -1814,8 +2181,8 @@ function handleStrategySubmit() {
       }
     }, 500);
   } else {
-    scheduleTimeout(() => {
-      completeMission();
+    scheduleTimeout(async () => {
+      await completeMission();
     }, 500);
   }
 }
@@ -1844,7 +2211,8 @@ async function showEvaluation() {
           codeSubmitFailCount: codeSubmitFailCount.value,
           hintCount: Object.values(progressiveHintUsed.value).filter(v => v).length,
           totalDebugTime: totalDebugTime.value
-        }
+        },
+        { ...stepInterviewResults }
       );
     } catch (error) {
       console.error('❌ AI Evaluation failed:', error);
@@ -1963,7 +2331,7 @@ function submitTutorialChoice() {
 }
 
 // Tutorial Phase C - 리뷰 + 스테이지 클리어
-function completeTutorialStage() {
+async function completeTutorialStage() {
   const totalSteps = currentProgressiveMission.value.totalSteps || 1;
 
   if (currentProgressiveStep.value < totalSteps) {
@@ -1995,7 +2363,7 @@ function completeTutorialStage() {
     });
   } else {
     // 마지막 step → 미션 완료
-    completeMission();
+    await completeMission();
   }
 }
 
@@ -2030,7 +2398,7 @@ function submitGuidedBlank(stepNum) {
       const totalSteps = currentProgressiveMission.value.totalSteps;
       holdStepResult(stepData, {
         isFinal: stepNum >= totalSteps,
-        onContinue: () => {
+        onContinue: async () => {
           if (stepNum < totalSteps) {
             currentProgressiveStep.value = stepNum + 1;
             const nextStepData = getCurrentStepData();
@@ -2039,7 +2407,7 @@ function submitGuidedBlank(stepNum) {
               clueMessages.value.push({ type: 'ERROR', text: nextStepData.error_log, isNew: true });
             }
           } else {
-            completeMission();
+            await completeMission();
           }
         }
       });
@@ -2126,7 +2494,7 @@ function submitLineEdit() {
       const totalSteps = currentProgressiveMission.value.totalSteps;
       holdStepResult(stepData, {
         isFinal: currentProgressiveStep.value >= totalSteps,
-        onContinue: () => {
+        onContinue: async () => {
           if (currentProgressiveStep.value < totalSteps) {
             currentProgressiveStep.value++;
             lineEditPhase.value = 'find';
@@ -2142,7 +2510,7 @@ function submitLineEdit() {
               clueMessages.value.push({ type: 'ERROR', text: nextStepData.error_log, isNew: true });
             }
           } else {
-            completeMission();
+            await completeMission();
           }
         }
       });
@@ -2181,11 +2549,9 @@ async function checkProgressiveSolution() {
 
       // 검증 성공/실패가 명확한 경우
       if (result.verified !== null) {
-        console.log('🔬 행동 기반 검증 결과:', result);
         return { passed: result.verified, result };  // result 객체도 함께 반환
       }
       // result.verified === null 이면 폴백으로 진행
-      console.log('⚠️ 행동 기반 검증 불가, 문자열 검증으로 폴백');
     } catch (e) {
       console.warn('행동 기반 검증 실패, 문자열 검증으로 폴백:', e);
       // 에러가 발생한 경우에도 에러 메시지를 result로 반환
@@ -2243,7 +2609,7 @@ async function checkProgressiveSolution() {
 async function submitProgressiveStep() {
   if (currentProgressiveStep.value > totalStepsComputed.value) return;
   if (progressiveCompletedSteps.value.includes(currentProgressiveStep.value)) return;
-  if (currentStageMode.value === 'standard' && showStrategyDuck.value) return;
+  if (currentStageMode.value === 'standard' && (showStrategyDuck.value || showInterviewPanel.value)) return;
   if (showStepResultOverlay.value) return;
 
   isRunning.value = true;
@@ -2254,9 +2620,6 @@ async function submitProgressiveStep() {
     const stepData = getCurrentStepData();
 
     // 🔍 디버깅 로그
-    console.log('📊 검증 결과:', { passed, result });
-    console.log('📊 result?.details:', result?.details);
-    console.log('📊 simulation_logs 있음?:', !!result?.details?.simulation_logs);
 
     // 검증 결과에 따라 로그 업데이트
     if (passed && stepData?.success_log) {
@@ -2320,7 +2683,12 @@ async function submitProgressiveStep() {
             isFinal: currentProgressiveStep.value >= totalStepsComputed.value,
             onContinue: () => {
               currentProgressivePhase.value = 'explain';
-              showStrategyDuck.value = true;
+              // interview_rubric이 있으면 딥다이브, 없으면 기존 전략 작성
+              if (stepData?.interview_rubric) {
+                startInterview();
+              } else {
+                showStrategyDuck.value = true;
+              }
             }
           });
         }
@@ -2344,68 +2712,158 @@ function onBugClick(step) {
 }
 
 // 미션 완료 처리
-function completeMission() {
+async function completeMission() {
   const missionId = `progressive_${currentProgressiveMission.value.id}`;
   if (!gameData.completedProblems.includes(missionId)) {
     gameData.completedProblems.push(missionId);
   }
 
-  // 보상 계산
-  // 보상 계산 (감점 로직 적용)
-  const baseScore = 100;
-  const hintCount = Object.values(progressiveHintUsed.value).filter(v => v).length;
-  const penalty = (codeSubmitFailCount.value * codeRetryPenalty) + (hintCount * 1);
+  // 보상 계산:
+  // - standard(S4+)는 면접 최종 평균 점수 기반
+  // - tutorial/guided/line_edit(S1~S3)는 기존 감점 방식 유지
+  const interviewScore = averageInterviewScore.value;
+  const useInterviewScore = currentStageMode.value === 'standard' && interviewScore !== null;
 
-  progressiveMissionXP.value = 100;
-  progressiveMissionScore.value = Math.max(0, baseScore - penalty);
+  if (useInterviewScore) {
+    progressiveMissionXP.value = 100;
+    progressiveMissionScore.value = Math.max(0, Math.min(100, interviewScore));
+  } else {
+    const baseScore = 100;
+    const hintCount = Object.values(progressiveHintUsed.value).filter(v => v).length;
+    const penalty = (codeSubmitFailCount.value * codeRetryPenalty) + (hintCount * 1);
+
+    progressiveMissionXP.value = 100;
+    progressiveMissionScore.value = Math.max(0, baseScore - penalty);
+  }
 
   addXP(progressiveMissionXP.value);
   gameData.totalScore += progressiveMissionScore.value;
 
-  // 백엔드 activity API에 점수 제출 (Protein Shake 적립)
-  submitToActivity();
-
   checkAchievements();
-  showEvaluation();
+
+  // [2026-02-20] AI 평가를 먼저 실행한 후 DB에 저장
+  // 평가 결과가 llm_evaluation 필드에 포함되어야 마이 히스토리에서 총평이 표시됨
+  await showEvaluation();
+
+  // 백엔드 activity API에 점수 제출 (Protein Shake 적립)
+  // 이제 aiEvaluationResult.value가 설정된 상태이므로 llm_evaluation이 포함됨
+  submitToActivity();
 }
 
 // Activity API에 점수 제출 (Protein Shake 적립)
 async function submitToActivity() {
   try {
-    const detail_id = currentProgressiveMission.value.practice_detail_id;
+    const missionId = currentProgressiveMission.value?.id;
+    const detail_id = missionDetailIdMap.value[missionId];
+    if (!detail_id) {
+      console.warn(`⚠️ detail_id 매핑 누락: mission=${missionId}. Activity 제출을 건너뜁니다.`);
+      return;
+    }
     const score = progressiveMissionScore.value;
 
     await axios.post('/api/core/activity/submit/', {
       detail_id: detail_id,
       score: score,
       submitted_data: {
+        // ============================================================
         // === 기본 정보 ===
-        mission_id: currentProgressiveMission.value.id,
-        completed_steps: progressiveCompletedSteps.value.length,
-        total_steps: currentProgressiveMission.value.totalSteps,
-        hint_used: Object.values(progressiveHintUsed.value).filter(v => v).length,
-        retry_count: codeSubmitFailCount.value,
-        track_type: 'bughunt',
+        // ============================================================
+        title: currentProgressiveMission.value.title,                   // 문제 제목 (예: "Python 기초 버그 수정")
+        problem_id: `bughunt01_${currentProgressiveMission.value.id}`,  // 문제 고유 식별자 (예: bughunt01_S4)
+        mission_id: currentProgressiveMission.value.id,                 // 미션 ID (예: S4, S5)
+        completed_steps: progressiveCompletedSteps.value.length,        // 완료한 단계 개수
+        total_steps: currentProgressiveMission.value.totalSteps,        // 전체 단계 개수
+        hint_used: Object.values(progressiveHintUsed.value).filter(v => v).length,  // 사용한 힌트 총 개수
+        retry_count: codeSubmitFailCount.value,                         // 전체 재시도 횟수 (오답 횟수)
+        track_type: 'bughunt',                                          // 트랙 구분자 (버그헌트 식별용)
 
-        // === 단계별 코드 로그 (에이전트 학습용) ===
-        step_codes: progressiveStepCodes.value,
+        // ============================================================
+        // === 사용자 입력 로그 (에이전트 학습용) ===
+        // 각 단계별로 사용자가 입력한 모든 데이터를 배열 형태로 저장
+        // 에이전트가 사용자의 디버깅 패턴과 사고 과정을 학습하는 데 사용
+        // ============================================================
+        user_inputs: Object.keys(stepExplanations).map(step => ({
+          step: parseInt(step),                                                    // 단계 번호 (1, 2, 3...)
+          step_title: currentProgressiveMission.value?.steps?.[step - 1]?.title || `Step ${step}`,  // 단계 제목
+          user_code: progressiveStepCodes.value[step] || '',                       // 사용자가 수정한 코드
+          user_strategy: stepExplanations[step] || '',                             // 사용자가 작성한 디버깅 전략/설명
+          hint_used: progressiveHintUsed.value[step] || false,                     // 해당 단계에서 힌트 사용 여부
+          completed: progressiveCompletedSteps.value.includes(parseInt(step))      // 해당 단계 완료 여부
+        })).filter(item => item.user_code || item.user_strategy),  // 입력이 있는 단계만 저장
 
+        // ============================================================
+        // === LLM 평가 결과 (에이전트 학습용) ===
+        // BugHuntEvaluationView API의 응답 데이터
+        // 사용자의 디버깅 사고력을 5가지 기준으로 평가한 결과
+        // ============================================================
+        llm_evaluation: aiEvaluationResult.value ? {
+          thinking_pass: aiEvaluationResult.value.thinking_pass,        // 사고 방향 안전/위험 여부 (boolean)
+          thinking_score: aiEvaluationResult.value.thinking_score,      // 사고력 점수 (0-100)
+          code_risk: aiEvaluationResult.value.code_risk,                // 코드 위험도 (0-100, 높을수록 위험)
+          overall_feedback: aiEvaluationResult.value.총평,               // AI 평가 총평
+          step_feedbacks: aiEvaluationResult.value.step_feedbacks,      // 단계별 상세 피드백 [{step, feedback}]
+          evaluated_at: new Date().toISOString()                        // 평가 시각
+        } : null,
+
+        // ============================================================
+        // === 딥다이브 면접 결과 (에이전트 학습용) ===
+        // [2026-02-20] S4+ 면접 기능 연동: Step별 면접 대화 및 평가 결과 저장
+        // 사용자의 디버깅 개념 이해도를 파악하기 위한 면접 대화 기록
+        // ============================================================
+        followup_interactions: Object.keys(stepInterviewResults).map(step => {
+          const result = stepInterviewResults[step];
+          return {
+            step: parseInt(step),                                      // 단계 번호
+            score: result.score || 0,                                  // 면접 총점 (0-100)
+            core_score: result.core_score || 0,                        // [2026-02-20] 핵심 원인 이해도 (0-40)
+            mechanism_score: result.mechanism_score || 0,              // [2026-02-20] 내부 동작 이해도 (0-35)
+            application_score: result.application_score || 0,          // [2026-02-20] 실무 적용 능력 (0-25)
+            understanding_level: result.understanding_level || '',     // 이해 수준 (Excellent/Good/Surface/Poor)
+            matched_concepts: result.matched_concepts || [],           // 파악한 개념들
+            weak_point: result.weak_point || '',                       // 보완 필요 사항
+            conversation_summary: result.conversation_summary || [],   // 대화 요약 [{role, content}]
+            evaluated_at: result.evaluated_at || new Date().toISOString()  // 평가 시각
+          };
+        }),
+
+        // ============================================================
         // === 행동 패턴 로그 (에이전트 학습용) ===
+        // 사용자의 문제 풀이 행동 패턴을 시간, 힌트 사용, 성과 등으로 분석
+        // 에이전트가 사용자의 학습 스타일과 효율성을 파악하는 데 사용
+        // ============================================================
         behavior_log: {
-          total_debug_time_seconds: totalDebugTime.value,
-          hint_usage_per_step: progressiveHintUsed.value,
-          perfect_clears: evaluationStats.perfectClears,
-          timestamp: new Date().toISOString()
+          total_debug_time_seconds: totalDebugTime.value,               // 총 디버깅 소요 시간 (초)
+          hint_usage_per_step: progressiveHintUsed.value,               // 단계별 힌트 사용 여부 {1: true, 2: false, ...}
+          perfect_clears: evaluationStats.perfectClears,                // 한 번에 성공한 단계 개수 (완벽 클리어)
+          total_retries: codeSubmitFailCount.value,                     // 전체 재시도 횟수
+          submission_timestamp: new Date().toISOString()                // 제출 시각
         },
 
+        // ============================================================
         // === 약점 분석 지표 (에이전트가 맞춤 문제 생성용) ===
+        // 사용자가 어려워하는 부분을 정량적으로 분석한 지표
+        // 에이전트가 이 데이터를 기반으로 취약 영역에 맞춤형 문제를 생성
+        // ============================================================
         weakness_indicators: {
-          retry_count: codeSubmitFailCount.value,
-          hints_needed: Object.values(progressiveHintUsed.value).filter(v => v).length,
-          struggled_steps: progressiveCompletedSteps.value.length < currentProgressiveMission.value.totalSteps
-            ? Array.from({length: currentProgressiveMission.value.totalSteps}, (_, i) => i + 1)
-                .filter(step => !progressiveCompletedSteps.value.includes(step))
-            : []
+          retry_count: codeSubmitFailCount.value,                       // 재시도 횟수 (높을수록 어려움을 겪음)
+          hints_needed: Object.values(progressiveHintUsed.value).filter(v => v).length,  // 필요한 힌트 개수
+          struggled_steps: Array.from({length: currentProgressiveMission.value.totalSteps}, (_, i) => i + 1)
+            .filter(step => !progressiveCompletedSteps.value.includes(step)),  // 완료하지 못한 단계들
+          incomplete_strategies: Object.keys(stepExplanations)
+            .filter(step => progressiveCompletedSteps.value.includes(parseInt(step)) && !stepExplanations[step])
+            .map(step => parseInt(step)),                               // 완료했지만 전략을 작성하지 않은 단계들
+          performance_indicator: score >= 90 ? 'excellent' : score >= 70 ? 'good' : score >= 50 ? 'average' : 'needs_improvement'  // 전반적 성과 지표
+        },
+
+        // ============================================================
+        // === 원본 데이터 보존 (에이전트 학습용) ===
+        // 가공되지 않은 원본 데이터를 그대로 저장
+        // 추후 데이터 재분석이나 새로운 학습 알고리즘 적용 시 활용
+        // ============================================================
+        raw_data: {
+          step_codes: progressiveStepCodes.value,                       // 단계별 코드 원본 {1: '...', 2: '...', ...}
+          step_explanations: stepExplanations,                          // 단계별 설명 원본 {1: '...', 2: '...', ...}
+          clue_messages: clueMessages.value                             // 단서 메시지 로그 (AI가 제공한 힌트들)
         }
       }
     });
@@ -2413,7 +2871,6 @@ async function submitToActivity() {
     // auth store 업데이트 (세션 새로고침)
     await authStore.checkSession();
 
-    console.log('✅ Protein Shake 적립 완료:', authStore.userProteinShakes);
   } catch (error) {
     console.error('❌ Activity API 제출 실패:', error);
     // 에러가 나도 게임 진행은 계속되도록 함
@@ -2795,27 +3252,34 @@ const fetchProgressiveProblems = async () => {
     error.value = null;
 
     // Practice API를 사용해서 전체 details를 가져오기
-    const response = await axios.get('/api/core/practices/unit02/');
+    const response = await axios.get(`/api/core/practices/${BUGHUNT_PRACTICE_ID}/`);
 
-    console.log('🔍 API Response:', response);
-    console.log('📦 Response Data:', response.data);
-    console.log('📄 Details:', response.data.details);
 
-    // details 배열의 각 항목에서 content_data를 추출하여 progressiveProblems 배열 생성
-    // details는 [{ id: 'bughunt01_S1', content_data: {...} }, ...] 형태
+    // details 배열에서 content_data(S1~)와 detail.id(unit02_01~)를 함께 수집
     if (response.data.details && Array.isArray(response.data.details)) {
-      progressiveProblems.value = response.data.details
-        .map(detail => ({ ...detail.content_data, practice_detail_id: detail.id }))
+      const detailMap = {};
+      const missions = response.data.details
+        .map((detail) => {
+          const content = detail?.content_data;
+          if (content?.id && detail?.id) {
+            detailMap[content.id] = detail.id;
+          }
+          return content;
+        })
         .filter(data => data && data.id); // id가 있는 유효한 문제만 필터링
+      missionDetailIdMap.value = detailMap;
+      progressiveProblems.value = missions;
     } else {
       progressiveProblems.value = [];
+      missionDetailIdMap.value = {};
+      error.value = '데이터를 불러오는 중 오류가 발생했습니다.';
     }
 
-    console.log('✅ Loaded progressive problems from DB:', progressiveProblems.value);
-    console.log('📊 Number of problems:', progressiveProblems.value.length);
   } catch (err) {
     console.error('❌ Error fetching progressive problems:', err);
     console.error('Error details:', err.response?.data);
+    progressiveProblems.value = [];
+    missionDetailIdMap.value = {};
     error.value = '데이터를 불러오는 중 오류가 발생했습니다.';
   } finally {
     loading.value = false;

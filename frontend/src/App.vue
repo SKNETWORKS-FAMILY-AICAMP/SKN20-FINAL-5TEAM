@@ -39,6 +39,7 @@
             v-if="auth.isLoggedIn"
           />
           <button class="btn-history" @click="router.push('/my-records')">My Records</button>
+          <button class="btn-coach" @click="router.push('/coach')">AI Coach</button>
           <button v-if="auth.user?.is_superuser" class="btn-mgmt" @click="router.push('/management/progress')">Management</button>
           <button class="btn-profile-settings" @click="ui.isProfileSettingsModalOpen = true">Setting</button>
           <button class="btn-logout-v2" @click="auth.logout">Logout</button>
@@ -160,7 +161,6 @@ import './style.css';
 import LandingView from './features/home/LandingView.vue';
 import AvatarFrame from '@/components/AvatarFrame.vue';
 import GlobalModals from './components/GlobalModals.vue';
-import progressiveData from './features/practice/bughunt/problem_data/progressive-problems.json';
 
 // Stores
 const auth = useAuthStore();
@@ -200,7 +200,8 @@ const isPracticePage = computed(() => {
     'BugHunt',
     'ProgressiveProblems',
     'Management',
-    'MyHistory'
+    'MyHistory',
+    'AICoach'
   ];
   return practiceRoutes.includes(route?.name);
 });
@@ -291,13 +292,15 @@ function syncDebugProgress() {
         if (data) {
             const parsed = JSON.parse(data);
             const completed = parsed.completedProblems || [];
-            // progressive-problems.json을 가져와서 미션 완료 여부 확인
+            // Debug Practice의 현재 DB 문제 목록을 기준으로 미션 완료 여부 확인
+            const missions = game.activeUnit?.problems || [];
             const progress = [0]; // 캠페인 1은 기본 해금
             
-            progressiveData.progressiveProblems.forEach((m, idx) => {
-                // 미션의 마지막 단계(totalSteps 동적)가 완료되었는지 확인
-                const lastStep = m.totalSteps || 3;
-                const missionCompleted = completed.includes(`progressive_${m.id}_step${lastStep}`);
+            missions.forEach((m, idx) => {
+                // 로컬 저장 구조상 마지막 step 완료 키로 미션 완료를 판정
+                const missionCompleted = completed.some(
+                  (key) => key.startsWith(`progressive_${m.id}_step`)
+                );
                 if (missionCompleted) {
                     progress.push(idx + 1);
                 }
@@ -368,7 +371,7 @@ function selectProblem(problem) {
 
 function handlePracticeClose() {
     // [2026-02-08] 기록 조회나 관리 화면에서 나갈 때는 유닛 모달을 띄우지 않음
-    const noModalRoutes = ['Management', 'MyHistory'];
+    const noModalRoutes = ['Management', 'MyHistory', 'AICoach'];
     const currentRouteName = route.name;
 
     ui.isPseudoCodeOpen = false;

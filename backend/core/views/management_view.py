@@ -5,7 +5,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
 from django.db.models import Count, Avg, F
-from core.models import UserProfile, UserProgress, UserSolvedProblem, Practice, PracticeDetail
+from core.models import UserProfile, UserProgress, UserSolvedProblem, Practice
 from django.shortcuts import get_object_or_404
 
 class IsAdminUser(permissions.BasePermission):
@@ -76,7 +76,13 @@ class UserAnswersView(APIView):
         
         if practice_id:
             query = query.filter(practice_detail__practice_id=practice_id)
-            
+            # [2026-02-20] 버그헌트 튜토리얼 단계 (S1, S2, S3) 제외
+            # - 데이터는 DB에 저장되지만 마이 히스토리에는 S4 이상만 표시
+            if practice_id == 'unit02':
+                query = query.exclude(
+                    practice_detail__content_data__id__in=['S1', 'S2', 'S3']
+                )
+
         # [2026-02-19 수정] 문제별 시도 내역 그룹화 (Antigravity)
         # - 최신 기록부터 먼저 정렬하여 그룹화 처리
         solved_list = query.order_by('-solved_date')
@@ -85,9 +91,14 @@ class UserAnswersView(APIView):
         for solved in solved_list:
             detail_id = solved.practice_detail.id
             if detail_id not in group_map:
+                # content_data에 title이 있으면 사용, 없으면 detail_title 사용
+                problem_title = solved.practice_detail.detail_title
+                if solved.practice_detail.content_data and isinstance(solved.practice_detail.content_data, dict):
+                    problem_title = solved.practice_detail.content_data.get('title', solved.practice_detail.detail_title)
+
                 group_map[detail_id] = {
                     'detail_id': detail_id,
-                    'title': solved.practice_detail.detail_title,
+                    'title': problem_title,
                     'display_order': solved.practice_detail.display_order,
                     'attempts': []
                 }
@@ -102,10 +113,10 @@ class UserAnswersView(APIView):
             
         # 3. display_order 기준 정렬 및 최종 포맷팅
         grouped_answers = sorted(
-            group_map.values(), 
+            group_map.values(),
             key=lambda x: x['display_order']
         )
-        
+
         # 반환용 리스트에서 display_order 필드 제거
         for group in grouped_answers:
             group.pop('display_order', None)

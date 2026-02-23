@@ -2,6 +2,7 @@
   "progressiveProblems": [
     {
       "id": "S1",
+      "title": "Python 기초 버그 수정",
       "source_id": "PY_BASICS_1",
       "mode": "tutorial",
       "scenario": "신입 개발자가 작성한 Python 스크립트 5개에서 버그 리포트가 들어왔습니다. 에러 로그를 분석하고 올바른 수정안을 선택하세요.",
@@ -293,6 +294,7 @@
     },
     {
       "id": "S2",
+      "title": "QA 티켓 해결하기",
       "source_id": "PY_MIX_1",
       "mode": "guided",
       "scenario": "QA팀에서 버그 티켓 5건이 넘어왔습니다. Python 로직 오류부터 PyTorch 추론 설정 실수까지, 빈칸에 정확한 코드를 채워 이슈를 클로즈하세요.",
@@ -457,6 +459,7 @@
     },
     {
       "id": "S3",
+      "title": "코드 리뷰 버그 수정",
       "source_id": "PYTORCH_BRIDGE_1",
       "mode": "line_edit",
       "scenario": "코드 리뷰에서 버그가 발견된 파일 5개가 할당되었습니다. 틀린 줄을 정확히 찾아 클릭하고 직접 수정하세요.",
@@ -629,6 +632,7 @@
     },
     {
       "id": "S4",
+      "title": "PyTorch 학습 루프 디버깅",
       "scenario": "이제부터 실전입니다. PyTorch 학습 루프에서 현업 개발자도 자주 겪는 핵심 버그 3건을 자유 코딩으로 해결하세요.",
       "difficulty": 2,
       "totalSteps": 3,
@@ -715,6 +719,7 @@
     },
     {
       "id": "S5",
+      "title": "데이터 파이프라인 최적화",
       "scenario": "데이터 파이프라인을 구축했는데, 학습 속도가 너무 느리거나, 예상치 못한 에러가 발생하거나, 재현이 안 되는 문제가 생깁니다.",
       "difficulty": 2,
       "totalSteps": 3,
@@ -816,6 +821,7 @@
     },
     {
       "id": "S6",
+      "title": "모델 저장/로드 문제 해결",
       "scenario": "학습이 완료된 모델을 저장하고 나중에 다시 불러왔는데, 성능이 다르거나 에러가 발생합니다.",
       "difficulty": 3,
       "totalSteps": 3,
@@ -916,6 +922,7 @@
     },
     {
       "id": "S7",
+      "title": "Transformer 모델 Fine-tuning",
       "scenario": "Transformer 기반 모델(BERT, GPT 등)을 Fine-tuning하거나 추론하는데, 예상과 다른 결과가 나오거나 에러가 발생합니다.",
       "difficulty": 3,
       "totalSteps": 3,

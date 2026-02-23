@@ -113,8 +113,82 @@
                           </div>
                         </div>
 
-                        <!-- 기존 제출 데이터 (코드/설명 등) -->
-                        <div v-if="isStructuredData(ans.submitted_data)" class="structured-log">
+                        <!-- [2026-02-20] 버그헌트 전용 UI -->
+                        <div v-if="isBugHuntData(ans.submitted_data)" class="bughunt-log">
+                          <!-- 꼬리질문 면접 기록 -->
+                          <div v-if="ans.submitted_data.followup_interactions?.length || ans.submitted_data.llm_evaluation" class="bughunt-interview">
+                            <h5 class="bughunt-section-title">💬 꼬리질문 면접 & 총평</h5>
+
+                            <!-- 면접관 종합 총평 (제일 위) -->
+                            <div v-if="ans.submitted_data.llm_evaluation?.overall_feedback" class="final-summary">
+                              <div class="summary-header">
+                                <span class="summary-icon">🎯</span>
+                                <span class="summary-title">면접관 종합 총평</span>
+                              </div>
+                              <div class="summary-content">
+                                <p>{{ ans.submitted_data.llm_evaluation.overall_feedback }}</p>
+                              </div>
+                              <div class="summary-scores">
+                                <div class="summary-score-item">
+                                  <span class="label">사고력</span>
+                                  <span class="value" :class="getScoreClass(ans.submitted_data.llm_evaluation.thinking_score)">
+                                    {{ ans.submitted_data.llm_evaluation.thinking_score }}점
+                                  </span>
+                                </div>
+                                <div class="summary-score-item">
+                                  <span class="label">코드 위험도</span>
+                                  <span class="value risk" :class="getRiskClass(ans.submitted_data.llm_evaluation.code_risk)">
+                                    {{ ans.submitted_data.llm_evaluation.code_risk }}
+                                  </span>
+                                </div>
+                                <div class="summary-score-item">
+                                  <span class="label">사고 방향</span>
+                                  <span class="value" :class="ans.submitted_data.llm_evaluation.thinking_pass ? 'safe' : 'danger'">
+                                    {{ ans.submitted_data.llm_evaluation.thinking_pass ? '✓ 안전' : '⚠ 주의' }}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <!-- Step별 면접 -->
+                            <div v-for="interview in ans.submitted_data.followup_interactions" :key="interview.step" class="interview-card">
+                              <div class="interview-header">
+                                <span class="step-number">Step {{ interview.step }}</span>
+                                <span class="interview-score" :class="getScoreClass(interview.score)">
+                                  {{ interview.score }}점
+                                </span>
+                                <span class="understanding-level" :class="getLevelClass(interview.understanding_level)">
+                                  {{ interview.understanding_level }}
+                                </span>
+                              </div>
+
+                              <div v-if="interview.matched_concepts?.length" class="matched-concepts">
+                                <div class="concepts-label">파악한 개념</div>
+                                <div class="concept-tags">
+                                  <span v-for="(concept, idx) in interview.matched_concepts" :key="idx" class="concept-tag">
+                                    {{ concept }}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div v-if="interview.conversation_summary?.length" class="conversation">
+                                <div class="conversation-label">면접 대화</div>
+                                <div v-for="(msg, idx) in interview.conversation_summary" :key="idx" class="conversation-msg" :class="msg.role">
+                                  <div class="msg-role">{{ msg.role === 'interviewer' ? 'AI' : 'ME' }}</div>
+                                  <div class="msg-content">{{ msg.content }}</div>
+                                </div>
+                              </div>
+
+                              <div v-if="interview.weak_point" class="weak-point">
+                                <div class="weak-label">보완 필요 사항</div>
+                                <p>{{ interview.weak_point }}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- 기존 제출 데이터 (코드/설명 등) - 버그헌트가 아닌 경우 -->
+                        <div v-else-if="isStructuredData(ans.submitted_data)" class="structured-log">
                           <template v-for="(val, key) in ans.submitted_data" :key="key">
                             <div v-if="shouldRenderSection(key)" class="log-section">
                               <div class="log-section-header">
@@ -315,10 +389,14 @@ const shouldRenderSection = (key) => {
     'connections',          // 머메이드용 로우 데이터
 
     // [2026-02-20 추가] 버그헌트 에이전트 학습용 데이터 (마이 히스토리에서 숨김)
+    'mission_id',           // 미션 내부 ID
     'step_codes',           // 단계별 코드 로그
+    'user_inputs',          // 사용자 입력 로그 (에이전트 학습용)
+    'followup_interactions', // 꼬리질문 및 답변 (에이전트 학습용)
     'behavior_log',         // 행동 패턴 로그
     'weakness_indicators',  // 약점 분석 지표
-    'track_type'            // 트랙 타입 메타데이터
+    'track_type',           // 트랙 타입 메타데이터
+    'raw_data'              // 원본 데이터 보존 (에이전트 학습용)
   ];
   return !blackList.includes(key);
 };
@@ -328,6 +406,34 @@ const getSectionIcon = (key) => {
   if (key.includes('AI') || key.includes('Evaluation')) return '🤖';
   if (key.includes('코드') || key.includes('Implementation')) return '💻';
   return '📝';
+};
+
+// [2026-02-20 추가] 버그헌트 데이터 식별
+const isBugHuntData = (data) => {
+  if (!data || typeof data !== 'object') return false;
+  return data.track_type === 'bughunt' && (data.user_inputs || data.llm_evaluation);
+};
+
+// [2026-02-20 추가] Step별 피드백 가져오기
+const getStepFeedback = (data, step) => {
+  if (!data?.llm_evaluation?.step_feedbacks) return null;
+  const feedback = data.llm_evaluation.step_feedbacks.find(f => f.step === step);
+  return feedback?.feedback || null;
+};
+
+// [2026-02-20 추가] 위험도에 따른 CSS 클래스
+const getRiskClass = (risk) => {
+  if (risk >= 70) return 'high';
+  if (risk >= 40) return 'medium';
+  return 'low';
+};
+
+// [2026-02-20 추가] 이해 수준에 따른 CSS 클래스
+const getLevelClass = (level) => {
+  if (level === 'Deep') return 'deep';
+  if (level === 'Conceptual') return 'conceptual';
+  if (level === 'Surface') return 'surface';
+  return 'none';
 };
 
 onMounted(fetchUnits);

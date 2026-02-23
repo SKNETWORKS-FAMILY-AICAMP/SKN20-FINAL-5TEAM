@@ -218,13 +218,12 @@ def generate_rubric_prompt(problem, architecture_context, user_explanation, deep
     rubric_format = format_rubric_for_prompt()
     axis_rubric_format = format_axis_specific_rubrics()
 
+    # System Message 분리
+    system_message = """당신은 **시니어 클라우드 솔루션 아키텍트**입니다.
+지원자의 시스템 아키텍처 설계와 질문 답변을 루브릭 기준으로 평가합니다."""
+
     # 프롬프트 작성
-    prompt = f"""당신은 **시니어 클라우드 솔루션 아키텍트**입니다.
-지원자의 시스템 아키텍처 설계와 질문 답변을 루브릭 기준으로 평가합니다.
-
----
-
-## 📋 문제 정보
+    prompt = f"""## 📋 문제 정보
 
 ### 시나리오
 {problem.get('scenario', '시스템 아키텍처 설계') if isinstance(problem, dict) else '시스템 아키텍처 설계'}
@@ -357,7 +356,7 @@ def generate_rubric_prompt(problem, architecture_context, user_explanation, deep
 - 각 expectedAnswer는 구체적인 기술명/수치를 포함해야 함
 - 반드시 JSON 형식만 출력"""
 
-    return prompt
+    return system_message, prompt
 
 
 def select_relevant_pillars(scenario, missions, constraints):
@@ -484,7 +483,7 @@ class ArchitectureEvaluationView(APIView):
                 )
 
             # Step 1: 백엔드에서 프롬프트 생성
-            prompt = generate_rubric_prompt(
+            system_message, prompt = generate_rubric_prompt(
                 problem,
                 architecture_context,
                 user_explanation,
@@ -493,23 +492,36 @@ class ArchitectureEvaluationView(APIView):
 
             client = openai.OpenAI(api_key=api_key)
 
-            # Step 2: LLM 호출
+            # Step 2: LLM 호출 (gpt-4o-mini 사용)
+            print(f"[DEBUG] Calling AI for Evaluation with gpt-4o-mini...", flush=True)
+            print(f"[DEBUG] Prompt length: {len(prompt)}, System prompt length: {len(system_message)}", flush=True)
+
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
+                    {"role": "system", "content": system_message},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.5,
-                max_tokens=4500
+                temperature=0.7,
+                max_completion_tokens=4500
             )
 
+            print(f"[DEBUG] Response received: {response}", flush=True)
             content = response.choices[0].message.content
-            print(f"[DEBUG] LLM Response received", flush=True)
+            if content:
+                content = content.strip()
+            print(f"[DEBUG] Raw AI Response: {content[:500] if content else 'EMPTY'}", flush=True)
+            print(f"[ArchEval] Raw response: {content[:500] if content else 'EMPTY'}", flush=True)
 
-            # Step 3: JSON 파싱
-            json_match = re.search(r'\{[\s\S]*\}', content)
+            # Step 3: JSON 파싱 (BugHuntEval 패턴 적용)
+            json_match = None
+            match = re.search(r'\{[\s\S]*\}', content)
+            if match:
+                json_match = match.group()
+
             if json_match:
-                result = json.loads(json_match.group())
+                result = json.loads(json_match)
+                print(f"[ArchEval] Parsed result: overallScore={result.get('overallScore')}", flush=True)
 
                 # 전체 점수 계산
                 evaluations = result.get('evaluations', [])
@@ -534,14 +546,17 @@ class ArchitectureEvaluationView(APIView):
                     "weaknesses": result.get('weaknesses', []),
                     "recommendations": result.get('recommendations', [])
                 }, status=status.HTTP_200_OK)
-
-            return Response(
-                {"error": "Invalid JSON format from AI"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            else:
+                print(f"[ArchEval] JSON parse failed, raw: {content}", flush=True)
+                return Response(
+                    {"error": "Invalid JSON format from AI"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
 
         except Exception as e:
-            print(f"[ERROR] Architecture Evaluation: {traceback.format_exc()}", file=sys.stderr, flush=True)
+            tb = traceback.format_exc()
+            print(f"[CRITICAL] Architecture Evaluation Error: {e}", flush=True)
+            print(f"[CRITICAL] Traceback:\n{tb}", file=sys.stderr, flush=True)
             return Response(
                 {"error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -576,6 +591,7 @@ class ArchitectureQuestionGeneratorView(APIView):
                 )
 
             client = openai.OpenAI(api_key=api_key)
+            print(f"[DEBUG] OpenAI Client Initialized", flush=True)
 
             # 컴포넌트 분류
             categorized = categorize_components(components)
@@ -614,16 +630,15 @@ class ArchitectureQuestionGeneratorView(APIView):
 
             architecture_overview = '\n\n'.join(category_texts)
 
-            # 프롬프트 생성
-            prompt = f"""당신은 **시니어 클라우드 솔루션 아키텍트**입니다.
+            # System Message 분리
+            system_message = """당신은 **시니어 클라우드 솔루션 아키텍트**입니다.
 
 ## 🎯 당신의 임무
 1. 지원자의 아키텍처를 **비판적으로 분석** (안티패턴 체크)
-2. 부족한 영역 3가지에 대해 **날카로운 질문** 생성
+2. 부족한 영역 3가지에 대해 **날카로운 질문** 생성"""
 
----
-
-## 📋 문제 상황
+            # 프롬프트 생성
+            prompt = f"""## 📋 문제 상황
 
 ### 시나리오
 {scenario or '시스템 아키텍처 설계'}
@@ -706,21 +721,34 @@ class ArchitectureQuestionGeneratorView(APIView):
 }}
 ```"""
 
+            print(f"[DEBUG] Calling AI for Question Generation with gpt-5-mini...", flush=True)
+            print(f"[DEBUG] Prompt length: {len(prompt)}, System prompt length: {len(system_message)}", flush=True)
+
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-5-mini",
                 messages=[
+                    {"role": "system", "content": system_message},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.7,
-                max_tokens=2000
+                max_completion_tokens=4000
             )
 
+            print(f"[DEBUG] Response received: {response}", flush=True)
             content = response.choices[0].message.content
+            if content:
+                content = content.strip()
+            print(f"[DEBUG] Raw AI Response: {content[:500] if content else 'EMPTY'}", flush=True)
+            print(f"[ArchQuestion] Raw response: {content[:500] if content else 'EMPTY'}", flush=True)
 
-            # JSON 파싱
-            json_match = re.search(r'\{[\s\S]*\}', content)
+            # JSON 파싱 (BugHuntEval 패턴 적용)
+            json_match = None
+            match = re.search(r'\{[\s\S]*\}', content)
+            if match:
+                json_match = match.group()
+
             if json_match:
-                result = json.loads(json_match.group())
+                result = json.loads(json_match)
+                print(f"[ArchQuestion] Parsed result: questions_count={len(result.get('questions', []))}", flush=True)
 
                 return Response({
                     "questions": result.get('questions', []),
@@ -730,14 +758,17 @@ class ArchitectureQuestionGeneratorView(APIView):
                         "connectionCount": len(connections)
                     }
                 }, status=status.HTTP_200_OK)
-
-            return Response(
-                {"error": "Invalid JSON format from AI"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            else:
+                print(f"[ArchQuestion] JSON parse failed, raw: {content}", flush=True)
+                return Response(
+                    {"error": "Invalid JSON format from AI"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
 
         except Exception as e:
-            print(f"[ERROR] Question Generation: {traceback.format_exc()}", file=sys.stderr, flush=True)
+            tb = traceback.format_exc()
+            print(f"[CRITICAL] Question Generation Error: {e}", flush=True)
+            print(f"[CRITICAL] Traceback:\n{tb}", file=sys.stderr, flush=True)
             return Response(
                 {"error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
