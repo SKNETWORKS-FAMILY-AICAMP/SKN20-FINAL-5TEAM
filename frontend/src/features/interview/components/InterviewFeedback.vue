@@ -6,8 +6,11 @@
       <p class="feedback-subtitle">모의면접이 끝났습니다. 아래 피드백을 확인해보세요.</p>
     </div>
 
+    <!-- [수정일: 2026-02-23] [vision] 비전 분석 리포트 오버레이 -->
+    <VisionAnalysisReport v-if="feedback.vision_analysis" :analysis="feedback.vision_analysis" />
+
     <!-- 전체 총평 -->
-    <section class="feedback-section">
+    <section class="feedback-section mt-8">
       <h3 class="section-title">📋 전체 총평</h3>
       <p class="overall-summary">{{ feedback.overall_summary }}</p>
     </section>
@@ -78,6 +81,7 @@
 
 <script setup>
 import { computed } from 'vue';
+import VisionAnalysisReport from './VisionAnalysisReport.vue'; // [수정일: 2026-02-23] [vision] 리포트 임포트
 
 const props = defineProps({
   feedback: { type: Object, required: true },

@@ -106,7 +106,29 @@ onUpdated(() => {
   color: #f8fafc;
 }
 
+/* Warning Style */
+.global-toast.warning {
+  border-left: 4px solid #f59e0b;
+}
+.global-toast.warning .toast-icon {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
+
+/* Info Style */
+.global-toast.info {
+  border-left: 4px solid #3b82f6;
+}
+.global-toast.info .toast-icon {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+}
+
 /* Animation */
+.toast-enter-active,
+.toast-leave-active {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
 .toast-enter-from {
   opacity: 0;
   transform: translate(-50%, -20px);

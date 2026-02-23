@@ -4,6 +4,7 @@
  */
 import { ref, computed } from 'vue';
 import { createSession, submitAnswer } from '../api/interviewApi';
+import { useVisionAnalysis } from '@/composables/useVisionAnalysis'; // [수정일: 2026-02-23] [vision] 비전 분석 연동
 
 export function useInterview() {
   // ── 상태 ──────────────────────────────────────────────────
@@ -28,6 +29,8 @@ export function useInterview() {
   const isFinished = ref(false);
   const finalFeedback = ref(null);
 
+  const visionSystem = useVisionAnalysis(); // [수정일: 2026-02-23] [vision] 비전 시스템 인스턴스
+
   // 오류
   const error = ref('');
 
@@ -44,6 +47,9 @@ export function useInterview() {
    * @param {number|null} jobPostingId
    */
   async function startSession(jobPostingId = null) {
+    // [vision] 면접 데이터 초기화 시 비전 엔진 프리로딩 시작
+    visionSystem.initEngine();
+
     isLoading.value = true;
     error.value = '';
 
@@ -111,7 +117,12 @@ export function useInterview() {
 
       onFinalFeedback(feedback) {
         isFinished.value = true;
-        finalFeedback.value = feedback;
+        // [vision] 면접 종료 시 분석 정지 및 데이터 취합
+        const visionReport = visionSystem.stopAnalysis();
+
+        // 피드백 데이터에 비전 분석 결과 병합
+        const enhancedFeedback = { ...feedback, vision_analysis: visionReport };
+        finalFeedback.value = enhancedFeedback;
       },
 
       onDone() {
@@ -165,5 +176,7 @@ export function useInterview() {
     startSession,
     submitUserAnswer,
     resetSession,
+    // [vision] 비전 시스템 내보내기
+    visionSystem,
   };
 }

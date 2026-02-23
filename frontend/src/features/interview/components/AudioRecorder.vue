@@ -48,11 +48,13 @@
         </span>
         <span class="confirm-label">수정 후 제출하세요</span>
       </div>
+      <!-- [수정일: 2026-02-23] 모의면접 답변 확인 단계에서 Enter 키를 통해 즉시 제출 가능하게 수정 (Shift+Enter는 줄바꿈) -->
       <textarea
         v-model="transcript"
         class="transcript-input"
         rows="4"
         placeholder="인식된 텍스트..."
+        @keydown.enter.exact.prevent="submitTranscript"
       ></textarea>
       <p v-if="!transcript" class="no-speech-hint">음성이 감지되지 않았습니다. 다시 녹음해주세요.</p>
       <div class="confirm-actions">

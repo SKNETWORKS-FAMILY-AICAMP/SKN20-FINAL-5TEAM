@@ -28,6 +28,16 @@
           <div class="loading-spinner-ring"></div>
           <p class="loading-text">면접 준비 중입니다...</p>
           <p class="loading-sub">취약점 분석 및 맞춤 면접 계획을 세우고 있어요.</p>
+          
+          <!-- [수정일: 2026-02-23] [vision] 비전 엔진 로딩 상태 표시 -->
+          <div v-if="!visionSystem.isReady.value && !visionSystem.initError.value" class="vision-init-loader mt-4">
+             <div class="flex items-center justify-center gap-2 text-indigo-300 text-xs">
+                <span class="animate-pulse">●</span> AI 비전 분석 모듈 가동 중...
+             </div>
+          </div>
+          <div v-if="visionSystem.initError.value" class="text-red-400 text-xs mt-4">
+            {{ visionSystem.initError.value }} (분석 없이 진행됨)
+          </div>
         </div>
       </div>
     </transition>
@@ -39,7 +49,7 @@
         <div class="interviewer-panel">
           <!-- 웹캠 영역 -->
           <div class="iv-webcam-wrap">
-            <WebcamDisplay />
+            <WebcamDisplay ref="webcamRef" @ready="onWebcamReady" />
           </div>
 
           <div class="iv-label">면접관</div>
@@ -103,6 +113,9 @@ import InterviewFeedback from './components/InterviewFeedback.vue';
 import InterviewHistory from './components/InterviewHistory.vue';
 import WebcamDisplay from './components/WebcamDisplay.vue';
 
+// [수정일: 2026-02-23] [vision] WebcamDisplay 컴포넌트 참조
+const webcamRef = ref(null);
+
 // 화면 단계: 'select' | 'loading' | 'interview' | 'feedback'
 const phase = ref('select');
 
@@ -122,6 +135,7 @@ const {
   finalFeedback,
   error,
   slotProgress,
+  visionSystem, // [수정일: 2026-02-23] [vision] 비전 시스템 추출
   startSession,
   submitUserAnswer,
   resetSession,
@@ -139,8 +153,17 @@ async function onStartSession(jobPostingId) {
   try {
     await startSession(jobPostingId);
     phase.value = 'interview';
+
+    // [수정일: 2026-02-23] [vision] 카메라 권한 획득 및 스트림 준비 완료 시점인 onWebcamReady 로직으로 위임 (setTimeout 제거)
   } catch {
     phase.value = 'select';
+  }
+}
+
+// [수정일: 2026-02-23] [vision] 웹캠이 완전히 준비된 직후 호출되어 분석 시작
+function onWebcamReady(videoEl) {
+  if (visionSystem && visionSystem.startAnalysis) {
+    visionSystem.startAnalysis(videoEl);
   }
 }
 

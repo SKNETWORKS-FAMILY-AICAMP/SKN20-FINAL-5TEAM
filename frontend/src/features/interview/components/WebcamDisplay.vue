@@ -42,9 +42,17 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 
+// [수정일: 2026-02-23] [vision] 비디오 준비 완료 이벤트 정의
+const emit = defineEmits(['ready']);
+
 const videoRef = ref(null);
 const isActive = ref(false);
 const error = ref('');
+
+// [수정일: 2026-02-23] [vision] 부모 컴포넌트에서 비디오 DOM에 접근할 수 있도록 노출
+defineExpose({
+  videoRef
+});
 
 let stream = null;
 
@@ -57,7 +65,12 @@ async function startCamera() {
 
     if (videoRef.value) {
       videoRef.value.srcObject = stream;
-      isActive.value = true;
+      
+      // [수정일: 2026-02-23] [vision] 메타데이터가 로드되어 실제로 플레이 가능한 시점에 ready 이벤트 발생
+      videoRef.value.onloadedmetadata = () => {
+        isActive.value = true;
+        emit('ready', videoRef.value);
+      };
     }
   } catch (err) {
     if (err.name === 'NotAllowedError') {
