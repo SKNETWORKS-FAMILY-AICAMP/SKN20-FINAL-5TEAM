@@ -32,6 +32,7 @@ from core.views.pseudocode_execution import execute_python_code
 from core.views import pseudocode_evaluation, youtube_recommendation
 from core.views.architecture_view import ArchitectureEvaluationView, ArchitectureQuestionGeneratorView
 from core.views.coach_view import AICoachView
+from core.views.coach_view_enhanced import AICoachEnhancedView
 
 router = DefaultRouter()
 router.register(r'users', UserProfileViewSet, basename='users')
@@ -82,6 +83,7 @@ urlpatterns = [
 
     # AI Coach Agent API
     path('ai-coach/chat/', AICoachView.as_view(), name='ai_coach_chat'),
+    path('ai-coach/chat-v2/', AICoachEnhancedView.as_view(), name='ai_coach_chat_v2'),
 
     # Job Planner API
     path('job-planner/parse/', JobPlannerParseView.as_view(), name='job_planner_parse'),

@@ -8,6 +8,24 @@
     </header>
 
     <div class="chat-area" ref="chatArea">
+      <!-- 모드 선택 (v1 vs v2) [2026-02-23] -->
+      <div class="mode-selector">
+        <button
+          class="mode-btn"
+          :class="{ active: useV2 }"
+          @click="useV2 = false"
+        >
+          📌 기본 모드 (v1)
+        </button>
+        <button
+          class="mode-btn"
+          :class="{ active: useV2 }"
+          @click="useV2 = true"
+        >
+          ✨ 고도화 모드 (v2)
+        </button>
+      </div>
+
       <!-- 프리셋 버튼 (대화 없을 때) -->
       <div v-if="messages.length === 0" class="preset-section">
         <p class="preset-label">무엇을 도와드릴까요?</p>
@@ -33,6 +51,13 @@
 
       <!-- 채팅 메시지 -->
       <div v-for="(msg, idx) in messages" :key="idx" class="message-block">
+        <!-- 의도 분석 결과 배지 (v2) [2026-02-23] -->
+        <div v-if="msg.intentData" class="intent-badge">
+          <span class="intent-type">{{ msg.intentData.intent_name }}</span>
+          <span class="intent-confidence">(신뢰도: {{ (msg.intentData.confidence * 100).toFixed(0) }}%)</span>
+          <span class="intent-reasoning">{{ msg.intentData.reasoning }}</span>
+        </div>
+
         <!-- 유저 메시지 -->
         <div v-if="msg.role === 'user'" class="chat-bubble user">
           {{ msg.content }}
@@ -105,6 +130,7 @@ const inputText = ref('');
 const loading = ref(false);
 const streaming = ref(false);
 const chatArea = ref(null);
+const useV2 = ref(true); // [2026-02-23] 고도화 모드 기본값
 
 function getCsrfToken() {
   const m = document.cookie.match(/csrftoken=([^;]+)/);
@@ -220,11 +246,14 @@ async function sendMessage() {
     timeline: [],
     showAnswer: false,
     displayedContent: '',
+    intentData: null, // [2026-02-23] 의도 분석 데이터
   });
   const assistantMsg = messages.value[messages.value.length - 1];
 
   try {
-    const response = await fetch('/api/core/ai-coach/chat/', {
+    // [2026-02-23] v2 엔드포인트 선택
+    const endpoint = useV2.value ? '/api/core/ai-coach/chat-v2/' : '/api/core/ai-coach/chat/';
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -269,7 +298,16 @@ async function sendMessage() {
             const data = JSON.parse(payload);
             streaming.value = true;
 
-            if (data.type === 'thinking') {
+            // [2026-02-23] Intent Detected (v2만)
+            if (data.type === 'intent_detected') {
+              assistantMsg.intentData = {
+                intent_name: data.intent_name,
+                confidence: data.confidence,
+                reasoning: data.reasoning,
+              };
+              scrollToBottom();
+            }
+            else if (data.type === 'thinking') {
               // 이전 thinking 비활성화
               const prevThinking = [...assistantMsg.timeline].reverse().find(i => i.type === 'thinking');
               if (prevThinking) prevThinking.active = false;
@@ -755,5 +793,80 @@ async function sendMessage() {
 .send-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* ===== Mode Selector [2026-02-23] ===== */
+.mode-selector {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  margin-bottom: 0.5rem;
+}
+
+.mode-btn {
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border);
+  color: var(--text-muted);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.mode-btn:hover {
+  border-color: var(--primary);
+}
+
+.mode-btn.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+/* ===== Intent Badge [2026-02-23] ===== */
+.intent-badge {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.1));
+  border-left: 3px solid var(--primary);
+  border-radius: 8px;
+  align-self: flex-start;
+  max-width: 85%;
+  animation: intentSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes intentSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.intent-type {
+  font-weight: 700;
+  color: var(--primary);
+  font-size: 0.9rem;
+}
+
+.intent-confidence {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.intent-reasoning {
+  font-size: 0.85rem;
+  color: var(--text);
+  font-style: italic;
 }
 </style>
