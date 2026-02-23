@@ -495,6 +495,101 @@ TOOL_LABELS = {
     "recommend_next_problem": "문제 추천",
 }
 
+# ─────────────────────────────────────────────
+# 7. Intent별 허용 도구 매핑
+# ─────────────────────────────────────────────
+
+INTENT_TOOL_MAPPING = {
+    "A": {
+        "allowed": ["get_user_scores", "get_weak_points"],
+        "required": ["get_user_scores"],  # 최소한 성적은 필요
+    },
+    "B": {
+        "allowed": ["get_weak_points", "recommend_next_problem"],
+        "required": [],  # 도구 선택적
+    },
+    "C": {
+        "allowed": ["get_recent_activity", "get_user_scores"],
+        "required": ["get_recent_activity"],  # 최근 활동 필수
+    },
+    "D": {
+        "allowed": [],  # 범위 밖 → 도구 호출 금지
+        "required": [],
+    },
+    "E": {
+        "allowed": ["get_weak_points", "recommend_next_problem"],
+        "required": [],  # 도구 선택적
+    },
+    "F": {
+        "allowed": ["get_weak_points"],
+        "required": [],  # 도구 선택적
+    },
+    "G": {
+        "allowed": ["get_user_scores", "get_recent_activity"],
+        "required": ["get_user_scores"],  # 성적 비교 필수
+    },
+}
+
+# ─────────────────────────────────────────────
+# 8. Tool Argument Schema 및 검증
+# ─────────────────────────────────────────────
+
+TOOL_ARG_SCHEMA = {
+    "get_user_scores": {},
+    "get_weak_points": {
+        "unit_id": {"required": True, "allowed": ["unit01", "unit02", "unit03"]},
+    },
+    "get_recent_activity": {
+        "limit": {"required": False, "default": 10},
+    },
+    "recommend_next_problem": {
+        "unit_id": {"required": False, "allowed": ["unit01", "unit02", "unit03"]},
+    },
+}
+
+
+def validate_and_normalize_args(fn_name, fn_args):
+    """도구 인자 검증 및 기본값 적용"""
+    schema = TOOL_ARG_SCHEMA.get(fn_name, {})
+    normalized = dict(fn_args)
+    for arg_name, rules in schema.items():
+        if rules.get("required") and arg_name not in normalized:
+            raise ValueError(f"[{fn_name}] 필수 인자 누락: {arg_name}")
+        if arg_name in normalized and "allowed" in rules:
+            if normalized[arg_name] not in rules["allowed"]:
+                raise ValueError(f"[{fn_name}] 잘못된 {arg_name}: '{normalized[arg_name]}'")
+        if arg_name not in normalized and "default" in rules:
+            normalized[arg_name] = rules["default"]
+    return normalized
+
+
+# ─────────────────────────────────────────────
+# 9. Tool 결과 충분도 평가
+# ─────────────────────────────────────────────
+
+class ToolResultEvaluator:
+    """Tool 호출 결과가 의도에 맞게 충분한지 평가"""
+
+    def is_sufficient(self, tool_results, intent_type):
+        """이 결과로 충분한가?"""
+        required_tools = INTENT_TOOL_MAPPING.get(intent_type, {}).get("required", [])
+
+        # 필수 도구가 없으면 충분
+        if not required_tools:
+            return True
+
+        # 호출된 도구 이름 수집
+        called_tools = {tr.get("tool") for tr in tool_results if tr.get("tool")}
+
+        # 모든 필수 도구가 호출되었는가?
+        return all(tool in called_tools for tool in required_tools)
+
+    def missing_tools(self, tool_results, intent_type):
+        """빠진 필수 도구는?"""
+        required_tools = INTENT_TOOL_MAPPING.get(intent_type, {}).get("required", [])
+        called_tools = {tr.get("tool") for tr in tool_results if tr.get("tool")}
+        return [t for t in required_tools if t not in called_tools]
+
 
 # ─────────────────────────────────────────────
 # 6. Enhanced AI Coach View
@@ -532,6 +627,7 @@ class AICoachEnhancedView(APIView):
             return f"data: {json.dumps(data, ensure_ascii=False, default=str)}\n\n"
 
         def event_stream():
+            called_tools_cache = {}  # ← 추가: Tool 중복 호출 방지 캐시
             try:
                 # ──────────────────────────────────────
                 # Step 1: Intent Analysis
@@ -600,6 +696,16 @@ class AICoachEnhancedView(APIView):
                     {"role": "user", "content": user_message},
                 ]
 
+                # ── Intent별 도구 필터링 ──
+                intent_config = INTENT_TOOL_MAPPING.get(intent_type, {})
+                allowed_tools = intent_config.get("allowed", [])
+                filtered_tools = [t for t in COACH_TOOLS if t["function"]["name"] in allowed_tools]
+
+                # ── Tool 결과 평가 준비 ──
+                evaluator = ToolResultEvaluator()
+                tool_results = []
+                tools_sufficient = False  # ← 다음 iteration에서 tool_choice 제한 여부
+
                 max_iterations = 5
                 for iteration in range(max_iterations):
                     yield _sse({
@@ -608,11 +714,21 @@ class AICoachEnhancedView(APIView):
                         "message": f"분석 중입니다... ({iteration + 1}/{max_iterations})",
                     })
 
+                    # ── 도구 제공 여부: 충분도에 따라 결정 ──
+                    if tools_sufficient:
+                        # 데이터 충분 → 도구 제공 안 함 (최종 응답만 생성)
+                        tools_to_use = openai.NOT_GIVEN
+                        tool_choice_param = openai.NOT_GIVEN
+                    else:
+                        # 데이터 부족 → 도구 제공 (필요시 추가 호출)
+                        tools_to_use = filtered_tools if filtered_tools else openai.NOT_GIVEN
+                        tool_choice_param = "auto" if filtered_tools else openai.NOT_GIVEN
+
                     stream = client.chat.completions.create(
                         model="gpt-5-mini",
                         messages=conv,
-                        tools=COACH_TOOLS,
-                        tool_choice="auto",
+                        tools=tools_to_use,
+                        tool_choice=tool_choice_param,
                         max_completion_tokens=4000,
                         stream=True,
                     )
@@ -685,30 +801,44 @@ class AICoachEnhancedView(APIView):
                     for tc in tc_list:
                         fn_name = tc["name"]
                         try:
-                            fn_args = json.loads(tc["arguments"]) if tc["arguments"] else {}
+                            fn_args_raw = json.loads(tc["arguments"]) if tc["arguments"] else {}
                         except (json.JSONDecodeError, TypeError):
-                            fn_args = {}
+                            fn_args_raw = {}
 
                         yield _sse({
                             "type": "step_start",
                             "tool": fn_name,
                             "label": TOOL_LABELS.get(fn_name, fn_name),
-                            "args": fn_args,
+                            "args": fn_args_raw,
                         })
 
-                        executor = TOOL_DISPATCH.get(fn_name)
-                        result_data = (
-                            executor(profile, fn_args)
-                            if executor
-                            else {"error": f"알 수 없는 도구: {fn_name}"}
-                        )
-                        result_str = json.dumps(result_data, ensure_ascii=False, default=str)
+                        # ── 캐시 확인 ──
+                        cache_key = f"{fn_name}:{json.dumps(fn_args_raw, sort_keys=True, ensure_ascii=False)}"
+                        if cache_key in called_tools_cache:
+                            result_data = called_tools_cache[cache_key]
+                            logger.debug(f"[캐시 히트] {fn_name}")
+                        else:
+                            executor = TOOL_DISPATCH.get(fn_name)
+                            if not executor:
+                                result_data = {"error": True, "message": f"알 수 없는 도구: {fn_name}"}
+                            else:
+                                try:
+                                    fn_args = validate_and_normalize_args(fn_name, fn_args_raw)
+                                    result_data = executor(profile, fn_args)
+                                    called_tools_cache[cache_key] = result_data
+                                except ValueError as ve:
+                                    logger.warning(f"[인자 검증 실패] {fn_name}: {ve}")
+                                    result_data = {"error": True, "message": str(ve)}
+                                except Exception as e:
+                                    logger.error(f"[도구 실행 오류] {fn_name}", exc_info=True)
+                                    result_data = {"error": True, "message": f"'{fn_name}' 도구 실행 중 오류가 발생했습니다."}
 
+                        result_str = json.dumps(result_data, ensure_ascii=False, default=str)
                         yield _sse({
                             "type": "step_result",
                             "tool": fn_name,
                             "label": TOOL_LABELS.get(fn_name, fn_name),
-                            "args": fn_args,
+                            "args": fn_args_raw,
                             "result": result_data,
                         })
 
@@ -718,7 +848,22 @@ class AICoachEnhancedView(APIView):
                             "content": result_str,
                         })
 
-                # max_iterations 도달
+                        # ── Tool 결과 수집 ──
+                        tool_results.append({
+                            "tool": fn_name,
+                            "args": fn_args_raw,
+                            "result": result_data,
+                        })
+
+                    # ── Tool 호출이 있었는지 + 데이터 충분도 평가 ──
+                    if is_tool_call:
+                        if evaluator.is_sufficient(tool_results, intent_type):
+                            # 필수 도구 모두 호출됨 → 다음 iteration에서 최종 응답 생성
+                            logger.debug(f"[충분도 평가] Intent {intent_type}: 데이터 충분")
+                            tools_sufficient = True
+                    # (Tool 호출이 없으면 다음 iteration에서 자동으로 최종 응답 생성됨)
+
+                # max_iterations 도달 (Tool 호출이 계속되는 경우)
                 yield _sse({
                     "type": "token",
                     "token": "분석이 복잡하여 일부만 완료되었습니다. 질문을 더 구체적으로 해주세요.",
