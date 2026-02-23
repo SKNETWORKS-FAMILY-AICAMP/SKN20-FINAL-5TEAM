@@ -941,6 +941,7 @@ class AICoachEnhancedView(APIView):
                 # ── Intent별 도구 필터링 ──
                 intent_config = INTENT_TOOL_MAPPING.get(intent_type, {})
                 allowed_tools = intent_config.get("allowed", [])
+                required_tools = intent_config.get("required", [])
                 filtered_tools = [t for t in COACH_TOOLS if t["function"]["name"] in allowed_tools]
 
                 # ── Tool 결과 평가 준비 ──
@@ -948,7 +949,11 @@ class AICoachEnhancedView(APIView):
                 tool_results = []
                 tools_sufficient = False  # ← 다음 iteration에서 tool_choice 제한 여부
 
-                max_iterations = 5
+                # ← 추가: 필수 도구 호출 추적
+                required_tools_called = set()
+                required_tools_missing = set(required_tools) if required_tools else set()
+
+                max_iterations = 10  # ← 수정: 5 → 10 (더 많은 재시도 기회)
                 for iteration in range(max_iterations):
                     yield _sse({
                         "type": "thinking",
@@ -956,15 +961,24 @@ class AICoachEnhancedView(APIView):
                         "message": f"분석 중입니다... ({iteration + 1}/{max_iterations})",
                     })
 
-                    # ── 도구 제공 여부: 충분도에 따라 결정 ──
+                    # ── 도구 제공 여부: 충분도 + 필수 도구 여부에 따라 결정 ──
                     if tools_sufficient:
                         # 데이터 충분 → 도구 제공 안 함 (최종 응답만 생성)
                         tools_to_use = openai.NOT_GIVEN
                         tool_choice_param = openai.NOT_GIVEN
                     else:
-                        # 데이터 부족 → 도구 제공 (필요시 추가 호출)
-                        tools_to_use = filtered_tools if filtered_tools else openai.NOT_GIVEN
-                        tool_choice_param = "auto" if filtered_tools else openai.NOT_GIVEN
+                        # ← 수정: 필수 도구가 남아있으면 "required", 없으면 "auto"
+                        if filtered_tools:
+                            tools_to_use = filtered_tools
+                            # 필수 도구가 호출되지 않았으면 "required" (필수 호출)
+                            if required_tools_missing:
+                                tool_choice_param = "required"  # ← 강제 호출
+                                logger.info(f"[Tool Calling] 필수 도구 호출 강제: {required_tools_missing}")
+                            else:
+                                tool_choice_param = "auto"  # 선택적 호출
+                        else:
+                            tools_to_use = openai.NOT_GIVEN
+                            tool_choice_param = openai.NOT_GIVEN
 
                     stream = client.chat.completions.create(
                         model="gpt-5-mini",
@@ -1042,6 +1056,13 @@ class AICoachEnhancedView(APIView):
 
                     for tc in tc_list:
                         fn_name = tc["name"]
+
+                        # ← 추가: 필수 도구 호출 추적
+                        if fn_name in required_tools:
+                            required_tools_called.add(fn_name)
+                            required_tools_missing.discard(fn_name)
+                            logger.info(f"[필수 도구 호출] {fn_name}")
+
                         try:
                             fn_args_raw = json.loads(tc["arguments"]) if tc["arguments"] else {}
                         except (json.JSONDecodeError, TypeError):
@@ -1099,17 +1120,35 @@ class AICoachEnhancedView(APIView):
 
                     # ── Tool 호출이 있었는지 + 데이터 충분도 평가 ──
                     if is_tool_call:
-                        if evaluator.is_sufficient(tool_results, intent_type):
-                            # 필수 도구 모두 호출됨 → 다음 iteration에서 최종 응답 생성
-                            logger.debug(f"[충분도 평가] Intent {intent_type}: 데이터 충분")
+                        # ← 추가: 필수 도구 호출 확인
+                        if not required_tools_missing:
+                            # 필수 도구 모두 호출됨
+                            logger.info(f"[충분도 평가] Intent {intent_type}: 필수 도구 모두 호출됨 ({required_tools_called})")
                             tools_sufficient = True
+                        elif evaluator.is_sufficient(tool_results, intent_type):
+                            # 필수 도구는 부족하지만, 다른 도구로 충분한 경우
+                            logger.info(f"[충분도 평가] Intent {intent_type}: 데이터 충분 (필수: {required_tools_missing} 미호출)")
+                            tools_sufficient = True
+                        else:
+                            # 필수 도구 미호출 + 데이터 부족 → 다시 시도
+                            logger.warning(f"[충분도 미달] Intent {intent_type}: 필수 도구 {required_tools_missing} 미호출, iteration {iteration + 1}/{max_iterations}")
                     # (Tool 호출이 없으면 다음 iteration에서 자동으로 최종 응답 생성됨)
 
                 # max_iterations 도달 (Tool 호출이 계속되는 경우)
-                yield _sse({
-                    "type": "token",
-                    "token": "분석이 복잡하여 일부만 완료되었습니다. 질문을 더 구체적으로 해주세요.",
-                })
+                # ← 추가: 필수 도구 미호출 시 경고
+                if required_tools_missing:
+                    warning_msg = f"주의: 필수 데이터 ({', '.join(required_tools_missing)})를 완전히 수집하지 못했습니다. 다시 시도하거나 더 구체적인 질문을 해주세요."
+                    logger.warning(f"[Max Iterations] {warning_msg}")
+                    yield _sse({
+                        "type": "warning",
+                        "message": warning_msg,
+                        "missing_tools": list(required_tools_missing),
+                    })
+                else:
+                    yield _sse({
+                        "type": "token",
+                        "token": "분석이 복잡하여 일부만 완료되었습니다. 질문을 더 구체적으로 해주세요.",
+                    })
                 yield "data: [DONE]\n\n"
 
             except Exception as e:
