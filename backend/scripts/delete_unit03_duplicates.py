@@ -1,10 +1,11 @@
+"""unit03 중복 문제 데이터를 삭제하는 스크립트 (1회성 유틸리티)."""
 import os
 import django
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
-from core.models.Practice_model import PracticeDetail
+from core.models.practice_model import PracticeDetail
 from core.models.activity_model import UserSolvedProblem
 from django.db import transaction
 

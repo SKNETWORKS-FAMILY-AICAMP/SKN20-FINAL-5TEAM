@@ -10,7 +10,7 @@ from django.db.models import Sum, Count, Max
 from core.models import UserActivity, UserSolvedProblem, UserProgress, UserAvatar, Practice, PracticeDetail, UserProfile
 from core.services.activity_service import save_user_problem_record
 from django.shortcuts import get_object_or_404
-from core.nanobanana_utils import generate_nano_banana_avatar # [수정일: 2026-02-06] 추가
+from core.utils.nanobanana_utils import generate_nano_banana_avatar # [수정일: 2026-02-06] 추가
 
 from django.core.paginator import Paginator
 
@@ -222,8 +222,8 @@ class UserSolvedProblemView(APIView):
         from core.models import UserProfile
         profile = get_object_or_404(UserProfile, email=user.email)
         
-        # 사용자의 모든 해결 기록 조회 (최신순)
-        solved_problems = UserSolvedProblem.objects.filter(user=profile).select_related('practice_detail').order_by('-updated_at')
+        # [2026-02-24 수정] UserSolvedProblem 필드명 오타 수정 (updated_at -> update_date)
+        solved_problems = UserSolvedProblem.objects.filter(user=profile).select_related('practice_detail').order_by('-update_date')
         
         data = []
         for sp in solved_problems:

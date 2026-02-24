@@ -366,8 +366,13 @@ export default {
         const response = await fetch('/api/core/practices/unit03/');
         const practiceData = await response.json();
 
-        // details 배열에서 content_data 추출하고 practice_detail_id 추가
-        const problemsFromDB = practiceData.details.map(detail => ({
+        // [2026-02-24 수정] game.js의 mapDetailsToProblems와 동일하게 display_order 기준 정렬 및 필터
+        // - 정렬 불일치 시 스테이지 맵의 questIndex와 currentProblemIndex가 어긋나 해금이 엉킴
+        const sortedDetails = (practiceData.details || [])
+          .filter(d => d.detail_type === 'PROBLEM' && d.is_active)
+          .sort((a, b) => a.display_order - b.display_order);
+
+        const problemsFromDB = sortedDetails.map(detail => ({
           ...detail.content_data,
           practice_detail_id: detail.id  // DB ID를 추가로 저장 (제출 시 사용)
         }));
@@ -564,60 +569,85 @@ export default {
       // this.$router.push('/');
     },
 
-    // ✅ NEW: 진행 상태 관리
-    loadProgress() {
+    // ✅ NEW: 진행 상태 관리 (Progress Store 연동)
+    async loadProgress() {
       try {
-        const saved = localStorage.getItem('arch-practice-progress');
-        if (saved) {
-          const data = JSON.parse(saved);
-          this.completedProblems = data.completedProblems || [];
-          this.problemScores = data.problemScores || {};
+        const { useProgressStore } = await import('@/stores/progress');
+        const progressStore = useProgressStore();
+
+        // 데이터가 아직 없다면 가져오기
+        if (progressStore.solvedRecords.length === 0) {
+            await progressStore.fetchAllProgress();
         }
+
+        // [수정일: 2026-02-24] System Practice(Unit 3)에 해당하는 기록들만 추출
+        // - 실제 DB ID 패턴은 'unit03_XX'이므로 'unit03'으로 필터링
+        const systemRecords = progressStore.solvedRecords.filter(r =>
+            r.practice_detail && String(r.practice_detail).startsWith('unit03')
+        );
+
+        const completed = [];
+        const scores = {};
+
+        systemRecords.forEach(record => {
+            completed.push(record.practice_detail);
+            if (!scores[record.practice_detail] || scores[record.practice_detail] < record.score) {
+                scores[record.practice_detail] = record.score;
+            }
+        });
+
+        this.completedProblems = completed;
+        this.problemScores = scores;
+
       } catch (error) {
-        console.error('Failed to load progress:', error);
+        console.error('Failed to load progress via Pinia:', error);
         this.completedProblems = [];
         this.problemScores = {};
       }
     },
-
-    saveProgress() {
-      try {
-        const data = {
-          completedProblems: this.completedProblems,
-          problemScores: this.problemScores
-        };
-        localStorage.setItem('arch-practice-progress', JSON.stringify(data));
-      } catch (error) {
-        console.error('Failed to save progress:', error);
-      }
+    async saveProgress() {
+      // 로컬 스토리지가 아닌, DB 측 데이터가 알아서 보관되므로 프론트엔드 캐싱용 동작은 fetchAllProgress로 커버됨
+      // (혹시 모를 에러 방지를 위해 빈 함수 유지)
     },
 
     isProblemCompleted(problemId) {
+      // System 실습은 practice_detail id 가 problemId 로 넘어온다고 가정하거나 
+      // 현재 문제의 db_id/practice_detail_id 와 매칭해야 함
       return this.completedProblems.includes(problemId);
     },
 
     getFirstUncompletedProblemIndex() {
       for (let i = 0; i < this.problems.length; i++) {
-        if (!this.isProblemCompleted(this.problems[i].problem_id)) {
+        if (!this.isProblemCompleted(this.problems[i].practice_detail_id || this.problems[i].problem_id)) {
           return i;
         }
       }
       return 0; // 모두 완료되었으면 첫 번째로
     },
 
-    completeProblem(problemId, score) {
-      // 완료 목록에 추가
+    async completeProblem(problemId, score) {
+      // 완료 목록에 리액티브 추가
       if (!this.completedProblems.includes(problemId)) {
         this.completedProblems.push(problemId);
       }
 
-      // 점수 저장 (최고 점수만 저장)
       if (!this.problemScores[problemId] || this.problemScores[problemId] < score) {
         this.problemScores[problemId] = score;
       }
-
-      // 로컬 스토리지에 저장
-      this.saveProgress();
+      
+      const { useProgressStore } = await import('@/stores/progress');
+      const progressStore = useProgressStore();
+      
+      try {
+          // 백엔드로 최종 점수 전송 (`practice_detail_id` 필수)
+          // `problemId`가 디비 상의 `practice_detail_id` (예. system03_1) 형태라고 가정
+          await progressStore.submitScore(problemId, score, {
+              title: this.currentProblem?.title,
+              mode: 'system_architecture'
+          });
+      } catch (e) {
+          console.error('[Score Submission Failed]', e);
+      }
     },
 
     moveToNextProblem() {
@@ -636,22 +666,40 @@ export default {
       }
     },
 
-    checkEvaluationComplete() {
+    async checkEvaluationComplete() {
       // 평가 결과가 있고, 결과 화면이 보이고 있을 때
       if (this.showResultScreen && this.evaluationResult) {
-        const score = this.evaluationResult.totalScore || 0;
-        const problemId = this.currentProblem.problem_id;
+        const score = this.evaluationResult.totalScore || this.evaluationResult.score || 0;
+        const problemId = this.currentProblem?.problem_id;
+
+        console.log('[SystemArch] checkEvaluationComplete:', {
+          score,
+          problemId,
+          practice_detail_id: this.currentProblem?.practice_detail_id,
+          currentProblemIndex: this.currentProblemIndex
+        });
 
         // ✅ 60점 이상이면 통과
         if (score >= 60) {
-          this.completeProblem(problemId, score);
+          // DB 식별용 ID가 우선순위
+          const targetDetailId = this.currentProblem?.practice_detail_id || problemId;
+          // [수정일: 2026-02-24] await 전에 currentProblemIndex를 캡처하여 비동기 완료 후 인덱스 변동 방지
+          const capturedIndex = this.currentProblemIndex;
+
+          await this.completeProblem(targetDetailId, score);
 
           // [2026-02-20 수정] 맵 진행도 해금 - gameStore에 현재 문제 인덱스 전달
+          // [2026-02-24 수정] ProgressStore로 해금 체계 통합된 gameStore 함수 호출 -> 비동기 처리
+          const { useGameStore } = await import('@/stores/game');
           const gameStore = useGameStore();
-          gameStore.unlockNextStage('System Practice', this.currentProblemIndex);
+          
+          // [수정일: 2026-02-24] questIndex(1-based)로 변환하여 전달 (0-based 인덱스 + 1)
+          await gameStore.unlockNextStage('System Practice', capturedIndex + 1);
+
+          console.log('[SystemArch] unlockNextStage done for questIndex:', capturedIndex + 1);
 
           // 다음 문제가 있으면 자동으로 이동 안내
-          if (this.currentProblemIndex < this.problems.length - 1) {
+          if (capturedIndex < this.problems.length - 1) {
             this.showToastMessage(
               `[PASS] 통과! 다음 단계가 해금되었습니다. 꽥! (${score}점)`,
               'success'
@@ -663,13 +711,10 @@ export default {
             );
           }
         } else {
-          // ✅ 60점 이상 요구 메시지 제거
           this.showToastMessage(
             `[평가 완료] 점수: ${score}점 꽥!`,
             'info'
           );
-          // 이전 코드 (60점 이상 필수):
-          // `[RETRY] 60점 이상 필요합니다. (현재: ${score}점) 꽥!`,
         }
       }
     }
@@ -774,8 +819,8 @@ export default {
 
 /* [좌측 패널] CaseFilePanel 스타일 오버라이드 */
 :deep(.case-file-panel) {
-  width: 320px;
-  min-width: 320px;
+  width: 420px;
+  min-width: 420px;
   background: var(--bg-panel) !important;
   border: 1px solid var(--neon-purple) !important;
   border-radius: 16px !important;

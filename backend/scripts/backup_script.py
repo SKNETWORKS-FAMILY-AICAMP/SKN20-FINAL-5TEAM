@@ -1,3 +1,4 @@
+"""DB 전체 데이터를 JSON으로 백업하는 스크립트 (1회성 유틸리티)."""
 import os
 import django
 import json
@@ -53,9 +54,10 @@ def backup():
             'interests': d.interests,
         })
 
-    with open('backup_data.json', 'w', encoding='utf-8') as f:
+    backup_path = os.path.join(os.path.dirname(__file__), 'backup_data.json')
+    with open(backup_path, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
-    print("Backup completed: backup_data.json")
+    print(f"Backup completed: {backup_path}")
 
 if __name__ == '__main__':
     backup()

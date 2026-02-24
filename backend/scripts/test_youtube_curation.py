@@ -1,9 +1,9 @@
-
+"""유튜브 추천 큐레이션 기능을 테스트하는 스크립트 (1회성 유틸리티)."""
 import sys
 import os
 
-# Add the project root to sys.path
-sys.path.append(os.path.join(os.getcwd(), '..'))
+# Add the backend root to sys.path
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 # Mock django settings
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')

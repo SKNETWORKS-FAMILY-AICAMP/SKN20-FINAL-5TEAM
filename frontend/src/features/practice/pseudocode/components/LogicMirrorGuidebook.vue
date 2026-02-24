@@ -65,7 +65,7 @@
 
 <script setup>
 import { computed } from 'vue';
-import { aiQuests } from '../data/stages.js'; // [수정일: 2026-02-06] 폴더 계층화(data) 반영
+import { useGameStore } from '@/stores/game';
 import { 
   BookOpen, 
   X, 
@@ -90,15 +90,19 @@ const props = defineProps({
 
 const emit = defineEmits(['close']);
 
-// 튜토리얼 데이터 로드 (gameData.quests -> aiQuests)
+// 튜토리얼 데이터 로드 (gameData.quests -> activeUnit.problems)
 const tutorialSteps = computed(() => {
-  return aiQuests.slice(0, 3).map(q => ({
-    title: q.title,
-    icon: q.emoji, // emoji 필드 사용
-    desc: q.description,
-    instruction: q.instruction, // instruction 필드 추가
-    logicType: q.logic_type
-  }));
+  const problems = useGameStore().activeUnit?.problems || [];
+  return problems.slice(0, 3).map(p => {
+    const q = p.config || {};
+    return {
+      title: q.title || p.title,
+      icon: q.emoji || '🚀', // emoji 필드 사용
+      desc: q.description || q.desc || '미션 설명이 없습니다.',
+      instruction: q.instruction || '가이드를 참고하세요.', // instruction 필드 추가
+      logicType: q.logic_type || '순차'
+    };
+  });
 });
 
 const tutorialName = computed(() => "AI 훈련 가이드");

@@ -15,27 +15,19 @@ export default defineConfig({
   server: {
     host: '0.0.0.0', // Docker 환경 접속 허용
     port: 5173,
-    // [수정일: 2026-02-24] HMR 안정화: 브라우저망 연결 유지를 위해 클라이언트 포트 명시
-    hmr: {
-      clientPort: 5173,
-    },
     watch: {
       usePolling: true,
+      interval: 1000,
     },
     // [수정일: 2026-01-21] 백엔드 API와의 연동을 위한 Proxy 설정 추가
     proxy: {
       '/api': {
-        target: process.env.VITE_API_Target || 'http://backend:8000',
+        target: process.env.VITE_API_Target || 'http://localhost:8000',
         changeOrigin: true,
         cookieDomainRewrite: "localhost"
       },
-      '/socket.io': {
-        target: process.env.VITE_API_Target || 'http://backend:8000',
-        ws: true,
-        changeOrigin: true
-      },
       '/media': {
-        target: process.env.VITE_API_Target || 'http://backend:8000',
+        target: process.env.VITE_API_Target || 'http://localhost:8000',
         changeOrigin: true
       }
     },

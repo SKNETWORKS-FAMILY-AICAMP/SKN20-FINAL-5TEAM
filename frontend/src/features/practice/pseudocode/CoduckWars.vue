@@ -62,7 +62,7 @@
 
           <!-- RIGHT PANEL: DECISION ENGINE [2026-02-11] 단계별 인터랙션 영역 -->
           <section class="decision-panel relative" :class="{ 'visualization-p-zero': ['PYTHON_VISUALIZATION', 'TAIL_QUESTION', 'DEEP_DIVE_DESCRIPTIVE'].includes(gameState.phase) }">
-              <div v-if="gameState.phase.startsWith('DIAGNOSTIC')">
+              <div v-if="gameState.phase.startsWith('DIAGNOSTIC') && diagnosticQuestion">
                   <div class="system-status-row">
                       <span v-if="gameState.phase === 'DIAGNOSTIC_1'">STEP_01: CONCEPT_IDENTIFICATION</span>
                       <span v-else-if="gameState.phase === 'PSEUDO_WRITE'">STEP_02: PSEUDO_ARCHITECTURE</span>
@@ -185,12 +185,15 @@
                           <!-- 의사코드 입력 에디터 -->
                           <div class="monaco-wrapper w-full h-[320px] border border-slate-700/50 rounded-xl overflow-hidden shadow-2xl relative">
                               <!-- [2026-02-19 추가] 플레이스홀더 오버레이 -->
-                              <div v-if="!gameState.phase3Reasoning" class="monaco-placeholder-overlay pointer-events-none">
+                              <!-- [2026-02-24 수정] 에디터 입력 시 300ms 디바운스로 인해 플레이스홀더가 늦게 사라지는 현상을 방지하기 위해 v-if를 v-show로 변경 -->
+                              <div v-show="!gameState.phase3Reasoning" class="monaco-placeholder-overlay pointer-events-none">
                                   <pre class="placeholder-text">{{ currentMission.placeholder || '이곳에 의사코드를 설계하세요...' }}</pre>
                               </div>
+                              <!-- [2026-02-24 수정] 입력값을 즉각적으로 상태와 동기화하여 플레이스홀더 오버레이를 즉시 숨기기 위해 v-model:value 추가 -->
                               <VueMonacoEditor
                                   theme="vs-dark"
                                   language="python"
+                                  v-model:value="gameState.phase3Reasoning"
                                   :options="monacoOptions"
                                   @mount="handleMonacoMount"
                                   class="w-full h-full"
@@ -471,7 +474,10 @@
     />
 
     <!-- [2026-02-11] FEEDBACK TOAST -->
-    <div v-if="gameState.feedbackMessage && gameState.phase !== 'EVALUATION'" class="feedback-toast">
+    <div
+      v-if="gameState.feedbackMessage && gameState.phase !== 'EVALUATION' && !isProcessing && !gameState.isEvaluatingDiagnostic"
+      class="feedback-toast"
+    >
       <span class="toast-icon">!</span> {{ gameState.feedbackMessage }}
     </div>
 
@@ -734,13 +740,66 @@ const handleResetFlow = () => {
     addSystemLog("시스템을 처음부터 다시 시작합니다.", "INFO");
 };
 
-const completeMission = () => {
+const completeMission = async () => {
     const stageIdx = (gameState.currentStageId || 1) - 1;
-    gameStore.unlockNextStage('Pseudo Practice', stageIdx);
+
+    // 1) GameStore를 통한 해금 (내부적으로 ProgressStore unlockNode도 연동되어 있음)
+    await gameStore.unlockNextStage('Pseudo Practice', stageIdx);
     if (stageIdx < 9) {
         gameStore.selectedQuestIndex = stageIdx + 1;
     }
-    addSystemLog(`미션 완료: 스테이지 ${gameState.currentStageId} 데이터베이스 기록됨.`, "SUCCESS");
+
+    // 2) 백엔드에 점수 전송 체계 (ProgressStore 활용)
+    try {
+        const { useProgressStore } = await import('@/stores/progress');
+        const progressStore = useProgressStore();
+
+        // [2026-02-24 Fix] DB PracticeDetail PK 형식에 맞춰 detail_id 조립
+        // activeUnit.problems[stageIdx].dbDetailId 우선 사용, 없으면 unit01_XX 형식 폴백
+        const problems = gameStore.activeUnit?.problems || [];
+        const currentProblem = problems[stageIdx];
+        const currentDetailId = currentProblem?.dbDetailId
+            || `unit01_${String(stageIdx + 1).padStart(2, '0')}`;
+
+        // 점수 획득 (finalReport 에서 가장 정확함)
+        const finalScore = finalReport.value?.totalScore
+            || evaluationResult.overall_score
+            || 0;
+
+        // [2026-02-24 Fix] MyHistoryView의 getEvaluation()이 인식하는 형식으로 submitted_data 구성
+        const submittedData = {
+            missionName: currentMission.value?.title || 'Unknown Pseudo Mission',
+            track_type: 'pseudocode',
+            '작성한 설계 (Training Log)': gameState.phase3Reasoning || '제출된 설계 데이터가 없습니다.',
+            evaluation: {
+                total_score_100: finalScore,
+                one_line_review: finalReport.value?.finalReport?.summary
+                    || evaluationResult.one_line_review
+                    || '',
+                dimensions: {},
+                python_feedback: evaluationResult.senior_advice || ''
+            }
+        };
+
+        // finalReport.metrics → dimensions 변환 (MyHistoryView가 기대하는 구조)
+        if (finalReport.value?.metrics) {
+            Object.entries(finalReport.value.metrics).forEach(([key, metric]) => {
+                submittedData.evaluation.dimensions[key] = {
+                    score: metric.percentage || metric.score || 0,
+                    basis: metric.comment || '',
+                    improvement: ''
+                };
+            });
+        }
+
+        await progressStore.submitScore(currentDetailId, finalScore, submittedData);
+
+        addSystemLog(`미션 완료: 스테이지 ${gameState.currentStageId} 데이터베이스 기록됨.`, "SUCCESS");
+    } catch (err) {
+        console.error('점수 저장 실패:', err);
+        addSystemLog(`점수 저장에 실패했습니다: ${err.message}`, "ERROR");
+    }
+
     emit('close');
 };
 
@@ -1025,38 +1084,40 @@ const isInteractionPhase = computed(() => {
 });
 
 const diagnosticProblemParts = computed(() => {
-    const context = diagnosticQuestion.value.problemContext || "";
+    const context = diagnosticQuestion.value?.problemContext || "";
     if (!context) return null;
     const parts = context.split('\n\n');
     return { instruction: parts[0], code: parts.slice(1).join('\n\n') };
 });
 
 watch(() => gameState.phase, async (newPhase) => {
-    gameState.showHint = false;
-    
-    // [2026-02-22 Fix] 복구 학습 단계 진입 시 기존 리포트 초기화 (구형 데이터 노출 방지)
-    // 0점 리포트 잔상 해결을 위해 감시하는 페이즈를 대폭 확대
-    const resetPhases = [
-        'PYTHON_VISUALIZATION', 
-        'PSEUDO_WRITE', 
-        'DIAGNOSTIC_1',
-        'TAIL_QUESTION',
-        'DEEP_DIVE_DESCRIPTIVE',
-        'DEEP_QUIZ'
-    ];
+    try {
+        gameState.showHint = false;
+        
+        // [2026-02-22 Fix] 복구 학습 단계 진입 시 기존 리포트 초기화 (구형 데이터 노출 방지)
+        // 0점 리포트 잔상 해결을 위해 감시하는 페이즈를 대폭 확대
+        const resetPhases = [
+            'PYTHON_VISUALIZATION', 
+            'PSEUDO_WRITE', 
+            'DIAGNOSTIC_1',
+            'TAIL_QUESTION',
+            'DEEP_DIVE_DESCRIPTIVE',
+            'DEEP_QUIZ'
+        ];
 
-    if (resetPhases.includes(newPhase)) {
-        finalReport.value = null;
-        showMetrics.value = false;
-        console.log(`[Phase Reset] ${newPhase} 진입으로 인한 리포트 초기화`);
-    }
+        if (resetPhases.includes(newPhase)) {
+            finalReport.value = null;
+            showMetrics.value = false;
+            console.log(`[Phase Reset] ${newPhase} 진입으로 인한 리포트 초기화`);
+        }
 
-    if (newPhase === 'EVALUATION' && !showTutorial.value) {
-        // [2026-02-22 Fix] isProcessing이 true인 경우 (submitDescriptiveDeepDive 진행 중)
-        // finally에서 false로 바뀌는 시점을 기다린 후 리포트 생성
-        await nextTick();
-        runComprehensiveEvaluation();
-    }
+        if (newPhase === 'EVALUATION' && !showTutorial.value) {
+            // [2026-02-22 Fix] isProcessing이 true인 경우 (submitDescriptiveDeepDive 진행 중)
+            // finally에서 false로 바뀌는 시점을 기다린 후 리포트 생성
+            await nextTick();
+            await runComprehensiveEvaluation();
+        }
+    } catch(e) { console.warn("[CoduckWars] Main phase watcher error on unmount:", e); }
 });
 
 const { monacoOptions, handleMonacoMount } = useMonacoEditor(

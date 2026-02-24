@@ -11,7 +11,6 @@ from core.views import (
     LoginView,
     LogoutView,
     SessionCheckView,
-    AIEvaluationView,
     AIProxyView,
     BugHuntEvaluationView,
     CodeExecutionView,
@@ -38,6 +37,19 @@ from core.views.job_planner_view import (
     JobPlannerCompanyAnalyzeView,
     JobPlannerAgentQuestionsView,
     JobPlannerAgentReportView,
+    JobPlannerRecommendView
+)
+from core.views.pseudocode.pseudocode_execution import execute_python_code
+from core.views.pseudocode import pseudocode_evaluation
+from core.views import youtube_recommendation
+from core.views.architecture.architecture_view import ArchitectureEvaluationView, ArchitectureQuestionGeneratorView
+from core.views.coach.coach_view import AICoachView
+from core.views.interview import (
+    InterviewJobPostingView, InterviewJobPostingDetailView,
+    InterviewSessionView, InterviewSessionDetailView, InterviewAnswerView,
+    STTTranscribeView,
+    TTSSynthesizeView,
+)
     JobPlannerRecommendView,
 )
 # [수정일: 2026-02-24] InterviewJobPostingView 임포트 추가 - interview/job-postings/ URL 미등록으로 인한 404 오류 수정
@@ -73,7 +85,6 @@ urlpatterns = [
     path('auth/me/', SessionCheckView.as_view(), name='session_check'),
     
     # AI 평가 관련
-    path('ai-evaluate/', AIEvaluationView.as_view(), name='ai_evaluate'),
     path('ai-proxy/', AIProxyView.as_view(), name='ai_proxy'),
     path('ai-bughunt-evaluate/', BugHuntEvaluationView.as_view(), name='bughunt_evaluate'),
 
@@ -91,6 +102,10 @@ urlpatterns = [
     path('pseudo-agent/', PseudocodeAgentView.as_view(), name='pseudo_agent'),
     path('pseudocode/evaluate-5d', pseudocode_evaluation.evaluate_pseudocode_5d),
     path('youtube/recommendations', youtube_recommendation.get_youtube_recommendations),
+
+    # Architecture API
+    path('architecture/evaluate/', ArchitectureEvaluationView.as_view(), name='architecture_evaluate'),
+    path('architecture/generate-questions/', ArchitectureQuestionGeneratorView.as_view(), name='architecture_generate_questions'),
 
     # Vulnerability Analysis API
     # path('vulnerability/analyze/', VulnerabilityAnalysisView.as_view(), name='vulnerability_analyze'),

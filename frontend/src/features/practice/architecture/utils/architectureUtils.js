@@ -275,6 +275,7 @@ export function generateMockEvaluation(problem, components = []) {
 
   return {
     score,
+    totalScore: score,
     grade,
     componentCoverage: {
       included: includedComponents.map(c => c.name),

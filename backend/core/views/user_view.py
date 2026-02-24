@@ -9,7 +9,7 @@ from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User
 from django.contrib.auth import update_session_auth_hash # [수정일: 2026-02-16] 세션 유지용
 from core.models import UserProfile, UserDetail, UserAvatar, UserActivity
-from core.nanobanana_utils import generate_nano_banana_avatar # 나노바나나 연동
+from core.utils.nanobanana_utils import generate_nano_banana_avatar # 나노바나나 연동
 import traceback
 import os
 import uuid
@@ -195,7 +195,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
                             local_rel_path = preview_url.lstrip('/')
                             local_full_path = os.path.join(settings.BASE_DIR, local_rel_path)
                             if os.path.exists(local_full_path):
-                                from core.nanobanana_utils import upload_to_s3
+                                from core.utils.nanobanana_utils import upload_to_s3
                                 try:
                                     with open(local_full_path, 'rb') as f:
                                         s3_url = upload_to_s3(f.read())
@@ -209,7 +209,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
                     # 스타일이나 시드가 명시적으로 변경된 경우만 재생성 (채택 URL이 없을 때)
                     elif (new_style and new_style != current_style) or (new_seed and str(new_seed) != str(current_seed)):
                         print(f"DEBUG: Profile Update - Regenerating avatar with style: {new_style} (Seed: {new_seed})", flush=True)
-                        from core.nanobanana_utils import upload_to_s3
+                        from core.utils.nanobanana_utils import upload_to_s3
                         avatar_data = generate_nano_banana_avatar(new_style, seed=new_seed, save_local=False)
                         
                         if avatar_data and 'image_data' in avatar_data:

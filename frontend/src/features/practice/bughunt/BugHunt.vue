@@ -87,7 +87,9 @@
     </transition>
 
     <!-- Progressive Mission 연습 화면 -->
-    <div v-if="currentView === 'progressivePractice'" class="progressive-practice-container">
+    <div v-if="currentView === 'progressivePractice'" 
+         class="progressive-practice-container"
+         :class="{ 'camera-shake': isScreenShaking }">
       <!-- 날아가는 먹은 지렁이 애니메이션 - 제거됨 -->
 
       <!-- 헤더 -->
@@ -170,7 +172,10 @@
         </aside>
 
         <!-- ========== TUTORIAL MODE ========== -->
-        <main v-if="currentStageMode === 'tutorial'" class="full-code-editor tutorial-mode" ref="editorFrameRef">
+        <main v-if="currentStageMode === 'tutorial'" 
+              class="full-code-editor tutorial-mode" 
+              :class="{ 'camera-shake': isScreenShaking }"
+              ref="editorFrameRef">
           <!-- 3마리 지렁이 SVG 애니메이션 -->
           <div class="bugs-container">
             <div
@@ -685,7 +690,10 @@
         </main>
 
         <!-- ========== STANDARD MODE ========== -->
-        <main v-else class="full-code-editor" ref="editorFrameRef">
+        <main v-else 
+              class="full-code-editor" 
+              :class="{ 'camera-shake': isScreenShaking }"
+              ref="editorFrameRef">
           <!-- 3마리 지렁이 SVG 애니메이션 -->
           <div class="bugs-container">
             <div
@@ -1163,26 +1171,8 @@ function onInterviewerDuckError() {
 }
 
 // ============================================
-// 게임 상태 저장/로드 (LocalStorage)
+// 게임 상태 관리 (Progress Store 연동)
 // ============================================
-const STORAGE_KEY = 'bugHuntGameData';
-
-function loadGameData() {
-  try {
-    const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : null;
-  } catch {
-    return null;
-  }
-}
-
-function saveGameData(data) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  } catch (e) {
-    console.warn('Failed to save game data:', e);
-  }
-}
 
 // 초기 게임 데이터
 const defaultGameData = {
@@ -1198,9 +1188,59 @@ const defaultGameData = {
   }
 };
 
-// 게임 데이터 로드 또는 초기화
-const savedData = loadGameData();
-const gameData = reactive(savedData || { ...defaultGameData });
+// 게임 데이터 (서버 동기화 방식으로 전환)
+const gameData = reactive({ ...defaultGameData });
+
+async function syncBugHuntProgress() {
+  try {
+    const { useProgressStore } = await import('@/stores/progress');
+    const store = useProgressStore();
+    
+    // API 호출 전이라면 패치
+    if (store.solvedRecords.length === 0) {
+        await store.fetchAllProgress();
+    }
+    
+    const bhRecords = store.solvedRecords.filter(r => 
+        r.practice_detail && String(r.practice_detail).includes('bughunt')
+    );
+    
+    let totalScore = 0;
+    const completed = [];
+    
+    bhRecords.forEach(r => {
+      totalScore += r.score;
+      if (r.submitted_data?.mission_id) {
+         const mId = `progressive_${r.submitted_data.mission_id}`;
+         if (!completed.includes(mId)) completed.push(mId);
+      } else {
+         const parts = String(r.practice_detail).split('_');
+         if (parts.length > 1) {
+            const mId = `progressive_${parts[1]}`;
+            if (!completed.includes(mId)) completed.push(mId);
+         }
+      }
+    });
+
+    gameData.completedProblems = completed;
+    gameData.totalScore = totalScore;
+    gameData.xp = totalScore * 10;
+    
+    // 레벨 갱신
+    for (let i = levelTitles.length - 1; i >= 0; i--) {
+      if (gameData.xp >= levelTitles[i].xpRequired) {
+        gameData.level = levelTitles[i].level;
+        break;
+      }
+    }
+  } catch (err) {
+    console.warn("BugHunt progress sync error:", err);
+  }
+}
+
+onMounted(() => {
+   syncBugHuntProgress();
+});
 
 // Monaco Editor 설정
 const editorOptions = {
@@ -1231,10 +1271,7 @@ function clearAllTimeouts() {
   activeTimeouts.clear();
 }
 
-// 게임 데이터 변경 시 자동 저장
-watch(gameData, (newData) => {
-  saveGameData(newData);
-}, { deep: true });
+// (로컬 스토리지 실시간 자동저장 로직 제거됨)
 
 // ============================================
 // 레벨 시스템
@@ -2366,31 +2403,28 @@ function submitGuidedBlank(stepNum) {
     shootBug(stepNum, true);
     addClue('SUCCESS', `Step ${stepNum} 정답! ${stepData.coaching}`);
 
-    scheduleTimeout(() => {
-      progressiveCompletedSteps.value.push(stepNum);
-      const stepId = `progressive_${currentProgressiveMission.value.id}_step${stepNum}`;
-      if (!gameData.completedProblems.includes(stepId)) {
-        gameData.completedProblems.push(stepId);
-      }
-      gameData.stats.totalBugsFixed++;
+    const stepId = `progressive_${currentProgressiveMission.value.id}_step${stepNum}`;
+    if (!gameData.completedProblems.includes(stepId)) {
+      gameData.completedProblems.push(stepId);
+    }
+    gameData.stats.totalBugsFixed++;
 
-      const totalSteps = currentProgressiveMission.value.totalSteps;
-      holdStepResult(stepData, {
-        isFinal: stepNum >= totalSteps,
-        onContinue: async () => {
-          if (stepNum < totalSteps) {
-            currentProgressiveStep.value = stepNum + 1;
-            const nextStepData = getCurrentStepData();
-            clueMessages.value = [];
-            if (nextStepData?.error_log) {
-              clueMessages.value.push({ type: 'ERROR', text: nextStepData.error_log, isNew: true });
-            }
-          } else {
-            await completeMission();
+    const totalSteps = currentProgressiveMission.value.totalSteps;
+    holdStepResult(stepData, {
+      isFinal: stepNum >= totalSteps,
+      onContinue: async () => {
+        if (stepNum < totalSteps) {
+          currentProgressiveStep.value = stepNum + 1;
+          const nextStepData = getCurrentStepData();
+          clueMessages.value = [];
+          if (nextStepData?.error_log) {
+            clueMessages.value.push({ type: 'ERROR', text: nextStepData.error_log, isNew: true });
           }
+        } else {
+          await completeMission();
         }
-      });
-    }, 2000);
+      }
+    });
   } else {
     shootBug(stepNum, false);
     codeSubmitFailCount.value++;
@@ -2640,8 +2674,6 @@ async function submitProgressiveStep() {
         const duration = Math.floor((endTime - stepStartTime.value) / 1000);
         totalDebugTime.value += duration;
 
-        progressiveCompletedSteps.value.push(currentProgressiveStep.value);
-
         const stepId = `progressive_${currentProgressiveMission.value.id}_step${currentProgressiveStep.value}`;
         if (!gameData.completedProblems.includes(stepId)) {
           gameData.completedProblems.push(stepId);
@@ -2726,7 +2758,33 @@ async function completeMission() {
 
   // 백엔드 activity API에 점수 제출 (Protein Shake 적립)
   // 이제 aiEvaluationResult.value가 설정된 상태이므로 llm_evaluation이 포함됨
-  submitToActivity();
+  await submitToActivity(); // 비동기 대기 추가
+
+  // [버그 수정 - 2026-02-24] 다음 스테이지 해금(Unlock) 로직 복구
+  try {
+    const mId = currentProgressiveMission.value?.id;
+    const mIndex = progressiveProblems.value.findIndex(m => m.id === mId);
+    
+    if (mIndex !== -1) {
+      const { useProgressStore } = await import('@/stores/progress');
+      const progressStore = useProgressStore();
+      const { useGameStore } = await import('@/stores/game');
+      const gameStore = useGameStore();
+
+      if (gameStore.activeUnit?.id) {
+        // 현재 노드 해금 (재확인)
+        await progressStore.unlockNode(gameStore.activeUnit.id, mIndex);
+        // 다음 노드가 있다면 해금
+        if (mIndex + 1 < progressiveProblems.value.length) {
+          await progressStore.unlockNode(gameStore.activeUnit.id, mIndex + 1);
+        }
+        // UI 상태 실시간 동기화를 위해 전체 진행도 갱신
+        await progressStore.fetchAllProgress();
+      }
+    }
+  } catch (err) {
+    console.error('BugHunt: Failed to unlock next stage:', err);
+  }
 }
 
 // Activity API에 점수 제출 (Protein Shake 적립)
@@ -2905,11 +2963,13 @@ let duckAnimationId = null;
 const isRunning = ref(false);
 
 // 오리/이펙트 상태
-const walkingDuckPosition = reactive({ left: '10%', top: '85%' });
+const walkingDuckPosition = reactive({ left: '10%', top: '75%' });
 const showBullet = ref(false);
 const bulletPosition = ref({ x: 0, y: 0 });
 // [2026-02-03] 오리가 날아가는 방향을 바라보도록 회전값을 관리하는 변수 추가
 const bulletRotation = ref(0);
+const bulletScale = ref(1); // [2026-02-24] 균등 스케일링을 위한 변수 추가
+const isScreenShaking = ref(false); // [2026-02-24] 화면 진동 트리거
 const showHitEffect = ref(false);
 const showMissEffect = ref(false);
 const hitEffectPosition = ref({ x: 0, y: 0 });
@@ -2924,8 +2984,8 @@ const walkingDuckStyle = computed(() => ({
 const bulletStyle = computed(() => ({
   left: `${bulletPosition.value.x}px`,
   top: `${bulletPosition.value.y}px`,
-  // [2026-02-03] 실시간 궤적에 따른 회전값 적용
-  transform: `translate(-50%, -50%) rotate(${bulletRotation.value}deg)`
+  // [2026-02-24] 기준점을 발(-100%)로 통일하여 하단 짤림 방지 및 타격 지점 정합성 확보
+  transform: `translate(-50%, -100%) rotate(${bulletRotation.value}deg) scale(${bulletScale.value})`
 }));
 
 const hitEffectStyle = computed(() => ({
@@ -2948,9 +3008,9 @@ function animateBug(step) {
   const movementRadiusX = 30; // 좌우 이동 범위
   const centerX = 50; // 중앙 기준
 
-  // Y축은 땅 영역(하단 30%)에서만 움직임
-  const groundMinY = 75; // 땅 시작 위치
-  const groundMaxY = 95; // 땅 끝 위치
+  // Y축은 땅 영역(하단부)에서만 움직임
+  const groundMinY = 70; // 땅 시작 위치
+  const groundMaxY = 85; // [2026-02-24] 하단 짤림 방지를 위해 최대 높이 제한 (기존 95)
   const baseY = (groundMinY + groundMaxY) / 2; // 중간 위치
   const verticalWiggle = 5; // 상하 움직임
 
@@ -3032,112 +3092,120 @@ function shootBug(targetStep, isHit) {
   const frame = editorFrameRef.value;
   const rect = frame.getBoundingClientRect();
 
-  // 오리의 현재 위치에서 출발 (백분율을 픽셀로 변환)
+  // 출발점 (현재 걷는 오리 위치)
   const duckLeft = parseFloat(walkingDuckPosition.left);
   const duckTop = parseFloat(walkingDuckPosition.top);
   const startX = (duckLeft / 100) * rect.width;
   const startY = (duckTop / 100) * rect.height;
 
-  // 버그 위치 계산 (이펙트가 버그 위치에서 발현되도록)
-  const bugLeft = parseFloat(bugPositions[targetStep].left);
-  const bugTop = parseFloat(bugPositions[targetStep].top);
+  // [2026-02-24] 프리미엄 추적: 공격 시점의 지렁이 위치를 실시간으로 가져옴
+  const bugPos = bugPositions[targetStep];
+  if (!bugPos) return;
 
-  // 에디터 프레임 기준 좌표로 변환
-  const targetX = (bugLeft / 100) * rect.width;
-  const targetY = (bugTop / 100) * rect.height;
+  const bugLeft = parseFloat(bugPos.left);
+  const bugTop = parseFloat(bugPos.top);
 
-  // 오리 날아가기 시작 - 위치를 먼저 설정
+  // 목표지점 (실패 시에는 약간 빗나가게)
+  const targetX = isHit ? (bugLeft / 100) * rect.width : ((bugLeft + 8) / 100) * rect.width;
+  const targetY = isHit ? (bugTop / 100) * rect.height : ((bugTop - 12) / 100) * rect.height;
+
   bulletPosition.value = { x: startX, y: startY };
+  bulletScale.value = 1;
+  bulletRotation.value = 0;
+  isEating.value = false;
+  isSad.value = false;
 
-  // nextTick을 사용하여 DOM 업데이트 후 표시
   nextTick(() => {
     showBullet.value = true;
-    startDuckFlight();
+    startDuckFlight(startX, startY, targetX, targetY, isHit, targetStep);
   });
+}
 
-  function startDuckFlight() {
+function startDuckFlight(startX, startY, targetX, targetY, isHit, targetStep) {
+  const distance = Math.sqrt(Math.pow(targetX - startX, 2) + Math.pow(targetY - startY, 2));
+  
+  // [2026-02-24] 거리에 따른 역동적 아크 높이 계산 (멀수록 높게, 너무 낮지 않게)
+  const arcHeight = Math.max(120, distance * 0.45);
+  const duration = isHit ? 850 : 1100; // 타격 시 더 snappier하게
+  const startTime = performance.now();
 
-    const duration = 1200; // 속도를 느리게 조정 (500 -> 1200ms)
-    const startTime = performance.now();
+  function animateBullet(currentTime) {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    
+    // [2026-02-24] 더 부드러운 궤적: Cubic Ease-Out 적용 (Quartic보다 완만한 감속)
+    const easeProgress = 1 - Math.pow(1 - progress, 3);
 
-    function animateBullet(currentTime) {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const easeProgress = 1 - Math.pow(1 - progress, 3);
+    // 포물선 궤적 (아크 높이 최적화)
+    const parabola = 4 * arcHeight * progress * (1 - progress);
 
-      // 포물선 궤적 계산 (더 자연스러운 날아가기)
-      const arcHeight = 50; // 포물선 높이
-      const parabola = 4 * arcHeight * progress * (1 - progress);
+    bulletPosition.value.x = startX + (targetX - startX) * easeProgress;
+    bulletPosition.value.y = startY + (targetY - startY) * easeProgress - parabola;
 
-      bulletPosition.value.x = startX + (targetX - startX) * easeProgress;
-      bulletPosition.value.y = startY + (targetY - startY) * easeProgress - parabola;
+    // [2026-02-24] 비행 중 스케일링 (포물선 정점에서 가장 펴진 느낌)
+    const squashStretch = 1 + Math.sin(progress * Math.PI) * 0.35;
+    bulletScale.value = squashStretch;
 
-      // [2026-02-03] 날아가는 방향(궤적의 기울기)에 맞춰 이미지 회전 계산
-      const dx = targetX - startX;
-      // 포물선 궤적의 1차 미분값을 활용해 현재 진행 방향의 기울기 산출
-      const dy_dp = (targetY - startY) - 4 * arcHeight * (1 - 2 * progress);
-      const angle = Math.atan2(dy_dp, dx) * (180 / Math.PI);
-      bulletRotation.value = angle;
+    // 진행 방향 추적 (샘플링 간격 미세 조정)
+    const nextT = Math.min(progress + 0.01, 1);
+    const nEase = 1 - Math.pow(1 - nextT, 3);
+    const nX = startX + (targetX - startX) * nEase;
+    const nY = (startY + (targetY - startY) * nEase) - (4 * arcHeight * nextT * (1 - nextT));
+    
+    const dx = nX - bulletPosition.value.x;
+    const dy = nY - bulletPosition.value.y;
+    bulletRotation.value = Math.atan2(dy, dx) * (180 / Math.PI);
 
-      if (progress < 1) {
-        requestAnimationFrame(animateBullet);
-      } else {
-        // [2026-02-03] 도착 시 회전값 초기화 (정면을 보고 먹기 위해)
-        bulletRotation.value = 0;
+    if (progress < 1) {
+      requestAnimationFrame(animateBullet);
+    } else {
+      handleFlightImpact(targetX, targetY, isHit, targetStep);
+    }
+  }
 
-        // 화면 흔들림 효과
-        isShaking.value = true;
-        
-        // [2026-02-03] 버그 타격 시 오리 이미지(메인 및 헤더)를 먹기 상태로 전환
-        if (isHit) {
-          isEating.value = true;
-          headerEatingStep.value = targetStep;
+  requestAnimationFrame(animateBullet);
+}
 
-          // [2026-02-03] 정답일 경우 지렁이를 잡아먹는 시간을 1200ms로 연장하여 가시성 확보
-          scheduleTimeout(() => {
-            showBullet.value = false; // 먹기 완료 후 비행 오브젝트 제거
-            isShaking.value = false;
-
-            // [2026-02-03] 비행체가 사라진 후에도 바닥 오리가 잠시 더 냠냠거리는 여운을 남김 (800ms 추가)
-            scheduleTimeout(() => {
-              isEating.value = false;
-              headerEatingStep.value = null;
-            }, 800);
-          }, 1200);
-        } else {
-          // 오답일 경우 타겟 위치에서 슬픈 상태 활성화
-          isSad.value = true;
-
-          // 2초 후 비행 오브젝트 제거 및 상태 해제 (타겟 지점에서 머물기)
-          scheduleTimeout(() => {
-            showBullet.value = false;
-            isSad.value = false;
-            isShaking.value = false;
-          }, 2000);
-        }
-
-        if (isHit) {
-          hitEffectPosition.value = { x: targetX, y: targetY };
-          hitEffectText.value = ['YUMMY!', 'DELICIOUS!', 'NOM NOM!', 'TASTY!'][Math.floor(Math.random() * 4)];
-          showHitEffect.value = true;
-
-          // 해당 버그 애니메이션 중지
-          if (bugAnimationIds[targetStep]) {
-            cancelAnimationFrame(bugAnimationIds[targetStep]);
-            bugAnimationIds[targetStep] = null;
-          }
-
-          scheduleTimeout(() => { showHitEffect.value = false; }, 1500);
-        } else {
-          missEffectPosition.value = { x: targetX + 30, y: targetY - 20 };
-          showMissEffect.value = true;
-          scheduleTimeout(() => { showMissEffect.value = false; }, 1000);
-        }
-      }
+function handleFlightImpact(targetX, targetY, isHit, targetStep) {
+  if (isHit) {
+    // [2026-02-24] 지렁이 선소멸: 오리가 먹는 이미지가 나오기 전에 지렁이 상태를 '사망'으로 즉시 전환
+    if (!progressiveCompletedSteps.value.includes(targetStep)) {
+      progressiveCompletedSteps.value.push(targetStep);
     }
 
-    requestAnimationFrame(animateBullet);
+    isEating.value = true;
+    hitEffectPosition.value = { x: targetX, y: targetY };
+    hitEffectText.value = ['GOTCHA!', 'POP!', 'YUMMY!', 'CRUNCH!'][Math.floor(Math.random() * 4)];
+    showHitEffect.value = true;
+    
+    // [2026-02-24] 명중 시 '팝' 효과 극대화
+    bulletScale.value = 1.7;
+    bulletRotation.value = 0; 
+
+    if (bugAnimationIds[targetStep]) {
+      cancelAnimationFrame(bugAnimationIds[targetStep]);
+      bugAnimationIds[targetStep] = null;
+    }
+
+    isScreenShaking.value = true;
+    scheduleTimeout(() => { isScreenShaking.value = false; }, 250);
+
+    scheduleTimeout(() => { showHitEffect.value = false; }, 1200);
+  } else {
+    isSad.value = true;
+    bulletScale.value = 0.9; // 실패 시 작아짐 (슬픈 느낌)
+    missEffectPosition.value = { x: targetX + 15, y: targetY - 15 };
+    showMissEffect.value = true;
+    scheduleTimeout(() => { showMissEffect.value = false; }, 1500);
   }
+
+  scheduleTimeout(() => {
+    showBullet.value = false;
+    isEating.value = false;
+    isSad.value = false;
+    bulletRotation.value = 0;
+    bulletScale.value = 1;
+  }, 1600);
 }
 
 // 상태 관리
@@ -3163,62 +3231,9 @@ function resetGameData() {
 }
 
 // ============================================
-// LocalStorage 마이그레이션
+// LocalStorage 마이그레이션 삭제 (2026-02-24)
+// - DB 기반 progressStore 로직으로 완전 통합
 // ============================================
-
-function migrateGameDataToStages() {
-  const data = loadGameData();
-  if (!data || data._migrated_v3) return;
-
-  const completed = data.completedProblems || [];
-  const newCompleted = [...completed];
-
-  // P1 step1 → S1 step1
-  if (completed.includes('progressive_P1_step1')) {
-    if (!newCompleted.includes('progressive_S1_step1')) newCompleted.push('progressive_S1_step1');
-  }
-  // P1 step2 → S2 step1
-  if (completed.includes('progressive_P1_step2')) {
-    if (!newCompleted.includes('progressive_S2_step1')) newCompleted.push('progressive_S2_step1');
-  }
-  // P1 step3 → S2 step2
-  if (completed.includes('progressive_P1_step3')) {
-    if (!newCompleted.includes('progressive_S2_step2')) newCompleted.push('progressive_S2_step2');
-  }
-  // P1 mission complete → S1 + S2
-  if (completed.includes('progressive_P1')) {
-    if (!newCompleted.includes('progressive_S1')) newCompleted.push('progressive_S1');
-    if (!newCompleted.includes('progressive_S2')) newCompleted.push('progressive_S2');
-  }
-
-  // P2→S4, P3→S5, P4→S6, P5→S7
-  const mapping = { 'P2': 'S4', 'P3': 'S5', 'P4': 'S6', 'P5': 'S7' };
-  for (const [oldId, newId] of Object.entries(mapping)) {
-    for (const entry of completed) {
-      if (entry.startsWith(`progressive_${oldId}`)) {
-        const newEntry = entry.replace(`progressive_${oldId}`, `progressive_${newId}`);
-        if (!newCompleted.includes(newEntry)) newCompleted.push(newEntry);
-      }
-    }
-  }
-
-  // 기존 S3~S6 데이터를 S4~S7로 시프트 (덮어쓰기 방지를 위해 역순 적용)
-  const shiftMapping = { 'S6': 'S7', 'S5': 'S6', 'S4': 'S5', 'S3': 'S4' };
-  for (const oldId of Object.keys(shiftMapping)) {
-    const newId = shiftMapping[oldId];
-    for (const entry of completed) {
-      if (entry.startsWith(`progressive_${oldId}`)) {
-        const newEntry = entry.replace(`progressive_${oldId}`, `progressive_${newId}`);
-        if (!newCompleted.includes(newEntry)) newCompleted.push(newEntry);
-      }
-    }
-  }
-
-  data.completedProblems = newCompleted;
-  data._migrated_v3 = true;
-  saveGameData(data);
-  Object.assign(gameData, data);
-}
 
 // ============================================
 // API 데이터 로딩
@@ -3267,8 +3282,6 @@ const fetchProgressiveProblems = async () => {
 onMounted(async () => {
   // DB에서 데이터 로딩
   await fetchProgressiveProblems();
-  // LocalStorage 마이그레이션 먼저 실행
-  migrateGameDataToStages();
 
   // 이미지 preload (애니메이션 전에 미리 로딩)
   const imagesToPreload = [duckIdle, duckEating, duckFlying, duckSad, unitDuck];

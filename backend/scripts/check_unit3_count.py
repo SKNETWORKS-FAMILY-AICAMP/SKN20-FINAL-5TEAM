@@ -1,10 +1,11 @@
+"""unit03(시스템아키텍처) 문제 데이터 개수를 확인하는 스크립트 (1회성 유틸리티)."""
 import os
 import django
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
-from core.models.Practice_model import Practice, PracticeDetail
+from core.models.practice_model import Practice, PracticeDetail
 
 unit_id = 'unit03'
 total_details = PracticeDetail.objects.filter(practice_id=unit_id).count()

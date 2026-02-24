@@ -33,11 +33,13 @@
           <button @click="scrollToLeaderboard" class="btn-social-v2">
             전당 확인
           </button>
-          <button @click="$emit('open-job-planner')" class="btn-job-planner">
-            <span>Job Planner</span>
+          <!-- [2026-02-24] Job Planner 버튼: 로그인한 사용자에게만 노출되도록 v-if 추가 및 아이콘 적용 -->
+          <button v-if="isLoggedIn" @click="$emit('open-job-planner')" class="btn-job-planner btn-planner-color">
+            <span>📓 Job Planner</span>
           </button>
-          <button @click="$emit('open-interview')" class="btn-job-planner">
-            <span>Interview</span>
+          <!-- [2026-02-24] Interview 버튼: 로그인한 사용자에게만 노출되도록 v-if 추가 및 아이콘 적용 -->
+          <button v-if="isLoggedIn" @click="$emit('open-interview')" class="btn-job-planner btn-interview-color">
+            <span>🎤 Interview</span>
           </button>
           <!-- [수정일: 2026-02-24] Coduck Wars 버튼 제거 (Arcade Unit 카드로 이동됨) -->
         </div>
@@ -59,10 +61,7 @@
           <LayoutGrid class="nav-icon" />
           <span class="nav-label">Stages</span>
         </a>
-        <a href="#leaderboard" class="nav-item" @click.prevent="scrollToSection('leaderboard')">
-          <Trophy class="nav-icon" />
-          <span class="nav-label">Hall of Fame</span>
-        </a>
+
         <div class="protein-status">
           <Zap class="icon-protein" />
           <span class="protein-count">{{ userProteinShakes }}</span>
@@ -80,10 +79,7 @@
           <LayoutGrid class="nav-icon" />
           <span class="nav-label">Stages</span>
         </a>
-        <a href="#leaderboard" class="nav-item" @click.prevent="scrollToSection('leaderboard')">
-          <Trophy class="nav-icon" />
-          <span class="nav-label">Hall of Fame</span>
-        </a>
+
         <div class="protein-status">
           <Zap class="icon-protein" />
           <span class="protein-count">{{ userProteinShakes }}</span>

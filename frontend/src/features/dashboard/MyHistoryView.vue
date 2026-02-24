@@ -195,11 +195,11 @@
                                 <span class="section-icon">{{ getSectionIcon(key) }}</span>
                                 <span class="section-title">{{ key }}</span>
                               </div>
-                              <div class="section-content" :class="{ 'code-mode': key.includes('코드') || key.includes('Implementation') || isMermaidCode(val) }">
+                              <div class="section-content" :class="{ 'code-mode': key.includes('코드') || key.includes('Implementation') || key.includes('Training Log') || key.includes('설계') || isMermaidCode(val) }">
                                 <template v-if="isMermaidCode(val)">
                                   <MermaidRenderer :code="val" :id="`mermaid-${group.detail_id}-${idx}-${key}`" />
                                 </template>
-                                <pre v-else-if="key.includes('코드') || key.includes('Implementation')">{{ val }}</pre>
+                                <pre v-else-if="key.includes('코드') || key.includes('Implementation') || key.includes('Training Log') || key.includes('설계')">{{ val }}</pre>
                                 <p v-else>{{ val }}</p>
                               </div>
                             </div>
@@ -310,9 +310,9 @@ const getEvaluation = (ans) => {
       Object.entries(ev.dimensions).forEach(([k, v]) => {
         metrics.push({
           key: k,
-          label: translateKey(k),
-          score: v.score || 0,
-          basis: v.basis || "",
+          label: v.name || translateKey(k),
+          score: v.percentage || v.score || 0,
+          basis: v.comment || v.basis || "",
           improvement: v.improvement || ""
         });
       });
@@ -320,9 +320,9 @@ const getEvaluation = (ans) => {
     return {
       type: 'ML_EVAL',
       totalScore: ev.total_score_100 || ans.score,
-      summary: ev.one_line_review || "상세 평가 요약이 없습니다.",
+      summary: ev.summary || ev.one_line_review || "상세 평가 요약이 없습니다.",
       metrics: metrics,
-      feedback: ev.python_feedback || ""
+      feedback: ev.senior_advice || ev.python_feedback || ""
     };
   }
 
@@ -348,6 +348,30 @@ const getEvaluation = (ans) => {
     };
   }
 
+  // [2026-02-24 Fix] 구형식 호환: evaluation 래퍼 없이 metrics/summary가 최상위에 있는 경우
+  // (CoduckWars의 이전 completeMission()이 저장한 형식)
+  if (data.track_type === 'pseudocode' && data.metrics && typeof data.metrics === 'object') {
+    const metrics = [];
+    Object.entries(data.metrics).forEach(([k, v]) => {
+      if (v && typeof v === 'object') {
+        metrics.push({
+          key: k,
+          label: v.name || translateKey(k),
+          score: v.percentage || v.score || 0,
+          basis: v.comment || "",
+          improvement: ""
+        });
+      }
+    });
+    return {
+      type: 'ML_EVAL',
+      totalScore: ans.score,
+      summary: data.summary || "상세 평가 요약이 없습니다.",
+      metrics: metrics,
+      feedback: ""
+    };
+  }
+
   return null;
 };
 
@@ -365,6 +389,7 @@ const translateKey = (key) => {
     'consistency': '격리 원칙',
     'implementation': '구체성',
     'edge_case': '예외 처리',
+    'edgeCase': '예외 처리',
     'abstraction': '추상화 레벨',
     // Unit 3
     'security': '보안성',
@@ -385,6 +410,8 @@ const shouldRenderSection = (key) => {
     'deep_dive_answers',    // Unit 3 질답 (이미 대시보드에 포함)
     'user_explanation',      // Unit 3 설계 설명 (질답 1번과 중복)
     'problem_id',           // 내부 ID
+    'missionName',          // [2026-02-24 추가] Coduck Wars 미션명 (헤더에서 표시됨)
+    'title',                // [2026-02-24 추가] 공통 미션/문제 제목
     'components',           // 머메이드용 로우 데이터
     'connections',          // 머메이드용 로우 데이터
 
@@ -402,6 +429,7 @@ const shouldRenderSection = (key) => {
 };
 
 const getSectionIcon = (key) => {
+  if (key.includes('Training Log') || key.includes('설계')) return '📝';
   if (key.includes('사고') || key.includes('Architecture')) return '🧠';
   if (key.includes('AI') || key.includes('Evaluation')) return '🤖';
   if (key.includes('코드') || key.includes('Implementation')) return '💻';
