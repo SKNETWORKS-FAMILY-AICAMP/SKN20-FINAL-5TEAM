@@ -774,8 +774,8 @@ export default {
 
 /* [좌측 패널] CaseFilePanel 스타일 오버라이드 */
 :deep(.case-file-panel) {
-  width: 320px;
-  min-width: 320px;
+  width: 420px;
+  min-width: 420px;
   background: var(--bg-panel) !important;
   border: 1px solid var(--neon-purple) !important;
   border-radius: 16px !important;
