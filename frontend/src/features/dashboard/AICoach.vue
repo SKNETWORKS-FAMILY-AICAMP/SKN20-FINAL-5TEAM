@@ -28,6 +28,14 @@
             <span class="preset-icon">&#127942;</span>
             <span>유닛별 성적</span>
           </button>
+          <button class="preset-btn" @click="sendPreset('디버깅 공부는 어떻게 하면 좋아?')">
+            <span class="preset-icon">&#128214;</span>
+            <span>디버깅 공부법</span>
+          </button>
+          <button class="preset-btn" @click="sendPreset('의사코드 잘 쓰는 팁 알려줘')">
+            <span class="preset-icon">&#128161;</span>
+            <span>의사코드 팁</span>
+          </button>
         </div>
       </div>
 
@@ -47,6 +55,11 @@
               <span class="thinking-icon">&#129504;</span>
               <span class="thinking-text">{{ item.message }}</span>
               <span v-if="item.active" class="step-spinner"></span>
+            </div>
+            <!-- status (추가 조회 여부 안내) -->
+            <div v-if="item.type === 'status'" class="status-block" :class="'status-' + item.variant">
+              <span class="status-icon">{{ item.variant === 'fetching' ? '&#128269;' : item.variant === 'blocked' ? '&#128683;' : '&#9989;' }}</span>
+              <span class="status-text">{{ item.message }}</span>
             </div>
             <!-- tool step -->
             <div v-if="item.type === 'step'" class="step-block">
@@ -173,6 +186,18 @@ function formatResult(result) {
     return `풀이 ${result.total_solved}건 — 약점: ${weakList}`;
   }
 
+  // get_unit_curriculum 결과
+  if (result.core_concepts !== undefined) {
+    return `${result.name} (${result.difficulty})\n목표: ${result.goal}\n핵심: ${result.core_concepts.slice(0, 3).join(', ')}`;
+  }
+
+  // get_study_guide 결과
+  if (result.guides !== undefined) {
+    if (result.guides.length === 0) return `약점 없음 — ${result.overall_tip}`;
+    const guideList = result.guides.map(g => `${g.metric} ${g.avg_score}점 → ${g.concept}`).join('\n');
+    return `${guideList}\n💡 ${result.overall_tip}`;
+  }
+
   return String(result);
 }
 
@@ -278,6 +303,18 @@ async function sendMessage() {
                 type: 'thinking',
                 message: data.message,
                 active: true,
+              });
+              scrollToBottom();
+            }
+            else if (data.type === 'status') {
+              // thinking 비활성화
+              const curThinking = [...assistantMsg.timeline].reverse().find(i => i.type === 'thinking');
+              if (curThinking) curThinking.active = false;
+              // status 추가 (추가 조회 여부 안내)
+              assistantMsg.timeline.push({
+                type: 'status',
+                message: data.message,
+                variant: data.variant,
               });
               scrollToBottom();
             }
@@ -461,9 +498,9 @@ async function sendMessage() {
 
 .preset-buttons {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 0.75rem;
-  max-width: 480px;
+  max-width: 600px;
   width: 100%;
 }
 
@@ -563,6 +600,42 @@ async function sendMessage() {
   font-size: 0.8rem;
   color: var(--text-muted);
   font-style: italic;
+}
+
+/* ===== Agent Status (추가 조회 여부 안내) ===== */
+.status-block {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  align-self: flex-start;
+  padding: 0.45rem 0.85rem;
+  border-radius: 0 8px 8px 0;
+  animation: stepSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.status-fetching {
+  background: rgba(79, 195, 247, 0.08);
+  border-left: 3px solid rgba(79, 195, 247, 0.6);
+}
+
+.status-ready {
+  background: rgba(102, 187, 106, 0.08);
+  border-left: 3px solid rgba(102, 187, 106, 0.6);
+}
+
+.status-blocked {
+  background: rgba(239, 83, 80, 0.08);
+  border-left: 3px solid rgba(239, 83, 80, 0.6);
+}
+
+.status-icon {
+  font-size: 0.9rem;
+}
+
+.status-text {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 500;
 }
 
 /* ===== Agent Steps ===== */
