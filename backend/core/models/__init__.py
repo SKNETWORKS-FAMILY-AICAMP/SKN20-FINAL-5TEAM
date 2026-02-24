@@ -7,4 +7,5 @@ from .dashboard_model import DashboardLog
 from .common_model import Common
 from .Practice_model import Practice, PracticeDetail
 from .activity_model import UserAvatar, UserActivity, UserSolvedProblem, UserProgress
+from .interview_model import SavedJobPosting, InterviewSession, InterviewTurn, InterviewFeedback
 # Note: Notice, Product, Order, Review 모델은 유실 또는 사용자 요청에 의해 제외됨

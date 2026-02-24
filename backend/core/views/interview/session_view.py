@@ -1,0 +1,262 @@
+"""
+session_view.py — 모의면접 세션 CRUD API
+POST /api/core/interview/sessions/           → 새 세션 생성 (첫 질문 포함)
+GET  /api/core/interview/sessions/           → 세션 목록
+GET  /api/core/interview/sessions/<pk>/      → 세션 상세
+"""
+import json
+from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import AllowAny
+
+from core.models import (
+    UserProfile, SavedJobPosting,
+    InterviewSession, InterviewTurn, InterviewFeedback
+)
+from core.services.interview.weakness_analyzer import analyze_user_weakness
+from core.services.interview.plan_generator import generate_plan
+from core.services.interview.state_engine import StateEngine
+from core.services.interview.planner import decide_intent
+from core.services.interview.humanizer import build_context
+from core.services.interview.interviewer import generate_question_sync
+
+engine = StateEngine()
+
+
+def _get_user(request):
+    """세션에서 UserProfile을 가져온다. 없으면 None."""
+    user_id = request.session.get('user_id') or request.session.get('_auth_user_id')
+    if not user_id:
+        return None
+    try:
+        return UserProfile.objects.get(pk=user_id)
+    except UserProfile.DoesNotExist:
+        return None
+
+
+def _serialize_session(session) -> dict:
+    plan = session.interview_plan or {}
+    slots = plan.get('slots', [])
+    total_slots = plan.get('total_slots', len(slots))
+
+    # 슬롯 진행 상황 요약
+    slot_progress = []
+    for s in slots:
+        slot_name = s.get('slot', '')
+        state = session.slot_states.get(slot_name, {})
+        slot_progress.append({
+            'slot': slot_name,
+            'topic': s.get('topic', slot_name),
+            'status': state.get('status', 'UNKNOWN'),
+        })
+
+    return {
+        'id': session.id,
+        'status': session.status,
+        'current_slot': session.current_slot,
+        'current_turn': session.current_turn,
+        'max_turns': session.max_turns,
+        'total_slots': total_slots,
+        'slot_progress': slot_progress,
+        'job_posting': {
+            'id': session.job_posting.id,
+            'company_name': session.job_posting.company_name,
+            'position': session.job_posting.position,
+        } if session.job_posting else None,
+        'started_at': session.started_at.isoformat() if session.started_at else None,
+        'finished_at': session.finished_at.isoformat() if session.finished_at else None,
+    }
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class InterviewSessionView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        """사용자의 세션 목록 반환"""
+        user = _get_user(request)
+        if not user:
+            return Response({'error': '로그인이 필요합니다.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        sessions = InterviewSession.objects.filter(user=user).select_related('job_posting')
+        data = [_serialize_session(s) for s in sessions]
+        return Response(data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        """새 모의면접 세션 생성 + 첫 질문 반환"""
+        user = _get_user(request)
+        if not user:
+            return Response({'error': '로그인이 필요합니다.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        data = request.data
+        job_posting_id = data.get('job_posting_id')
+
+        # 채용공고 조회 (없으면 None으로 진행)
+        job_posting = None
+        if job_posting_id:
+            try:
+                job_posting = SavedJobPosting.objects.get(pk=job_posting_id, user=user)
+            except SavedJobPosting.DoesNotExist:
+                return Response(
+                    {'error': '채용공고를 찾을 수 없습니다.'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+        try:
+            # 1. 사용자 취약점 분석
+            user_weakness = analyze_user_weakness(user)
+
+            # 2. 면접 계획 생성
+            interview_plan = generate_plan(job_posting, user_weakness)
+
+            # 3. 세션 생성
+            session = InterviewSession.objects.create(
+                user=user,
+                job_posting=job_posting,
+                interview_plan=interview_plan,
+                slot_states={},
+                current_slot='',
+                current_turn=0,
+                max_turns=data.get('max_turns', 20),
+                status='in_progress',
+                just_moved_slot=False,
+                question_history=[],
+            )
+
+            # 4. slot_states 초기화
+            slot_states = engine.initialize_slot_states(interview_plan)
+            session.slot_states = slot_states
+
+            # 5. 첫 슬롯 설정
+            slots = interview_plan.get('slots', [])
+            if not slots:
+                session.delete()
+                return Response({'error': '면접 계획 생성에 실패했습니다.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            first_slot_plan = slots[0]
+            first_slot = first_slot_plan['slot']
+            session.current_slot = first_slot
+            session.just_moved_slot = False
+            # current_turn=0 → humanizer가 is_first_question=True로 처리
+
+            session.save()
+
+            # 6. 첫 질문 생성 (L3 → L5 → L4 sync)
+            required = session.get_slot_required(first_slot)
+            intent_data = decide_intent(required, [])
+            intent = intent_data['intent']
+
+            ctx = build_context(session, first_slot_plan)
+            ctx['is_first_question'] = True
+
+            first_question = generate_question_sync(intent, ctx)
+
+            # 7. current_turn 업데이트
+            session.current_turn = 1
+            session.question_history = [
+                {'slot': first_slot, 'intent': intent, 'turn': 1}
+            ]
+            session.save()
+
+            # 8. 첫 InterviewTurn 생성 (answer는 빈 문자열 — 사용자가 아직 답변 안 함)
+            InterviewTurn.objects.create(
+                session=session,
+                turn_number=1,
+                slot=first_slot,
+                question=first_question,
+                answer='',
+                evidence_map={},
+                slot_status_before='UNKNOWN',
+                slot_status_after='UNKNOWN',
+                engine_action='',
+                intent=intent,
+                coach_feedback='',
+            )
+
+            return Response({
+                'session_id': session.id,
+                'first_question': first_question,
+                'current_slot': first_slot,
+                'current_turn': 1,
+                'total_slots': interview_plan.get('total_slots', len(slots)),
+                'slot_info': {
+                    'slot': first_slot,
+                    'topic': first_slot_plan.get('topic', first_slot),
+                },
+            }, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            print(f'[SessionView] 세션 생성 오류: {e}')
+            return Response({'error': '세션 생성 중 오류가 발생했습니다.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class InterviewSessionDetailView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def get(self, request, pk):
+        """세션 상세 조회 (슬롯 진행 상황 + 최신 질문)"""
+        user = _get_user(request)
+        if not user:
+            return Response({'error': '로그인이 필요합니다.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        try:
+            session = InterviewSession.objects.select_related('job_posting').get(pk=pk, user=user)
+        except InterviewSession.DoesNotExist:
+            return Response({'error': '세션을 찾을 수 없습니다.'}, status=status.HTTP_404_NOT_FOUND)
+
+        serialized = _serialize_session(session)
+
+        # 현재 턴의 질문 (아직 답변 안 한 마지막 질문)
+        pending_turn = session.turns.filter(answer='').order_by('-turn_number').first()
+        serialized['current_question'] = pending_turn.question if pending_turn else ''
+
+        # 전체 Q&A 턴 목록 (완료된 턴만 — answer 있는 것)
+        completed_turns = session.turns.filter(answer__gt='').order_by('turn_number')
+        serialized['turns'] = [
+            {
+                'turn_number': t.turn_number,
+                'slot': t.slot,
+                'question': t.question,
+                'answer': t.answer,
+                'coach_feedback': t.coach_feedback,
+                'slot_status_after': t.slot_status_after,
+            }
+            for t in completed_turns
+        ]
+
+        # 최종 피드백 (세션 완료 시)
+        if session.status == 'completed':
+            try:
+                fb = session.feedback
+                serialized['feedback'] = {
+                    'overall_summary': fb.overall_summary,
+                    'top_strengths': fb.top_strengths,
+                    'top_improvements': fb.top_improvements,
+                    'recommendation': fb.recommendation,
+                    'slot_summary': fb.slot_summary,
+                }
+            except InterviewFeedback.DoesNotExist:
+                serialized['feedback'] = None
+
+        return Response(serialized, status=status.HTTP_200_OK)
+
+    def delete(self, request, pk):
+        """세션 삭제"""
+        user = _get_user(request)
+        if not user:
+            return Response({'error': '로그인이 필요합니다.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        try:
+            session = InterviewSession.objects.get(pk=pk, user=user)
+        except InterviewSession.DoesNotExist:
+            return Response({'error': '세션을 찾을 수 없습니다.'}, status=status.HTTP_404_NOT_FOUND)
+
+        session.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

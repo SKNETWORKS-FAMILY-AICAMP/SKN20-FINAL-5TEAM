@@ -32,6 +32,12 @@ from core.views.pseudocode_execution import execute_python_code
 from core.views import pseudocode_evaluation, youtube_recommendation
 from core.views.architecture_view import ArchitectureEvaluationView, ArchitectureQuestionGeneratorView
 from core.views.coach_view import AICoachView
+from core.views.interview import (
+    InterviewJobPostingView, InterviewJobPostingDetailView,
+    InterviewSessionView, InterviewSessionDetailView, InterviewAnswerView,
+    STTTranscribeView,
+    TTSSynthesizeView,
+)
 
 router = DefaultRouter()
 router.register(r'users', UserProfileViewSet, basename='users')
@@ -82,6 +88,15 @@ urlpatterns = [
 
     # AI Coach Agent API
     path('ai-coach/chat/', AICoachView.as_view(), name='ai_coach_chat'),
+
+    # 모의면접 API
+    path('interview/job-postings/', InterviewJobPostingView.as_view(), name='interview_job_postings'),
+    path('interview/job-postings/<int:pk>/', InterviewJobPostingDetailView.as_view(), name='interview_job_posting_detail'),
+    path('interview/sessions/', InterviewSessionView.as_view(), name='interview_sessions'),
+    path('interview/sessions/<int:pk>/', InterviewSessionDetailView.as_view(), name='interview_session_detail'),
+    path('interview/sessions/<int:pk>/answer/', InterviewAnswerView.as_view(), name='interview_answer'),
+    path('stt/transcribe/', STTTranscribeView.as_view(), name='stt_transcribe'),
+    path('tts/synthesize/', TTSSynthesizeView.as_view(), name='tts_synthesize'),
 
     # Job Planner API
     path('job-planner/parse/', JobPlannerParseView.as_view(), name='job_planner_parse'),
