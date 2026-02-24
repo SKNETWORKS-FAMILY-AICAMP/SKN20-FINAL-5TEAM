@@ -200,9 +200,13 @@ def _stream_answer(session, answer: str, old_turn: InterviewTurn):
     plan_slot = session.get_current_slot_plan()
     ctx = build_context(session, plan_slot)
 
+    # 대화 히스토리 조립 (answer가 있는 턴만, 최근 4턴)
+    past_turns = session.turns.exclude(answer='').order_by('turn_number').values('question', 'answer')
+    conversation_history = [{"q": t['question'], "a": t['answer']} for t in past_turns][-4:]
+
     # ── Phase 7: L4 Interviewer SSE 스트리밍 ────────────────
     full_question = ''
-    for token in generate_question(intent, ctx, previous_answer=answer):
+    for token in generate_question(intent, ctx, previous_answer=answer, conversation_history=conversation_history):
         full_question += token
         yield _sse({'type': 'question', 'token': token})
 

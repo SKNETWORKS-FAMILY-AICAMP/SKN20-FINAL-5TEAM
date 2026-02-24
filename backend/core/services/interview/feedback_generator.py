@@ -76,6 +76,8 @@ def generate_feedback(session) -> dict:
 
 def _build_slot_summary(slot_states: dict, interview_plan: dict) -> dict:
     """슬롯별 evidence 기반 summary 구성 (LLM 없음)"""
+    topic_map = {s["slot"]: s.get("topic", "") for s in interview_plan.get("slots", [])}
+
     summary = {}
     for slot_name, state in slot_states.items():
         evidence = state.get("evidence", {})
@@ -86,6 +88,7 @@ def _build_slot_summary(slot_states: dict, interview_plan: dict) -> dict:
         confirmed_required = [k for k in required if evidence.get(k)]
 
         summary[slot_name] = {
+            "topic": topic_map.get(slot_name, slot_name),
             "final_status": state.get("status", "UNKNOWN"),
             "confirmed_evidence": confirmed_evidence,
             "confirmed_required": confirmed_required,

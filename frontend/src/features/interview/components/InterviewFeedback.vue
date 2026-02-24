@@ -48,7 +48,7 @@
           :class="`slot-card--${item.status.toLowerCase()}`"
         >
           <div class="slot-card__header">
-            <span class="slot-card__name">{{ item.slot }}</span>
+            <span class="slot-card__name">{{ item.topic }}</span>
             <span class="slot-card__status">{{ statusLabel(item.status) }}</span>
           </div>
           <p v-if="item.summary" class="slot-card__summary">{{ item.summary }}</p>
@@ -89,11 +89,20 @@ const props = defineProps({
 
 const emit = defineEmits(['restart']);
 
+const SLOT_LABELS = {
+  motivation: '지원 동기',
+  collaboration: '협업 능력',
+  technical_depth: '기술 활용 능력',
+  growth: '성장 경험',
+  problem_solving: '문제 해결력',
+};
+
 const slotSummaryList = computed(() => {
   const summary = props.feedback.slot_summary;
   if (!summary || typeof summary !== 'object') return [];
   return Object.entries(summary).map(([slot, data]) => ({
     slot,
+    topic: SLOT_LABELS[slot] || data.topic || slot,
     status: data.final_status || 'UNKNOWN',
     summary: data.summary || '',
     confirmed_evidence: data.confirmed_evidence || [],

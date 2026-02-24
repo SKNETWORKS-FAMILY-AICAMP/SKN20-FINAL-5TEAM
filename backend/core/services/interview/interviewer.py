@@ -7,7 +7,7 @@ import openai
 from django.conf import settings
 
 
-def generate_question(intent: str, humanizer_context: dict, previous_answer: str = ''):
+def generate_question(intent: str, humanizer_context: dict, previous_answer: str = '', conversation_history: list = None):
     """
     intent와 컨텍스트를 받아 자연스러운 면접관 질문을 스트리밍으로 생성한다.
 
@@ -15,6 +15,7 @@ def generate_question(intent: str, humanizer_context: dict, previous_answer: str
         intent: L3 Planner가 결정한 질문 의도
         humanizer_context: L5 Humanizer가 조립한 컨텍스트
         previous_answer: 지원자의 직전 답변 (후속 질문 생성에 사용)
+        conversation_history: 이전 대화 목록 [{"q": "질문", "a": "답변"}, ...]
 
     Yields:
         str: 질문 텍스트의 토큰 단위 조각
@@ -27,19 +28,23 @@ def generate_question(intent: str, humanizer_context: dict, previous_answer: str
     client = openai.OpenAI(api_key=api_key)
     prompt = _build_interviewer_prompt(intent, humanizer_context)
 
-    user_message = (
-        f"[지원자 답변]\n{previous_answer}\n\n위 답변을 바탕으로 후속 질문을 생성하라."
-        if previous_answer
-        else "질문을 생성하라."
-    )
+    messages = [{"role": "system", "content": prompt}]
+
+    # 이전 대화 히스토리 주입 (최근 4턴)
+    for turn in (conversation_history or [])[-4:]:
+        messages.append({"role": "assistant", "content": turn["q"]})
+        messages.append({"role": "user", "content": turn["a"]})
+
+    # 현재 답변
+    if previous_answer:
+        messages.append({"role": "user", "content": f"[지원자 답변]\n{previous_answer}\n\n위 답변을 바탕으로 후속 질문을 생성하라."})
+    else:
+        messages.append({"role": "user", "content": "질문을 생성하라."})
 
     try:
         stream = client.chat.completions.create(
             model="gpt-4o",
-            messages=[
-                {"role": "system", "content": prompt},
-                {"role": "user", "content": user_message}
-            ],
+            messages=messages,
             temperature=0.7,
             max_tokens=200,
             stream=True,
@@ -56,14 +61,14 @@ def generate_question(intent: str, humanizer_context: dict, previous_answer: str
         yield "조금 더 구체적으로 말씀해 주시겠어요?"
 
 
-def generate_question_sync(intent: str, humanizer_context: dict, previous_answer: str = '') -> str:
+def generate_question_sync(intent: str, humanizer_context: dict, previous_answer: str = '', conversation_history: list = None) -> str:
     """
     동기 방식으로 질문을 생성한다 (첫 질문 생성 등에 사용).
 
     Returns:
         완성된 질문 문자열
     """
-    return "".join(generate_question(intent, humanizer_context, previous_answer))
+    return "".join(generate_question(intent, humanizer_context, previous_answer, conversation_history))
 
 
 def _build_interviewer_prompt(intent: str, ctx: dict) -> str:
@@ -132,7 +137,11 @@ def _build_interviewer_prompt(intent: str, ctx: dict) -> str:
     opening_rule = (
         "1. 짧은 인사 한 문장 후 바로 질문으로 이어가라."
         if is_first_question
-        else "1. 1~3단어 정도의 짧은 반응어로 시작하라. 매번 다른 표현을 써야 한다. \"네 잘들었습니다\" 같은 고정 표현 반복 금지."
+        else (
+            "1. 바로 질문으로 시작하거나, 직전 답변의 구체적 내용을 짧게 언급하며 연결하라.\n"
+            "   - 좋은 예: '그 장애 상황에서 결국 어떻게 됐나요?' / '말씀하신 팀 갈등과 관련해서 본인 역할이 어떠셨나요?'\n"
+            "   - 나쁜 예: '흥미롭네요, 그렇다면...' / '좋습니다.' / '그렇군요.' (내용 없는 감탄·호응 시작 금지)"
+        )
     )
 
     return f"""당신은 자연스러운 한국어 면접관이다.
@@ -159,11 +168,13 @@ def _build_interviewer_prompt(intent: str, ctx: dict) -> str:
 7. 한국어로만 답하라.
 8. 채용공고의 주요 업무와 자격요건을 참고하여, 해당 직무에서 실제로 필요한 역량을 확인하는 방향으로 질문하라.
    예: 공고에 "Python 백엔드 API 개발"이 있으면 → API 설계나 성능 경험을 연결지어 질문
-9. 후속 질문은 반드시 '질문 의도'에 명시된 내용을 확인하는 방향으로 집중하라.
-   지원자의 답변에서 흥미로운 내용이 나와도 질문 의도와 무관하면 따라가지 마라.
+9. 후속 질문은 '질문 의도'에 집중하되, 지원자가 언급한 구체적인 사례나 키워드를 자연스럽게 연결해 질문하라.
+   예: 지원자가 "배포 중 장애"를 언급했고 의도가 "결과 변화 확인"이라면 → "그 장애가 결국 어떻게 해결됐나요?"
 
 [절대 금지]
-- "네, 잘 들었습니다" / "네 잘들었습니다" / "말씀 잘 들었습니다" 반복 사용 금지
+- "흥미롭네요/흥미롭습니다/흥미로운 경험이네요" 같은 내용 없는 감탄 금지
+- "그렇군요/아 그렇군요/네, 알겠습니다" 같은 단독 호응어로 시작 금지
+- "네, 잘 들었습니다" / "네 잘들었습니다" / "말씀 잘 들었습니다" 금지
 - 동일한 반응 표현을 두 번 이상 사용 금지
 - "STAR 방식으로 답해주세요" 금지
 - "행동(Action)이 뭔지", "결과(Result)가 뭔지" 같은 직접적 증거 요구 금지

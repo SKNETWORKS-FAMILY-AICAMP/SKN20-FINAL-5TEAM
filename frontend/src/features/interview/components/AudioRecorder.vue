@@ -210,10 +210,11 @@ async function stopRecording() {
   waveHeights.value = Array(14).fill(3);
   if (audioContext) { audioContext.close(); audioContext = null; }
 
-  // Web Speech 중지
+  // Web Speech 중지 (null을 먼저 설정해 onend의 자동 재시작 방지)
   if (recognition) {
-    recognition.stop();
+    const recToStop = recognition;
     recognition = null;
+    recToStop.stop();
   }
 
   // MediaRecorder 중지 (Whisper 전송 없이 종료)

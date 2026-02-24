@@ -9,6 +9,7 @@
     <!-- Phase 1: 채용공고 선택 -->
     <transition name="fade">
       <div v-if="phase === 'select'" class="select-wrapper">
+        <button class="btn-exit" @click="router.push('/')">✕ 나가기</button>
         <button class="btn-history" @click="phase = 'history'">📋 면접 기록</button>
         <JobPostingSelector @start="onStartSession" />
       </div>
@@ -47,6 +48,7 @@
       <div v-if="phase === 'interview'" class="interview-layout">
         <!-- 왼쪽: 면접관 패널 -->
         <div class="interviewer-panel">
+          <button class="btn-exit" @click="onExit">✕ 나가기</button>
           <!-- 웹캠 영역 -->
           <div class="iv-webcam-wrap">
             <WebcamDisplay ref="webcamRef" @ready="onWebcamReady" />
@@ -106,12 +108,15 @@
 
 <script setup>
 import { ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { useInterview } from './composables/useInterview';
 import JobPostingSelector from './components/JobPostingSelector.vue';
 import InterviewChat from './components/InterviewChat.vue';
 import InterviewFeedback from './components/InterviewFeedback.vue';
 import InterviewHistory from './components/InterviewHistory.vue';
 import WebcamDisplay from './components/WebcamDisplay.vue';
+
+const router = useRouter();
 
 // [수정일: 2026-02-23] [vision] WebcamDisplay 컴포넌트 참조
 const webcamRef = ref(null);
@@ -174,6 +179,13 @@ async function onSubmitAnswer(answer) {
 function onRestart() {
   resetSession();
   phase.value = 'select';
+}
+
+function onExit() {
+  if (window.confirm('면접을 종료하시겠습니까? 진행 중인 내용은 저장되지 않습니다.')) {
+    resetSession();
+    phase.value = 'select';
+  }
 }
 </script>
 
@@ -282,6 +294,26 @@ function onRestart() {
   padding: 40px 28px;
   overflow: hidden;
   position: relative;
+}
+
+.btn-exit {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  padding: 6px 12px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 6px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.5);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  z-index: 10;
+}
+.btn-exit:hover {
+  background: rgba(239,68,68,0.2);
+  border-color: rgba(239,68,68,0.4);
+  color: #fca5a5;
 }
 
 /* 배경 장식 */

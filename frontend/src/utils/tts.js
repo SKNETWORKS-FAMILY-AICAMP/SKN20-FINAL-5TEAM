@@ -5,7 +5,7 @@
 
 // 면접관 음성 설정 (변경 시 여기만 수정)
 // alloy(중성) | nova(여성) | onyx(남성) | shimmer(부드러운 여성) | echo | fable
-const DEFAULT_VOICE = 'onyx'
+const DEFAULT_VOICE = 'nova'
 
 // 재생 속도 (1.0 = 기본, 1.1~1.2 = 약간 빠르게, 0.9 = 약간 느리게)
 const PLAYBACK_RATE = 1.1

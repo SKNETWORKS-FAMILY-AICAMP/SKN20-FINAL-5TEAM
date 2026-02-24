@@ -20,6 +20,7 @@
       @go-to-playground="handleGoToPlayground"
       @open-unit="openUnitPopup"
       @open-job-planner="handleOpenJobPlanner"
+      @open-interview="handleOpenInterview"
     >
       <template #auth-buttons>
         <template v-if="!auth.isLoggedIn">
@@ -39,7 +40,6 @@
             v-if="auth.isLoggedIn"
           />
           <button class="btn-history" @click="router.push('/my-records')">My Records</button>
-          <button class="btn-history" @click="router.push('/interview')">모의면접</button>
           <button class="btn-coach" @click="router.push('/coach')">AI Coach</button>
           <button v-if="auth.user?.is_superuser" class="btn-mgmt" @click="router.push('/management/progress')">Management</button>
           <button class="btn-profile-settings" @click="ui.isProfileSettingsModalOpen = true">Setting</button>
@@ -411,6 +411,10 @@ function handleGoToPlayground() {
 
 function handleOpenJobPlanner() {
   ui.isJobPlannerModalOpen = true;
+}
+
+function handleOpenInterview() {
+  router.push('/interview');
 }
 
 // Lifecycle
