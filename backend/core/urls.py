@@ -85,6 +85,10 @@ urlpatterns = [
     path('pseudocode/evaluate-5d/', pseudocode_evaluation.evaluate_pseudocode_5d),
     path('youtube/recommendations', youtube_recommendation.get_youtube_recommendations),
 
+    # Architecture API
+    path('architecture/evaluate/', ArchitectureEvaluationView.as_view(), name='architecture_evaluate'),
+    path('architecture/generate-questions/', ArchitectureQuestionGeneratorView.as_view(), name='architecture_generate_questions'),
+
     # AI Coach Agent API
     path('ai-coach/chat/', AICoachView.as_view(), name='ai_coach_chat'),
 
