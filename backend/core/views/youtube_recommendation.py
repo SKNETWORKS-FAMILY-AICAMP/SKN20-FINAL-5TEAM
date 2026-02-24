@@ -19,7 +19,7 @@ def get_youtube_recommendations(request):
         
         # 1. 통합 데이터 및 라이브 검색 로직 사용
         from core.services.quest_resources import get_recommended_videos_legacy
-        from core.views.pseudocode_evaluation import normalize_quest_id
+        from core.views.pseudocode.pseudocode_evaluation import normalize_quest_id
         
         quest_id = request.data.get('quest_id')
         if not quest_id:

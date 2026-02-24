@@ -17,8 +17,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from core.models import UserProfile
-from core.views.coach_prompt import is_off_topic, GUARDRAIL_MESSAGE, INTENT_ANALYSIS_PROMPT, RESPONSE_STRATEGIES
-from core.views.coach_tools import (
+from core.views.coach.coach_prompt import is_off_topic, GUARDRAIL_MESSAGE, INTENT_ANALYSIS_PROMPT, RESPONSE_STRATEGIES
+from core.views.coach.coach_tools import (
     COACH_TOOLS,
     TOOL_DISPATCH,
     TOOL_LABELS,
