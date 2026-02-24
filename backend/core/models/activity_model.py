@@ -4,7 +4,7 @@
 from django.db import models
 from .base_model import BaseModel
 from .user_model import UserProfile
-from .Practice_model import Practice, PracticeDetail
+from .practice_model import Practice, PracticeDetail
 
 class UserAvatar(BaseModel):
     """

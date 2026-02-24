@@ -5,7 +5,7 @@ import django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
-from core.models.Practice_model import Practice, PracticeDetail
+from core.models.practice_model import Practice, PracticeDetail
 
 unit_id = 'unit03'
 total_details = PracticeDetail.objects.filter(practice_id=unit_id).count()

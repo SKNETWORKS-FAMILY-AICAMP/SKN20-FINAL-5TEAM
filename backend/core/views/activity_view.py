@@ -10,7 +10,7 @@ from django.db.models import Sum, Count, Max
 from core.models import UserActivity, UserSolvedProblem, UserProgress, UserAvatar, Practice, PracticeDetail, UserProfile
 from core.services.activity_service import save_user_problem_record
 from django.shortcuts import get_object_or_404
-from core.nanobanana_utils import generate_nano_banana_avatar # [수정일: 2026-02-06] 추가
+from core.utils.nanobanana_utils import generate_nano_banana_avatar # [수정일: 2026-02-06] 추가
 
 from django.core.paginator import Paginator
 
