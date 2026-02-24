@@ -29,7 +29,7 @@ from core.views.coach_tools import (
 logger = logging.getLogger(__name__)
 
 
-class AICoachOptimalView(APIView):
+class AICoachView(APIView):
     """ReAct 에이전트 기반 AI 코치
 
     플로우:

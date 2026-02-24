@@ -30,7 +30,7 @@ from core.views import (
 from core.views.pseudocode_execution import execute_python_code
 from core.views import pseudocode_evaluation, youtube_recommendation
 from core.views.architecture_view import ArchitectureEvaluationView, ArchitectureQuestionGeneratorView
-from core.views.coach_view import AICoachOptimalView
+from core.views.coach_view import AICoachView
 from core.views.interview import (
     InterviewJobPostingView, InterviewJobPostingDetailView,
     InterviewSessionView, InterviewSessionDetailView, InterviewAnswerView,
@@ -84,10 +84,8 @@ urlpatterns = [
     path('pseudocode/evaluate-5d/', pseudocode_evaluation.evaluate_pseudocode_5d),
     path('youtube/recommendations', youtube_recommendation.get_youtube_recommendations),
 
-    # AI Coach Agent API (Optimal Version)
-    path('ai-coach/chat/', AICoachOptimalView.as_view(), name='ai_coach_chat'),
-    path('ai-coach/chat-v2/', AICoachOptimalView.as_view(), name='ai_coach_chat_v2'),
-    path('ai-coach/chat-optimal/', AICoachOptimalView.as_view(), name='ai_coach_chat_optimal'),
+    # AI Coach Agent API
+    path('ai-coach/chat/', AICoachView.as_view(), name='ai_coach_chat'),
 
     # 모의면접 API
     path('interview/job-postings/', InterviewJobPostingView.as_view(), name='interview_job_postings'),

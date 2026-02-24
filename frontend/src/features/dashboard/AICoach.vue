@@ -232,8 +232,8 @@ async function sendMessage() {
   const assistantMsg = messages.value[messages.value.length - 1];
 
   try {
-    // AI Coach Optimal View 엔드포인트 (최적화된 버전)
-    const endpoint = '/api/core/ai-coach/chat-optimal/';
+    // AI Coach 엔드포인트
+    const endpoint = '/api/core/ai-coach/chat/';
 
     const response = await fetch(endpoint, {
       method: 'POST',
