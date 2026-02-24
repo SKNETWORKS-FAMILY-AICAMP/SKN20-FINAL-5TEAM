@@ -200,12 +200,17 @@ const isPracticePage = computed(() => {
     'SystemArchitecturePractice',
     'BugHunt',
     'CoduckWars',
+    'MissionBriefing',
+    'ArchDrawQuiz',
+    'SpeedArchBuilder',
+    'ArchBattle',
     'PressureInterviewRoom',
     'GrowthReport',
     'ProgressiveProblems',
     'Management',
     'MyHistory',
-    'AICoach'
+    'AICoach',
+    'WarLobby'
   ];
   return practiceRoutes.includes(route?.name);
 });

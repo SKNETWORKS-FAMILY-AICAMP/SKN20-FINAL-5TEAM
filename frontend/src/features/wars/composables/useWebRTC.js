@@ -1,8 +1,8 @@
-import { ref, onUnmounted } from 'vue';
+import { ref, reactive, onUnmounted } from 'vue';
 
 export function useWebRTC(socket) {
     const localStream = ref(null);
-    const remoteStreams = ref({}); // { sid: stream }
+    const remoteStreams = reactive({}); // { sid: stream }
     const peers = ref({}); // { sid: RTCPeerConnection }
 
     const iceServers = {
@@ -14,22 +14,29 @@ export function useWebRTC(socket) {
 
     // 로컬 미디어 스트림 획득
     const initLocalStream = async () => {
+        // 1순위: 카메라 + 마이크
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
             localStream.value = stream;
             return stream;
-        } catch (error) {
-            console.error('Error accessing media devices:', error);
-            // 비디오 없이 오디오만 시도
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
-                localStream.value = stream;
-                return stream;
-            } catch (e) {
-                console.error('Final media access failed:', e);
-                return null;
-            }
+        } catch (e1) {
+            console.warn('카메라+마이크 접근 실패, 마이크만 시도:', e1.message);
         }
+
+        // 2순위: 마이크만
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+            localStream.value = stream;
+            console.warn('마이크만 연결됨 (카메라 없음)');
+            return stream;
+        } catch (e2) {
+            console.warn('마이크도 접근 실패, 음소거 모드로 진행:', e2.message);
+        }
+
+        // 3순위: 권한 없어도 게임 진행 (화상통화 없이 소켓 채팅만 사용)
+        console.warn('미디어 장치 없음 — 텍스트 채팅 모드로 게임 진행');
+        localStream.value = null;
+        return null;
     };
 
     // Peer Connection 생성
@@ -56,8 +63,8 @@ export function useWebRTC(socket) {
 
         // 원격 스트림 수신
         pc.ontrack = (event) => {
-            if (!remoteStreams.value[targetSid]) {
-                remoteStreams.value[targetSid] = event.streams[0];
+            if (!remoteStreams[targetSid]) {
+                remoteStreams[targetSid] = event.streams[0];
             }
         };
 
@@ -118,7 +125,10 @@ export function useWebRTC(socket) {
         }
         Object.values(peers.value).forEach(pc => pc.close());
         peers.value = {};
-        remoteStreams.value = {};
+        // reactive 객체 초기화
+        for (const key in remoteStreams) {
+            delete remoteStreams[key];
+        }
     };
 
     onUnmounted(() => {

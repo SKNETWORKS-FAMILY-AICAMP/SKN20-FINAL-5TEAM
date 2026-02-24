@@ -23,6 +23,11 @@ import MissionBriefing from './features/wars/MissionBriefing.vue'
 import PressureInterviewRoom from './features/wars/PressureInterviewRoom.vue'
 import GrowthReport from './features/wars/GrowthReport.vue'
 import WarLobby from './features/wars/WarLobby.vue'
+// [수정일: 2026-02-23] Coduck Wars 미니게임 모드 추가
+import WarsModeSelect from './features/wars/WarsModeSelect.vue'
+import ArchDrawQuiz from './features/wars/minigames/ArchDrawQuiz.vue'
+import SpeedArchBuilder from './features/wars/minigames/SpeedArchBuilder.vue'
+import ArchBattle from './features/wars/minigames/ArchBattle.vue'
 
 // [수정일: 2026-01-31] 사용하지 않는 구버전/비활성 컴포넌트 임포트 주석 처리
 // import AiDetectivePractice from './features/practice/AiDetectivePractice.vue'
@@ -62,7 +67,28 @@ const routes = [
   {
     path: '/practice/coduck-wars',
     name: 'CoduckWars',
+    component: WarsModeSelect
+  },
+  {
+    path: '/practice/coduck-wars/briefing',
+    name: 'MissionBriefing',
     component: MissionBriefing
+  },
+  // [수정일: 2026-02-23] 미니게임 모드 라우트
+  {
+    path: '/practice/coduck-wars/draw-quiz',
+    name: 'ArchDrawQuiz',
+    component: ArchDrawQuiz
+  },
+  {
+    path: '/practice/coduck-wars/speed-build',
+    name: 'SpeedArchBuilder',
+    component: SpeedArchBuilder
+  },
+  {
+    path: '/practice/coduck-wars/arch-battle',
+    name: 'ArchBattle',
+    component: ArchBattle
   },
   {
     path: '/practice/coduck-wars/battle',

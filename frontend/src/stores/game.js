@@ -36,17 +36,26 @@ export const useGameStore = defineStore('game', {
         userSolvedProblems: [],
         // [수정일: 2026-02-23] Job Planner에서 분석된 최신 JD 데이터 공유 (Coduck Wars 연동용)
         lastParsedJob: null,
-        // [수정일: 2026-02-23] Coduck Wars 현재 진행 중인 미션 데이터
-        activeWarsMission: null,
+        // [수정일: 2026-02-23] Coduck Wars 현재 진행 중인 미션 데이터 (새로고침 대응)
+        activeWarsMission: JSON.parse(sessionStorage.getItem('active_wars_mission')) || null,
         // [수정일: 2026-02-23] Coduck Wars 최종 평가 결과 및 설계도
         lastEvaluation: null,
         lastFinalDesign: '',
-        userRole: 'architect' // [Phase 3] 기본 역할
+        // [버그수정] sessionStorage에서 역할 복원 (탭/새로고침 대응)
+        userRole: sessionStorage.getItem('wars_user_role') || null,
+        // [P1] 팀 점수 비교: { [name]: { score, role } }
+        lastPlayerScores: {}
     }),
 
     actions: {
         setUserRole(role) {
             this.userRole = role;
+            // [버그수정] sessionStorage에도 저장 → 탭 이동/새로고침 후에도 유지
+            if (role) sessionStorage.setItem('wars_user_role', role);
+        },
+        // [P1] 팀 점수 저장 (GrowthReport 비교용)
+        setPlayerScores(scores) {
+            this.lastPlayerScores = scores;
         },
         /**
          * [초기 게임 데이터 로드]
@@ -359,6 +368,11 @@ export const useGameStore = defineStore('game', {
          */
         setWarsMission(mission) {
             this.activeWarsMission = mission;
+            if (mission) {
+                sessionStorage.setItem('active_wars_mission', JSON.stringify(mission));
+            } else {
+                sessionStorage.removeItem('active_wars_mission');
+            }
         },
 
         /**
@@ -367,6 +381,56 @@ export const useGameStore = defineStore('game', {
         setEvaluation(evaluation, finalDesign) {
             this.lastEvaluation = evaluation;
             this.lastFinalDesign = finalDesign;
+        },
+
+        /**
+         * [수정일: 2026-02-23] 게임 점수 계산 (4개 비율점수 + 속도 보너스)
+         * @param {object} scores - { availability, scalability, security, cost_efficiency } (0~100)
+         * @param {number} submitTimeSeconds - 제출 시점 관당 시간(초), 빠를수록 미제출
+         * @param {number} totalSeconds - 방 전체 제한 시간(초), 기본값 600
+         * @returns {number} 최종 점수 (0~100)
+         */
+        calculateGameScore(scores, submitTimeSeconds = 0, totalSeconds = 600) {
+            if (!scores) return 0;
+
+            // 기본 점수: 네 항목 가중 평균
+            const weights = {
+                availability: 0.35,  // 가용성 중요
+                scalability: 0.30,  // 확장성
+                security: 0.20,  // 보안
+                cost_efficiency: 0.15   // 비용효율
+            };
+            const baseScore =
+                (scores.availability || 0) * weights.availability +
+                (scores.scalability || 0) * weights.scalability +
+                (scores.security || 0) * weights.security +
+                (scores.cost_efficiency || 0) * weights.cost_efficiency;
+
+            // 속도 보너스: 전체 시간 50% 이내에 제출하면 +5점, 25% 이내면 +10점
+            let speedBonus = 0;
+            if (submitTimeSeconds > 0 && totalSeconds > 0) {
+                const ratio = submitTimeSeconds / totalSeconds;
+                if (ratio <= 0.25) speedBonus = 10;
+                else if (ratio <= 0.50) speedBonus = 5;
+            }
+
+            return Math.min(100, Math.round(baseScore + speedBonus));
+        },
+
+        /**
+         * [수정일: 2026-02-23] 3인 팀 점수 합산 및 등급 반환
+         * @param {number[]} playerScores - 각 플레이어 점수 배열 [p1, p2, p3]
+         * @returns {{ total: number, average: number, grade: string }}
+         */
+        calcTeamResult(playerScores = []) {
+            if (!playerScores.length) return { total: 0, average: 0, grade: 'C' };
+            const total = playerScores.reduce((a, b) => a + b, 0);
+            const average = Math.round(total / playerScores.length);
+            let grade = 'C';
+            if (average >= 90) grade = 'S';
+            else if (average >= 75) grade = 'A';
+            else if (average >= 60) grade = 'B';
+            return { total, average, grade };
         }
     },
 

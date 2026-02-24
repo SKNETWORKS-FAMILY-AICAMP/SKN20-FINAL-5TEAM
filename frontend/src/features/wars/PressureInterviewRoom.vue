@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <!-- [Phase 6] gamePhase에 따라 전체 분위기 전환 -->
   <div class="pressure-room-container" :class="'phase-' + gamePhase">
     <!-- Header: Mission Status & Timer -->
@@ -10,16 +10,38 @@
         <h1 class="mission-title">{{ missionTitle || '트래픽 폭주 대응 아키텍처 설계' }}</h1>
       </div>
       <div class="room-stats">
-        <div class="stat-item">
-          <span class="label">PROGRESS</span>
-          <div class="progress-bar">
-            <div class="progress-fill" :style="{ width: progress + '%' }"></div>
+        <div class="header-center">
+          <div class="status-indicator">
+            <span class="dot" :class="{ pulsate: isSocketConnected }"></span>
+            <span class="sync-text">{{ isSocketConnected ? 'LIVE SYNCED' : 'OFFLINE' }}</span>
+            <span v-if="isLeader" class="leader-badge">KING</span>
           </div>
-          <span class="value">{{ progress }}%</span>
+          <!-- [P1] 실시간 팀 스코어보드 -->
+          <div class="team-scoreboard">
+            <div class="scoreboard-player" v-for="p in scoreboard" :key="p.name">
+              <span class="sb-status-dot" :class="p.status"></span>
+              <span class="sb-name">{{ p.name }}</span>
+              <span class="sb-role">{{ p.role }}</span>
+              <span class="sb-score">{{ p.score }}pt</span>
+              <span class="sb-badge" :class="p.status">
+                {{ p.status === 'submitted' ? '✅제출' : p.status === 'typing' ? '✍️작성중' : '⏳대기' }}
+              </span>
+            </div>
+          </div>
+          <div class="progress-section">
+            <div class="progress-bar-container">
+              <div class="progress-fill" :style="{ width: progress + '%' }"></div>
+            </div>
+            <span class="progress-val">{{ progress }}%</span>
+          </div>
         </div>
         <div class="stat-item timer" :class="{ 'warning': timeLeft < 60 }">
           <span class="label">TIME LEFT</span>
           <span class="value">{{ formatTime(timeLeft) }}</span>
+          <!-- [P1] 타이머 프로그레스바 -->
+          <div class="timer-bar-track">
+            <div class="timer-bar-fill" :class="{ 'urgent': timeLeft < 60, 'warning-bar': timeLeft < 180 }" :style="{ width: timerPercent + '%' }"></div>
+          </div>
         </div>
         <!-- [Phase 6] phase별 액션 버튼 -->
         <button v-if="gamePhase === 'blackout'" @click="submitFix" class="btn-fix-submit">
@@ -36,14 +58,14 @@
       <!-- Left Panel: AI Interviewer & Chat -->
       <section class="glass-panel interviewer-panel">
         <!-- [Phase 3] Role Specific Mini Dashboard -->
-        <div class="role-dashboard" :class="gameStore.userRole">
+        <div class="role-dashboard" :class="myRole">
           <div class="role-info-mini">
-            <span class="role-label">{{ gameStore.userRole?.toUpperCase() }} VIEW</span>
+            <span class="role-label">{{ myRole.toUpperCase() }} VIEW</span>
             <div class="status-dot">ACTIVE</div>
           </div>
           
           <!-- Dashboard for Architect -->
-          <div v-if="gameStore.userRole === 'architect'" class="dashboard-content">
+          <div v-if="myRole === 'architect'" class="dashboard-content">
             <div class="stat-item">
               <span class="stat-label">System Structural Integrity</span>
               <div class="progress-bar-mini"><div class="fill" style="width: 85%"></div></div>
@@ -51,7 +73,7 @@
           </div>
 
           <!-- Dashboard for Ops/Security -->
-          <div v-if="gameStore.userRole === 'ops'" class="dashboard-content">
+          <div v-if="myRole === 'ops'" class="dashboard-content">
             <div class="stat-item">
               <span class="stat-label">Real-time Traffic (TPS)</span>
               <div class="chart-mock">1.2k / 5.0k</div>
@@ -63,7 +85,7 @@
           </div>
 
           <!-- Dashboard for DB/Performance -->
-          <div v-if="gameStore.userRole === 'db'" class="dashboard-content">
+          <div v-if="myRole === 'db'" class="dashboard-content">
             <div class="stat-item">
               <span class="stat-label">P99 Latency</span>
               <span class="stat-value">124ms</span>
@@ -134,10 +156,20 @@
             :key="tab.id"
             @click="activeCodeTab = tab.id"
             class="tab-btn"
-            :class="{ active: activeCodeTab === tab.id }"
+            :class="{ 
+              active: activeCodeTab === tab.id,
+              'my-role-tab': tab.id === myPrimaryTab && activeCodeTab !== tab.id
+            }"
           >
             {{ tab.icon }} {{ tab.label }}
+            <!-- [P1] 내 역할 담당 탭 표시 -->
+            <span v-if="tab.id === myPrimaryTab" class="my-tab-badge">MY ROLE</span>
           </button>
+        </div>
+        <!-- [P1] 역할 가이드 메시지 -->
+        <div class="role-guide-bar">
+          <span class="role-guide-icon">{{ myRole === 'architect' ? '🏗️' : myRole === 'ops' ? '🛡️' : '⚡' }}</span>
+          <span>{{ myRole === 'architect' ? 'ARCHITECT: API 설계를 주도하세요' : myRole === 'ops' ? 'OPS/SECURITY: 보안 설정을 담당하세요' : 'DB/PERF: DB 스키마를 최적화하세요' }}</span>
         </div>
 
         <div class="editor-container">
@@ -233,13 +265,30 @@
 
     <!-- [Phase 5] Real-time Video Bubbles -->
     <div class="video-overlay">
+      <!-- Local Video -->
       <div class="video-card me">
         <video ref="localVideo" :srcObject="localStream" autoplay muted playsinline></video>
         <span class="user-name">YOU ({{ gameStore.userRole?.toUpperCase() }})</span>
+        <div v-if="!localStream" class="stream-placeholder">NO CAM</div>
       </div>
-      <div v-for="(stream, sid) in remoteStreams" :key="sid" class="video-card">
-        <video :srcObject="stream" autoplay playsinline></video>
-        <span class="user-name">TEAM-MATE</span>
+      
+      <!-- Remote Team Videos -->
+      <div v-for="member in teamMembers" :key="member.sid" class="video-card" :class="{ 'connected-peer': remoteStreams[member.sid] }">
+        <video 
+          v-if="remoteStreams[member.sid]" 
+          :ref="el => setRemoteVideo(member.sid, el)" 
+          autoplay 
+          playsinline
+        ></video>
+        <div v-else class="stream-placeholder">
+          <div class="user-avatar">{{ member.user_name.charAt(0) }}</div>
+          <div class="connecting-wave">
+            <span></span><span></span><span></span>
+          </div>
+          <span class="status-tip">VOICE ONLY</span>
+        </div>
+        <span class="user-name">{{ member.user_name }} ({{ member.user_role }})</span>
+        <div class="ping-wave" v-if="isSocketConnected"></div>
       </div>
     </div>
 
@@ -295,9 +344,10 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick, watch, computed } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import axios from 'axios';
 import { useGameStore } from '@/stores/game';
+import { useAuthStore } from '@/stores/auth';
 
 // [수정일: 2026-02-23] 라이브 코딩 에디터로 전환 - Monaco Editor 임포트
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
@@ -306,7 +356,34 @@ import { useWebRTC } from './composables/useWebRTC';
 
 // [수정일: 2026-02-23] 압박 면접 게임 룸 (Screen 2) 초기 구현
 const gameStore = useGameStore();
+const authStore = useAuthStore();
 const router = useRouter();
+const route  = useRoute();
+
+// [수정일: 2026-02-23] 실시간 팀 동기화 소켓 및 WebRTC 상태 관리 (선언 순서 상단 이동)
+const {
+  isConnected: isSocketConnected,
+  teamMessages,
+  teamMembers,
+  chaosEvents, // [Phase 4] 실시간 장애 목록
+  connectSocket,
+  emitCodeUpdate,
+  emitAnalysisSync,
+  sendTeamChat,
+  socket
+} = useWarsSocket();
+
+const {
+  localStream,
+  remoteStreams,
+  initLocalStream,
+  callPeer,
+  setupSignaling,
+  stopStreams
+} = useWebRTC(socket);
+
+// [수정일: 2026-02-23] 로그인한 사용자의 실제 닉네임 사용
+const currentUserName = computed(() => authStore.sessionNickname || '플레이어');
 
 // [수정일: 2026-02-23] 게임 시작 튜토리얼 오버레이 표시 상태
 const showTutorial = ref(true);
@@ -321,14 +398,113 @@ const liveScores = ref({
 const overallAssessment = ref('');
 const isAnalyzing = ref(false);
 const showChaosEvent = ref(false);
-const activeChaosEvent = ref(null);
 const firedChaosEvents = ref([]);  // 이미 발동된 이벤트 (중복 방지)
 let analysisInterval = null;
+const localVideo = ref(null); 
+let isRemoteCodeChange = false; 
+const serverLeaderSid = ref(null); 
+let codeSyncTimeout = null; // [수정일: 2026-02-23] 코드 동기화 디바운스용
+
+// [P1] 플레이어 상태 추적: submitted / typing / idle
+const playerStatuses = ref({}); // { userName: 'submitted' | 'typing' | 'idle' }
+const playerScores  = ref({}); // { userName: number }
+
+// 내 타이핑 상태를 팀원에게 브로드캐스트 (500ms debounce)
+let typingTimeout = null;
+const notifyTyping = () => {
+  if (!gameStore.activeWarsMission || !socket.value) return;
+  socket.value.emit('player_status', {
+    mission_id: gameStore.activeWarsMission.id,
+    user_name: currentUserName.value,
+    status: 'typing'
+  });
+  clearTimeout(typingTimeout);
+  typingTimeout = setTimeout(() => {
+    socket.value?.emit('player_status', {
+      mission_id: gameStore.activeWarsMission?.id,
+      user_name: currentUserName.value,
+      status: 'idle'
+    });
+  }, 2000);
+};
+
+// [P1] 타이머 퍼센트 계산 (phase별 총 시간 기준)
+const phaseTotalSeconds = computed(() => {
+  if (gamePhase.value === 'design')   return 600;
+  if (gamePhase.value === 'blackout') return 120;
+  if (gamePhase.value === 'defense')  return 180;
+  return 600;
+});
+const timerPercent = computed(() => Math.round((timeLeft.value / phaseTotalSeconds.value) * 100));
+
+// 스코어보드 computed: 나 + 팀원 전체
+const scoreboard = computed(() => {
+  const me = {
+    name: currentUserName.value,
+    role: myRole.value.toUpperCase(),
+    status: playerStatuses.value[currentUserName.value] || 'idle',
+    score: playerScores.value[currentUserName.value] || 0,
+    isMe: true
+  };
+  const others = teamMembers.value.map(m => ({
+    name: m.user_name,
+    role: (m.user_role || 'ARCHITECT').toUpperCase(),
+    status: playerStatuses.value[m.user_name] || 'idle',
+    score: playerScores.value[m.user_name] || 0,
+    isMe: false
+  }));
+  return [me, ...others];
+});
+
+// [수정일: 2026-02-23] 서버가 정해준 방장인지 확인 (기본값 false로 설정하여 중복 방지)
+const isLeader = computed(() => {
+  if (!socket.value || !socket.value.id) return false;
+  if (!serverLeaderSid.value) return false; 
+  return socket.value.id === serverLeaderSid.value;
+});
+
+// [수정일: 2026-02-23] AI 분석 결과를 UI에 적용하는 공통 함수 (로컬 호출 + 소켓 수신 둘 다 사용)
+const applyAnalysisResult = (analysis) => {
+  if (!analysis) return;
+
+  // 1. 실시간 점수 업데이트
+  if (analysis.scores) {
+    liveScores.value = analysis.scores;
+    // progress 업데이트 (4개 점수 평균)
+    const s = analysis.scores;
+    progress.value = Math.round((s.availability + s.scalability + s.security + s.cost_efficiency) / 4);
+  }
+
+  // 2. 한줄 평가 업데이트
+  if (analysis.overall_assessment) {
+    overallAssessment.value = analysis.overall_assessment;
+  }
+
+  // 3. 취약점 기반 장애 이벤트 발동
+  const vulnCount = analysis.vulnerabilities?.length || 0;
+  const chaosEvent = analysis.chaos_event;
+  if (vulnCount >= 1 && chaosEvent?.should_trigger && !showChaosEvent.value) { // 임계치 1개로 조정
+    const alreadyFired = firedChaosEvents.value.some(e => e.title === chaosEvent.title);
+    if (!alreadyFired) {
+      activeChaosEvent.value = chaosEvent;
+      showChaosEvent.value = true;
+      firedChaosEvents.value.push(chaosEvent);
+
+      chatMessages.value.push({
+        role: 'ai',
+        content: `🚨 장애 발생! ${chaosEvent.title}\n\n${chaosEvent.description}\n\n💡 ${chaosEvent.hint}`
+      });
+      console.log(`[ChaosAgent] 장애 발생 동기화 완료: ${chaosEvent.title}`);
+    }
+  }
+};
 
 // [수정일: 2026-02-23] AI 코드 분석 실행 함수 (runAnalysisLoop에서 호출)
 const triggerAnalysis = async () => {
   // 튜토리얼 표시 중이거나 리포트 단계면 분석 안 함
   if (showTutorial.value || gamePhase.value === 'report') return;
+  
+  // [버그수정] 리더 체크 제거 - 각자 독립 분석 수행
 
   try {
     isAnalyzing.value = true;
@@ -347,37 +523,13 @@ const triggerAnalysis = async () => {
 
     if (response.data.status === 'success') {
       const analysis = response.data.analysis;
-
-      // 실시간 점수 업데이트
-      if (analysis.scores) {
-        liveScores.value = analysis.scores;
-      }
-      if (analysis.overall_assessment) {
-        overallAssessment.value = analysis.overall_assessment;
-      }
-
-      // 취약점 2개 이상이면 장애 이벤트 발동
-      const vulnCount = analysis.vulnerabilities?.length || 0;
-      const chaosEvent = analysis.chaos_event;
-      if (vulnCount >= 2 && chaosEvent?.should_trigger && !showChaosEvent.value) {
-        const alreadyFired = firedChaosEvents.value.some(e => e.title === chaosEvent.title);
-        if (!alreadyFired) {
-          activeChaosEvent.value = chaosEvent;
-          showChaosEvent.value = true;
-          firedChaosEvents.value.push(chaosEvent);
-
-          chatMessages.value.push({
-            role: 'ai',
-            content: `🚨 장애 발생! ${chaosEvent.title}\n\n${chaosEvent.description}\n\n💡 ${chaosEvent.hint}`
-          });
-          console.log(`[ChaosAgent] 장애 발동: ${chaosEvent.title}`);
-        }
-      }
-
-      // progress 업데이트 (4개 점수 평균)
-      if (analysis.scores) {
-        const s = analysis.scores;
-        progress.value = Math.round((s.availability + s.scalability + s.security + s.cost_efficiency) / 4);
+      
+      // 내 화면에 적용
+      applyAnalysisResult(analysis);
+      
+      // [수정일: 2026-02-23] 다른 팀원들에게도 동일한 분석 결과 전송 (동기화)
+      if (mission) {
+        emitAnalysisSync(mission.id, analysis);
       }
     }
   } catch (error) {
@@ -410,8 +562,48 @@ const codeTabs = ref([
   { id: 'db', icon: '🗄️', label: 'DB 스키마', language: 'sql' },
   { id: 'security', icon: '🛡️', label: '보안 설정', language: 'yaml' }
 ]);
-const activeCodeTab = ref('api');
+
+// [P1] 역할별 기본 활성 탭 & 탭 강조
+// architect → API 설계 우선
+// ops       → 보안 설정 우선
+// db        → DB 스키마 우선
+const roleDefaultTab = { architect: 'api', ops: 'security', db: 'db' };
+
+// [버그수정] 역할 우선순위: URL 파라미터 > store > 'architect'
+// URL ?role=ops 등으로 전달되므로 창마다 독립적으로 유지
+const myRole = computed(() => {
+  const urlRole = route.query.role;
+  if (urlRole && ['architect', 'ops', 'db'].includes(urlRole)) return urlRole;
+  return gameStore.userRole || 'architect';
+});
+
+const activeCodeTab = ref(roleDefaultTab[myRole.value] || 'api');
+const myPrimaryTab = computed(() => roleDefaultTab[myRole.value] || 'api');
+
+// store나 sessionStorage가 늤느게 세팅될 때도 탭 자동 전환
+watch(myRole, (newRole) => {
+  if (newRole && roleDefaultTab[newRole]) {
+    activeCodeTab.value = roleDefaultTab[newRole];
+  }
+}, { immediate: true });
 const codeFiles = ref({ api: '', db: '', security: '' });
+
+// [수정일: 2026-02-23] 코드 변경 시 다른 팀원들에게 실시간 동기화
+watch(codeFiles, (newVal) => {
+  if (isRemoteCodeChange) return;
+
+  // [수정일: 2026-02-23] 너무 잦은 전송 방지를 위한 300ms 디바운스
+  if (codeSyncTimeout) clearTimeout(codeSyncTimeout);
+  
+  codeSyncTimeout = setTimeout(() => {
+    const missionId = gameStore.activeWarsMission?.id || 'traffic_surge';
+    if (isSocketConnected.value) {
+      emitCodeUpdate(missionId, JSON.parse(JSON.stringify(newVal)));
+    }
+  }, 300);
+  // [P1] 코드 다다르면 typing 상태 알림
+  notifyTyping();
+}, { deep: true });
 
 // [수정일: 2026-02-23] 시나리오별 맞춤 코드 템플릿 생성
 const getScenarioTemplates = (scenarioId) => {
@@ -835,29 +1027,7 @@ const handleEditorMount = (editor) => {
   console.log('[Monaco] 라이브 코딩 에디터 마운트 완료');
 };
 
-// [Phase 3-5] 실시간 팀 동기화 소켓 및 WebRTC 상태 관리
-const {
-  isConnected: isSocketConnected,
-  teamMessages,
-  teamMembers,
-  chaosEvents, // [Phase 4] 실시간 장애 목록
-  connectSocket,
-  emitCanvasUpdate,
-  sendTeamChat,
-  changeRole,
-  disconnectSocket,
-  socket // 소켓 객체 직접 접근용
-} = useWarsSocket();
-
-// [Phase 5] WebRTC 상사/팀원 화상 통화 관리
-const {
-  localStream,
-  remoteStreams,
-  initLocalStream,
-  callPeer,
-  setupSignaling,
-  stopStreams
-} = useWebRTC(socket);
+// [수정일: 2026-02-23] 화상 통화 및 소켓 초기화 로직 상단 이동 완료
 
 const missionTitle = ref('');
 const interviewerName = ref('');
@@ -866,6 +1036,19 @@ const timeLeft = ref(600); // 10분
 const interviewerStatus = ref('neutral'); // neutral, thinking, aggressive
 const interviewerStatusText = ref('준비됨');
 const isEvaluating = ref(false);
+
+// [수정일: 2026-02-23] 비디오 스트림이 반응형으로 업데이트되지 않을 경우를 대비한 직접 할당
+watch(localStream, (stream) => {
+  if (localVideo.value && stream) {
+    localVideo.value.srcObject = stream;
+  }
+});
+
+const setRemoteVideo = (sid, el) => {
+  if (el && remoteStreams.value[sid]) {
+    el.srcObject = remoteStreams.value[sid];
+  }
+};
 
 // [Phase 6] 3막 드라마 게임 상태 머신
 const gamePhase = ref('design'); // 'design' → 'blackout' → 'defense' → 'report'
@@ -901,77 +1084,183 @@ const myChaosAlerts = computed(() => {
 let timerInterval = null;
 
 onMounted(async () => {
-  // [수정일: 2026-02-23] 스토어에서 미션 데이터 불러오기 + 라이브 코딩 에디터 초기화
+  // [수정일: 2026-02-23] 1. UI 데이터 즉시 설정 (Blocking 지점 이전에 배치)
+  let missionId = 'traffic_surge';
+  let initialScenario = 'traffic_surge';
+
   if (gameStore.activeWarsMission) {
     const mission = gameStore.activeWarsMission;
+    missionId = mission.id;
+    initialScenario = mission.scenario_id || 'traffic_surge';
     missionTitle.value = mission.mission_title;
     interviewerName.value = mission.interviewer?.name || '강팀장';
-
-    // [수정일: 2026-02-23] 시나리오별 맞춤 코드 템플릿 적용
-    const scenarioId = mission.scenario_id || 'traffic_surge';
-    codeFiles.value = getScenarioTemplates(scenarioId);
-    console.log(`[Editor] 시나리오 템플릿 적용: ${scenarioId}`);
     
-    // 초기 메시지 설정 (라이브 코딩 가이드)
+    codeFiles.value = getScenarioTemplates(initialScenario);
     chatMessages.value = [
       { 
         role: 'ai', 
-        content: `반갑습니다. 시나리오: ${mission.context}\n\n우선 과제: ${mission.initial_quest}\n\n[GUIDE] 우측 에디터에 시나리오에 맞는 코드가 준비되어 있습니다. ⚠️ 표시된 부분을 찾아 수정하고, TODO 항목을 완성하세요. 완료 후 저에게 설명을 남겨주시면 분석을 시작하겠습니다.` 
+        content: `반갑습니다. 시나리오: ${mission.context}\n\n우선 과제: ${mission.initial_quest}\n\n[GUIDE] 우측 에디터에 시나리오에 맞는 코드가 준비되어 있습니다. ⚠️ 표시된 부분을 찾아 수정하고, TODO 항목을 완성하세요.` 
       }
     ];
-
-    // 소켓 연결 및 WebRTC 시그널링 설정
-    connectSocket(mission.id, '이민재');
-    setupSignaling();
-    await initLocalStream();
-
-    // 팀원 입장 시 WebRTC 연결 시도
-    socket.value.on('user_joined', (data) => {
-      if (data.sid !== socket.value.id) {
-        console.log(`Starting WebRTC call to: ${data.sid}`);
-        callPeer(data.sid);
-      }
-    });
-
-    // [수정일: 2026-02-23] 코드 동기화 이벤트 수신
-    socket.value.on('code_sync', (data) => {
-      if (data.code_files) {
-        // 타입별로 코드 업데이트 (내가 편집 중이 아닌 탭만)
-        Object.keys(data.code_files).forEach(tabId => {
-          if (tabId !== activeCodeTab.value) {
-            codeFiles.value[tabId] = data.code_files[tabId];
-          }
-        });
-      }
-    });
-
   } else {
-    // 직접 접속 등을 위한 기본 시나리오 + 기본 템플릿 적용
     missionTitle.value = '긴급 장애 대응 모의 훈련';
     interviewerName.value = 'AI 교관';
     codeFiles.value = getScenarioTemplates('traffic_surge');
-
     chatMessages.value = [
       {
         role: 'ai',
-        content: `🕊️ 반갑습니다. 저는 오늘 여러분의 시스템 설계 역량을 평가할 AI 교관입니다.\n\n[시나리오] 서비스 트래픽이 급증하여 기존 아키텍처가 한계에 도달했습니다.\n\n[GUIDE] 우측 에디터에 준비된 코드에서 ⚠️ 표시 부분을 찾아 수정하세요. 평화로운 설계 시간이 얼마 안 남았습니다...`
+        content: `🕊️ 반갑습니다. 시스템 설계 역량을 평가할 AI 교관입니다.\n\n[GUIDE] 우측 에디터에서 ⚠️ 표시 부분을 찾아 수정하세요.`
       }
     ];
 
     // 3분 후 블랙아웃 자동 트리거
     blackoutTimer = setTimeout(() => {
-      if (gamePhase.value === 'design') {
-        triggerBlackout();
-      }
+      if (gamePhase.value === 'design') triggerBlackout();
     }, 180000);
   }
 
-  // 타이머 작동
+  // [수정일: 2026-02-23] 2. 세션 및 소켓 연결 (비동기 수행)
+  const startConnection = async () => {
+    try {
+      if (!authStore.sessionNickname) {
+        // [수정일: 2026-02-23] 타임아웃 3초 설정 (무한 대기 방지)
+        await Promise.race([
+          authStore.checkSession(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Session timeout')), 3000))
+        ]).catch(() => console.warn('[Auth] 세션 확인 지연으로 기본 닉네임 사용'));
+      }
+      
+      const userName = currentUserName.value;
+      console.log('[Socket] Connecting with:', userName);
+      
+      // [버그수정] 역할이 'pending'이거나 없으면 architect 기본값 사용
+      // WarLobby에서 selectRole 후 startGame 했으면 gameStore.userRole이 이미 세팅됨
+      const joinRole = (gameStore.userRole && gameStore.userRole !== 'pending')
+        ? gameStore.userRole
+        : 'architect';
+      connectSocket(missionId, userName, joinRole);
+      
+      initLocalStream().then(() => {
+        setupSignaling();
+      }).catch(err => console.warn('[WebRTC] 카메라 권한 실패:', err));
+
+      // 소켓 리스너 등록
+      if (socket.value) {
+        socket.value.on('connect', () => {
+          socket.value.emit('request_state', { mission_id: missionId });
+        });
+        
+        socket.value.on('user_joined', (data) => {
+          if (data.sid !== socket.value.id) callPeer(data.sid);
+        });
+
+        socket.value.on('leader_info', (data) => {
+          serverLeaderSid.value = data.leader_sid;
+        });
+
+        socket.value.on('code_sync', (data) => {
+          if (data.code_files) {
+            isRemoteCodeChange = true;
+            Object.keys(data.code_files).forEach(id => {
+              if (codeFiles.value[id] !== data.code_files[id]) codeFiles.value[id] = data.code_files[id];
+            });
+            nextTick(() => isRemoteCodeChange = false);
+          }
+        });
+
+        socket.value.on('chat_sync', (data) => {
+          if ((data.is_ai || data.is_interview) && (data.sender_name !== userName || data.is_ai)) {
+            chatMessages.value.push({ role: data.is_ai ? 'ai' : 'user', content: data.content, sender: data.sender_name });
+            nextTick(() => {
+              const chatLogEl = document.querySelector('.chat-log');
+              if (chatLogEl) chatLogEl.scrollTop = chatLogEl.scrollHeight;
+            });
+          }
+        });
+
+        socket.value.on('state_sync', (data) => {
+          if (data.state) {
+            gamePhase.value = data.state.phase || gamePhase.value;
+            if (data.state.time !== undefined) {
+              // [수정일: 2026-02-24] 보정 임계치를 2초 -> 3초로 완화하여 네트워크 지연에 따른 잦은 점프 방지
+              if (Math.abs(timeLeft.value - data.state.time) >= 3) {
+                timeLeft.value = data.state.time;
+              }
+            }
+            if (data.state.progress !== undefined) {
+              progress.value = data.state.progress;
+            }
+          }
+        });
+
+        socket.value.on('analysis_sync', (data) => applyAnalysisResult(data.analysis));
+
+        // [P1] 플레이어 상태 수신 (typing / idle / submitted)
+        socket.value.on('player_status_sync', (data) => {
+          if (data.user_name && data.status) {
+            playerStatuses.value = { ...playerStatuses.value, [data.user_name]: data.status };
+          }
+          // 제출 시점에 점수도 동기화
+          if (data.status === 'submitted' && data.score !== undefined) {
+            playerScores.value = { ...playerScores.value, [data.user_name]: data.score };
+          }
+        });
+
+        socket.value.on('request_state', () => {
+          if (isLeader.value) {
+            socket.value.emit('sync_state', { mission_id: missionId, state: { phase: gamePhase.value, time: timeLeft.value, progress: progress.value } });
+          }
+        });
+      }
+    } catch (e) {
+      console.error('[System] 초기화 오류:', e);
+    }
+  };
+
+  startConnection();
+
+  // [수정일: 2026-02-23] 4. 메인 루프 가동
   timerInterval = setInterval(() => {
-    if (timeLeft.value > 0) timeLeft.value--;
+    if (timeLeft.value > 0) {
+      timeLeft.value--;
+    }
+
+    // [수정일: 2026-02-23] 타이머 0 도달 시 자동 다음 단계로 진행
+    if (timeLeft.value === 0) {
+      if (gamePhase.value === 'design') {
+        // 설계 시간 종료 → 블랙아웃 자동 트리거
+        triggerBlackout();
+        timeLeft.value = 120; // 블랙아웃 2분
+      } else if (gamePhase.value === 'blackout') {
+        // 블랙아웃 시간 종료 → 수정 못해도 디펜스로 강제 진행
+        submitFix();
+        timeLeft.value = 180; // 디펜스 3분
+      } else if (gamePhase.value === 'defense') {
+        // 디펜스 시간 종료 → 리포트 단계로
+        gamePhase.value = 'report';
+        progress.value = 100;
+        chatMessages.value.push({
+          role: 'ai',
+          content: '⏱️ 시간이 종료되었습니다. 미션 종료 버튼을 눌러 최종 동료평가를 받으세요.'
+        });
+      }
+    }
+
+    // [수정일: 2026-02-24] 동기화 주기를 2초로 완화하여 서버 부하 감소
+    if (isLeader.value && timeLeft.value > 0 && timeLeft.value % 2 === 0) {
+      if (socket.value) {
+        socket.value.emit('sync_state', {
+          mission_id: missionId,
+          state: {
+            phase: gamePhase.value,
+            time: timeLeft.value,
+            progress: progress.value
+          }
+        });
+      }
+    }
   }, 1000);
 
-  // [수정일: 2026-02-23] AI 코드 분석 루프 시작 (30초마다)
   runAnalysisLoop();
 });
 
@@ -994,11 +1283,19 @@ const formatTime = (seconds) => {
 const sendMessage = () => {
   if (!userResponse.value.trim()) return;
   
-  chatMessages.value.push({ role: 'user', content: userResponse.value });
   const message = userResponse.value;
   userResponse.value = '';
+
+  // [수정일: 2026-02-23] 면접 메시지 동기화 발신 (실제 닉네임 사용)
+  const myName = currentUserName.value;
+  if (gameStore.activeWarsMission) {
+    sendTeamChat(gameStore.activeWarsMission.id, myName, message);
+  }
+
+  // 내 화면에는 즉시 표시
+  chatMessages.value.push({ role: 'user', content: message });
   
-  // AI 응답 연출
+  // [버그수정] 리더 체크 제거 - 누구나 AI 응답 받음
   simulateAiResponse(message);
   
   // 스크롤 동기화
@@ -1075,7 +1372,20 @@ const simulateAiResponse = async (userMsg) => {
 
     if (response.data.status === 'success') {
       const qData = response.data.question;
-      chatMessages.value.push({ role: 'ai', content: qData.question });
+      const aiMsg = qData.question;
+
+      // 내 화면에 표시
+      chatMessages.value.push({ role: 'ai', content: aiMsg });
+
+      // [수정일: 2026-02-23] AI 답변 내용을 팀 전체에게 발신 (리더만 수행)
+      if (isLeader.value && gameStore.activeWarsMission) {
+        socket.value.emit('chat_message', {
+          mission_id: gameStore.activeWarsMission.id,
+          sender_name: interviewerName.value,
+          content: aiMsg,
+          is_ai: true
+        });
+      }
 
       // [Phase 6] 디펜스 라운드 진행
       if (gamePhase.value === 'defense') {
@@ -1083,10 +1393,19 @@ const simulateAiResponse = async (userMsg) => {
         progress.value = 65 + Math.round((defenseRound.value / maxDefenseRounds) * 35);
         if (defenseRound.value >= maxDefenseRounds) {
           gamePhase.value = 'report';
-          chatMessages.value.push({
-            role: 'ai',
-            content: '디펜스가 종료되었습니다. 최종 역량 리포트를 생성합니다. "미션 종료" 버튼을 눌러주세요.'
-          });
+          
+          const completionMsg = '디펜스가 종료되었습니다. 최종 역량 리포트 생성을 위해 "미션 종료" 버튼을 눌러주세요.';
+          chatMessages.value.push({ role: 'ai', content: completionMsg });
+
+          // 종료 알림도 동기화
+          if (isLeader.value && gameStore.activeWarsMission) {
+            socket.value.emit('chat_message', {
+              mission_id: gameStore.activeWarsMission.id,
+              sender_name: interviewerName.value,
+              content: completionMsg,
+              is_ai: true
+            });
+          }
           progress.value = 100;
         }
       } else {
@@ -1124,43 +1443,25 @@ const simulateAiResponse = async (userMsg) => {
   }
 };
 
-// [Phase 3] 드래그 앤 드롭 이벤트 발생 시 팀원에게 동기화
-const syncCanvas = () => {
-  if (gameStore.activeWarsMission) {
-    emitCanvasUpdate(gameStore.activeWarsMission.id, droppedComponents.value, connections.value);
-  }
-};
-
-const handleComponentDropped = (data) => {
-  onComponentDropped(data);
-  syncCanvas();
-};
-
-const handleComponentMoved = (data) => {
-  onComponentMoved(data);
-  syncCanvas();
-};
-
-const handleComponentRenamed = (data) => {
-  onComponentRenamed(data);
-  syncCanvas();
-};
-
-const handleComponentDeleted = (id) => {
-  onComponentDeleted(id);
-  syncCanvas();
-};
-
-const handleConnectionCreated = (data) => {
-  onConnectionCreated(data);
-  syncCanvas();
-};
-
+// [수정일: 2026-02-23] 레거시 캔버스 동기화 로직 제거 (Monaco Editor로 대체됨)
 const finishMission = async () => {
   if (isEvaluating.value) return;
 
   const confirmFinish = confirm('미션을 종료하고 최종 평가 보고서를 생성하시겠습니까?');
   if (!confirmFinish) return;
+
+  // [P1] 제출 상태 + 점수 팀 전체 브로드캐스트
+  const myFinalScore = gameStore.calculateGameScore(liveScores.value, 600 - timeLeft.value, 600);
+  playerStatuses.value = { ...playerStatuses.value, [currentUserName.value]: 'submitted' };
+  playerScores.value   = { ...playerScores.value,   [currentUserName.value]: myFinalScore };
+  if (socket.value && gameStore.activeWarsMission) {
+    socket.value.emit('player_status', {
+      mission_id: gameStore.activeWarsMission.id,
+      user_name:  currentUserName.value,
+      status:     'submitted',
+      score:      myFinalScore
+    });
+  }
 
   isEvaluating.value = true;
   try {
@@ -1180,7 +1481,16 @@ const finishMission = async () => {
     });
 
     if (response.data.status === 'success') {
-      gameStore.setEvaluation(response.data.evaluation, JSON.stringify(codeFiles.value));
+      // [P1] 팀 점수 비교를 위해 전체 playerScores + 역할 정보 함께 저장
+      const scoresWithRole = {};
+      scoreboard.value.forEach(p => {
+        scoresWithRole[p.name] = { score: p.score, role: p.role };
+      });
+      // [수정일: 2026-02-23] 백엔드에서 생성된 Mermaid 다이아그램 코드를 우선적으로 저장
+      // AI가 결과 리포트용 구조도를 생성해주므로 이를 GrowthReport에서 시각화함
+      const finalMermaid = response.data.evaluation.mermaid_code || '';
+      gameStore.setPlayerScores(scoresWithRole);
+      gameStore.setEvaluation(response.data.evaluation, finalMermaid);
       router.push('/practice/coduck-wars/report');
     }
   } catch (error) {
@@ -1307,6 +1617,24 @@ const resetView = () => {};
 @keyframes blink {
   50% { opacity: 0.6; }
 }
+
+/* [P1] 타이머 프로그레스바 */
+.timer-bar-track {
+  width: 120px;
+  height: 4px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+.timer-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #38bdf8, #818cf8);
+  border-radius: 2px;
+  transition: width 1s linear;
+}
+.timer-bar-fill.warning-bar { background: linear-gradient(90deg, #f59e0b, #ef4444); }
+.timer-bar-fill.urgent      { background: #ef4444; animation: blink 0.5s infinite; }
 
 .room-layout {
   display: grid;
@@ -1750,6 +2078,162 @@ const resetView = () => {};
   object-fit: cover;
 }
 
+.stream-placeholder {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  color: #94a3b8;
+  gap: 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.user-avatar {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(to bottom right, #38bdf8, #818cf8);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+  box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
+}
+
+.connecting-wave {
+  display: flex;
+  gap: 4px;
+}
+
+.connecting-wave span {
+  width: 4px;
+  height: 4px;
+  background: #38bdf8;
+  border-radius: 50%;
+  animation: wave 1.2s infinite ease-in-out;
+}
+
+.connecting-wave span:nth-child(2) { animation-delay: 0.2s; }
+.connecting-wave span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes wave {
+  0%, 100% { transform: scale(1); opacity: 0.3; }
+  50% { transform: scale(1.5); opacity: 1; }
+}
+
+.status-tip {
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #38bdf8;
+  opacity: 0.8;
+}
+
+/* SYNC Indicator Styles */
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+  justify-content: center;
+}
+
+.status-indicator .dot {
+  width: 8px;
+  height: 8px;
+  background: #10b981;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #10b981;
+}
+
+.status-indicator .dot.pulsate {
+  animation: pulse-sync 2s infinite;
+}
+
+@keyframes pulse-sync {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.sync-text {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #10b981;
+}
+
+.leader-badge {
+  background: #f59e0b;
+  color: #000;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.6rem;
+  font-weight: 900;
+  box-shadow: 0 0 5px #f59e0b;
+}
+
+/* ============================================= */
+/* [P1] 실시간 팀 스코어보드                     */
+/* ============================================= */
+.team-scoreboard {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.4rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.scoreboard-player {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 0.5rem;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.7rem;
+  transition: border-color 0.3s;
+}
+
+.scoreboard-player:has(.sb-status-dot.submitted) {
+  border-color: rgba(16, 185, 129, 0.5);
+}
+
+.scoreboard-player:has(.sb-status-dot.typing) {
+  border-color: rgba(56, 189, 248, 0.5);
+}
+
+.sb-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sb-status-dot.submitted { background: #10b981; box-shadow: 0 0 5px #10b981; }
+.sb-status-dot.typing    { background: #38bdf8; animation: pulse-sync 1s infinite; }
+.sb-status-dot.idle      { background: #475569; }
+
+.sb-name  { font-weight: 700; color: #e2e8f0; max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-role  { color: #64748b; font-size: 0.6rem; }
+.sb-score { color: #f59e0b; font-weight: 800; min-width: 28px; text-align: right; }
+
+.sb-badge {
+  font-size: 0.6rem;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 700;
+}
+.sb-badge.submitted { background: rgba(16,185,129,0.15); color: #10b981; }
+.sb-badge.typing    { background: rgba(56,189,248,0.15);  color: #38bdf8; }
+.sb-badge.idle      { background: rgba(100,116,139,0.15); color: #64748b; }
+
 .video-card .user-name {
   position: absolute;
   bottom: 0.5rem;
@@ -1951,6 +2435,38 @@ const resetView = () => {};
 .tab-btn:hover:not(.active) {
   border-color: #64748b;
   color: #cbd5e1;
+}
+
+/* [P1] 내 역할 담당 탭 하이라이트 */
+.tab-btn.my-role-tab {
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.my-tab-badge {
+  margin-left: 0.4rem;
+  font-size: 0.55rem;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  font-weight: 900;
+  vertical-align: middle;
+}
+
+.role-guide-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  background: rgba(245, 158, 11, 0.06);
+  border: 1px solid rgba(245, 158, 11, 0.15);
+  border-radius: 0.5rem;
+  font-size: 0.7rem;
+  color: #92400e;
+  color: #fbbf24;
+  margin-bottom: 0.5rem;
 }
 
 /* ============================================= */

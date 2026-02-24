@@ -14,7 +14,7 @@
       </div>
     </header>
 
-    <main class="report-content">
+    <main class="report-content" :class="{ 'has-team': teamScoreList.length > 1 }">
       <!-- Left: Visualization -->
       <section class="glass-panel visual-panel">
         <div class="panel-header">
@@ -29,6 +29,39 @@
             <span class="stat-label">{{ key.toUpperCase() }}</span>
             <span class="stat-value">{{ score }}</span>
           </div>
+        </div>
+      </section>
+
+      <!-- Center: 팀 점수 비교 (playerScores가 있을 때만) -->
+      <section class="glass-panel team-score-panel" v-if="teamScoreList.length > 1">
+        <div class="panel-header">
+          <span class="icon">🏆</span>
+          <h2>TEAM SCORE COMPARISON</h2>
+        </div>
+        <div class="team-score-list">
+          <div
+            v-for="(player, idx) in teamScoreList"
+            :key="player.name"
+            class="team-score-row"
+            :class="{ 'top-player': idx === 0 }"
+          >
+            <span class="rank-badge">{{ idx === 0 ? '👑' : '#' + (idx + 1) }}</span>
+            <div class="player-info">
+              <span class="player-name">{{ player.name }}</span>
+              <span class="player-role">{{ player.role }}</span>
+            </div>
+            <div class="score-bar-wrap">
+              <div class="score-bar-bg">
+                <div class="score-bar-val" :style="{ width: player.score + '%' }" :class="'rank-' + (idx + 1)"></div>
+              </div>
+              <span class="score-num">{{ player.score }}pt</span>
+            </div>
+          </div>
+        </div>
+        <div class="team-avg">
+          <span>팀 평균</span>
+          <span class="avg-val">{{ teamAvg }}pt</span>
+          <span class="avg-grade" :class="teamGrade">{{ teamGrade }}</span>
         </div>
       </section>
 
@@ -84,7 +117,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue';
+import { ref, computed, onMounted, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { Chart, registerables } from 'chart.js';
 import mermaid from 'mermaid';
@@ -95,9 +128,48 @@ Chart.register(...registerables);
 // [수정일: 2026-02-23] Coduck Wars Step 3: 성장 보고서 UI 구현
 const router = useRouter();
 const gameStore = useGameStore();
-const evaluationData = ref(gameStore.lastEvaluation);
+// [수정일: 2026-02-23] 점수 시스템 연동: liveScores 기반 최종 점수 산정
+const rawEvaluation = gameStore.lastEvaluation;
+let evaluationData = ref(rawEvaluation);
+
+if (rawEvaluation) {
+    // liveScores가 있으면 가중평균 점수로 total_score 재산정
+    if (rawEvaluation.scores && !rawEvaluation.total_score) {
+        const computed = gameStore.calculateGameScore(rawEvaluation.scores);
+        evaluationData.value = { ...rawEvaluation, total_score: computed };
+    }
+}
 const radarChart = ref(null);
 const mermaidTarget = ref(null);
+
+// [P1] 팀 점수 비교: playerScores는 PressureInterviewRoom에서
+// gameStore에 저장한 것을 그대로 활용
+const rawPlayerScores = gameStore.lastPlayerScores || {};
+
+const teamScoreList = computed(() => {
+  const entries = Object.entries(rawPlayerScores)
+    .map(([name, info]) => ({
+      name,
+      role: (info.role || 'ARCHITECT').toUpperCase(),
+      score: typeof info === 'number' ? info : (info.score || 0)
+    }))
+    .sort((a, b) => b.score - a.score);
+  return entries;
+});
+
+const teamAvg = computed(() => {
+  if (!teamScoreList.value.length) return 0;
+  const sum = teamScoreList.value.reduce((acc, p) => acc + p.score, 0);
+  return Math.round(sum / teamScoreList.value.length);
+});
+
+const teamGrade = computed(() => {
+  const avg = teamAvg.value;
+  if (avg >= 90) return 'S';
+  if (avg >= 75) return 'A';
+  if (avg >= 60) return 'B';
+  return 'C';
+});
 
 onMounted(async () => {
   if (!evaluationData.value) {
@@ -252,6 +324,127 @@ const downloadPdf = () => alert('PDF 생성 기능은 준비 중입니다.');
   margin: 0 auto;
   width: 100%;
 }
+
+/* [P1] 팀 점수 비교 패널이 있을 때 3열 */
+.report-content.has-team {
+  grid-template-columns: 400px 280px 1fr;
+  max-width: 1400px;
+}
+
+/* 팀 점수 비교 패널 */
+.team-score-panel { display: flex; flex-direction: column; gap: 1rem; }
+
+.team-score-list { display: flex; flex-direction: column; gap: 0.75rem; flex: 1; }
+
+.team-score-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255,255,255,0.05);
+  transition: border-color 0.2s;
+}
+
+.team-score-row.top-player {
+  border-color: rgba(245, 158, 11, 0.4);
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.rank-badge {
+  font-size: 1.1rem;
+  width: 28px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.player-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 70px;
+}
+
+.player-name {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80px;
+}
+
+.player-role {
+  font-size: 0.6rem;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.score-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.score-bar-bg {
+  flex: 1;
+  height: 8px;
+  background: rgba(30, 41, 59, 0.8);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.score-bar-val {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 1s ease;
+}
+.score-bar-val.rank-1 { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+.score-bar-val.rank-2 { background: linear-gradient(90deg, #818cf8, #a5b4fc); }
+.score-bar-val.rank-3 { background: linear-gradient(90deg, #10b981, #34d399); }
+
+.score-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: #e2e8f0;
+  min-width: 36px;
+  text-align: right;
+}
+
+.team-avg {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 0.75rem;
+  border-top: 2px solid rgba(56, 189, 248, 0.2);
+  margin-top: auto;
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.avg-val {
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: #f8fafc;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.avg-grade {
+  font-size: 1.2rem;
+  font-weight: 900;
+  padding: 2px 10px;
+  border-radius: 6px;
+  border: 2px solid;
+}
+.avg-grade.S { color: #f59e0b; border-color: #f59e0b; }
+.avg-grade.A { color: #818cf8; border-color: #818cf8; }
+.avg-grade.B { color: #10b981; border-color: #10b981; }
+.avg-grade.C { color: #94a3b8; border-color: #94a3b8; }
 
 .glass-panel {
   background: rgba(30, 41, 59, 0.3);

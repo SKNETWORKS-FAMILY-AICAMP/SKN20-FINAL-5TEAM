@@ -37,6 +37,13 @@
           </div>
         </div>
 
+        <!-- [P1] 난이도별 권장 플레이어 수 안내 -->
+        <div class="difficulty-guide">
+          <span class="dg-item easy">⭐1~2 쉬움</span>
+          <span class="dg-item medium">⭐⭐⭐ 권장 3인</span>
+          <span class="dg-item hard">⭐⭐⭐⭐⭐ 고급</span>
+        </div>
+
         <!-- 시나리오 랜덤 생성 버튼 -->
         <button @click="generateRandomScenario" :disabled="isGenerating" class="btn-random">
           <span v-if="!isGenerating">🎲 랜덤 시나리오 생성 (AI)</span>
@@ -189,7 +196,8 @@ const selectScenario = (scenario) => {
   };
 
   // 스토어에 시나리오 저장 (id 포함)
-  gameStore.setWarsMission({ ...s, scenario_id: scenario.id });
+  // [수정일: 2026-02-23] 소켓 방 입장을 위해 id 필드를 scenario.id로 설정
+  gameStore.setWarsMission({ ...s, id: scenario.id, scenario_id: scenario.id });
 };
 
 // AI 랜덤 시나리오 생성
@@ -211,7 +219,10 @@ const generateRandomScenario = async () => {
         chaosEvent: s.chaos_event || '예측 불가능한 장애가 발생합니다.',
         difficultyLabel: 'Randomized'
       };
-      gameStore.setWarsMission(s);
+      // [수정일: 2026-02-23] 랜덤 시나리오의 경우 고유 ID 생성이 필요할 수 있으나, 
+      // 현재는 테스트 편의를 위해 'random_mission'으로 고정하거나 타임스탬프를 활용할 수 있습니다.
+      // 여기서는 'random'을 id로 사용하여 동일 시나리오 선택 시 같은 방에 입장을 유도합니다.
+      gameStore.setWarsMission({ ...s, id: 'random' });
     }
   } catch (error) {
     console.error('랜덤 시나리오 생성 실패:', error);
@@ -221,11 +232,11 @@ const generateRandomScenario = async () => {
   }
 };
 
-// [수정일: 2026-02-23] 로비를 건너뛰고 바로 배틀룸으로 이동
+// [버그수정] 로비에서 역할 선택 후 배틀룸으로 이동 (기존에 로비 건너뛰던 것 수정)
 const enterGame = () => {
   if (missionData.value) {
-    console.log('[MissionBriefing] 배틀룸으로 이동, 미션:', missionData.value.title);
-    router.push('/practice/coduck-wars/battle');
+    console.log('[MissionBriefing] 로비로 이동, 미션:', missionData.value.title);
+    router.push('/practice/coduck-wars/lobby');
   }
 };
 </script>
@@ -400,6 +411,23 @@ const enterGame = () => {
 .dot.filled {
   background: #f59e0b;
 }
+
+/* [P1] 난이도 가이드 */
+.difficulty-guide {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.dg-item {
+  font-size: 0.7rem;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-weight: 700;
+}
+.dg-item.easy   { background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); }
+.dg-item.medium { background: rgba(56,189,248,0.15);  color: #38bdf8; border: 1px solid rgba(56,189,248,0.3); }
+.dg-item.hard   { background: rgba(239,68,68,0.15);   color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
 
 /* 랜덤 생성 버튼 */
 .btn-random {
