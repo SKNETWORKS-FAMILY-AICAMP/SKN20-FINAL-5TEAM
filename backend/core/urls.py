@@ -11,7 +11,6 @@ from core.views import (
     LoginView,
     LogoutView,
     SessionCheckView,
-    AIEvaluationView,
     AIProxyView,
     BugHuntEvaluationView,
     BugHuntInterviewView,
@@ -65,7 +64,6 @@ urlpatterns = [
     path('auth/me/', SessionCheckView.as_view(), name='session_check'),
 
     # AI 평가 관련
-    path('ai-evaluate/', AIEvaluationView.as_view(), name='ai_evaluate'),
     path('ai-proxy/', AIProxyView.as_view(), name='ai_proxy'),
     path('ai-bughunt-evaluate/', BugHuntEvaluationView.as_view(), name='bughunt_evaluate'),
     path('ai-bughunt-interview/', BugHuntInterviewView.as_view(), name='bughunt_interview'),

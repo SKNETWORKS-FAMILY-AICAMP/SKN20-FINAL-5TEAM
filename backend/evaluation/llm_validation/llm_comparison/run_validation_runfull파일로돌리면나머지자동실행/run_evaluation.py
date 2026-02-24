@@ -17,7 +17,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
 from django.test import RequestFactory
-from core.views.ai_view import BugHuntEvaluationView
+from core.views.bughunt_evaluation_view import BugHuntEvaluationView
 
 
 class EvaluationRunner:

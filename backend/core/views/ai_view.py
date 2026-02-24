@@ -16,7 +16,7 @@ import time
 import traceback
 
 @method_decorator(csrf_exempt, name='dispatch')
-class AIChatView(APIView):
+class  View(APIView):
     """
     AI 학습 도우미 챗봇 뷰 (JRPG 코드 위저드 컨셉)
     """
