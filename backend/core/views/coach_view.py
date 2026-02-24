@@ -223,7 +223,7 @@ class AICoachView(APIView):
                     tool_choice_param = "auto" if filtered_tools else openai.NOT_GIVEN
 
                     stream = client.chat.completions.create(
-                        model="gpt-4o-mini",
+                        model="gpt-5-mini",
                         messages=conv,
                         tools=tools_to_use,
                         tool_choice=tool_choice_param,
