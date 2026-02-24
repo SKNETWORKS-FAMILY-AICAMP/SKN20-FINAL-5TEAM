@@ -222,8 +222,8 @@ class UserSolvedProblemView(APIView):
         from core.models import UserProfile
         profile = get_object_or_404(UserProfile, email=user.email)
         
-        # 사용자의 모든 해결 기록 조회 (최신순)
-        solved_problems = UserSolvedProblem.objects.filter(user=profile).select_related('practice_detail').order_by('-updated_at')
+        # [2026-02-24 수정] UserSolvedProblem 필드명 오타 수정 (updated_at -> update_date)
+        solved_problems = UserSolvedProblem.objects.filter(user=profile).select_related('practice_detail').order_by('-update_date')
         
         data = []
         for sp in solved_problems:

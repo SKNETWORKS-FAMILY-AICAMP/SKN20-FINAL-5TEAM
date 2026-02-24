@@ -44,6 +44,14 @@ class LowEffortDetector:
         r'^[ㄱ-ㅎㅏ-ㅣ\s]+$',             # 자음/모음만 있는 문장 (ㅁㄴㅇㄹ 등)
     ]
 
+    # ── 자음/모음(자모) 비율 기준 ────────────────────────────────
+    # 완성형 한글(가-힣)이 아닌 낱자음/낱모음(ㄱ-ㅎ, ㅏ-ㅣ)의 비율이 30%를 넘으면 무성의 입력
+    MAX_JAMO_RATIO = 0.30
+
+    # ── 최소 문장 구조 기준 ──────────────────────────────────────
+    # 키워드만 나열(단어 ≤3자 비율 높음, 동사/서술어 없음)하면 설계문이 아님
+    MIN_LONG_WORD_COUNT = 2  # 4자 이상 단어가 최소 2개
+
     # ── 반복 문자 감지 ────────────────────────────────────────────
     # 같은 문자가 5번 이상 연속 반복
     REPETITION_PATTERN = re.compile(r'(.)\1{4,}')
@@ -86,7 +94,18 @@ class LowEffortDetector:
             if entropy < cls.MIN_ENTROPY:
                 return True, "의미를 알 수 없는 문자의 나열이 감지되었습니다."
 
-        # 5. 의미 있는 단어 수 체크 (한글 없고 짧은 영문 단어만 있는 경우)
+        # 5. 자음/모음(낱자) 비율 체크 (ㅇㄴㄹㅂ 등이 섞여 있는 경우)
+        jamo_chars = re.findall(r'[ㄱ-ㅎㅏ-ㅣ]', stripped)
+        non_space = re.sub(r'\s', '', stripped)
+        if non_space and len(jamo_chars) / len(non_space) > cls.MAX_JAMO_RATIO:
+            return True, "의미 없는 자음/모음이 다수 포함되어 있습니다. 완성된 문장으로 작성해 주세요."
+
+        # 6. 키워드 나열 감지 (4자 이상 단어가 최소 2개 이상이어야 설계문)
+        words = [w for w in stripped.split() if len(w) >= 4]
+        if len(words) < cls.MIN_LONG_WORD_COUNT:
+            return True, "키워드만 나열되어 있습니다. 설계 절차를 문장으로 서술해 주세요."
+
+        # 7. 의미 있는 단어 수 체크 (한글 없고 짧은 영문 단어만 있는 경우)
         has_korean = bool(re.search(r'[가-힣]', stripped))
         word_count = len([w for w in stripped.split() if len(w) > 1])
         if not has_korean and word_count < cls.MIN_MEANINGFUL_WORDS:

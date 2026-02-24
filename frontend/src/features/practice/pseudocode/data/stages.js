@@ -1,5 +1,6 @@
 // stages.js - Quest 완전판
 // [2026-02-21] 외부 하드코딩 검증 규칙(VALIDATION_LIBRARY) 제거 — 백엔드 기반으로 일원화
+// [2026-02-24] checklist의 patterns에서 정규표현식(/.../i) 기반 작성법을 배열의 문자열 형태(["..."])로 수정하여, DB에 JSON 통신 시 정규표현식이 호환되지 않고 {} 로 소실되는 버그를 방지함.
 
 export const aiQuests = [
     {
@@ -137,9 +138,9 @@ fit() 실행 시점에 Train/Test 분할이 되지 않아 Test 통계량이 Trai
 
         // [2026-02-14] ✅ COMPLETE 버전 검증 규칙 적용
         checklist: [
-            { id: 'check_isolation', label: '격리 (Isolation) 포함', patterns: [/격리|분리|나누|나눔|isolation|split/i] },
-            { id: 'check_anchor', label: '기준점 (Anchor) 정의', patterns: [/기준점|기준|통계량|fit|anchor|학습/i] },
-            { id: 'check_consistency', label: '일관성 (Consistency) 확보', patterns: [/일관성|동일|변환|consistency|transform/i] }
+            { id: 'check_isolation', label: '격리 (Isolation) 포함', patterns: ["격리|분리|나누|나눔|isolation|split"] },
+            { id: 'check_anchor', label: '기준점 (Anchor) 정의', patterns: ["기준점|기준|통계량|fit|anchor|학습"] },
+            { id: 'check_consistency', label: '일관성 (Consistency) 확보', patterns: ["일관성|동일|변환|consistency|transform"] }
         ],
         placeholder: "격리, 기준점, 일관성 원칙을 바탕으로 당신만의 데이터 전처리 설계를 서술하세요...\n예: 1. train_test_split으로 데이터를 분리한다.",
 
@@ -280,9 +281,9 @@ test_score = 0.42   # 매우 낮음 → 과적합!
         ],
 
         checklist: [
-            { id: 'check_control', label: '복잡도 제어 (Complexity Control)', patterns: [/복잡도|제어|정규화|L1|L2|Ridge|Lasso|depth|제한/i] },
-            { id: 'check_selection', label: '특성 선택 (Feature Selection)', patterns: [/특성|선택|제거|가중치|분산|selection|feature/i] },
-            { id: 'check_monitoring', label: '성능 모니터링 (Performance Monitoring)', patterns: [/성능|모니터링|추적|진단|accuracy|score|monitoring/i] }
+            { id: 'check_control', label: '복잡도 제어 (Complexity Control)', patterns: ["복잡도|제어|정규화|L1|L2|Ridge|Lasso|depth|제한"] },
+            { id: 'check_selection', label: '특성 선택 (Feature Selection)', patterns: ["특성|선택|제거|가중치|분산|selection|feature"] },
+            { id: 'check_monitoring', label: '성능 모니터링 (Performance Monitoring)', patterns: ["성능|모니터링|추적|진단|accuracy|score|monitoring"] }
         ],
         placeholder: "복잡도 제어, 특성 선택, 성능 모니터링 원칙을 바탕으로 과적합 방어 전략을 서술하세요...\n예: 1. Ridge 정규화를 적용하여 가중치를 제어한다.",
 
@@ -422,9 +423,9 @@ anomaly_detected = 0  # 그런데 이상 거래는 하나도 찾지 못함
         ],
 
         checklist: [
-            { id: 'check_diagnosis', label: '불균형 진단 (Imbalance Detection)', patterns: [/불균형|진단|분포|확인|detect|imbalance/i] },
-            { id: 'check_sampling', label: '샘플링 전략 (Sampling Strategy)', patterns: [/샘플링|SMOTE|오버|언더|sampling|balance/i] },
-            { id: 'check_evaluation', label: '공정한 평가 (Fair Evaluation)', patterns: [/평가|지표|F1|AUC|Precision|Recall|metric|fair/i] }
+            { id: 'check_diagnosis', label: '불균형 진단 (Imbalance Detection)', patterns: ["불균형|진단|분포|확인|detect|imbalance"] },
+            { id: 'check_sampling', label: '샘플링 전략 (Sampling Strategy)', patterns: ["샘플링|SMOTE|오버|언더|sampling|balance"] },
+            { id: 'check_evaluation', label: '공정한 평가 (Fair Evaluation)', patterns: ["평가|지표|F1|AUC|Precision|Recall|metric|fair"] }
         ],
         placeholder: "불균형 진단, 샘플링 전략, 공정한 평가 원칙을 바탕으로 불균형 데이터 처리 설계를 서술하세요...\n예: 1. SMOTE를 사용하여 소수 클래스를 오버샘플링한다.",
 
@@ -570,9 +571,9 @@ accuracy = 0.68  # 낮은 성능
         ],
 
         checklist: [
-            { id: 'check_creation', label: '특성 창조 (Feature Creation)', patterns: [/창조|생성|파생|조합|creation/i] },
-            { id: 'check_transformation', label: '특성 변환 (Feature Transformation)', patterns: [/변환|스케일링|정규화|로그|transformation|scaling/i] },
-            { id: 'check_feature_selection', label: '특성 선택 (Feature Selection)', patterns: [/선택|중요도|제거|selection/i] }
+            { id: 'check_creation', label: '특성 창조 (Feature Creation)', patterns: ["창조|생성|파생|조합|creation"] },
+            { id: 'check_transformation', label: '특성 변환 (Feature Transformation)', patterns: ["변환|스케일링|정규화|로그|transformation|scaling"] },
+            { id: 'check_feature_selection', label: '특성 선택 (Feature Selection)', patterns: ["선택|중요도|제거|selection"] }
         ],
         placeholder: "특성 창조, 변환, 선택 원칙을 바탕으로 피처 엔지니어링 전략을 서술하세요...\n예: 1. 도메인 지식을 활용해 파생 특성을 생성한다.",
 
@@ -720,9 +721,9 @@ Random Forest 모델의 기본값 사용 시 정확도가 78%로 목표(88%)에 
         ],
 
         checklist: [
-            { id: 'check_space', label: '파라미터 공간 (Parameter Space)', patterns: [/공간|범위|정의|param|space/i] },
-            { id: 'check_search', label: '탐색 전략 (Search Strategy)', patterns: [/탐색|전략|그리드|랜덤|그리드서치|search|strategy/i] },
-            { id: 'check_cv', label: '교차검증 (Cross-Validation)', patterns: [/교차검증|신뢰|K-Fold|cv|valid/i] }
+            { id: 'check_space', label: '파라미터 공간 (Parameter Space)', patterns: ["공간|범위|정의|param|space"] },
+            { id: 'check_search', label: '탐색 전략 (Search Strategy)', patterns: ["탐색|전략|그리드|랜덤|그리드서치|search|strategy"] },
+            { id: 'check_cv', label: '교차검증 (Cross-Validation)', patterns: ["교차검증|신뢰|K-Fold|cv|valid"] }
         ],
         placeholder: "파라미터 공간, 탐색 전략, 교차검증 원칙을 바탕으로 하이퍼파라미터 튜닝 전략을 서술하세요...\n예: 1. GridSearchCV로 최적의 파라미터를 탐색한다.",
 

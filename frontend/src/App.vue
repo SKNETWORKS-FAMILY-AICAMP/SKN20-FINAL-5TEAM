@@ -110,7 +110,7 @@
                       v-if="problem.questIndex === currentMaxIdx"
                       :src="auth.userAvatarUrl" 
                       :rank="auth.userRank" 
-                      size="50px" 
+                      size="120px" 
                       class="duck-on-node-v3 user-avatar-on-node"
                     />
                     <div style="width: 20px; height: 20px; background: #b6ff40; border-radius: 50%; box-shadow: 0 0 10px #b6ff40;"></div>
@@ -272,14 +272,16 @@ const currentMaxIdx = computed(() => {
 });
 
 // [수정일: 2026-01-28] 라우트 감시: 연습 페이지에서 홈으로 돌아올 때 유닛 상세 모달 자동 재개
-watch(() => route.name, (newNav, oldNav) => {
+watch(() => route.name, async (newNav, oldNav) => {
   const practiceRoutes = ['PseudoCode', 'SystemArchitecturePractice', 'BugHunt' /*, 'OpsPractice', 'AiDetective', 'PseudoForest', 'PseudoCompany', 'PseudoEmergency' */];
   // 연습 페이지에서 홈('/')으로 돌아오는 경우
   if (newNav === 'Home' && practiceRoutes.includes(oldNav)) {
     if (game.activeUnit) {
-      // BugHunt 클리어 직후 돌아왔을 때 잠금 상태가 즉시 반영되도록 진행도 동기화
-      if (game.activeUnit?.name === 'Debug Practice') {
-        syncDebugProgress();
+      // [2026-02-24 수정] 연습 완료 후 최신 진행도를 서버에서 다시 불러와 스테이지 맵 반영
+      if (auth.isLoggedIn) {
+        const { useProgressStore } = await import('@/stores/progress');
+        const progressStore = useProgressStore();
+        await progressStore.fetchAllProgress();
       }
       ui.isUnitModalOpen = true;
       nextTick(() => { if (window.lucide) window.lucide.createIcons(); });
@@ -288,32 +290,7 @@ watch(() => route.name, (newNav, oldNav) => {
 });
 
 // Methods
-function syncDebugProgress() {
-    try {
-        const data = localStorage.getItem('bugHuntGameData');
-        if (data) {
-            const parsed = JSON.parse(data);
-            const completed = parsed.completedProblems || [];
-            // Debug Practice의 현재 DB 문제 목록을 기준으로 미션 완료 여부 확인
-            const missions = game.activeUnit?.problems || [];
-            const progress = [0]; // 캠페인 1은 기본 해금
-            
-            missions.forEach((m, idx) => {
-                // 로컬 저장 구조상 마지막 step 완료 키로 미션 완료를 판정
-                const missionCompleted = completed.some(
-                  (key) => key.startsWith(`progressive_${m.id}_step`)
-                );
-                if (missionCompleted) {
-                    progress.push(idx + 1);
-                }
-            });
-            
-            game.unitProgress['Debug Practice'] = Array.from(new Set(progress)).sort((a, b) => a - b);
-        }
-    } catch (e) {
-        console.warn('Failed to sync debug progress:', e);
-    }
-}
+// [수정일: 2026-02-24] syncDebugProgress() (localStorage 의존 데이터 동기화) 완전 제거 (DB 연동으로 대체됨)
 
 function isUnlocked(pIdx) {
   return game.currentUnitProgress.includes(pIdx);
@@ -326,7 +303,6 @@ function openUnitPopup(unit) {
   }
   game.setActiveUnit(unit);
   if (unit?.name === 'Debug Practice') {
-    syncDebugProgress(); // 팝업 열 때 진행도 동기화
     game.currentDebugMode = 'bug-hunt';
   }
   ui.isUnitModalOpen = true;
@@ -418,8 +394,16 @@ function handleOpenInterview() {
 }
 
 // Lifecycle
-onMounted(() => {
-  auth.checkSession();
+onMounted(async () => {
+  await auth.checkSession();
+  
+  // 로그인 검증 후 전역 진행도(DB) 동기화
+  if (auth.isLoggedIn) {
+    const { useProgressStore } = await import('@/stores/progress');
+    const progressStore = useProgressStore();
+    await progressStore.fetchAllProgress();
+  }
+
   game.initGame();
   fetchLeaderboard(); // [수정일: 2026-02-06] 리더보드 데이터 호출
   nextTick(() => {
