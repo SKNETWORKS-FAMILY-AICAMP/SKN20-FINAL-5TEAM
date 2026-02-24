@@ -80,9 +80,9 @@ urlpatterns = [
     path('pseudocode/evaluate-5d/', pseudocode_evaluation.evaluate_pseudocode_5d),
     path('youtube/recommendations', youtube_recommendation.get_youtube_recommendations),
 
-    # AI Coach Agent API
-    path('ai-coach/chat/', AICoachView.as_view(), name='ai_coach_chat'),
-    path('ai-coach/chat-v2/', AICoachEnhancedView.as_view(), name='ai_coach_chat_v2'),
+    # AI Coach Agent API (Optimal Version)
+    path('ai-coach/chat/', AICoachOptimalView.as_view(), name='ai_coach_chat'),
+    path('ai-coach/chat-v2/', AICoachOptimalView.as_view(), name='ai_coach_chat_v2'),
     path('ai-coach/chat-optimal/', AICoachOptimalView.as_view(), name='ai_coach_chat_optimal'),
 
     # Job Planner API

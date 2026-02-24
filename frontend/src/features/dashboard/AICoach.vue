@@ -8,31 +8,6 @@
     </header>
 
     <div class="chat-area" ref="chatArea">
-      <!-- 모드 선택 (v1 vs v2 vs v3) [2026-02-24] -->
-      <div class="mode-selector">
-        <button
-          class="mode-btn"
-          :class="{ active: useVersion === 'v1' }"
-          @click="useVersion = 'v1'"
-        >
-          📌 기본 모드 (v1)
-        </button>
-        <button
-          class="mode-btn"
-          :class="{ active: useVersion === 'v2' }"
-          @click="useVersion = 'v2'"
-        >
-          ✨ 고도화 모드 (v2)
-        </button>
-        <button
-          class="mode-btn optimal"
-          :class="{ active: useVersion === 'v3' }"
-          @click="useVersion = 'v3'"
-        >
-          🚀 최적화 모드 (v3)
-        </button>
-      </div>
-
       <!-- 프리셋 버튼 (대화 없을 때) -->
       <div v-if="messages.length === 0" class="preset-section">
         <p class="preset-label">무엇을 도와드릴까요?</p>
@@ -137,7 +112,6 @@ const inputText = ref('');
 const loading = ref(false);
 const streaming = ref(false);
 const chatArea = ref(null);
-const useVersion = ref('v3'); // [2026-02-24] 버전 선택: 'v1', 'v2', 'v3' (기본값: v3 최적화 모드)
 
 function getCsrfToken() {
   const m = document.cookie.match(/csrftoken=([^;]+)/);
@@ -258,13 +232,8 @@ async function sendMessage() {
   const assistantMsg = messages.value[messages.value.length - 1];
 
   try {
-    // [2026-02-24] 버전별 엔드포인트 선택
-    let endpoint = '/api/core/ai-coach/chat/';
-    if (useVersion.value === 'v2') {
-      endpoint = '/api/core/ai-coach/chat-v2/';
-    } else if (useVersion.value === 'v3') {
-      endpoint = '/api/core/ai-coach/chat-optimal/';
-    }
+    // AI Coach Optimal View 엔드포인트 (최적화된 버전)
+    const endpoint = '/api/core/ai-coach/chat-optimal/';
 
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -806,49 +775,6 @@ async function sendMessage() {
 .send-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-/* ===== Mode Selector [2026-02-23] ===== */
-.mode-selector {
-  display: flex;
-  gap: 0.5rem;
-  justify-content: center;
-  padding: 1rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 12px;
-  margin-bottom: 0.5rem;
-}
-
-.mode-btn {
-  padding: 0.5rem 1rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--glass-border);
-  color: var(--text-muted);
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 0.85rem;
-  font-weight: 600;
-  transition: all 0.3s;
-}
-
-.mode-btn:hover {
-  border-color: var(--primary);
-}
-
-.mode-btn.active {
-  background: var(--primary);
-  color: white;
-  border-color: var(--primary);
-}
-
-/* v3 최적화 모드 특별 스타일 */
-.mode-btn.optimal {
-  position: relative;
-}
-
-.mode-btn.optimal.active {
-  background: linear-gradient(135deg, var(--primary), #8b5cf6);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
 }
 
 /* ===== Intent Badge [2026-02-23] ===== */

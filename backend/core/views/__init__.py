@@ -13,8 +13,7 @@ from .ai_proxy_view import AIProxyView
 from .pseudocode_execution import execute_python_code
 from .pseudocode_agent_view import PseudocodeAgentView
 from .architecture_view import ArchitectureEvaluationView, ArchitectureQuestionGeneratorView
-from .coach_view import AICoachView
-from .coach_view_enhanced import AICoachEnhancedView
+from .coach_view import AICoachOptimalView
 from .job_planner_view import (
     JobPlannerParseView,
     JobPlannerAnalyzeView,
