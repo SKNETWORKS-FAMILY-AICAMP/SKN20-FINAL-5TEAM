@@ -612,24 +612,140 @@ def validate_and_normalize_args(fn_name, fn_args):
 # 7. 차트 데이터 생성 함수 (하이브리드: SSE 요약 + API 상세)
 # ─────────────────────────────────────────────
 
-def generate_chart_data_summary(profile, intent_type):
-    """
-    Intent별 기본 차트 데이터 생성 (SSE로 전달)
-    상세 데이터는 별도 API에서 제공
-    """
-    charts = []
+def _determine_data_type(message):
+    """사용자 메시지에서 원하는 데이터 유형 결정"""
+    msg_lower = message.lower()
 
-    if intent_type == "A":  # 데이터 조회형
-        # 차트 1: 유닛별 성적 (Bar Chart)
-        scores = tool_get_user_scores(profile)
-        if scores:
-            labels = [s["unit_title"] for s in scores]
-            values = [s["avg_score"] for s in scores]
-            max_val = max(values) if values else 100
+    # 메트릭별 (약점 분석)
+    metric_keywords = {"약점", "분석", "능력", "강점", "메트릭", "문제점", "부족"}
+    if any(kw in msg_lower for kw in metric_keywords):
+        return "metric"
+
+    # 시간순 (성장 추이)
+    chrono_keywords = {"최근", "추이", "성장", "향상", "변화", "시간", "진행", "발전"}
+    if any(kw in msg_lower for kw in chrono_keywords):
+        return "chronological"
+
+    # 문제별 (풀이 기록)
+    problem_keywords = {"문제", "풀이", "실패", "도전", "시도"}
+    if any(kw in msg_lower for kw in problem_keywords):
+        return "problem"
+
+    # 기본값: 단위별
+    return "unit"
+
+
+def _generate_metric_chart(profile):
+    """메트릭별 차트 생성 (약점 분석)"""
+    try:
+        # 첫 번째 약점이 있는 유닛 찾기
+        for unit_id in ["unit01", "unit02", "unit03"]:
+            weak_data = tool_get_weak_points(profile, unit_id)
+            all_metrics = weak_data.get("all_metrics", [])
+            if all_metrics:
+                labels = [m["metric"] for m in all_metrics]
+                values = [m["avg_score"] for m in all_metrics]
+
+                return {
+                    "chart_type": "radar",
+                    "title": f"메트릭 분석 ({weak_data.get('unit_id', 'Unit')})",
+                    "data": {
+                        "labels": labels,
+                        "datasets": [{
+                            "label": "현재 점수",
+                            "data": values,
+                            "borderColor": "#4ECDC4",
+                            "backgroundColor": "rgba(78, 205, 196, 0.1)",
+                        }, {
+                            "label": "목표 (70점)",
+                            "data": [70] * len(labels),
+                            "borderColor": "#FF6B6B",
+                            "borderDash": [5, 5],
+                        }],
+                    }
+                }
+    except Exception as e:
+        logger.warning(f"Failed to generate metric chart: {e}")
+
+    return None
+
+
+def _generate_chronological_chart(profile):
+    """시간순 차트 생성 (성장 추이)"""
+    try:
+        activities = tool_get_recent_activity(profile, limit=10)
+        if activities:
+            # 최근 5-10개 풀이의 점수 추이
+            labels = [a["problem_title"][:15] for a in activities[-5:]]
+            values = [a["score"] for a in activities[-5:]]
+
+            return {
+                "chart_type": "line",
+                "title": "최근 풀이 점수 추이",
+                "data": {
+                    "labels": labels,
+                    "datasets": [{
+                        "label": "점수",
+                        "data": values,
+                        "borderColor": "#95E1D3",
+                        "backgroundColor": "rgba(149, 225, 211, 0.1)",
+                        "fill": True,
+                        "tension": 0.4,
+                    }],
+                }
+            }
+    except Exception as e:
+        logger.warning(f"Failed to generate chronological chart: {e}")
+
+    return None
+
+
+def _generate_problem_chart(profile):
+    """문제별 차트 생성 (풀이 기록)"""
+    try:
+        activities = tool_get_recent_activity(profile, limit=15)
+        if activities:
+            labels = [a["problem_title"][:12] for a in activities[-10:]]
+            values = [a["score"] for a in activities[-10:]]
             colors = [
                 "#FF6B6B" if v < 60 else "#FFA500" if v < 70 else "#4ECDC4" if v < 85 else "#95E1D3"
                 for v in values
             ]
+
+            return {
+                "chart_type": "bar",
+                "title": "풀이 기록 및 점수",
+                "data": {
+                    "labels": labels,
+                    "datasets": [{
+                        "label": "점수",
+                        "data": values,
+                        "backgroundColor": colors,
+                        "borderColor": colors,
+                        "borderWidth": 1,
+                    }],
+                }
+            }
+    except Exception as e:
+        logger.warning(f"Failed to generate problem chart: {e}")
+
+    return None
+
+
+def _generate_unit_chart(profile):
+    """단위별 차트 생성 (기본값)"""
+    charts = []
+
+    try:
+        scores = tool_get_user_scores(profile)
+        if scores:
+            labels = [s["unit_title"] for s in scores]
+            values = [s["avg_score"] for s in scores]
+            colors = [
+                "#FF6B6B" if v < 60 else "#FFA500" if v < 70 else "#4ECDC4" if v < 85 else "#95E1D3"
+                for v in values
+            ]
+
             charts.append({
                 "chart_type": "bar",
                 "title": "유닛별 평균 점수",
@@ -649,7 +765,7 @@ def generate_chart_data_summary(profile, intent_type):
                 }
             })
 
-            # 차트 2: 완료율 (Progress)
+            # 완료율
             completion_rates = [s["completion_rate"] for s in scores]
             charts.append({
                 "chart_type": "progress",
@@ -659,61 +775,55 @@ def generate_chart_data_summary(profile, intent_type):
                     "completion_rates": completion_rates,
                 }
             })
+    except Exception as e:
+        logger.warning(f"Failed to generate unit charts: {e}")
+
+    return charts if charts else None
+
+
+def generate_chart_data_summary(profile, intent_type, user_message=""):
+    """
+    Intent + 사용자 메시지 기반으로 동적 차트 데이터 생성 (SSE로 전달)
+    상세 데이터는 별도 API에서 제공
+    """
+    charts = []
+
+    if intent_type == "A":  # 데이터 조회형
+        # 사용자가 원하는 데이터 유형 결정
+        data_type = _determine_data_type(user_message)
+
+        if data_type == "metric":
+            # 메트릭별 차트
+            chart = _generate_metric_chart(profile)
+            if chart:
+                charts.append(chart)
+        elif data_type == "chronological":
+            # 시간순 차트
+            chart = _generate_chronological_chart(profile)
+            if chart:
+                charts.append(chart)
+        elif data_type == "problem":
+            # 문제별 차트
+            chart = _generate_problem_chart(profile)
+            if chart:
+                charts.append(chart)
+        else:
+            # 기본값: 단위별 차트
+            unit_charts = _generate_unit_chart(profile)
+            if unit_charts:
+                charts.extend(unit_charts)
 
     elif intent_type == "B":  # 학습 방법형
-        # 차트: 약점 메트릭 분석 (Radar)
-        try:
-            # 첫 번째 약점이 있는 유닛 찾기
-            for unit_id in ["unit01", "unit02", "unit03"]:
-                weak_data = tool_get_weak_points(profile, unit_id)
-                all_metrics = weak_data.get("all_metrics", [])
-                if all_metrics:
-                    labels = [m["metric"] for m in all_metrics]
-                    values = [m["avg_score"] for m in all_metrics]
-                    charts.append({
-                        "chart_type": "radar",
-                        "title": f"{weak_data.get('unit_id', 'Unit')} 메트릭 분석",
-                        "data": {
-                            "labels": labels,
-                            "datasets": [{
-                                "label": "현재 점수",
-                                "data": values,
-                                "borderColor": "#4ECDC4",
-                                "backgroundColor": "rgba(78, 205, 196, 0.1)",
-                            }, {
-                                "label": "목표 (70점)",
-                                "data": [70] * len(labels),
-                                "borderColor": "#FF6B6B",
-                                "borderDash": [5, 5],
-                            }],
-                        }
-                    })
-                    break
-        except Exception as e:
-            logger.warning(f"Failed to generate radar chart: {e}")
+        # 메트릭 분석 (약점 개선 방법 제시 위함)
+        chart = _generate_metric_chart(profile)
+        if chart:
+            charts.append(chart)
 
     elif intent_type == "C":  # 동기부여형
-        # 차트: 최근 성적 추이 (Line)
-        activities = tool_get_recent_activity(profile, limit=10)
-        if activities:
-            # 날짜별 점수 추이
-            labels = [a["problem_title"][:10] for a in activities[-5:]]
-            values = [a["score"] for a in activities[-5:]]
-            charts.append({
-                "chart_type": "line",
-                "title": "최근 풀이 점수 추이",
-                "data": {
-                    "labels": labels,
-                    "datasets": [{
-                        "label": "점수",
-                        "data": values,
-                        "borderColor": "#95E1D3",
-                        "backgroundColor": "rgba(149, 225, 211, 0.1)",
-                        "fill": True,
-                        "tension": 0.4,
-                    }],
-                }
-            })
+        # 성장 추이 (동기부여)
+        chart = _generate_chronological_chart(profile)
+        if chart:
+            charts.append(chart)
 
     elif intent_type == "G":  # 의사결정형
         # 차트: 성적 비교 테이블

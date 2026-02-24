@@ -269,7 +269,7 @@ class AICoachView(APIView):
                         # 1. 차트 데이터를 먼저 생성/전송
                         if should_show_chart:
                             try:
-                                chart_summaries = generate_chart_data_summary(profile, intent_type)
+                                chart_summaries = generate_chart_data_summary(profile, intent_type, user_message)
                                 for chart in chart_summaries:
                                     yield _sse({
                                         "type": "chart_data",
@@ -363,7 +363,7 @@ class AICoachView(APIView):
                 # 1. 차트 데이터를 먼저 생성/전송
                 if should_show_chart:
                     try:
-                        chart_summaries = generate_chart_data_summary(profile, intent_type)
+                        chart_summaries = generate_chart_data_summary(profile, intent_type, user_message)
                         for chart in chart_summaries:
                             yield _sse({
                                 "type": "chart_data",
