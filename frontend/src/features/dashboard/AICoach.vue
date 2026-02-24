@@ -40,56 +40,6 @@
           <span class="intent-reasoning">{{ msg.intentData.reasoning }}</span>
         </div>
 
-        <!-- 차트 렌더링 [2026-02-24] 📊 -->
-        <div v-if="msg.charts && msg.charts.length > 0" class="charts-section">
-          <div v-for="(chart, cIdx) in msg.charts" :key="`chart-${cIdx}`" class="chart-wrapper">
-            <div class="chart-header">
-              <h4 class="chart-title">{{ chart.title }}</h4>
-            </div>
-
-            <!-- Bar / Line / Radar Chart -->
-            <template v-if="['bar', 'line', 'radar'].includes(chart.chart_type)">
-              <canvas
-                :id="chart._chartId || `chart-${cIdx}-${idx}`"
-                :data-chart-id="chart._chartId"
-                class="chart-canvas"
-                style="max-width: 100%; height: 300px;">
-              </canvas>
-            </template>
-
-            <!-- Progress Chart -->
-            <template v-else-if="chart.chart_type === 'progress'">
-              <div class="progress-list">
-                <div v-for="(rate, pIdx) in chart.data.completion_rates" :key="pIdx" class="progress-item">
-                  <span class="progress-label">{{ chart.data.units[pIdx] }}</span>
-                  <div class="progress-bar">
-                    <div class="progress-fill" :style="{ width: `${rate}%` }"></div>
-                  </div>
-                  <span class="progress-percent">{{ rate.toFixed(1) }}%</span>
-                </div>
-              </div>
-            </template>
-
-            <!-- Table Chart -->
-            <template v-else-if="chart.chart_type === 'table'">
-              <div class="table-wrapper">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th v-for="col in chart.data.columns" :key="col">{{ col }}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="(row, rIdx) in chart.data.rows" :key="rIdx">
-                      <td v-for="(cell, cIdx) in row" :key="cIdx">{{ cell }}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </template>
-          </div>
-        </div>
-
         <!-- 유저 메시지 -->
         <div v-if="msg.role === 'user'" class="chat-bubble user">
           {{ msg.content }}
@@ -121,6 +71,56 @@
               </div>
             </div>
           </template>
+
+          <!-- 차트 렌더링 [2026-02-24] 📊 (최종답변 위에 배치) -->
+          <div v-if="msg.charts && msg.charts.length > 0" class="charts-section">
+            <div v-for="(chart, cIdx) in msg.charts" :key="`chart-${cIdx}`" class="chart-wrapper">
+              <div class="chart-header">
+                <h4 class="chart-title">{{ chart.title }}</h4>
+              </div>
+
+              <!-- Bar / Line / Radar Chart -->
+              <template v-if="['bar', 'line', 'radar'].includes(chart.chart_type)">
+                <canvas
+                  :id="chart._chartId || `chart-${cIdx}-${idx}`"
+                  :data-chart-id="chart._chartId"
+                  class="chart-canvas"
+                  style="max-width: 100%; height: 300px;">
+                </canvas>
+              </template>
+
+              <!-- Progress Chart -->
+              <template v-else-if="chart.chart_type === 'progress'">
+                <div class="progress-list">
+                  <div v-for="(rate, pIdx) in chart.data.completion_rates" :key="pIdx" class="progress-item">
+                    <span class="progress-label">{{ chart.data.units[pIdx] }}</span>
+                    <div class="progress-bar">
+                      <div class="progress-fill" :style="{ width: `${rate}%` }"></div>
+                    </div>
+                    <span class="progress-percent">{{ rate.toFixed(1) }}%</span>
+                  </div>
+                </div>
+              </template>
+
+              <!-- Table Chart -->
+              <template v-else-if="chart.chart_type === 'table'">
+                <div class="table-wrapper">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th v-for="col in chart.data.columns" :key="col">{{ col }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="(row, rIdx) in chart.data.rows" :key="rIdx">
+                        <td v-for="(cell, cIdx) in row" :key="cIdx">{{ cell }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </template>
+            </div>
+          </div>
 
           <!-- 최종 답변 (스트리밍) -->
           <div v-if="msg.showAnswer" class="chat-bubble assistant" v-html="renderMarkdown(msg.displayedContent || '')">

@@ -177,18 +177,6 @@ class AICoachView(APIView):
                 # Intent + 사용자 메시지 기반으로 차트 필요 여부 결정
                 should_show_chart = _should_show_chart(intent_type, user_message)
 
-                if should_show_chart:
-                    try:
-                        chart_summaries = generate_chart_data_summary(profile, intent_type)
-                        for chart in chart_summaries:
-                            yield _sse({
-                                "type": "chart_data",
-                                "intent_type": intent_type,
-                                "chart": chart,
-                            })
-                    except Exception as e:
-                        logger.warning(f"Failed to generate chart data: {e}")
-
                 # ──────────────────────────────────────
                 # Step 2: Response Strategy + Agent Loop
                 # ──────────────────────────────────────
@@ -246,7 +234,7 @@ class AICoachView(APIView):
                     tool_choice_param = "auto" if filtered_tools else openai.NOT_GIVEN
 
                     stream = client.chat.completions.create(
-                        model="gpt-5-mini",
+                        model="gpt-4o-mini",
                         messages=conv,
                         tools=tools_to_use,
                         tool_choice=tool_choice_param,
@@ -256,6 +244,7 @@ class AICoachView(APIView):
 
                     tool_calls_data = {}
                     is_tool_call = False
+                    buffered_tokens = []  # ← 토큰을 버퍼에 모으기
 
                     # ── 스트리밍 처리 ──
                     for chunk in stream:
@@ -279,12 +268,32 @@ class AICoachView(APIView):
                                     if tc.function.arguments:
                                         tool_calls_data[idx]["arguments"] += tc.function.arguments
 
-                        # Content tokens 즉시 전송
-                        if delta.content:
+                        # Content tokens 버퍼에 모으기 (Tool 호출이 없을 때만)
+                        if delta.content and not is_tool_call:
+                            buffered_tokens.append(delta.content)
+                        # Tool 호출이 있으면 즉시 전송
+                        elif delta.content and is_tool_call:
                             yield _sse({"type": "token", "token": delta.content})
 
-                    # ── Tool 호출 없으면 최종 답변 ──
+                    # ── Tool 호출 없으면: 차트 먼저, 그 다음 답변 ──
                     if not is_tool_call:
+                        # 1. 차트 데이터를 먼저 생성/전송
+                        if should_show_chart:
+                            try:
+                                chart_summaries = generate_chart_data_summary(profile, intent_type)
+                                for chart in chart_summaries:
+                                    yield _sse({
+                                        "type": "chart_data",
+                                        "intent_type": intent_type,
+                                        "chart": chart,
+                                    })
+                            except Exception as e:
+                                logger.warning(f"Failed to generate chart data: {e}")
+
+                        # 2. 이제 버퍼된 토큰들을 전송
+                        for token in buffered_tokens:
+                            yield _sse({"type": "token", "token": token})
+
                         yield _sse({"type": "final"})
                         yield "data: [DONE]\n\n"
                         return
@@ -366,6 +375,20 @@ class AICoachView(APIView):
                     "type": "token",
                     "token": "분석이 복잡하여 일부만 완료되었습니다. 질문을 더 구체적으로 해주세요.",
                 })
+
+                # ── 차트 데이터 생성 (답변 후) ──
+                if should_show_chart:
+                    try:
+                        chart_summaries = generate_chart_data_summary(profile, intent_type)
+                        for chart in chart_summaries:
+                            yield _sse({
+                                "type": "chart_data",
+                                "intent_type": intent_type,
+                                "chart": chart,
+                            })
+                    except Exception as e:
+                        logger.warning(f"Failed to generate chart data: {e}")
+
                 yield "data: [DONE]\n\n"
 
             except Exception as e:
