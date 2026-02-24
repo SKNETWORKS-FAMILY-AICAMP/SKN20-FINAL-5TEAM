@@ -37,11 +37,7 @@
             <Briefcase class="btn-icon" />
             <span>Job Planner</span>
           </button>
-          <!-- [수정일: 2026-02-23] Coduck Wars 진입 버튼 추가 -->
-          <button @click="$emit('open-coduck-wars')" class="btn-coduck-wars">
-            <Gamepad2 class="btn-icon" />
-            <span>Coduck Wars</span>
-          </button>
+          <!-- [수정일: 2026-02-24] Coduck Wars 버튼 제거 (Arcade Unit 카드로 이동됨) -->
         </div>
       </div>
 
@@ -168,15 +164,61 @@
             </div>
           </div>
         </div>
+
+        <!-- [수정일: 2026-02-24] Coduck Wars: Arcade Unit 카드로 슬라이더에 추가 -->
+        <div
+          class="gym-card-premium coduck-wars-card"
+          :class="[{
+            'active': currentIdx === chapters.length,
+            'prev':   getPrevIdx === chapters.length,
+            'next':   getNextIdx === chapters.length,
+            'hidden': !isIndexVisibleFull(chapters.length)
+          }]"
+          :style="{ '--unit-color': '#a78bfa' }"
+          @pointerdown.stop
+        >
+          <div class="card-inner-v2">
+            <div class="card-image-wrap-v2">
+              <div class="energy-rings wars-rings">
+                <span class="ring-1"></span><span class="ring-2"></span><span class="ring-3"></span>
+              </div>
+              <img src="/image/unit_duck.png" alt="Coduck Wars" class="premium-icon">
+              <div class="card-aura-premium wars-aura"></div>
+            </div>
+            <div class="card-text-v2">
+              <div class="unit-badge-row">
+                <span class="unit-tag-v2 wars-tag">
+                  <Gamepad2 style="width: 14px; height: 14px; margin-right: 4px;" />
+                  UNIT {{ String(chapters.length + 1).padStart(2, '0') }}
+                </span>
+                <span class="level-indicator">LV.30</span>
+              </div>
+              <h3>Coduck Wars</h3>
+              <p>Team Battle Training</p>
+              <div class="card-footer-v2">
+                <span class="engineer-count">
+                  <Users style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 4px;" />
+                  2 vs 2 LIVE
+                </span>
+                <button class="btn-enter-mini wars-btn" @click="$emit('open-coduck-wars')">START</button>
+              </div>
+            </div>
+          </div>
+          <div class="card-border-glow wars-glow"></div>
+        </div>
+
         <button class="slider-nav next" @click="nextSlide">
           <ChevronRight />
         </button>
 
-        <!-- Pagination Dots -->
+        <!-- Pagination Dots (chapters + Coduck Wars) -->
         <div class="slider-pagination">
           <span v-for="(_, idx) in chapters" :key="'dot-'+idx"
                 class="dot" :class="{ 'active': idx === currentIdx }"
                 @click="goToSlide(idx)"></span>
+          <!-- Coduck Wars dot -->
+          <span class="dot" :class="{ 'active': currentIdx === chapters.length }"
+                @click="goToSlide(chapters.length)"></span>
         </div>
       </div>
     </section>
@@ -390,12 +432,16 @@ export default {
     // 1. 이전 카드 인덱스 계산 (방어 로직 포함)
     getPrevIdx() {
       if (!this.chapters || this.chapters.length === 0) return 0;
-      return (this.currentIdx - 1 + this.chapters.length) % this.chapters.length;
+      return (this.currentIdx - 1 + this.totalSlides) % this.totalSlides;
     },
     // 2. 다음 카드 인덱스 계산 (방어 로직 포함)
     getNextIdx() {
       if (!this.chapters || this.chapters.length === 0) return 0;
-      return (this.currentIdx + 1) % this.chapters.length;
+      return (this.currentIdx + 1) % this.totalSlides;
+    },
+    // [수정일: 2026-02-24] Coduck Wars 포함 전체 슬라이드 수
+    totalSlides() {
+      return this.chapters ? this.chapters.length + 1 : 1;
     },
     trackStyle() {
       // 슬라이더 트랙 커스텀 스타일 (필요 시 확장)
@@ -449,26 +495,27 @@ export default {
       }
     },
     nextSlide() {
-      if (this.chapters.length > 0) {
-        this.currentIdx = (this.currentIdx + 1) % this.chapters.length;
-      }
+      this.currentIdx = (this.currentIdx + 1) % this.totalSlides;
     },
     prevSlide() {
-      if (this.chapters.length > 0) {
-        this.currentIdx = (this.currentIdx - 1 + this.chapters.length) % this.chapters.length;
-      }
+      this.currentIdx = (this.currentIdx - 1 + this.totalSlides) % this.totalSlides;
     },
     goToSlide(idx) {
-      this.currentIdx = idx;
+      this.currentIdx = Math.min(idx, this.totalSlides - 1);
+    },
+    // [수정일: 2026-02-24] Coduck Wars 카드 가시성 판단 (chapters.length 인덱스)
+    isIndexVisibleFull(idx) {
+      const diff = Math.abs(idx - this.currentIdx);
+      return diff <= 1 || diff === this.totalSlides - 1;
     },
     /**
-     * [카드가 화면에 보이는지 여부]
-     * - 현재 인덱스와 인접한 카드만 보여주어 3D 넘김 효과를 구현합니다.
+     * [수정일: 2026-02-24] 콤덕 워즈 포함 전체 totalSlides 기준으로 래핑
+     * - Coduck Wars(chapters.length)가 활성일 때 첫 번째 카드도 올바르게 주변에 나타납니다.
      */
     isIndexVisible(idx) {
       if (!this.chapters || this.chapters.length === 0) return false;
       const diff = Math.abs(idx - this.currentIdx);
-      return diff <= 1 || diff === this.chapters.length - 1;
+      return diff <= 1 || diff === this.totalSlides - 1;
     },
     /**
      * [카드 호버 핸들러]

@@ -3,26 +3,27 @@ import { io } from 'socket.io-client'
 
 /**
  * 캐치마인드(Arch Draw) 전용 소켓 composable
- * - 방 입장/퇴장
- * - 캔버스 실시간 동기화
- * - 라운드 시작/제출/결과
+ * [수정일: 2026-02-24] 2vs2 팀 모드 지원: myTeam, teammate, onTeamSync 추가
  */
 export function useDrawSocket() {
   const socket = ref(null)
   const connected = ref(false)
-  const roomPlayers = ref([])      // [{ sid, name }]
+  const roomPlayers = ref([])
   const opponentCanvas = ref({ nodes: [], arrows: [] })
   const opponentName = ref('')
-  const opponentHasItem = ref(false) // [수정일: 2026-02-24] 상대방 아이템 보유 여부
-  const isReady = ref(false)       // 2명 모였는지
-  const roundQuestion = ref(null)  // 서버가 보낸 현재 라운드 문제
+  const opponentHasItem = ref(false)
+  const myTeam = ref('')           // [수정일: 2026-02-24] 내 팀 (RED/BLUE)
+  const teammate = ref(null)       // [수정일: 2026-02-24] 팀원 정보
+  const isReady = ref(false)
+  const roundQuestion = ref(null)
   const opponentSubmitted = ref(false)
-  const roundResults = ref(null)   // 양쪽 결과
+  const roundResults = ref(null)
 
-  // 이벤트 콜백 (컴포넌트에서 watch 가능)
+  // 이벤트 콜백
   const onRoundStart = ref(null)
   const onRoundResult = ref(null)
-  const onItemEffect = ref(null) // [수정일: 2026-02-24] 아이템 효과 콜백
+  const onItemEffect = ref(null)
+  const onTeamSync = ref(null)     // [수정일: 2026-02-24] 팀원 설계 동기화 콜백
 
   function connect(roomId, userName) {
     if (socket.value) return
@@ -39,17 +40,25 @@ export function useDrawSocket() {
 
     socket.value.on('disconnect', () => { connected.value = false })
 
-    // 로비: 플레이어 목록
+    // [수정일: 2026-02-24] 팀 배정 포함 로비 업데이트
     socket.value.on('draw_lobby', (data) => {
       roomPlayers.value = data.players || []
-      // [수정일: 2026-02-24] 인원수에 따라 Ready 상태를 엄격하게 관리
       isReady.value = roomPlayers.value.length >= 2
+
+      // 내 팀 및 팀원 식별
+      const me = roomPlayers.value.find(p => p.sid === socket.value.id)
+      if (me) {
+        myTeam.value = me.team || ''
+        teammate.value = roomPlayers.value.find(p => p.team === me.team && p.sid !== me.sid) || null
+      }
     })
 
-    // 2명 모임 → ready
-    socket.value.on('draw_ready', () => { isReady.value = true })
+    // 2명 이상 모임 → ready
+    socket.value.on('draw_ready', (data) => {
+      isReady.value = data?.ready ?? true
+    })
 
-    // 라운드 시작 (문제 수신)
+    // 라운드 시작
     socket.value.on('draw_round_start', (data) => {
       roundQuestion.value = data.question
       opponentCanvas.value = { nodes: [], arrows: [] }
@@ -58,18 +67,23 @@ export function useDrawSocket() {
       if (onRoundStart.value) onRoundStart.value(data.question)
     })
 
-    // 상대 캔버스 실시간 업데이트
+    // [수정일: 2026-02-24] 팀원 캔버스 동기화 (공동 편집)
+    socket.value.on('draw_team_sync', (data) => {
+      if (onTeamSync.value) onTeamSync.value(data)
+    })
+
+    // 상대 캔버스 실시간 업데이트 (관전용)
     socket.value.on('draw_canvas_update', (data) => {
       opponentName.value = data.sender_name || ''
       opponentCanvas.value = { nodes: data.nodes || [], arrows: data.arrows || [] }
     })
 
-    // [수정일: 2026-02-24] 아이템 효과 수신
+    // 아이템 효과 수신
     socket.value.on('draw_item_effect', (data) => {
       if (onItemEffect.value) onItemEffect.value(data.item_type)
     })
 
-    // [수정일: 2026-02-24] 상대방 아이템 보유 상태 수신
+    // 상대방 아이템 보유 상태 수신
     socket.value.on('draw_opponent_item_status', (data) => {
       opponentHasItem.value = data.has_item
     })
@@ -89,13 +103,12 @@ export function useDrawSocket() {
 
     // 상대 퇴장
     socket.value.on('draw_player_left', (data) => {
-      // [수정일: 2026-02-24] 나 자신이 아닌 퇴장한 유저의 SID로 필터링
       roomPlayers.value = roomPlayers.value.filter(p => p.sid !== data.sid)
       isReady.value = roomPlayers.value.length >= 2
     })
   }
 
-  // 게임 시작 (문제 선택하여 서버에 전송)
+  // 게임 시작
   function emitStart(roomId, question) {
     socket.value?.emit('draw_start', { room_id: roomId, question })
   }
@@ -121,12 +134,12 @@ export function useDrawSocket() {
     })
   }
 
-  // [수정일: 2026-02-24] 아이템 사용 전송
+  // 아이템 사용
   function emitUseItem(roomId, itemType) {
     socket.value?.emit('draw_use_item', { room_id: roomId, item_type: itemType })
   }
 
-  // [수정일: 2026-02-24] 아이템 상태(보유 여부) 전송
+  // 아이템 보유 상태 전송
   function emitItemStatus(roomId, hasItem) {
     socket.value?.emit('draw_item_status', { room_id: roomId, has_item: hasItem })
   }
@@ -146,11 +159,11 @@ export function useDrawSocket() {
 
   return {
     socket, connected, roomPlayers, opponentCanvas, opponentName,
-    opponentHasItem, // [추가]
+    opponentHasItem, myTeam, teammate,
     isReady, roundQuestion, opponentSubmitted, roundResults,
-    onRoundStart, onRoundResult, onItemEffect,
+    onRoundStart, onRoundResult, onItemEffect, onTeamSync,
     connect, emitStart, emitCanvasSync, emitUseItem,
-    emitItemStatus, // [추가]
-    emitSubmit, emitNextRound, disconnect
+    emitItemStatus, emitSubmit, emitNextRound, disconnect
   }
 }
+

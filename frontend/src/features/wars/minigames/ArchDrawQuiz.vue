@@ -98,7 +98,14 @@
       <div class="split-view">
         <!-- LEFT: 내 작업 영역 -->
         <div class="my-workspace">
-          <div class="ws-header"><span class="ws-tag you-tag">👤 MY CANVAS</span>
+          <div class="ws-header">
+            <span class="ws-tag team-badge" :class="ds.myTeam.value.toLowerCase()">
+              {{ ds.myTeam.value }} TEAM
+            </span>
+            <span class="ws-tag you-tag">👤 MY CANVAS</span>
+            <span v-if="ds.teammate.value" class="teammate-status">
+              🤝 Partner: {{ ds.teammate.value.name }}
+            </span>
             <div class="mode-toggle">
               <button :class="{ active: drawMode === 'move' }" @click="drawMode='move'">✋</button>
               <button :class="{ active: drawMode === 'arrow' }" @click="drawMode='arrow'">➡️</button>
@@ -403,6 +410,13 @@ function joinCustomRoom() {
   ds.connect(newRoomId, userName.value)
   
   spawnPopText(`ROOM ${newRoomId} 입장!`, '#00f0ff')
+}
+
+// [수정일: 2026-02-24] 팀원 설계 실시간 동기화 (Shared Editing)
+ds.onTeamSync.value = (data) => {
+  // 팀원이 보낸 데이터로 내 캔버스 갱신 (참조 무결성을 위해 깊은 복사 고려)
+  if (data.nodes) nodes.value = JSON.parse(JSON.stringify(data.nodes))
+  if (data.arrows) arrows.value = JSON.parse(JSON.stringify(data.arrows))
 }
 
 // [수정일: 2026-02-24] 아이템 효과 수신 처리 및 알림창 표시
