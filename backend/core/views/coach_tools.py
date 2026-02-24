@@ -1,11 +1,8 @@
 """AI Coach 도구 (최적화 버전) - 6개 도구 + 피드백 추출 + 학습 데이터"""
 
 import json
-import logging
 from django.db.models import Avg, Max, Count
 from core.models import UserSolvedProblem, Practice, PracticeDetail
-
-logger = logging.getLogger(__name__)
 
 # ─────────────────────────────────────────────
 # 1. Tool 정의 (OpenAI function calling schema)
