@@ -54,7 +54,7 @@ export function useDrawSocket() {
       opponentCanvas.value = { nodes: [], arrows: [] }
       opponentSubmitted.value = false
       roundResults.value = null
-      if (onRoundStart.value) onRoundStart.value(data.question)
+      if (onRoundStart.value) onRoundStart.value(data)
     })
 
 
