@@ -200,18 +200,7 @@ class AICoachView(APIView):
                 allowed_tools = intent_config.get("allowed", [])
                 filtered_tools = [t for t in COACH_TOOLS if t["function"]["name"] in allowed_tools]
 
-                # ── Agent Loop 설정 ──
-                # Intent별 권장 반복 횟수
-                intent_max_iterations = {
-                    "A": 2,  # 데이터 조회: 빠름
-                    "B": 4,  # 학습 방법: 여러 도구 필요
-                    "C": 2,  # 동기부여: 빠름
-                    "D": 0,  # 범위 밖: 도구 불필요
-                    "E": 3,  # 문제 풀이: 중간
-                    "F": 3,  # 개념 설명: 중간
-                    "G": 3,  # 의사결정: 중간
-                }
-                max_iterations = intent_max_iterations.get(intent_type, 3)
+                max_iterations = 5
 
                 thinking_messages = [
                     "질문을 분석하고 필요한 데이터를 판단하고 있어요...",
@@ -371,12 +360,7 @@ class AICoachView(APIView):
                         })
 
                 # ── max_iterations 도달 ──
-                yield _sse({
-                    "type": "token",
-                    "token": "분석이 복잡하여 일부만 완료되었습니다. 질문을 더 구체적으로 해주세요.",
-                })
-
-                # ── 차트 데이터 생성 (답변 후) ──
+                # 1. 차트 데이터를 먼저 생성/전송
                 if should_show_chart:
                     try:
                         chart_summaries = generate_chart_data_summary(profile, intent_type)
@@ -389,6 +373,13 @@ class AICoachView(APIView):
                     except Exception as e:
                         logger.warning(f"Failed to generate chart data: {e}")
 
+                # 2. 이제 안내 메시지 전송
+                yield _sse({
+                    "type": "token",
+                    "token": "분석이 복잡하여 일부만 완료되었습니다. 질문을 더 구체적으로 해주세요.",
+                })
+
+                yield _sse({"type": "final"})
                 yield "data: [DONE]\n\n"
 
             except Exception as e:
