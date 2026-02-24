@@ -52,30 +52,8 @@
           <div v-if="currentStep === 'input'" class="input-step">
             <h3 class="step-title">채용공고를 입력하세요</h3>
 
-            <!-- Input Method Tabs -->
-            <div class="input-method-tabs">
-              <button
-                :class="['method-tab', { active: inputMethod === 'url' }]"
-                @click="inputMethod = 'url'"
-              >
-                🔗 URL
-              </button>
-              <button
-                :class="['method-tab', { active: inputMethod === 'image' }]"
-                @click="inputMethod = 'image'"
-              >
-                📸 이미지
-              </button>
-              <button
-                :class="['method-tab', { active: inputMethod === 'text' }]"
-                @click="inputMethod = 'text'"
-              >
-                📝 텍스트
-              </button>
-            </div>
-
             <!-- URL Input -->
-            <div v-if="inputMethod === 'url'" class="input-panel">
+            <div class="input-panel">
               <label>채용공고 URL</label>
               <input
                 v-model="urlInput"
@@ -90,68 +68,6 @@
                 class="btn-parse"
                 @click="parseJobPosting"
                 :disabled="!urlInput || isParsing"
-              >
-                <span v-if="!isParsing">🔍 공고 분석</span>
-                <span v-else>⏳ 분석 중...</span>
-              </button>
-            </div>
-
-            <!-- Image Input -->
-            <div v-if="inputMethod === 'image'" class="input-panel">
-              <label>채용공고 이미지 (여러 장 가능)</label>
-              <div class="image-upload-area" @click="$refs.imageInput.click()">
-                <input
-                  ref="imageInput"
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  @change="handleImageUpload"
-                  style="display: none"
-                >
-                <div v-if="imageFiles.length === 0" class="upload-placeholder">
-                  <div class="upload-icon">📸</div>
-                  <p>클릭하여 이미지 업로드</p>
-                  <p class="upload-hint">PNG, JPG, JPEG 지원 • 여러 장 선택 가능</p>
-                </div>
-                <div v-else class="image-previews-grid">
-                  <div v-for="(preview, index) in imagePreviews" :key="index" class="image-preview-item">
-                    <img :src="preview" alt="미리보기">
-                    <button class="btn-remove-image" @click.stop="removeImage(index)">&times;</button>
-                    <div class="image-number">{{ index + 1 }}</div>
-                  </div>
-                </div>
-              </div>
-              <button
-                class="btn-parse"
-                @click="parseJobPosting"
-                :disabled="imageFiles.length === 0 || isParsing"
-              >
-                <span v-if="!isParsing">🔍 공고 분석 (Vision AI) {{ imageFiles.length > 0 ? `(${imageFiles.length}장)` : '' }}</span>
-                <span v-else>⏳ AI 분석 중... ({{ currentParsingIndex + 1 }}/{{ imageFiles.length }})</span>
-              </button>
-            </div>
-
-            <!-- Text Input -->
-            <div v-if="inputMethod === 'text'" class="input-panel">
-              <label>채용공고 텍스트</label>
-              <textarea
-                v-model="textInput"
-                rows="12"
-                placeholder="채용공고 내용을 붙여넣으세요...
-
-예시:
-[회사명] 테크 스타트업
-[포지션] 백엔드 개발자
-[필수 스킬] Python, Django, PostgreSQL
-[우대 스킬] Docker, Kubernetes
-[경력] 2-4년
-..."
-                class="text-input"
-              ></textarea>
-              <button
-                class="btn-parse"
-                @click="parseJobPosting"
-                :disabled="!textInput || isParsing"
               >
                 <span v-if="!isParsing">🔍 공고 분석</span>
                 <span v-else>⏳ 분석 중...</span>
