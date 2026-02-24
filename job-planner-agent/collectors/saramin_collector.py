@@ -5,6 +5,7 @@ Saramin-optimized Collector
 Playwright를 사용하되, 사람인의 HTML 구조에 맞춰 정확한 본문만 추출합니다.
 """
 
+from urllib.parse import urlparse, parse_qs
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
 from .base import BaseCollector
 
@@ -58,14 +59,24 @@ class SaraminCollector(BaseCollector):
             str: 추출된 텍스트 (실패 시 빈 문자열)
         """
         try:
+            # relay/view URL → 실제 채용공고 URL로 변환
+            actual_url = self._resolve_relay_url(url)
+            if actual_url != url:
+                print(f"[SARAMIN] relay URL 변환: {url[:60]}... → {actual_url}")
+
             with sync_playwright() as p:
                 # 1. 브라우저 실행
                 browser = p.chromium.launch(headless=True)
                 page = browser.new_page()
 
-                # 2. 사람인 페이지 로드
-                print(f"[SARAMIN] SaraminCollector: 사람인 페이지 로딩 중... ({url})")
-                page.goto(url, timeout=self.timeout, wait_until='domcontentloaded')
+                # 2. 사람인 페이지 로드 (networkidle로 JS 리다이렉트 포함 대기)
+                print(f"[SARAMIN] SaraminCollector: 사람인 페이지 로딩 중... ({actual_url})")
+                try:
+                    page.goto(actual_url, timeout=self.timeout, wait_until='networkidle')
+                except PlaywrightTimeout:
+                    # networkidle 타임아웃 시 domcontentloaded로 재시도
+                    print(f"[WARN] networkidle 타임아웃, domcontentloaded로 재시도...")
+                    page.goto(actual_url, timeout=self.timeout, wait_until='domcontentloaded')
 
                 # 3. 사람인 특정 요소 대기
                 # 사람인은 주로 `.user_content`, `.jv_cont`, `.cont` 등의 클래스 사용
@@ -122,6 +133,22 @@ class SaraminCollector(BaseCollector):
         except Exception as e:
             print(f"[FAIL] SaraminCollector 실패: {e}")
             return ""
+
+    def _resolve_relay_url(self, url: str) -> str:
+        """
+        사람인 relay/view URL을 실제 채용공고 URL로 변환합니다.
+
+        relay URL 예시:
+          https://www.saramin.co.kr/zf_user/jobs/relay/view?rec_idx=52948032&...
+        실제 URL 예시:
+          https://www.saramin.co.kr/zf_user/jobs/view?rec_idx=52948032
+        """
+        if '/relay/view' in url:
+            params = parse_qs(urlparse(url).query)
+            rec_idx = params.get('rec_idx', [None])[0]
+            if rec_idx:
+                return f"https://www.saramin.co.kr/zf_user/jobs/view?rec_idx={rec_idx}"
+        return url
 
     def can_handle(self, url: str) -> bool:
         """

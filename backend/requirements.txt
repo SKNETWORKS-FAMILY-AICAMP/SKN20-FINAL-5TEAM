@@ -24,7 +24,13 @@ sentence-transformers>=2.2.0
 torch>=2.0.0
 requests>=2.31.0
 beautifulsoup4>=4.12.0
+playwright>=1.40.0
 google-api-python-client==2.116.0
+
+# STT (Phase 2 - 모의면접 음성 인식)
+faster-whisper>=1.0.0
+silero-vad>=5.1
+torchaudio>=2.0.0
 
 # Real-time Collaboration (Socket.io)
 python-socketio>=5.11.0

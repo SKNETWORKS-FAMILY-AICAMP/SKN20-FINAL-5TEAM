@@ -54,9 +54,14 @@ class BrowserCollector(BaseCollector):
                 # 2. 새 페이지 열기
                 page = browser.new_page()
 
-                # 3. URL로 이동 (타임아웃 설정)
+                # 3. URL로 이동 (networkidle로 JS 렌더링까지 대기)
                 print(f"[BROWSER] BrowserCollector: 페이지 로딩 중... ({url})")
-                page.goto(url, timeout=self.timeout, wait_until='domcontentloaded')
+                try:
+                    page.goto(url, timeout=self.timeout, wait_until='networkidle')
+                except PlaywrightTimeout:
+                    # networkidle 타임아웃 시 domcontentloaded로 재시도
+                    print(f"[WARN] networkidle 타임아웃, domcontentloaded로 재시도...")
+                    page.goto(url, timeout=self.timeout, wait_until='domcontentloaded')
 
                 # 4. 특정 요소가 나타날 때까지 대기 (렌더링 대기)
                 try:

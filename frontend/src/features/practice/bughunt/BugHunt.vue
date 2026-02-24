@@ -177,7 +177,6 @@
               v-for="step in totalStepsComputed"
               :key="'bug-' + step"
               class="code-bug"
-              :ref="el => (bugRefs[step] = el)"
               :class="{
                 dead: progressiveCompletedSteps.includes(step),
                 eating: !progressiveCompletedSteps.includes(step),
@@ -380,7 +379,6 @@
               v-for="step in totalStepsComputed"
               :key="'bug-' + step"
               class="code-bug"
-              :ref="el => (bugRefs[step] = el)"
               :class="{
                 dead: progressiveCompletedSteps.includes(step),
                 eating: !progressiveCompletedSteps.includes(step),
@@ -536,7 +534,6 @@
               v-for="step in totalStepsComputed"
               :key="'bug-' + step"
               class="code-bug"
-              :ref="el => (bugRefs[step] = el)"
               :class="{
                 dead: progressiveCompletedSteps.includes(step),
                 eating: !progressiveCompletedSteps.includes(step),
@@ -695,7 +692,6 @@
               v-for="step in totalStepsComputed"
               :key="'bug-' + step"
               class="code-bug"
-              :ref="el => (bugRefs[step] = el)"
               :class="{
                 dead: progressiveCompletedSteps.includes(step),
                 eating: !progressiveCompletedSteps.includes(step),
@@ -848,7 +844,7 @@
             </div>
           </transition>
 
-          <div class="editor-body" ref="editorBodyRef">
+          <div class="editor-body">
             <!-- 현재 스텝만 표시 -->
             <div class="code-sections">
               <template v-for="step in totalStepsComputed" :key="'section-' + step">
@@ -958,7 +954,6 @@
                       theme="vs-dark"
                       language="python"
                       :options="editorOptions"
-                      @mount="handleEditorMount"
                       class="bughunt-monaco-editor"
                     />
                   </div>
@@ -1141,7 +1136,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted, watch, shallowRef, nextTick } from 'vue';
+import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 // [2026-02-03] 이미지 경로 문제를 근본적으로 해결하기 위해 Vite 에셋 파이프라인(Import) 도입
 import duckIdle from '@/assets/image/duck_idle_change.png';
 import duckEating from '@/assets/image/duck_eating.png';
@@ -1208,7 +1203,6 @@ const savedData = loadGameData();
 const gameData = reactive(savedData || { ...defaultGameData });
 
 // Monaco Editor 설정
-const monacoEditorRef = shallowRef(null);
 const editorOptions = {
   theme: 'vs-dark',
   language: 'python',
@@ -1223,10 +1217,6 @@ const editorOptions = {
   renderLineHighlight: 'all',
   contextmenu: false,
   padding: { top: 10, bottom: 10 }
-};
-
-const handleEditorMount = (editorInstance) => {
-  monacoEditorRef.value = editorInstance;
 };
 
 // 타이머 관리 (언마운트 시 정리)
@@ -2236,17 +2226,6 @@ function getRiskLevel(risk) {
   return 'high';
 }
 
-// 다시 풀기
-function replayMission(mission) {
-  // 해당 미션의 진행도 초기화
-  gameData.completedProblems = gameData.completedProblems.filter(
-    id => !id.startsWith(`progressive_${mission.id}`)
-  );
-
-  const index = progressiveProblems.value.findIndex(m => m.id === mission.id);
-  startProgressiveMission(mission, index);
-}
-
 // 현재 스텝 리셋
 function resetCurrentStep() {
   const stepData = getCurrentStepData();
@@ -2885,10 +2864,8 @@ function finishProgressiveMission() {
 
 // 에디터 프레임 참조
 const editorFrameRef = ref(null);
-const editorBodyRef = ref(null);
 const tutorialFixRef = ref(null);
 const sectionRefs = ref([]);
-const bugRefs = reactive({}); // 버그 요소 참조
 
 // 스텝 변경 시 자동 스크롤
 watch(currentProgressiveStep, (newStep) => {

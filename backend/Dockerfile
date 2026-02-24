@@ -23,7 +23,8 @@ RUN apt-get update && \
 
 # 의존성 설치
 COPY requirements.txt /app/
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt && \
+    python -m playwright install chromium --with-deps
 
 # 소스 코드 복사
 COPY . /app/

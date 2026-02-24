@@ -19,6 +19,8 @@ import BugHunt from './features/practice/bughunt/BugHunt.vue'
 // import OpsPractice from './features/practice/OpsPractice.vue'
 import ManagementView from './features/dashboard/ManagementView.vue'
 import MyHistoryView from './features/dashboard/MyHistoryView.vue'
+import AICoach from './features/dashboard/AICoach.vue'
+import MockInterview from './features/interview/MockInterview.vue'
 import MissionBriefing from './features/wars/MissionBriefing.vue'
 import PressureInterviewRoom from './features/wars/PressureInterviewRoom.vue'
 import GrowthReport from './features/wars/GrowthReport.vue'
@@ -136,6 +138,16 @@ const routes = [
     path: '/my-records',
     name: 'MyHistory',
     component: MyHistoryView
+  },
+  {
+    path: '/coach',
+    name: 'AICoach',
+    component: AICoach
+  },
+  {
+    path: '/interview',
+    name: 'MockInterview',
+    component: MockInterview
   },
   {
     path: '/practice/',

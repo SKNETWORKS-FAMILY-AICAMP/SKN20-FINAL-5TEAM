@@ -20,6 +20,7 @@
       @go-to-playground="handleGoToPlayground"
       @open-unit="openUnitPopup"
       @open-job-planner="handleOpenJobPlanner"
+      @open-interview="handleOpenInterview"
       @open-coduck-wars="handleOpenCoduckWars"
     >
       <template #auth-buttons>
@@ -209,6 +210,8 @@ const isPracticePage = computed(() => {
     'ProgressiveProblems',
     'Management',
     'MyHistory',
+    'AICoach',
+    'MockInterview'
     'AICoach',
     'WarLobby'
   ];
@@ -418,6 +421,10 @@ function handleGoToPlayground() {
 
 function handleOpenJobPlanner() {
   ui.isJobPlannerModalOpen = true;
+}
+
+function handleOpenInterview() {
+  router.push('/interview');
 }
 
 function handleOpenCoduckWars() {
