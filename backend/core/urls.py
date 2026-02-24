@@ -29,7 +29,7 @@ from core.views.coduck_wars_view import (
 )
 from core.views.pseudocode_execution import execute_python_code
 from core.views import pseudocode_evaluation, youtube_recommendation
-from core.views.vulnerability_view import VulnerabilityAnalysisView
+# from core.views.vulnerability_view import VulnerabilityAnalysisView
 from core.views.architecture_view import ArchitectureEvaluationView, ArchitectureQuestionGeneratorView
 # [수정일: 2026-02-24] JobPlanner View 임포트 누락 수정 - urls.py에서 사용하는 모든 View 클래스 추가
 from core.views.job_planner_view import (
@@ -96,7 +96,7 @@ urlpatterns = [
     path('youtube/recommendations', youtube_recommendation.get_youtube_recommendations),
 
     # Vulnerability Analysis API
-    path('vulnerability/analyze/', VulnerabilityAnalysisView.as_view(), name='vulnerability_analyze'),
+    # path('vulnerability/analyze/', VulnerabilityAnalysisView.as_view(), name='vulnerability_analyze'),
 
     # Job Planner API
     path('job-planner/parse/', JobPlannerParseView.as_view(), name='job_planner_parse'),
