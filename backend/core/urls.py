@@ -31,9 +31,7 @@ from core.views import (
 from core.views.pseudocode_execution import execute_python_code
 from core.views import pseudocode_evaluation, youtube_recommendation
 from core.views.architecture_view import ArchitectureEvaluationView, ArchitectureQuestionGeneratorView
-from core.views.coach_view import AICoachView
-from core.views.coach_view_enhanced import AICoachEnhancedView
-from core.views.coach_view_optimal import AICoachOptimalView
+from core.views.coach_view import AICoachOptimalView
 
 router = DefaultRouter()
 router.register(r'users', UserProfileViewSet, basename='users')
