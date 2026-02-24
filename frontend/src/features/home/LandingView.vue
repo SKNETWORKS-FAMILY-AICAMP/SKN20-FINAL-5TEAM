@@ -34,8 +34,10 @@
             전당 확인
           </button>
           <button @click="$emit('open-job-planner')" class="btn-job-planner">
-            <Briefcase class="btn-icon" />
             <span>Job Planner</span>
+          </button>
+          <button @click="$emit('open-interview')" class="btn-job-planner">
+            <span>Interview</span>
           </button>
         </div>
       </div>

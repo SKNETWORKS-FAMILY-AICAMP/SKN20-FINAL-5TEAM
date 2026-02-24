@@ -224,8 +224,87 @@
                   <div class="warning-text">
                     ⚠️ 부족한 정보: <strong>{{ missingFields.join(', ') }}</strong>
                   </div>
-                  <div class="warning-hint">
-                    💡 더 정확한 분석을 위해 채용공고 이미지를 추가로 업로드해주세요
+
+                  <!-- 추가 입력 섹션 -->
+                  <div class="supplement-input-section">
+                    <p class="supplement-title">💡 이미지 또는 텍스트를 추가로 입력하면 더 정확하게 분석할 수 있어요</p>
+
+                    <div class="supplement-method-tabs">
+                      <button
+                        :class="['supp-tab', { active: supplementMethod === 'image' }]"
+                        @click="supplementMethod = 'image'"
+                      >
+                        📸 이미지 추가
+                      </button>
+                      <button
+                        :class="['supp-tab', { active: supplementMethod === 'text' }]"
+                        @click="supplementMethod = 'text'"
+                      >
+                        📝 텍스트 추가
+                      </button>
+                    </div>
+
+                    <!-- 이미지 업로드 -->
+                    <div v-if="supplementMethod === 'image'" class="supplement-panel">
+                      <div class="supplement-upload-area" @click="$refs.supplementImageInput.click()">
+                        <input
+                          ref="supplementImageInput"
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          @change="handleSupplementImageUpload"
+                          style="display: none"
+                        >
+                        <div v-if="supplementImages.length === 0" class="upload-placeholder">
+                          <div class="upload-icon">📸</div>
+                          <p>채용공고 이미지를 추가로 업로드하세요</p>
+                          <p class="upload-hint">PNG, JPG, JPEG 지원 • 여러 장 선택 가능</p>
+                        </div>
+                        <div v-else class="image-previews-grid">
+                          <div
+                            v-for="(preview, idx) in supplementImagePreviews"
+                            :key="idx"
+                            class="image-preview-item"
+                          >
+                            <img :src="preview" alt="미리보기">
+                            <button class="btn-remove-image" @click.stop="removeSupplementImage(idx)">&times;</button>
+                            <div class="image-number">{{ idx + 1 }}</div>
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        class="btn-supplement-parse"
+                        @click="parseSupplementData"
+                        :disabled="supplementImages.length === 0 || isSupplementParsing"
+                      >
+                        <span v-if="!isSupplementParsing">🔍 추가 분석 {{ supplementImages.length > 0 ? `(${supplementImages.length}장)` : '' }}</span>
+                        <span v-else>⏳ 분석 중...</span>
+                      </button>
+                    </div>
+
+                    <!-- 텍스트 입력 -->
+                    <div v-if="supplementMethod === 'text'" class="supplement-panel">
+                      <textarea
+                        v-model="supplementText"
+                        rows="6"
+                        placeholder="채용공고 내용을 붙여넣으세요...
+
+예시:
+[회사명] 테크 스타트업
+[포지션] 백엔드 개발자
+[필수 스킬] Python, Django, PostgreSQL
+..."
+                        class="supplement-textarea"
+                      ></textarea>
+                      <button
+                        class="btn-supplement-parse"
+                        @click="parseSupplementData"
+                        :disabled="!supplementText.trim() || isSupplementParsing"
+                      >
+                        <span v-if="!isSupplementParsing">🔍 추가 분석</span>
+                        <span v-else>⏳ 분석 중...</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
                 <div v-else class="completeness-success">
@@ -988,6 +1067,13 @@ export default {
       needsMoreInfo: false,    // 추가 정보 필요 여부
       missingFields: [],       // 부족한 필드 목록
 
+      // 추가 입력 (URL 파싱 후 정보 부족 시)
+      supplementMethod: 'image',     // 'image' | 'text'
+      supplementImages: [],
+      supplementImagePreviews: [],
+      supplementText: '',
+      isSupplementParsing: false,
+
       // User data
       name: '',
       currentRole: '',
@@ -1145,18 +1231,58 @@ export default {
 
       this.missingFields = missing;
       this.needsMoreInfo = completenessRate < 0.7;
+    },
 
-      // URL 입력 후 정보가 부족하면 자동으로 이미지 탭 제안
-      if (this.inputMethod === 'url' && this.needsMoreInfo) {
-        console.log('⚠️ 정보 부족: 추가 입력 필요');
-        console.log('부족한 정보:', missing);
+    handleSupplementImageUpload(event) {
+      const files = Array.from(event.target.files);
+      files.forEach(file => {
+        this.supplementImages.push(file);
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          this.supplementImagePreviews.push(e.target.result);
+        };
+        reader.readAsDataURL(file);
+      });
+    },
 
-        // 2초 후 자동으로 이미지 탭으로 전환 제안
-        setTimeout(() => {
-          if (confirm(`파싱된 정보가 충분하지 않습니다.\n부족한 정보: ${missing.join(', ')}\n\n채용공고 이미지를 추가로 업로드하시겠습니까?`)) {
-            this.inputMethod = 'image';
+    removeSupplementImage(index) {
+      this.supplementImages.splice(index, 1);
+      this.supplementImagePreviews.splice(index, 1);
+    },
+
+    async parseSupplementData() {
+      this.isSupplementParsing = true;
+      this.errorMessage = '';
+
+      try {
+        if (this.supplementMethod === 'image') {
+          for (let i = 0; i < this.supplementImages.length; i++) {
+            const file = this.supplementImages[i];
+            const reader = new FileReader();
+            const base64Promise = new Promise((resolve) => {
+              reader.onload = (e) => resolve(e.target.result);
+              reader.readAsDataURL(file);
+            });
+            const imageData = await base64Promise;
+            const response = await axios.post('/api/core/job-planner/parse/', { type: 'image', image: imageData });
+            this.mergeJobData(response.data);
           }
-        }, 1000);
+          // 업로드한 이미지 초기화
+          this.supplementImages = [];
+          this.supplementImagePreviews = [];
+        } else if (this.supplementMethod === 'text') {
+          const response = await axios.post('/api/core/job-planner/parse/', { type: 'text', text: this.supplementText });
+          this.mergeJobData(response.data);
+          this.supplementText = '';
+        }
+      } catch (error) {
+        console.error('추가 파싱 실패:', error);
+        this.errorMessage = error.response?.data?.error || '추가 분석 중 오류가 발생했습니다.';
+      } finally {
+        this.isSupplementParsing = false;
+        if (this.jobData) {
+          this.checkDataCompleteness();
+        }
       }
     },
 
@@ -1505,6 +1631,11 @@ export default {
       this.dataCompleteness = null;
       this.needsMoreInfo = false;
       this.missingFields = [];
+      this.supplementMethod = 'image';
+      this.supplementImages = [];
+      this.supplementImagePreviews = [];
+      this.supplementText = '';
+      this.isSupplementParsing = false;
 
       // 프로필 초기화
       this.name = '';
@@ -2023,10 +2154,95 @@ export default {
   color: #fcd34d;
 }
 
-.warning-hint {
+.supplement-input-section {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.supplement-title {
   font-size: 12px;
   color: #cbd5e1;
-  font-style: italic;
+  margin-bottom: 10px;
+}
+
+.supplement-method-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.supp-tab {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: transparent;
+  color: #94a3b8;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.supp-tab.active {
+  background: rgba(99, 102, 241, 0.25);
+  border-color: #6366f1;
+  color: #a5b4fc;
+}
+
+.supplement-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.supplement-upload-area {
+  border: 2px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 16px;
+  cursor: pointer;
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s;
+}
+
+.supplement-upload-area:hover {
+  border-color: #6366f1;
+}
+
+.supplement-textarea {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 13px;
+  padding: 10px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.supplement-textarea::placeholder {
+  color: #64748b;
+}
+
+.btn-supplement-parse {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  align-self: flex-start;
+}
+
+.btn-supplement-parse:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .completeness-success {

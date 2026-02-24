@@ -59,34 +59,54 @@ class WantedCollector(BaseCollector):
         """
         try:
             with sync_playwright() as p:
-                # 1. 브라우저 실행
-                browser = p.chromium.launch(headless=True)
-                page = browser.new_page()
+                # 1. 브라우저 실행 (봇 감지 우회 설정)
+                browser = p.chromium.launch(
+                    headless=True,
+                    args=['--disable-blink-features=AutomationControlled']
+                )
+                context = browser.new_context(
+                    user_agent=(
+                        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                        'AppleWebKit/537.36 (KHTML, like Gecko) '
+                        'Chrome/120.0.0.0 Safari/537.36'
+                    ),
+                    viewport={'width': 1920, 'height': 1080},
+                )
+                page = context.new_page()
+                # webdriver 속성 숨김 (봇 감지 우회)
+                page.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
 
-                # 2. 원티드 페이지 로드
+                # 2. 원티드 페이지 로드 (networkidle로 React 렌더링까지 대기)
                 print(f"[WANTED] WantedCollector: 원티드 페이지 로딩 중... ({url})")
-                page.goto(url, timeout=self.timeout, wait_until='domcontentloaded')
+                try:
+                    page.goto(url, timeout=self.timeout, wait_until='networkidle')
+                except PlaywrightTimeout:
+                    print(f"[WARN] networkidle 타임아웃, domcontentloaded로 재시도...")
+                    page.goto(url, timeout=self.timeout, wait_until='domcontentloaded')
 
                 # 3. 원티드 특정 요소 대기
                 # 원티드는 Next.js/React 기반, JobDescription 컴포넌트 사용
                 try:
-                    # 메인 콘텐츠 영역이 로드될 때까지 대기
-                    page.wait_for_selector('[class*="JobDescription"], [class*="JobDetail"], section', timeout=3000)
+                    page.wait_for_selector(
+                        '[class*="JobDescription"], [class*="JobDetail"], [class*="position"], main',
+                        timeout=5000
+                    )
                 except PlaywrightTimeout:
                     print(f"[WARN] 원티드 콘텐츠 영역 대기 실패, 전체 본문 추출 시도...")
 
                 # 추가 렌더링 대기 (React 컴포넌트 로딩)
-                page.wait_for_timeout(2000)
+                page.wait_for_timeout(3000)
 
                 # 4. 원티드 본문 추출 (최적화된 셀렉터)
-                # 원티드는 CSS Modules를 사용하므로 클래스명이 동적일 수 있음
-                # 따라서 contains 선택자 사용
                 selectors_to_try = [
                     '[class*="JobDescription"]',  # CSS Modules: JobDescription_*
                     '[class*="JobDetail"]',       # CSS Modules: JobDetail_*
-                    'section',                    # HTML5 section 태그
+                    '[class*="position"]',        # position 관련 컴포넌트
+                    '[class*="job-description"]', # kebab-case 클래스
+                    '[class*="JobPosting"]',      # JobPosting 컴포넌트
                     'article',                    # HTML5 article 태그
                     'main',                       # HTML5 main 태그
+                    'section',                    # HTML5 section 태그
                     '[class*="Content"]'          # CSS Modules: Content_*
                 ]
 

@@ -106,7 +106,52 @@ onUpdated(() => {
   color: #f8fafc;
 }
 
+/* Warning Style */
+.global-toast.warning {
+  border-left: 4px solid #f59e0b;
+  min-width: 320px;
+  max-width: 420px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  gap: 12px;
+  left: 25%;
+  transform: translateX(-50%);
+}
+.global-toast.warning .toast-icon {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+}
+.global-toast.warning .toast-message {
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+.global-toast.warning .toast-close {
+  font-size: 1.2rem;
+}
+
+@media (max-width: 1024px) {
+  .global-toast.warning {
+    left: 50%;
+  }
+}
+
+/* Info Style */
+.global-toast.info {
+  border-left: 4px solid #3b82f6;
+}
+.global-toast.info .toast-icon {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+}
+
 /* Animation */
+.toast-enter-active,
+.toast-leave-active {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
 .toast-enter-from {
   opacity: 0;
   transform: translate(-50%, -20px);

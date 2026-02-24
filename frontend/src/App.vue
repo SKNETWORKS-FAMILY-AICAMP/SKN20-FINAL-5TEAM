@@ -20,6 +20,7 @@
       @go-to-playground="handleGoToPlayground"
       @open-unit="openUnitPopup"
       @open-job-planner="handleOpenJobPlanner"
+      @open-interview="handleOpenInterview"
     >
       <template #auth-buttons>
         <template v-if="!auth.isLoggedIn">
@@ -201,7 +202,8 @@ const isPracticePage = computed(() => {
     'ProgressiveProblems',
     'Management',
     'MyHistory',
-    'AICoach'
+    'AICoach',
+    'MockInterview'
   ];
   return practiceRoutes.includes(route?.name);
 });
@@ -409,6 +411,10 @@ function handleGoToPlayground() {
 
 function handleOpenJobPlanner() {
   ui.isJobPlannerModalOpen = true;
+}
+
+function handleOpenInterview() {
+  router.push('/interview');
 }
 
 // Lifecycle

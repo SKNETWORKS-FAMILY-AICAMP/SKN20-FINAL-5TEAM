@@ -5,7 +5,8 @@ from .dashboard_view import DashboardLogViewSet
 from .common_view import CommonViewSet
 from .practice_view import PracticeViewSet, PracticeDetailViewSet
 from .auth_view import LoginView, LogoutView, SessionCheckView
-from .ai_view import AIEvaluationView, BugHuntEvaluationView, BugHuntInterviewView
+from .bughunt_evaluation_view import BugHuntEvaluationView
+from .bughunt_interview_view import BugHuntInterviewView
 from .code_execution_view import CodeExecutionView, BehaviorVerificationView
 from .management_view import OverallProgressView, UserAnswersView
 from . import activity_view

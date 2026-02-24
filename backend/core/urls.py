@@ -11,7 +11,6 @@ from core.views import (
     LoginView,
     LogoutView,
     SessionCheckView,
-    AIEvaluationView,
     AIProxyView,
     BugHuntEvaluationView,
     BugHuntInterviewView,
@@ -32,6 +31,12 @@ from core.views.pseudocode_execution import execute_python_code
 from core.views import pseudocode_evaluation, youtube_recommendation
 from core.views.architecture_view import ArchitectureEvaluationView, ArchitectureQuestionGeneratorView
 from core.views.coach_view import AICoachOptimalView
+from core.views.interview import (
+    InterviewJobPostingView, InterviewJobPostingDetailView,
+    InterviewSessionView, InterviewSessionDetailView, InterviewAnswerView,
+    STTTranscribeView,
+    TTSSynthesizeView,
+)
 
 router = DefaultRouter()
 router.register(r'users', UserProfileViewSet, basename='users')
@@ -59,7 +64,6 @@ urlpatterns = [
     path('auth/me/', SessionCheckView.as_view(), name='session_check'),
 
     # AI 평가 관련
-    path('ai-evaluate/', AIEvaluationView.as_view(), name='ai_evaluate'),
     path('ai-proxy/', AIProxyView.as_view(), name='ai_proxy'),
     path('ai-bughunt-evaluate/', BugHuntEvaluationView.as_view(), name='bughunt_evaluate'),
     path('ai-bughunt-interview/', BugHuntInterviewView.as_view(), name='bughunt_interview'),
@@ -84,6 +88,15 @@ urlpatterns = [
     path('ai-coach/chat/', AICoachOptimalView.as_view(), name='ai_coach_chat'),
     path('ai-coach/chat-v2/', AICoachOptimalView.as_view(), name='ai_coach_chat_v2'),
     path('ai-coach/chat-optimal/', AICoachOptimalView.as_view(), name='ai_coach_chat_optimal'),
+
+    # 모의면접 API
+    path('interview/job-postings/', InterviewJobPostingView.as_view(), name='interview_job_postings'),
+    path('interview/job-postings/<int:pk>/', InterviewJobPostingDetailView.as_view(), name='interview_job_posting_detail'),
+    path('interview/sessions/', InterviewSessionView.as_view(), name='interview_sessions'),
+    path('interview/sessions/<int:pk>/', InterviewSessionDetailView.as_view(), name='interview_session_detail'),
+    path('interview/sessions/<int:pk>/answer/', InterviewAnswerView.as_view(), name='interview_answer'),
+    path('stt/transcribe/', STTTranscribeView.as_view(), name='stt_transcribe'),
+    path('tts/synthesize/', TTSSynthesizeView.as_view(), name='tts_synthesize'),
 
     # Job Planner API
     path('job-planner/parse/', JobPlannerParseView.as_view(), name='job_planner_parse'),
