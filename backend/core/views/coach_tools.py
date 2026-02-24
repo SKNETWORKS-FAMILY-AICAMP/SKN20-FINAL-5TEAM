@@ -557,3 +557,18 @@ def validate_and_normalize_args(fn_name, fn_args):
         if arg_name not in normalized and "default" in rules:
             normalized[arg_name] = rules["default"]
     return normalized
+
+
+# ─────────────────────────────────────────────
+# 6. Intent-Tool Mapping (의도별 허용 도구)
+# ─────────────────────────────────────────────
+
+INTENT_TOOL_MAPPING = {
+    "A": {"allowed": ["get_user_scores", "get_weak_points"]},
+    "B": {"allowed": ["get_weak_points", "recommend_next_problem"]},
+    "C": {"allowed": ["get_recent_activity", "get_user_scores"]},
+    "D": {"allowed": []},  # 범위 밖 → 도구 호출 금지
+    "E": {"allowed": ["get_weak_points", "recommend_next_problem"]},
+    "F": {"allowed": ["get_weak_points"]},
+    "G": {"allowed": ["get_user_scores", "get_recent_activity"]},
+}

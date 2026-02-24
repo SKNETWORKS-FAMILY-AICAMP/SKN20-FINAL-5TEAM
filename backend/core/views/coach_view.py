@@ -23,23 +23,10 @@ from core.views.coach_tools import (
     TOOL_DISPATCH,
     TOOL_LABELS,
     validate_and_normalize_args,
+    INTENT_TOOL_MAPPING,
 )
 
 logger = logging.getLogger(__name__)
-
-# ─────────────────────────────────────────────
-# 3. Intent-Tool Mapping (의도별 허용 도구)
-# ─────────────────────────────────────────────
-
-INTENT_TOOL_MAPPING = {
-    "A": {"allowed": ["get_user_scores", "get_weak_points"]},
-    "B": {"allowed": ["get_weak_points", "recommend_next_problem"]},
-    "C": {"allowed": ["get_recent_activity", "get_user_scores"]},
-    "D": {"allowed": []},  # 범위 밖 → 도구 호출 금지
-    "E": {"allowed": ["get_weak_points", "recommend_next_problem"]},
-    "F": {"allowed": ["get_weak_points"]},
-    "G": {"allowed": ["get_user_scores", "get_recent_activity"]},
-}
 
 
 class AICoachOptimalView(APIView):
