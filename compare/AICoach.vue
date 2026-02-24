@@ -8,31 +8,6 @@
     </header>
 
     <div class="chat-area" ref="chatArea">
-      <!-- 모드 선택 (v1 vs v2 vs v3) [2026-02-24] -->
-      <div class="mode-selector">
-        <button
-          class="mode-btn"
-          :class="{ active: useVersion === 'v1' }"
-          @click="useVersion = 'v1'"
-        >
-          📌 기본 모드 (v1)
-        </button>
-        <button
-          class="mode-btn"
-          :class="{ active: useVersion === 'v2' }"
-          @click="useVersion = 'v2'"
-        >
-          ✨ 고도화 모드 (v2)
-        </button>
-        <button
-          class="mode-btn optimal"
-          :class="{ active: useVersion === 'v3' }"
-          @click="useVersion = 'v3'"
-        >
-          🚀 최적화 모드 (v3)
-        </button>
-      </div>
-
       <!-- 프리셋 버튼 (대화 없을 때) -->
       <div v-if="messages.length === 0" class="preset-section">
         <p class="preset-label">무엇을 도와드릴까요?</p>
@@ -53,18 +28,19 @@
             <span class="preset-icon">&#127942;</span>
             <span>유닛별 성적</span>
           </button>
+          <button class="preset-btn" @click="sendPreset('디버깅 공부는 어떻게 하면 좋아?')">
+            <span class="preset-icon">&#128214;</span>
+            <span>디버깅 공부법</span>
+          </button>
+          <button class="preset-btn" @click="sendPreset('의사코드 잘 쓰는 팁 알려줘')">
+            <span class="preset-icon">&#128161;</span>
+            <span>의사코드 팁</span>
+          </button>
         </div>
       </div>
 
       <!-- 채팅 메시지 -->
       <div v-for="(msg, idx) in messages" :key="idx" class="message-block">
-        <!-- 의도 분석 결과 배지 (v2) [2026-02-23] -->
-        <div v-if="msg.intentData" class="intent-badge">
-          <span class="intent-type">{{ msg.intentData.intent_name }}</span>
-          <span class="intent-confidence">(신뢰도: {{ (msg.intentData.confidence * 100).toFixed(0) }}%)</span>
-          <span class="intent-reasoning">{{ msg.intentData.reasoning }}</span>
-        </div>
-
         <!-- 유저 메시지 -->
         <div v-if="msg.role === 'user'" class="chat-bubble user">
           {{ msg.content }}
@@ -79,6 +55,11 @@
               <span class="thinking-icon">&#129504;</span>
               <span class="thinking-text">{{ item.message }}</span>
               <span v-if="item.active" class="step-spinner"></span>
+            </div>
+            <!-- status (추가 조회 여부 안내) -->
+            <div v-if="item.type === 'status'" class="status-block" :class="'status-' + item.variant">
+              <span class="status-icon">{{ item.variant === 'fetching' ? '&#128269;' : item.variant === 'blocked' ? '&#128683;' : '&#9989;' }}</span>
+              <span class="status-text">{{ item.message }}</span>
             </div>
             <!-- tool step -->
             <div v-if="item.type === 'step'" class="step-block">
@@ -137,7 +118,6 @@ const inputText = ref('');
 const loading = ref(false);
 const streaming = ref(false);
 const chatArea = ref(null);
-const useVersion = ref('v3'); // [2026-02-24] 버전 선택: 'v1', 'v2', 'v3' (기본값: v3 최적화 모드)
 
 function getCsrfToken() {
   const m = document.cookie.match(/csrftoken=([^;]+)/);
@@ -206,6 +186,18 @@ function formatResult(result) {
     return `풀이 ${result.total_solved}건 — 약점: ${weakList}`;
   }
 
+  // get_unit_curriculum 결과
+  if (result.core_concepts !== undefined) {
+    return `${result.name} (${result.difficulty})\n목표: ${result.goal}\n핵심: ${result.core_concepts.slice(0, 3).join(', ')}`;
+  }
+
+  // get_study_guide 결과
+  if (result.guides !== undefined) {
+    if (result.guides.length === 0) return `약점 없음 — ${result.overall_tip}`;
+    const guideList = result.guides.map(g => `${g.metric} ${g.avg_score}점 → ${g.concept}`).join('\n');
+    return `${guideList}\n💡 ${result.overall_tip}`;
+  }
+
   return String(result);
 }
 
@@ -253,20 +245,11 @@ async function sendMessage() {
     timeline: [],
     showAnswer: false,
     displayedContent: '',
-    intentData: null, // [2026-02-23] 의도 분석 데이터
   });
   const assistantMsg = messages.value[messages.value.length - 1];
 
   try {
-    // [2026-02-24] 버전별 엔드포인트 선택
-    let endpoint = '/api/core/ai-coach/chat/';
-    if (useVersion.value === 'v2') {
-      endpoint = '/api/core/ai-coach/chat-v2/';
-    } else if (useVersion.value === 'v3') {
-      endpoint = '/api/core/ai-coach/chat-optimal/';
-    }
-
-    const response = await fetch(endpoint, {
+    const response = await fetch('/api/core/ai-coach/chat/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -311,16 +294,7 @@ async function sendMessage() {
             const data = JSON.parse(payload);
             streaming.value = true;
 
-            // [2026-02-24] Intent Detected (v2, v3)
-            if (data.type === 'intent_detected') {
-              assistantMsg.intentData = {
-                intent_name: data.intent_name,
-                confidence: data.confidence,
-                reasoning: data.reasoning,
-              };
-              scrollToBottom();
-            }
-            else if (data.type === 'thinking') {
+            if (data.type === 'thinking') {
               // 이전 thinking 비활성화
               const prevThinking = [...assistantMsg.timeline].reverse().find(i => i.type === 'thinking');
               if (prevThinking) prevThinking.active = false;
@@ -329,6 +303,18 @@ async function sendMessage() {
                 type: 'thinking',
                 message: data.message,
                 active: true,
+              });
+              scrollToBottom();
+            }
+            else if (data.type === 'status') {
+              // thinking 비활성화
+              const curThinking = [...assistantMsg.timeline].reverse().find(i => i.type === 'thinking');
+              if (curThinking) curThinking.active = false;
+              // status 추가 (추가 조회 여부 안내)
+              assistantMsg.timeline.push({
+                type: 'status',
+                message: data.message,
+                variant: data.variant,
               });
               scrollToBottom();
             }
@@ -512,9 +498,9 @@ async function sendMessage() {
 
 .preset-buttons {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 0.75rem;
-  max-width: 480px;
+  max-width: 600px;
   width: 100%;
 }
 
@@ -614,6 +600,42 @@ async function sendMessage() {
   font-size: 0.8rem;
   color: var(--text-muted);
   font-style: italic;
+}
+
+/* ===== Agent Status (추가 조회 여부 안내) ===== */
+.status-block {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  align-self: flex-start;
+  padding: 0.45rem 0.85rem;
+  border-radius: 0 8px 8px 0;
+  animation: stepSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.status-fetching {
+  background: rgba(79, 195, 247, 0.08);
+  border-left: 3px solid rgba(79, 195, 247, 0.6);
+}
+
+.status-ready {
+  background: rgba(102, 187, 106, 0.08);
+  border-left: 3px solid rgba(102, 187, 106, 0.6);
+}
+
+.status-blocked {
+  background: rgba(239, 83, 80, 0.08);
+  border-left: 3px solid rgba(239, 83, 80, 0.6);
+}
+
+.status-icon {
+  font-size: 0.9rem;
+}
+
+.status-text {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 500;
 }
 
 /* ===== Agent Steps ===== */
@@ -806,90 +828,5 @@ async function sendMessage() {
 .send-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-/* ===== Mode Selector [2026-02-23] ===== */
-.mode-selector {
-  display: flex;
-  gap: 0.5rem;
-  justify-content: center;
-  padding: 1rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 12px;
-  margin-bottom: 0.5rem;
-}
-
-.mode-btn {
-  padding: 0.5rem 1rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--glass-border);
-  color: var(--text-muted);
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 0.85rem;
-  font-weight: 600;
-  transition: all 0.3s;
-}
-
-.mode-btn:hover {
-  border-color: var(--primary);
-}
-
-.mode-btn.active {
-  background: var(--primary);
-  color: white;
-  border-color: var(--primary);
-}
-
-/* v3 최적화 모드 특별 스타일 */
-.mode-btn.optimal {
-  position: relative;
-}
-
-.mode-btn.optimal.active {
-  background: linear-gradient(135deg, var(--primary), #8b5cf6);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
-}
-
-/* ===== Intent Badge [2026-02-23] ===== */
-.intent-badge {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  padding: 0.75rem 1rem;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.1));
-  border-left: 3px solid var(--primary);
-  border-radius: 8px;
-  align-self: flex-start;
-  max-width: 85%;
-  animation: intentSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes intentSlideIn {
-  from {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-.intent-type {
-  font-weight: 700;
-  color: var(--primary);
-  font-size: 0.9rem;
-}
-
-.intent-confidence {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-.intent-reasoning {
-  font-size: 0.85rem;
-  color: var(--text);
-  font-style: italic;
 }
 </style>
