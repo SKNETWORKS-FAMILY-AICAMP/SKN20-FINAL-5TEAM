@@ -17,7 +17,8 @@ export function useWarsSocket() {
         // 현재 호스트 기반으로 소켓 연결 (ASGI 서버가 8000번 등에서 실행 중이라고 가정)
         socket.value = io(window.location.origin, {
             path: '/socket.io',
-            transports: ['websocket']
+            transports: ['websocket'],
+            forceNew: true
         });
 
         socket.value.on('connect', () => {

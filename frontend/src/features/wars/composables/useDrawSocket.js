@@ -28,7 +28,8 @@ export function useDrawSocket() {
 
     socket.value = io(window.location.origin, {
       path: '/socket.io',
-      transports: ['websocket']
+      transports: ['websocket'],
+      forceNew: true
     })
 
     socket.value.on('connect', () => {
