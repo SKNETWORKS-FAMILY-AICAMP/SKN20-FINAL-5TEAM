@@ -5,7 +5,7 @@
 <template>
   <div class="coduck-wars-container">
     <!-- BACKGROUND WATERMARK -->
-    <div class="bg-watermark">CODUCK WARS</div>
+    <div class="bg-watermark">TEAM BATTLE</div>
     <div class="scan-line"></div>
 
     <!-- HEADER -->

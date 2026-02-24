@@ -1,7 +1,7 @@
 <template>
   <div class="mission-briefing-container">
     <header class="page-header">
-      <h1 class="neon-text">CODUCK WARS: MISSION SELECT</h1>
+      <h1 class="neon-text">TEAM BATTLE: MISSION SELECT</h1>
       <p class="tagline">시나리오를 선택하여 아키텍처 서바이벌에 도전하세요</p>
     </header>
 
