@@ -524,38 +524,7 @@ TOOL_LABELS = {
 }
 
 # ─────────────────────────────────────────────
-# 5. Intent별 허용 도구 매핑
-# ─────────────────────────────────────────────
-
-INTENT_TOOL_MAPPING = {
-    "A": {
-        "allowed": ["get_user_scores", "get_weak_points"],
-        "required": ["get_user_scores"],
-    },
-    "B": {
-        "allowed": ["get_weak_points", "get_unit_curriculum", "get_study_guide"],
-        "required": [],
-    },
-    "C": {
-        "allowed": ["get_recent_activity", "get_user_scores"],
-        "required": ["get_recent_activity"],
-    },
-    "E": {
-        "allowed": ["get_weak_points"],
-        "required": [],
-    },
-    "F": {
-        "allowed": ["get_unit_curriculum", "get_user_scores"],
-        "required": [],
-    },
-    "G": {
-        "allowed": ["get_user_scores", "get_recent_activity"],
-        "required": ["get_user_scores"],
-    },
-}
-
-# ─────────────────────────────────────────────
-# 6. Tool 인자 검증 및 캐싱
+# 5. Tool 인자 검증
 # ─────────────────────────────────────────────
 
 TOOL_ARG_SCHEMA = {
@@ -591,25 +560,3 @@ def validate_and_normalize_args(fn_name, fn_args):
         if arg_name not in normalized and "default" in rules:
             normalized[arg_name] = rules["default"]
     return normalized
-
-
-# ─────────────────────────────────────────────
-# 7. Tool 결과 충분도 평가
-# ─────────────────────────────────────────────
-
-class ToolResultEvaluator:
-    """Tool 호출 결과가 의도에 맞게 충분한지 평가"""
-
-    def is_sufficient(self, tool_results, intent_type):
-        """이 결과로 충분한가?"""
-        required_tools = INTENT_TOOL_MAPPING.get(intent_type, {}).get("required", [])
-        if not required_tools:
-            return True
-        called_tools = {tr.get("tool") for tr in tool_results if tr.get("tool")}
-        return all(tool in called_tools for tool in required_tools)
-
-    def missing_tools(self, tool_results, intent_type):
-        """빠진 필수 도구는?"""
-        required_tools = INTENT_TOOL_MAPPING.get(intent_type, {}).get("required", [])
-        called_tools = {tr.get("tool") for tr in tool_results if tr.get("tool")}
-        return [t for t in required_tools if t not in called_tools]

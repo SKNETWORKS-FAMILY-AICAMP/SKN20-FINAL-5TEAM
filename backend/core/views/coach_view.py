@@ -1,4 +1,4 @@
-"""AI Coach Agent View (최적화 버전) - Modular + Two-Stage + Guardrails + Caching"""
+"""AI Coach Agent View - ReAct 패턴 기반 학습 코칭"""
 
 import json
 import logging
@@ -11,33 +11,25 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from core.models import UserProfile
-from core.views.coach_prompt import (
-    INTENT_ANALYSIS_PROMPT,
-    RESPONSE_STRATEGIES,
-    is_off_topic,
-    GUARDRAIL_MESSAGE,
-)
+from core.views.coach_prompt import is_off_topic, GUARDRAIL_MESSAGE
 from core.views.coach_tools import (
     COACH_TOOLS,
     TOOL_DISPATCH,
     TOOL_LABELS,
-    INTENT_TOOL_MAPPING,
     validate_and_normalize_args,
-    ToolResultEvaluator,
 )
 
 logger = logging.getLogger(__name__)
 
 
 class AICoachOptimalView(APIView):
-    """최적화된 AI 코치 (Modular + Two-Stage + Guardrail + Caching)
+    """ReAct 에이전트 기반 AI 코치
 
     플로우:
-    1. [Guardrail] 명백한 범위 밖 질문 사전 차단 (규칙 기반)
-    2. [Intent Analysis] LLM이 사용자 질문을 A-G로 분류
-    3. [Response Strategy] 의도별 프롬프트로 도구 호출 & 응답 생성
-    4. [Caching & Validation] 중복 호출 방지, 인자 검증
-    5. [SSE Streaming] 의도 + 도구 + 응답을 실시간 전달
+    1. [Guardrail] 명백한 범위 밖 질문 사전 차단
+    2. [Agent Loop] LLM이 필요한 도구를 자율적으로 선택하며 상호작용
+    3. [Tool Caching] 중복 호출 방지
+    4. [SSE Streaming] 실시간 진행 상황 전달
     """
 
     permission_classes = [permissions.IsAuthenticated]
@@ -77,118 +69,84 @@ class AICoachOptimalView(APIView):
         def _sse(data):
             return f"data: {json.dumps(data, ensure_ascii=False, default=str)}\n\n"
 
+        # ── System Prompt (ReAct) ──
+        SYSTEM_PROMPT = """당신은 AI 학습 코치 'Coduck Coach'입니다.
+
+[역할]
+- 학생의 학습 데이터를 도구(tool)로 조회하여 맞춤 코칭 제공
+- 추측 금지, 반드시 데이터 기반 답변
+
+[답변 구조 — 반드시 아래 3파트를 모두 포함]
+
+1. **현재 상태 진단** (데이터 해석)
+   - 조회한 데이터에서 핵심 수치 2~3개를 뽑아 의미를 설명
+   - 단순 숫자 나열 금지. "~점이니까 ~수준이야" 처럼 해석해줘
+   - 잘하는 부분은 칭찬, 부족한 부분은 솔직하게
+
+2. **원인 분석 & 인사이트**
+   - 왜 이런 결과가 나왔는지 가능한 원인 1~2개 제시
+   - 약점 메트릭이 있다면 구체적으로 어떤 능력이 부족한 건지 풀어서 설명
+
+3. **구체적 행동 가이드**
+   - "~를 다시 풀어봐", "~부터 시작하자" 등 지금 당장 할 수 있는 행동 1~2개
+   - 가능하면 특정 유닛이나 문제를 지목
+
+[형식 규칙]
+- 전체 답변 300~700자
+- 영어 metric 이름은 반드시 한국어로 번역 (design→설계, implementation→구현, abstraction→추상화, edge_case→예외처리, consistency→일관성, security→보안, reliability→신뢰성, performance→성능, sustainability→지속가능성, maintainability→유지보수성)
+- 마크다운: 짧은 제목(##) + 불릿(-) 위주
+
+[톤]
+- 한국어, 친근한 선배/코치 말투 (반말 OK, "~해봐", "~하자")
+- 데이터가 없으면 학습 시작을 격려
+- 칭찬할 건 칭찬하고, 부족한 건 솔직하게
+
+[유닛 정보]
+- unit01: 의사코드(Pseudo Code) 연습
+- unit02: 디버깅(Bug Hunt) 연습
+- unit03: 시스템 아키텍처 설계 연습
+
+[도구 활용 가이드]
+- get_user_scores: 유닛별 성적 조회 (신청한 도구)
+- get_weak_points: 특정 유닛의 약점 분석 (약점 파악 필요 시)
+- get_recent_activity: 최근 학습 활동 조회 (학습 패턴 파악 필요 시)
+- recommend_next_problem: 다음 풀이 문제 추천 (문제 추천 필요 시)
+- get_unit_curriculum: 유닛 커리큘럼 조회 (학습 방법/개념 질문 시)
+- get_study_guide: 맞춤 학습 가이드 생성 (구체적 공부 방법 필요 시)
+
+필요한 도구를 자율적으로 선택하여 호출하세요.
+"""
+
         def event_stream():
             called_tools_cache = {}  # ← 도구 결과 캐싱
             try:
-                # ──────────────────────────────────────
-                # Step 1: Intent Analysis (LLM 호출 1차)
-                # ──────────────────────────────────────
-
-                yield _sse({
-                    "type": "thinking",
-                    "stage": "intent_analysis",
-                    "message": "질문의 의도를 분석하고 있어요...",
-                })
-
-                intent_response = client.chat.completions.create(
-                    model="gpt-4o-mini",  # 더 빠른 모델
-                    messages=[
-                        {"role": "system", "content": INTENT_ANALYSIS_PROMPT},
-                        {"role": "user", "content": user_message},
-                    ],
-                    max_completion_tokens=500,
-                )
-
-                intent_text = intent_response.choices[0].message.content
-
-                try:
-                    if "```" in intent_text:
-                        intent_text = intent_text.split("```")[1]
-                        if intent_text.startswith("json"):
-                            intent_text = intent_text[4:]
-                    intent_data = json.loads(intent_text.strip())
-                except (json.JSONDecodeError, IndexError):
-                    logger.warning(f"[Intent Parse] 파싱 실패: {intent_text}")
-                    intent_data = {
-                        "intent_type": "B",
-                        "confidence": 0.5,
-                        "reasoning": "의도 분석 실패, 학습 방법형으로 가정",
-                        "key_indicators": []
-                    }
-
-                intent_type = intent_data.get("intent_type", "B")
-                confidence = intent_data.get("confidence", 0.5)
-
-                yield _sse({
-                    "type": "intent_detected",
-                    "intent_type": intent_type,
-                    "intent_name": RESPONSE_STRATEGIES.get(intent_type, {}).get("name", "미분류"),
-                    "confidence": confidence,
-                    "reasoning": intent_data.get("reasoning", ""),
-                    "key_indicators": intent_data.get("key_indicators", []),
-                })
-
-                # ──────────────────────────────────────
-                # Step 2: Response Strategy (LLM 호출 2차부터)
-                # ──────────────────────────────────────
-
-                yield _sse({
-                    "type": "thinking",
-                    "stage": "response_strategy",
-                    "message": "대응 전략을 수립하고 있어요...",
-                })
-
-                strategy = RESPONSE_STRATEGIES.get(intent_type, RESPONSE_STRATEGIES["B"])
-                system_prompt = strategy["system_template"]
-
                 conv = [
-                    {"role": "system", "content": system_prompt},
+                    {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user", "content": user_message},
                 ]
 
-                # ── Intent별 도구 필터링 ──
-                intent_config = INTENT_TOOL_MAPPING.get(intent_type, {})
-                allowed_tools = intent_config.get("allowed", [])
-                required_tools = intent_config.get("required", [])
-                filtered_tools = [t for t in COACH_TOOLS if t["function"]["name"] in allowed_tools]
+                max_iterations = 5
+                thinking_messages = [
+                    "질문을 분석하고 필요한 데이터를 판단하고 있어요...",
+                    "추가 데이터가 필요한지 확인하고 있어요...",
+                    "분석 결과를 종합하고 있어요...",
+                    "최종 코칭 내용을 정리하고 있어요...",
+                    "마무리 중이에요...",
+                ]
 
-                # ── Tool 결과 평가 준비 ──
-                evaluator = ToolResultEvaluator()
-                tool_results = []
-                tools_sufficient = False
-
-                required_tools_called = set()
-                required_tools_missing = set(required_tools) if required_tools else set()
-
-                max_iterations = 8  # B의 5 + A의 10 중간값
                 for iteration in range(max_iterations):
+                    # ── Agent 사고 표시 ──
                     yield _sse({
                         "type": "thinking",
-                        "stage": "response_generation",
-                        "message": f"분석 중입니다... ({iteration + 1}/{max_iterations})",
+                        "message": thinking_messages[iteration] if iteration < len(thinking_messages) else "분석 중입니다...",
                     })
 
-                    # ── 도구 제공 여부 결정 ──
-                    if tools_sufficient:
-                        tools_to_use = openai.NOT_GIVEN
-                        tool_choice_param = openai.NOT_GIVEN
-                    else:
-                        if filtered_tools:
-                            tools_to_use = filtered_tools
-                            if required_tools_missing:
-                                tool_choice_param = "required"  # ← 필수 도구 강제 호출
-                                logger.info(f"[필수 도구 호출] {required_tools_missing}")
-                            else:
-                                tool_choice_param = "auto"
-                        else:
-                            tools_to_use = openai.NOT_GIVEN
-                            tool_choice_param = openai.NOT_GIVEN
-
+                    # ── LLM 호출 (스트리밍) ──
                     stream = client.chat.completions.create(
-                        model="gpt-5-mini",
+                        model="gpt-4o-mini",
                         messages=conv,
-                        tools=tools_to_use,
-                        tool_choice=tool_choice_param,
+                        tools=COACH_TOOLS,
+                        tool_choice="auto",  # ← 에이전트 자율성 핵심
                         max_completion_tokens=4000,
                         stream=True,
                     )
@@ -196,12 +154,14 @@ class AICoachOptimalView(APIView):
                     tool_calls_data = {}
                     is_tool_call = False
 
+                    # ── 스트리밍 처리 ──
                     for chunk in stream:
                         choice = chunk.choices[0] if chunk.choices else None
                         if not choice or not choice.delta:
                             continue
                         delta = choice.delta
 
+                        # Tool calls 수집
                         if delta.tool_calls:
                             is_tool_call = True
                             for tc in delta.tool_calls:
@@ -216,21 +176,18 @@ class AICoachOptimalView(APIView):
                                     if tc.function.arguments:
                                         tool_calls_data[idx]["arguments"] += tc.function.arguments
 
+                        # Content tokens 즉시 전송
                         if delta.content:
                             yield _sse({"type": "token", "token": delta.content})
 
-                    # Tool 호출 없으면 최종 답변 완료
+                    # ── Tool 호출 없으면 최종 답변 ──
                     if not is_tool_call:
-                        yield _sse({
-                            "type": "final",
-                            "intent_type": intent_type,
-                            "strategy": strategy["name"],
-                        })
+                        yield _sse({"type": "final"})
                         yield "data: [DONE]\n\n"
                         return
 
                     # ──────────────────────────────────────
-                    # Tool Calling & Execution
+                    # ── Tool 실행 ──
                     # ──────────────────────────────────────
 
                     tc_list = [tool_calls_data[i] for i in sorted(tool_calls_data.keys())]
@@ -252,12 +209,6 @@ class AICoachOptimalView(APIView):
 
                     for tc in tc_list:
                         fn_name = tc["name"]
-
-                        # ← 필수 도구 호출 추적
-                        if fn_name in required_tools:
-                            required_tools_called.add(fn_name)
-                            required_tools_missing.discard(fn_name)
-                            logger.info(f"[필수 도구 호출] {fn_name}")
 
                         try:
                             fn_args_raw = json.loads(tc["arguments"]) if tc["arguments"] else {}
@@ -307,37 +258,11 @@ class AICoachOptimalView(APIView):
                             "content": result_str,
                         })
 
-                        tool_results.append({
-                            "tool": fn_name,
-                            "args": fn_args_raw,
-                            "result": result_data,
-                        })
-
-                    # ── 데이터 충분도 평가 ──
-                    if is_tool_call:
-                        if not required_tools_missing:
-                            logger.info(f"[충분도 평가] Intent {intent_type}: 필수 도구 모두 호출됨")
-                            tools_sufficient = True
-                        elif evaluator.is_sufficient(tool_results, intent_type):
-                            logger.info(f"[충분도 평가] Intent {intent_type}: 데이터 충분")
-                            tools_sufficient = True
-                        else:
-                            logger.warning(f"[충분도 미달] Intent {intent_type}, iteration {iteration + 1}/{max_iterations}")
-
-                # max_iterations 도달
-                if required_tools_missing:
-                    warning_msg = f"주의: 필수 데이터를 완전히 수집하지 못했습니다. 다시 시도하거나 더 구체적인 질문을 해주세요."
-                    logger.warning(f"[Max Iterations] {warning_msg}")
-                    yield _sse({
-                        "type": "warning",
-                        "message": warning_msg,
-                        "missing_tools": list(required_tools_missing),
-                    })
-                else:
-                    yield _sse({
-                        "type": "token",
-                        "token": "분석이 복잡하여 일부만 완료되었습니다. 질문을 더 구체적으로 해주세요.",
-                    })
+                # ── max_iterations 도달 ──
+                yield _sse({
+                    "type": "token",
+                    "token": "분석이 복잡하여 일부만 완료되었습니다. 질문을 더 구체적으로 해주세요.",
+                })
                 yield "data: [DONE]\n\n"
 
             except Exception as e:
