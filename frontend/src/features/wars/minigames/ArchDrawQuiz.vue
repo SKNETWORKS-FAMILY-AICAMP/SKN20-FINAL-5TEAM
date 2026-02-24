@@ -99,13 +99,7 @@
         <!-- LEFT: 내 작업 영역 -->
         <div class="my-workspace">
           <div class="ws-header">
-            <span class="ws-tag team-badge" :class="ds.myTeam.value.toLowerCase()">
-              {{ ds.myTeam.value }} TEAM
-            </span>
             <span class="ws-tag you-tag">👤 MY CANVAS</span>
-            <span v-if="ds.teammate.value" class="teammate-status">
-              🤝 Partner: {{ ds.teammate.value.name }}
-            </span>
             <div class="mode-toggle">
               <button :class="{ active: drawMode === 'move' }" @click="drawMode='move'">✋</button>
               <button :class="{ active: drawMode === 'arrow' }" @click="drawMode='arrow'">➡️</button>
@@ -202,11 +196,13 @@
               <div class="jv-tag opp-tag">{{ ds.opponentName.value || 'OPPONENT' }} DESIGN</div>
               <div class="jv-canvas">
                 <svg class="canvas-svg">
-                  <line v-for="(a,i) in oppFinalArrows" :key="'oa'+i" :x1="a.x1" :y1="a.y1" :x2="a.x2" :y2="a.y2" stroke="#ff2d75" stroke-width="2" marker-end="url(#ah2)"/>
+                  <!-- [수정일: 2026-02-24] 결과 데이터가 아직 없으면 소켓 실시간 데이터를 보여줌 -->
+                  <line v-for="(a,i) in (oppFinalArrows.length ? oppFinalArrows : ds.opponentCanvas.value.arrows)" :key="'oa'+i" :x1="a.x1" :y1="a.y1" :x2="a.x2" :y2="a.y2" stroke="#ff2d75" stroke-width="2" marker-end="url(#ah2)"/>
                 </svg>
-                <div v-for="(n,i) in oppFinalNodes" :key="'on'+i" class="cnode opp-node" :style="{ left:n.x+'px', top:n.y+'px' }">
+                <div v-for="(n,i) in (oppFinalNodes.length ? oppFinalNodes : ds.opponentCanvas.value.nodes)" :key="'on'+i" class="cnode opp-node" :style="{ left:n.x+'px', top:n.y+'px' }">
                   <span class="ni">{{ n.icon }}</span><span class="nn">{{ n.name }}</span>
                 </div>
+                <div v-if="!oppFinalNodes.length && !ds.opponentCanvas.value.nodes.length" class="opp-empty">상대가 아직 배치하지 않았습니다</div>
               </div>
             </div>
           </div>
@@ -412,12 +408,6 @@ function joinCustomRoom() {
   spawnPopText(`ROOM ${newRoomId} 입장!`, '#00f0ff')
 }
 
-// [수정일: 2026-02-24] 팀원 설계 실시간 동기화 (Shared Editing)
-ds.onTeamSync.value = (data) => {
-  // 팀원이 보낸 데이터로 내 캔버스 갱신 (참조 무결성을 위해 깊은 복사 고려)
-  if (data.nodes) nodes.value = JSON.parse(JSON.stringify(data.nodes))
-  if (data.arrows) arrows.value = JSON.parse(JSON.stringify(data.arrows))
-}
 
 // [수정일: 2026-02-24] 아이템 효과 수신 처리 및 알림창 표시
 const showItemAlert = (type) => {
@@ -437,6 +427,12 @@ ds.onItemEffect.value = (type) => {
     arrows.value = [...ds.opponentCanvas.value.arrows]
     triggerShake()
   }
+}
+
+// [추가: 2026-02-24] 서버로부터 게임 종료 신호 수신 시 처리
+ds.onGameOver.value = () => {
+  console.log("🏁 Game Over signal received from server.")
+  phase.value = 'gameover'
 }
 
 function triggerShake() {
@@ -549,9 +545,14 @@ ds.onRoundResult.value = (results) => {
 }
 
 // [수정일: 2026-02-24] .value를 사용하여 서버(AI)가 문제를 던져주었을 때의 처리 등록
-ds.onRoundStart.value = (question) => {
-  if (!question) return;
-  round.value++;
+ds.onRoundStart.value = (data) => {
+  if (!data || !data.question) return;
+  curQ.value = data.question; 
+  
+  // [수정일: 2026-02-24] 서버가 보내준 라운드 번호 사용 (없으면 수동 증가)
+  if (data.round) round.value = data.round;
+  else round.value++;
+  
   phase.value = 'play';
   timeLeft.value = 45;
   hintN.value = 0;
@@ -587,6 +588,11 @@ function beginGame() {
 }
 
 function goNextRound() { 
+  // [수정일: 2026-02-24] 로컬에서도 5라운드 종료 체크 (안전장치)
+  if (round.value >= maxRounds) {
+    phase.value = 'gameover'
+    return
+  }
   ds.emitNextRound(currentRoomId.value, null) // 다음 라운드 신호 전송
 }
 function getHint() { if (hintN.value >= 2) return; hintMsg.value = curQ.value.hints[hintN.value] || ''; hintN.value++; setTimeout(() => hintMsg.value = '', 4000) }
@@ -643,7 +649,13 @@ function clearCanvas() { nodes.value = []; arrows.value = []; selectedNode.value
 
 // ── Submit ──
 function submitDraw() {
-  clearInterval(timer); phase.value = 'judging'
+  clearInterval(timer); 
+  
+  // [수정일: 2026-02-24] 심사 화면으로 넘어가기 전 내 설계 데이터를 즉시 고정
+  myFinalNodes.value = JSON.parse(JSON.stringify(nodes.value))
+  myFinalArrows.value = JSON.parse(JSON.stringify(arrows.value))
+  
+  phase.value = 'judging'
   setTimeout(() => {
     // [수정일: 2026-02-24] 백엔드에서 온 미션은 checkList(함수)를 가질 수 없으므로 required 기반으로 동적 체크 생성
     const checks = curQ.value.required.map(compId => {

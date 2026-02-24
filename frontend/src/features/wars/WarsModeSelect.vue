@@ -59,22 +59,22 @@
         <div class="card-arrow">→</div>
       </div>
 
-      <!-- Mode 3: 스피드 아키텍처 빌더 -->
-      <div class="mode-card speed" @click="goTo('/practice/coduck-wars/speed-build')">
+      <!-- Mode 3: 로직 런 (2026-02-24 수정 - 스피드 아키텍처 빌더에서 교체) -->
+      <div class="mode-card speed" @click="goTo('/practice/coduck-wars/logic-run')">
         <div class="card-glow"></div>
         <div class="card-inner">
           <div class="mode-badge hot">NEW</div>
-          <div class="mode-icon">⚡</div>
-          <h2 class="mode-title">스피드 아키텍처 빌더</h2>
-          <p class="mode-desc">제시된 시나리오에 맞는 컴포넌트를 빠르게 드래그&드롭! 시간 안에 완성하라.</p>
+          <div class="mode-icon">🏃</div>
+          <h2 class="mode-title">로직 런</h2>
+          <p class="mode-desc">AI 추격자를 피해 팀원과 릴레이로 의사코드를 작성하며 논리의 성을 향해 질주하라!</p>
           <div class="mode-tags">
-            <span class="tag">드래그앤드롭</span>
-            <span class="tag">타임어택</span>
-            <span class="tag">8라운드</span>
+            <span class="tag">릴레이 코딩</span>
+            <span class="tag">AI 추격</span>
+            <span class="tag">팀 협동</span>
           </div>
           <div class="mode-meta">
-            <span>⏱ 8분</span>
-            <span>👤 1인</span>
+            <span>⏱ 10분</span>
+            <span>👥 2~3인</span>
             <span>⭐ 중급</span>
           </div>
         </div>

@@ -40,6 +40,11 @@ from core.views.job_planner_view import (
     JobPlannerAgentReportView,
     JobPlannerRecommendView,
 )
+# [수정일: 2026-02-24] InterviewJobPostingView 임포트 추가 - interview/job-postings/ URL 미등록으로 인한 404 오류 수정
+from core.views.interview.job_posting_view import (
+    InterviewJobPostingView,
+    InterviewJobPostingDetailView,
+)
 
 
 router = DefaultRouter()
@@ -100,4 +105,8 @@ urlpatterns = [
     path('job-planner/agent-questions/', JobPlannerAgentQuestionsView.as_view(), name='job_planner_agent_questions'),
     path('job-planner/agent-report/', JobPlannerAgentReportView.as_view(), name='job_planner_agent_report'),
     path('job-planner/recommend/', JobPlannerRecommendView.as_view(), name='job_planner_recommend'),
+
+    # [수정일: 2026-02-24] Interview Job Postings API - 누락된 URL 패턴 추가 (404 오류 수정)
+    path('interview/job-postings/', InterviewJobPostingView.as_view(), name='interview_job_postings'),
+    path('interview/job-postings/<int:pk>/', InterviewJobPostingDetailView.as_view(), name='interview_job_posting_detail'),
 ]

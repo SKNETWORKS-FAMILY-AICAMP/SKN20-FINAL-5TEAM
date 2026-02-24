@@ -61,14 +61,28 @@ async def disconnect(sid):
                 if mission_id in active_rooms:
                     active_rooms.remove(mission_id)
         
-        # [추가: 2026-02-24] ARCH DRAW 미니게임 방 정리
+        # [추가: 2026-02-24] LOGIC RUN 미니게임 방 정리
+        run_room_id = session.get('run_room')
+        if run_room_id and run_room_id in run_rooms:
+            run_rooms[run_room_id]['players'] = [p for p in run_rooms[run_room_id]['players'] if p['sid'] != sid]
+            if not run_rooms[run_room_id]['players']:
+                del run_rooms[run_room_id]
+            else:
+                await sio.emit('run_user_left', {'sid': sid}, room=run_room_id)
+
+        # [추가: 2026-02-24] BLUEPRINT(Arch Draw) 미니게임 방 정리
         draw_room_id = session.get('draw_room')
         if draw_room_id and draw_room_id in draw_rooms:
-            draw_rooms[draw_room_id]['players'] = [p for p in draw_rooms[draw_room_id]['players'] if p['sid'] != sid]
-            if not draw_rooms[draw_room_id]['players']:
+            room = draw_rooms[draw_room_id]
+            room['players'] = [p for p in room['players'] if p['sid'] != sid]
+            
+            if not room['players']:
                 del draw_rooms[draw_room_id]
             else:
-                await sio.emit('draw_player_left', {'sid': sid}, room=draw_room_id)
+                # 남은 인원에게 로비 정보 갱신 전송
+                players_data = [{'name': p['name'], 'sid': p['sid']} for p in room['players']]
+                await sio.emit('draw_lobby', {'players': players_data}, room=draw_room_id)
+                print(f"📡 draw_lobby (cleanup) sent to room {draw_room_id}")
 
 @sio.event
 async def join_war_room(sid, data):
@@ -348,6 +362,14 @@ async def draw_join(sid, data):
     
     room = draw_rooms[room_id]
     
+    # [수정일: 2026-02-24] 인원 제한 체크 (최대 2명)
+    # 이미 방에 있는 플레이어(재접속)가 아니라면, 2명 이상일 때 입장 거부
+    is_existing_player = any(p['sid'] == sid for p in room['players'])
+    if not is_existing_player and len(room['players']) >= 2:
+        print(f"🚫 draw_join Rejected: Room {room_id} is FULL.")
+        await sio.emit('draw_error', {'message': '방이 이미 가득 찼습니다. (최대 2명)'}, to=sid)
+        return
+
     # [수정일: 2026-02-24] 동일 SID 제거 (재접속 대응)
     # 이름이 같더라도 SID가 다르면 별개 인원으로 처리하도록 유지하되, 
     # 같은 SID가 들어오면 기존 데이터 갱신
@@ -409,6 +431,7 @@ async def draw_start(sid, data):
     if room_id in draw_rooms:
         draw_rooms[room_id]['phase'] = 'playing'
         draw_rooms[room_id]['current_question'] = question
+        draw_rooms[room_id]['round'] = 1  # [추가] 라운드 추적 시작
         
     await sio.emit('draw_round_start', {'question': question, 'round': 1}, room=room_id)
 
@@ -519,9 +542,18 @@ async def draw_next_round(sid, data):
     ]
     question = random.choice(ARCH_MISSIONS)
     if room_id in draw_rooms:
-        draw_rooms[room_id]['current_question'] = question
+        room = draw_rooms[room_id]
+        room['round'] = room.get('round', 1) + 1
         
-    await sio.emit('draw_round_start', {'question': question}, room=room_id)
+        # [수정일: 2026-02-24] 5라운드 제한 적용
+        if room['round'] > 5:
+            print(f"🏁 Room {room_id} finished all rounds (5/5).")
+            # 게임 종료 전용 이벤트를 보내거나, 클라이언트가 UI상에서 처리하도록 유항
+            await sio.emit('draw_game_over', {}, room=room_id) 
+            return
+
+        room['current_question'] = question
+        await sio.emit('draw_round_start', {'question': question, 'round': room['round']}, room=room_id)
 
 @sio.event
 async def draw_leave(sid, data):
@@ -531,7 +563,10 @@ async def draw_leave(sid, data):
         if not draw_rooms[room_id]['players']:
             del draw_rooms[room_id]
         else:
-            await sio.emit('draw_player_left', {'sid': sid}, room=room_id)
+            # [수정일: 2026-02-24] UI 동기화를 위해 draw_lobby 전송
+            players_data = [{'name': p['name'], 'sid': p['sid']} for p in draw_rooms[room_id]['players']]
+            await sio.emit('draw_lobby', {'players': players_data}, room=room_id)
+            print(f"📡 draw_lobby (leave) sent to room {room_id}")
     await sio.leave_room(sid, room_id)
 
 # [Phase 5] WebRTC 시그널링 (Offer, Answer, ICE Candidate)
@@ -564,3 +599,112 @@ async def ice_candidate(sid, data):
             'candidate': data.get('candidate'),
             'sender_sid': sid
         }, to=target_sid)
+
+# ========== LOGIC RUN (Relay Race) ==========
+# [수정일: 2026-02-24] 로직 런 실시간 멀티플레이어 상태 관리
+run_rooms = {}  # { room_id: { players: [], phase, current_quest, ai_pos, player_pos } }
+
+@sio.event
+async def run_join(sid, data):
+    """로직 런 방 입장: 이름과 아바타 정보를 포함"""
+    room_id = data.get('room_id', 'run-default').strip()
+    user_name = data.get('user_name', 'Anonymous')
+    avatar_url = data.get('avatar_url', '/image/duck_idle.png')
+    
+    print(f"🏃 run_join: {user_name} ({sid}) -> room: {room_id}")
+    await sio.enter_room(sid, room_id)
+    await sio.save_session(sid, {'run_room': room_id, 'run_name': user_name})
+    
+    if room_id not in run_rooms:
+        run_rooms[room_id] = {'players': [], 'phase': 'lobby', 'quest': None, 'leader_sid': None}
+    
+    room = run_rooms[room_id]
+    # 방장(Leader) 지정: 첫 번째 플레이어
+    if not room.get('leader_sid'):
+        room['leader_sid'] = sid
+
+    # 중복 입장 방지 및 기존 플레이어 정보 업데이트
+    existing_player = next((p for p in room['players'] if p['sid'] == sid), None)
+    if existing_player:
+        existing_player.update({'name': user_name, 'avatar_url': avatar_url})
+    else:
+        room['players'].append({
+            'sid': sid, 
+            'name': user_name, 
+            'avatar_url': avatar_url,
+            'ready': False
+        })
+    
+    players_data = [{'name': p['name'], 'sid': p['sid'], 'avatar_url': p['avatar_url']} for p in room['players']]
+    await sio.emit('run_lobby', {
+        'players': players_data, 
+        'leader_sid': room['leader_sid']
+    }, room=room_id)
+    
+    if len(room['players']) >= 2:
+        await sio.emit('run_ready', {'ready': True}, room=room_id)
+
+@sio.event
+async def run_start(sid, data):
+    """게임 시작: 퀘스트 인덱스를 결정하여 모든 플레이어에게 전파"""
+    room_id = data.get('room_id')
+    if room_id in run_rooms:
+        run_rooms[room_id]['phase'] = 'playing'
+        # 퀘스트 인덱스 생성 (현재 quests가 1개뿐이므로 0 고정 가능하나 확장성 위해 전송)
+        quest_idx = random.randint(0, 0) # 퀘스트 추가 시 범위 수정 필요
+        await sio.emit('run_game_start', {'quest_idx': quest_idx}, room=room_id)
+
+@sio.event
+async def run_progress(sid, data):
+    """플레이어 진행도 동기화 (전진, 힌트 등)"""
+    room_id = data.get('room_id')
+    # 받은 데이터(playerPos, playerIdx, lineIdx 등)를 다른 팀원에게 전달
+    await sio.emit('run_sync', data, room=room_id, skip_sid=sid)
+
+@sio.event
+async def run_relay_start(sid, data):
+    """섹터 완료 후 바통 패스 페이즈 진입"""
+    room_id = data.get('room_id')
+    await sio.emit('run_relay', data, room=room_id, skip_sid=sid)
+
+@sio.event
+async def run_highfive(sid, data):
+    """하이파이브 성공 여부 동기화"""
+    room_id = data.get('room_id')
+    await sio.emit('run_hf_sync', data, room=room_id, skip_sid=sid)
+
+@sio.event
+async def run_ai_sync(sid, data):
+    """AI 위치 동기화 (주로 방장이 관리)"""
+    room_id = data.get('room_id')
+    await sio.emit('run_ai_pos', data, room=room_id, skip_sid=sid)
+
+@sio.event
+async def run_finish(sid, data):
+    """게임 종료 (완료 또는 게임오버)"""
+    room_id = data.get('room_id')
+    await sio.emit('run_end', data, room=room_id)
+
+@sio.event
+async def run_leave(sid, data):
+    """방 퇴장"""
+    room_id = data.get('room_id', 'run-default')
+    if room_id in run_rooms:
+        room = run_rooms[room_id]
+        room['players'] = [p for p in room['players'] if p['sid'] != sid]
+        
+        # 방장이 나갔다면 권한 위임
+        if room.get('leader_sid') == sid:
+            if room['players']:
+                room['leader_sid'] = room['players'][0]['sid']
+            else:
+                room['leader_sid'] = None
+
+        if not room['players']:
+            del run_rooms[room_id]
+        else:
+            await sio.emit('run_user_left', {
+                'sid': sid, 
+                'leader_sid': room.get('leader_sid')
+            }, room=room_id)
+    await sio.leave_room(sid, room_id)

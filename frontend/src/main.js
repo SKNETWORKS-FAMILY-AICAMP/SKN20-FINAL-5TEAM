@@ -28,7 +28,8 @@ import WarLobby from './features/wars/WarLobby.vue'
 // [수정일: 2026-02-23] Coduck Wars 미니게임 모드 추가
 import WarsModeSelect from './features/wars/WarsModeSelect.vue'
 import ArchDrawQuiz from './features/wars/minigames/ArchDrawQuiz.vue'
-import SpeedArchBuilder from './features/wars/minigames/SpeedArchBuilder.vue'
+// [수정일: 2026-02-24] SpeedArchBuilder → LogicRun으로 교체
+import LogicRun from './features/wars/minigames/LogicRun.vue'
 import ArchBattle from './features/wars/minigames/ArchBattle.vue'
 
 // [수정일: 2026-01-31] 사용하지 않는 구버전/비활성 컴포넌트 임포트 주석 처리
@@ -82,10 +83,11 @@ const routes = [
     name: 'ArchDrawQuiz',
     component: ArchDrawQuiz
   },
+  // [수정일: 2026-02-24] speed-build → logic-run 경로 변경, LogicRun 컴포넌트 연결
   {
-    path: '/practice/coduck-wars/speed-build',
-    name: 'SpeedArchBuilder',
-    component: SpeedArchBuilder
+    path: '/practice/coduck-wars/logic-run',
+    name: 'LogicRun',
+    component: LogicRun
   },
   {
     path: '/practice/coduck-wars/arch-battle',

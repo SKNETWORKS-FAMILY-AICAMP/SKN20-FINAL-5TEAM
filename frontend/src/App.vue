@@ -203,7 +203,7 @@ const isPracticePage = computed(() => {
     'CoduckWars',
     'MissionBriefing',
     'ArchDrawQuiz',
-    'SpeedArchBuilder',
+    'LogicRun', // [수정일: 2026-02-24] SpeedArchBuilder → LogicRun으로 교체 (미추가 시 메인으로 이동되는 버그)
     'ArchBattle',
     'PressureInterviewRoom',
     'GrowthReport',
@@ -215,6 +215,7 @@ const isPracticePage = computed(() => {
     'WarLobby'
   ];
   return practiceRoutes.includes(route?.name);
+
 });
 
 const displayProblems = computed(() => {

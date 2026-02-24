@@ -12,8 +12,6 @@ export function useDrawSocket() {
   const opponentCanvas = ref({ nodes: [], arrows: [] })
   const opponentName = ref('')
   const opponentHasItem = ref(false)
-  const myTeam = ref('')           // [수정일: 2026-02-24] 내 팀 (RED/BLUE)
-  const teammate = ref(null)       // [수정일: 2026-02-24] 팀원 정보
   const isReady = ref(false)
   const roundQuestion = ref(null)
   const opponentSubmitted = ref(false)
@@ -23,7 +21,7 @@ export function useDrawSocket() {
   const onRoundStart = ref(null)
   const onRoundResult = ref(null)
   const onItemEffect = ref(null)
-  const onTeamSync = ref(null)     // [수정일: 2026-02-24] 팀원 설계 동기화 콜백
+  const onGameOver = ref(null)     // [추가] 게임 종료 콜백
 
   function connect(roomId, userName) {
     if (socket.value) return
@@ -40,17 +38,9 @@ export function useDrawSocket() {
 
     socket.value.on('disconnect', () => { connected.value = false })
 
-    // [수정일: 2026-02-24] 팀 배정 포함 로비 업데이트
     socket.value.on('draw_lobby', (data) => {
       roomPlayers.value = data.players || []
-      isReady.value = roomPlayers.value.length >= 2
-
-      // 내 팀 및 팀원 식별
-      const me = roomPlayers.value.find(p => p.sid === socket.value.id)
-      if (me) {
-        myTeam.value = me.team || ''
-        teammate.value = roomPlayers.value.find(p => p.team === me.team && p.sid !== me.sid) || null
-      }
+      isReady.value = roomPlayers.value.length === 2 // 딱 2명일 때만 준비 완료
     })
 
     // 2명 이상 모임 → ready
@@ -67,10 +57,6 @@ export function useDrawSocket() {
       if (onRoundStart.value) onRoundStart.value(data.question)
     })
 
-    // [수정일: 2026-02-24] 팀원 캔버스 동기화 (공동 편집)
-    socket.value.on('draw_team_sync', (data) => {
-      if (onTeamSync.value) onTeamSync.value(data)
-    })
 
     // 상대 캔버스 실시간 업데이트 (관전용)
     socket.value.on('draw_canvas_update', (data) => {
@@ -99,6 +85,11 @@ export function useDrawSocket() {
     socket.value.on('draw_round_result', (data) => {
       roundResults.value = data.results
       if (onRoundResult.value) onRoundResult.value(data.results)
+    })
+
+    // [추가] 5라운드 종료 → 게임 오버
+    socket.value.on('draw_game_over', () => {
+      if (onGameOver.value) onGameOver.value()
     })
 
     // 상대 퇴장
@@ -158,12 +149,11 @@ export function useDrawSocket() {
   onUnmounted(() => { if (socket.value) socket.value.disconnect() })
 
   return {
-    socket, connected, roomPlayers, opponentCanvas, opponentName,
-    opponentHasItem, myTeam, teammate,
-    isReady, roundQuestion, opponentSubmitted, roundResults,
-    onRoundStart, onRoundResult, onItemEffect, onTeamSync,
+    socket, connected, roomPlayers, isReady,
+    opponentCanvas, opponentName, opponentHasItem,
+    roundQuestion, opponentSubmitted, roundResults,
+    onRoundStart, onRoundResult, onItemEffect, onGameOver,
     connect, emitStart, emitCanvasSync, emitUseItem,
     emitItemStatus, emitSubmit, emitNextRound, disconnect
   }
 }
-
