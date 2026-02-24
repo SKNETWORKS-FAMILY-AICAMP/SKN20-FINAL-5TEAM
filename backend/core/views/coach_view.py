@@ -24,9 +24,54 @@ from core.views.coach_tools import (
     TOOL_LABELS,
     validate_and_normalize_args,
     INTENT_TOOL_MAPPING,
+    generate_chart_data_summary,
+    get_chart_details,
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _should_show_chart(intent_type, user_message):
+    """
+    Intent와 사용자 메시지 기반으로 차트 표시 필요 여부 판단
+
+    규칙:
+    1. 명시적 요청: 차트/시각화/리포트 키워드 → 표시
+       - "보여줘", "차트", "그래프", "시각화", "리포트", "데이터를" 포함 → YES
+    2. 명시적 비표시: 설명/피드백 중심
+       - "분석해", "설명해", "알려" → 텍스트 중심 (NO)
+    3. Intent별 기본값 (명시적 요청 없을 때)
+       - A (데이터 조회): 기본 표시
+       - B (학습 방법): 기본 비표시 (텍스트 중심)
+       - C (동기부여): 기본 표시 (성장 데이터 시각화)
+       - E (문제 풀이): 기본 비표시 (텍스트 중심)
+       - F (개념 설명): 기본 비표시 (텍스트 중심)
+       - G (의사결정): 기본 표시 (비교 표시)
+    """
+    msg_lower = user_message.lower()
+
+    # 명시적 비표시 키워드 (설명/분석 중심 요청)
+    text_only_keywords = {"분석해", "설명해", "알려", "어떻게", "왜", "뭐야"}
+    if any(kw in msg_lower for kw in text_only_keywords):
+        return False
+
+    # 명시적 표시 키워드 (시각화/리포트 요청)
+    chart_keywords = {"차트", "시각화", "그래프", "리포트", "보여줘", "보이", "데이터를"}
+    if any(kw in msg_lower for kw in chart_keywords):
+        return True
+
+    # Intent별 기본값 (명시적 요청 없을 때)
+    intent_defaults = {
+        "A": True,   # 데이터 조회형: 기본으로 차트 표시
+        "B": False,  # 학습 방법형: 텍스트 중심
+        "C": True,   # 동기부여형: 성장 데이터 시각화
+        "D": False,  # 범위 밖: 차트 불필요
+        "E": False,  # 문제 풀이 지원: 텍스트 중심
+        "F": False,  # 개념 설명: 텍스트 중심
+        "G": True,   # 의사결정형: 비교 표시
+    }
+
+    return intent_defaults.get(intent_type, False)
 
 
 class AICoachView(APIView):
@@ -128,6 +173,22 @@ class AICoachView(APIView):
                     "key_indicators": intent_data.get("key_indicators", []),
                 })
 
+                # ── 차트 데이터 생성 여부 판단 (동적) ──
+                # Intent + 사용자 메시지 기반으로 차트 필요 여부 결정
+                should_show_chart = _should_show_chart(intent_type, user_message)
+
+                if should_show_chart:
+                    try:
+                        chart_summaries = generate_chart_data_summary(profile, intent_type)
+                        for chart in chart_summaries:
+                            yield _sse({
+                                "type": "chart_data",
+                                "intent_type": intent_type,
+                                "chart": chart,
+                            })
+                    except Exception as e:
+                        logger.warning(f"Failed to generate chart data: {e}")
+
                 # ──────────────────────────────────────
                 # Step 2: Response Strategy + Agent Loop
                 # ──────────────────────────────────────
@@ -151,7 +212,19 @@ class AICoachView(APIView):
                 allowed_tools = intent_config.get("allowed", [])
                 filtered_tools = [t for t in COACH_TOOLS if t["function"]["name"] in allowed_tools]
 
-                max_iterations = 5
+                # ── Agent Loop 설정 ──
+                # Intent별 권장 반복 횟수
+                intent_max_iterations = {
+                    "A": 2,  # 데이터 조회: 빠름
+                    "B": 4,  # 학습 방법: 여러 도구 필요
+                    "C": 2,  # 동기부여: 빠름
+                    "D": 0,  # 범위 밖: 도구 불필요
+                    "E": 3,  # 문제 풀이: 중간
+                    "F": 3,  # 개념 설명: 중간
+                    "G": 3,  # 의사결정: 중간
+                }
+                max_iterations = intent_max_iterations.get(intent_type, 3)
+
                 thinking_messages = [
                     "질문을 분석하고 필요한 데이터를 판단하고 있어요...",
                     "추가 데이터가 필요한지 확인하고 있어요...",
@@ -310,3 +383,30 @@ class AICoachView(APIView):
         resp["Cache-Control"] = "no-cache, no-transform"
         resp["X-Accel-Buffering"] = "no"
         return resp
+
+    def get(self, request):
+        """상세 차트 데이터 조회 (캐싱 가능)"""
+        intent_type = request.query_params.get("intent_type", "A")
+        unit_id = request.query_params.get("unit_id", None)
+
+        if intent_type not in ["A", "B", "C", "D", "E", "F", "G"]:
+            return Response(
+                {"error": f"유효하지 않은 intent_type: {intent_type}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        profile = get_object_or_404(UserProfile, email=request.user.email)
+
+        try:
+            details = get_chart_details(profile, intent_type, unit_id)
+            return Response({
+                "intent_type": intent_type,
+                "unit_id": unit_id,
+                "data": details,
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"[Chart Details] Error: {e}", exc_info=True)
+            return Response(
+                {"error": "차트 데이터 조회 중 오류가 발생했습니다."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )

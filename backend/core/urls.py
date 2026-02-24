@@ -86,6 +86,7 @@ urlpatterns = [
 
     # AI Coach Agent API
     path('ai-coach/chat/', AICoachView.as_view(), name='ai_coach_chat'),
+    path('ai-coach/chart-details/', AICoachView.as_view(), name='ai_coach_chart_details'),
 
     # 모의면접 API
     path('interview/job-postings/', InterviewJobPostingView.as_view(), name='interview_job_postings'),
