@@ -91,7 +91,7 @@ class AICoachOptimalView(APIView):
                 })
 
                 intent_response = client.chat.completions.create(
-                    model="gpt-4-mini",  # 더 빠른 모델
+                    model="gpt-4o-mini",  # 더 빠른 모델
                     messages=[
                         {"role": "system", "content": INTENT_ANALYSIS_PROMPT},
                         {"role": "user", "content": user_message},
@@ -185,7 +185,7 @@ class AICoachOptimalView(APIView):
                             tool_choice_param = openai.NOT_GIVEN
 
                     stream = client.chat.completions.create(
-                        model="gpt-4-mini",
+                        model="gpt-5-mini",
                         messages=conv,
                         tools=tools_to_use,
                         tool_choice=tool_choice_param,
