@@ -58,15 +58,8 @@
         <div class="panel panel--right">
           <h3 class="panel-title">공고 파싱</h3>
 
-          <!-- 입력 방식 탭 -->
-          <div class="input-method-tabs">
-            <button :class="['method-tab', { active: inputMethod === 'url' }]" @click="inputMethod = 'url'">URL</button>
-            <button :class="['method-tab', { active: inputMethod === 'image' }]" @click="inputMethod = 'image'">이미지</button>
-            <button :class="['method-tab', { active: inputMethod === 'text' }]" @click="inputMethod = 'text'">텍스트</button>
-          </div>
-
-          <!-- URL 입력 -->
-          <div v-if="inputMethod === 'url'" class="input-panel">
+          <!-- Step 1: URL 입력 (항상 표시) -->
+          <div class="input-panel">
             <label class="input-label">채용공고 URL</label>
             <input
               v-model="urlInput"
@@ -75,59 +68,8 @@
               class="url-input"
             />
             <p class="input-hint">잡코리아, 사람인, 원티드 등의 채용공고 URL을 입력하세요</p>
-            <button class="btn-parse" @click="parseJobPosting" :disabled="!urlInput || isParsing">
-              {{ isParsing ? '분석 중...' : '공고 분석' }}
-            </button>
-          </div>
-
-          <!-- 이미지 입력 -->
-          <div v-if="inputMethod === 'image'" class="input-panel">
-            <label class="input-label">채용공고 이미지 (여러 장 가능)</label>
-            <div class="image-upload-area" @click="$refs.imageInput.click()">
-              <input
-                ref="imageInput"
-                type="file"
-                accept="image/*"
-                multiple
-                @change="handleImageUpload"
-                style="display: none"
-              />
-              <div v-if="imageFiles.length === 0" class="upload-placeholder">
-                <p>클릭하여 이미지 업로드</p>
-                <p class="upload-hint">PNG, JPG, JPEG 지원 · 여러 장 선택 가능</p>
-              </div>
-              <div v-else class="image-previews-grid">
-                <div v-for="(preview, index) in imagePreviews" :key="index" class="image-preview-item">
-                  <img :src="preview" alt="미리보기" />
-                  <button class="btn-remove-image" @click.stop="removeImage(index)">&times;</button>
-                </div>
-              </div>
-            </div>
-            <button class="btn-parse" @click="parseJobPosting" :disabled="imageFiles.length === 0 || isParsing">
-              <span v-if="!isParsing">공고 분석 (Vision AI) {{ imageFiles.length > 0 ? `(${imageFiles.length}장)` : '' }}</span>
-              <span v-else>AI 분석 중... ({{ currentParsingIndex + 1 }}/{{ imageFiles.length }})</span>
-            </button>
-          </div>
-
-          <!-- 텍스트 입력 -->
-          <div v-if="inputMethod === 'text'" class="input-panel">
-            <label class="input-label">채용공고 텍스트</label>
-            <textarea
-              v-model="textInput"
-              rows="8"
-              placeholder="채용공고 내용을 붙여넣으세요...
-
-예시:
-[회사명] 테크 스타트업
-[포지션] 백엔드 개발자
-[필수 스킬] Python, Django, PostgreSQL
-[우대 스킬] Docker, Kubernetes
-[경력] 2-4년
-..."
-              class="text-input"
-            ></textarea>
-            <button class="btn-parse" @click="parseJobPosting" :disabled="!textInput || isParsing">
-              {{ isParsing ? '분석 중...' : '공고 분석' }}
+            <button class="btn-parse" @click="parseUrl" :disabled="!urlInput || isParsing">
+              {{ isParsing && !urlParsed ? '분석 중...' : '공고 분석' }}
             </button>
           </div>
 
@@ -155,6 +97,67 @@
               </div>
             </div>
           </div>
+
+          <!-- Step 2: URL 분석 후 정보 불충분 시 보완 입력 -->
+          <template v-if="urlParsed && isInsufficient">
+            <p class="supplement-hint">정보가 충분하지 않습니다. 이미지 또는 텍스트로 보완하세요.</p>
+
+            <div class="input-method-tabs">
+              <button :class="['method-tab', { active: supplementMethod === 'image' }]" @click="supplementMethod = 'image'">이미지</button>
+              <button :class="['method-tab', { active: supplementMethod === 'text' }]" @click="supplementMethod = 'text'">텍스트</button>
+            </div>
+
+            <!-- 이미지 보완 -->
+            <div v-if="supplementMethod === 'image'" class="input-panel">
+              <label class="input-label">채용공고 이미지 (여러 장 가능)</label>
+              <div class="image-upload-area" @click="$refs.imageInput.click()">
+                <input
+                  ref="imageInput"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  @change="handleImageUpload"
+                  style="display: none"
+                />
+                <div v-if="imageFiles.length === 0" class="upload-placeholder">
+                  <p>클릭하여 이미지 업로드</p>
+                  <p class="upload-hint">PNG, JPG, JPEG 지원 · 여러 장 선택 가능</p>
+                </div>
+                <div v-else class="image-previews-grid">
+                  <div v-for="(preview, index) in imagePreviews" :key="index" class="image-preview-item">
+                    <img :src="preview" alt="미리보기" />
+                    <button class="btn-remove-image" @click.stop="removeImage(index)">&times;</button>
+                  </div>
+                </div>
+              </div>
+              <button class="btn-parse" @click="parseSupplement" :disabled="imageFiles.length === 0 || isParsing">
+                <span v-if="!isParsing">정보 보완 (Vision AI) {{ imageFiles.length > 0 ? `(${imageFiles.length}장)` : '' }}</span>
+                <span v-else>AI 분석 중... ({{ currentParsingIndex + 1 }}/{{ imageFiles.length }})</span>
+              </button>
+            </div>
+
+            <!-- 텍스트 보완 -->
+            <div v-if="supplementMethod === 'text'" class="input-panel">
+              <label class="input-label">채용공고 텍스트</label>
+              <textarea
+                v-model="textInput"
+                rows="6"
+                placeholder="채용공고 내용을 붙여넣으세요...
+
+예시:
+[회사명] 테크 스타트업
+[포지션] 백엔드 개발자
+[필수 스킬] Python, Django, PostgreSQL
+[우대 스킬] Docker, Kubernetes
+[경력] 2-4년
+..."
+                class="text-input"
+              ></textarea>
+              <button class="btn-parse" @click="parseSupplement" :disabled="!textInput || isParsing">
+                {{ isParsing ? '분석 중...' : '정보 보완' }}
+              </button>
+            </div>
+          </template>
         </div>
 
       </div>
@@ -172,7 +175,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import axios from 'axios';
 import { getJobPostings, createJobPosting, deleteJobPosting } from '../api/interviewApi';
 
@@ -186,14 +189,21 @@ const isStarting = ref(false);
 const errorMessage = ref('');
 
 // ── 파싱 상태 ──────────────────────────────────────────────
-const inputMethod = ref('url');
 const urlInput = ref('');
+const urlParsed = ref(false);       // URL 분석 시도 여부
+const supplementMethod = ref('image'); // 보완 입력 방식
 const imageFiles = ref([]);
 const imagePreviews = ref([]);
 const textInput = ref('');
 const isParsing = ref(false);
 const currentParsingIndex = ref(0);
 const jobData = ref(null);
+
+// URL 파싱 결과가 불충분한지 판별
+const isInsufficient = computed(() => {
+  if (!jobData.value) return true;
+  return !jobData.value.company_name || !jobData.value.position || !jobData.value.required_skills?.length;
+});
 
 // ── 초기 로드 ──────────────────────────────────────────────
 onMounted(async () => {
@@ -233,22 +243,33 @@ function removeImage(index) {
   imagePreviews.value.splice(index, 1);
 }
 
-// ── 파싱 ───────────────────────────────────────────────────
-async function parseJobPosting() {
+// ── URL 파싱 ───────────────────────────────────────────────
+async function parseUrl() {
   isParsing.value = true;
   errorMessage.value = '';
   jobData.value = null;
-
+  urlParsed.value = false;
   try {
-    if (inputMethod.value === 'url') {
-      const response = await axios.post('/api/core/job-planner/parse/', {
-        type: 'url',
-        url: urlInput.value,
-      }, { withCredentials: true });
-      jobData.value = response.data;
+    const response = await axios.post('/api/core/job-planner/parse/', {
+      type: 'url',
+      url: urlInput.value,
+    }, { withCredentials: true });
+    jobData.value = response.data;
+  } catch (error) {
+    errorMessage.value = error.response?.data?.error || '공고 파싱 중 오류가 발생했습니다.';
+  } finally {
+    isParsing.value = false;
+    urlParsed.value = true;
+  }
+}
 
-    } else if (inputMethod.value === 'image') {
-      let merged = {};
+// ── 이미지/텍스트 보완 파싱 (기존 jobData에 병합) ──────────
+async function parseSupplement() {
+  isParsing.value = true;
+  errorMessage.value = '';
+  try {
+    if (supplementMethod.value === 'image') {
+      let merged = { ...(jobData.value || {}) };
       for (let i = 0; i < imageFiles.value.length; i++) {
         currentParsingIndex.value = i;
         const imageData = await new Promise((resolve) => {
@@ -263,15 +284,13 @@ async function parseJobPosting() {
         merged = { ...merged, ...response.data };
       }
       jobData.value = merged;
-
-    } else if (inputMethod.value === 'text') {
+    } else {
       const response = await axios.post('/api/core/job-planner/parse/', {
         type: 'text',
         text: textInput.value,
       }, { withCredentials: true });
-      jobData.value = response.data;
+      jobData.value = { ...(jobData.value || {}), ...response.data };
     }
-
   } catch (error) {
     errorMessage.value = error.response?.data?.error || '공고 파싱 중 오류가 발생했습니다.';
   } finally {
@@ -310,7 +329,7 @@ async function onStart() {
           required_skills: jobData.value.required_skills || [],
           preferred_skills: jobData.value.preferred_skills || [],
           experience_range: jobData.value.experience_range || '',
-          source: inputMethod.value,
+          source: 'url',
         });
         emit('start', saved.id);
       } else {
@@ -563,6 +582,17 @@ async function onStart() {
 
 .btn-parse:hover:not(:disabled) { background: #6366f1; }
 .btn-parse:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── 정보 보완 안내 ─────────────────────────────────────── */
+.supplement-hint {
+  font-size: 12px;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 0;
+}
 
 /* ── 이미지 업로드 ─────────────────────────────────────── */
 .image-upload-area {

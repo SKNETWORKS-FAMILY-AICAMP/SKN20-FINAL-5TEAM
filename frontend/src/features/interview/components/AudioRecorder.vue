@@ -228,12 +228,9 @@ async function stopRecording() {
     stream = null;
   }
 
-  // Web Speech 결과를 바로 confirm 단계로
-  transcript.value = (finalTranscript.value + ' ' + interimTranscript.value).trim();
-  whisperUsed.value = false;
-  state.value = 'confirm';
-  await nextTick();
-  transcriptInputRef.value?.focus();
+  // [수정일: 2026-02-24] Web Speech 결과를 즉시 confirm으로 보내는 대신, faster-whisper(RunPod) 보정 과정을 거치도록 수정
+  state.value = 'refining';
+  await sendToWhisper();
 }
 
 // ── faster-whisper로 정확도 보정 ──────────────────────────

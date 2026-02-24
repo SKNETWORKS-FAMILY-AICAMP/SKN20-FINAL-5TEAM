@@ -1,11 +1,12 @@
+"""AWS RDS 보안그룹에 현재 IP를 자동 등록하는 스크립트 (1회성 유틸리티)."""
 import os
 import boto3
 import requests
 from botocore.exceptions import ClientError
 from dotenv import load_dotenv
 
-# .env 파일 로드
-load_dotenv()
+# .env 파일 로드 (프로젝트 루트 기준)
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
 
 def update_rds_security_group(group_id=None, port=5432):
     """

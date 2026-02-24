@@ -1,3 +1,4 @@
+"""테이블 구조에 맞춰 동적으로 DB 데이터를 복원하는 스크립트 (1회성 유틸리티)."""
 import os
 import django
 import json
@@ -44,11 +45,12 @@ def dynamic_repair_and_restore():
         cursor.execute("ALTER TABLE gym_userdetail ADD CONSTRAINT gym_userdetail_user_id_fkey FOREIGN KEY (user_id) REFERENCES gym_user(id) ON DELETE CASCADE")
 
     print("--- Step 5: Restoring data from backup ---")
-    if not os.path.exists('backup_data.json'):
+    backup_path = os.path.join(os.path.dirname(__file__), 'backup_data.json')
+    if not os.path.exists(backup_path):
         print("Backup file not found!")
         return
 
-    with open('backup_data.json', 'r', encoding='utf-8') as f:
+    with open(backup_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
 
     try:

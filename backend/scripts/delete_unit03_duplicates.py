@@ -1,3 +1,4 @@
+"""unit03 중복 문제 데이터를 삭제하는 스크립트 (1회성 유틸리티)."""
 import os
 import django
 

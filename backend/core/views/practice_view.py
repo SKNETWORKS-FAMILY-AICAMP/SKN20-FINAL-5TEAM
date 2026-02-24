@@ -40,9 +40,9 @@ class PracticeViewSet(viewsets.ModelViewSet):
 
     def _load_bughunt_seed_map(self):
         """
-        backend/progressive-problems.json을 읽어 stage id(S1..S7) 기준 맵을 생성합니다.
+        backend/scripts/progressive-problems.json을 읽어 stage id(S1..S7) 기준 맵을 생성합니다.
         """
-        seed_path = Path(__file__).resolve().parents[2] / 'progressive-problems.json'
+        seed_path = Path(__file__).resolve().parents[2] / 'scripts' / 'progressive-problems.json'
         if not seed_path.exists():
             return {}
 
