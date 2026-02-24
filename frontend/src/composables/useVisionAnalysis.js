@@ -18,6 +18,7 @@ export function useVisionAnalysis() {
     let pendingVideoElement = null;
     let lastGazeToastTime = 0;
     let lastPoseToastTime = 0;
+    let poseSignalHistory = [];
     const TOAST_COOLDOWN = 10000; // 같은 종류의 토스트는 최소 10초 간격
 
     // --- [실시간 집계 데이터 구조] ---
@@ -33,6 +34,7 @@ export function useVisionAnalysis() {
     });
 
     const resetStats = () => {
+        poseSignalHistory = [];
         stats.value = {
             totalSamples: 0,
             faceSamples: 0,
@@ -199,27 +201,25 @@ export function useVisionAnalysis() {
         if (!results.poseLandmarks?.length) return;
 
         const landmarks = results.poseLandmarks[0];
+        const nose = landmarks[0];
         const leftShoulder = landmarks[11];
         const rightShoulder = landmarks[12];
-        const nose = landmarks[0];
+        if (!leftShoulder || !rightShoulder) return;
 
-        // 1. 어깨 기울기 분석 (Y축)
-        // [수정일: 2026-02-24] 웹캠 각도나 옷 주름에 따른 오차 범위를 고려하여 엄격했던 수평 임계값을 0.05 -> 0.10으로 완화
+        // 어깨 기울기 + 코-어깨중심 편차(측면 쏠림)를 함께 사용
+        // 코 기준은 상반신만 보이는 웹캠 구도에서도 비교적 안정적으로 사용 가능
         const shoulderSlope = Math.abs(leftShoulder.y - rightShoulder.y);
-        const isLevel = shoulderSlope < 0.10;
+        const shoulderCenterX = (leftShoulder.x + rightShoulder.x) / 2;
+        const shoulderWidth = Math.abs(rightShoulder.x - leftShoulder.x) || 1;
+        const lateralLean = nose ? Math.abs(nose.x - shoulderCenterX) / shoulderWidth : 0;
 
-        // 2. 어깨 틀어짐 분석 (Z축 뎁스 차이 - 한쪽으로 치우쳐 앉음)
-        const shoulderTwist = Math.abs(leftShoulder.z - rightShoulder.z);
-        const isStraightTwist = shoulderTwist < 0.15; // Z축 0.15 임계값
+        // 단일 프레임 노이즈 완화를 위해 최근 3개 프레임 이동평균 사용
+        poseSignalHistory.push({ shoulderSlope, lateralLean });
+        if (poseSignalHistory.length > 3) poseSignalHistory.shift();
+        const avgShoulderSlope = poseSignalHistory.reduce((s, v) => s + v.shoulderSlope, 0) / poseSignalHistory.length;
+        const avgLateralLean = poseSignalHistory.reduce((s, v) => s + v.lateralLean, 0) / poseSignalHistory.length;
 
-        // 3. 거북목/기대기 분석 (코와 어깨의 Z축 상대 깊이)
-        // 코의 Z값이 양쪽 어깨 평균 Z값과 지나치게 차이나면 (너무 앞으로 나오거나 뒤로 빠짐)
-        const shoulderZAvg = (leftShoulder.z + rightShoulder.z) / 2;
-        const neckLeaning = nose.z - shoulderZAvg;
-        // 보통 코는 어깨보다 카메라에 가깝지만(음수), 그 차이가 -0.5 이하거나 0 이상으로 벗어나면 불량 판단 
-        const isNotLeaning = neckLeaning > -0.4 && neckLeaning < -0.05;
-
-        const isGoodPosture = isLevel && isStraightTwist && isNotLeaning;
+        const isGoodPosture = avgShoulderSlope < 0.07 && avgLateralLean < 0.08;
 
         if (isGoodPosture) {
             stats.value.poseStableTicks++;
@@ -227,7 +227,10 @@ export function useVisionAnalysis() {
             const now = Date.now();
             if (now - lastPoseToastTime > TOAST_COOLDOWN) {
                 lastPoseToastTime = now;
-                addEvent("어깨 수평, 틀어짐 또는 앞뒤 기울기(거북목) 문제가 감지되었습니다.");
+                const poseMsg = avgLateralLean >= 0.10
+                    ? "상체가 한쪽으로 쏠려 있습니다."
+                    : "어깨가 한쪽으로 기울어져 있습니다.";
+                addEvent(poseMsg);
                 uiStore.showToast("자세가 기울어져 있습니다. 바르게 앉아주세요.", "warning");
             }
         }

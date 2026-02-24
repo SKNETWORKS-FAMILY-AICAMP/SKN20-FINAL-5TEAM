@@ -50,6 +50,7 @@
       </div>
       <!-- [수정일: 2026-02-23] 모의면접 답변 확인 단계에서 Enter 키를 통해 즉시 제출 가능하게 수정 (Shift+Enter는 줄바꿈) -->
       <textarea
+        ref="transcriptInputRef"
         v-model="transcript"
         class="transcript-input"
         rows="4"
@@ -74,7 +75,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onUnmounted } from 'vue';
+import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import axios from 'axios';
 
 const props = defineProps({
@@ -87,6 +88,7 @@ const state = ref('idle');            // idle | recording | refining | confirm
 const finalTranscript = ref('');      // Web Speech 최종 누적 텍스트
 const interimTranscript = ref('');    // Web Speech 임시 텍스트
 const transcript = ref('');           // 최종 제출용 텍스트 (수정 가능)
+const transcriptInputRef = ref(null);
 const errorMsg = ref('');
 const elapsedSec = ref(0);
 const whisperUsed = ref(false);
@@ -229,6 +231,8 @@ async function stopRecording() {
   transcript.value = (finalTranscript.value + ' ' + interimTranscript.value).trim();
   whisperUsed.value = false;
   state.value = 'confirm';
+  await nextTick();
+  transcriptInputRef.value?.focus();
 }
 
 // ── faster-whisper로 정확도 보정 ──────────────────────────
@@ -266,6 +270,8 @@ async function sendToWhisper() {
   }
 
   state.value = 'confirm';
+  await nextTick();
+  transcriptInputRef.value?.focus();
 }
 
 // ── 제출 ──────────────────────────────────────────────────

@@ -31,6 +31,13 @@
       playsinline
     ></video>
 
+    <!-- 십자 가이드 오버레이 -->
+    <div v-if="isActive" class="crosshair-overlay">
+      <div class="crosshair-h"></div>
+      <div class="crosshair-v"></div>
+      <div class="crosshair-center"></div>
+    </div>
+
     <!-- 활성 표시 -->
     <div v-if="isActive" class="webcam-badge">
       <span class="live-dot"></span> LIVE
@@ -136,6 +143,43 @@ onUnmounted(() => {
   height: 100%;
   object-fit: cover;
   transform: scaleX(-1); /* 거울 효과 */
+}
+
+/* 십자 가이드 오버레이 */
+.crosshair-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.crosshair-h {
+  position: absolute;
+  top: 50%;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: rgba(99, 102, 241, 0.35);
+}
+
+.crosshair-v {
+  position: absolute;
+  left: 50%;
+  top: 10%;
+  bottom: 10%;
+  width: 1px;
+  background: rgba(99, 102, 241, 0.35);
+}
+
+.crosshair-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  transform: translate(-50%, -50%);
+  border: 1.5px solid rgba(99, 102, 241, 0.5);
+  border-radius: 50%;
 }
 
 /* LIVE 배지 */
