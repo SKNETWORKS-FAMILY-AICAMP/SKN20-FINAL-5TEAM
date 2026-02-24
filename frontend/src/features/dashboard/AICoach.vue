@@ -33,6 +33,13 @@
 
       <!-- 채팅 메시지 -->
       <div v-for="(msg, idx) in messages" :key="idx" class="message-block">
+        <!-- 의도 분석 결과 배지 (v2) [2026-02-23] -->
+        <div v-if="msg.intentData" class="intent-badge">
+          <span class="intent-type">{{ msg.intentData.intent_name }}</span>
+          <span class="intent-confidence">(신뢰도: {{ (msg.intentData.confidence * 100).toFixed(0) }}%)</span>
+          <span class="intent-reasoning">{{ msg.intentData.reasoning }}</span>
+        </div>
+
         <!-- 유저 메시지 -->
         <div v-if="msg.role === 'user'" class="chat-bubble user">
           {{ msg.content }}
@@ -220,11 +227,15 @@ async function sendMessage() {
     timeline: [],
     showAnswer: false,
     displayedContent: '',
+    intentData: null, // [2026-02-23] 의도 분석 데이터
   });
   const assistantMsg = messages.value[messages.value.length - 1];
 
   try {
-    const response = await fetch('/api/core/ai-coach/chat/', {
+    // AI Coach 엔드포인트
+    const endpoint = '/api/core/ai-coach/chat/';
+
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -269,7 +280,16 @@ async function sendMessage() {
             const data = JSON.parse(payload);
             streaming.value = true;
 
-            if (data.type === 'thinking') {
+            // [2026-02-24] Intent Detected (v2, v3)
+            if (data.type === 'intent_detected') {
+              assistantMsg.intentData = {
+                intent_name: data.intent_name,
+                confidence: data.confidence,
+                reasoning: data.reasoning,
+              };
+              scrollToBottom();
+            }
+            else if (data.type === 'thinking') {
               // 이전 thinking 비활성화
               const prevThinking = [...assistantMsg.timeline].reverse().find(i => i.type === 'thinking');
               if (prevThinking) prevThinking.active = false;
@@ -755,5 +775,47 @@ async function sendMessage() {
 .send-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* ===== Intent Badge [2026-02-23] ===== */
+.intent-badge {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.1));
+  border-left: 3px solid var(--primary);
+  border-radius: 8px;
+  align-self: flex-start;
+  max-width: 85%;
+  animation: intentSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes intentSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.intent-type {
+  font-weight: 700;
+  color: var(--primary);
+  font-size: 0.9rem;
+}
+
+.intent-confidence {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.intent-reasoning {
+  font-size: 0.85rem;
+  color: var(--text);
+  font-style: italic;
 }
 </style>
