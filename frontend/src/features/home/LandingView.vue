@@ -553,8 +553,9 @@ export default {
       if (Math.abs(deltaX) < this.dragThreshold) return;
       this.dragMoved = true;
       const direction = deltaX > 0 ? -1 : 1;
-      if (this.chapters.length > 0) {
-        this.currentIdx = (this.currentIdx + direction + this.chapters.length) % this.chapters.length;
+      // [수정일: 2026-02-24] chapters.length → totalSlides: Coduck Wars 포함 전체 슬라이드 기준으로 드래그 이동
+      if (this.totalSlides > 0) {
+        this.currentIdx = (this.currentIdx + direction + this.totalSlides) % this.totalSlides;
       }
       this.dragStartX = event.clientX;
     },
