@@ -8,8 +8,8 @@
 
     <header class="mode-header">
       <div class="logo-area">
-        <span class="logo-icon">🦆</span>
-        <h1 class="logo-text">CODUCK WARS</h1>
+        <span class="logo-icon">🗡️</span>
+        <h1 class="logo-text">TEAM BATTLE</h1>
       </div>
       <p class="tagline">아키텍처 능력을 증명하라. 당신의 전장을 선택하세요.</p>
     </header>

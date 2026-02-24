@@ -29,6 +29,11 @@ export default defineConfig({
       '/media': {
         target: process.env.VITE_API_Target || 'http://localhost:8000',
         changeOrigin: true
+      },
+      '/socket.io': {
+        target: process.env.VITE_API_Target || 'http://localhost:8000',
+        changeOrigin: true,
+        ws: true
       }
     },
     // [수정일: 2026-01-21] SPA 라우팅을 위한 미들웨어 추가 (main.html 경로 지원)
