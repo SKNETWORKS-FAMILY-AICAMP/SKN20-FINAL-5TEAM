@@ -1,3 +1,4 @@
+"""DB 스키마를 강제로 변경(ALTER)하는 스크립트 v2 (1회성 유틸리티)."""
 import os
 import django
 from django.db import connection
