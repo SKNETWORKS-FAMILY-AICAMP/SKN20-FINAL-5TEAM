@@ -30,16 +30,13 @@
             <span>입장하기!</span>
             <ArrowRight class="btn-arrow" />
           </button>
-          <button @click="scrollToLeaderboard" class="btn-social-v2">
-            전당 확인
-          </button>
           <!-- [2026-02-24] Job Planner 버튼: 로그인한 사용자에게만 노출되도록 v-if 추가 및 아이콘 적용 -->
           <button v-if="isLoggedIn" @click="$emit('open-job-planner')" class="btn-job-planner btn-planner-color">
-            <span>📓 Job Planner</span>
+            <span>Job Planner</span>
           </button>
           <!-- [2026-02-24] Interview 버튼: 로그인한 사용자에게만 노출되도록 v-if 추가 및 아이콘 적용 -->
           <button v-if="isLoggedIn" @click="$emit('open-interview')" class="btn-job-planner btn-interview-color">
-            <span>🎤 Interview</span>
+            <span>Interview</span>
           </button>
           <!-- [수정일: 2026-02-24] Coduck Wars 버튼 제거 (Arcade Unit 카드로 이동됨) -->
         </div>
@@ -334,10 +331,10 @@ import {
   Home,
   Play,
   Settings,
-  History,
   LogOut,
   Info,
-  Briefcase
+  Briefcase,
+  Swords
 } from 'lucide-vue-next';
 import AvatarFrame from '@/components/AvatarFrame.vue';
 
@@ -360,7 +357,8 @@ export default {
     Trophy,
     ArrowRight,
     Info,
-    Briefcase
+    Briefcase,
+    Swords
   },
   props: {
     isLoggedIn: Boolean,

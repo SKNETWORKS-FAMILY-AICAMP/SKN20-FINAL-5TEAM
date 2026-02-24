@@ -811,17 +811,74 @@
     box-shadow: 0 0 10px var(--unit-color, #b6ff40);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1400px) {
+    .gym-card-premium {
+        width: 340px;
+    }
+
+    .card-inner-v2 {
+        padding: 2rem;
+    }
+
+    .card-image-wrap-v2 {
+        width: 200px;
+        height: 200px;
+        margin-bottom: 1.5rem;
+    }
+
+    .gym-card-premium.prev {
+        transform: translateX(-260px) translateZ(0) rotateY(40deg) scale(0.85);
+    }
+
+    .gym-card-premium.next {
+        transform: translateX(260px) translateZ(0) rotateY(-40deg) scale(0.85);
+    }
+}
+
+@media (max-width: 1024px) {
     .gym-card-premium {
         width: 300px;
     }
 
+    .card-inner-v2 {
+        padding: 1.5rem;
+    }
+
+    .card-image-wrap-v2 {
+        width: 180px;
+        height: 180px;
+        margin-bottom: 1rem;
+    }
+
+    .card-text-v2 h3 {
+        font-size: 1.8rem;
+    }
+
     .gym-card-premium.prev {
-        transform: translateX(-150px) translateZ(-100px) rotateY(30deg) scale(0.7);
+        transform: translateX(-200px) translateZ(0) rotateY(35deg) scale(0.8);
     }
 
     .gym-card-premium.next {
-        transform: translateX(150px) translateZ(-100px) rotateY(-30deg) scale(0.7);
+        transform: translateX(200px) translateZ(0) rotateY(-35deg) scale(0.8);
+    }
+}
+
+@media (max-width: 768px) {
+    .gym-card-premium {
+        width: 280px;
+    }
+
+    .card-image-wrap-v2 {
+        width: 160px;
+        height: 160px;
+    }
+
+    .gym-card-premium.prev {
+        transform: translateX(-120px) translateZ(-100px) rotateY(30deg) scale(0.7);
+    }
+
+    .gym-card-premium.next {
+        transform: translateX(120px) translateZ(-100px) rotateY(-30deg) scale(0.7);
     }
 
     .slider-nav {
@@ -1350,6 +1407,92 @@
 .unit-badge-mini.advanced {
     background: rgba(255, 255, 255, 0.1);
     opacity: 1;
+}
+
+/* [2026-02-24 추가] 리더보드 테이블 반응형 (Media Queries) */
+@media (max-width: 1400px) {
+    .lb-glass-table-v2 {
+        width: 95%;
+    }
+
+    .lb-table-head,
+    .lb-row-v2 {
+        grid-template-columns: 80px 1fr 180px 150px;
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+}
+
+@media (max-width: 1024px) {
+
+    .lb-table-head,
+    .lb-row-v2 {
+        grid-template-columns: 70px 1fr 140px 120px;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .username-premium {
+        font-size: 1.1rem;
+    }
+
+    .user-avatar-mini {
+        width: 40px !important;
+        height: 40px !important;
+    }
+
+    .rank-num {
+        font-size: 1.2rem;
+    }
+
+    .row-rank-1 .rank-num {
+        font-size: 1.5rem;
+    }
+
+    .shake-badge-v2 {
+        padding: 6px 14px;
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .lb-table-head {
+        display: none;
+        /* 모바일에서는 헤더 숨김 */
+    }
+
+    .lb-row-v2 {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 1.5rem;
+    }
+
+    .col-rank,
+    .col-user,
+    .col-solved,
+    .col-shakes {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    /* 모바일에서 각 항목 앞에 라벨 추가 효과 (선택적) */
+    .col-solved::before {
+        content: 'Stages Mastered: ';
+        color: #64748b;
+        font-size: 0.8rem;
+        font-weight: 800;
+    }
+
+    .col-shakes::before {
+        content: 'Arcade Points: ';
+        color: #64748b;
+        font-size: 0.8rem;
+        font-weight: 800;
+    }
 }
 
 .unit-badge-mini.advanced.unit-color-1 {
