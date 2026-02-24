@@ -191,7 +191,7 @@
                 </span>
                 <span class="level-indicator">LV.30</span>
               </div>
-              <h3>Coduck Wars</h3>
+              <h3>Team Battle</h3>
               <p>Team Battle Training</p>
               <div class="card-footer-v2">
                 <span class="engineer-count">
