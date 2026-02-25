@@ -7,6 +7,31 @@ import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/core';
 
+// ── 아바타 영상 생성 API ─────────────────────────────────────
+
+/**
+ * 텍스트 → TTS → MuseTalk 립싱크 영상 생성
+ * @param {string} text - 면접관 텍스트
+ * @param {string} sessionId - 세션 ID
+ * @returns {string} 영상 Object URL
+ */
+export async function generateAvatarVideo(text, sessionId = 'temp') {
+  const response = await fetch(`${API_BASE_URL}/video/generate/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ text, session_id: sessionId, avatar_type: 'woman' }),
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || `HTTP ${response.status}`);
+  }
+
+  const blob = await response.blob();
+  return URL.createObjectURL(blob);
+}
+
 // ── Job Planner 파싱 API ────────────────────────────────────
 
 /**

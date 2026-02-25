@@ -123,3 +123,19 @@ python scripts/download_musetalk_models.py
 | `backend/scripts/download_musetalk_models.py` | 모델 가중치 다운로드 |
 | `frontend/src/features/interview/tts.js` | 프론트엔드 TTS 매니저 |
 | `docker-compose.yml` | 전체 서비스 오케스트레이션 |
+| `output/md/tts_avatar_plan.md` | 본 구현 계획서 |
+
+---
+
+## 7. 부록: 오픈소스 립싱크(Talking Head) 모델 비교
+
+현재 프로젝트에 적용된 **MuseTalk** 외에도 다양한 오픈소스 모델이 있으며, 각각의 특징은 다음과 같습니다.
+
+| 모델명 | 특징 | 장점 | 단점 |
+|---|---|---|---|
+| **Wav2Lip** | 립싱크 AI의 조상격 모델 | 가볍고 빠름, 낮은 사양 가능 | 입 주변이 흐릿함(Blurry), 화질 저하 |
+| **SadTalker** | 사진 기반 애니메이션 특화 | 표정과 고개 움직임이 자연스러움 | 실시간성 부족, 연산 속도 느림 |
+| **MuseTalk** | **(현재 채택)** 실시간 싱크 최적화 | **고화질(256px), 초고속(30fps+),** 입 모양 일치도 높음 | 모델 크기가 큼 (3.4GB+) |
+| **LivePortrait** | 최신 랜드마크 제어 기술 | 눈 깜빡임, 미세 표정 모사 탁월 | 실시간 대화 적용 시 구현 복잡도 높음 |
+
+본 프로젝트에서는 **실시간 면접 대화**라는 목적에 가장 부합하는 **MuseTalk**을 엔진으로 채택하여 "초저지연 고품질 립싱크"를 구현합니다.

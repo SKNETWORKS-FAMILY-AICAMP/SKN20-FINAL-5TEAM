@@ -3,7 +3,7 @@
  * 채용공고 선택 → 세션 생성 → 답변 제출 → 피드백 수신 흐름을 관리한다.
  */
 import { ref, computed } from 'vue';
-import { createSession, submitAnswer, saveVisionAnalysis } from '../api/interviewApi';
+import { createSession, submitAnswer, saveVisionAnalysis, generateAvatarVideo } from '../api/interviewApi';
 import { useVisionAnalysis } from '@/composables/useVisionAnalysis'; // [수정일: 2026-02-23] [vision] 비전 분석 연동
 
 export function useInterview() {
@@ -30,6 +30,9 @@ export function useInterview() {
   const finalFeedback = ref(null);
 
   const visionSystem = useVisionAnalysis(); // [수정일: 2026-02-23] [vision] 비전 시스템 인스턴스
+
+  // 아바타 영상 URL
+  const avatarVideoUrl = ref(null);
 
   // 오류
   const error = ref('');
@@ -133,6 +136,14 @@ export function useInterview() {
       onDone() {
         isStreaming.value = false;
         hasStreamedToken.value = false;
+        // 새 영상 로딩 동안 정적 이미지 표시
+        avatarVideoUrl.value = null;
+        // 면접관 텍스트 완성 → 아바타 영상 생성
+        if (nextInterviewerMsg.content) {
+          generateAvatarVideo(nextInterviewerMsg.content, sessionId.value)
+            .then(url => { avatarVideoUrl.value = url; })
+            .catch(() => {});
+        }
       },
 
       onError(err) {
@@ -157,6 +168,7 @@ export function useInterview() {
     isFinished.value = false;
     finalFeedback.value = null;
     error.value = '';
+    avatarVideoUrl.value = null;
   }
 
   return {
@@ -183,5 +195,6 @@ export function useInterview() {
     resetSession,
     // [vision] 비전 시스템 내보내기
     visionSystem,
+    avatarVideoUrl,
   };
 }

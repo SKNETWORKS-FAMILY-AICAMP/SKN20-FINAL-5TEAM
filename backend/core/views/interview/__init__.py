@@ -3,6 +3,7 @@ from .session_view import InterviewSessionView, InterviewSessionDetailView, Inte
 from .answer_view import InterviewAnswerView
 from .stt_view import STTTranscribeView
 from .tts_view import TTSSynthesizeView
+from .video_view import AvatarVideoView
 
 __all__ = [
     'InterviewJobPostingView',
@@ -13,4 +14,5 @@ __all__ = [
     'InterviewAnswerView',
     'STTTranscribeView',
     'TTSSynthesizeView',
+    'AvatarVideoView',
 ]

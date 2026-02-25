@@ -46,10 +46,17 @@
     <!-- Phase 3: 면접 진행 -->
     <transition name="fade">
       <div v-if="phase === 'interview'" class="interview-layout">
-        <!-- 왼쪽: 면접관 패널 -->
+        <!-- 왼쪽: 면접관 아바타 패널 -->
         <div class="interviewer-panel">
           <button class="btn-exit" @click="onExit">✕ 나가기</button>
-          <!-- 웹캠 영역 -->
+          <div class="iv-avatar-wrap">
+            <video v-if="avatarVideoUrl" :src="avatarVideoUrl" class="iv-avatar-video" autoplay loop muted playsinline @error="avatarVideoUrl = null" />
+            <img v-else :src="'/media/avatars/interviewer_woman.png'" class="iv-avatar-video" alt="면접관" />
+          </div>
+        </div>
+
+        <!-- 가운데: 면접자 웹캠 패널 -->
+        <div class="interviewer-panel">
           <div class="iv-webcam-wrap">
             <WebcamDisplay ref="webcamRef" @ready="onWebcamReady" />
             <div class="iv-overlay-top">
@@ -143,6 +150,7 @@ const {
   error,
   slotProgress,
   visionSystem, // [수정일: 2026-02-23] [vision] 비전 시스템 추출
+  avatarVideoUrl,
   startSession,
   submitUserAnswer,
   resetSession,
@@ -279,11 +287,11 @@ function onExit() {
 .loading-text { font-size: 20px; font-weight: 600; color: #fff; margin-bottom: 8px; }
 .loading-sub { font-size: 14px; color: rgba(255,255,255,0.5); }
 
-/* ── 면접 진행 레이아웃 (2칸 1:1) ───────────────────────── */
+/* ── 면접 진행 레이아웃 (3칸) ───────────────────────── */
 .interview-layout {
   flex: 1;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   min-height: 0;
   overflow: hidden;
 }
@@ -330,6 +338,34 @@ function onExit() {
   transform: translate(-50%, -50%);
   pointer-events: none;
 }
+
+/* 아바타 영역 */
+.iv-avatar-wrap {
+  width: 100%;
+  max-width: 380px;
+  aspect-ratio: 4/3;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(0,0,0,0.3);
+}
+.iv-avatar-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.iv-avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border: 2px dashed rgba(255,255,255,0.2);
+  border-radius: 12px;
+}
+.iv-avatar-icon { font-size: 64px; }
+.iv-avatar-label { font-size: 14px; color: rgba(255,255,255,0.5); }
 
 /* 웹캠 영역 */
 .iv-webcam-wrap {
