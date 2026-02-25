@@ -9,6 +9,7 @@
 import json
 import logging
 import openai
+from asgiref.sync import sync_to_async
 from django.conf import settings
 from django.http import StreamingHttpResponse
 from django.shortcuts import get_object_or_404
@@ -111,13 +112,15 @@ class AICoachView(APIView):
             )
 
         profile = get_object_or_404(UserProfile, email=request.user.email)
-        client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
 
         def _sse(data):
             return f"data: {json.dumps(data, ensure_ascii=False, default=str)}\n\n"
 
-        def event_stream():
+        # ── async generator: uvicorn(ASGI) 환경에서 sync 블로킹 I/O가
+        #    asyncio 이벤트 루프를 멈춰 SSE 청크가 버퍼에 쌓이는 문제 해결 ──
+        async def event_stream():
             called_tools_cache = {}  # ← 도구 결과 캐싱
+            async_client = openai.AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
             try:
                 # ──────────────────────────────────────
                 # Step 1: Intent Analysis
@@ -129,7 +132,7 @@ class AICoachView(APIView):
                     "message": "질문의 의도를 분석하고 있어요...",
                 })
 
-                intent_response = client.chat.completions.create(
+                intent_response = await async_client.chat.completions.create(
                     model="gpt-4o-mini",
                     messages=[
                         {"role": "system", "content": INTENT_ANALYSIS_PROMPT},
@@ -169,7 +172,6 @@ class AICoachView(APIView):
                 })
 
                 # ── 차트 데이터 생성 여부 판단 (동적) ──
-                # Intent + 사용자 메시지 기반으로 차트 필요 여부 결정
                 should_show_chart = _should_show_chart(intent_type, user_message)
 
                 # ──────────────────────────────────────
@@ -212,12 +214,11 @@ class AICoachView(APIView):
                         "message": thinking_messages[iteration] if iteration < len(thinking_messages) else "분석 중입니다...",
                     })
 
-                    # ── LLM 호출 (스트리밍) ──
-                    # 의도별로 필터링된 도구만 제공 (자율성은 유지: tool_choice="auto")
+                    # ── LLM 호출 (스트리밍, async) ──
                     tools_to_use = filtered_tools if filtered_tools else openai.NOT_GIVEN
                     tool_choice_param = "auto" if filtered_tools else openai.NOT_GIVEN
 
-                    stream = client.chat.completions.create(
+                    stream = await async_client.chat.completions.create(
                         model="gpt-5-mini",
                         messages=conv,
                         tools=tools_to_use,
@@ -230,8 +231,8 @@ class AICoachView(APIView):
                     is_tool_call = False
                     buffered_tokens = []  # ← 토큰을 버퍼에 모으기
 
-                    # ── 스트리밍 처리 ──
-                    for chunk in stream:
+                    # ── 스트리밍 처리 (async for) ──
+                    async for chunk in stream:
                         choice = chunk.choices[0] if chunk.choices else None
                         if not choice or not choice.delta:
                             continue
@@ -261,10 +262,12 @@ class AICoachView(APIView):
 
                     # ── Tool 호출 없으면: 차트 먼저, 그 다음 답변 ──
                     if not is_tool_call:
-                        # 1. 차트 데이터를 먼저 생성/전송
+                        # 1. 차트 데이터를 먼저 생성/전송 (DB 쿼리 → sync_to_async)
                         if should_show_chart:
                             try:
-                                chart_summaries = generate_chart_data_summary(profile, intent_type, user_message)
+                                chart_summaries = await sync_to_async(generate_chart_data_summary)(
+                                    profile, intent_type, user_message
+                                )
                                 for chart in chart_summaries:
                                     yield _sse({
                                         "type": "chart_data",
@@ -330,7 +333,8 @@ class AICoachView(APIView):
                             else:
                                 try:
                                     fn_args = validate_and_normalize_args(fn_name, fn_args_raw)
-                                    result_data = executor(profile, fn_args)
+                                    # DB 쿼리는 sync_to_async로 감싸서 이벤트 루프 블로킹 방지
+                                    result_data = await sync_to_async(executor)(profile, fn_args)
                                     called_tools_cache[cache_key] = result_data
                                 except ValueError as ve:
                                     logger.warning(f"[인자 검증 실패] {fn_name}: {ve}")
@@ -355,10 +359,11 @@ class AICoachView(APIView):
                         })
 
                 # ── max_iterations 도달 ──
-                # 1. 차트 데이터를 먼저 생성/전송
                 if should_show_chart:
                     try:
-                        chart_summaries = generate_chart_data_summary(profile, intent_type, user_message)
+                        chart_summaries = await sync_to_async(generate_chart_data_summary)(
+                            profile, intent_type, user_message
+                        )
                         for chart in chart_summaries:
                             yield _sse({
                                 "type": "chart_data",
@@ -368,7 +373,6 @@ class AICoachView(APIView):
                     except Exception as e:
                         logger.warning(f"Failed to generate chart data: {e}")
 
-                # 2. 이제 안내 메시지 전송
                 yield _sse({
                     "type": "token",
                     "token": "분석이 복잡하여 일부만 완료되었습니다. 질문을 더 구체적으로 해주세요.",
