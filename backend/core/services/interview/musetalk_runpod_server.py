@@ -1,4 +1,4 @@
-import copy, os, sys, tempfile, uvicorn
+import copy, os, sys, tempfile, uvicorn, hashlib
 import numpy as np
 import cv2
 import torch
@@ -20,8 +20,8 @@ _device = None
 _weight_dtype = None
 _timesteps = None
 
-# 아바타 이미지 사전처리 캐시 (첫 요청 시 1회 계산 후 재사용)
-_avatar_cache = None
+# 아바타 이미지 사전처리 캐시 (이미지별로 캐싱)
+_avatar_cache = {}  # { img_hash: cache_data }
 
 
 def get_models():
@@ -59,7 +59,7 @@ def get_models():
     print("[MuseTalk] All models loaded.")
 
 
-def _precompute_avatar(image_path: str):
+def _precompute_avatar(image_path: str, img_hash: str):
     """아바타 이미지의 랜드마크 + VAE latent를 사전 계산하여 캐시에 저장."""
     global _avatar_cache
 
@@ -84,19 +84,38 @@ def _precompute_avatar(image_path: str):
     if not input_latent_list:
         raise ValueError("아바타 이미지에서 얼굴을 감지하지 못했습니다.")
 
-    _avatar_cache = {
+    _avatar_cache[img_hash] = {
         'coord_list_cycle': coord_list + coord_list[::-1],
         'frame_list_cycle': frame_list + frame_list[::-1],
         'input_latent_list_cycle': input_latent_list + input_latent_list[::-1],
         'fp': FaceParsing(),
         'extra_margin': extra_margin,
     }
-    print("[MuseTalk] 아바타 사전처리 완료. 이후 요청은 캐시를 사용합니다.")
+    print(f"[MuseTalk] 아바타 사전처리 완료 ({img_hash[:8]}). 이후 요청은 캐시를 사용합니다.")
 
 
 @app.on_event("startup")
 def startup():
     get_models()
+
+    # 서버 시작 시 두 아바타 미리 워밍업 (첫 요청 지연 방지)
+    avatar_dir = '/app/media/avatars'
+    for avatar_file in ['interviewer_woman.png', 'interviewer_man.png']:
+        avatar_path = os.path.join(avatar_dir, avatar_file)
+        if os.path.exists(avatar_path):
+            with open(avatar_path, 'rb') as f:
+                image_bytes = f.read()
+            img_hash = hashlib.md5(image_bytes).hexdigest()
+            if img_hash not in _avatar_cache:
+                print(f"[MuseTalk] 워밍업: {avatar_file}")
+                import tempfile as _tmp
+                with _tmp.NamedTemporaryFile(suffix='.png', delete=False) as tf:
+                    tf.write(image_bytes)
+                    tmp_path = tf.name
+                try:
+                    _precompute_avatar(tmp_path, img_hash)
+                finally:
+                    os.unlink(tmp_path)
 
 
 @app.get("/health")
@@ -120,20 +139,23 @@ async def generate(
             image_path = os.path.join(tmpdir, "avatar.png")
             audio_path = os.path.join(tmpdir, "audio.wav")
 
+            image_bytes = await image.read()
             with open(image_path, 'wb') as f:
-                f.write(await image.read())
+                f.write(image_bytes)
             with open(audio_path, 'wb') as f:
                 f.write(await audio.read())
 
-            # 사전처리 캐시가 없으면 최초 1회만 계산
-            if _avatar_cache is None:
-                _precompute_avatar(image_path)
+            # 이미지 해시로 캐시 조회, 없으면 사전처리
+            img_hash = hashlib.md5(image_bytes).hexdigest()
+            if img_hash not in _avatar_cache:
+                _precompute_avatar(image_path, img_hash)
 
-            coord_list_cycle = _avatar_cache['coord_list_cycle']
-            frame_list_cycle = _avatar_cache['frame_list_cycle']
-            input_latent_list_cycle = _avatar_cache['input_latent_list_cycle']
-            fp = _avatar_cache['fp']
-            extra_margin = _avatar_cache['extra_margin']
+            cache = _avatar_cache[img_hash]
+            coord_list_cycle = cache['coord_list_cycle']
+            frame_list_cycle = cache['frame_list_cycle']
+            input_latent_list_cycle = cache['input_latent_list_cycle']
+            fp = cache['fp']
+            extra_margin = cache['extra_margin']
 
             # 오디오 피처 추출
             whisper_input_features, librosa_length = _audio_processor.get_audio_feature(audio_path)
