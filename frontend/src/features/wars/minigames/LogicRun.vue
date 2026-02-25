@@ -147,8 +147,8 @@
 
     <!-- ===== PLAY: PHASE 2 (DESIGN SPRINT) ===== -->
     <div v-if="phase === 'play' && currentGamePhase === 'designSprint'" class="game-screen phase2">
-      <!-- 상단 HUD: 시간 & 체크리스트 진행도 -->
-      <div class="hud">
+      <!-- 상태별 HUD 표시 -->
+      <div v-if="phase2Status === 'editing'" class="hud">
         <div class="hud-cell flex-grow">
           <span class="hud-lbl">DESIGN SPRINT</span>
           <span class="hud-val neon-c">{{ checksCompletedP1 }}/{{ totalChecks }} checks</span>
@@ -165,62 +165,125 @@
         </div>
       </div>
 
+      <!-- 대기 상태 HUD -->
+      <div v-else-if="phase2Status === 'waiting'" class="hud waiting-hud">
+        <div class="hud-cell flex-grow">
+          <span class="hud-lbl">📤 YOU SUBMITTED</span>
+          <span class="hud-val neon-c">{{ myEvaluation?.checkCount }}/{{ totalChecks }} checks</span>
+        </div>
+        <div class="hud-cell timer-cell" :class="{ danger: phase2WaitingTimeout <= 10 }">
+          <div class="timer-bar-track">
+            <div class="timer-bar-fill" :style="{ width: (phase2WaitingTimeout / 30) * 100 + '%' }" :class="{ danger: phase2WaitingTimeout <= 10 }"></div>
+          </div>
+          <span class="timer-num">{{ phase2WaitingTimeout }}s</span>
+        </div>
+        <div class="hud-cell flex-grow">
+          <span class="hud-lbl">{{ opponentSubmitted ? '✅ OPPONENT SUBMITTED' : '⏳ WAITING FOR OPPONENT' }}</span>
+          <span class="hud-val" :class="{ 'neon-y': opponentSubmitted }">{{ opponentSubmitted ? '제출됨' : 'Waiting...' }}</span>
+        </div>
+      </div>
+
       <!-- 게임 영역: Phase 2 -->
       <div class="game-area phase2-layout">
-        <!-- 좌측: 시나리오 & 체크리스트 -->
-        <div class="game-left phase2-left">
-          <!-- 시나리오 박스 -->
-          <div class="scenario-box neon-border">
-            <div class="scenario-header">📋 시나리오</div>
-            <div class="scenario-text">{{ currentDesignScenario }}</div>
-          </div>
+        <!-- 편집 중인 상태 -->
+        <template v-if="phase2Status === 'editing'">
+          <!-- 좌측: 시나리오 & 체크리스트 -->
+          <div class="game-left phase2-left">
+            <!-- 시나리오 박스 -->
+            <div class="scenario-box neon-border">
+              <div class="scenario-header">📋 시나리오</div>
+              <div class="scenario-text">{{ currentDesignScenario }}</div>
+            </div>
 
-          <!-- 체크리스트 -->
-          <div class="checklist-panel">
-            <div class="checklist-header">✓ 평가 체크리스트</div>
-            <div class="checklist-items">
-              <div
-                v-for="check in checklistItems"
-                :key="check.id"
-                class="check-item"
-                :class="{ checked: completedChecks.includes(check.id) }"
-              >
-                <span class="check-box">{{ completedChecks.includes(check.id) ? '✅' : '⬜' }}</span>
-                <span class="check-label">{{ check.label }}</span>
+            <!-- 체크리스트 -->
+            <div class="checklist-panel">
+              <div class="checklist-header">✓ 평가 체크리스트</div>
+              <div class="checklist-items">
+                <div
+                  v-for="check in checklistItems"
+                  :key="check.id"
+                  class="check-item"
+                  :class="{ checked: completedChecks.includes(check.id) }"
+                >
+                  <span class="check-box">{{ completedChecks.includes(check.id) ? '✅' : '⬜' }}</span>
+                  <span class="check-label">{{ check.label }}</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- 우측: 코드 에디터 -->
-        <div class="game-right phase2-right">
-          <div class="editor-panel neon-border">
-            <div class="editor-header">
-              <div class="editor-tabs">
-                <div class="tab active">design_solution.ps</div>
+          <!-- 우측: 코드 에디터 -->
+          <div class="game-right phase2-right">
+            <div class="editor-panel neon-border">
+              <div class="editor-header">
+                <div class="editor-tabs">
+                  <div class="tab active">design_solution.ps</div>
+                </div>
+                <div class="editor-meta">PSEUDOCODE DESIGN</div>
               </div>
-              <div class="editor-meta">PSEUDOCODE DESIGN</div>
-            </div>
 
-            <div class="editor-body scrollbar">
-              <textarea
-                ref="designEditor"
-                v-model="designCode"
-                class="design-textarea"
-                placeholder="핵심 의사코드를 입력하세요..."
-                spellcheck="false"
-              ></textarea>
-            </div>
+              <div class="editor-body scrollbar">
+                <textarea
+                  ref="designEditor"
+                  v-model="designCode"
+                  class="design-textarea"
+                  placeholder="핵심 의사코드를 입력하세요..."
+                  spellcheck="false"
+                ></textarea>
+              </div>
 
-            <div class="editor-footer">
-              <div class="ef-left">UTF-8 | Pseudocode</div>
-              <div class="ef-right">
-                <span class="err-msg" v-if="errorMsg">⚠️ {{ errorMsg }}</span>
-                <button class="btn-ide-submit" @click="submitDesign" :disabled="roundTimeout <= 0">SUBMIT ↵</button>
+              <div class="editor-footer">
+                <div class="ef-left">UTF-8 | Pseudocode</div>
+                <div class="ef-right">
+                  <span class="err-msg" v-if="errorMsg">⚠️ {{ errorMsg }}</span>
+                  <button class="btn-ide-submit" @click="submitDesign" :disabled="roundTimeout <= 0">SUBMIT ↵</button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </template>
+
+        <!-- 대기 중인 상태 -->
+        <template v-else-if="phase2Status === 'waiting'">
+          <!-- 좌측: 내 평가 -->
+          <div class="game-left phase2-left">
+            <div class="scenario-box neon-border waiting-box">
+              <div class="scenario-header">🎯 YOUR SUBMISSION</div>
+              <div class="code-preview-container">
+                <div class="code-preview">{{ myEvaluation?.code || '' }}</div>
+                <div class="eval-summary">
+                  <div class="eval-item">✅ Checks: {{ myEvaluation?.checkCount }}/{{ totalChecks }}</div>
+                  <div class="eval-item">⭐ Points: {{ myEvaluation?.totalPoints }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 우측: 상대 평가 (제출되었을 때) -->
+          <div class="game-right phase2-right">
+            <div v-if="opponentSubmitted" class="editor-panel neon-border opponent-box">
+              <div class="editor-header">
+                <div class="editor-tabs">
+                  <div class="tab active">opponent_code.ps</div>
+                </div>
+                <div class="editor-meta">OPPONENT CODE</div>
+              </div>
+
+              <div class="editor-body scrollbar">
+                <div class="code-preview">{{ opponentCode || 'Waiting...' }}</div>
+              </div>
+
+              <div class="editor-footer">
+                <div class="ef-left">UTF-8 | Pseudocode</div>
+              </div>
+            </div>
+            <div v-else class="waiting-panel">
+              <div class="wait-icon">⏳</div>
+              <div class="wait-text">상대 플레이어의 제출을 기다리는 중...</div>
+              <div class="wait-timer">{{ phase2WaitingTimeout }}초 후 자동 완료</div>
+            </div>
+          </div>
+        </template>
       </div>
     </div>
 
@@ -308,12 +371,34 @@ rs.onGameStart.value = (qIdx) => {
 rs.onSync.value = (data) => {
   if (data.sid !== rs.socket.value?.id) {
     const myIdx = rs.roomPlayers.value.findIndex(p => p.sid === rs.socket.value.id)
-    if (myIdx === 0) {
-      scoreP2.value = data.scoreP2 || 0
-      checksCompletedP2.value = data.checksCompleted || 0
-    } else {
-      scoreP1.value = data.scoreP1 || 0
-      checksCompletedP1.value = data.checksCompleted || 0
+    // Phase 1: speedFill
+    if (data.phase === 'speedFill') {
+      if (myIdx === 0) {
+        scoreP2.value = data.score || 0  // 상대 점수는 data.score로 전달됨
+      } else {
+        scoreP1.value = data.score || 0
+      }
+    }
+    // Phase 2: designSprint
+    else if (data.phase === 'designSprint') {
+      if (data.state === 'submitted') {
+        // 상대가 제출함
+        opponentSubmitted.value = true
+        opponentCode.value = data.code || ''
+
+        if (myIdx === 0) {
+          checksCompletedP2.value = data.checksCompleted || 0
+        } else {
+          checksCompletedP1.value = data.checksCompleted || 0
+        }
+      } else {
+        // 일반 진행도 업데이트
+        if (myIdx === 0) {
+          checksCompletedP2.value = data.checksCompleted || 0
+        } else {
+          checksCompletedP1.value = data.checksCompleted || 0
+        }
+      }
     }
   }
 }
@@ -346,6 +431,7 @@ const scoreP2Phase2 = ref(0)
 // 타임아웃
 const roundTimeout = ref(0)
 let roundTimeoutInterval = null
+let phase2WaitingInterval = null  // Phase 2 대기 타이머
 
 // UI
 let fpopId = 0
@@ -367,6 +453,12 @@ const checklistItems = ref([])
 const completedChecks = ref([])
 const totalChecks = computed(() => checklistItems.value.length)
 const designEditor = ref(null)
+const phase2Status = ref('editing')  // editing | waiting | evaluated
+const opponentSubmitted = ref(false)  // 상대 제출 여부
+const opponentCode = ref('')  // 상대 코드
+const opponentEvaluation = ref(null)  // 상대 평가 결과
+const myEvaluation = ref(null)  // 내 평가 결과
+const phase2WaitingTimeout = ref(30)  // 30초 대기
 
 // ────── 라운드 데이터 동적 생성 ──────────
 function generateSpeedFillRounds() {
@@ -567,6 +659,14 @@ function startGame(fromSocket = false, qIdx = null) {
   flashFail.value = false
   fpops.value = []
 
+  // Phase 2 상태 초기화
+  phase2Status.value = 'editing'
+  opponentSubmitted.value = false
+  opponentCode.value = ''
+  myEvaluation.value = null
+  opponentEvaluation.value = null
+  phase2WaitingTimeout.value = 30
+
   phase.value = 'play'
   startPhase1Round()
 }
@@ -693,6 +793,8 @@ function submitDesign() {
 }
 
 function evaluateDesign() {
+  if (phase2Status.value === 'waiting') return  // 이미 제출됨
+
   const code = designCode.value
 
   // 체크리스트 기반 자동 평가
@@ -729,18 +831,60 @@ function evaluateDesign() {
     checksCompletedP2.value = checkCount
   }
 
-  // 동기화 후 게임 종료
+  // 내 평가 결과 저장 (로컬)
+  myEvaluation.value = {
+    code: code,
+    checkCount: checkCount,
+    totalPoints: totalPoints,
+    checksCompleted: completedChecks.value
+  }
+
+  // 상태 변경: 대기 중
+  phase2Status.value = 'waiting'
+  phase2WaitingTimeout.value = 30
+
+  // 동기화 및 상대 대기
   rs.emitProgress(roomId.value, {
     phase: 'designSprint',
+    state: 'submitted',  // 제출됨 상태 추가
     checksCompleted: checkCount,
     totalChecks: totalChecks.value,
     score: totalPoints,
+    code: code,  // 상대 코드 전달
     sid: rs.socket.value?.id
   })
 
+  // 30초 대기 타이머 시작
+  startPhase2WaitingTimeout()
+}
+
+function startPhase2WaitingTimeout() {
+  if (phase2WaitingInterval) clearInterval(phase2WaitingInterval)
+
+  phase2WaitingInterval = setInterval(() => {
+    phase2WaitingTimeout.value--
+
+    if (phase2WaitingTimeout.value <= 0 || opponentSubmitted.value) {
+      clearInterval(phase2WaitingInterval)
+      phase2WaitingInterval = null
+
+      // 양쪽 모두 제출되었거나 타임아웃
+      if (opponentSubmitted.value && opponentCode.value) {
+        finalizePhase2()
+      } else if (phase2WaitingTimeout.value <= 0) {
+        // 타임아웃: 상대 미제출
+        finalizePhase2()
+      }
+    }
+  }, 1000)
+}
+
+function finalizePhase2() {
+  phase2Status.value = 'evaluated'
+
   setTimeout(() => {
     endGame('complete')
-  }, 1500)
+  }, 2000)
 }
 
 // ─── 타임아웃 관리 ────────────────────────────────
@@ -767,6 +911,7 @@ function startRoundTimeout(maxTime) {
 // ─── 게임 종료 ────────────────────────────────────────
 function endGame(result) {
   if (roundTimeoutInterval) clearInterval(roundTimeoutInterval)
+  if (phase2WaitingInterval) clearInterval(phase2WaitingInterval)
   phase.value = 'result'
 
   // 멀티플레이어 동기화
@@ -791,6 +936,8 @@ function spawnFpop(text, color = '#fbbf24') {
 
 onUnmounted(() => {
   if (roundTimeoutInterval) clearInterval(roundTimeoutInterval)
+  if (phase2WaitingInterval) clearInterval(phase2WaitingInterval)
+  rs.disconnect(roomId.value)
 })
 </script>
 
@@ -1046,6 +1193,96 @@ onUnmounted(() => {
 @keyframes popUp {
   0% { transform:translateY(0) scale(1); opacity:1; }
   100% { transform:translateY(-60px) scale(0.8); opacity:0; }
+}
+
+/* ── Phase 2 대기 상태 스타일 ─────────────────────────────── */
+.waiting-hud {
+  background: rgba(8, 12, 30, 0.95);
+  border: 1px solid rgba(255, 230, 0, 0.2);
+  box-shadow: 0 0 20px rgba(255, 230, 0, 0.1);
+}
+
+.waiting-box {
+  background: rgba(8, 12, 30, 0.9);
+  border: 1px solid rgba(0, 240, 255, 0.2);
+}
+
+.code-preview-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.code-preview {
+  background: #0f1419;
+  border: 1px solid rgba(0, 240, 255, 0.1);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.8rem;
+  color: #e0f2fe;
+  max-height: 200px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  line-height: 1.4;
+}
+
+.eval-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.eval-item {
+  font-size: 0.85rem;
+  color: #34d399;
+  padding: 0.5rem;
+  background: rgba(52, 211, 153, 0.05);
+  border-left: 2px solid #34d399;
+  border-radius: 0.25rem;
+}
+
+.opponent-box {
+  background: rgba(8, 12, 30, 0.9);
+  border: 1px solid rgba(255, 45, 117, 0.2);
+}
+
+.waiting-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 12, 30, 0.8);
+  border: 1px dashed rgba(255, 230, 0, 0.3);
+  border-radius: 0.75rem;
+  padding: 3rem;
+  height: 100%;
+  min-height: 300px;
+}
+
+.wait-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  animation: waitingPulse 1.5s ease-in-out infinite;
+}
+
+.wait-text {
+  font-size: 1rem;
+  color: #ffe600;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.wait-timer {
+  font-size: 0.85rem;
+  color: #64748b;
+  text-align: center;
+}
+
+@keyframes waitingPulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.1); }
 }
 
 /* ── 트랜지션 ──────────────────────────────── */

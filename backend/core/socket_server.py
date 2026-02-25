@@ -674,6 +674,9 @@ async def ice_candidate(sid, data):
 # [수정일: 2026-02-24] 로직 런 실시간 멀티플레이어 상태 관리
 run_rooms = {}  # { room_id: { players: [], phase, current_quest, ai_pos, player_pos } }
 
+# [수정일: 2026-02-25] Phase 2 양쪽 코드 수집 (향후 LLM 평가용)
+run_phase2_submissions = {}  # { room_id: { sid: { code, checks, points }, ... } }
+
 @sio.event
 async def run_join(sid, data):
     """로직 런 방 입장: 이름과 아바타 정보를 포함"""
@@ -726,9 +729,33 @@ async def run_start(sid, data):
 
 @sio.event
 async def run_progress(sid, data):
-    """플레이어 진행도 동기화 (전진, 힌트 등)"""
+    """플레이어 진행도 동기화 (Phase 1: 속도전, Phase 2: 설계 스프린트)"""
     room_id = data.get('room_id')
-    # 받은 데이터(playerPos, playerIdx, lineIdx 등)를 다른 팀원에게 전달
+
+    # [수정일: 2026-02-25] Phase 2 코드 제출 감지 (향후 LLM 평가용)
+    if data.get('phase') == 'designSprint' and data.get('state') == 'submitted':
+        if room_id not in run_phase2_submissions:
+            run_phase2_submissions[room_id] = {}
+
+        # 양쪽 코드 수집
+        run_phase2_submissions[room_id][sid] = {
+            'code': data.get('code', ''),
+            'checksCompleted': data.get('checksCompleted', 0),
+            'totalPoints': data.get('score', 0)
+        }
+
+        print(f"📝 Phase 2 Submission #{len(run_phase2_submissions[room_id])}: {sid} in room {room_id}")
+
+        # 양쪽 모두 제출되었는지 확인
+        if len(run_phase2_submissions[room_id]) >= 2:
+            # 향후: LLM 평가 호출 가능
+            # evaluations = await evaluate_both_codes(run_phase2_submissions[room_id])
+            # await sio.emit('run_evaluation', evaluations, room=room_id)
+            print(f"✅ Both players submitted in room {room_id} - Ready for evaluation")
+            # 정리
+            # del run_phase2_submissions[room_id]
+
+    # 기존 실시간 동기화 로직 (모든 프로그레스 전파)
     await sio.emit('run_sync', data, room=room_id, skip_sid=sid)
 
 @sio.event
