@@ -313,6 +313,44 @@
             </div>
           </div>
           <div class="r-detail">{{ resultDetail }} | 등급: {{ resultGrade }}</div>
+
+          <!-- ← 추가: LLM 평가 섹션 -->
+          <div v-if="llmEvaluationP1 || llmEvaluationP2" class="llm-section">
+            <div class="llm-header">🎓 AI 코드 평가</div>
+
+            <!-- P1 평가 -->
+            <div v-if="llmEvaluationP1" class="llm-item p1-eval">
+              <div class="eval-player">{{ playerP1?.name }}</div>
+              <div class="eval-score">
+                <span class="score-badge">{{ llmEvaluationP1.llm_score }}/100</span>
+                <span class="grade-badge" :class="'grade-' + llmEvaluationP1.grade">{{ llmEvaluationP1.grade }}</span>
+              </div>
+              <div class="eval-feedback">{{ llmEvaluationP1.feedback }}</div>
+              <div v-if="llmEvaluationP1.strengths" class="eval-details">
+                <div class="detail-row">✨ <strong>강점:</strong> {{ llmEvaluationP1.strengths.join(', ') }}</div>
+              </div>
+              <div v-if="llmEvaluationP1.weaknesses" class="eval-details">
+                <div class="detail-row">⚠️ <strong>개선점:</strong> {{ llmEvaluationP1.weaknesses.join(', ') }}</div>
+              </div>
+            </div>
+
+            <!-- P2 평가 -->
+            <div v-if="llmEvaluationP2" class="llm-item p2-eval">
+              <div class="eval-player">{{ playerP2?.name }}</div>
+              <div class="eval-score">
+                <span class="score-badge">{{ llmEvaluationP2.llm_score }}/100</span>
+                <span class="grade-badge" :class="'grade-' + llmEvaluationP2.grade">{{ llmEvaluationP2.grade }}</span>
+              </div>
+              <div class="eval-feedback">{{ llmEvaluationP2.feedback }}</div>
+              <div v-if="llmEvaluationP2.strengths" class="eval-details">
+                <div class="detail-row">✨ <strong>강점:</strong> {{ llmEvaluationP2.strengths.join(', ') }}</div>
+              </div>
+              <div v-if="llmEvaluationP2.weaknesses" class="eval-details">
+                <div class="detail-row">⚠️ <strong>개선점:</strong> {{ llmEvaluationP2.weaknesses.join(', ') }}</div>
+              </div>
+            </div>
+          </div>
+
           <div class="go-btns">
             <button @click="startGame" class="btn-retry">🔄 다시하기</button>
             <button @click="$router.push('/practice/coduck-wars')" class="btn-exit">🏠 나가기</button>
@@ -369,27 +407,37 @@ rs.onGameStart.value = (qIdx) => {
 }
 
 rs.onSync.value = (data) => {
+  // ← 핵심: 게임 끝나면 점수 업데이트 금지 (버벅거림 원인)
+  if (phase.value === 'result') return
+
   if (data.sid !== rs.socket.value?.id) {
     const myIdx = rs.roomPlayers.value.findIndex(p => p.sid === rs.socket.value.id)
     // Phase 1: speedFill
     if (data.phase === 'speedFill') {
+      // 누적 점수를 Phase 1 점수로 저장 (Phase 2 점수는 아직 0)
       if (myIdx === 0) {
-        scoreP2.value = data.score || 0  // 상대 점수는 data.score로 전달됨
+        scoreP2.value = data.score || 0
+        scoreP2Phase1.value = data.score || 0  // ← 추가: 상대 Phase 1 점수 저장
       } else {
         scoreP1.value = data.score || 0
+        scoreP1Phase1.value = data.score || 0  // ← 추가: 상대 Phase 1 점수 저장
       }
     }
     // Phase 2: designSprint
     else if (data.phase === 'designSprint') {
       if (data.state === 'submitted') {
-        // 상대가 제출함
+        // 상대가 제출함 (중복 처리 방지를 위해 한 번만 업데이트)
         opponentSubmitted.value = true
         opponentCode.value = data.code || ''
 
         if (myIdx === 0) {
           checksCompletedP2.value = data.checksCompleted || 0
+          scoreP2Phase2.value = data.score || 0
+          scoreP2.value = scoreP2Phase1.value + scoreP2Phase2.value
         } else {
           checksCompletedP1.value = data.checksCompleted || 0
+          scoreP1Phase2.value = data.score || 0
+          scoreP1.value = scoreP1Phase1.value + scoreP1Phase2.value
         }
       } else {
         // 일반 진행도 업데이트
@@ -403,7 +451,50 @@ rs.onSync.value = (data) => {
   }
 }
 
+// ← 추가: LLM 평가 결과 처리
+rs.onDesignEvaluation.value = (data) => {
+  // 평가는 게임 끝나기 전에 와야 함 (한 번만 처리)
+  if (llmEvaluationP1.value || llmEvaluationP2.value) {
+    console.log('🔒 LLM evaluation already received, ignoring duplicate')
+    return
+  }
+
+  const myIdx = rs.roomPlayers.value.findIndex(p => p.sid === rs.socket.value.id)
+
+  // P1 평가 결과
+  if (data.player1_evaluation && data.player1_evaluation.status === 'success') {
+    llmEvaluationP1.value = data.player1_evaluation
+  }
+
+  // P2 평가 결과
+  if (data.player2_evaluation && data.player2_evaluation.status === 'success') {
+    llmEvaluationP2.value = data.player2_evaluation
+  }
+
+  console.log('🎓 LLM Evaluation Results:', { p1: llmEvaluationP1.value, p2: llmEvaluationP2.value })
+}
+
+// ← 추가: run_end 이벤트 처리 (게임 종료 시 최종 점수 수신)
 rs.onEnd.value = (data) => {
+  // ← 핵심: 이미 결과 화면이라면 점수 업데이트 금지
+  if (phase.value === 'result') {
+    console.log('🔒 Game already ended, ignoring run_end event')
+    return
+  }
+
+  // 상대 점수가 포함되어 있으면 업데이트 (onSync에서 이미 받았을 수 있음)
+  if (data.opponent_phase1_score !== undefined) {
+    const myIdx = rs.roomPlayers.value.findIndex(p => p.sid === rs.socket.value.id)
+    if (myIdx === 0) {
+      scoreP2Phase1.value = data.opponent_phase1_score
+      scoreP2Phase2.value = data.opponent_phase2_score || 0
+      scoreP2.value = scoreP2Phase1.value + scoreP2Phase2.value
+    } else {
+      scoreP1Phase1.value = data.opponent_phase1_score
+      scoreP1Phase2.value = data.opponent_phase2_score || 0
+      scoreP1.value = scoreP1Phase1.value + scoreP1Phase2.value
+    }
+  }
   endGame(data.result)
 }
 
@@ -456,6 +547,10 @@ const designEditor = ref(null)
 const phase2Status = ref('editing')  // editing | waiting | evaluated
 const opponentSubmitted = ref(false)  // 상대 제출 여부
 const opponentCode = ref('')  // 상대 코드
+
+// ────── LLM 평가 결과 ──────────
+const llmEvaluationP1 = ref(null)  // ← 추가: P1의 LLM 평가 결과
+const llmEvaluationP2 = ref(null)  // ← 추가: P2의 LLM 평가 결과
 const opponentEvaluation = ref(null)  // 상대 평가 결과
 const myEvaluation = ref(null)  // 내 평가 결과
 const phase2WaitingTimeout = ref(30)  // 30초 대기
@@ -1283,6 +1378,111 @@ onUnmounted(() => {
 @keyframes waitingPulse {
   0%, 100% { opacity: 0.6; transform: scale(1); }
   50% { opacity: 1; transform: scale(1.1); }
+}
+
+/* ── LLM 평가 섹션 ──────────────────────────────── */
+.llm-section {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, rgba(100, 200, 255, 0.1), rgba(150, 100, 255, 0.1));
+  border: 2px solid #64c8ff;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.llm-header {
+  font-weight: bold;
+  font-size: 1rem;
+  color: #64c8ff;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.llm-item {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-radius: 6px;
+  border-left: 4px solid;
+}
+
+.llm-item.p1-eval {
+  border-left-color: #00d4ff;
+}
+
+.llm-item.p2-eval {
+  border-left-color: #ffaa00;
+}
+
+.eval-player {
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 0.5rem;
+}
+
+.eval-score {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.8rem;
+  align-items: center;
+}
+
+.score-badge {
+  background: rgba(100, 200, 255, 0.2);
+  color: #64c8ff;
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 0.95rem;
+}
+
+.grade-badge {
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 0.85rem;
+}
+
+.grade-badge.grade-A {
+  background: rgba(0, 255, 0, 0.2);
+  color: #00ff00;
+}
+
+.grade-badge.grade-B {
+  background: rgba(100, 200, 255, 0.2);
+  color: #64c8ff;
+}
+
+.grade-badge.grade-C {
+  background: rgba(255, 200, 0, 0.2);
+  color: #ffc800;
+}
+
+.grade-badge.grade-D {
+  background: rgba(255, 100, 100, 0.2);
+  color: #ff6464;
+}
+
+.grade-badge.grade-F {
+  background: rgba(255, 0, 0, 0.2);
+  color: #ff0000;
+}
+
+.eval-feedback {
+  color: #e0e0e0;
+  margin-bottom: 0.8rem;
+  line-height: 1.4;
+  font-style: italic;
+}
+
+.eval-details {
+  margin-top: 0.6rem;
+}
+
+.detail-row {
+  color: #b0b0b0;
+  margin-bottom: 0.4rem;
+  font-size: 0.85rem;
 }
 
 /* ── 트랜지션 ──────────────────────────────── */

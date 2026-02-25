@@ -2,9 +2,14 @@ import socketio
 import asyncio
 import random
 from core.services.arch_evaluator import ArchEvaluator
+from core.services.pseudocode_evaluator import PseudocodeEvaluator, EvaluationRequest, EvaluationMode
+from asgiref.sync import sync_to_async
 
 # [수정일: 2026-02-24] 진짜 AI 아키텍트 리뷰를 위한 엔진 초기화
 arch_evaluator = ArchEvaluator()
+
+# [수정일: 2026-02-25] 의사코드 평가 엔진 (LLM 기반)
+pseudocode_evaluator = PseudocodeEvaluator()
 
 # [수정일: 2026-02-23] 방별 상태 관리 (장애 이벤트 및 방장 추적)
 active_rooms = set()
@@ -702,10 +707,12 @@ async def run_join(sid, data):
         existing_player.update({'name': user_name, 'avatar_url': avatar_url})
     else:
         room['players'].append({
-            'sid': sid, 
-            'name': user_name, 
+            'sid': sid,
+            'name': user_name,
             'avatar_url': avatar_url,
-            'ready': False
+            'ready': False,
+            'phase1_score': 0,  # ← 추가: Phase 1 점수
+            'phase2_score': 0   # ← 추가: Phase 2 점수
         })
     
     players_data = [{'name': p['name'], 'sid': p['sid'], 'avatar_url': p['avatar_url']} for p in room['players']]
@@ -732,6 +739,14 @@ async def run_progress(sid, data):
     """플레이어 진행도 동기화 (Phase 1: 속도전, Phase 2: 설계 스프린트)"""
     room_id = data.get('room_id')
 
+    # [수정일: 2026-02-25] Phase 1 점수 저장 (최종 점수 계산용)
+    if data.get('phase') == 'speedFill' and room_id in run_rooms:
+        # run_rooms의 player 객체에 phase 1 점수 저장
+        for player in run_rooms[room_id]['players']:
+            if player['sid'] == sid:
+                player['phase1_score'] = data.get('score', 0)
+                break
+
     # [수정일: 2026-02-25] Phase 2 코드 제출 감지 (향후 LLM 평가용)
     if data.get('phase') == 'designSprint' and data.get('state') == 'submitted':
         if room_id not in run_phase2_submissions:
@@ -746,14 +761,18 @@ async def run_progress(sid, data):
 
         print(f"📝 Phase 2 Submission #{len(run_phase2_submissions[room_id])}: {sid} in room {room_id}")
 
+        # Phase 2 점수도 run_rooms에 저장
+        if room_id in run_rooms:
+            for player in run_rooms[room_id]['players']:
+                if player['sid'] == sid:
+                    player['phase2_score'] = data.get('score', 0)
+                    break
+
         # 양쪽 모두 제출되었는지 확인
         if len(run_phase2_submissions[room_id]) >= 2:
-            # 향후: LLM 평가 호출 가능
-            # evaluations = await evaluate_both_codes(run_phase2_submissions[room_id])
-            # await sio.emit('run_evaluation', evaluations, room=room_id)
-            print(f"✅ Both players submitted in room {room_id} - Ready for evaluation")
-            # 정리
-            # del run_phase2_submissions[room_id]
+            # [추가: 2026-02-25] LLM 평가 호출
+            asyncio.create_task(evaluate_and_broadcast_designs(room_id, data))
+            print(f"✅ Both players submitted in room {room_id} - LLM evaluation started")
 
     # 기존 실시간 동기화 로직 (모든 프로그레스 전파)
     await sio.emit('run_sync', data, room=room_id, skip_sid=sid)
@@ -776,10 +795,92 @@ async def run_ai_sync(sid, data):
     room_id = data.get('room_id')
     await sio.emit('run_ai_pos', data, room=room_id, skip_sid=sid)
 
+# [추가: 2026-02-25] LLM 기반 의사코드 평가 함수
+async def evaluate_and_broadcast_designs(room_id, latest_data):
+    """
+    양쪽 플레이어의 의사코드를 LLM으로 평가하고 결과를 브로드캐스트.
+
+    Args:
+        room_id: 게임방 ID
+        latest_data: Phase 2 제출 데이터 (scenario, quest_title 등 포함)
+    """
+    try:
+        submissions = run_phase2_submissions.get(room_id, {})
+        sids = list(submissions.keys())
+
+        if len(sids) < 2:
+            print(f"⚠️ Not enough submissions for evaluation in room {room_id}")
+            return
+
+        # 각 코드에 대해 개별 평가
+        results = {}
+        quest_title = latest_data.get('scenario', 'Design Sprint Challenge')
+
+        for idx, sid in enumerate(sids, 1):
+            submission = submissions[sid]
+            pseudocode = submission['code']
+
+            try:
+                # [수정: 2026-02-25] sync_to_async로 동기 함수 호출
+                final_result = await sync_to_async(pseudocode_evaluator.evaluate)(
+                    EvaluationRequest(
+                        user_id=sid,
+                        detail_id='logicrun_phase2',
+                        pseudocode=pseudocode,
+                        mode=EvaluationMode.OPTION2_GPTONLY,
+                        quest_title=quest_title
+                    )
+                )
+
+                results[sid] = {
+                    'status': 'success',
+                    'llm_score': final_result.final_score,
+                    'grade': final_result.grade,
+                    'feedback': final_result.feedback.get('main_feedback', ''),
+                    'strengths': final_result.feedback.get('strengths', []),
+                    'weaknesses': final_result.feedback.get('weaknesses', []),
+                    'improvement_suggestions': final_result.feedback.get('improvement_suggestions', ''),
+                    'dimension_scores': final_result.score_breakdown.get('llm_scores', {})
+                }
+                print(f"✅ LLM Evaluation P{idx}: {sid} → Score: {final_result.final_score}, Grade: {final_result.grade}")
+
+            except Exception as e:
+                results[sid] = {
+                    'status': 'error',
+                    'error_message': str(e),
+                    'llm_score': 0
+                }
+                print(f"❌ LLM Evaluation Error for {sid}: {str(e)}")
+
+        # 결과 브로드캐스트
+        if len(results) >= 2:
+            await sio.emit('run_design_evaluation', {
+                'player1_sid': sids[0],
+                'player1_evaluation': results.get(sids[0], {'status': 'error'}),
+                'player2_sid': sids[1],
+                'player2_evaluation': results.get(sids[1], {'status': 'error'})
+            }, room=room_id)
+            print(f"📢 Broadcasted design evaluation results to room {room_id}")
+
+    except Exception as e:
+        print(f"❌ evaluate_and_broadcast_designs error: {str(e)}")
+
 @sio.event
 async def run_finish(sid, data):
     """게임 종료 (완료 또는 게임오버)"""
     room_id = data.get('room_id')
+
+    # [수정일: 2026-02-25] 상대 점수 정보 추가
+    if room_id in run_rooms:
+        room = run_rooms[room_id]
+        opponent_player = next((p for p in room['players'] if p['sid'] != sid), None)
+
+        if opponent_player:
+            # 상대 Phase 1, Phase 2 점수 가져오기
+            data['opponent_phase1_score'] = opponent_player.get('phase1_score', 0)
+            data['opponent_phase2_score'] = opponent_player.get('phase2_score', 0)
+            print(f"✅ Added opponent scores to run_end: P1={data['opponent_phase1_score']}, P2={data['opponent_phase2_score']}")
+
     await sio.emit('run_end', data, room=room_id)
 
 @sio.event
@@ -799,6 +900,9 @@ async def run_leave(sid, data):
 
         if not room['players']:
             del run_rooms[room_id]
+            # [수정 2026-02-25] 방이 비어있으면 Phase 2 제출 관련 데이터도 정리
+            if room_id in run_phase2_submissions:
+                del run_phase2_submissions[room_id]
         else:
             await sio.emit('run_user_left', {
                 'sid': sid, 

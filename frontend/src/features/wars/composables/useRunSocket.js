@@ -26,6 +26,7 @@ export function useRunSocket() {
     const onSync = ref(null)
     const onRelay = ref(null)
     const onHfSync = ref(null)
+    const onDesignEvaluation = ref(null)  // ← 추가: LLM 평가 결과
     const onEnd = ref(null)
     const onUserLeft = ref(null)
 
@@ -85,6 +86,11 @@ export function useRunSocket() {
             remoteAiPos.value = data.aiPos
         })
 
+        // LLM 평가 결과 (Phase 2 끝)
+        socket.value.on('run_design_evaluation', (data) => {
+            if (onDesignEvaluation.value) onDesignEvaluation.value(data)
+        })
+
         // 게임 종료
         socket.value.on('run_end', (data) => {
             if (onEnd.value) onEnd.value(data)
@@ -135,7 +141,7 @@ export function useRunSocket() {
         socket, connected, roomPlayers, isLeader, isReady, gameStarted,
         remotePlayerPos, remoteAiPos, remoteCurrentSector, remoteCurrentLineIdx,
         remoteLastCorrectLine, remoteCurrentPlayerIdx,
-        onGameStart, onSync, onRelay, onHfSync, onEnd, onUserLeft,
+        onGameStart, onSync, onRelay, onHfSync, onDesignEvaluation, onEnd, onUserLeft,
         connect, emitStart, emitProgress, emitRelayStart, emitHighFive,
         emitAiSync, emitFinish, disconnect
     }
