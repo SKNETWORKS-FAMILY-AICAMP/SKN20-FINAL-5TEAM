@@ -409,10 +409,49 @@ async def draw_start(sid, data):
         questions = []
     if questions:
         q_data = random.choice(questions)['content_data']
+        required_names = q_data.get('rubric_functional', {}).get('required_components', [])
+        
+        # Frontend의 allComps id와 매핑하기 위한 키워드 사전
+        COMP_MAP = {
+            "client": ["client", "사용자", "단말", "user", "app", "web", "클라이언트"],
+            "lb": ["lb", "load balancer", "로드밸런서", "elb", "alb", "분산"],
+            "server": ["server", "서버", "ec2", "was", "web server", "api server", "웹서버", "어플리케이션", "랭킹", "게시물"],
+            "cdn": ["cdn", "cloudfront", "콘텐츠"],
+            "origin": ["origin", "오리진"],
+            "cache": ["cache", "캐시", "redis", "memcached"],
+            "db": ["db", "database", "데이터베이스", "rdbms", "mysql", "postgresql", "oracle", "저장소"],
+            "producer": ["producer", "프로듀서"],
+            "queue": ["queue", "msgq", "message queue", "큐", "메시지", "kafka", "rabbitmq", "sqs", "비동기"],
+            "consumer": ["consumer", "컨슈머"],
+            "api": ["api", "api gw", "api gateway", "gateway", "게이트웨이"],
+            "writesvc": ["write", "쓰기"],
+            "readsvc": ["read", "읽기"],
+            "writedb": ["writedb", "쓰기 db", "마스터", "master"],
+            "readdb": ["readdb", "읽기 db", "슬레이브", "slave", "read replica", "복제"],
+            "auth": ["auth", "인증", "권리", "권한", "로그인", "iam"],
+            "order": ["order", "주문"],
+            "payment": ["pay", "payment", "결제", "회계"],
+            "waf": ["waf", "방화벽", "보안", "방어"],
+            "dns": ["dns", "route53", "도메인", "라우팅"]
+        }
+
+        mapped_required = set()
+        for req_name in required_names:
+            req_lower = req_name.lower()
+            matched = False
+            for comp_id, keywords in COMP_MAP.items():
+                if any(kw in req_lower for kw in keywords):
+                    mapped_required.add(comp_id)
+                    matched = True
+                    break
+            if not matched:
+                if "데이터" in req_lower: mapped_required.add("db")
+                elif "서비스" in req_lower or "시스템" in req_lower: mapped_required.add("server")
+        
         question = {
             "title": q_data.get('title', 'Unknown Mission'), 
             "description": q_data.get('scenario', ''), 
-            "required": q_data.get('rubric_functional', {}).get('required_components', []),
+            "required": list(mapped_required) if mapped_required else ["client", "server", "db"],
             "hints": q_data.get('missions', []),
             "rubric": q_data.get('rubric_functional', {}),
             "axis_weights": q_data.get('axis_weights', {})
@@ -481,13 +520,21 @@ async def draw_submit(sid, data):
         p1 = room['players'][0]
         p2 = room['players'][1] if len(room['players']) > 1 else room['players'][0]
         
-        # 비동기 상황이지만 LLM 호출은 블로킹으로 처리 (timeout 15s 설정됨)
-        ai_reviews = arch_evaluator.evaluate_comparison(
-            mission_title,
-            {'name': p1['name'], 'pts': p1['last_pts'], 'checks': p1['last_checks'], 'nodes': p1.get('last_nodes', []), 'arrows': p1.get('last_arrows', [])},
-            {'name': p2['name'], 'pts': p2['last_pts'], 'checks': p2['last_checks'], 'nodes': p2.get('last_nodes', []), 'arrows': p2.get('last_arrows', [])},
-            rubric=rubric_data
-        )
+        # [수정일: 2026-02-25] LLM 호출이 블로킹되지 않도록 sync_to_async 적용
+        from asgiref.sync import sync_to_async
+        eval_func = sync_to_async(arch_evaluator.evaluate_comparison)
+        
+        try:
+            ai_reviews = await eval_func(
+                mission_title,
+                {'name': p1['name'], 'pts': p1['last_pts'], 'checks': p1['last_checks'], 'nodes': p1.get('last_nodes', []), 'arrows': p1.get('last_arrows', [])},
+                {'name': p2['name'], 'pts': p2['last_pts'], 'checks': p2['last_checks'], 'nodes': p2.get('last_nodes', []), 'arrows': p2.get('last_arrows', [])},
+                rubric=rubric_data
+            )
+            print(f"✅ AI Review generated: {ai_reviews.keys()}")
+        except Exception as e:
+            print(f"❌ AI Review Error: {e}")
+            ai_reviews = {}
         
         results = []
         for i, p in enumerate(room['players']):

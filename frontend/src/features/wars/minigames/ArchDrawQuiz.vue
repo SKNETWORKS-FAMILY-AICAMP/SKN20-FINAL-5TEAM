@@ -563,7 +563,7 @@ ds.onRoundResult.value = (results) => {
 // [수정일: 2026-02-24] .value를 사용하여 서버(AI)가 문제를 던져주었을 때의 처리 등록
 ds.onRoundStart.value = (data) => {
   if (!data || !data.question) return;
-  curQ.value = data.question; 
+  // curQ는 computed이므로 여기서 직접 할당하지 않습니다. (ds.roundQuestion이 이미 업데이트됨)
   
   // [수정일: 2026-02-24] 서버가 보내준 라운드 번호 사용 (없으면 수동 증가)
   if (data.round) round.value = data.round;
