@@ -30,8 +30,9 @@ import WarsModeSelect from './features/wars/WarsModeSelect.vue'
 import ArchDrawQuiz from './features/wars/minigames/ArchDrawQuiz.vue'
 // [수정일: 2026-02-24] SpeedArchBuilder → LogicRun으로 교체
 import LogicRun from './features/wars/minigames/LogicRun.vue'
-import ArchBattle from './features/wars/minigames/ArchBattle.vue'
-
+// [추가일: 2026-02-25] 신규 1:1 디펜스 게임 Bug-Bubble Monster
+import BugBubbleMonster from './features/wars/minigames/BugBubbleMonster.vue'
+// [수정일: 2026-02-25] 미사용 ArchBattle 컴포넌트 제거
 // [수정일: 2026-01-31] 사용하지 않는 구버전/비활성 컴포넌트 임포트 주석 처리
 // import AiDetectivePractice from './features/practice/AiDetectivePractice.vue'
 // import PseudoForest from './features/practice/PseudoForest.vue'
@@ -90,10 +91,11 @@ const routes = [
     component: LogicRun
   },
   {
-    path: '/practice/coduck-wars/arch-battle',
-    name: 'ArchBattle',
-    component: ArchBattle
+    path: '/practice/coduck-wars/bug-bubble',
+    name: 'BugBubbleMonster',
+    component: BugBubbleMonster
   },
+
   {
     path: '/practice/coduck-wars/battle',
     name: 'PressureInterviewRoom',

@@ -81,23 +81,23 @@
         <div class="card-arrow">→</div>
       </div>
 
-      <!-- Mode 4: 1:1 아키텍처 배틀 -->
-      <div class="mode-card battle" @click="goTo('/practice/coduck-wars/arch-battle')">
+      <!-- Mode 4: 1:1 버그 버블 몬스터 (신규) -->
+      <div class="mode-card battle" @click="goTo('/practice/coduck-wars/bug-bubble')">
         <div class="card-glow"></div>
         <div class="card-inner">
           <div class="mode-badge hot">NEW</div>
-          <div class="mode-icon">🆚</div>
-          <h2 class="mode-title">아키텍처 배틀</h2>
-          <p class="mode-desc">같은 장애 시나리오, 같은 시간. AI와 1:1로 대결하고 더 나은 설계를 증명하라.</p>
+          <div class="mode-icon">🫧</div>
+          <h2 class="mode-title">버그버블 몬스터</h2>
+          <p class="mode-desc">문제를 풀고 버그를 가둬 상대에게 날려라! 보글보글 1:1 디펜스 승부.</p>
           <div class="mode-tags">
-            <span class="tag">AI 대전</span>
-            <span class="tag">실시간 비교</span>
-            <span class="tag">AI 심판</span>
+            <span class="tag">1:1 대전</span>
+            <span class="tag">실시간 어택</span>
+            <span class="tag">디펜스</span>
           </div>
           <div class="mode-meta">
-            <span>⏱ 6분</span>
-            <span>👤 1인 vs AI</span>
-            <span>🔥 고급</span>
+            <span>⏱ 무제한</span>
+            <span>👤 1vs1</span>
+            <span>🔥 버그 파티</span>
           </div>
         </div>
         <div class="card-arrow">→</div>

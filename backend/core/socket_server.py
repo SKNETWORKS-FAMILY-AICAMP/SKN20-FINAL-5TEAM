@@ -19,6 +19,7 @@ active_timer_tasks = {} # { mission_id: Task }
 
 # [수정일: 2026-02-23] Coduck Wars Phase 2: 실시간 협업용 Socket.io 서버 설정
 # 이 서버는 다중 접속 유저 간의 아키텍처 설계 동기화 및 실시간 대화를 관리합니다.
+bubble_rooms = {}  # [추가: 2026-02-25] Bug-Bubble Monster 미니게임 방 관리
 
 sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
 
@@ -84,6 +85,19 @@ async def disconnect(sid):
                 await sio.emit('draw_lobby', {'players': players_data}, room=draw_room_id)
                 print(f"📡 draw_lobby (cleanup) sent to room {draw_room_id}")
 
+        # [추가: 2026-02-25] BUG-BUBBLE MONSTER 방 정리
+        bubble_room_id = session.get('bubble_room')
+        if bubble_room_id and bubble_room_id in bubble_rooms:
+            b_room = bubble_rooms[bubble_room_id]
+            b_room['players'] = [p for p in b_room['players'] if p['sid'] != sid]
+            
+            if not b_room['players']:
+                del bubble_rooms[bubble_room_id]
+            else:
+                players_data = [{'name': p['name'], 'sid': p['sid']} for p in b_room['players']]
+                await sio.emit('bubble_lobby', {'players': players_data}, room=bubble_room_id)
+                await sio.emit('bubble_player_left', {'sid': sid}, room=bubble_room_id)
+                
 @sio.event
 async def join_war_room(sid, data):
     """
@@ -764,3 +778,50 @@ async def run_leave(sid, data):
                 'leader_sid': room.get('leader_sid')
             }, room=room_id)
     await sio.leave_room(sid, room_id)
+
+# ==========================================
+# [추가일: 2026-02-25] BUG-BUBBLE MONSTER (버그버블 몬스터)
+# ==========================================
+
+@sio.event
+async def bubble_join(sid, data):
+    room_id = data.get('room_id', 'bubble-default')
+    user_name = data.get('user_name', 'Unknown')
+    user_avatar = data.get('user_avatar', None)
+    await sio.enter_room(sid, room_id)
+    await sio.save_session(sid, {'bubble_room': room_id, 'name': user_name, 'avatar': user_avatar})
+    
+    if room_id not in bubble_rooms:
+        bubble_rooms[room_id] = {'players': [], 'is_playing': False}
+        
+    room = bubble_rooms[room_id]
+    
+    if not any(p['sid'] == sid for p in room['players']):
+        room['players'].append({'sid': sid, 'name': user_name, 'avatar': user_avatar})
+        
+    players_data = [{'name': p['name'], 'sid': p['sid'], 'avatar': p.get('avatar')} for p in room['players']]
+    await sio.emit('bubble_lobby', {'players': players_data}, room=room_id)
+
+@sio.event
+async def bubble_start(sid, data):
+    room_id = data.get('room_id')
+    if room_id in bubble_rooms:
+        bubble_rooms[room_id]['is_playing'] = True
+        await sio.emit('bubble_game_start', {}, room=room_id)
+
+@sio.event
+async def bubble_send_monster(sid, data):
+    room_id = data.get('room_id')
+    monster_type = data.get('monster_type', 'normal')
+    await sio.emit('bubble_receive_monster', {'sender_sid': sid, 'monster_type': monster_type}, room=room_id, skip_sid=sid)
+
+@sio.event
+async def bubble_fever_attack(sid, data):
+    room_id = data.get('room_id')
+    count = data.get('count', 5)
+    await sio.emit('bubble_receive_fever', {'sender_sid': sid, 'count': count}, room=room_id, skip_sid=sid)
+
+@sio.event
+async def bubble_game_over(sid, data):
+    room_id = data.get('room_id')
+    await sio.emit('bubble_end', {'loser_sid': sid}, room=room_id)
