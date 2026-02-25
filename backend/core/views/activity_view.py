@@ -123,10 +123,14 @@ class UserProgressView(APIView):
     """
     사용자의 전체 학습 진행도 및 특정 유닛 진행 상태 조회
     """
-    permission_classes = [permissions.IsAuthenticated]
+    from rest_framework import permissions
+    permission_classes = [permissions.AllowAny]
 
     def get(self, request):
         user = request.user
+        if not user.is_authenticated:
+            return Response([], status=status.HTTP_200_OK)
+            
         # UserProfile 조회 (email 매칭)
         from core.models import UserProfile
         profile = get_object_or_404(UserProfile, email=user.email)
@@ -150,6 +154,9 @@ class UserProgressView(APIView):
         - detail_id 없이 진행 상태만 저장해야 하는 경우(예: 미션 완료 후 다음 스테이지 해금) 사용합니다.
         """
         user = request.user
+        if not user.is_authenticated:
+            return Response({'message': 'Guest progress not saved to DB'}, status=status.HTTP_200_OK)
+            
         from core.models import UserProfile, Practice
         profile = get_object_or_404(UserProfile, email=user.email)
         

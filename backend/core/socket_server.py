@@ -362,8 +362,8 @@ async def draw_join(sid, data):
     
     room = draw_rooms[room_id]
     
-    # [수정일: 2026-02-24] 인원 제한 체크 (최대 2명)
-    # 이미 방에 있는 플레이어(재접속)가 아니라면, 2명 이상일 때 입장 거부
+    # [수정일: 2026-02-25] 인원 제한 체크 (최대 2명) - 강화됨
+    # 이미 방에 있는 플레이어(재접속)가 아니라면, 2명 이상일 때 얄짤없이 입장 거부
     is_existing_player = any(p['sid'] == sid for p in room['players'])
     if not is_existing_player and len(room['players']) >= 2:
         print(f"🚫 draw_join Rejected: Room {room_id} is FULL.")
@@ -391,42 +391,42 @@ async def draw_join(sid, data):
 @sio.event
 async def draw_start(sid, data):
     """게임 시작: 서버에서 시나리오를 결정하여 배포"""
-    room_id = data.get('room_id', 'draw-default')
-    
-    # [수정일: 2026-02-24] 사용자 경험 개선을 위해 미션을 단순 나열형에서 '비즈니스 시나리오' 기반으로 개편
-    ARCH_MISSIONS = [
-        {
+    print(f"📡 draw_start called by {sid} for room {data.get('room_id')}")
+    try:
+        from core.models import PracticeDetail
+        from asgiref.sync import sync_to_async
+        room_id = data.get('room_id', 'draw-default')
+        
+        # [수정일: 2026-02-25] 데이터베이스에서 아키텍처 문제 및 평가 기준(Rubric) 동적 로드
+        @sync_to_async
+        def get_questions():
+            return list(PracticeDetail.objects.filter(practice_id='unit03').values('content_data'))
+            
+        questions = await get_questions()
+        print(f"✅ DB Questions loaded: {len(questions)} items")
+    except Exception as e:
+        print(f"❌ Error in draw_start DB fetch: {e}")
+        questions = []
+    if questions:
+        q_data = random.choice(questions)['content_data']
+        question = {
+            "title": q_data.get('title', 'Unknown Mission'), 
+            "description": q_data.get('scenario', ''), 
+            "required": q_data.get('rubric_functional', {}).get('required_components', []),
+            "hints": q_data.get('missions', []),
+            "rubric": q_data.get('rubric_functional', {}),
+            "axis_weights": q_data.get('axis_weights', {})
+        }
+    else:
+        # DB에 데이터가 없을 경우 Fallback
+        question = {
             "title": "글로벌 뱅킹 트래픽 분산", 
             "description": "전 세계에서 몰려오는 금융 트래픽을 지역별로 분산하고, 모든 데이터를 중앙 DB에 안전하게 복제하는 고가용성 구조를 설계하세요.", 
             "required": ["lb", "server", "db", "readdb"],
-            "hints": ["부하 분산 장치가 맨 앞에 필요합니다", "읽기 성능 향상을 위해 복제본(Read Replica)을 사용하세요"]
-        },
-        {
-            "title": "실시간 OTT 스트리밍 최적화", 
-            "description": "사용자에게 가장 가까운 곳에서 영상을 빠르게 전달(캐싱)하고, 대용량 원본 파일은 안전한 저장소에 보관하는 전달 체계를 설계하세요.", 
-            "required": ["user", "cdn", "server", "origin"],
-            "hints": ["사용자와 가까운 거리의 Edge 서버(CDN)가 핵심입니다", "원본은 Origin 서버나 스토리지에 둡니다"]
-        },
-        {
-            "title": "비동기 대용량 로그 수집", 
-            "description": "순식간에 쏟아지는 수백만 건의 데이터를 유실 없이 수집하여 분석 시스템으로 안전하게 전달하는 비동기 파이프라인을 구축하세요.", 
-            "required": ["producer", "queue", "consumer", "db"],
-            "hints": ["데이터 완충 지역인 메시지 큐가 필요합니다", "소비자(Consumer)가 큐에서 데이터를 꺼내 처리합니다"]
-        },
-        {
-            "title": "읽기/쓰기 분리(CQRS) 시스템", 
-            "description": "주문이 폭주해도 상품 조회가 느려지지 않도록, 데이터를 생성하는 경로와 조회하는 경로를 완전히 분리한 고성능 아키텍처를 설계하세요.", 
-            "required": ["api", "writesvc", "readsvc", "writedb", "readdb"],
-            "hints": ["API Gateway가 요청을 두 갈래로 나눕니다", "DB도 쓰기 전용과 읽기 전용을 분리하세요"]
-        },
-        {
-            "title": "보안 강화 하이브리드 클라우드", 
-            "description": "외부 공격으로부터 API 서버를 보호하고, 온프레미스의 기존 데이터 센터와 클라우드 자원을 안전하게 연결하는 구조를 설계하세요.", 
-            "required": ["user", "waf", "api", "origin"],
-            "hints": ["최전방에 웹 방화벽(WAF)을 배치하세요", "기존 인프라는 전용선(Direct Connect) 등으로 연결됩니다"]
+            "hints": ["부하 분산 장치가 맨 앞에 필요합니다", "읽기 성능 향상을 위해 복제본(Read Replica)을 사용하세요"],
+            "rubric": {},
+            "axis_weights": {}
         }
-    ]
-    question = random.choice(ARCH_MISSIONS)
     
     if room_id in draw_rooms:
         draw_rooms[room_id]['phase'] = 'playing'
@@ -471,16 +471,22 @@ async def draw_submit(sid, data):
     
     # 모두 제출했으면 결과 방송
     if all(p.get('submitted') for p in room['players']):
-        # [수정일: 2026-02-24] LLM 기반 정성적 아키텍트 리뷰 생성
-        mission_title = room.get('current_question', {}).get('title', 'Unknown Mission')
+        # [수정일: 2026-02-25] DB 루브릭 연동 및 LLM 기반 정성적 아키텍트 리뷰 생성
+        current_q = room.get('current_question', {})
+        mission_title = current_q.get('title', 'Unknown Mission')
+        rubric_data = current_q.get('rubric', {})
+        if 'axis_weights' in current_q:
+            rubric_data['axis_weights'] = current_q['axis_weights']
+
         p1 = room['players'][0]
         p2 = room['players'][1] if len(room['players']) > 1 else room['players'][0]
         
         # 비동기 상황이지만 LLM 호출은 블로킹으로 처리 (timeout 15s 설정됨)
         ai_reviews = arch_evaluator.evaluate_comparison(
             mission_title,
-            {'name': p1['name'], 'pts': p1['last_pts'], 'checks': p1['last_checks']},
-            {'name': p2['name'], 'pts': p2['last_pts'], 'checks': p2['last_checks']}
+            {'name': p1['name'], 'pts': p1['last_pts'], 'checks': p1['last_checks'], 'nodes': p1.get('last_nodes', []), 'arrows': p1.get('last_arrows', [])},
+            {'name': p2['name'], 'pts': p2['last_pts'], 'checks': p2['last_checks'], 'nodes': p2.get('last_nodes', []), 'arrows': p2.get('last_arrows', [])},
+            rubric=rubric_data
         )
         
         results = []

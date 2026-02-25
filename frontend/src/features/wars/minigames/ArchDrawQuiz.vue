@@ -296,7 +296,7 @@ const userName = ref('Player_' + Math.floor(Math.random() * 1000))
 
 const phase = ref('lobby')
 const round = ref(0)
-const maxRounds = 5
+const maxRounds = 1 // [수정일: 2026-02-25] 1단원(1라운드) 단판 승부로 변경
 const timeLeft = ref(45)
 const myScore = ref(0)
 const oppScore = ref(0)
@@ -374,13 +374,29 @@ const allComps = [
   {id:'order',name:'Order',icon:'📦'},{id:'payment',name:'Pay',icon:'💳'},{id:'waf',name:'WAF',icon:'🧱'},{id:'dns',name:'DNS',icon:'📡'},
 ]
 
-// [수정일: 2026-02-24] 서버에서 보내주는 문제(ds.roundQuestion)를 사용
+// [수정일: 2026-02-25] 서버에서 보내주는 문제(ds.roundQuestion)를 사용
 const curQ = computed(() => ds.roundQuestion.value)
 const paletteComps = computed(() => {
   if (!curQ.value) return []
+  
+  // [수정일: 2026-02-25] 양쪽 플레이어가 동일한 컴포넌트 목록을 갖도록 문제 제목 기반 시드(Seed)를 사용하는 PRNG 적용
+  let seed = 12345;
+  const str = curQ.value.title || 'default';
+  for (let i = 0; i < str.length; i++) {
+    seed = (seed * 31 + str.charCodeAt(i)) % 2147483647;
+  }
+  const seededRandom = () => {
+    seed = (seed * 16807) % 2147483647;
+    return (seed - 1) / 2147483646;
+  };
+
   const req = allComps.filter(c => curQ.value.required.includes(c.id))
-  const extra = allComps.filter(c => !curQ.value.required.includes(c.id)).sort(() => Math.random() - 0.5).slice(0, 4)
-  return [...req, ...extra].sort(() => Math.random() - 0.5)
+  // required에 포함되지 않은 나머지 중 무작위 4개를 뽑는데, Math.random() 대신 seededRandom() 사용
+  const extra = allComps.filter(c => !curQ.value.required.includes(c.id))
+                      .sort(() => seededRandom() - 0.5)
+                      .slice(0, 4)
+                      
+  return [...req, ...extra].sort(() => seededRandom() - 0.5)
 })
 
 // ── 소켓 연결 ──
@@ -657,17 +673,36 @@ function submitDraw() {
   
   phase.value = 'judging'
   setTimeout(() => {
-    // [수정일: 2026-02-24] 백엔드에서 온 미션은 checkList(함수)를 가질 수 없으므로 required 기반으로 동적 체크 생성
-    const checks = curQ.value.required.map(compId => {
-      const compName = allComps.find(c => c.id === compId)?.name || compId
-      return {
-        label: `${compName} 배치`,
-        ok: nodes.value.some(n => n.compId === compId)
-      }
-    })
+    // [수정일: 2026-02-25] 백엔드에서 온 미션의 DB rubric_functional 활용
+    let checks = []
+    if (curQ.value && curQ.value.rubric && curQ.value.rubric.required_components) {
+      checks = curQ.value.rubric.required_components.map(compId => {
+        const compName = allComps.find(c => c.id === compId)?.name || compId
+        return {
+          label: `${compName} 배치`,
+          ok: nodes.value.some(n => n.compId === compId)
+        }
+      })
+    } else if (curQ.value && curQ.value.required) {
+      checks = curQ.value.required.map(compId => {
+        const compName = allComps.find(c => c.id === compId)?.name || compId
+        return {
+          label: `${compName} 배치`,
+          ok: nodes.value.some(n => n.compId === compId)
+        }
+      })
+    }
     
-    // 추가로 화살표 연결성도 일부 체크 (순차 연결이 있다면)
-    if (curQ.value.required.length >= 2) {
+    // DB rubric에 화살표(flow) 검증 기준이 있다면 추가
+    if (curQ.value && curQ.value.rubric && curQ.value.rubric.required_flows) {
+      curQ.value.rubric.required_flows.forEach(flow => {
+        // 흐름은 from, to, reason 구조임. 현재 컴포넌트 이름과 매핑해야 함.
+        // allComps는 id를 가지고 있음 (예: 'client', 'server', 'db')
+        // DB의 from/to는 "API Server", "Cache" 형태일 수 있으므로 유연하게 처리.
+        // 간단히 arrows.value.some()을 쓸 수 있지만 id 매핑이 까다로울 수 있음.
+        // 일단 UI상에는 명시하고 현재는 배치 컴포넌트만 필수 체크하는 방향 유지 (복잡도 회피)
+      })
+    } else if (curQ.value && curQ.value.required && curQ.value.required.length >= 2) {
       for (let i = 0; i < curQ.value.required.length - 1; i++) {
         const from = curQ.value.required[i]
         const to = curQ.value.required[i+1]

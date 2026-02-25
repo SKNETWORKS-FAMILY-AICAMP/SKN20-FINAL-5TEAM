@@ -31,7 +31,7 @@
           <p class="team-label" style="margin-top: 1rem;">모드 설정</p>
           <div class="team-btns">
             <button
-              v-for="n in [2, 3]" :key="n"
+              v-for="n in [2, 3, 4, 5, 6, 8]" :key="n"
               class="btn-team" :class="{ active: teamSize === n }"
               @click="teamSize = n"
             >{{ n }}인 팀</button>
