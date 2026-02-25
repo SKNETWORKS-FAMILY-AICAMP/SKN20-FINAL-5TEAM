@@ -1171,26 +1171,8 @@ function onInterviewerDuckError() {
 }
 
 // ============================================
-// 게임 상태 저장/로드 (LocalStorage)
+// 게임 상태 관리 (Progress Store 연동)
 // ============================================
-const STORAGE_KEY = 'bugHuntGameData';
-
-function loadGameData() {
-  try {
-    const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : null;
-  } catch {
-    return null;
-  }
-}
-
-function saveGameData(data) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  } catch (e) {
-    console.warn('Failed to save game data:', e);
-  }
-}
 
 // 초기 게임 데이터
 const defaultGameData = {
@@ -1206,9 +1188,59 @@ const defaultGameData = {
   }
 };
 
-// 게임 데이터 로드 또는 초기화
-const savedData = loadGameData();
-const gameData = reactive(savedData || { ...defaultGameData });
+// 게임 데이터 (서버 동기화 방식으로 전환)
+const gameData = reactive({ ...defaultGameData });
+
+async function syncBugHuntProgress() {
+  try {
+    const { useProgressStore } = await import('@/stores/progress');
+    const store = useProgressStore();
+    
+    // API 호출 전이라면 패치
+    if (store.solvedRecords.length === 0) {
+        await store.fetchAllProgress();
+    }
+    
+    const bhRecords = store.solvedRecords.filter(r => 
+        r.practice_detail && String(r.practice_detail).includes('bughunt')
+    );
+    
+    let totalScore = 0;
+    const completed = [];
+    
+    bhRecords.forEach(r => {
+      totalScore += r.score;
+      if (r.submitted_data?.mission_id) {
+         const mId = `progressive_${r.submitted_data.mission_id}`;
+         if (!completed.includes(mId)) completed.push(mId);
+      } else {
+         const parts = String(r.practice_detail).split('_');
+         if (parts.length > 1) {
+            const mId = `progressive_${parts[1]}`;
+            if (!completed.includes(mId)) completed.push(mId);
+         }
+      }
+    });
+
+    gameData.completedProblems = completed;
+    gameData.totalScore = totalScore;
+    gameData.xp = totalScore * 10;
+    
+    // 레벨 갱신
+    for (let i = levelTitles.length - 1; i >= 0; i--) {
+      if (gameData.xp >= levelTitles[i].xpRequired) {
+        gameData.level = levelTitles[i].level;
+        break;
+      }
+    }
+  } catch (err) {
+    console.warn("BugHunt progress sync error:", err);
+  }
+}
+
+onMounted(() => {
+   syncBugHuntProgress();
+});
 
 // Monaco Editor 설정
 const editorOptions = {
@@ -1239,10 +1271,7 @@ function clearAllTimeouts() {
   activeTimeouts.clear();
 }
 
-// 게임 데이터 변경 시 자동 저장
-watch(gameData, (newData) => {
-  saveGameData(newData);
-}, { deep: true });
+// (로컬 스토리지 실시간 자동저장 로직 제거됨)
 
 // ============================================
 // 레벨 시스템
@@ -2729,7 +2758,33 @@ async function completeMission() {
 
   // 백엔드 activity API에 점수 제출 (Protein Shake 적립)
   // 이제 aiEvaluationResult.value가 설정된 상태이므로 llm_evaluation이 포함됨
-  submitToActivity();
+  await submitToActivity(); // 비동기 대기 추가
+
+  // [버그 수정 - 2026-02-24] 다음 스테이지 해금(Unlock) 로직 복구
+  try {
+    const mId = currentProgressiveMission.value?.id;
+    const mIndex = progressiveProblems.value.findIndex(m => m.id === mId);
+    
+    if (mIndex !== -1) {
+      const { useProgressStore } = await import('@/stores/progress');
+      const progressStore = useProgressStore();
+      const { useGameStore } = await import('@/stores/game');
+      const gameStore = useGameStore();
+
+      if (gameStore.activeUnit?.id) {
+        // 현재 노드 해금 (재확인)
+        await progressStore.unlockNode(gameStore.activeUnit.id, mIndex);
+        // 다음 노드가 있다면 해금
+        if (mIndex + 1 < progressiveProblems.value.length) {
+          await progressStore.unlockNode(gameStore.activeUnit.id, mIndex + 1);
+        }
+        // UI 상태 실시간 동기화를 위해 전체 진행도 갱신
+        await progressStore.fetchAllProgress();
+      }
+    }
+  } catch (err) {
+    console.error('BugHunt: Failed to unlock next stage:', err);
+  }
 }
 
 // Activity API에 점수 제출 (Protein Shake 적립)
@@ -3176,62 +3231,9 @@ function resetGameData() {
 }
 
 // ============================================
-// LocalStorage 마이그레이션
+// LocalStorage 마이그레이션 삭제 (2026-02-24)
+// - DB 기반 progressStore 로직으로 완전 통합
 // ============================================
-
-function migrateGameDataToStages() {
-  const data = loadGameData();
-  if (!data || data._migrated_v3) return;
-
-  const completed = data.completedProblems || [];
-  const newCompleted = [...completed];
-
-  // P1 step1 → S1 step1
-  if (completed.includes('progressive_P1_step1')) {
-    if (!newCompleted.includes('progressive_S1_step1')) newCompleted.push('progressive_S1_step1');
-  }
-  // P1 step2 → S2 step1
-  if (completed.includes('progressive_P1_step2')) {
-    if (!newCompleted.includes('progressive_S2_step1')) newCompleted.push('progressive_S2_step1');
-  }
-  // P1 step3 → S2 step2
-  if (completed.includes('progressive_P1_step3')) {
-    if (!newCompleted.includes('progressive_S2_step2')) newCompleted.push('progressive_S2_step2');
-  }
-  // P1 mission complete → S1 + S2
-  if (completed.includes('progressive_P1')) {
-    if (!newCompleted.includes('progressive_S1')) newCompleted.push('progressive_S1');
-    if (!newCompleted.includes('progressive_S2')) newCompleted.push('progressive_S2');
-  }
-
-  // P2→S4, P3→S5, P4→S6, P5→S7
-  const mapping = { 'P2': 'S4', 'P3': 'S5', 'P4': 'S6', 'P5': 'S7' };
-  for (const [oldId, newId] of Object.entries(mapping)) {
-    for (const entry of completed) {
-      if (entry.startsWith(`progressive_${oldId}`)) {
-        const newEntry = entry.replace(`progressive_${oldId}`, `progressive_${newId}`);
-        if (!newCompleted.includes(newEntry)) newCompleted.push(newEntry);
-      }
-    }
-  }
-
-  // 기존 S3~S6 데이터를 S4~S7로 시프트 (덮어쓰기 방지를 위해 역순 적용)
-  const shiftMapping = { 'S6': 'S7', 'S5': 'S6', 'S4': 'S5', 'S3': 'S4' };
-  for (const oldId of Object.keys(shiftMapping)) {
-    const newId = shiftMapping[oldId];
-    for (const entry of completed) {
-      if (entry.startsWith(`progressive_${oldId}`)) {
-        const newEntry = entry.replace(`progressive_${oldId}`, `progressive_${newId}`);
-        if (!newCompleted.includes(newEntry)) newCompleted.push(newEntry);
-      }
-    }
-  }
-
-  data.completedProblems = newCompleted;
-  data._migrated_v3 = true;
-  saveGameData(data);
-  Object.assign(gameData, data);
-}
 
 // ============================================
 // API 데이터 로딩
@@ -3280,8 +3282,6 @@ const fetchProgressiveProblems = async () => {
 onMounted(async () => {
   // DB에서 데이터 로딩
   await fetchProgressiveProblems();
-  // LocalStorage 마이그레이션 먼저 실행
-  migrateGameDataToStages();
 
   // 이미지 preload (애니메이션 전에 미리 로딩)
   const imagesToPreload = [duckIdle, duckEating, duckFlying, duckSad, unitDuck];

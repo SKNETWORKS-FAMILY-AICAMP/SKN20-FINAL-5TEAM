@@ -1,5 +1,4 @@
-# 수정일: 2026-02-12
-# 수정내용: CurrentUserMiddleware 구현 - 전역에서 현재 요청 중인 사용자를 추적하기 위함
+"""현재 로그인 유저 자동 추적 미들웨어 — BaseModel의 create_id/update_id에 '누가 했는지' 자동 기록."""
 
 import threading
 

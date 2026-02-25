@@ -959,6 +959,7 @@
 
 <script>
 import axios from 'axios';
+import { useGameStore } from '@/stores/game';
 
 export default {
   name: 'JobPlannerModal',
@@ -1077,6 +1078,10 @@ export default {
         // 파싱 완료 후 정보 충분도 자동 체크
         if (this.jobData) {
           this.checkDataCompleteness();
+
+          // [수정일: 2026-02-23] 분석된 JD 데이터를 전역 스토어에 공유 (Coduck Wars 연동용)
+          const gameStore = useGameStore();
+          gameStore.setLastParsedJob(this.jobData);
         }
       }
     },

@@ -132,6 +132,7 @@ export function useMonacoEditor(currentMission, editorState) {
     onBeforeUnmount(() => {
         if (stateUpdateTimer) clearTimeout(stateUpdateTimer);
         if (decorationTimer) clearTimeout(decorationTimer);
+        monacoEditorRaw = null; // Unmount 처리 시 에디터 참조 해제
     });
 
     // 스테이지 변경 시 템플릿 리로드
@@ -148,15 +149,22 @@ export function useMonacoEditor(currentMission, editorState) {
     watch(() => editorState.userCode, (newCode) => {
         if (!monacoEditorRaw) return;
 
-        const normalize = (s) => (s || "").replace(/\r\n/g, '\n');
-        const normalizedNew = normalize(newCode);
-        const normalizedOld = normalize(monacoEditorRaw.getValue());
+        try {
+            const model = monacoEditorRaw.getModel();
+            if (!model) return; // 모델이 해제된 상태면 스킵
 
-        if (normalizedNew !== normalizedOld) {
-            // 사용자가 입력 중이 아닐 때만 setValue (커서 튐 방지)
-            if (!monacoEditorRaw.hasTextFocus()) {
-                monacoEditorRaw.setValue(newCode || "");
+            const normalize = (s) => (s || "").replace(/\r\n/g, '\n');
+            const normalizedNew = normalize(newCode);
+            const normalizedOld = normalize(monacoEditorRaw.getValue());
+
+            if (normalizedNew !== normalizedOld) {
+                // 사용자가 입력 중이 아닐 때만 setValue (커서 튐 방지)
+                if (!monacoEditorRaw.hasTextFocus()) {
+                    monacoEditorRaw.setValue(newCode || "");
+                }
             }
+        } catch (e) {
+            console.warn("[MonacoEditor] Watcher error suppressed:", e);
         }
     }, { immediate: false });
 

@@ -4,71 +4,226 @@
         "pk": "unit01_01",
         "fields": {
             "practice": "unit01",
-            "detail_title": "맛있는 라면 끓이기",
+            "detail_title": "전처리 데이터 누수 방어 시스템 설계",
             "detail_type": "PROBLEM",
             "content_data": {
-                "id": "quest_lv1_01",
-                "level": 1,
-                "title": "맛있는 라면 끓이기",
-                "description": "라면을 끓이는 올바른 순서를 맞춰보세요.",
-                "logic_type": "순차",
-                "emoji": "🍜",
+                "id": 1,
+                "title": "전처리 데이터 누수 방어 시스템 설계",
+                "category": "System Reboot",
+                "emoji": "🚨",
+                "desc": "AI 모델의 신뢰성을 파괴하는 전처리 데이터 누수를 차단하고 견고한 검증 규칙을 설계합니다.",
+                "rewardXP": 500,
+                "subModuleTitle": "LEAKAGE_GUARD",
+                "character": {
+                    "name": "Coduck",
+                    "image": "/assets/characters/coduck.png"
+                },
+                "scenario": "신입 개발자가 작성한 이탈 예측 모델이 검증(Validation) 정확도 95%를 기록하며 배포되었으나, 실제 고객 데이터가 들어오는 운영(Serving) 환경에서는 68%의 성능을 보이며 비즈니스에 큰 손실을 입혔습니다. 조사 결과, 데이터 전처리 단계에서 '정보 유출(Leakage)'이 발생한 것으로 파악되었습니다.",
                 "cards": [
                     {
-                        "id": "b1",
-                        "text_ko": "냄비에 물을 넣고 끓인다",
-                        "text_py": "boil_water()",
-                        "icon": "💧",
-                        "color": "blue",
-                        "action": "boil_water"
+                        "icon": "🚑",
+                        "text": "STEP 1: 위험 진단",
+                        "coduckMsg": "주니어 개발자의 치명적인 실수가 발견되었습니다. 무엇이 문제인지 먼저 파악합시다."
                     },
                     {
-                        "id": "b2",
-                        "text_ko": "물이 끓으면 면과 스프를 넣는다",
-                        "text_py": "put_ingredients()",
-                        "icon": "🍜",
-                        "color": "purple",
-                        "action": "add_ramen"
+                        "icon": "📝",
+                        "text": "STEP 2: 규칙 설계",
+                        "coduckMsg": "이런 실수가 재발하지 않도록 AI가 자동으로 감지할 수 있는 검증 규칙을 만드세요."
                     },
                     {
-                        "id": "b3",
-                        "text_ko": "3분 뒤 맛있게 먹는다",
-                        "text_py": "eat_ramen()",
-                        "icon": "😋",
-                        "color": "orange",
-                        "action": "eat"
+                        "icon": "💻",
+                        "text": "STEP 3: 심화 검증",
+                        "coduckMsg": "단순한 규칙을 넘어, 더 교묘한 누수 패턴도 잡아낼 수 있는지 확인해 봅시다."
+                    },
+                    {
+                        "icon": "⚖️",
+                        "text": "STEP 4: 최종 평가",
+                        "coduckMsg": "당신의 아키텍처 설계 능력을 AI 아키텍트가 정밀 평가합니다."
                     }
                 ],
-                "correctSequence": [
-                    "b1",
-                    "b2",
-                    "b3"
-                ],
-                "validation": {
-                    "puzzle_solution": [
-                        {
-                            "id": "b1",
-                            "indent": 0
-                        },
-                        {
-                            "id": "b2",
-                            "indent": 0
-                        },
-                        {
-                            "id": "b3",
-                            "indent": 0
-                        }
-                    ],
-                    "execution": {
-                        "function_name": "cook_ramen",
-                        "test_cases": [
-                            {
-                                "input": "",
-                                "expected": "'None'",
-                                "type": "public"
-                            }
+                "blueprint": "from sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\n# 1. Isolation: 전처리 전 물리적 분리 (최우선 방어선)\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)\n\n# 2. Anchor: 오직 학습 데이터로만 통계량(fit) 추출\nscaler = StandardScaler()\nscaler.fit(X_train)\n\n# 3. Consistency: 학습셋의 기준점으로 테스트셋까지 변환\nX_train_scaled = scaler.transform(X_train)\nX_test_scaled = scaler.transform(X_test)",
+                "blueprintSteps": [
+                    {
+                        "id": "s1",
+                        "python": "X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)",
+                        "pseudo": "먼저 데이터를 학습용과 검증용으로 물리적 격리(Isolation)한다.",
+                        "keywords": [
+                            "격리",
+                            "분리",
+                            "학습/검증",
+                            "Isolation"
+                        ]
+                    },
+                    {
+                        "id": "s2",
+                        "python": "scaler.fit(X_train)",
+                        "pseudo": "학습 데이터(train)에서만 통계량을 추출하여 기준점(Anchor)을 설정한다.",
+                        "keywords": [
+                            "기준점",
+                            "학습데이터",
+                            "통계량",
+                            "fit"
+                        ]
+                    },
+                    {
+                        "id": "s3",
+                        "python": "scaler.transform(X_test)",
+                        "pseudo": "테스트 데이터(test)에는 fit 없이 transform만 적용하여 일관성(Consistency)을 유지한다.",
+                        "keywords": [
+                            "일관성",
+                            "테스트데이터",
+                            "transform",
+                            "동일변환"
                         ]
                     }
+                ],
+                "interviewQuestions": [
+                    {
+                        "id": "concept_1_choice",
+                        "type": "CHOICE",
+                        "question": "Q1. [격리의 시점] 데이터 오염을 막는 첫 번째 방어선\n신입 개발자가 범한 가장 큰 실수는 scaler.fit(df)를 통해 전체 데이터의 정보를 섞어버린 것입니다. 이를 방지하기 위한 가장 우선적인 조치는 무엇인가요?",
+                        "options": [
+                            {
+                                "text": "더 많은 데이터를 수집하여 모델을 복잡하게 만든다.",
+                                "correct": false,
+                                "feedback": "데이터 양을 늘리는 것과 정보 유출 방지는 무관합니다."
+                            },
+                            {
+                                "text": "전처리(Scaling)를 모두 마친 후 데이터를 나눈다.",
+                                "correct": false,
+                                "feedback": "이것이 바로 신입 개발자가 범한 실수(누수 발생)입니다."
+                            },
+                            {
+                                "text": "데이터 전처리 프로세스가 시작되기 전, 학습(Train)과 테스트(Test) 데이터를 물리적으로 분리(격리)한다.",
+                                "correct": true,
+                                "feedback": "정답입니다! 전처리 전 분리가 가장 확실한 방어선입니다."
+                            },
+                            {
+                                "text": "운영 환경에서는 전처리를 생략한다.",
+                                "correct": false,
+                                "feedback": "학습 때와 동일한 전처리가 운영 환경에서도 반드시 필요합니다."
+                            }
+                        ],
+                        "context": "데이터 전처리 누수(Leakage) 원천 차단 전략"
+                    },
+                    {
+                        "id": "concept_2_choice",
+                        "type": "CHOICE",
+                        "question": "Q2. [기준점의 설정] '저울'은 무엇으로 만들어야 하는가?\n데이터를 분리한 후, 표준화(Standardization)를 위한 평균과 표준편차 값은 어느 데이터셋에서 추출해야 하나요?",
+                        "options": [
+                            {
+                                "text": "전체 데이터셋: 데이터가 많을수록 통계량이 정확하기 때문이다.",
+                                "correct": false,
+                                "feedback": "전체 데이터를 사용하면 테스트 데이터의 정보가 스며들어 '데이터 누수'가 발생합니다."
+                            },
+                            {
+                                "text": "테스트 데이터셋: 실제 운영 환경과 유사한 분포를 가져야 하기 때문이다.",
+                                "correct": false,
+                                "feedback": "테스트 데이터는 미래의 데이터 역할을 해야 하며, 이를 기준으로 삼아서는 안 됩니다."
+                            },
+                            {
+                                "text": "학습 데이터셋: 모델이 '이미 알고 있는 과거의 정보'만을 기준으로 삼아야 하기 때문이다.",
+                                "correct": true,
+                                "feedback": "정답입니다! 학습 데이터에서 얻은 '저울(평균/표준편차)'로 모든 데이터를 측정해야 정보 유출이 없습니다."
+                            },
+                            {
+                                "text": "무작위 추출: 편향을 방지하기 위해 매번 새로 계산해야 한다.",
+                                "correct": false,
+                                "feedback": "기준점(저울)이 매번 바뀌면 모델의 판단 기준이 흔들리게 됩니다."
+                            }
+                        ],
+                        "context": "신뢰할 수 있는 모델 평가 기준 확립"
+                    }
+                ],
+                "designContext": {
+                    "title": "[미션] 데이터 오염 원천 차단 설계",
+                    "description": "실제 운영 환경에서 이 모델이 '바보'가 되지 않도록, 데이터 오염을 원천 차단하는 전처리 파이프라인의 설계 원칙과 그 순서를 '의사코드(Pseudo Code)' 형태로 서술하세요.",
+                    "incidentCode": "scaler = StandardScaler()\nscaler.fit(df)  # ⚠️ 전체 데이터로 fit\nX_train = scaler.transform(df[:800])\nX_test = scaler.transform(df[800:])",
+                    "incidentProblem": "fit() 실행 시점에 Train/Test 분할이 되지 않아 Test 통계량이 Train에 영향",
+                    "currentIncident": "🚨 긴급 사고 보고: 전처리 데이터 누수 감지\n주니어 개발자가 작성한 전처리 코드가 Production에 배포되었습니다.\nfit() 실행 시점에 Train/Test 분할이 되지 않아 Test 통계량이 Train에 영향을 주었습니다.\n\n결과: Train 정확도 95% → Test 정확도 68% (27%p 폭락)",
+                    "engineeringRules": [
+                        "Train 데이터로만 fit 한다.",
+                        "Test 데이터는 transform만 수행한다.",
+                        "미래 데이터의 정보는 사용하지 않는다.",
+                        "학습과 서빙은 동일한 전처리 흐름을 사용한다."
+                    ],
+                    "writingGuide": "[필수 포함 조건 (Constraint)]\n답이 여러 갈래로 튀지 않도록 다음 3가지 키워드를 반드시 사용하여 논리를 구성하게 합니다:\n격리 (Isolation): 데이터를 나누는 시점\n기준점 (Anchor): 통계량(fit)을 추출할 대상\n일관성 (Consistency): 학습과 운영 환경의 동일한 변환 방식"
+                },
+                "deepDiveScenarios": [
+                    {
+                        "id": "drift",
+                        "type": "SCENARIO_DESCRIPTIVE",
+                        "axis": "시간",
+                        "title": "데이터 드리프트 시나리오",
+                        "question": "1년 뒤 고객층 변화로 데이터 분포가 바뀌었습니다. 기존 기준점(Anchor)을 고수하면 성능이 떨어질 텐데, '일관성' 원칙을 깨고 기준을 실시간으로 바꿀 것인가요? 아니면 다른 대안이 있나요?",
+                        "intent": "모델의 노후화를 인지하고 주기적인 재학습 파이프라인 설계 역량 확인.",
+                        "scoringKeywords": [
+                            "모니터링",
+                            "재학습",
+                            "기준점 갱신",
+                            "Retraining"
+                        ],
+                        "modelAnswer": "실시간으로 기준을 바꾸면 판단 근거가 흔들립니다. 대신 '모니터링'을 통해 성능 저하를 감지하고, 새로운 데이터로 '주기적인 재학습'을 진행하여 기준점(Anchor)을 공식적으로 갱신해야 합니다."
+                    },
+                    {
+                        "id": "realtime",
+                        "type": "SCENARIO_DESCRIPTIVE",
+                        "axis": "환경",
+                        "title": "실시간 서빙 시나리오",
+                        "question": "0.1초 내 응답이 필요한 시스템입니다. 매번 격리와 기준점(fit) 계산을 반복할 순 없는데, 정확도를 지키며 속도를 확보할 엔지니어링적 방법은 무엇인가요?",
+                        "intent": "학습 시의 상태를 서빙 환경으로 전이하는 직렬화 기술 확인.",
+                        "scoringKeywords": [
+                            "Pickle",
+                            "Joblib",
+                            "직렬화",
+                            "객체화",
+                            "Serialization"
+                        ],
+                        "modelAnswer": "학습 단계에서 생성된 Scaler 객체를 'Pickle'이나 'Joblib'으로 직렬화(Serialization)하여 저장합니다. 운영 환경에서는 이를 로드하여 fit 과정 없이 transform만 수행함으로써 정확도와 속도를 동시에 잡습니다."
+                    },
+                    {
+                        "id": "scarcity",
+                        "type": "SCENARIO_DESCRIPTIVE",
+                        "axis": "한계",
+                        "title": "데이터 부족 및 불균형 시나리오",
+                        "question": "데이터가 100건뿐이라 격리를 하면 학습이 안 되고, 안 하자니 오염이 걱정됩니다. 원칙을 지키면서도 모델을 제대로 검증할 전략은?",
+                        "intent": "소량 데이터셋에서의 통계적 유의성 확보 능력 확인.",
+                        "scoringKeywords": [
+                            "K-Fold",
+                            "Stratified",
+                            "교차 검증",
+                            "층화"
+                        ],
+                        "modelAnswer": "단순 분할 대신 'K-Fold 교차 검증'이나 'Stratified Sampling(층화 추출)'을 사용합니다. 데이터를 여러 조각으로 나누어 모든 데이터가 한 번씩은 검증용으로 쓰이게 하되, 매 루프마다 격리 원칙은 엄격히 지킵니다."
+                    }
+                ],
+                "checklist": [
+                    {
+                        "id": "check_isolation",
+                        "label": "격리 (Isolation) 포함",
+                        "patterns": [
+                            "격리|분리|나누|나눔|isolation|split"
+                        ]
+                    },
+                    {
+                        "id": "check_anchor",
+                        "label": "기준점 (Anchor) 정의",
+                        "patterns": [
+                            "기준점|기준|통계량|fit|anchor|학습"
+                        ]
+                    },
+                    {
+                        "id": "check_consistency",
+                        "label": "일관성 (Consistency) 확보",
+                        "patterns": [
+                            "일관성|동일|변환|consistency|transform"
+                        ]
+                    }
+                ],
+                "placeholder": "격리, 기준점, 일관성 원칙을 바탕으로 당신만의 데이터 전처리 설계를 서술하세요...\n예: 1. train_test_split으로 데이터를 분리한다.",
+                "mapPos": {
+                    "x": 100,
+                    "y": 350
                 }
             },
             "display_order": 1,
@@ -83,71 +238,223 @@
         "pk": "unit01_02",
         "fields": {
             "practice": "unit01",
-            "detail_title": "화분에 꽃 심기",
+            "detail_title": "과적합 방어 정규화 시스템 설계",
             "detail_type": "PROBLEM",
             "content_data": {
-                "id": "quest_lv1_02",
-                "level": 1,
-                "title": "화분에 꽃 심기",
-                "description": "씨앗이 꽃이 되는 과정을 순서대로 나열해 보세요.",
-                "logic_type": "순차",
-                "emoji": "🌱",
+                "id": 2,
+                "title": "과적합 방어 정규화 시스템 설계",
+                "category": "Overfit Shield",
+                "emoji": "🛡️",
+                "desc": "모델이 학습 데이터에만 과도하게 최적화되어 일반화 능력을 잃는 과적합을 방지하고, 정규화 기법으로 강건한 모델을 설계합니다.",
+                "rewardXP": 600,
+                "subModuleTitle": "OVERFITTING_GUARD",
+                "character": {
+                    "name": "Coduck",
+                    "image": "/assets/characters/coduck.png"
+                },
+                "scenario": "강화학습 기반 가격 예측 모델이 학습 때는 R² 스코어 0.98을 달성했으나, 새로운 시간대 데이터로 테스트하니 0.42로 급락했습니다. 모델이 학습 노이즈까지 학습해버린 '과적합(Overfitting)'이 의심됩니다.",
                 "cards": [
                     {
-                        "id": "b1",
-                        "text_ko": "화분에 흙을 채운다",
-                        "text_py": "fill_soil()",
-                        "icon": "🪴",
-                        "color": "green",
-                        "action": "fill_soil"
+                        "icon": "🔍",
+                        "text": "STEP 1: 과적합 진단",
+                        "coduckMsg": "학습과 검증의 성능 차이를 분석해 과적합 정도를 파악합시다."
                     },
                     {
-                        "id": "b2",
-                        "text_ko": "흙 속에 씨앗을 심는다",
-                        "text_py": "plant_seed()",
-                        "icon": "🌱",
-                        "color": "blue",
-                        "action": "plant_seed"
+                        "icon": "⚙️",
+                        "text": "STEP 2: 정규화 설계",
+                        "coduckMsg": "L1/L2 정규화, 드롭아웃, 조기종료 등의 기법으로 모델의 복잡도를 제어하세요."
                     },
                     {
-                        "id": "b3",
-                        "text_ko": "물을 충분히 준다",
-                        "text_py": "water_flower()",
-                        "icon": "💧",
-                        "color": "blue",
-                        "action": "water"
+                        "icon": "🎯",
+                        "text": "STEP 3: 파라미터 최적화",
+                        "coduckMsg": "정규화 강도를 조정하여 최적의 성능 균형점을 찾아봅시다."
+                    },
+                    {
+                        "icon": "✅",
+                        "text": "STEP 4: 최종 검증",
+                        "coduckMsg": "일반화된 모델이 새로운 데이터에도 안정적인지 확인합니다."
                     }
                 ],
-                "correctSequence": [
-                    "b1",
-                    "b2",
-                    "b3"
-                ],
-                "validation": {
-                    "puzzle_solution": [
-                        {
-                            "id": "b1",
-                            "indent": 0
-                        },
-                        {
-                            "id": "b2",
-                            "indent": 0
-                        },
-                        {
-                            "id": "b3",
-                            "indent": 0
-                        }
-                    ],
-                    "execution": {
-                        "function_name": "plant_flower",
-                        "test_cases": [
-                            {
-                                "input": "",
-                                "expected": "'None'",
-                                "type": "public"
-                            }
+                "blueprint": "from sklearn.linear_model import Ridge, Lasso\nfrom sklearn.ensemble import RandomForestRegressor\n\n# 1. Complexity Control: 모델 복잡도 제어 (L2 정규화)\nmodel_l2 = Ridge(alpha=1.0)\nmodel_l2.fit(X_train, y_train)\n\n# 2. Feature Selection: 불필요한 특성 제거 (L1 정규화)\nmodel_l1 = Lasso(alpha=0.01)\nmodel_l1.fit(X_train, y_train)\n\n# 3. Ensemble Stabilization: 앙상블 기법으로 일반화 강화\nmodel_ensemble = RandomForestRegressor(n_estimators=100, max_depth=5)\nmodel_ensemble.fit(X_train, y_train)",
+                "blueprintSteps": [
+                    {
+                        "id": "s1",
+                        "python": "model = Ridge(alpha=1.0)",
+                        "pseudo": "L2 정규화를 통해 모델의 계수 크기를 제어하여 과도한 가중치를 억제한다.",
+                        "keywords": [
+                            "정규화",
+                            "L2",
+                            "복잡도제어",
+                            "Ridge"
+                        ]
+                    },
+                    {
+                        "id": "s2",
+                        "python": "model.fit(X_train, y_train)",
+                        "pseudo": "학습 데이터에서 정규화된 모델을 적합시켜 일반화 성능을 높인다.",
+                        "keywords": [
+                            "적합",
+                            "학습",
+                            "정규화"
+                        ]
+                    },
+                    {
+                        "id": "s3",
+                        "python": "score_train vs score_test",
+                        "pseudo": "학습 데이터와 검증 데이터의 성능 차이를 모니터링하여 과적합 정도를 진단한다.",
+                        "keywords": [
+                            "모니터링",
+                            "성능차이",
+                            "과적합진단"
                         ]
                     }
+                ],
+                "interviewQuestions": [
+                    {
+                        "id": "overfitting_1_choice",
+                        "type": "CHOICE",
+                        "question": "Q1. [과적합의 신호] 학습 R²=0.98, 검증 R²=0.42가 의미하는 것은?\n모델의 어떤 병증을 시사하나요?",
+                        "options": [
+                            {
+                                "text": "모델이 충분히 복잡하지 않아 데이터를 제대로 학습하지 못했다.",
+                                "correct": false,
+                                "feedback": "학습 정확도가 높으므로 이 설명은 맞지 않습니다."
+                            },
+                            {
+                                "text": "모델이 학습 데이터의 노이즈까지 함께 학습하여 새로운 데이터에 적응하지 못했다.",
+                                "correct": true,
+                                "feedback": "정답입니다! 높은 학습 정확도와 낮은 검증 정확도는 과적합의 명확한 신호입니다."
+                            },
+                            {
+                                "text": "검증 데이터의 품질이 좋지 않아 테스트 결과가 신뢰할 수 없다.",
+                                "correct": false,
+                                "feedback": "56%의 성능 격차는 데이터 품질 문제가 아닌 모델의 과적합을 의미합니다."
+                            },
+                            {
+                                "text": "더 많은 데이터를 추가하면 자동으로 해결된다.",
+                                "correct": false,
+                                "feedback": "데이터 추가는 도움이 될 수 있지만, 정규화 같은 직접적인 개입이 필요합니다."
+                            }
+                        ],
+                        "context": "과적합의 원인 파악 및 진단"
+                    },
+                    {
+                        "id": "overfitting_2_choice",
+                        "type": "CHOICE",
+                        "question": "Q2. [정규화의 역할] Ridge 정규화(L2)와 Lasso 정규화(L1)의 차이점은?\n어느 상황에서 어느 것을 사용해야 하나요?",
+                        "options": [
+                            {
+                                "text": "L2는 계수를 0으로 만들고, L1은 계수 크기를 축소한다.",
+                                "correct": false,
+                                "feedback": "반대입니다. L1이 체계적으로 계수를 0으로 만듭니다."
+                            },
+                            {
+                                "text": "L1은 계수를 0으로 만들어 '특성 선택'을 수행하고, L2는 계수 크기를 축소해 '가중치 분산'을 제어한다.",
+                                "correct": true,
+                                "feedback": "정답입니다! L1은 피처 선택에, L2는 가중치 제어에 더 효과적입니다."
+                            },
+                            {
+                                "text": "L1과 L2는 동일한 역할을 하므로 어느 것을 선택해도 상관없다.",
+                                "correct": false,
+                                "feedback": "L1과 L2는 서로 다른 메커니즘으로 작동하며, 데이터 특성에 따라 선택해야 합니다."
+                            },
+                            {
+                                "text": "L1은 느리고 L2는 빨라서 항상 L2를 사용해야 한다.",
+                                "correct": false,
+                                "feedback": "속도 차이는 미미하며, 문제 특성에 맞는 방식을 선택해야 합니다."
+                            }
+                        ],
+                        "context": "정규화 기법의 선택과 적용"
+                    }
+                ],
+                "designContext": {
+                    "title": "[미션] 과적합 방어 정규화 설계",
+                    "description": "학습 데이터의 노이즈까지 학습한 과적합 모델을 개선하기 위해, 정규화 기법을 설계하고 적절한 정규화 강도(alpha)를 결정하는 엔지니어링 전략을 의사코드로 서술하세요.",
+                    "incidentCode": "# 과적합 상황\nmodel = LinearRegression()\nmodel.fit(X_train, y_train)\ntrain_score = 0.98  # 매우 높음\ntest_score = 0.42   # 매우 낮음 → 과적합!",
+                    "incidentProblem": "모델이 학습 데이터의 노이즈까지 학습하여 새로운 데이터에 일반화하지 못함",
+                    "currentIncident": "🛡️ 알림: 과적합 탐지\n가격 예측 모델이 학습 데이터에서는 뛰어난 성능(R²=0.98)을 보이지만,\n새로운 시간대 데이터에서는 급격히 성능이 떨어집니다(R²=0.42).\n\n이는 모델이 학습 데이터의 특수한 패턴과 노이즈를 암기했다는 증거입니다.",
+                    "engineeringRules": [
+                        "정규화 강도(alpha)를 점진적으로 조정한다.",
+                        "학습과 검증 성능을 동시에 모니터링한다.",
+                        "과적합과 과소적합 사이의 최적점을 찾는다.",
+                        "새로운 데이터에 대한 일반화 능력을 검증한다."
+                    ],
+                    "writingGuide": "[필수 포함 조건 (Constraint)]\n다음 3가지 개념을 반드시 포함하여 논리를 구성합니다:\n복잡도 제어 (Complexity Control): 모델의 학습 능력 제한\n특성 선택 (Feature Selection): 불필요한 특성 제거\n성능 모니터링 (Performance Monitoring): 학습/검증 성능 함께 추적"
+                },
+                "deepDiveScenarios": [
+                    {
+                        "id": "alpha_tuning",
+                        "type": "SCENARIO_DESCRIPTIVE",
+                        "axis": "성능",
+                        "title": "정규화 강도 튜닝 시나리오",
+                        "question": "alpha 값이 0에 가까우면 과적합이 생기고, 크면 과소적합(언더핏)이 발생합니다. 최적의 alpha를 찾는 체계적인 방법은?",
+                        "intent": "하이퍼파라미터 튜닝을 위한 검색 전략 이해도 확인.",
+                        "scoringKeywords": [
+                            "교차검증",
+                            "그리드서치",
+                            "정규화곡선",
+                            "GridSearchCV"
+                        ],
+                        "modelAnswer": "K-Fold 교차검증과 GridSearchCV를 사용하여 여러 alpha 값을 자동으로 시도하고, 검증 성능이 최고인 alpha를 선택합니다."
+                    },
+                    {
+                        "id": "model_complexity",
+                        "type": "SCENARIO_DESCRIPTIVE",
+                        "axis": "모델",
+                        "title": "모델 복잡도 선택 시나리오",
+                        "question": "선형 모델 vs 트리 기반 모델(Random Forest, XGBoost) 중 어떤 것이 과적합에 더 취약한가요?",
+                        "intent": "모델 아키텍처와 과적합 위험의 관계 이해도 확인.",
+                        "scoringKeywords": [
+                            "트리깊이",
+                            "모델표현력",
+                            "정규화메커니즘",
+                            "복잡도"
+                        ],
+                        "modelAnswer": "트리 기반 모델은 깊이가 깊을수록 과적합되기 쉽습니다. 따라서 max_depth, min_samples_split 등으로 트리의 깊이를 제한하고, 앙상블 개수도 적절히 조정해야 합니다."
+                    },
+                    {
+                        "id": "early_stopping",
+                        "type": "SCENARIO_DESCRIPTIVE",
+                        "axis": "학습",
+                        "title": "조기종료 전략 시나리오",
+                        "question": "신경망 학습 중 검증 손실이 증가하기 시작했습니다. 계속 학습해야 할까요, 멈춰야 할까요?",
+                        "intent": "조기종료(Early Stopping)를 통한 과적합 방지 방법 이해도 확인.",
+                        "scoringKeywords": [
+                            "조기종료",
+                            "검증손실",
+                            "성능저하감지",
+                            "모니터링"
+                        ],
+                        "modelAnswer": "검증 손실이 증가하면 과적합이 시작되었다는 신호입니다. '조기종료(Early Stopping)'를 사용하여 검증 성능이 떨어지면 학습을 멈추는 것이 정답입니다."
+                    }
+                ],
+                "checklist": [
+                    {
+                        "id": "check_control",
+                        "label": "복잡도 제어 (Complexity Control)",
+                        "patterns": [
+                            "복잡도|제어|정규화|L1|L2|Ridge|Lasso|depth|제한"
+                        ]
+                    },
+                    {
+                        "id": "check_selection",
+                        "label": "특성 선택 (Feature Selection)",
+                        "patterns": [
+                            "특성|선택|제거|가중치|분산|selection|feature"
+                        ]
+                    },
+                    {
+                        "id": "check_monitoring",
+                        "label": "성능 모니터링 (Performance Monitoring)",
+                        "patterns": [
+                            "성능|모니터링|추적|진단|accuracy|score|monitoring"
+                        ]
+                    }
+                ],
+                "placeholder": "복잡도 제어, 특성 선택, 성능 모니터링 원칙을 바탕으로 과적합 방어 전략을 서술하세요...\n예: 1. Ridge 정규화를 적용하여 가중치를 제어한다.",
+                "mapPos": {
+                    "x": 300,
+                    "y": 350
                 }
             },
             "display_order": 2,
@@ -162,137 +469,228 @@
         "pk": "unit01_03",
         "fields": {
             "practice": "unit01",
-            "detail_title": "비 오는 날 우산 챙기기",
+            "detail_title": "불균형 데이터 처리 시스템 설계",
             "detail_type": "PROBLEM",
             "content_data": {
-                "id": "quest_lv2_01",
-                "level": 2,
-                "title": "비 오는 날 우산 챙기기",
-                "description": "날씨가 '비'라면 우산을 챙기는 논리를 완성하세요.",
-                "logic_type": "선택",
-                "emoji": "☔",
+                "id": 3,
+                "title": "불균형 데이터 처리 시스템 설계",
+                "category": "Balance Keeper",
+                "emoji": "⚖️",
+                "desc": "클래스 불균형(정상 99% vs 이상 1%)으로 인한 모델 편향을 해결하고, 공정한 분류기를 설계합니다.",
+                "rewardXP": 650,
+                "subModuleTitle": "IMBALANCE_GUARD",
+                "character": {
+                    "name": "Coduck",
+                    "image": "/assets/characters/coduck.png"
+                },
+                "scenario": "이상 거래 탐지 시스템에서 정상 거래는 99%, 이상 거래는 1%입니다. 모델을 학습시키니 모든 거래를 '정상'으로 분류하면 정확도가 99%가 나옵니다. 그런데 실제 이상 거래는 하나도 찾지 못했습니다.",
                 "cards": [
                     {
-                        "id": "b1",
-                        "text_ko": "오늘 날씨를 확인한다",
-                        "text_py": "weather = check_weather()",
-                        "icon": "🌤️",
-                        "color": "blue",
-                        "action": "check_weather"
+                        "icon": "📊",
+                        "text": "STEP 1: 불균형 분석",
+                        "coduckMsg": "클래스 분포의 불균형이 모델 성능에 어떤 영향을 미치는지 파악합시다."
                     },
                     {
-                        "id": "b2",
-                        "text_ko": "만약 날씨가 '비'와 같다면",
-                        "text_py": "if weather == 'rain':",
-                        "icon": "❓",
-                        "color": "purple",
-                        "isCondition": true,
-                        "action": "check_rain"
+                        "icon": "🔄",
+                        "text": "STEP 2: 샘플링 전략",
+                        "coduckMsg": "오버샘플링, 언더샘플링, SMOTE 등으로 클래스 분포를 조정하세요."
                     },
                     {
-                        "id": "b3",
-                        "text_ko": "    우산을 챙긴다",
-                        "text_py": "    take_umbrella()",
-                        "icon": "☔",
-                        "color": "green",
-                        "indent": 1,
-                        "action": "take_umbrella"
+                        "icon": "⚖️",
+                        "text": "STEP 3: 평가지표 설정",
+                        "coduckMsg": "정확도 대신 Precision, Recall, F1-Score, AUC-ROC를 사용하여 공정한 평가를 하세요."
+                    },
+                    {
+                        "icon": "✔️",
+                        "text": "STEP 4: 모니터링",
+                        "coduckMsg": "소수 클래스의 성능도 함께 모니터링하여 공정성을 보장합니다."
                     }
                 ],
-                "correctSequence": [
-                    "b1",
-                    "b2",
-                    "b3"
-                ],
-                "validation": {
-                    "puzzle_solution": [
-                        {
-                            "id": "b1",
-                            "indent": 0
-                        },
-                        {
-                            "id": "b2",
-                            "indent": 0
-                        },
-                        {
-                            "id": "b3",
-                            "indent": 1
-                        }
-                    ],
-                    "execution": {
-                        "function_name": "check_umbrella",
-                        "test_cases": [
-                            {
-                                "input": "'rain'",
-                                "expected": "'take_umbrella'",
-                                "type": "public"
-                            },
-                            {
-                                "input": "'sunny'",
-                                "expected": "'None'",
-                                "type": "hidden"
-                            }
+                "blueprint": "from imblearn.over_sampling import SMOTE\nfrom sklearn.metrics import precision_recall_fscore_support, roc_auc_score\n\n# 1. Imbalance Detection: 클래스 분포 확인\nprint(y_train.value_counts())  # 1:99의 불균형 확인\n\n# 2. Sampling Strategy: SMOTE로 소수 클래스 오버샘플링\nsmote = SMOTE(random_state=42)\nX_train_balanced, y_train_balanced = smote.fit_resample(X_train, y_train)\n\n# 3. Metric Selection: 정확도 대신 F1-Score와 AUC-ROC 사용\nprecision, recall, f1, _ = precision_recall_fscore_support(y_test, predictions, average='weighted')\nauc = roc_auc_score(y_test, pred_proba)",
+                "blueprintSteps": [
+                    {
+                        "id": "s1",
+                        "python": "print(y_train.value_counts())",
+                        "pseudo": "클래스 분포의 불균형을 진단하여 얼마나 심각한 문제인지 파악한다.",
+                        "keywords": [
+                            "진단",
+                            "분포확인",
+                            "불균형",
+                            "DetectImbalance"
+                        ]
+                    },
+                    {
+                        "id": "s2",
+                        "python": "smote = SMOTE(); X_balanced, y_balanced = smote.fit_resample(X_train, y_train)",
+                        "pseudo": "SMOTE 기법을 사용하여 소수 클래스를 합성적으로 생성하고 균형을 맞춘다.",
+                        "keywords": [
+                            "샘플링",
+                            "SMOTE",
+                            "오버샘플링",
+                            "BalanceClass"
+                        ]
+                    },
+                    {
+                        "id": "s3",
+                        "python": "roc_auc_score(y_test, pred_proba)",
+                        "pseudo": "정확도 대신 Precision, Recall, F1-Score, AUC-ROC 등 다중 평가 지표를 사용하여 공정한 성능 평가를 수행한다.",
+                        "keywords": [
+                            "평가지표",
+                            "F1",
+                            "AUC",
+                            "Precision"
                         ]
                     }
+                ],
+                "interviewQuestions": [
+                    {
+                        "id": "imbalance_1_choice",
+                        "type": "CHOICE",
+                        "question": "Q1. [불균형의 함정] 정확도 99%인 모델이 모든 거래를 '정상'으로 분류한 이유는?\n이 현상을 무엇이라고 부르나요?",
+                        "options": [
+                            {
+                                "text": "모델이 제대로 학습되었고, 높은 정확도는 모델의 성능이 우수하다는 증거다.",
+                                "correct": false,
+                                "feedback": "정상 거래를 찾는 것이 아니라 이상 거래를 찾아야 하는데, 모든 것을 정상으로만 분류하는 것은 문제입니다."
+                            },
+                            {
+                                "text": "클래스 불균형 때문에 모델이 다수 클래스(정상)로만 편향된 예측을 한다. 이를 '다수 클래스 편향'이라고 한다.",
+                                "correct": true,
+                                "feedback": "정답입니다! 소수 클래스를 무시하는 현상을 '클래스 불균형(Class Imbalance)'이라 하며, 높은 정확도는 착각입니다."
+                            },
+                            {
+                                "text": "모델의 과소적합(Underfitting)으로 인한 문제다.",
+                                "correct": false,
+                                "feedback": "과소적합은 학습 성능부터 낮습니다. 이 경우는 명백히 다수 클래스에 대한 과적합입니다."
+                            },
+                            {
+                                "text": "더 많은 데이터를 수집하면 자동으로 해결된다.",
+                                "correct": false,
+                                "feedback": "불균형이 심한 상황에서 데이터만 추가하면 불균형이 더 심해집니다."
+                            }
+                        ],
+                        "context": "불균형 데이터의 함정과 다수 클래스 편향"
+                    },
+                    {
+                        "id": "imbalance_2_choice",
+                        "type": "CHOICE",
+                        "question": "Q2. [정확한 평가지표] 불균형 데이터에서 모델 성능을 평가할 때 정확도 대신 무엇을 사용해야 하나요?",
+                        "options": [
+                            {
+                                "text": "정확도: 가장 직관적이고 이해하기 쉽기 때문이다.",
+                                "correct": false,
+                                "feedback": "불균형 데이터에서 정확도는 매우 호도적인 지표입니다."
+                            },
+                            {
+                                "text": "Precision, Recall, F1-Score, AUC-ROC: 소수 클래스 성능을 정확히 반영한다.",
+                                "correct": true,
+                                "feedback": "정답입니다! 이 지표들은 소수 클래스의 성능을 명시적으로 평가합니다."
+                            },
+                            {
+                                "text": "손실 함수(Loss)만 모니터링하면 된다.",
+                                "correct": false,
+                                "feedback": "손실 함수도 중요하지만, 최종적으로는 비즈니스 관점의 평가 지표가 필요합니다."
+                            },
+                            {
+                                "text": "정확도와 Recall을 더하면 충분하다.",
+                                "correct": false,
+                                "feedback": "두 지표를 더하는 것은 의미가 없습니다. F1-Score 같은 조화평균을 사용해야 합니다."
+                            }
+                        ],
+                        "context": "불균형 데이터의 올바른 평가 방법"
+                    }
+                ],
+                "designContext": {
+                    "title": "[미션] 불균형 데이터 처리 설계",
+                    "description": "1% 이상 거래를 정확히 탐지하면서도 정상 거래와의 균형을 맞추는 공정한 분류 시스템을 의사코드로 설계하세요. 단순한 정확도 개선을 넘어, 비즈니스 손실을 최소화하는 관점에서 접근하세요.",
+                    "incidentCode": "# 불균형의 함정\nmodel = LogisticRegression()\nmodel.fit(X_train, y_train)  # 99% 정상, 1% 이상\naccuracy = 0.99  # 모든 거래를 정상으로 분류해도 99%!\nanomaly_detected = 0  # 그런데 이상 거래는 하나도 찾지 못함",
+                    "incidentProblem": "모델이 다수 클래스(정상)에만 편향되어 소수 클래스(이상)를 거의 찾지 못함",
+                    "currentIncident": "⚖️ 경고: 분류 편향 감지\n이상 거래 탐지 모델이 정확도가 높지만, 실제로는 모든 거래를 '정상'으로 분류하고 있습니다.\n다수 클래스(정상 99%)에는 편향되었지만, 소수 클래스(이상 1%)는 거의 탐지하지 못합니다.\n\n비즈니스 관점에서는 '정확도 99%'가 아닌 '이상 거래 탐지율 0%'이 더 중요합니다.",
+                    "engineeringRules": [
+                        "클래스 불균형을 먼저 진단하고 정량화한다.",
+                        "SMOTE, 오버샘플링, 언더샘플링 중 적절한 기법을 선택한다.",
+                        "정확도 대신 Precision, Recall, F1, AUC-ROC를 평가 지표로 사용한다.",
+                        "비즈니스 손실을 고려한 비용 함수(Cost Function)를 설계한다."
+                    ],
+                    "writingGuide": "[필수 포함 조건 (Constraint)]\n다음 3가지 요소를 모두 포함하여 설계합니다:\n불균형 진단 (Imbalance Detection): 클래스 분포 분석\n샘플링 전략 (Sampling Strategy): SMOTE, 오버/언더샘플링 등\n공정한 평가 (Fair Evaluation): Precision, Recall, F1, AUC-ROC"
+                },
+                "deepDiveScenarios": [
+                    {
+                        "id": "cost_sensitive",
+                        "type": "SCENARIO_DESCRIPTIVE",
+                        "axis": "비용",
+                        "title": "비용 민감 학습 시나리오",
+                        "question": "이상 거래 1건을 놓치면 $10,000 손실이 발생하지만, 정상 거래를 잘못 거르면 $100 손실입니다. 이 비용 불균형을 모델에 어떻게 반영할까요?",
+                        "intent": "비즈니스 가치를 고려한 머신러닝 설계 능력 확인.",
+                        "scoringKeywords": [
+                            "클래스가중치",
+                            "비용함수",
+                            "class_weight",
+                            "sample_weight"
+                        ],
+                        "modelAnswer": "LogisticRegression이나 RandomForest의 class_weight='balanced'를 설정하거나, 명시적으로 class_weight 딕셔너리를 지정하여 이상 클래스에 더 높은 가중치를 부여합니다."
+                    },
+                    {
+                        "id": "threshold_tuning",
+                        "type": "SCENARIO_DESCRIPTIVE",
+                        "axis": "임계값",
+                        "title": "분류 임계값 조정 시나리오",
+                        "question": "로지스틱 회귀의 기본 임계값은 0.5입니다. 허위 경보가 많다면, 재정 거래를 더 엄격하게 판단하려면 임계값을 어떻게 조정해야 할까요?",
+                        "intent": "Precision-Recall 트레이드오프를 이해하고 비즈니스 요구에 맞게 최적화하는 능력 확인.",
+                        "scoringKeywords": [
+                            "임계값",
+                            "정밀도",
+                            "재현율",
+                            "ROC곡선"
+                        ],
+                        "modelAnswer": "임계값을 0.5에서 높여서(예: 0.7) 이상 판정을 더 보수적으로 만듭니다. 이렇게 하면 정밀도(Precision)가 높아지지만 재현율(Recall)이 낮아집니다. ROC 곡선을 분석하여 비즈니스 요구에 맞는 최적의 임계값을 찾습니다."
+                    },
+                    {
+                        "id": "stratified_split",
+                        "type": "SCENARIO_DESCRIPTIVE",
+                        "axis": "검증",
+                        "title": "계층화된 분할 시나리오",
+                        "question": "Train/Test 분할 시 불균형이 심한 데이터에서 무작위 분할을 하면 한쪽에 모든 이상 케이스가 몰릴 수 있습니다. 이를 방지하려면?",
+                        "intent": "데이터 분할 시 통계적 대표성을 보장하는 기법 이해도 확인.",
+                        "scoringKeywords": [
+                            "계층화분할",
+                            "StratifiedKFold",
+                            "대표성",
+                            "동등분포"
+                        ],
+                        "modelAnswer": "stratify 매개변수를 사용하여 '계층화된 분할(Stratified Split)'을 수행합니다. train_test_split(X, y, test_size=0.2, stratify=y)로 각 분할에서 클래스 비율을 동등하게 유지합니다."
+                    }
+                ],
+                "checklist": [
+                    {
+                        "id": "check_diagnosis",
+                        "label": "불균형 진단 (Imbalance Detection)",
+                        "patterns": [
+                            "불균형|진단|분포|확인|detect|imbalance"
+                        ]
+                    },
+                    {
+                        "id": "check_sampling",
+                        "label": "샘플링 전략 (Sampling Strategy)",
+                        "patterns": [
+                            "샘플링|SMOTE|오버|언더|sampling|balance"
+                        ]
+                    },
+                    {
+                        "id": "check_evaluation",
+                        "label": "공정한 평가 (Fair Evaluation)",
+                        "patterns": [
+                            "평가|지표|F1|AUC|Precision|Recall|metric|fair"
+                        ]
+                    }
+                ],
+                "placeholder": "불균형 진단, 샘플링 전략, 공정한 평가 원칙을 바탕으로 불균형 데이터 처리 설계를 서술하세요...\n예: 1. SMOTE를 사용하여 소수 클래스를 오버샘플링한다.",
+                "mapPos": {
+                    "x": 500,
+                    "y": 350
                 }
             },
             "display_order": 3,
-            "is_active": true,
-            "create_date": "2026-01-25T11:00:00Z",
-            "update_date": "2026-01-25T11:00:00Z",
-            "use_yn": "Y"
-        }
-    },
-    {
-        "model": "core.practicedetail",
-        "pk": "unit04_01",
-        "fields": {
-            "practice": "unit04",
-            "detail_title": "웹 서버 응답 지연",
-            "detail_type": "PROBLEM",
-            "content_data": {
-                "difficulty": "easy",
-                "title": "웹 서버 응답 지연",
-                "scenario": "사용자들이 웹 페이지 로딩이 느리다고 불만을 제기하고 있습니다.",
-                "initialMetrics": {
-                    "responseTime": {
-                        "value": 3500,
-                        "unit": "ms"
-                    },
-                    "cpu": {
-                        "value": 85,
-                        "unit": "%"
-                    }
-                },
-                "winConditionType": "ops_basic"
-            },
-            "display_order": 1,
-            "is_active": true,
-            "create_date": "2026-01-25T11:00:00Z",
-            "update_date": "2026-01-25T11:00:00Z",
-            "use_yn": "Y"
-        }
-    },
-    {
-        "model": "core.practicedetail",
-        "pk": "unit04_02",
-        "fields": {
-            "practice": "unit04",
-            "detail_title": "데이터베이스 커넥션 풀 고갈",
-            "detail_type": "PROBLEM",
-            "content_data": {
-                "difficulty": "medium",
-                "title": "데이터베이스 커넥션 풀 고갈",
-                "scenario": "애플리케이션에서 'Too many connections' 오류가 발생하고 있습니다.",
-                "initialMetrics": {
-                    "activeConnections": {
-                        "value": 495,
-                        "unit": "conn"
-                    }
-                },
-                "winConditionType": "ops_db"
-            },
-            "display_order": 2,
             "is_active": true,
             "create_date": "2026-01-25T11:00:00Z",
             "update_date": "2026-01-25T11:00:00Z",

@@ -13,7 +13,7 @@ from django.conf import settings
 
 # job-planner-agent 경로를 sys.path에 추가 (collectors import를 위해)
 # Docker 환경: /job-planner-agent, 로컬 환경: ../job-planner-agent
-_project_root = Path(__file__).resolve().parent.parent.parent.parent
+_project_root = Path(__file__).resolve().parent.parent.parent.parent.parent
 _job_planner_agent_path = _project_root / "job-planner-agent"
 
 # Docker 환경에서는 /job-planner-agent 경로 사용

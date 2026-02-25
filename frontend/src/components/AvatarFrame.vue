@@ -72,7 +72,6 @@ const containerStyle = computed(() => ({
 }));
 
 const handleImageError = () => {
-  console.warn('Avatar image load failed, falling back to default:', props.src);
   isError.value = true;
 };
 </script>

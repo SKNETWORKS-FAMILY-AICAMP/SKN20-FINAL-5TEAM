@@ -1,5 +1,3 @@
-# 수정내용: 코드 실행 샌드박스 및 라우팅 설정 정합성 수정 (Antigravity)
-
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from core.views import (
@@ -27,10 +25,11 @@ from core.views import (
     JobPlannerAgentReportView,
     JobPlannerRecommendView
 )
-from core.views.pseudocode_execution import execute_python_code
-from core.views import pseudocode_evaluation, youtube_recommendation
-from core.views.architecture_view import ArchitectureEvaluationView, ArchitectureQuestionGeneratorView
-from core.views.coach_view import AICoachView
+from core.views.pseudocode.pseudocode_execution import execute_python_code
+from core.views.pseudocode import pseudocode_evaluation
+from core.views import youtube_recommendation
+from core.views.architecture.architecture_view import ArchitectureEvaluationView, ArchitectureQuestionGeneratorView
+from core.views.coach.coach_view import AICoachView
 from core.views.interview import (
     InterviewJobPostingView, InterviewJobPostingDetailView,
     InterviewSessionView, InterviewSessionDetailView, InterviewAnswerView,
@@ -83,6 +82,10 @@ urlpatterns = [
     path('pseudo-agent/', PseudocodeAgentView.as_view(), name='pseudo_agent'),
     path('pseudocode/evaluate-5d/', pseudocode_evaluation.evaluate_pseudocode_5d),
     path('youtube/recommendations', youtube_recommendation.get_youtube_recommendations),
+
+    # Architecture API
+    path('architecture/evaluate/', ArchitectureEvaluationView.as_view(), name='architecture_evaluate'),
+    path('architecture/generate-questions/', ArchitectureQuestionGeneratorView.as_view(), name='architecture_generate_questions'),
 
     # AI Coach Agent API
     path('ai-coach/chat/', AICoachView.as_view(), name='ai_coach_chat'),

@@ -37,6 +37,15 @@ export const useGameStore = defineStore('game', {
     }),
 
     actions: {
+        setUserRole(role) {
+            this.userRole = role;
+            // [버그수정] sessionStorage에도 저장 → 탭 이동/새로고침 후에도 유지
+            if (role) sessionStorage.setItem('wars_user_role', role);
+        },
+        // [P1] 팀 점수 저장 (GrowthReport 비교용)
+        setPlayerScores(scores) {
+            this.lastPlayerScores = scores;
+        },
         /**
          * [초기 게임 데이터 로드]
          * - 백엔드 API(/api/core/practices/)로부터 연습 유닛 목록을 가져와 스토어에 저장합니다.
@@ -54,12 +63,14 @@ export const useGameStore = defineStore('game', {
                 const iconMap = {
                     'Pseudo Practice': 'gamepad-2',
                     'Debug Practice': 'bug',
-                    'System Practice': 'layers'
+                    'System Practice': 'layers',
+                    'Team Battle': 'swords'
                 };
                 const imageMap = {
                     'Pseudo Practice': '/image/unit_code.png',
                     'Debug Practice': '/image/unit_debug.png',
-                    'System Practice': '/image/unit_system.png'
+                    'System Practice': '/image/unit_system.png',
+                    'Team Battle': '/image/unit_battle.png'
                 };
 
                 // [데이터 매핑 로직] DB 필드값을 UI 카드 컴포넌트의 props 형식에 맞게 변환하여 chapters 배열 구성
@@ -333,6 +344,84 @@ export const useGameStore = defineStore('game', {
             } catch (error) {
                 console.error("[GameStore] Failed to fetch solved problems:", error);
             }
+        },
+
+        /**
+         * [수정일: 2026-02-23] Job Planner 분석 결과 저장
+         * - Coduck Wars 섹션에서 '불러오기' 기능을 제공하기 위해 데이터를 저장합니다.
+         */
+        setLastParsedJob(jobData) {
+            this.lastParsedJob = jobData;
+        },
+
+        /**
+         * [수정일: 2026-02-23] Coduck Wars 활성 미션 데이터 저장
+         */
+        setWarsMission(mission) {
+            this.activeWarsMission = mission;
+            if (mission) {
+                sessionStorage.setItem('active_wars_mission', JSON.stringify(mission));
+            } else {
+                sessionStorage.removeItem('active_wars_mission');
+            }
+        },
+
+        /**
+         * [수정일: 2026-02-23] Coduck Wars 평가 결과 저장
+         */
+        setEvaluation(evaluation, finalDesign) {
+            this.lastEvaluation = evaluation;
+            this.lastFinalDesign = finalDesign;
+        },
+
+        /**
+         * [수정일: 2026-02-23] 게임 점수 계산 (4개 비율점수 + 속도 보너스)
+         * @param {object} scores - { availability, scalability, security, cost_efficiency } (0~100)
+         * @param {number} submitTimeSeconds - 제출 시점 관당 시간(초), 빠를수록 미제출
+         * @param {number} totalSeconds - 방 전체 제한 시간(초), 기본값 600
+         * @returns {number} 최종 점수 (0~100)
+         */
+        calculateGameScore(scores, submitTimeSeconds = 0, totalSeconds = 600) {
+            if (!scores) return 0;
+
+            // 기본 점수: 네 항목 가중 평균
+            const weights = {
+                availability: 0.35,  // 가용성 중요
+                scalability: 0.30,  // 확장성
+                security: 0.20,  // 보안
+                cost_efficiency: 0.15   // 비용효율
+            };
+            const baseScore =
+                (scores.availability || 0) * weights.availability +
+                (scores.scalability || 0) * weights.scalability +
+                (scores.security || 0) * weights.security +
+                (scores.cost_efficiency || 0) * weights.cost_efficiency;
+
+            // 속도 보너스: 전체 시간 50% 이내에 제출하면 +5점, 25% 이내면 +10점
+            let speedBonus = 0;
+            if (submitTimeSeconds > 0 && totalSeconds > 0) {
+                const ratio = submitTimeSeconds / totalSeconds;
+                if (ratio <= 0.25) speedBonus = 10;
+                else if (ratio <= 0.50) speedBonus = 5;
+            }
+
+            return Math.min(100, Math.round(baseScore + speedBonus));
+        },
+
+        /**
+         * [수정일: 2026-02-23] 3인 팀 점수 합산 및 등급 반환
+         * @param {number[]} playerScores - 각 플레이어 점수 배열 [p1, p2, p3]
+         * @returns {{ total: number, average: number, grade: string }}
+         */
+        calcTeamResult(playerScores = []) {
+            if (!playerScores.length) return { total: 0, average: 0, grade: 'C' };
+            const total = playerScores.reduce((a, b) => a + b, 0);
+            const average = Math.round(total / playerScores.length);
+            let grade = 'C';
+            if (average >= 90) grade = 'S';
+            else if (average >= 75) grade = 'A';
+            else if (average >= 60) grade = 'B';
+            return { total, average, grade };
         }
     },
 

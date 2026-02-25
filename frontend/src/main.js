@@ -21,6 +21,16 @@ import ManagementView from './features/dashboard/ManagementView.vue'
 import MyHistoryView from './features/dashboard/MyHistoryView.vue'
 import AICoach from './features/dashboard/AICoach.vue'
 import MockInterview from './features/interview/MockInterview.vue'
+import MissionBriefing from './features/wars/MissionBriefing.vue'
+import PressureInterviewRoom from './features/wars/PressureInterviewRoom.vue'
+import GrowthReport from './features/wars/GrowthReport.vue'
+import WarLobby from './features/wars/WarLobby.vue'
+// [수정일: 2026-02-23] Coduck Wars 미니게임 모드 추가
+import WarsModeSelect from './features/wars/WarsModeSelect.vue'
+import ArchDrawQuiz from './features/wars/minigames/ArchDrawQuiz.vue'
+// [수정일: 2026-02-24] SpeedArchBuilder → LogicRun으로 교체
+import LogicRun from './features/wars/minigames/LogicRun.vue'
+import ArchBattle from './features/wars/minigames/ArchBattle.vue'
 
 // [수정일: 2026-01-31] 사용하지 않는 구버전/비활성 컴포넌트 임포트 주석 처리
 // import AiDetectivePractice from './features/practice/AiDetectivePractice.vue'
@@ -60,7 +70,44 @@ const routes = [
   {
     path: '/practice/coduck-wars',
     name: 'CoduckWars',
-    component: CoduckWars
+    component: WarsModeSelect
+  },
+  {
+    path: '/practice/coduck-wars/briefing',
+    name: 'MissionBriefing',
+    component: MissionBriefing
+  },
+  // [수정일: 2026-02-23] 미니게임 모드 라우트
+  {
+    path: '/practice/coduck-wars/draw-quiz',
+    name: 'ArchDrawQuiz',
+    component: ArchDrawQuiz
+  },
+  // [수정일: 2026-02-24] speed-build → logic-run 경로 변경, LogicRun 컴포넌트 연결
+  {
+    path: '/practice/coduck-wars/logic-run',
+    name: 'LogicRun',
+    component: LogicRun
+  },
+  {
+    path: '/practice/coduck-wars/arch-battle',
+    name: 'ArchBattle',
+    component: ArchBattle
+  },
+  {
+    path: '/practice/coduck-wars/battle',
+    name: 'PressureInterviewRoom',
+    component: PressureInterviewRoom
+  },
+  {
+    path: '/practice/coduck-wars/report',
+    name: 'GrowthReport',
+    component: GrowthReport
+  },
+  {
+    path: '/practice/coduck-wars/lobby',
+    name: 'WarLobby',
+    component: WarLobby
   },
   /* [수정일: 2026-01-31] 비활성 라우트 주석 처리
   {

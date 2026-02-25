@@ -30,15 +30,15 @@
             <span>입장하기!</span>
             <ArrowRight class="btn-arrow" />
           </button>
-          <button @click="scrollToLeaderboard" class="btn-social-v2">
-            전당 확인
-          </button>
-          <button @click="$emit('open-job-planner')" class="btn-job-planner">
+          <!-- [2026-02-24] Job Planner 버튼: 로그인한 사용자에게만 노출되도록 v-if 추가 및 아이콘 적용 -->
+          <button v-if="isLoggedIn" @click="$emit('open-job-planner')" class="btn-job-planner btn-planner-color">
             <span>Job Planner</span>
           </button>
-          <button @click="$emit('open-interview')" class="btn-job-planner">
+          <!-- [2026-02-24] Interview 버튼: 로그인한 사용자에게만 노출되도록 v-if 추가 및 아이콘 적용 -->
+          <button v-if="isLoggedIn" @click="$emit('open-interview')" class="btn-job-planner btn-interview-color">
             <span>Interview</span>
           </button>
+          <!-- [수정일: 2026-02-24] Coduck Wars 버튼 제거 (Arcade Unit 카드로 이동됨) -->
         </div>
       </div>
 
@@ -58,10 +58,7 @@
           <LayoutGrid class="nav-icon" />
           <span class="nav-label">Stages</span>
         </a>
-        <a href="#leaderboard" class="nav-item" @click.prevent="scrollToSection('leaderboard')">
-          <Trophy class="nav-icon" />
-          <span class="nav-label">Hall of Fame</span>
-        </a>
+
         <div class="protein-status">
           <Zap class="icon-protein" />
           <span class="protein-count">{{ userProteinShakes }}</span>
@@ -79,10 +76,7 @@
           <LayoutGrid class="nav-icon" />
           <span class="nav-label">Stages</span>
         </a>
-        <a href="#leaderboard" class="nav-item" @click.prevent="scrollToSection('leaderboard')">
-          <Trophy class="nav-icon" />
-          <span class="nav-label">Hall of Fame</span>
-        </a>
+
         <div class="protein-status">
           <Zap class="icon-protein" />
           <span class="protein-count">{{ userProteinShakes }}</span>
@@ -165,15 +159,18 @@
             </div>
           </div>
         </div>
+
+
         <button class="slider-nav next" @click="nextSlide">
           <ChevronRight />
         </button>
 
-        <!-- Pagination Dots -->
+        <!-- Pagination Dots (chapters + Coduck Wars) -->
         <div class="slider-pagination">
           <span v-for="(_, idx) in chapters" :key="'dot-'+idx"
                 class="dot" :class="{ 'active': idx === currentIdx }"
                 @click="goToSlide(idx)"></span>
+
         </div>
       </div>
     </section>
@@ -334,10 +331,10 @@ import {
   Home,
   Play,
   Settings,
-  History,
   LogOut,
   Info,
-  Briefcase
+  Briefcase,
+  Swords
 } from 'lucide-vue-next';
 import AvatarFrame from '@/components/AvatarFrame.vue';
 
@@ -360,7 +357,8 @@ export default {
     Trophy,
     ArrowRight,
     Info,
-    Briefcase
+    Briefcase,
+    Swords
   },
   props: {
     isLoggedIn: Boolean,
@@ -387,12 +385,15 @@ export default {
     // 1. 이전 카드 인덱스 계산 (방어 로직 포함)
     getPrevIdx() {
       if (!this.chapters || this.chapters.length === 0) return 0;
-      return (this.currentIdx - 1 + this.chapters.length) % this.chapters.length;
+      return (this.currentIdx - 1 + this.totalSlides) % this.totalSlides;
     },
     // 2. 다음 카드 인덱스 계산 (방어 로직 포함)
     getNextIdx() {
       if (!this.chapters || this.chapters.length === 0) return 0;
-      return (this.currentIdx + 1) % this.chapters.length;
+      return (this.currentIdx + 1) % this.totalSlides;
+    },
+    totalSlides() {
+      return this.chapters ? this.chapters.length : 0;
     },
     trackStyle() {
       // 슬라이더 트랙 커스텀 스타일 (필요 시 확장)
@@ -446,26 +447,23 @@ export default {
       }
     },
     nextSlide() {
-      if (this.chapters.length > 0) {
-        this.currentIdx = (this.currentIdx + 1) % this.chapters.length;
-      }
+      this.currentIdx = (this.currentIdx + 1) % this.totalSlides;
     },
     prevSlide() {
-      if (this.chapters.length > 0) {
-        this.currentIdx = (this.currentIdx - 1 + this.chapters.length) % this.chapters.length;
-      }
+      this.currentIdx = (this.currentIdx - 1 + this.totalSlides) % this.totalSlides;
     },
     goToSlide(idx) {
-      this.currentIdx = idx;
+      this.currentIdx = Math.min(idx, this.totalSlides - 1);
     },
+
     /**
-     * [카드가 화면에 보이는지 여부]
-     * - 현재 인덱스와 인접한 카드만 보여주어 3D 넘김 효과를 구현합니다.
+     * [수정일: 2026-02-24] 콤덕 워즈 포함 전체 totalSlides 기준으로 래핑
+     * - Coduck Wars(chapters.length)가 활성일 때 첫 번째 카드도 올바르게 주변에 나타납니다.
      */
     isIndexVisible(idx) {
       if (!this.chapters || this.chapters.length === 0) return false;
       const diff = Math.abs(idx - this.currentIdx);
-      return diff <= 1 || diff === this.chapters.length - 1;
+      return diff <= 1 || diff === this.totalSlides - 1;
     },
     /**
      * [카드 호버 핸들러]
@@ -501,8 +499,9 @@ export default {
       if (Math.abs(deltaX) < this.dragThreshold) return;
       this.dragMoved = true;
       const direction = deltaX > 0 ? -1 : 1;
-      if (this.chapters.length > 0) {
-        this.currentIdx = (this.currentIdx + direction + this.chapters.length) % this.chapters.length;
+      // [수정일: 2026-02-24] chapters.length → totalSlides: Coduck Wars 포함 전체 슬라이드 기준으로 드래그 이동
+      if (this.totalSlides > 0) {
+        this.currentIdx = (this.currentIdx + direction + this.totalSlides) % this.totalSlides;
       }
       this.dragStartX = event.clientX;
     },
@@ -521,7 +520,11 @@ export default {
         return;
       }
       if (idx === this.currentIdx) {
-        this.$emit('open-unit', chapter);
+        if (chapter.name === 'Coduck Wars' || chapter.name === 'Team Battle') {
+          this.$emit('open-coduck-wars');
+        } else {
+          this.$emit('open-unit', chapter);
+        }
       } else {
         this.currentIdx = idx;
       }

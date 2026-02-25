@@ -103,84 +103,6 @@
 }
 
 /* [2026-02-13] Mission Guide Bar */
-.mission-guide-bar {
-  background: rgba(30, 41, 59, 0.4);
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  border-left: 4px solid #3b82f6;
-  padding: 10px 16px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-}
-
-.mgb-content {
-  display: flex;
-  align-items: center;
-  font-family: 'Inter', sans-serif;
-}
-
-.mgb-title {
-  color: #60a5fa;
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 1.2px;
-  margin-right: 10px;
-}
-
-.mgb-text {
-  color: #cbd5e1;
-  font-size: 13.5px;
-  letter-spacing: -0.2px;
-}
-
-.mgb-text strong {
-  color: #f8fafc;
-  font-weight: 700;
-}
-
-.header-utils {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.btn-util {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(30, 41, 59, 0.7);
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  padding: 10px 18px;
-  border-radius: 10px;
-  color: #94a3b8;
-  font-size: 14px;
-  font-weight: 700;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  cursor: pointer;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.btn-util:hover {
-  background: rgba(51, 65, 85, 0.9);
-  border-color: #3b82f6;
-  color: #f8fafc;
-  box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
-  transform: translateY(-2px);
-}
-
-.btn-util.btn-hint-trigger.is-active {
-  background: rgba(59, 130, 246, 0.25);
-  border-color: #3b82f6;
-  color: #60a5fa;
-  box-shadow: inset 0 0 10px rgba(59, 130, 246, 0.2);
-}
-
-.btn-util.btn-close-x:hover {
-  border-color: #ef4444;
-  color: #f87171;
-  box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
-}
 
 /* [2026-02-13] REAL-TIME HINT DUCK & SPEECH BUBBLE */
 .hint-duck-wrapper {
@@ -235,20 +157,6 @@
 }
 
 /* Transitions */
-.fade-slide-enter-active,
-.fade-slide-leave-active {
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.fade-slide-enter-from {
-  opacity: 0;
-  transform: translateX(30px) scale(0.8);
-}
-
-.fade-slide-leave-to {
-  opacity: 0;
-  transform: translateX(20px) scale(0.9);
-}
 
 .viewport {
   flex: 1;
@@ -403,49 +311,8 @@
 }
 
 /* [2026-02-13] DEEP DIVE REFINEMENT */
-.deep-dive-title {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #60a5fa;
-  margin-bottom: 16px;
-}
-
-.deep-dive-question {
-  color: #e2e8f0;
-  margin-bottom: 24px;
-}
-
-.deep-dive-options {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.full-width-card {
-  width: 100%;
-  text-align: left;
-}
-
-.full-width-report {
-  margin: 0 !important;
-  width: 100% !important;
-}
 
 /* [2026-02-13] HINT BOXES (Tailwind replacement) */
-.hint-box-blue {
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  background: rgba(59, 130, 246, 0.05);
-  padding: 8px;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.hint-text-small {
-  font-size: 10px;
-  color: #dbeafe;
-  line-height: 1.25;
-  white-space: pre-line;
-}
 
 .entity-header {
   display: flex;
@@ -561,26 +428,6 @@
   box-shadow: 0 0 20px rgba(59, 130, 246, 0.8);
 }
 
-.system-status-text {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 14px;
-  color: #3b82f6;
-  font-weight: 700;
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.system-status-text::before {
-  content: "";
-  width: 8px;
-  height: 8px;
-  background: #3b82f6;
-  border-radius: 50%;
-  box-shadow: 0 0 10px #3b82f6;
-}
-
 .big-question {
   /* [수정 2026-02-14] VS Code 스타일: 과도한 굵기 제거 및 깨끗한 고딕체 적용 */
   font-family: 'Pretendard', 'Inter', sans-serif !important;
@@ -646,19 +493,6 @@
 
 .option-card:hover .opt-main {
   color: white;
-}
-
-.opt-arrow {
-  margin-left: auto;
-  opacity: 0;
-  transform: translateX(-10px);
-  transition: all 0.3s;
-  color: #3b82f6;
-}
-
-.option-card:hover .opt-arrow {
-  opacity: 1;
-  transform: translateX(0);
 }
 
 /* [2026-02-12] 진단 문제 AI 평가 결과 카드 */
@@ -760,65 +594,6 @@
   overflow: hidden;
 }
 
-.rule-checklist-sidebar {
-  width: 200px;
-  background: rgba(15, 23, 42, 0.6);
-  border-left: 1px solid rgba(255, 255, 255, 0.1);
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  flex-shrink: 0;
-}
-
-.rcs-header {
-  padding: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.rcs-label {
-  font-size: 11px;
-  font-weight: 800;
-  color: #94a3b8;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.rcs-count {
-  font-size: 11px;
-  font-weight: 700;
-  color: #10b981;
-  background: rgba(16, 185, 129, 0.1);
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-
-.rcs-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.rcs-item {
-  padding: 10px;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 8px;
-  display: flex;
-  gap: 10px;
-  transition: all 0.2s ease;
-  border: 1px solid transparent;
-}
-
-.rcs-item.completed {
-  background: rgba(16, 185, 129, 0.05);
-  border-color: rgba(16, 185, 129, 0.2);
-}
-
 .option-card.is-correct {
   border-color: #10b981;
   background: rgba(16, 185, 129, 0.1);
@@ -862,38 +637,6 @@
   align-items: center;
 }
 
-.rcs-check {
-  width: 16px;
-  height: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.rcs-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.rcs-item-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #e2e8f0;
-}
-
-.rcs-item.completed .rcs-item-label {
-  color: #10b981;
-}
-
-.rcs-hint {
-  font-size: 10px;
-  color: #64748b;
-  line-height: 1.3;
-}
-
 /* [2026-02-12] 아키텍트 모범 답안 박스 */
 .model-answer-box {
   margin-top: 16px;
@@ -926,61 +669,8 @@
 }
 
 /* [2026-02-12] 1단계 답변 참고 영역 (크기 및 폰트 확대) */
-.previous-answer-ref {
-  background: rgba(6, 182, 212, 0.05);
-  border: 1px solid rgba(6, 182, 212, 0.2);
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 30px;
-  min-height: 100px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.ref-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
-}
-
-.ref-label {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 15px;
-  color: #22d3ee;
-  font-weight: 700;
-  letter-spacing: 1px;
-}
-
-.ref-content {
-  font-size: 18px;
-  color: rgba(255, 255, 255, 0.82);
-  line-height: 1.6;
-  margin: 0;
-  font-style: italic;
-}
 
 /* 의사코드 에디터 특화 스타일 */
-.monaco-textarea {
-  background: transparent;
-  color: #e2e8f0;
-  /* [수정 2026-02-14] 에디터 및 코드 영역 폰트 가독성 상향 (VS Code 스타일 강제 고정) */
-  font-family: 'Consolas', 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace !important;
-  font-size: 15px !important;
-  line-height: 1.6 !important;
-  border: none;
-  outline: none;
-  resize: none;
-  padding: 10px;
-  letter-spacing: 0px !important;
-}
-
-.monaco-textarea::placeholder {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.2);
-  white-space: pre-wrap;
-}
 
 /* [2026-02-12] 이미지 싱크: 에디터 영역을 프리미엄 딥 네이비 스타일로 변경 */
 .monaco-wrapper {
@@ -994,30 +684,6 @@
   overflow: hidden;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(0, 0, 0, 0.2);
   /* 안팎으로 깊이감 추가 */
-}
-
-.line-numbers {
-  width: 50px;
-  background: rgba(0, 0, 0, 0.25);
-  /* 살짝 더 어두운 배경으로 구분감 강화 */
-  display: flex;
-  flex-direction: column;
-  padding: 12px 0;
-  align-items: center;
-  color: rgba(59, 130, 246, 0.4);
-  /* 번호 색상을 테마에 맞춰 블루톤으로 변경 */
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  user-select: none;
-  border-right: 1px solid rgba(59, 130, 246, 0.1);
-  /* 에디터 본문과의 미세한 구분선 */
-}
-
-.action-bar-bottom {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  padding-top: 20px;
 }
 
 /* 실행 버튼 프리미엄 스타일 */
@@ -1060,135 +726,18 @@
 /* [2026-02-11] 의사코드 단계(PSEUDO_WRITE) 가독성 고도화: Standard px 적용 */
 
 /* 메인 사고 코드 블록 컨테이너: 이미지의 어두운 붉은색 테마 반영 */
-.incident-review-block.incident-image-sync {
-  background: #1a0f12;
-  /* 이미지의 딥 레드 배경 */
-  border: 1px solid rgba(239, 68, 68, 0.1);
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-  animation: fadeIn 0.5s ease-out;
-}
 
 /* 사고 코드 헤더: "막아야 할 패턴" */
-.irs-header {
-  background: rgba(239, 68, 68, 0.15);
-  /* 이미지의 상단 옅은 붉은색 바 */
-  padding: 10px 20px;
-  border-bottom: 1px solid rgba(239, 68, 68, 0.1);
-}
-
-.irs-header p {
-  color: #f87171 !important;
-  font-size: 14px !important;
-  font-weight: 700 !important;
-  margin: 0;
-}
 
 /* 사고 코드 본문 */
-.irs-body {
-  padding: 24px 20px;
-}
-
-.irs-body pre,
-.irs-body code {
-  color: #4ade80 !important;
-  /* [수정 2026-02-14] 외부 픽셀 폰트 간섭을 완전히 차단하고 VS Code 스타일로 강제 고정 */
-  font-family: 'Consolas', 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace !important;
-  font-size: 16px !important;
-  line-height: 1.8 !important;
-  font-weight: 400 !important;
-  /* 굵게 하면 뭉쳐 보임 */
-  background: transparent !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  letter-spacing: 0px !important;
-}
 
 /* 하단 문제 설명 */
-.irs-problem {
-  font-size: 13px !important;
-  color: #94a3b8 !important;
-  margin-top: 16px !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  padding-top: 12px;
-}
-
-.irs-problem strong {
-  color: #f87171 !important;
-  /* "문제:" 부분 빨간색 */
-}
 
 /* [2026-02-11] 좌측 '작성 가이드' 패널: Zoom-Independent 폰트 (px 기준) */
 
-.instruction-guide-panel {
-  animation: fadeInRight 0.5s ease-out;
-}
-
-.ig-header span {
-  font-size: 16px !important;
-  letter-spacing: 0.05em;
-  text-shadow: 0 0 10px rgba(96, 165, 250, 0.3);
-}
-
 /* 의사코드 형식 카드: [2026-02-11] 폰트 및 패딩 축소 */
-.format-card {
-  padding: 12px !important;
-  box-shadow: inset 0 0 10px rgba(59, 130, 246, 0.05);
-}
-
-.format-card p:first-child {
-  font-size: 12px !important;
-  letter-spacing: -0.01em;
-}
-
-.format-card p:last-child {
-  font-size: 11px !important;
-  line-height: 1.4;
-  margin-top: 4px;
-}
 
 /* 검증 항목 체크리스트: [2026-02-11] 폰트 및 간격 축소 */
-.checklist-item {
-  gap: 8px !important;
-  transition: transform 0.2s ease;
-}
-
-.checklist-item:hover {
-  transform: translateX(2px);
-}
-
-.check-circle {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  border: 1px solid #334155;
-  background: #0f172a;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  margin-top: 2px;
-}
-
-.check-circle.is-checked {
-  background: #3b82f6;
-  border-color: #3b82f6;
-  box-shadow: 0 0 8px rgba(59, 130, 246, 0.3);
-}
-
-.check-label {
-  font-size: 12px !important;
-  line-height: 1.2;
-}
-
-.check-hint {
-  font-size: 10px !important;
-  line-height: 1.4;
-  opacity: 0.7;
-  margin-top: 2px;
-}
 
 @keyframes fadeInRight {
   from {
@@ -1251,15 +800,6 @@
 }
 
 /* 코드 내 하이라이트 색상 (선택사항) */
-.diagnostic-code-box .code-comment {
-  color: #64748b;
-  font-style: italic;
-}
-
-.diagnostic-code-box .code-highlight {
-  color: #f87171;
-  font-weight: bold;
-}
 
 /* [2026-02-12] 진단 지문 내 설명부 강조 */
 .diagnostic-instruction {
@@ -1280,94 +820,6 @@
 }
 
 /* [2026-02-12] 정렬형(ORDERING) 과제 전용 스타일 (괄호형) */
-.ordering-container {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 32px;
-  /* 제출 버튼과의 간격 확보 */
-}
-
-.ordering-item {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 24px 28px;
-  border-radius: 16px;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  text-align: left;
-  width: 100%;
-}
-
-.ordering-item:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.3);
-  transform: translateX(8px);
-}
-
-.ordering-item.active {
-  background: rgba(34, 211, 238, 0.1);
-  border-color: #22d3ee;
-  box-shadow: 0 0 25px rgba(34, 211, 238, 0.25);
-}
-
-.ordering-item.correct {
-  background: rgba(74, 222, 128, 0.1);
-  border-color: #4ade80;
-}
-
-.ordering-item.wrong {
-  background: rgba(239, 68, 68, 0.1);
-  border-color: #ef4444;
-}
-
-.order-parenthesis {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 24px;
-  color: #22d3ee;
-  font-weight: 900;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-  min-width: 65px;
-  justify-content: center;
-}
-
-.order-number {
-  display: inline-block;
-  min-width: 20px;
-  text-align: center;
-  color: #fbbf24;
-  text-shadow: 0 0 10px rgba(251, 191, 36, 0.6);
-  font-size: 22px;
-}
-
-.order-text {
-  /* [수정 2026-02-14] VS Code 스타일: 깨끗한 텍스트 렌더링 및 적절한 굵기 부여 */
-  font-family: 'Pretendard', 'Inter', sans-serif !important;
-  flex: 1;
-  font-size: 18px !important;
-  color: #e5e7eb;
-  font-weight: 500 !important;
-  line-height: 1.6 !important;
-  letter-spacing: -0.02em !important;
-}
-
-.ordering-item.active .order-text {
-  color: #fff;
-}
-
-.ordering-item.correct .order-parenthesis {
-  color: #4ade80;
-}
-
-.ordering-item.wrong .order-parenthesis {
-  color: #ef4444;
-}
 
 /* [2026-02-12] 진단 결과 및 모범 답안 상세 해설 섹션 */
 .diagnostic-result-card {
@@ -1415,32 +867,6 @@
   color: #94a3b8;
   line-height: 1.6;
   margin-bottom: 24px;
-}
-
-.model-answer-section {
-  border-top: 1px dashed rgba(255, 255, 255, 0.1);
-  padding-top: 20px;
-}
-
-.btn-toggle-ma {
-  background: rgba(139, 92, 246, 0.1);
-  border: 1px solid rgba(139, 92, 246, 0.3);
-  color: #a78bfa;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.2s;
-  width: fit-content;
-}
-
-.btn-toggle-ma:hover {
-  background: rgba(139, 92, 246, 0.2);
-  border-color: rgba(139, 92, 246, 0.5);
 }
 
 /* [2026-02-14] Premium Architect Report Portal Styles */
@@ -1501,17 +927,6 @@
   color: #e2e8f0;
   line-height: 1.6;
   font-weight: 600;
-}
-
-.ma-explanation-box {
-  margin-top: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 8px;
-  padding: 16px;
-  font-size: 13px;
-  color: #94a3b8;
-  line-height: 1.7;
-  white-space: pre-wrap;
 }
 
 /* [2026-02-12] 객관식 문제 상단 코덕 비주얼 & 말풍선 스타일 */
@@ -1598,120 +1013,14 @@
 
 /* [2026-02-13] 통합 레이아웃 페이즈별 스타일 */
 
-.visualization-phase,
-.tail-question-phase,
-.deep-dive-phase,
-.evaluation-phase {
+.visualization-phase, .evaluation-phase {
   width: 100%;
   animation: fadeIn 0.5s ease-out forwards;
 }
 
-.report-card {
-  background: transparent;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
 /* [2026-02-19] 결과 섹션용 프리미엄 블록 스타일 (미션 박스 스타일 계승) */
-.report-result-block {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 24px;
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(51, 65, 85, 0.5);
-  border-radius: 16px;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
-  animation: slideUpFade 0.4s ease-out forwards;
-}
-
-.rrb-section {
-  display: flex;
-  flex-direction: column;
-}
-
-.rrb-border-top {
-  border-top: 1px solid rgba(51, 65, 85, 0.3);
-  padding-top: 20px;
-  margin-top: 8px;
-}
-
-.rrb-title {
-  font-weight: 900;
-  font-size: 0.9rem;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.rrb-content {
-  color: #e2e8f0;
-  font-size: 0.95rem;
-  line-height: 1.7;
-}
 
 /* [2026-02-19] 종합 점수 빌보드 컴팩트 버전 */
-.compact-billboard {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 30px;
-  background: linear-gradient(90deg, rgba(59, 130, 246, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 16px;
-  margin-bottom: 10px;
-}
-
-.cb-score-area {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-}
-
-.cb-score {
-  font-size: 3rem;
-  font-weight: 900;
-  color: #3b82f6;
-  text-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
-  font-family: 'JetBrains Mono', monospace;
-}
-
-.cb-pts {
-  font-size: 1rem;
-  font-weight: 800;
-  color: #64748b;
-  letter-spacing: 1px;
-}
-
-.cb-grade-badge {
-  padding: 10px 20px;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1.5px solid #4ade80;
-  border-radius: 12px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  box-shadow: 0 0 15px rgba(74, 222, 128, 0.2);
-}
-
-.cb-symbol {
-  font-size: 1.5rem;
-  font-weight: 900;
-  color: #4ade80;
-}
-
-.cb-label {
-  font-size: 10px;
-  font-weight: 800;
-  color: #94a3b8;
-  letter-spacing: 2px;
-}
 
 /* 커스텀 모달 스타일 */
 .neo-modal-overlay {
@@ -1815,137 +1124,9 @@
   transform: translateY(-1px);
 }
 
-.report-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 2px solid rgba(255, 255, 255, 0.05);
-  padding-bottom: 30px;
-}
-
-.medal-area {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.medal-icon {
-  font-size: 3rem;
-  width: 80px;
-  height: 80px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.05);
-}
-
-.tier-s {
-  color: #facc15;
-  text-shadow: 0 0 20px rgba(250, 204, 21, 0.5);
-  border: 2px solid #facc15;
-}
-
-.tier-a {
-  color: #e2e8f0;
-  text-shadow: 0 0 15px rgba(226, 232, 240, 0.3);
-  border: 2px solid #94a3b8;
-}
-
-.tier-b {
-  color: #fb923c;
-  text-shadow: 0 0 10px rgba(251, 146, 60, 0.3);
-  border: 2px solid #fb923c;
-}
-
-.tier-c {
-  color: #94a3b8;
-  border: 2px solid #4b5563;
-}
-
-.medal-label {
-  font-family: 'JetBrains Mono', monospace;
-  font-weight: 900;
-  font-size: 1.2rem;
-  letter-spacing: 2px;
-  color: #fff;
-}
-
-.total-score {
-  text-align: right;
-  display: flex;
-  flex-direction: column;
-}
-
-.total-score .score-val {
-  font-size: 4.5rem;
-  font-weight: 900;
-  color: #3b82f6;
-  line-height: 1;
-  text-shadow: 0 0 30px rgba(59, 130, 246, 0.4);
-}
-
-.total-score .score-label {
-  font-size: 0.9rem;
-  color: #64748b;
-  font-weight: 800;
-  letter-spacing: 3px;
-}
-
 /* 3-Phase Score Belt */
-.integrated-score-belt {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 15px;
-  padding: 15px;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.step-summary {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-}
-
-.step-label {
-  font-size: 0.75rem;
-  font-weight: 800;
-  color: #475569;
-}
-
-.step-val-group {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-}
-
-.step-val-main {
-  font-size: 1.5rem;
-  font-weight: 900;
-  color: #fff;
-  font-family: 'JetBrains Mono', monospace;
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
-}
-
-.step-val-sub {
-  font-size: 1rem;
-  font-weight: 700;
-  color: #64748b;
-  font-family: 'JetBrains Mono', monospace;
-  letter-spacing: -0.5px;
-}
 
 /* Main Grid: Radar + Dim Details */
-.evaluation-main-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 40px;
-  align-items: center;
-}
 
 .radar-container {
   display: flex;
@@ -1953,223 +1134,11 @@
   padding: 20px;
 }
 
-.radar-svg {
-  width: 100%;
-  max-width: 300px;
-  overflow: visible;
-}
-
-.radar-bg-circle {
-  fill: none;
-  stroke: rgba(255, 255, 255, 0.05);
-  stroke-width: 1;
-}
-
-.radar-axis-line {
-  stroke: rgba(255, 255, 255, 0.05);
-  stroke-width: 1;
-}
-
-.radar-poly {
-  fill: rgba(59, 130, 246, 0.2);
-  stroke: #3b82f6;
-  stroke-width: 2;
-  stroke-linejoin: round;
-}
-
-.radar-label-text {
-  fill: #64748b;
-  font-size: 10px;
-  font-weight: 800;
-  text-anchor: middle;
-  dominant-baseline: middle;
-}
-
-.dimension-details {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.dim-card {
-  padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.dim-header {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-
-.dim-name {
-  font-size: 0.8rem;
-  font-weight: 900;
-  color: #94a3b8;
-  letter-spacing: 1px;
-}
-
-.dim-score {
-  font-size: 0.9rem;
-  font-weight: 800;
-  color: #fff;
-}
-
-.dim-progress {
-  height: 6px;
-  background: #1e293b;
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.dim-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #3b82f6, #60a5fa);
-  border-radius: 3px;
-  transition: width 1s ease-out;
-}
-
-.tail-question-area {
-  background: rgba(30, 41, 59, 0.5);
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  border-radius: 16px;
-  padding: 30px;
-}
-
-.tq-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.tq-title {
-  font-size: 20px;
-  font-weight: 800;
-  color: #60a5fa;
-}
-
-.tq-content {
-  font-size: 18px;
-  color: #e2e8f0;
-  line-height: 1.6;
-  margin-bottom: 30px;
-}
-
-.btn-tq-option {
-  width: 100%;
-  text-align: left;
-  padding: 16px 20px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  color: #94a3b8;
-  margin-bottom: 12px;
-  transition: all 0.2s;
-}
-
-.btn-tq-option:hover {
-  background: rgba(59, 130, 246, 0.1);
-  border-color: #3b82f6;
-  color: #fff;
-}
-
 /* [2026-02-13] YouTube Recommendations Styles */
-.youtube-recommendations {
-  margin-top: 20px;
-  padding-top: 30px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.yr-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
-.yr-header h3 {
-  font-size: 0.9rem;
-  font-weight: 900;
-  color: #60a5fa;
-  letter-spacing: 2px;
-}
-
-.yr-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
 
 /* [2026-02-13] Video Recommendations */
-.video-card-single {
-  background: rgba(30, 41, 59, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 16px;
-  overflow: hidden;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
-  align-items: center;
-  text-decoration: none;
-  /* Remove underline */
-}
-
-.video-card-single:hover {
-  transform: translateY(-2px);
-  background: rgba(30, 41, 59, 0.8);
-  border-color: #3b82f6;
-  box-shadow: 0 10px 30px rgba(59, 130, 246, 0.15);
-}
-
-.video-info {
-  padding: 24px;
-}
-
-.v-title {
-  font-size: 1.1rem;
-  font-weight: 800;
-  color: #fff;
-  margin-bottom: 8px;
-  line-height: 1.4;
-}
-
-.v-desc {
-  font-size: 0.9rem;
-  color: #94a3b8;
-  margin-bottom: 16px;
-  line-height: 1.6;
-}
-
-.v-cta {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: #38bdf8;
-  display: inline-block;
-  transition: transform 0.2s;
-}
-
-.video-card-single:hover .v-cta {
-  transform: translateX(4px);
-}
 
 /* [2026-02-19] 리포트용 미니 지표 및 유튜브 카드 */
-.metric-mini-row {
-  background: rgba(0, 0, 0, 0.2);
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.03);
-}
-
-.yt-compact-card {
-  transition: transform 0.2s;
-}
-
-.yt-compact-card:hover {
-  transform: translateY(-4px);
-}
 
 /* [2026-02-13] Rule Checklist UI (Restored) */
 .rule-checklist-bar {
@@ -2261,136 +1230,8 @@
 }
 
 /* YouTube Modal */
-.youtube-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(8px);
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  animation: fadeIn 0.3s ease-out;
-}
-
-.youtube-modal-content {
-  width: 100%;
-  max-width: 900px;
-  position: relative;
-  background: #000;
-  border-radius: 20px;
-  overflow: hidden;
-  box-shadow: 0 30px 100px rgba(0, 0, 0, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.modal-close {
-  position: absolute;
-  top: -40px;
-  right: 0;
-  color: #fff;
-  background: none;
-  border: none;
-  cursor: pointer;
-  opacity: 0.7;
-  transition: opacity 0.2s;
-}
-
-.modal-close:hover {
-  opacity: 1;
-}
-
-.video-responsive {
-  position: relative;
-  padding-bottom: 56.25%;
-  /* 16:9 */
-  height: 0;
-  overflow: hidden;
-}
-
-.video-responsive iframe {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-}
 
 /* [2026-02-13] ENHANCED EVALUATION REPORT UI */
-.dimension-details-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-  margin-top: 20px;
-}
-
-.dim-detail-card {
-  background: rgba(30, 41, 59, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  transition: all 0.3s ease;
-}
-
-.dim-detail-card:hover {
-  background: rgba(30, 41, 59, 0.7);
-  border-color: rgba(74, 222, 128, 0.2);
-  transform: translateY(-2px);
-}
-
-.dim-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.dim-label {
-  font-size: 0.75rem;
-  font-weight: 800;
-  color: #94a3b8;
-  letter-spacing: 1px;
-}
-
-.dim-val {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.9rem;
-  color: #4ade80;
-  font-weight: 900;
-}
-
-.dim-progress-mini {
-  height: 4px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.dim-fill-mini {
-  height: 100%;
-  background: #4ade80;
-  box-shadow: 0 0 10px rgba(74, 222, 128, 0.3);
-  border-radius: 2px;
-}
-
-.dim-comment {
-  font-size: 0.85rem;
-  color: #e2e8f0;
-  line-height: 1.5;
-  margin: 4px 0;
-}
-
-.dim-improvement {
-  font-size: 0.75rem;
-  color: #60a5fa;
-  line-height: 1.4;
-  background: rgba(59, 130, 246, 0.1);
-  padding: 8px;
-  border-radius: 6px;
-}
 
 /* BLUEPRINT SECTION */
 .blueprint-section {
@@ -2399,30 +1240,6 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   overflow: hidden;
-}
-
-.blueprint-header {
-  background: rgba(255, 255, 255, 0.05);
-  padding: 10px 16px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #60a5fa;
-  font-weight: 800;
-  font-size: 0.75rem;
-  letter-spacing: 1.5px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.blueprint-code {
-  padding: 16px;
-  margin: 0;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.85rem;
-  color: #38bdf8;
-  line-height: 1.6;
-  overflow-x: auto;
-  background: transparent;
 }
 
 /* ==========================================================================
@@ -2708,17 +1525,6 @@
   color: #fff;
 }
 
-.senior-quote {
-  font-size: 1.75rem;
-  font-weight: 700;
-  line-height: 1.5;
-  color: #fff;
-  margin: 0;
-  padding: 0;
-  font-style: italic;
-  font-family: 'Pretendard', sans-serif;
-}
-
 .feedback-dual-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -2859,23 +1665,7 @@
   padding-bottom: 0.5rem;
 }
 
-.p-content-box {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.p-video-label,
-.m-video-label {
-  font-size: 0.875rem;
-  font-weight: 800;
-  color: #64748b;
-  text-transform: uppercase;
-}
-
-.p-video-title,
-.p-video-title-small,
-.m-video-title {
+.p-video-title {
   font-size: 1.5rem;
   font-weight: 800;
   color: #f1f5f9;
@@ -2913,12 +1703,6 @@
   align-items: center;
   margin-bottom: 20px;
   letter-spacing: 0.5px;
-}
-
-.path-grid-neo {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 20px;
 }
 
 .path-card-neo {
@@ -2987,55 +1771,6 @@
   overflow: hidden;
 }
 
-.p-video-desc {
-  font-size: 0.85rem;
-  color: #94a3b8;
-  line-height: 1.5;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  line-clamp: 3;
-  overflow: hidden;
-}
-
-.p-theme-tag {
-  font-size: 1rem;
-  font-weight: 700;
-  color: #fbbf24;
-  margin-top: 0.25rem;
-}
-
-.p-curation-msg-box {
-  background: rgba(15, 23, 42, 0.3);
-  padding: 1.5rem;
-  border-radius: 12px;
-  border: 1px dashed rgba(255, 255, 255, 0.1);
-  font-size: 1.125rem;
-  color: #e2e8f0;
-  font-style: italic;
-  line-height: 1.6;
-}
-
-.p-video-title-small {
-  font-size: 1.25rem !important;
-  margin-top: 2px;
-}
-
-.p-curation-point,
-.m-curation-msg,
-.m-focus-point {
-  font-size: 1.125rem;
-  line-height: 1.6;
-  color: #94a3b8;
-  margin-top: 0.5rem;
-}
-
-.point-label {
-  color: #3b82f6;
-  font-weight: 700;
-  margin-right: 8px;
-}
-
 .master-next-level {
   background: linear-gradient(135deg, rgba(250, 204, 21, 0.05) 0%, rgba(0, 0, 0, 0.3) 100%);
   border: 2px solid rgba(250, 204, 21, 0.2);
@@ -3057,14 +1792,6 @@
   margin-top: 1rem;
   line-height: 1.5;
   font-style: italic;
-}
-
-.master-content-card {
-  margin-top: 2.5rem;
-  background: rgba(15, 23, 42, 0.6);
-  border-radius: 16px;
-  padding: 2.5rem;
-  border: 1px solid rgba(250, 204, 21, 0.1);
 }
 
 .master-next-level::before {

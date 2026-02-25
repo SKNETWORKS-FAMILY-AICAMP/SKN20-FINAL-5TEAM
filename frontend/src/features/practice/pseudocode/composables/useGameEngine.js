@@ -1,5 +1,4 @@
 import { reactive, computed, watch } from 'vue';
-import { aiQuests } from '../data/stages.js';
 import { useGameStore } from '@/stores/game';
 
 export function useGameEngine() {
@@ -76,8 +75,11 @@ export function useGameEngine() {
 
     // --- Mission Data ---
     const currentMission = computed(() => {
-        if (!aiQuests || aiQuests.length === 0) return {};
-        return aiQuests.find(q => q.id === gameState.currentStageId) || aiQuests[0];
+        const problems = gameStore.activeUnit?.problems || [];
+        if (problems.length === 0) return {};
+        // [수정일: 2026-02-24] currentStageId에 해당하는 문제를 DB 기반 state에서 조회
+        const target = problems.find(p => p.id === gameState.currentStageId || (p.questIndex + 1) === gameState.currentStageId);
+        return target ? target.config : problems[0].config;
     });
 
     const missionContext = computed(() => {
@@ -147,7 +149,8 @@ export function useGameEngine() {
 
     const nextMission = () => {
         const nextId = gameState.currentStageId + 1;
-        const nextQuest = aiQuests.find(q => q.id === nextId);
+        const problems = gameStore.activeUnit?.problems || [];
+        const nextQuest = problems.find(p => p.id === nextId || (p.questIndex + 1) === nextId);
         if (nextQuest) {
             gameState.currentStageId = nextId;
             setPhase('DIAGNOSTIC_1');
@@ -212,7 +215,8 @@ export function useGameEngine() {
 
     // 맵에서 단계 선택
     const selectStage = (stageId) => {
-        const targetQuest = aiQuests.find(q => q.id === stageId);
+        const problems = gameStore.activeUnit?.problems || [];
+        const targetQuest = problems.find(p => p.id === stageId || (p.questIndex + 1) === stageId);
         if (!targetQuest) return;
 
         gameState.currentStageId = stageId;
@@ -220,14 +224,16 @@ export function useGameEngine() {
         gameState.score = 0;
         gameState.hasUsedBlueprint = false;
         gameState.systemLogs = [];
-        addSystemLog(`스테이지 ${stageId}: ${targetQuest.title} 시작`, "INFO");
+        addSystemLog(`스테이지 ${stageId}: ${targetQuest.title || targetQuest.config.title} 시작`, "INFO");
         setPhase('DIAGNOSTIC_1');
     };
     // [2026-02-18] 미션 변경 시 플레이스홀더 동적 업데이트
     watch(() => currentMission.value?.id, (id) => {
-        if (id) {
-            gameState.phase3Placeholder = currentMission.value.placeholder || "";
-        }
+        try {
+            if (id && currentMission.value) {
+                gameState.phase3Placeholder = currentMission.value.placeholder || "";
+            }
+        } catch (e) { console.warn("[GameEngine] Watcher error suppressed on unmount:", e); }
     }, { immediate: true });
 
     return {

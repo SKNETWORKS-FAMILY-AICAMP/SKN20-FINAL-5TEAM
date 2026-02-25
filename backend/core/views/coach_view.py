@@ -75,13 +75,8 @@ def _should_show_chart(intent_type, user_message):
 
 
 class AICoachView(APIView):
-    """ReAct 에이전트 기반 AI 코치
-
-    플로우:
-    1. [Guardrail] 명백한 범위 밖 질문 사전 차단
-    2. [Agent Loop] LLM이 필요한 도구를 자율적으로 선택하며 상호작용
-    3. [Tool Caching] 중복 호출 방지
-    4. [SSE Streaming] 실시간 진행 상황 전달
+    """ReAct 에이전트 기반 AI 코치 (임시 비활성화됨)
+    [수정일: 2026-02-24] 누락된 모듈 오류로 인해 임시 비활성화 조치
     """
 
     permission_classes = [permissions.IsAuthenticated]

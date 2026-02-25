@@ -1,4 +1,4 @@
-/**
+﻿/**
  * useCoduckWars.js - Refactored (Restored and Fixed)
  * 
  * 개선 사항:
@@ -158,6 +158,27 @@ export function useCoduckWars() {
         }
     }, { immediate: true });
 
+    const fallbackChecklistPatterns = {
+        check_isolation: [/격리|분리|isolation|split/i],
+        check_anchor: [/기준점|기준|fit|anchor/i],
+        check_consistency: [/일관성|동일|변환|consistency|transform/i],
+        check_control: [/복잡도|제어|정규화|l1|l2|ridge|lasso|depth/i],
+        check_selection: [/특성|선택|제거|selection|feature/i],
+        check_monitoring: [/성능|모니터링|추적|accuracy|score|monitoring/i],
+        check_diagnosis: [/불균형|진단|분포|detect|imbalance/i],
+        check_sampling: [/샘플링|smote|오버|언더|sampling|balance/i],
+        check_evaluation: [/평가|지표|f1|auc|precision|recall|metric|fair/i],
+        check_creation: [/창조|생성|파생|creation/i],
+        check_transformation: [/변환|스케일링|정규화|transformation|scaling/i],
+        check_feature_selection: [/선택|중요도|제거|selection/i],
+        check_space: [/공간|범위|정의|param|space/i],
+        check_search: [/탐색|전략|그리드|랜덤|search|strategy/i],
+        check_cv: [/교차검증|k-fold|cv|valid/i],
+        check_global: [/전역|해석|global/i],
+        check_local: [/개별|해석|shap|lime|local/i],
+        check_fairness: [/공정|검증|편향|fair|bias/i]
+    };
+
     const completedChecksCount = computed(() =>
         ruleChecklist.value.filter(c => c.completed).length
     );
@@ -216,10 +237,27 @@ export function useCoduckWars() {
         dynamicHintMessage.value = "🐣 [설계 완료]\n\n훌륭한 설계입니다! 아키텍트의 승인을 요청해 보세요.";
     };
 
+    // [수정일: 2026-02-24] DB에서 로드된 checklist.patterns가 JSON 직렬화 시 RegExp가 {} 로 변환되어 TypeError를 발생시키는 문제 해결
+    // fallbackChecklistPatterns 로컬 패턴을 우선 사용하고, RegExp 인스턴스 또는 문자열 패턴만 안전하게 처리하도록 복구
     watch(() => gameState.phase3Reasoning, (newCode) => {
-        ruleChecklist.value.forEach(check => {
-            check.completed = check.patterns.some(p => p.test(newCode));
-        });
+        try {
+            ruleChecklist.value.forEach(check => {
+                // fallbackChecklistPatterns에 정의된 패턴이 있으면 우선 사용
+                const patternsToUse = fallbackChecklistPatterns[check.id] || check.patterns;
+
+                if (!Array.isArray(patternsToUse) || patternsToUse.length === 0) {
+                    return; // patterns가 없으면 completed 상태 유지
+                }
+
+                check.completed = patternsToUse.some(p => {
+                    if (p instanceof RegExp) return p.test(newCode);
+                    if (typeof p === 'string' && p.length > 0) return new RegExp(p, 'i').test(newCode);
+                    return false; // {} 등 잘못된 형식은 무시
+                });
+            });
+        } catch (e) {
+            console.warn('[useCoduckWars] ruleChecklist watcher error:', e);
+        }
         if (showHintDuck.value) updateDynamicHint();
     });
 
