@@ -31,15 +31,14 @@
           <p class="team-label" style="margin-top: 1rem;">모드 설정</p>
           <div class="team-btns">
             <button
-              v-for="n in [2, 3, 4, 5, 6, 8]" :key="n"
+              v-for="n in [2, 4, 6, 8]" :key="n"
               class="btn-team" :class="{ active: teamSize === n }"
               @click="teamSize = n"
-            >{{ n }}인 팀</button>
+            >{{ n }}명 ({{ n/2 }}vs{{ n/2 }})</button>
           </div>
-          <label class="ace-toggle">
-            <input type="checkbox" v-model="aceMode" :disabled="teamSize !== 3" />
-            <span>에이스 모드 (숙련자 2섹터 담당)</span>
-          </label>
+          <p class="team-label" style="margin-top: 0.75rem; font-size: 0.65rem; color: #64748b;">
+            🆚 팀A vs 팀B 대전! 같은 번호끼리 매칭됩니다.
+          </p>
         </div>
         <button @click="requestStart" class="btn-start blink-border" :disabled="!rs.isReady.value">▶ START GAME</button>
       </div>
@@ -62,14 +61,14 @@
               <img src="/image/duck_det.png" class="mini-avatar ai-mini" />
             </div>
             <div class="track-fill player-fill" :style="{ width: playerPct + '%' }"></div>
-            <div class="track-fill ai-fill" :style="{ width: aiPct + '%' }"></div>
+            <div class="track-fill ai-fill" :style="{ width: team2Pct + '%' }"></div>
             <div class="track-goal">
               <img src="/image/unit_system.png" class="mini-goal" />
             </div>
           </div>
           <div class="track-labels">
-            <span class="tl-you">YOU {{ Math.round(playerPct) }}%</span>
-            <span class="tl-ai">AI {{ Math.round(aiPct) }}%</span>
+            <span class="tl-you">팀A {{ Math.round(playerPct) }}%</span>
+            <span class="tl-ai">팀B {{ Math.round(team2Pct) }}%</span>
           </div>
         </div>
         <div class="hud-cell">
@@ -96,15 +95,15 @@
           <div class="runner-stage dual-track">
             <!-- 상단: AI 레인 -->
             <div class="lane ai-lane">
-              <div class="lane-label">AI TRACK</div>
-              <div class="ai-char" :style="{ left: aiPct + '%' }" :class="{ visible: aiVisible }">
-                <img src="/image/duck_det.png" class="main-ai" />
+              <div class="lane-label">팀B TRACK</div>
+              <div class="ai-char" :style="{ left: team2Pct + '%' }" :class="{ visible: true }">
+                <img :src="getTeam2Avatar()" class="main-ai" />
               </div>
             </div>
 
-            <!-- 하단: 플레이어 팀 레인 -->
+            <!-- 하단: 팀A 레인 -->
             <div class="lane player-lane">
-              <div class="lane-label">TEAM TRACK</div>
+              <div class="lane-label">팀A TRACK</div>
               <div class="runner-char" :style="{ left: playerPct + '%' }" :class="{ running: phase === 'play', stumble: stumbling }">
                 <img :src="players[currentPlayerIdx]?.avatarUrl || '/image/duck_idle.png'" class="main-avatar" />
                 <div class="baton" v-if="phase === 'play'"></div>
@@ -216,7 +215,15 @@
             </div>
 
             <div class="editor-footer">
-              <div class="ef-left">UTF-8 | Pseudocode | Sector {{ currentSector + 1 }}</div>
+              <div class="ef-left">
+                <div class="timeout-bar-container" v-if="phase === 'play'">
+                  <div class="timeout-bar-track">
+                    <div class="timeout-bar-fill" :style="{ width: lineTimeoutPct + '%' }" :class="{ danger: isTimeoutDanger }"></div>
+                  </div>
+                  <span class="timeout-text" :class="{ danger: isTimeoutDanger }">{{ lineTimeout }}s</span>
+                </div>
+                <span v-else>UTF-8 | Pseudocode | Sector {{ currentSector + 1 }}</span>
+              </div>
               <div class="ef-right">
                 <span class="err-msg" v-if="errorMsg">⚠️ {{ errorMsg }}</span>
                 <button class="btn-ide-submit" @click="submitLine" :disabled="!userInput.trim()">RUN ↵</button>
@@ -261,10 +268,10 @@
     <transition name="zoom">
       <div v-if="phase === 'gameover'" class="overlay">
         <div class="gameover-box">
-          <div class="go-icon">💀</div>
+          <div class="go-icon">⚔️</div>
           <h1 class="go-title glitch" data-text="GAME OVER">GAME OVER</h1>
-          <p class="go-desc">AI 추격자에게 따라잡혔습니다!</p>
-          <div class="go-caught-at">{{ caughtAtPct }}% 지점에서 추월당함</div>
+          <p class="go-desc">팀B에게 역전당했습니다!</p>
+          <div class="go-caught-at">{{ team2Pct }}% 지점에서 추월당함</div>
           <div class="go-btns">
             <button @click="startGame" class="btn-retry">🔄 다시 도전</button>
             <button @click="$router.push('/practice/coduck-wars')" class="btn-exit">🏠 나가기</button>
@@ -310,10 +317,10 @@
 </template>
 
 <script setup>
-// 수정일: 2026-02-24
-// 수정내용: 스피드 아키텍처 빌더를 대체하는 로직 런: AI 추격전 신규 컴포넌트 생성
+// 수정일: 2026-02-25
+// 수정내용: 로직 런 - AI 제거 & 플레이어 vs 플레이어 구조로 변경
 //  - 의사코드 릴레이 입력 → 캐릭터 전진
-//  - AI 추격자 (난이도별 CPM → ms 인터벌)
+//  - 팀A(짝수) vs 팀B(홀수) 경쟁 구조
 //  - 섹터 완료 시 바통 패스 + 하이파이브 ±300ms 판정
 //  - 5대 지표 (일관성, 추상화, 예외처리, 구현력, 설계) 실시간 측정
 //  - S~D 등급 최종 평가 화면
@@ -418,37 +425,38 @@ rs.onEnd.value = (data) => {
 // ─── 상태 ───────────────────────────────────────────
 const phase = ref('intro')       // intro | play | relay | gameover | complete
 const teamSize = ref(2)
-const aceMode = ref(false)
 const score = ref(0)
 const shaking = ref(false)
 const flashOk = ref(false)
 const flashFail = ref(false)
 const stumbling = ref(false)
-const aiVisible = ref(true)
 const lastCorrectLine = ref('')
 const errorMsg = ref('')
 const userInput = ref('')
 const showObstacle = ref(null)
-const caughtAtPct = ref(0)
+const team2Pct_ = ref(0)  // 팀B의 진행도
 const highFiveStatus = ref('')
 const relayTimer = ref(10)
+const lineTimeout = ref(20)  // 한 라인당 제한 시간 (초)
+const isTimeoutActive = ref(false)
 let relayInterval = null
 let highFiveTime = null
+let lineTimeoutInterval = null  // 한 라인 타임아웃 타이머
 
 const currentSector = ref(0)
 const currentPlayerIdx = ref(0)
 const currentLineIdx = ref(0)
+const currentTeam = ref('A')  // 현재 활성 팀 (A or B)
 
-const playerPos = ref(0)   // 플레이어 전체 진행도
-const aiPos = ref(0)       // AI 진행도
+const playerPos = ref(0)   // 현재 활성 팀 진행도 (팀A 기준)
 const playerPct = computed(() => Math.min(playerPos.value, 100))
-const aiPct = computed(() => Math.min(aiPos.value, 100))
+const team2Pct = computed(() => Math.min(team2Pct_.value, 100))
 
-// [동기화] 리더가 아닌 경우 서버에서 온 AI 위치를 내 로컬 aiPos에 강제 동기화
+// [동기화] 리더가 아닌 경우 서버에서 온 팀B 위치를 내 로컬에 강제 동기화
 import { watch } from 'vue'
 watch(() => rs.remoteAiPos.value, (newPos) => {
   if (!rs.isLeader.value) {
-    aiPos.value = newPos
+    team2Pct_.value = newPos
   }
 })
 
@@ -476,8 +484,13 @@ const metricList = [
 // 플레이어 목록
 const players = ref([])
 
-// AI 타이머
-let aiTimer = null // Changed from aiInterval to aiTimer for clarity
+// 팀 정보
+const teamAPlayers = computed(() => players.value.filter((_, idx) => idx % 2 === 0))
+const teamBPlayers = computed(() => players.value.filter((_, idx) => idx % 2 === 1))
+const currentTeamPlayers = computed(() => currentTeam.value === 'A' ? teamAPlayers.value : teamBPlayers.value)
+
+// 팀B 타이머
+let team2Timer = null
 
 // ─── 퀘스트 데이터 (섹터별 의사코드 라인) ───────────────
 // [수정일: 2026-02-24] 의사코드 정체성 강화를 위해 표준 키워드(함수, 만약, 결과 등) 및 영문 혼용 규격 적용
@@ -551,7 +564,11 @@ const currentHint = computed(() =>
   currentSectorLines.value[currentLineIdx.value]?.hint || '완료!'
 )
 const currentSectorLabel = computed(() => `섹터 ${currentSector.value + 1}`)
-const currentPlayerLabel = computed(() => `P${currentPlayerIdx.value + 1}`)
+const currentPlayerLabel = computed(() => {
+  const team = currentPlayerIdx.value % 2 === 0 ? '팀A' : '팀B'
+  const playerNum = Math.floor(currentPlayerIdx.value / 2) + 1
+  return `${team} P${playerNum}`
+})
 const inputPlaceholder = computed(() =>
   currentSectorLines.value[currentLineIdx.value]?.answer
     ? `예: ${currentSectorLines.value[currentLineIdx.value].answer}`
@@ -576,17 +593,18 @@ const gradeFeedback = computed(() => {
   return '🔄 다시 도전해보세요!'
 })
 const relayTimerPct = computed(() => (relayTimer.value / 10) * 100)
+const lineTimeoutPct = computed(() => (lineTimeout.value / 20) * 100)
+const isTimeoutDanger = computed(() => lineTimeout.value <= 5)
 
-// ─── AI 난이도 설정 (CPM → ms per char) ────────────────
-// [수정일: 2026-02-24] 사용자 피드백 반영: AI 속도가 여전히 빨라 대폭 추가 하향
-// 전체 100% 도달 시간 기준: Easy(~4분), Medium(~2.5분), Hard(~1.5분)
-const AI_SPEEDS = { easy: 25, medium: 40, hard: 65 } // CPM
-function getDifficulty() {
+// ─── 팀B 속도 설정 (CPM → ms per char) ────────────────
+// 팀B는 팀A와 같은 속도로 진행 (공정한 경쟁)
+const TEAM2_SPEEDS = { easy: 25, medium: 40, hard: 65 } // CPM
+function getTeam2Difficulty() {
   // 현재는 medium 고정, 추후 레벨 시스템 연동
   return 'medium'
 }
-const aiInterval = computed(() => { // Changed to computed property
-  const cpm = AI_SPEEDS[getDifficulty()]
+const team2Interval = computed(() => {
+  const cpm = TEAM2_SPEEDS[getTeam2Difficulty()]
   // 캐릭터 1칸 전진 = 평균 8글자 → 전체 100칸 기준
   const totalChars = 800
   return Math.round((60000 / cpm) * (100 / totalChars) * 8)
@@ -602,10 +620,10 @@ function startGame(fromSocket = false, qIdx = null) {
   currentSector.value = 0
   currentPlayerIdx.value = 0
   currentLineIdx.value = 0
+  currentTeam.value = 'A'  // 팀A부터 시작
   score.value = 0
   playerPos.value = 0
-  // [수정일: 2026-02-24] 듀얼 트랙 레이스이므로 AI도 0에서 시작 (경쟁)
-  aiPos.value = 0
+  team2Pct_.value = 0  // 팀B도 0에서 시작
   errorMsg.value = ''
   userInput.value = ''
   showObstacle.value = null
@@ -617,53 +635,57 @@ function startGame(fromSocket = false, qIdx = null) {
   // 플레이어 초기화 (멀티플레이어 아닐 때만 더미데이터로 초기화)
   if (!fromSocket) {
     players.value = Array.from({ length: teamSize.value }, (_, i) => ({
-      name: `P${i + 1}`, avatarUrl: '/image/duck_idle.png', completedLines: 0, done: false
+      name: `${i % 2 === 0 ? '팀A' : '팀B'} P${Math.floor(i/2) + 1}`,
+      avatarUrl: '/image/duck_idle.png',
+      completedLines: 0,
+      done: false
     }))
   }
 
   phase.value = 'play'
-  startAiChase()
+  startTeam2Chase()
+  // 첫 라인의 타임아웃 시작
+  startLineTimeout()
   nextTick(() => codeInput.value?.focus())
 }
 
-// ─── AI 추격 시작 ──────────────────────────────────────
-function startAiChase() {
-  if (aiTimer) clearInterval(aiTimer)
-  
-  // 리더가 아니면 리모트 AI 위치만 수신합니다.
+// ─── 팀B 진행 시작 ────────────────────────────────────────
+// [수정일: 2026-02-25] AI 제거 & 팀B 플레이어 진행도 계산
+function startTeam2Chase() {
+  if (team2Timer) clearInterval(team2Timer)
+
+  // 리더가 아니면 리모트 팀B 위치만 수신합니다.
   if (!rs.isLeader.value) {
-    // 리더가 아닐 때도 로컬 interval은 돌리되, 소켓 값을 추종하게 할 수 있음 (보간용)
-    // 여기서는 단순하게 리더만 계산하고 전파하는 마스터 방식을 따릅니다.
-    return 
+    return
   }
 
-  // 1.5초 유예 후 추격 시작
+  // 1.5초 유예 후 팀B 진행 시작
   setTimeout(() => {
     if (phase.value !== 'play') return
-    
-    aiTimer = setInterval(() => {
+
+    team2Timer = setInterval(() => {
       if (phase.value !== 'play') return
-      
-      // 기본 이동
-      aiPos.value += 1
-      
-      // 분노 모드: 팀이 30% 이상 앞서면 속도 1.5배
-      if (playerPos.value - aiPos.value > 30) {
-        aiPos.value += 0.5
+
+      // 기본 이동: 팀B도 자동으로 천천히 진행 (플레이어가 입력하지 않으면)
+      team2Pct_.value += 0.5
+
+      // 가속 모드: 팀A가 30% 이상 앞서면 팀B 속도 2배
+      if (playerPos.value - team2Pct_.value > 30) {
+        team2Pct_.value += 0.5  // 1배 속도 가속
       }
 
-      // 서버에 AI 위치 브로드캐스트
-      rs.emitAiSync(roomId.value, aiPos.value)
+      // 서버에 팀B 위치 브로드캐스트
+      rs.emitAiSync(roomId.value, team2Pct_.value)
 
-      // [듀얼 트랙 개편] AI가 결승선(100%)에 먼저 도달하면 패배
-      if (aiPos.value >= 100) {
-        clearInterval(aiTimer)
-        rs.emitFinish(roomId.value, { 
-          caught: true, // caught는 편의상 패배 신호로 유지
-          playerPos: playerPos.value 
+      // 팀B가 먼저 완주하면 게임 오버 (팀A 패배)
+      if (team2Pct_.value >= 100) {
+        clearInterval(team2Timer)
+        rs.emitFinish(roomId.value, {
+          caught: true,  // 팀B가 팀A를 따라잡음
+          playerPos: playerPos.value
         })
       }
-    }, aiInterval.value)
+    }, team2Interval.value)
   }, 1500)
 }
 
@@ -671,10 +693,14 @@ function startAiChase() {
 let lastVariables = {}
 
 function submitLine() {
-  if (!isMyTurn.value) return 
+  if (!isMyTurn.value) return
   const input = userInput.value.trim()
   if (!input || phase.value !== 'play') return
-  
+
+  // 타임아웃 타이머 정지
+  if (lineTimeoutInterval) clearInterval(lineTimeoutInterval)
+  isTimeoutActive.value = false
+
   const lineData = currentSectorLines.value[currentLineIdx.value]
   if (!lineData) return
 
@@ -777,6 +803,9 @@ function handleCorrect(input, lineData) {
   if (currentLineIdx.value >= currentSectorLines.value.length) {
     players.value[currentPlayerIdx.value].done = true
     sectorComplete()
+  } else {
+    // 다음 라인의 타이머 시작
+    startLineTimeout()
   }
 }
 
@@ -792,11 +821,15 @@ function handleWrong(input) {
   playerPos.value = Math.max(playerPos.value - 1.5, 0)
   updateMetric('implementation', -4)
   spawnFpop('오타 바나나 🍌', '#ef4444')
+
+  // 같은 라인 재시도 (타이머는 리셋되지 않음 - 계속 진행)
 }
 
 // ─── 섹터 완료 / 바통 패스 ────────────────────────────
 function sectorComplete(fromSocket = false) {
-  if (aiTimer) clearInterval(aiTimer)
+  if (team2Timer) clearInterval(team2Timer)
+  if (lineTimeoutInterval) clearInterval(lineTimeoutInterval)
+  isTimeoutActive.value = false
   const nextSector = currentSector.value + 1
   if (nextSector >= totalSectors.value) {
     // 모든 섹터 완료
@@ -867,26 +900,29 @@ function continueRelay(fromSocket = false) {
     })
   }
 
-  // 에이스 모드가 아닌 경우 다음 플레이어로
-  if (!aceMode.value) {
-    currentPlayerIdx.value = Math.min(currentPlayerIdx.value + 1, teamSize.value - 1)
-  }
+  // 다음 플레이어로 (짝수: 팀A, 홀수: 팀B)
+  currentPlayerIdx.value = (currentPlayerIdx.value + 1) % teamSize.value
+  currentTeam.value = currentPlayerIdx.value % 2 === 0 ? 'A' : 'B'
+
   phase.value = 'play'
-  startAiChase()
+  startTeam2Chase()
+  // 섹터 시작 타이머
+  startLineTimeout()
   nextTick(() => codeInput.value?.focus())
 }
 
 // ─── 게임 종료 ────────────────────────────────────────
 function endGame(result) {
-  if (aiTimer) clearInterval(aiTimer)
+  if (team2Timer) clearInterval(team2Timer)
   if (relayInterval) clearInterval(relayInterval)
+  if (lineTimeoutInterval) clearInterval(lineTimeoutInterval)
+  isTimeoutActive.value = false
 
   if (result === 'complete') {
     // 보너스 계산
     if (score.value > 2000) bonuses.value.push('하이파이브 타임 보너스 +200pt')
     if (metrics.value.consistency >= 80) bonuses.value.push('변수 무결성 달성 +150pt')
-    if (playerPos.value - aiPos.value > 30) { score.value += 200; bonuses.value.push('AI와 격차 30% 이상 +200pt') }
-    if (aceMode.value) { score.value -= 100; bonuses.value.push('에이스 모드 패널티 -100pt') }
+    if (playerPos.value - team2Pct_.value > 30) { score.value += 200; bonuses.value.push('팀B와 격차 30% 이상 +200pt') }
   }
   
   // [멀티플레이어] 종료 신호 발신
@@ -926,9 +962,84 @@ function spawnFpop(text, color = '#fbbf24') {
   setTimeout(() => { fpops.value = fpops.value.filter(f => f.id !== id) }, 1400)
 }
 
+// ─── 라인 타임아웃 ────────────────────────────────────
+function startLineTimeout() {
+  if (lineTimeoutInterval) clearInterval(lineTimeoutInterval)
+  lineTimeout.value = 20
+  isTimeoutActive.value = true
+
+  lineTimeoutInterval = setInterval(() => {
+    lineTimeout.value--
+
+    if (lineTimeout.value <= 0) {
+      clearInterval(lineTimeoutInterval)
+      isTimeoutActive.value = false
+      // 시간 초과: 자동으로 공란 제출 (패널티)
+      handleTimeout()
+    }
+  }, 1000)
+}
+
+function handleTimeout() {
+  // 시간 초과 처리
+  errorMsg.value = '⏱️ 시간 초과! 다음 라인으로 넘어갑니다.'
+  setTimeout(() => { errorMsg.value = '' }, 1500)
+
+  // 화면 효과
+  flashFail.value = true
+  setTimeout(() => { flashFail.value = false }, 400)
+
+  // 진행도 감소
+  playerPos.value = Math.max(playerPos.value - 2, 0)
+
+  // 라인 스킵
+  currentLineIdx.value++
+
+  // 멀티플레이어 동기화
+  rs.emitProgress(roomId.value, {
+    playerPos: playerPos.value,
+    playerIdx: currentPlayerIdx.value,
+    lineIdx: currentLineIdx.value,
+    score: score.value,
+    metrics: metrics.value
+  })
+
+  userInput.value = ''
+  nextTick(() => codeInput.value?.focus())
+
+  // 섹터 완료 확인
+  if (currentLineIdx.value >= currentSectorLines.value.length) {
+    players.value[currentPlayerIdx.value].done = true
+    sectorComplete()
+  } else {
+    // 다음 라인 타이머 시작
+    startLineTimeout()
+  }
+}
+
+// 팀B의 현재 플레이어 아바타 반환
+function getTeam2Avatar() {
+  // 팀B의 현재 진행 중인 플레이어 인덱스 (홀수)
+  let team2PlayerIdx = 1  // 기본값: 팀B의 첫 번째 플레이어
+
+  if (currentPlayerIdx.value % 2 === 1) {
+    // 현재 팀B 플레이어가 진행 중
+    team2PlayerIdx = currentPlayerIdx.value
+  } else {
+    // 현재 팀A 플레이어가 진행 중이면, 팀B의 다음 플레이어
+    team2PlayerIdx = Math.min(currentPlayerIdx.value + 1, teamSize.value - 1)
+    if (team2PlayerIdx % 2 === 0) {
+      team2PlayerIdx = Math.min(team2PlayerIdx + 1, teamSize.value - 1)
+    }
+  }
+
+  return players.value[team2PlayerIdx]?.avatarUrl || '/image/duck_idle.png'
+}
+
 onUnmounted(() => {
-  clearInterval(aiInterval)
+  clearInterval(team2Timer)
   clearInterval(relayInterval)
+  clearInterval(lineTimeoutInterval)
 })
 </script>
 
@@ -1388,6 +1499,44 @@ onUnmounted(() => {
   font-family: 'Pretendard', sans-serif;
   font-weight: 700;
 }
+
+/* 라인 타임아웃 */
+.timeout-bar-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+.timeout-bar-track {
+  flex: 1;
+  height: 6px;
+  background: #0a0f1e;
+  border-radius: 3px;
+  overflow: hidden;
+  border: 0.5px solid #1e293b;
+}
+.timeout-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00f0ff, #38bdf8);
+  border-radius: 3px;
+  transition: width 1s linear;
+}
+.timeout-bar-fill.danger {
+  background: linear-gradient(90deg, #ff2d75, #ef4444);
+}
+.timeout-text {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.65rem;
+  color: #94a3b8;
+  min-width: 25px;
+  text-align: right;
+}
+.timeout-text.danger {
+  color: #ff2d75;
+  font-weight: 700;
+  animation: blinkA 0.5s infinite;
+}
+@keyframes blinkA { 50%{opacity:.3} }
 @keyframes fadeIn { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
 
 /* 아이템 */
