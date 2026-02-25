@@ -996,7 +996,8 @@ function endGame(result) {
   // 멀티플레이어 동기화 (← 수정: 자신의 점수 사용)
   const myTotal = myTotalScore.value
 
-  rs.emitFinish(roomId.value, {
+  // LogicRun 전용: 상대 점수 개별 전송 (run_finish는 broadcast라 모두 같은 값을 받음)
+  rs.emitLogicFinish(roomId.value, {
     totalScore: myTotal,
     result
   })

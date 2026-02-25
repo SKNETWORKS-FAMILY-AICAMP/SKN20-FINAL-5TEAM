@@ -867,11 +867,19 @@ async def evaluate_and_broadcast_designs(room_id, latest_data):
 
 @sio.event
 async def run_finish(sid, data):
-    """게임 종료 (완료 또는 게임오버)"""
+    """게임 종료 (완료 또는 게임오버) - 범용"""
+    room_id = data.get('room_id')
+    await sio.emit('run_end', data, room=room_id)
+
+@sio.event
+async def run_logic_finish(sid, data):
+    """LogicRun 전용 게임 종료 - 각 플레이어에게 상대 점수를 개별 전송
+
+    run_finish는 단순 broadcast라 모든 클라이언트가 동일한 opponent_score를 받음.
+    LogicRun은 플레이어마다 상대가 다르므로 개별 전송이 필요.
+    """
     room_id = data.get('room_id')
 
-    # [수정일: 2026-02-25] 각 플레이어에게 자신의 상대 점수를 개별 전송
-    # (broadcast 시 모든 플레이어가 동일한 opponent_score를 받아 한 명은 자기 점수를 상대로 보는 버그 수정)
     if room_id in run_rooms:
         room = run_rooms[room_id]
         players = room['players']
@@ -882,7 +890,7 @@ async def run_finish(sid, data):
             if opponent:
                 player_data['opponent_phase1_score'] = opponent.get('phase1_score', 0)
                 player_data['opponent_phase2_score'] = opponent.get('phase2_score', 0)
-                print(f"✅ run_end → {player['name']}: opponent scores phase1={player_data['opponent_phase1_score']}, phase2={player_data['opponent_phase2_score']}")
+                print(f"✅ run_logic_finish → {player['name']}: opponent phase1={player_data['opponent_phase1_score']}, phase2={player_data['opponent_phase2_score']}")
             await sio.emit('run_end', player_data, to=player['sid'])
     else:
         await sio.emit('run_end', data, room=room_id)

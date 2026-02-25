@@ -129,6 +129,11 @@ export function useRunSocket() {
         socket.value?.emit('run_finish', { room_id: roomId, ...resultData })
     }
 
+    // LogicRun 전용: 각 플레이어에게 상대 점수를 개별 전송 (run_finish는 broadcast라 버그 발생)
+    function emitLogicFinish(roomId, resultData) {
+        socket.value?.emit('run_logic_finish', { room_id: roomId, ...resultData })
+    }
+
     function disconnect(roomId) {
         socket.value?.emit('run_leave', { room_id: roomId })
         socket.value?.disconnect()
@@ -143,6 +148,6 @@ export function useRunSocket() {
         remoteLastCorrectLine, remoteCurrentPlayerIdx,
         onGameStart, onSync, onRelay, onHfSync, onDesignEvaluation, onEnd, onUserLeft,
         connect, emitStart, emitProgress, emitRelayStart, emitHighFive,
-        emitAiSync, emitFinish, disconnect
+        emitAiSync, emitFinish, emitLogicFinish, disconnect
     }
 }
