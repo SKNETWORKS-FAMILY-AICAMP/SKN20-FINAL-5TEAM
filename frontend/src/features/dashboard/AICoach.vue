@@ -72,6 +72,56 @@
             </div>
           </template>
 
+          <!-- 차트 렌더링 [2026-02-24] 📊 (최종답변 위에 배치) -->
+          <div v-if="msg.charts && msg.charts.length > 0" class="charts-section">
+            <div v-for="(chart, cIdx) in msg.charts" :key="`chart-${cIdx}`" class="chart-wrapper">
+              <div class="chart-header">
+                <h4 class="chart-title">{{ chart.title }}</h4>
+              </div>
+
+              <!-- Bar / Line / Radar Chart -->
+              <template v-if="['bar', 'line', 'radar'].includes(chart.chart_type)">
+                <canvas
+                  :id="chart._chartId || `chart-${cIdx}-${idx}`"
+                  :data-chart-id="chart._chartId"
+                  class="chart-canvas"
+                  style="max-width: 100%; height: 300px;">
+                </canvas>
+              </template>
+
+              <!-- Progress Chart -->
+              <template v-else-if="chart.chart_type === 'progress'">
+                <div class="progress-list">
+                  <div v-for="(rate, pIdx) in chart.data.completion_rates" :key="pIdx" class="progress-item">
+                    <span class="progress-label">{{ chart.data.units[pIdx] }}</span>
+                    <div class="progress-bar">
+                      <div class="progress-fill" :style="{ width: `${rate}%` }"></div>
+                    </div>
+                    <span class="progress-percent">{{ rate.toFixed(1) }}%</span>
+                  </div>
+                </div>
+              </template>
+
+              <!-- Table Chart -->
+              <template v-else-if="chart.chart_type === 'table'">
+                <div class="table-wrapper">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th v-for="col in chart.data.columns" :key="col">{{ col }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="(row, rIdx) in chart.data.rows" :key="rIdx">
+                        <td v-for="(cell, cIdx) in row" :key="cIdx">{{ cell }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </template>
+            </div>
+          </div>
+
           <!-- 최종 답변 (스트리밍) -->
           <div v-if="msg.showAnswer" class="chat-bubble assistant" v-html="renderMarkdown(msg.displayedContent || '')">
           </div>
@@ -104,6 +154,7 @@
 
 <script setup>
 import { ref, nextTick } from 'vue';
+import Chart from 'chart.js/auto';
 
 const emit = defineEmits(['close']);
 
@@ -228,6 +279,7 @@ async function sendMessage() {
     showAnswer: false,
     displayedContent: '',
     intentData: null, // [2026-02-23] 의도 분석 데이터
+    charts: [], // [2026-02-24] 차트 데이터
   });
   const assistantMsg = messages.value[messages.value.length - 1];
 
@@ -287,6 +339,23 @@ async function sendMessage() {
                 confidence: data.confidence,
                 reasoning: data.reasoning,
               };
+              scrollToBottom();
+            }
+            // [2026-02-24] Chart Data 📊 (동적 차트 표시)
+            else if (data.type === 'chart_data') {
+              // 각 차트에 unique ID 추가
+              const chartWithId = {
+                ...data.chart,
+                _chartId: `chart-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+              };
+              assistantMsg.charts.push(chartWithId);
+
+              // DOM 렌더링 후 차트 렌더링
+              nextTick(() => {
+                setTimeout(() => {
+                  renderChartByDataId(chartWithId);
+                }, 150);
+              });
               scrollToBottom();
             }
             else if (data.type === 'thinking') {
@@ -373,6 +442,108 @@ async function sendMessage() {
   } finally {
     loading.value = false;
     streaming.value = false;
+  }
+}
+
+// ── Chart Rendering Functions [2026-02-24] ──
+const chartInstances = new Map(); // 차트 인스턴스 관리
+
+function renderChartByDataId(chartData) {
+  if (!chartData || !chartData._chartId || !chartData.chart_type) return;
+
+  const chartId = chartData._chartId;
+
+  // 여러 번 시도해서 canvas 찾기 (DOM 렌더링 대기)
+  let attempts = 0;
+  const tryRender = () => {
+    const canvas = document.getElementById(chartId);
+
+    if (!canvas) {
+      attempts++;
+      if (attempts < 10) {
+        // 최대 1000ms까지 대기
+        setTimeout(tryRender, 100);
+      } else {
+        console.error(`❌ Canvas not found after retries: ${chartId}`);
+      }
+      return;
+    }
+
+    // 기존 차트 인스턴스 제거
+    const existingChart = chartInstances.get(chartId);
+    if (existingChart) existingChart.destroy();
+
+    try {
+      const ctx = canvas.getContext('2d');
+      const config = buildChartConfig(chartData);
+
+      if (config) {
+        const chartInstance = new Chart(ctx, config);
+        chartInstances.set(chartId, chartInstance);
+        console.log(`✅ Chart rendered successfully: ${chartData.chart_type}`, chartData.title);
+      }
+    } catch (err) {
+      console.error(`❌ Error rendering chart ${chartId}:`, err);
+    }
+  };
+
+  tryRender();
+}
+
+function buildChartConfig(chartData) {
+  const { chart_type, data } = chartData;
+
+  switch (chart_type) {
+    case 'bar':
+      return {
+        type: 'bar',
+        data: {
+          labels: data.labels,
+          datasets: data.datasets,
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            legend: { display: true },
+          },
+          scales: {
+            y: { max: 100, beginAtZero: true },
+          },
+        },
+      };
+
+    case 'line':
+      return {
+        type: 'line',
+        data: {
+          labels: data.labels,
+          datasets: data.datasets,
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: { legend: { display: true } },
+          scales: { y: { max: 100, beginAtZero: true } },
+        },
+      };
+
+    case 'radar':
+      return {
+        type: 'radar',
+        data: {
+          labels: data.labels,
+          datasets: data.datasets,
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          scales: { r: { max: 100, beginAtZero: true } },
+        },
+      };
+
+    default:
+      return null;
   }
 }
 </script>
@@ -817,5 +988,121 @@ async function sendMessage() {
   font-size: 0.85rem;
   color: var(--text);
   font-style: italic;
+}
+
+/* ===== Charts [2026-02-24] ===== */
+.charts-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-self: flex-start;
+  max-width: 600px;
+  width: 100%;
+}
+
+.chart-wrapper {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 1rem;
+  animation: chartSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes chartSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chart-header {
+  margin-bottom: 1rem;
+}
+
+.chart-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--secondary);
+  margin: 0;
+}
+
+.chart-canvas {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Progress Bar */
+.progress-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.progress-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.progress-label {
+  min-width: 80px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.progress-bar {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  transition: width 0.3s ease;
+}
+
+.progress-percent {
+  min-width: 45px;
+  text-align: right;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* Table */
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.data-table th {
+  background: rgba(99, 102, 241, 0.1);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  color: var(--primary);
+  border-bottom: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+.data-table td {
+  padding: 0.5rem 0.75rem;
+  color: var(--text);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.data-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
 }
 </style>
