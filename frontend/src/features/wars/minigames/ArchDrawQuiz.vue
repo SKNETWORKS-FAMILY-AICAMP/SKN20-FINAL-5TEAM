@@ -90,9 +90,14 @@
         <span class="m-ico">🎯</span>
         <div class="m-txt"><strong>{{ curQ.title }}</strong><span>{{ curQ.description }}</span></div>
         <div class="m-req"><span class="rl">NEED</span><span class="rn neon-c">{{ curQ.required.length }}</span></div>
-        <button @click="getHint" class="btn-hint" :disabled="hintN >= 2 || phase !== 'play'">💡 {{ 2 - hintN }}</button>
       </div>
-      <div class="hint-toast" v-if="hintMsg">💡 {{ hintMsg }}</div>
+      <!-- [Multi-Agent] CoachAgent 힌트 표시 영역 (버튼 힌트 대체) -->
+      <transition name="coach-slide">
+        <div class="coach-toast" v-if="coachMsg">
+          <span class="coach-icon">🤖</span>
+          <span class="coach-text">{{ coachMsg }}</span>
+        </div>
+      </transition>
 
       <!-- SPLIT: MY CANVAS + OPPONENT CANVAS -->
       <div class="split-view">
@@ -320,8 +325,8 @@ const myScore = ref(0)
 const oppScore = ref(0)
 const combo = ref(0)
 const bestCombo = ref(0)
-const hintN = ref(0)
-const hintMsg = ref('')
+const coachMsg = ref('')
+let coachTimer = null
 const lastMyPts = ref(0)
 const lastOppPts = ref(0)
 const checkItems = ref([])
@@ -422,6 +427,18 @@ onMounted(() => {
   console.log(`[ArchDraw] Connecting to Room: ${currentRoomId.value} as ${userName.value}`)
   ds.connect(currentRoomId.value, userName.value)
   window.addEventListener('keydown', handleGlobalKey)
+
+  // [Multi-Agent] CoachAgent 힌트 수신 — 소켓 연결 후 등록
+  // watch로 소켓 준비 감지 후 리스너 등록
+  const stopWatch = watch(() => ds.socket.value, (sock) => {
+    if (!sock) return
+    sock.on('coach_hint', (data) => {
+      if (coachTimer) clearTimeout(coachTimer)
+      coachMsg.value = data.message
+      coachTimer = setTimeout(() => { coachMsg.value = '' }, 6000)
+    })
+    stopWatch() // 한 번 등록 후 watch 해제
+  }, { immediate: true })
 })
 onUnmounted(() => { 
   clearInterval(timer)
@@ -595,8 +612,7 @@ ds.onRoundStart.value = (data) => {
   
   phase.value = 'play';
   timeLeft.value = 45;
-  hintN.value = 0;
-  hintMsg.value = '';
+  coachMsg.value = '';
   nodes.value = [];
   arrows.value = [];
   selectedNode.value = null;
@@ -635,7 +651,7 @@ function goNextRound() {
   }
   ds.emitNextRound(currentRoomId.value, null) // 다음 라운드 신호 전송
 }
-function getHint() { if (hintN.value >= 2) return; hintMsg.value = curQ.value.hints[hintN.value] || ''; hintN.value++; setTimeout(() => hintMsg.value = '', 4000) }
+// getHint 제거됨 — CoachAgent가 대체
 
 // ── Canvas interaction (동일) ──
 function onDragStart(e, c) { dragComp = c; e.dataTransfer.effectAllowed = 'copy' }
@@ -882,8 +898,15 @@ watch(totalItems, (newVal) => {
 .mission{display:flex;align-items:center;gap:.6rem;margin:.4rem 1.2rem;padding:.5rem .8rem;background:rgba(8,12,30,.7);border:1px solid rgba(0,240,255,.08);border-radius:.6rem;font-size:.9rem}
 .m-ico{font-size:1.2rem}.m-txt{display:flex;flex-direction:column;flex:1;gap:.05rem}.m-txt span{font-size:.75rem;color:#64748b}
 .m-req{display:flex;flex-direction:column;align-items:center}.rl{font-size:.45rem;color:#475569;font-weight:700;letter-spacing:1.5px}.rn{font-family:'Orbitron',sans-serif;font-size:1.3rem;font-weight:900}
-.btn-hint{padding:.25rem .5rem;background:rgba(255,230,0,.06);border:1px solid rgba(255,230,0,.15);color:#ffe600;border-radius:.25rem;font-family:'Orbitron',sans-serif;font-size:.55rem;font-weight:700;cursor:pointer}.btn-hint:disabled{opacity:.3;cursor:not-allowed}
-.hint-toast{margin:0 1.2rem;padding:.3rem .6rem;background:rgba(255,230,0,.06);border:1px solid rgba(255,230,0,.15);border-radius:.35rem;font-size:.75rem;color:#fde68a}
+/* [Multi-Agent] CoachAgent 힌트 토스트 */
+.coach-toast{display:flex;align-items:center;gap:.5rem;margin:.2rem 1.2rem 0;padding:.4rem .8rem;background:rgba(0,240,255,.06);border:1px solid rgba(0,240,255,.2);border-radius:.4rem;font-size:.78rem;color:#a5f3fc;animation:coachPulse 4s ease-in-out infinite}
+.coach-icon{font-size:.9rem;flex-shrink:0}
+.coach-text{line-height:1.4}
+.coach-slide-enter-active{transition:all .35s ease-out}
+.coach-slide-leave-active{transition:all .3s ease-in}
+.coach-slide-enter-from{opacity:0;transform:translateY(-6px)}
+.coach-slide-leave-to{opacity:0;transform:translateY(-6px)}
+@keyframes coachPulse{0%,100%{border-color:rgba(0,240,255,.2);box-shadow:none}50%{border-color:rgba(0,240,255,.5);box-shadow:0 0 10px rgba(0,240,255,.1)}}
 
 /* SPLIT VIEW */
 .split-view{display:grid;grid-template-columns:1fr 30px 1fr;gap:0;padding:0 1.2rem;height:calc(100vh - 210px);min-height:0}

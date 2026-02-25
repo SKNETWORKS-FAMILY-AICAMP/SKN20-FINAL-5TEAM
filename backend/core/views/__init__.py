@@ -23,3 +23,9 @@ from .job_planner.job_planner_view import (
     JobPlannerAgentReportView,
     JobPlannerRecommendView,
 )
+from .coduck_wars_view import (
+    CoduckWarsAnalyzeCodeView,
+    CoduckWarsStartView,
+    CoduckWarsPressureView,
+    CoduckWarsEvaluationView
+)

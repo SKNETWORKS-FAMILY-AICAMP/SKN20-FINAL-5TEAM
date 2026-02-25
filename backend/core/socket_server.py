@@ -1,12 +1,18 @@
 import socketio
 import asyncio
 import random
-from core.services.arch_evaluator import ArchEvaluator
 from core.services.pseudocode_evaluator import PseudocodeEvaluator, EvaluationRequest, EvaluationMode
 from asgiref.sync import sync_to_async
 
-# [수정일: 2026-02-24] 진짜 AI 아키텍트 리뷰를 위한 엔진 초기화
-arch_evaluator = ArchEvaluator()
+# [Multi-Agent] Wars 오케스트레이터 및 상태 머신 임포트
+from core.services.wars.orchestrator import WarsOrchestrator
+from core.services.wars.state_machine import DrawRoomState, GameState
+
+# [Multi-Agent] 싱글톤 오케스트레이터 — 모든 draw 방이 공유
+wars_orchestrator = WarsOrchestrator()
+
+# [Multi-Agent] 방별 DrawRoomState 저장소 {room_id: DrawRoomState}
+draw_room_states: dict[str, DrawRoomState] = {}
 
 # [수정일: 2026-02-25] 의사코드 평가 엔진 (LLM 기반)
 pseudocode_evaluator = PseudocodeEvaluator()
@@ -166,10 +172,7 @@ async def join_war_room(sid, data):
             "user_role": user_role
         }, room=mission_id)
 
-        # [Phase 4] 실시간 장애 엔진 시뮬레이션 시작 (데모용)
-        if mission_id not in active_rooms:
-            active_rooms.add(mission_id)
-            asyncio.create_task(trigger_chaos_events_demo(mission_id))
+        # [Multi-Agent] 기존 하드코딩 chaos demo 제거 → ChaosAgent가 draw_canvas_sync에서 동적 트리거
 
 @sio.event
 async def start_mission(sid, data):
@@ -223,33 +226,9 @@ async def run_room_timer(mission_id):
                 }
             }, room=mission_id)
 
-async def trigger_chaos_events_demo(mission_id):
-    """
-    데모용 장애 스케줄러: 특정 간격으로 팀원들에게 장애 과제를 투척합니다.
-    사용자님의 '역할군' 기획에 맞춰 타겟을 지정합니다.
-    """
-    # 1단계: 트래픽 폭주 (Ops/Security 전문가 타겟)
-    await asyncio.sleep(15) # 15초 후 발생
-    await sio.emit('chaos_event', {
-        "event_id": "traffic_surge",
-        "title": "🚨 EMERGENCY: Traffic Surge detected!",
-        "description": "특정 리전에서 동시 접속자가 10배 폭증했습니다. 엣지 서버의 부하 분산 설정을 검토하세요.",
-        "target_role": "OPS/SECURITY",
-        "target_node_ids": ["LB", "Web"]
-    }, room=mission_id)
-
-    # 2단계: DB 데드락 (DB/Performance 전문가 타겟)
-    await asyncio.sleep(25) # 추가 25초 후 발생
-    await sio.emit('chaos_event', {
-        "event_id": "db_lock",
-        "title": "🔥 CRITICAL: DB Row Lock Contention!",
-        "description": "결제 모듈의 업데이트 쿼리에서 데드락이 감지되었습니다. 인덱스 최적화가 필요합니다.",
-        "target_role": "DB/PERFORMANCE",
-        "target_node_ids": ["DB"]
-    }, room=mission_id)
-
-    # 이벤트 종료 후 룸 상태 초기화 (추후 다시 시작 가능하게)
-    # active_rooms.remove(mission_id) # 무한 루프가 아니므로 필요 시 주석 해제
+# [Multi-Agent] trigger_chaos_events_demo 제거됨
+# 기존: 15초/25초 하드코딩 이벤트 2종 고정 발생
+# 변경: ChaosAgent가 미션 맥락 + 배치 컴포넌트를 읽고 draw_canvas_sync에서 동적 생성
 
 @sio.event
 async def sync_analysis(sid, data):
@@ -357,9 +336,10 @@ async def chat_message(sid, data):
         
         await sio.emit('chat_sync', sync_data, room=mission_id, skip_sid=sid)
 
-# ========== ARCH DRAW (Catch Mind) ==========
-# 방별 캐치마인드 상태 관리
+# ========== ARCH DRAW (Blueprint Wars) ==========
+# [Multi-Agent] 방별 게임 데이터 (players, round, question, scores)
 draw_rooms = {}  # { room_id: { players: [], round, question, phase, scores } }
+# [Multi-Agent] 방별 AI 상태는 draw_room_states (DrawRoomState)에서 관리
 
 @sio.event
 async def draw_join(sid, data):
@@ -409,28 +389,25 @@ async def draw_join(sid, data):
 
 @sio.event
 async def draw_start(sid, data):
-    """게임 시작: 서버에서 시나리오를 결정하여 배포"""
+    """게임 시작: DB에서 미션 로드 후 StateMachine WAITING→PLAYING 전환"""
     print(f"📡 draw_start called by {sid} for room {data.get('room_id')}")
     try:
         from core.models import PracticeDetail
-        from asgiref.sync import sync_to_async
         room_id = data.get('room_id', 'draw-default')
-        
-        # [수정일: 2026-02-25] 데이터베이스에서 아키텍처 문제 및 평가 기준(Rubric) 동적 로드
+
         @sync_to_async
         def get_questions():
             return list(PracticeDetail.objects.filter(practice_id='unit03').values('content_data'))
-            
+
         questions = await get_questions()
         print(f"✅ DB Questions loaded: {len(questions)} items")
     except Exception as e:
         print(f"❌ Error in draw_start DB fetch: {e}")
         questions = []
+
     if questions:
         q_data = random.choice(questions)['content_data']
         required_names = q_data.get('rubric_functional', {}).get('required_components', [])
-        
-        # Frontend의 allComps id와 매핑하기 위한 키워드 사전
         COMP_MAP = {
             "client": ["client", "사용자", "단말", "user", "app", "web", "클라이언트"],
             "lb": ["lb", "load balancer", "로드밸런서", "elb", "alb", "분산"],
@@ -453,130 +430,161 @@ async def draw_start(sid, data):
             "waf": ["waf", "방화벽", "보안", "방어"],
             "dns": ["dns", "route53", "도메인", "라우팅"]
         }
-
         mapped_required = set()
         for req_name in required_names:
             req_lower = req_name.lower()
-            matched = False
             for comp_id, keywords in COMP_MAP.items():
                 if any(kw in req_lower for kw in keywords):
                     mapped_required.add(comp_id)
-                    matched = True
                     break
-            if not matched:
+            else:
                 if "데이터" in req_lower: mapped_required.add("db")
                 elif "서비스" in req_lower or "시스템" in req_lower: mapped_required.add("server")
-        
+
         question = {
-            "title": q_data.get('title', 'Unknown Mission'), 
-            "description": q_data.get('scenario', ''), 
+            "title": q_data.get('title', 'Unknown Mission'),
+            "description": q_data.get('scenario', ''),
             "required": list(mapped_required) if mapped_required else ["client", "server", "db"],
             "hints": q_data.get('missions', []),
             "rubric": q_data.get('rubric_functional', {}),
             "axis_weights": q_data.get('axis_weights', {})
         }
     else:
-        # DB에 데이터가 없을 경우 Fallback
         question = {
-            "title": "글로벌 뱅킹 트래픽 분산", 
-            "description": "전 세계에서 몰려오는 금융 트래픽을 지역별로 분산하고, 모든 데이터를 중앙 DB에 안전하게 복제하는 고가용성 구조를 설계하세요.", 
+            "title": "글로벌 뱅킹 트래픽 분산",
+            "description": "전 세계에서 몰려오는 금융 트래픽을 지역별로 분산하고, 모든 데이터를 중앙 DB에 안전하게 복제하는 고가용성 구조를 설계하세요.",
             "required": ["lb", "server", "db", "readdb"],
             "hints": ["부하 분산 장치가 맨 앞에 필요합니다", "읽기 성능 향상을 위해 복제본(Read Replica)을 사용하세요"],
-            "rubric": {},
-            "axis_weights": {}
+            "rubric": {}, "axis_weights": {}
         }
-    
+
     if room_id in draw_rooms:
         draw_rooms[room_id]['phase'] = 'playing'
         draw_rooms[room_id]['current_question'] = question
-        draw_rooms[room_id]['round'] = 1  # [추가] 라운드 추적 시작
-        
+        draw_rooms[room_id]['round'] = 1
+
+    # [Multi-Agent] StateMachine: WAITING → PLAYING + 미션 정보 주입
+    if room_id not in draw_room_states:
+        draw_room_states[room_id] = DrawRoomState(room_id=room_id)
+    wars_orchestrator.on_round_start(
+        draw_room_states[room_id],
+        mission_title=question['title'],
+        mission_required=question['required'],
+    )
+    print(f"[Orchestrator] Room {room_id} → PLAYING | mission: {question['title']}")
+
     await sio.emit('draw_round_start', {'question': question, 'round': 1}, room=room_id)
 
 @sio.event
 async def draw_canvas_sync(sid, data):
-    """내 캔버스를 상대에게 실시간 전송 (nodes + arrows)"""
+    """캔버스 동기화 + CoachAgent/ChaosAgent 트리거 검사"""
     room_id = data.get('room_id', 'draw-default')
+    nodes  = data.get('nodes', [])
+    arrows = data.get('arrows', [])
+
+    # 상대방에게 캔버스 전파 (기존 동작 유지)
     await sio.emit('draw_canvas_update', {
         'sender_sid': sid,
         'sender_name': data.get('user_name', ''),
-        'nodes': data.get('nodes', []),
-        'arrows': data.get('arrows', [])
+        'nodes': nodes,
+        'arrows': arrows
     }, room=room_id, skip_sid=sid)
+
+    # [Multi-Agent] Orchestrator에 캔버스 변경 알림 → 에이전트 트리거 검사
+    room_state = draw_room_states.get(room_id)
+    if not room_state:
+        return
+
+    agent_result = wars_orchestrator.on_canvas_update(room_state, sid, nodes, arrows)
+
+    # CoachAgent 개입: 정체 감지 힌트를 해당 플레이어에게만 전송
+    if agent_result.get('coach_hint'):
+        hint = agent_result['coach_hint']
+        await sio.emit('coach_hint', {
+            'message': hint['message'],
+            'missing_components': hint.get('missing_components', []),
+            'type': hint.get('type', 'general'),
+        }, to=sid)
+        print(f"[CoachAgent] 힌트 전송 → {sid}: {hint['message'][:40]}...")
+
+    # ChaosAgent 개입: 미션 맥락 기반 장애 이벤트를 방 전체에 전송
+    if agent_result.get('chaos_event'):
+        event = agent_result['chaos_event']
+        await sio.emit('chaos_event', event, room=room_id)
+        print(f"[ChaosAgent] 장애 이벤트 발생 → room {room_id}: {event.get('event_id')}")
 
 @sio.event
 async def draw_submit(sid, data):
-    """플레이어가 제출. 둘 다 제출하면 결과 비교"""
-    room_id = data.get('room_id', 'draw-default')
-    score = data.get('score', 0)
-    checks = data.get('checks', [])
+    """플레이어 제출. 양측 완료 시 EvalAgent(WarsOrchestrator)가 평가 수행"""
+    room_id     = data.get('room_id', 'draw-default')
+    score       = data.get('score', 0)
+    checks      = data.get('checks', [])
     final_nodes = data.get('final_nodes', [])
-    final_arrows = data.get('final_arrows', [])
-    
+    final_arrows= data.get('final_arrows', [])
+
     room = draw_rooms.get(room_id)
     if not room: return
-    # 플레이어 점수 업데이트
+
     for p in room['players']:
         if p['sid'] == sid:
-            p['score'] += score       # 누적 점수
-            p['last_pts'] = score     # 이번 라운드 획득 점수
-            p['last_checks'] = checks
-            p['last_nodes'] = final_nodes
-            p['last_arrows'] = final_arrows
-            p['submitted'] = True
-    
+            p['score']       += score
+            p['last_pts']     = score
+            p['last_checks']  = checks
+            p['last_nodes']   = final_nodes
+            p['last_arrows']  = final_arrows
+            p['submitted']    = True
+
     await sio.emit('draw_player_submitted', {'sid': sid, 'score': score}, room=room_id)
-    
-    # 모두 제출했으면 결과 방송
+
     if all(p.get('submitted') for p in room['players']):
-        # [수정일: 2026-02-25] DB 루브릭 연동 및 LLM 기반 정성적 아키텍트 리뷰 생성
-        current_q = room.get('current_question', {})
-        mission_title = current_q.get('title', 'Unknown Mission')
-        rubric_data = current_q.get('rubric', {})
+        current_q    = room.get('current_question', {})
+        mission_title= current_q.get('title', 'Unknown Mission')
+        rubric_data  = current_q.get('rubric', {})
         if 'axis_weights' in current_q:
             rubric_data['axis_weights'] = current_q['axis_weights']
 
         p1 = room['players'][0]
         p2 = room['players'][1] if len(room['players']) > 1 else room['players'][0]
-        
-        # [수정일: 2026-02-25] LLM 호출이 블로킹되지 않도록 sync_to_async 적용
-        from asgiref.sync import sync_to_async
-        eval_func = sync_to_async(arch_evaluator.evaluate_comparison)
-        
+
+        # [Multi-Agent] EvalAgent 평가 — WarsOrchestrator를 통해 호출
+        # 기존: arch_evaluator.evaluate_comparison() 직접 호출
+        # 변경: orchestrator.on_both_submitted() → EvalAgent → ArchEvaluator
+        room_state = draw_room_states.get(room_id)
+        if not room_state:
+            room_state = DrawRoomState(room_id=room_id)
+            draw_room_states[room_id] = room_state
+
         try:
-            ai_reviews = await eval_func(
-                mission_title,
-                {'name': p1['name'], 'pts': p1['last_pts'], 'checks': p1['last_checks'], 'nodes': p1.get('last_nodes', []), 'arrows': p1.get('last_arrows', [])},
-                {'name': p2['name'], 'pts': p2['last_pts'], 'checks': p2['last_checks'], 'nodes': p2.get('last_nodes', []), 'arrows': p2.get('last_arrows', [])},
-                rubric=rubric_data
+            ai_reviews = await wars_orchestrator.on_both_submitted(
+                room_state,
+                mission_title=mission_title,
+                rubric=rubric_data,
+                p1_data={'name': p1['name'], 'pts': p1['last_pts'], 'checks': p1['last_checks'],
+                         'nodes': p1.get('last_nodes', []), 'arrows': p1.get('last_arrows', [])},
+                p2_data={'name': p2['name'], 'pts': p2['last_pts'], 'checks': p2['last_checks'],
+                         'nodes': p2.get('last_nodes', []), 'arrows': p2.get('last_arrows', [])},
             )
-            print(f"✅ AI Review generated: {ai_reviews.keys()}")
+            print(f"[EvalAgent] ✅ 평가 완료: {list(ai_reviews.keys())}")
         except Exception as e:
-            print(f"❌ AI Review Error: {e}")
-            ai_reviews = arch_evaluator._fallback_review(
-                {'name': p1['name'], 'pts': p1['last_pts'], 'checks': p1['last_checks'], 'nodes': p1.get('last_nodes', []), 'arrows': p1.get('last_arrows', [])},
-                {'name': p2['name'], 'pts': p2['last_pts'], 'checks': p2['last_checks'], 'nodes': p2.get('last_nodes', []), 'arrows': p2.get('last_arrows', [])}
-            )
-        
+            print(f"[EvalAgent] ❌ 평가 실패: {e}")
+            ai_reviews = {'player1': {'my_analysis': '', 'versus': ''}, 'player2': {'my_analysis': '', 'versus': ''}}
+
         results = []
         for i, p in enumerate(room['players']):
-            review_key = f"player{i+1}"
-            p_review = ai_reviews.get(review_key, {})
+            p_review = ai_reviews.get(f"player{i+1}", {})
             results.append({
-                'name': p['name'], 
-                'sid': p['sid'], 
-                'score': p['score'],      # 누적 점수
-                'last_pts': p.get('last_pts', 0), # 라운드 점수
+                'name': p['name'], 'sid': p['sid'],
+                'score': p['score'], 'last_pts': p.get('last_pts', 0),
                 'last_checks': p.get('last_checks', []),
                 'last_nodes': p.get('last_nodes', []),
                 'last_arrows': p.get('last_arrows', []),
-                'ai_review': p_review     # 진짜 AI가 생성한 리뷰 추가
+                'ai_review': p_review
             })
-            
+
         await sio.emit('draw_round_result', {'results': results}, room=room_id)
-        for p in room['players']: 
+        for p in room['players']:
             p['submitted'] = False
-            p['last_pts'] = 0  # 초기화
+            p['last_pts']  = 0
 
 @sio.event
 async def draw_use_item(sid, data):
@@ -594,23 +602,18 @@ async def draw_item_status(sid, data):
 
 @sio.event
 async def draw_next_round(sid, data):
-    """
-    [수정일: 2026-02-24] 다음 라운드 시작 신호 및 미션 데이터 고도화.
-    기존에 room_id가 누락되어 발생하던 NameError 수정.
-    """
+    """다음 라운드: StateMachine FINISHED→WAITING→PLAYING 리셋"""
     room_id = data.get('room_id', 'draw-default')
-    
-    # [수정일: 2026-02-24] 다음 라운드 미션 고도화 (비즈니스 시뮬레이션 강화)
     ARCH_MISSIONS = [
         {
-            "title": "서버리스(Serverless) API 플랫폼", 
-            "description": "서버 관리 부담을 최소화하고 트래픽에 따라 자동 확장되는 API 환경을 구축하세요. 정적 자원은 게이트웨이 뒤의 함수를 거쳐 DB에 저장됩니다.", 
+            "title": "서버리스(Serverless) API 플랫폼",
+            "description": "서버 관리 부담을 최소화하고 트래픽에 따라 자동 확장되는 API 환경을 구축하세요.",
             "required": ["client", "api", "server", "db"],
             "hints": ["진입점에 API Gateway를 배치하세요", "Lambda와 같은 함수 기반 서버(Server)를 사용합니다"]
         },
         {
-            "title": "하이브리드 멀티클라우드 연결", 
-            "description": "기존 데이터 센터의 원본 데이터를 클라우드의 로드밸런서를 통해 전 세계 사용자에게 서비스하는 하이브리드 인프라를 설계하세요.", 
+            "title": "하이브리드 멀티클라우드 연결",
+            "description": "기존 데이터 센터의 원본 데이터를 클라우드의 로드밸런서를 통해 전 세계 사용자에게 서비스하는 하이브리드 인프라를 설계하세요.",
             "required": ["origin", "dns", "lb", "server"],
             "hints": ["On-Premise 센터(Origin)와 연결이 필요합니다", "트래픽 유입을 위한 DNS 설정을 잊지 마세요"]
         }
@@ -619,15 +622,23 @@ async def draw_next_round(sid, data):
     if room_id in draw_rooms:
         room = draw_rooms[room_id]
         room['round'] = room.get('round', 1) + 1
-        
-        # [수정일: 2026-02-24] 5라운드 제한 적용
         if room['round'] > 5:
             print(f"🏁 Room {room_id} finished all rounds (5/5).")
-            # 게임 종료 전용 이벤트를 보내거나, 클라이언트가 UI상에서 처리하도록 유항
-            await sio.emit('draw_game_over', {}, room=room_id) 
+            await sio.emit('draw_game_over', {}, room=room_id)
             return
-
         room['current_question'] = question
+
+        # [Multi-Agent] StateMachine: FINISHED→WAITING→PLAYING 리셋
+        room_state = draw_room_states.get(room_id)
+        if room_state:
+            wars_orchestrator.on_next_round(room_state)  # FINISHED → WAITING
+            wars_orchestrator.on_round_start(
+                room_state,
+                mission_title=question['title'],
+                mission_required=question['required'],
+            )  # WAITING → PLAYING
+            print(f"[Orchestrator] Room {room_id} 다음 라운드 → PLAYING | {question['title']}")
+
         await sio.emit('draw_round_start', {'question': question, 'round': room['round']}, room=room_id)
 
 @sio.event

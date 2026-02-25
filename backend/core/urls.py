@@ -23,7 +23,11 @@ from core.views import (
     JobPlannerCompanyAnalyzeView,
     JobPlannerAgentQuestionsView,
     JobPlannerAgentReportView,
-    JobPlannerRecommendView
+    JobPlannerRecommendView,
+    CoduckWarsAnalyzeCodeView,
+    CoduckWarsStartView,
+    CoduckWarsPressureView,
+    CoduckWarsEvaluationView
 )
 from core.views.pseudocode.pseudocode_execution import execute_python_code
 from core.views.pseudocode import pseudocode_evaluation
@@ -107,4 +111,10 @@ urlpatterns = [
     path('job-planner/agent-questions/', JobPlannerAgentQuestionsView.as_view(), name='job_planner_agent_questions'),
     path('job-planner/agent-report/', JobPlannerAgentReportView.as_view(), name='job_planner_agent_report'),
     path('job-planner/recommend/', JobPlannerRecommendView.as_view(), name='job_planner_recommend'),
+
+    # Coduck Wars API
+    path('wars/analyze-code/', CoduckWarsAnalyzeCodeView.as_view(), name='wars_analyze_code'),
+    path('wars/start/', CoduckWarsStartView.as_view(), name='wars_start'),
+    path('wars/pressure-question/', CoduckWarsPressureView.as_view(), name='wars_pressure_question'),
+    path('wars/evaluate/', CoduckWarsEvaluationView.as_view(), name='wars_evaluate'),
 ]
