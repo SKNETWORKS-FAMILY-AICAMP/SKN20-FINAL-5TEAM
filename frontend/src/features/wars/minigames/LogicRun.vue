@@ -425,12 +425,10 @@ rs.onSync.value = (data) => {
     const myIdx = rs.roomPlayers.value.findIndex(p => p.sid === rs.socket.value.id)
     // Phase 1: speedFill
     if (data.phase === 'speedFill') {
-      // 누적 점수를 Phase 1 점수로 저장 (Phase 2 점수는 아직 0)
+      // ← 수정: scoreP2Phase1만 업데이트 (scoreP2는 최종 계산에서만)
       if (myIdx === 0) {
-        scoreP2.value = data.score || 0
         scoreP2Phase1.value = data.score || 0
       } else {
-        scoreP1.value = data.score || 0
         scoreP1Phase1.value = data.score || 0
       }
 
@@ -449,11 +447,9 @@ rs.onSync.value = (data) => {
         if (myIdx === 0) {
           checksCompletedP2.value = data.checksCompleted || 0
           scoreP2Phase2.value = data.score || 0
-          scoreP2.value = scoreP2Phase1.value + scoreP2Phase2.value
         } else {
           checksCompletedP1.value = data.checksCompleted || 0
           scoreP1Phase2.value = data.score || 0
-          scoreP1.value = scoreP1Phase1.value + scoreP1Phase2.value
         }
       } else {
         // 일반 진행도 업데이트
@@ -498,17 +494,18 @@ rs.onEnd.value = (data) => {
     return
   }
 
-  // 상대 점수가 포함되어 있으면 업데이트 (onSync에서 이미 받았을 수 있음)
+  // ← 수정: 상대 점수가 포함되어 있으면 업데이트 (onSync에서 이미 받았을 수 있음)
+  // scoreP1/scoreP2는 setter로 계산되므로, Phase1/Phase2 각각만 업데이트
   if (data.opponent_phase1_score !== undefined) {
     const myIdx = rs.roomPlayers.value.findIndex(p => p.sid === rs.socket.value.id)
     if (myIdx === 0) {
       scoreP2Phase1.value = data.opponent_phase1_score
       scoreP2Phase2.value = data.opponent_phase2_score || 0
-      scoreP2.value = scoreP2Phase1.value + scoreP2Phase2.value
+      console.log(`✅ P2 Final Scores: Phase1=${scoreP2Phase1.value}, Phase2=${scoreP2Phase2.value}`)
     } else {
       scoreP1Phase1.value = data.opponent_phase1_score
       scoreP1Phase2.value = data.opponent_phase2_score || 0
-      scoreP1.value = scoreP1Phase1.value + scoreP1Phase2.value
+      console.log(`✅ P1 Final Scores: Phase1=${scoreP1Phase1.value}, Phase2=${scoreP1Phase2.value}`)
     }
   }
   endGame(data.result)
@@ -884,11 +881,10 @@ function handleBlankCorrect() {
 
   currentCombo.value++
 
+  // ← 수정: Phase1 점수만 업데이트 (최종 점수는 computed에서 자동 계산)
   if (myIdx === 0) {
-    scoreP1.value += points
     scoreP1Phase1.value += points
   } else {
-    scoreP2.value += points
     scoreP2Phase1.value += points
   }
 
@@ -906,8 +902,8 @@ function handleBlankCorrect() {
     startPhase1Round()
   }
 
-  // 동기화 (← 추가: blankIdx로 정확한 위치 동기화)
-  const myScore = myIdx === 0 ? scoreP1.value : scoreP2.value
+  // ← 수정: Phase1 누적 점수만 전송 (scoreP1/scoreP2는 더 이상 직접 업데이트되지 않음)
+  const myScore = myIdx === 0 ? scoreP1Phase1.value : scoreP2Phase1.value
   rs.emitProgress(roomId.value, {
     phase: 'speedFill',
     round: currentRound.value,
@@ -996,13 +992,12 @@ function evaluateDesign() {
   const timeBonus = Math.max(0, roundTimeout.value) * 3
   const totalPoints = basePoints + completionBonus + timeBonus
 
+  // ← 수정: Phase2 점수만 업데이트 (최종 점수는 computed에서 자동 계산)
   if (myIdx === 0) {
     scoreP1Phase2.value = totalPoints
-    scoreP1.value = scoreP1Phase1.value + totalPoints
     checksCompletedP1.value = checkCount
   } else {
     scoreP2Phase2.value = totalPoints
-    scoreP2.value = scoreP2Phase1.value + totalPoints
     checksCompletedP2.value = checkCount
   }
 
