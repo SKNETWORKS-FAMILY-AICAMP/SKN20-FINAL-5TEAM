@@ -18,9 +18,9 @@ from core.services.arch_evaluator import ArchEvaluator
 def test_consistency(iterations=3):
     print(f"🤖 [gpt-4o-mini] 아키텍처 평가 일관성 테스트 시작 (총 {iterations}회)")
     
-    # 1. 문제 가져오기 (unit03_27: 결제 파이프라인 설계)
+    # 1. 문제 가져오기 (unit03_01: Amazon 판매 랭킹 시스템)
     try:
-        pd = PracticeDetail.objects.get(id='unit03_27')
+        pd = PracticeDetail.objects.get(id='unit03_01')
         q_data = pd.content_data
     except Exception as e:
         print(f"❌ 문제를 불러오는 중 오류 발생: {e}")
@@ -34,31 +34,31 @@ def test_consistency(iterations=3):
     if axis_weights:
         rubric['axis_weights'] = axis_weights
 
-    # 2. 플레이어 모의(Mock) 데이터 준비
-    # Player 1: 요구사항 대부분 충족 (MQ를 사용한 비동기/안정적 설계)
+    # 2. 플레이어 모의(Mock) 데이터 준비 (Amazon 랭킹 시스템 기준)
+    # Player 1: 요구사항 대부분 충족 (Cache를 사용하여 읽기 부하 분산)
     p1_data = {
         'name': '우수설계_유저',
-        'pts': 90,
+        'pts': 95,
         'checks': [
-            {'label': '권리 관리(A) 배치', 'ok': True},
-            {'label': 'Message Queue 배치', 'ok': True},
-            {'label': '회계/결제(B,C) 배치', 'ok': True},
+            {'label': 'API Server 배치', 'ok': True},
+            {'label': 'Cache 배치', 'ok': True},
+            {'label': 'RDBMS 배치', 'ok': True},
         ],
-        'nodes': [{'name': 'Auth System'}, {'name': 'Message Queue'}, {'name': 'Payment System'}],
-        'arrows': [{'fc': 'Auth System', 'tc': 'Message Queue'}, {'fc': 'Message Queue', 'tc': 'Payment System'}]
+        'nodes': [{'name': 'Client'}, {'name': 'API Server'}, {'name': 'Cache'}, {'name': 'RDBMS'}],
+        'arrows': [{'fc': 'Client', 'tc': 'API Server'}, {'fc': 'API Server', 'tc': 'Cache'}, {'fc': 'Cache', 'tc': 'RDBMS'}]
     }
 
-    # Player 2: 요구사항 누락 (MQ 없이 직접 결합하여 결함 발생 가능성)
+    # Player 2: 요구사항 누락 (Cache 없이 API 서버가 바로 DB조회 - 부하 집중)
     p2_data = {
         'name': '부족설계_유저',
-        'pts': 40,
+        'pts': 45,
         'checks': [
-            {'label': '권리 관리(A) 배치', 'ok': True},
-            {'label': 'Message Queue 배치', 'ok': False},
-            {'label': '회계/결제(B,C) 배치', 'ok': True},
+            {'label': 'API Server 배치', 'ok': True},
+            {'label': 'Cache 배치', 'ok': False},
+            {'label': 'RDBMS 배치', 'ok': True},
         ],
-        'nodes': [{'name': 'Auth System'}, {'name': 'Payment System'}],
-        'arrows': [{'fc': 'Auth System', 'tc': 'Payment System'}]
+        'nodes': [{'name': 'Client'}, {'name': 'API Server'}, {'name': 'RDBMS'}],
+        'arrows': [{'fc': 'Client', 'tc': 'API Server'}, {'fc': 'API Server', 'tc': 'RDBMS'}]
     }
 
     print(f"\n📝 문제 제목: {title}")

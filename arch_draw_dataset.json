@@ -1,0 +1,1454 @@
+[
+  {
+    "title": "3단 (3-Tier) 웹 기본 구조",
+    "description": "클라이언트의 요청을 받아 웹/앱 서버가 처리하고, 데이터베이스에 저장하는 가장 기본적인 3-Tier 구조를 설계하세요.",
+    "required": [
+      "client",
+      "server",
+      "db"
+    ],
+    "hints": [
+      "클라이언트가 서버로 진입합니다.",
+      "서버는 데이터베이스에 연결됩니다."
+    ],
+    "rubric_functional": {
+      "required_components": [
+        "client",
+        "server",
+        "db"
+      ],
+      "required_flows": [
+        {
+          "from": "client",
+          "to": "server",
+          "desc": "클라이언트의 웹 요청"
+        },
+        {
+          "from": "server",
+          "to": "db",
+          "desc": "서버의 데이터베이스 쿼리 쓰기/읽기"
+        }
+      ]
+    },
+    "axis_weights": {
+      "기본성": "모든 웹 서비스의 뼈대가 되는 최소 구성",
+      "무결성": "서버와 DB의 단일 연결을 통한 데이터 정합성"
+    }
+  },
+  {
+    "title": "로드밸런서를 통한 분산 처리",
+    "description": "트래픽 폭주에 대비해 로드밸런서를 통해 다수의 애플리케이션 서버로 요청을 분산시키는 구조를 설계하세요.",
+    "required": [
+      "client",
+      "lb",
+      "server",
+      "db"
+    ],
+    "hints": [
+      "단일 진입점으로 로드밸런서를 사용하세요.",
+      "서버들은 동일한 데이터베이스를 공유합니다."
+    ],
+    "rubric_functional": {
+      "required_components": [
+        "client",
+        "lb",
+        "server",
+        "db"
+      ],
+      "required_flows": [
+        {
+          "from": "client",
+          "to": "lb",
+          "desc": "사용자 트래픽이 LB로 진입"
+        },
+        {
+          "from": "lb",
+          "to": "server",
+          "desc": "LB가 뒷단의 여러 서버로 부하 분산"
+        },
+        {
+          "from": "server",
+          "to": "db",
+          "desc": "분산된 서버들이 하나의 중앙 DB 읽기/쓰기"
+        }
+      ]
+    },
+    "axis_weights": {
+      "가용성": "SPOF(단일 장애점) 방지 및 서버 부하 감소",
+      "확장성": "Scale-Out 기반의 서버 증설 용이성"
+    }
+  },
+  {
+    "title": "글로벌 미디어 스트리밍 (CDN)",
+    "description": "대용량 이미지와 동영상을 전 세계 사용자에게 지연 없이 제공하기 위해 CDN을 사용하는 구조를 설계하세요.",
+    "required": [
+      "client",
+      "cdn",
+      "origin",
+      "server"
+    ],
+    "hints": [
+      "클라이언트는 먼저 CDN 캐시를 조회합니다.",
+      "CDN에 없으면 원본 저장소(Origin)를 확인합니다."
+    ],
+    "rubric_functional": {
+      "required_components": [
+        "client",
+        "cdn",
+        "origin"
+      ],
+      "required_flows": [
+        {
+          "from": "client",
+          "to": "cdn",
+          "desc": "클라이언트가 Edge 서버(CDN)에 콘텐츠 요청"
+        },
+        {
+          "from": "cdn",
+          "to": "origin",
+          "desc": "캐시 미스 시 CDN이 Origin에서 원본 데이터 Fetch"
+        },
+        {
+          "from": "cdn",
+          "to": "client",
+          "desc": "캐시 히트 시 즉시 응답 반환"
+        }
+      ]
+    },
+    "axis_weights": {
+      "성능": "CDN 캐싱을 통한 빠른 응답(Latency 감소)",
+      "대역폭 효율성": "Origin 서버의 트래픽 비용 절감"
+    }
+  },
+  {
+    "title": "인메모리 캐시를 통한 DB 부하 분산",
+    "description": "데이터베이스 부하를 줄이기 위해 빠르게 읽어야 하는 랭킹, 세션 데이터를 Redis/Memcached 같은 캐시에 저장하는 아키텍처를 구성하세요.",
+    "required": [
+      "client",
+      "lb",
+      "server",
+      "cache",
+      "db"
+    ],
+    "hints": [
+      "서버는 DB에 조회하기 전에 캐시를 먼저 확인합니다.",
+      "캐시에 없으면 DB에서 가져와 캐시에 적재합니다."
+    ],
+    "rubric_functional": {
+      "required_components": [
+        "client",
+        "server",
+        "cache",
+        "db"
+      ],
+      "required_flows": [
+        {
+          "from": "client",
+          "to": "lb",
+          "desc": "클라이언트 기본 요청"
+        },
+        {
+          "from": "lb",
+          "to": "server",
+          "desc": "부하 분산"
+        },
+        {
+          "from": "server",
+          "to": "cache",
+          "desc": "빠른 읽기(Look-aside) 및 세션 확인"
+        },
+        {
+          "from": "server",
+          "to": "db",
+          "desc": "캐시 미스 시 DB 원본 쿼리"
+        }
+      ]
+    },
+    "axis_weights": {
+      "성능": "인메모리 캐시를 통한 I/O 대기시간 단축",
+      "비용": "값비싼 RDBMS 쿼리 자원 최소화"
+    }
+  },
+  {
+    "title": "읽기/쓰기 분리 구조 (Read Replica)",
+    "description": "조회 요청이 쓰기 요청보다 압도적으로 많은 상황에서, DB 부하 분산을 위해 읽기와 쓰기 DB를 분리하세요.",
+    "required": [
+      "client",
+      "server",
+      "writedb",
+      "readdb"
+    ],
+    "hints": [
+      "업데이트/삽입은 Write DB로 향합니다.",
+      "조회/검색은 Read DB로 향합니다.",
+      "Write DB의 데이터는 Read DB로 복제됩니다."
+    ],
+    "rubric_functional": {
+      "required_components": [
+        "server",
+        "writedb",
+        "readdb"
+      ],
+      "required_flows": [
+        {
+          "from": "client",
+          "to": "server",
+          "desc": "클라이언트 진입"
+        },
+        {
+          "from": "server",
+          "to": "writedb",
+          "desc": "데이터 생성/수정 요청"
+        },
+        {
+          "from": "server",
+          "to": "readdb",
+          "desc": "단순 데이터 조회 요청"
+        },
+        {
+          "from": "writedb",
+          "to": "readdb",
+          "desc": "Master에서 Slave로의 실시간 복제(Replication)"
+        }
+      ]
+    },
+    "axis_weights": {
+      "성능": "DB Read 부하 분산",
+      "안정성": "복제를 통한 백업 및 장애 대비"
+    }
+  },
+  {
+    "title": "MSA 진입 - API 게이트웨이 라우팅",
+    "description": "하나의 거대한 서버를 여러 마이크로서비스로 분리하기 전, 클라이언트의 모든 요청을 한 곳에서 받아 알맞은 서버로 라우팅하는 게이트웨이를 설계하세요.",
+    "required": [
+      "client",
+      "api",
+      "auth",
+      "server"
+    ],
+    "hints": [
+      "클라이언트의 모든 요청은 API Gateway를 거칩니다.",
+      "Gateway는 인증서버(Auth)를 거쳐 백엔드 시스템(Server)으로 라우팅합니다."
+    ],
+    "rubric_functional": {
+      "required_components": [
+        "client",
+        "api",
+        "auth",
+        "server"
+      ],
+      "required_flows": [
+        {
+          "from": "client",
+          "to": "api",
+          "desc": "외부 트래픽 단일 진입"
+        },
+        {
+          "from": "api",
+          "to": "auth",
+          "desc": "인증/인가 수행"
+        },
+        {
+          "from": "api",
+          "to": "server",
+          "desc": "인증 성공 시 비즈니스 서버로 라우팅"
+        }
+      ]
+    },
+    "axis_weights": {
+      "보안": "단일 진입점에서의 인증 토큰 사전 검증",
+      "유연성": "클라이언트가 내부 서버 토폴로지를 알 필요 없음"
+    }
+  },
+  {
+    "title": "마이크로서비스 아키텍처 (MSA)",
+    "description": "이커머스 시스템을 인증, 주문, 결제 등 역할별 독립적인 서비스와 독립적인 DB로 분리하세요.",
+    "required": [
+      "api",
+      "auth",
+      "order",
+      "payment",
+      "db"
+    ],
+    "hints": [
+      "게이트웨이(API)가 트래픽을 분류합니다.",
+      "인증은 Auth, 장바구니는 Order, 카드는 Payment 서버로 연결하세요."
+    ],
+    "rubric_functional": {
+      "required_components": [
+        "api",
+        "auth",
+        "order",
+        "payment",
+        "db"
+      ],
+      "required_flows": [
+        {
+          "from": "client",
+          "to": "api",
+          "desc": "단일 진입"
+        },
+        {
+          "from": "api",
+          "to": "auth",
+          "desc": "로그인/계정 처리"
+        },
+        {
+          "from": "api",
+          "to": "order",
+          "desc": "주문 접수 처리"
+        },
+        {
+          "from": "api",
+          "to": "payment",
+          "desc": "결제 승인 처리"
+        },
+        {
+          "from": "order",
+          "to": "db",
+          "desc": "각 서비스가 독립적인 DB 연결 (개념적 연결)"
+        },
+        {
+          "from": "payment",
+          "to": "db",
+          "desc": "결제 데이터베이스 처리"
+        }
+      ]
+    },
+    "axis_weights": {
+      "독립성": "서비스별 독립적인 배포 및 장애 격리(Fault Tolerance)",
+      "확장성": "결제나 주문 등 부하가 많은 기능만 개별 Scale-Out 가능"
+    }
+  },
+  {
+    "title": "비동기 주문 처리 (Message Queue)",
+    "description": "결제 폭주 시 주문 유실을 막기 위해, 즉각적인 응답 대신 '메시지 큐(Kafka/MQ)'에 주문을 보관하고 백그라운드 컨슈머가 천천히 처리하는 구조를 그리세요.",
+    "required": [
+      "producer",
+      "queue",
+      "consumer",
+      "db"
+    ],
+    "hints": [
+      "웹 서버(Producer)가 Queue에 이벤트를 발행합니다.",
+      "워커 서버(Consumer)가 Queue에서 이벤트를 꺼내 DB에 저장합니다."
+    ],
+    "rubric_functional": {
+      "required_components": [
+        "producer",
+        "queue",
+        "consumer",
+        "db"
+      ],
+      "required_flows": [
+        {
+          "from": "client",
+          "to": "producer",
+          "desc": "사용자 API 요청"
+        },
+        {
+          "from": "producer",
+          "to": "queue",
+          "desc": "이벤트를 큐에 즉시 삽입 후 비동기 응답 반환"
+        },
+        {
+          "from": "queue",
+          "to": "consumer",
+          "desc": "컨슈머가 큐에서 차례대로 폴링"
+        },
+        {
+          "from": "consumer",
+          "to": "db",
+          "desc": "처리된 결과를 최종 DB 저장"
+        }
+      ]
+    },
+    "axis_weights": {
+      "탄력성": "트래픽 피크를 큐에서 완충 (Buffer/Spike 흡수)",
+      "안정성": "DB나 처리가 지연되어도 408 Timeout 방지"
+    }
+  },
+  {
+    "title": "CQRS (Command and Query Responsibility Segregation)",
+    "description": "쓰기(명령) 전용 서비스와 모델, 읽기(조회) 전용 서비스와 모델을 분리하는 구조를 구성합니다.",
+    "required": [
+      "writesvc",
+      "readsvc",
+      "writedb",
+      "readdb",
+      "queue"
+    ],
+    "hints": [
+      "데이터 입력은 쓰기 서비스가 담당합니다.",
+      "쓰기가 발생하면 이벤트를 큐로 보냅니다.",
+      "이벤트를 조회 서비스가 받아 읽기 전용 DB를 업데이트합니다."
+    ],
+    "rubric_functional": {
+      "required_components": [
+        "client",
+        "writesvc",
+        "readsvc",
+        "writedb",
+        "readdb",
+        "queue"
+      ],
+      "required_flows": [
+        {
+          "from": "client",
+          "to": "writesvc",
+          "desc": "CUD(쓰기/수정/삭제) 요쳥"
+        },
+        {
+          "from": "client",
+          "to": "readsvc",
+          "desc": "R(조회) 요청"
+        },
+        {
+          "from": "writesvc",
+          "to": "writedb",
+          "desc": "쓰기 모델 DB 저장"
+        },
+        {
+          "from": "writesvc",
+          "to": "queue",
+          "desc": "도메인 이벤트 반응-메시지 발생"
+        },
+        {
+          "from": "queue",
+          "to": "readsvc",
+          "desc": "읽기 서비스가 이벤트를 소모하여 동기화"
+        },
+        {
+          "from": "readsvc",
+          "to": "readdb",
+          "desc": "읽기 전용 프로젝션 DB 업데이트"
+        }
+      ]
+    },
+    "axis_weights": {
+      "도메인 복잡도 해결": "읽기와 쓰기의 요구사항이 매우 다를 때 유용",
+      "성능": "조회 서비스는 단순 조회용 DB를 사용해 극한의 속도 확보"
+    }
+  },
+  {
+    "title": "글로벌 트래픽 필터링 (WAF & DNS)",
+    "description": "국제적인 DDoS 공격과 악성 해킹 시도를 막기 위해, 도메인 레이어 및 최전방 방화벽을 적용한 높은 보안성의 아키텍처를 설계하세요.",
+    "required": [
+      "client",
+      "dns",
+      "waf",
+      "lb",
+      "server"
+    ],
+    "hints": [
+      "클라이언트는 DNS로 도메인을 쿼리합니다.",
+      "그 다음 최전방 방화벽(WAF)을 통과해야 합니다.",
+      "안전한 트래픽만 로드밸런서를 향합니다."
+    ],
+    "rubric_functional": {
+      "required_components": [
+        "client",
+        "dns",
+        "waf",
+        "lb",
+        "server"
+      ],
+      "required_flows": [
+        {
+          "from": "client",
+          "to": "dns",
+          "desc": "도메인 이름 해석 쿼리"
+        },
+        {
+          "from": "dns",
+          "to": "client",
+          "desc": "해석된 IP(WAF/CDN의 진입점) 반환"
+        },
+        {
+          "from": "client",
+          "to": "waf",
+          "desc": "WAF를 통한 보안 스크리닝"
+        },
+        {
+          "from": "waf",
+          "to": "lb",
+          "desc": "정상 트래픽만 내부 LB로 포워딩"
+        },
+        {
+          "from": "lb",
+          "to": "server",
+          "desc": "안전한 서버 분산 처리"
+        }
+      ]
+    },
+    "axis_weights": {
+      "보안성": "악성 트래픽을 네트워크 엣지 단에서 차단",
+      "안정성": "내부 서비스 보호 및 애플리케이션 취약점 방어(SQLi 등)"
+    }
+  },
+  {
+    "title": "도전 과제: 다중 리전 (Multi-Region) 액티브-액티브 - Level 11",
+    "description": "주어진 요구사항을 만족하는 최적의 화살표 방향(데이터 흐름)과 컴포넌트 배치를 완성하세요.",
+    "required": [
+      "dns",
+      "lb",
+      "server"
+    ],
+    "hints": [
+      "노드의 방향과 연결 흐름이 매우 중요합니다.",
+      "필수 부품이 누락되지 않게 배치하세요."
+    ],
+    "rubric_functional": {
+      "required_components": [
+        "dns",
+        "lb",
+        "server"
+      ],
+      "required_flows": [
+        {
+          "from": "dns",
+          "to": "lb",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "lb",
+          "to": "server",
+          "desc": "데이터 전파/요청 흐름"
+        }
+      ]
+    },
+    "axis_weights": {
+      "구조 정확성": "컴포넌트의 위상 및 방향성을 정밀하게 평가",
+      "효율성": "불필요한 네트워크 홉스나 루프가 없는지 확인"
+    }
+  },
+  {
+    "title": "도전 과제: 데이터 분석/수집 파이프라인 (Data Pipeline) - Level 12",
+    "description": "주어진 요구사항을 만족하는 최적의 화살표 방향(데이터 흐름)과 컴포넌트 배치를 완성하세요.",
+    "required": [
+      "client",
+      "server",
+      "producer",
+      "queue",
+      "db"
+    ],
+    "hints": [
+      "노드의 방향과 연결 흐름이 매우 중요합니다.",
+      "필수 부품이 누락되지 않게 배치하세요."
+    ],
+    "rubric_functional": {
+      "required_components": [
+        "client",
+        "server",
+        "producer",
+        "queue",
+        "db"
+      ],
+      "required_flows": [
+        {
+          "from": "client",
+          "to": "producer",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "producer",
+          "to": "queue",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "queue",
+          "to": "server",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "server",
+          "to": "db",
+          "desc": "데이터 전파/요청 흐름"
+        }
+      ]
+    },
+    "axis_weights": {
+      "구조 정확성": "컴포넌트의 위상 및 방향성을 정밀하게 평가",
+      "효율성": "불필요한 네트워크 홉스나 루프가 없는지 확인"
+    }
+  },
+  {
+    "title": "도전 과제: 오토스케일링 애플리케이션 그룹 - Level 13",
+    "description": "주어진 요구사항을 만족하는 최적의 화살표 방향(데이터 흐름)과 컴포넌트 배치를 완성하세요.",
+    "required": [
+      "lb",
+      "client",
+      "server",
+      "db"
+    ],
+    "hints": [
+      "노드의 방향과 연결 흐름이 매우 중요합니다.",
+      "필수 부품이 누락되지 않게 배치하세요."
+    ],
+    "rubric_functional": {
+      "required_components": [
+        "lb",
+        "client",
+        "server",
+        "db"
+      ],
+      "required_flows": [
+        {
+          "from": "client",
+          "to": "lb",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "lb",
+          "to": "server",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "server",
+          "to": "db",
+          "desc": "데이터 전파/요청 흐름"
+        }
+      ]
+    },
+    "axis_weights": {
+      "구조 정확성": "컴포넌트의 위상 및 방향성을 정밀하게 평가",
+      "효율성": "불필요한 네트워크 홉스나 루프가 없는지 확인"
+    }
+  },
+  {
+    "title": "도전 과제: 백엔드용 어드민 분리 서버망 - Level 14",
+    "description": "주어진 요구사항을 만족하는 최적의 화살표 방향(데이터 흐름)과 컴포넌트 배치를 완성하세요.",
+    "required": [
+      "writesvc",
+      "lb",
+      "client",
+      "server",
+      "db"
+    ],
+    "hints": [
+      "노드의 방향과 연결 흐름이 매우 중요합니다.",
+      "필수 부품이 누락되지 않게 배치하세요."
+    ],
+    "rubric_functional": {
+      "required_components": [
+        "writesvc",
+        "lb",
+        "client",
+        "server",
+        "db"
+      ],
+      "required_flows": [
+        {
+          "from": "client",
+          "to": "lb",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "lb",
+          "to": "server",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "lb",
+          "to": "writesvc",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "server",
+          "to": "db",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "writesvc",
+          "to": "db",
+          "desc": "데이터 전파/요청 흐름"
+        }
+      ]
+    },
+    "axis_weights": {
+      "구조 정확성": "컴포넌트의 위상 및 방향성을 정밀하게 평가",
+      "효율성": "불필요한 네트워크 홉스나 루프가 없는지 확인"
+    }
+  },
+  {
+    "title": "도전 과제: Saga Pattern (마이크로서비스 분산 트랜잭션) - Level 15",
+    "description": "주어진 요구사항을 만족하는 최적의 화살표 방향(데이터 흐름)과 컴포넌트 배치를 완성하세요.",
+    "required": [
+      "queue",
+      "order",
+      "db",
+      "payment"
+    ],
+    "hints": [
+      "노드의 방향과 연결 흐름이 매우 중요합니다.",
+      "필수 부품이 누락되지 않게 배치하세요."
+    ],
+    "rubric_functional": {
+      "required_components": [
+        "queue",
+        "order",
+        "db",
+        "payment"
+      ],
+      "required_flows": [
+        {
+          "from": "order",
+          "to": "queue",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "queue",
+          "to": "payment",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "payment",
+          "to": "db",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "payment",
+          "to": "queue",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "queue",
+          "to": "order",
+          "desc": "데이터 전파/요청 흐름"
+        }
+      ]
+    },
+    "axis_weights": {
+      "구조 정확성": "컴포넌트의 위상 및 방향성을 정밀하게 평가",
+      "효율성": "불필요한 네트워크 홉스나 루프가 없는지 확인"
+    }
+  },
+  {
+    "title": "도전 과제: 정적 자원 S3 & CloudFront - Level 16",
+    "description": "주어진 요구사항을 만족하는 최적의 화살표 방향(데이터 흐름)과 컴포넌트 배치를 완성하세요.",
+    "required": [
+      "origin",
+      "dns",
+      "client",
+      "cdn"
+    ],
+    "hints": [
+      "노드의 방향과 연결 흐름이 매우 중요합니다.",
+      "필수 부품이 누락되지 않게 배치하세요."
+    ],
+    "rubric_functional": {
+      "required_components": [
+        "origin",
+        "dns",
+        "client",
+        "cdn"
+      ],
+      "required_flows": [
+        {
+          "from": "client",
+          "to": "dns",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "client",
+          "to": "cdn",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "cdn",
+          "to": "origin",
+          "desc": "데이터 전파/요청 흐름"
+        }
+      ]
+    },
+    "axis_weights": {
+      "구조 정확성": "컴포넌트의 위상 및 방향성을 정밀하게 평가",
+      "효율성": "불필요한 네트워크 홉스나 루프가 없는지 확인"
+    }
+  },
+  {
+    "title": "도전 과제: 분산 캐시를 보유한 웹 시스템 - Level 17",
+    "description": "주어진 요구사항을 만족하는 최적의 화살표 방향(데이터 흐름)과 컴포넌트 배치를 완성하세요.",
+    "required": [
+      "lb",
+      "cache",
+      "client",
+      "server"
+    ],
+    "hints": [
+      "노드의 방향과 연결 흐름이 매우 중요합니다.",
+      "필수 부품이 누락되지 않게 배치하세요."
+    ],
+    "rubric_functional": {
+      "required_components": [
+        "lb",
+        "cache",
+        "client",
+        "server"
+      ],
+      "required_flows": [
+        {
+          "from": "client",
+          "to": "lb",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "lb",
+          "to": "server",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "server",
+          "to": "cache",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "server",
+          "to": "db",
+          "desc": "데이터 전파/요청 흐름"
+        }
+      ]
+    },
+    "axis_weights": {
+      "구조 정확성": "컴포넌트의 위상 및 방향성을 정밀하게 평가",
+      "효율성": "불필요한 네트워크 홉스나 루프가 없는지 확인"
+    }
+  },
+  {
+    "title": "도전 과제: 알람 처리를 위한 펍섭(Pub/Sub) - Level 18",
+    "description": "주어진 요구사항을 만족하는 최적의 화살표 방향(데이터 흐름)과 컴포넌트 배치를 완성하세요.",
+    "required": [
+      "consumer",
+      "server",
+      "queue"
+    ],
+    "hints": [
+      "노드의 방향과 연결 흐름이 매우 중요합니다.",
+      "필수 부품이 누락되지 않게 배치하세요."
+    ],
+    "rubric_functional": {
+      "required_components": [
+        "consumer",
+        "server",
+        "queue"
+      ],
+      "required_flows": [
+        {
+          "from": "server",
+          "to": "queue",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "queue",
+          "to": "consumer",
+          "desc": "데이터 전파/요청 흐름"
+        }
+      ]
+    },
+    "axis_weights": {
+      "구조 정확성": "컴포넌트의 위상 및 방향성을 정밀하게 평가",
+      "효율성": "불필요한 네트워크 홉스나 루프가 없는지 확인"
+    }
+  },
+  {
+    "title": "도전 과제: 다중 리전 (Multi-Region) 액티브-액티브 - Level 19",
+    "description": "주어진 요구사항을 만족하는 최적의 화살표 방향(데이터 흐름)과 컴포넌트 배치를 완성하세요.",
+    "required": [
+      "dns",
+      "lb",
+      "server"
+    ],
+    "hints": [
+      "노드의 방향과 연결 흐름이 매우 중요합니다.",
+      "필수 부품이 누락되지 않게 배치하세요."
+    ],
+    "rubric_functional": {
+      "required_components": [
+        "dns",
+        "lb",
+        "server"
+      ],
+      "required_flows": [
+        {
+          "from": "dns",
+          "to": "lb",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "lb",
+          "to": "server",
+          "desc": "데이터 전파/요청 흐름"
+        }
+      ]
+    },
+    "axis_weights": {
+      "구조 정확성": "컴포넌트의 위상 및 방향성을 정밀하게 평가",
+      "효율성": "불필요한 네트워크 홉스나 루프가 없는지 확인"
+    }
+  },
+  {
+    "title": "도전 과제: 데이터 분석/수집 파이프라인 (Data Pipeline) - Level 20",
+    "description": "주어진 요구사항을 만족하는 최적의 화살표 방향(데이터 흐름)과 컴포넌트 배치를 완성하세요.",
+    "required": [
+      "client",
+      "server",
+      "producer",
+      "queue",
+      "db"
+    ],
+    "hints": [
+      "노드의 방향과 연결 흐름이 매우 중요합니다.",
+      "필수 부품이 누락되지 않게 배치하세요."
+    ],
+    "rubric_functional": {
+      "required_components": [
+        "client",
+        "server",
+        "producer",
+        "queue",
+        "db"
+      ],
+      "required_flows": [
+        {
+          "from": "client",
+          "to": "producer",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "producer",
+          "to": "queue",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "queue",
+          "to": "server",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "server",
+          "to": "db",
+          "desc": "데이터 전파/요청 흐름"
+        }
+      ]
+    },
+    "axis_weights": {
+      "구조 정확성": "컴포넌트의 위상 및 방향성을 정밀하게 평가",
+      "효율성": "불필요한 네트워크 홉스나 루프가 없는지 확인"
+    }
+  },
+  {
+    "title": "도전 과제: 오토스케일링 애플리케이션 그룹 - Level 21",
+    "description": "주어진 요구사항을 만족하는 최적의 화살표 방향(데이터 흐름)과 컴포넌트 배치를 완성하세요.",
+    "required": [
+      "lb",
+      "client",
+      "server",
+      "db"
+    ],
+    "hints": [
+      "노드의 방향과 연결 흐름이 매우 중요합니다.",
+      "필수 부품이 누락되지 않게 배치하세요."
+    ],
+    "rubric_functional": {
+      "required_components": [
+        "lb",
+        "client",
+        "server",
+        "db"
+      ],
+      "required_flows": [
+        {
+          "from": "client",
+          "to": "lb",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "lb",
+          "to": "server",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "server",
+          "to": "db",
+          "desc": "데이터 전파/요청 흐름"
+        }
+      ]
+    },
+    "axis_weights": {
+      "구조 정확성": "컴포넌트의 위상 및 방향성을 정밀하게 평가",
+      "효율성": "불필요한 네트워크 홉스나 루프가 없는지 확인"
+    }
+  },
+  {
+    "title": "도전 과제: 백엔드용 어드민 분리 서버망 - Level 22",
+    "description": "주어진 요구사항을 만족하는 최적의 화살표 방향(데이터 흐름)과 컴포넌트 배치를 완성하세요.",
+    "required": [
+      "writesvc",
+      "lb",
+      "client",
+      "server",
+      "db"
+    ],
+    "hints": [
+      "노드의 방향과 연결 흐름이 매우 중요합니다.",
+      "필수 부품이 누락되지 않게 배치하세요."
+    ],
+    "rubric_functional": {
+      "required_components": [
+        "writesvc",
+        "lb",
+        "client",
+        "server",
+        "db"
+      ],
+      "required_flows": [
+        {
+          "from": "client",
+          "to": "lb",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "lb",
+          "to": "server",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "lb",
+          "to": "writesvc",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "server",
+          "to": "db",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "writesvc",
+          "to": "db",
+          "desc": "데이터 전파/요청 흐름"
+        }
+      ]
+    },
+    "axis_weights": {
+      "구조 정확성": "컴포넌트의 위상 및 방향성을 정밀하게 평가",
+      "효율성": "불필요한 네트워크 홉스나 루프가 없는지 확인"
+    }
+  },
+  {
+    "title": "도전 과제: Saga Pattern (마이크로서비스 분산 트랜잭션) - Level 23",
+    "description": "주어진 요구사항을 만족하는 최적의 화살표 방향(데이터 흐름)과 컴포넌트 배치를 완성하세요.",
+    "required": [
+      "queue",
+      "order",
+      "db",
+      "payment"
+    ],
+    "hints": [
+      "노드의 방향과 연결 흐름이 매우 중요합니다.",
+      "필수 부품이 누락되지 않게 배치하세요."
+    ],
+    "rubric_functional": {
+      "required_components": [
+        "queue",
+        "order",
+        "db",
+        "payment"
+      ],
+      "required_flows": [
+        {
+          "from": "order",
+          "to": "queue",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "queue",
+          "to": "payment",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "payment",
+          "to": "db",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "payment",
+          "to": "queue",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "queue",
+          "to": "order",
+          "desc": "데이터 전파/요청 흐름"
+        }
+      ]
+    },
+    "axis_weights": {
+      "구조 정확성": "컴포넌트의 위상 및 방향성을 정밀하게 평가",
+      "효율성": "불필요한 네트워크 홉스나 루프가 없는지 확인"
+    }
+  },
+  {
+    "title": "도전 과제: 정적 자원 S3 & CloudFront - Level 24",
+    "description": "주어진 요구사항을 만족하는 최적의 화살표 방향(데이터 흐름)과 컴포넌트 배치를 완성하세요.",
+    "required": [
+      "origin",
+      "dns",
+      "client",
+      "cdn"
+    ],
+    "hints": [
+      "노드의 방향과 연결 흐름이 매우 중요합니다.",
+      "필수 부품이 누락되지 않게 배치하세요."
+    ],
+    "rubric_functional": {
+      "required_components": [
+        "origin",
+        "dns",
+        "client",
+        "cdn"
+      ],
+      "required_flows": [
+        {
+          "from": "client",
+          "to": "dns",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "client",
+          "to": "cdn",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "cdn",
+          "to": "origin",
+          "desc": "데이터 전파/요청 흐름"
+        }
+      ]
+    },
+    "axis_weights": {
+      "구조 정확성": "컴포넌트의 위상 및 방향성을 정밀하게 평가",
+      "효율성": "불필요한 네트워크 홉스나 루프가 없는지 확인"
+    }
+  },
+  {
+    "title": "도전 과제: 분산 캐시를 보유한 웹 시스템 - Level 25",
+    "description": "주어진 요구사항을 만족하는 최적의 화살표 방향(데이터 흐름)과 컴포넌트 배치를 완성하세요.",
+    "required": [
+      "lb",
+      "cache",
+      "client",
+      "server"
+    ],
+    "hints": [
+      "노드의 방향과 연결 흐름이 매우 중요합니다.",
+      "필수 부품이 누락되지 않게 배치하세요."
+    ],
+    "rubric_functional": {
+      "required_components": [
+        "lb",
+        "cache",
+        "client",
+        "server"
+      ],
+      "required_flows": [
+        {
+          "from": "client",
+          "to": "lb",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "lb",
+          "to": "server",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "server",
+          "to": "cache",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "server",
+          "to": "db",
+          "desc": "데이터 전파/요청 흐름"
+        }
+      ]
+    },
+    "axis_weights": {
+      "구조 정확성": "컴포넌트의 위상 및 방향성을 정밀하게 평가",
+      "효율성": "불필요한 네트워크 홉스나 루프가 없는지 확인"
+    }
+  },
+  {
+    "title": "도전 과제: 알람 처리를 위한 펍섭(Pub/Sub) - Level 26",
+    "description": "주어진 요구사항을 만족하는 최적의 화살표 방향(데이터 흐름)과 컴포넌트 배치를 완성하세요.",
+    "required": [
+      "consumer",
+      "server",
+      "queue"
+    ],
+    "hints": [
+      "노드의 방향과 연결 흐름이 매우 중요합니다.",
+      "필수 부품이 누락되지 않게 배치하세요."
+    ],
+    "rubric_functional": {
+      "required_components": [
+        "consumer",
+        "server",
+        "queue"
+      ],
+      "required_flows": [
+        {
+          "from": "server",
+          "to": "queue",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "queue",
+          "to": "consumer",
+          "desc": "데이터 전파/요청 흐름"
+        }
+      ]
+    },
+    "axis_weights": {
+      "구조 정확성": "컴포넌트의 위상 및 방향성을 정밀하게 평가",
+      "효율성": "불필요한 네트워크 홉스나 루프가 없는지 확인"
+    }
+  },
+  {
+    "title": "도전 과제: 다중 리전 (Multi-Region) 액티브-액티브 - Level 27",
+    "description": "주어진 요구사항을 만족하는 최적의 화살표 방향(데이터 흐름)과 컴포넌트 배치를 완성하세요.",
+    "required": [
+      "dns",
+      "lb",
+      "server"
+    ],
+    "hints": [
+      "노드의 방향과 연결 흐름이 매우 중요합니다.",
+      "필수 부품이 누락되지 않게 배치하세요."
+    ],
+    "rubric_functional": {
+      "required_components": [
+        "dns",
+        "lb",
+        "server"
+      ],
+      "required_flows": [
+        {
+          "from": "dns",
+          "to": "lb",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "lb",
+          "to": "server",
+          "desc": "데이터 전파/요청 흐름"
+        }
+      ]
+    },
+    "axis_weights": {
+      "구조 정확성": "컴포넌트의 위상 및 방향성을 정밀하게 평가",
+      "효율성": "불필요한 네트워크 홉스나 루프가 없는지 확인"
+    }
+  },
+  {
+    "title": "도전 과제: 데이터 분석/수집 파이프라인 (Data Pipeline) - Level 28",
+    "description": "주어진 요구사항을 만족하는 최적의 화살표 방향(데이터 흐름)과 컴포넌트 배치를 완성하세요.",
+    "required": [
+      "client",
+      "server",
+      "producer",
+      "queue",
+      "db"
+    ],
+    "hints": [
+      "노드의 방향과 연결 흐름이 매우 중요합니다.",
+      "필수 부품이 누락되지 않게 배치하세요."
+    ],
+    "rubric_functional": {
+      "required_components": [
+        "client",
+        "server",
+        "producer",
+        "queue",
+        "db"
+      ],
+      "required_flows": [
+        {
+          "from": "client",
+          "to": "producer",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "producer",
+          "to": "queue",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "queue",
+          "to": "server",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "server",
+          "to": "db",
+          "desc": "데이터 전파/요청 흐름"
+        }
+      ]
+    },
+    "axis_weights": {
+      "구조 정확성": "컴포넌트의 위상 및 방향성을 정밀하게 평가",
+      "효율성": "불필요한 네트워크 홉스나 루프가 없는지 확인"
+    }
+  },
+  {
+    "title": "도전 과제: 오토스케일링 애플리케이션 그룹 - Level 29",
+    "description": "주어진 요구사항을 만족하는 최적의 화살표 방향(데이터 흐름)과 컴포넌트 배치를 완성하세요.",
+    "required": [
+      "lb",
+      "client",
+      "server",
+      "db"
+    ],
+    "hints": [
+      "노드의 방향과 연결 흐름이 매우 중요합니다.",
+      "필수 부품이 누락되지 않게 배치하세요."
+    ],
+    "rubric_functional": {
+      "required_components": [
+        "lb",
+        "client",
+        "server",
+        "db"
+      ],
+      "required_flows": [
+        {
+          "from": "client",
+          "to": "lb",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "lb",
+          "to": "server",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "server",
+          "to": "db",
+          "desc": "데이터 전파/요청 흐름"
+        }
+      ]
+    },
+    "axis_weights": {
+      "구조 정확성": "컴포넌트의 위상 및 방향성을 정밀하게 평가",
+      "효율성": "불필요한 네트워크 홉스나 루프가 없는지 확인"
+    }
+  },
+  {
+    "title": "도전 과제: 백엔드용 어드민 분리 서버망 - Level 30",
+    "description": "주어진 요구사항을 만족하는 최적의 화살표 방향(데이터 흐름)과 컴포넌트 배치를 완성하세요.",
+    "required": [
+      "writesvc",
+      "lb",
+      "client",
+      "server",
+      "db"
+    ],
+    "hints": [
+      "노드의 방향과 연결 흐름이 매우 중요합니다.",
+      "필수 부품이 누락되지 않게 배치하세요."
+    ],
+    "rubric_functional": {
+      "required_components": [
+        "writesvc",
+        "lb",
+        "client",
+        "server",
+        "db"
+      ],
+      "required_flows": [
+        {
+          "from": "client",
+          "to": "lb",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "lb",
+          "to": "server",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "lb",
+          "to": "writesvc",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "server",
+          "to": "db",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "writesvc",
+          "to": "db",
+          "desc": "데이터 전파/요청 흐름"
+        }
+      ]
+    },
+    "axis_weights": {
+      "구조 정확성": "컴포넌트의 위상 및 방향성을 정밀하게 평가",
+      "효율성": "불필요한 네트워크 홉스나 루프가 없는지 확인"
+    }
+  },
+  {
+    "title": "도전 과제: Saga Pattern (마이크로서비스 분산 트랜잭션) - Level 31",
+    "description": "주어진 요구사항을 만족하는 최적의 화살표 방향(데이터 흐름)과 컴포넌트 배치를 완성하세요.",
+    "required": [
+      "queue",
+      "order",
+      "db",
+      "payment"
+    ],
+    "hints": [
+      "노드의 방향과 연결 흐름이 매우 중요합니다.",
+      "필수 부품이 누락되지 않게 배치하세요."
+    ],
+    "rubric_functional": {
+      "required_components": [
+        "queue",
+        "order",
+        "db",
+        "payment"
+      ],
+      "required_flows": [
+        {
+          "from": "order",
+          "to": "queue",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "queue",
+          "to": "payment",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "payment",
+          "to": "db",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "payment",
+          "to": "queue",
+          "desc": "데이터 전파/요청 흐름"
+        },
+        {
+          "from": "queue",
+          "to": "order",
+          "desc": "데이터 전파/요청 흐름"
+        }
+      ]
+    },
+    "axis_weights": {
+      "구조 정확성": "컴포넌트의 위상 및 방향성을 정밀하게 평가",
+      "효율성": "불필요한 네트워크 홉스나 루프가 없는지 확인"
+    }
+  }
+]

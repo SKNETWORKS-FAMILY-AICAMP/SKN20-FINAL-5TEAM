@@ -1,5 +1,5 @@
-// 수정일: 2026-01-21
-// 수정내용: Vite SPA 라우팅 설정 (Vue Router 히스토리 모드 지원)
+// 수정일: 2026-02-25
+// 수정내용: ngrok 접속 허용 및 로컬 환경 최적화 (localhost 설정)
 
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
@@ -13,67 +13,64 @@ export default defineConfig({
     },
   },
   server: {
-    host: '0.0.0.0', // Docker 환경 접속 허용
+    host: '0.0.0.0', // 모든 네트워크 인터페이스 허용
     port: 5173,
-    allowedHosts: ['coduck-frontend.loca.lt'],  
+
+    // [수정: 2026-02-25] 명시적 호스트 허용으로 ngrok 도메인 등록하여 ngrok 에러 방지 및 보안 강화
+    allowedHosts: [
+      'flockier-harlee-ontogenically.ngrok-free.dev',
+      'localhost',
+      '.ngrok-free.dev'
+    ],
+
+    // [추가: 2026-02-25] ngrok (https) 환경에서 웹소켓 통신(HMR)을 위한 설정 
+    hmr: {
+      host: 'flockier-harlee-ontogenically.ngrok-free.dev',
+      port: 443,
+      clientPort: 443,
+      protocol: 'wss'
+    },
+
     watch: {
       usePolling: true,
       interval: 1000,
     },
-    // [수정일: 2026-01-21] 백엔드 API와의 연동을 위한 Proxy 설정 추가
+    // [수정] target을 localhost로 변경하여 장소에 상관없이 내 컴퓨터의 백엔드와 통신합니다.
     proxy: {
       '/api': {
-        target: process.env.VITE_API_Target || 'http://192.168.0.98:8000',
+        target: process.env.VITE_API_Target || 'http://localhost:8000',
         changeOrigin: true,
         cookieDomainRewrite: ""
       },
       '/media': {
-        target: process.env.VITE_API_Target || 'http://192.168.0.98:8000',
+        target: process.env.VITE_API_Target || 'http://localhost:8000',
         changeOrigin: true
       },
       '/socket.io': {
-        target: process.env.VITE_API_Target || 'http://192.168.0.98:8000',
+        target: process.env.VITE_API_Target || 'http://localhost:8000',
         changeOrigin: true,
         ws: true
       }
     },
-    // [수정일: 2026-01-21] SPA 라우팅을 위한 미들웨어 추가 (main.html 경로 지원)
+    // SPA 라우팅 지원 미들웨어
     middlewares: [
       {
         name: 'spa-fallback',
         apply: 'serve',
         enforce: 'pre',
         handle(req, res, next) {
-          // 메인 페이지 요청들
-          const mainPageRequests = [
-            '/main.html',
-            '/index.html',
-            '/',
-            '/practice/logic-mirror',
-          ];
-
-          // API 요청 제외
-          if (req.url.startsWith('/api')) {
-            return next();
-          }
-
-          // 정적 파일 제외 (확장자가 있는 파일)
-          if (req.url.includes('.') && !req.url.endsWith('.html')) {
-            return next();
-          }
-
-          // main.html 또는 라우트 요청이면 index.html로 리다이렉트
+          const mainPageRequests = ['/main.html', '/index.html', '/', '/practice/logic-mirror'];
+          if (req.url.startsWith('/api')) return next();
+          if (req.url.includes('.') && !req.url.endsWith('.html')) return next();
           if (req.url.includes('main.html') || !req.url.includes('.')) {
             req.url = '/index.html';
           }
-
           next();
         }
       }
     ]
   },
   build: {
-    // [수정일: 2026-02-04] main.html 접근을 위해 rollupOptions input 수정
     rollupOptions: {
       input: {
         index: path.resolve(__dirname, 'index.html'),
@@ -82,4 +79,3 @@ export default defineConfig({
     },
   }
 })
-
