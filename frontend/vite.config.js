@@ -37,49 +37,6 @@ export default defineConfig({
         ws: true
       }
     },
-    // [수정일: 2026-01-21] SPA 라우팅을 위한 미들웨어 추가 (main.html 경로 지원)
-    middlewares: [
-      {
-        name: 'spa-fallback',
-        apply: 'serve',
-        enforce: 'pre',
-        handle(req, res, next) {
-          // 메인 페이지 요청들
-          const mainPageRequests = [
-            '/main.html',
-            '/index.html',
-            '/',
-            '/practice/logic-mirror',
-          ];
-
-          // API 요청 제외
-          if (req.url.startsWith('/api')) {
-            return next();
-          }
-
-          // 정적 파일 제외 (확장자가 있는 파일)
-          if (req.url.includes('.') && !req.url.endsWith('.html')) {
-            return next();
-          }
-
-          // main.html 또는 라우트 요청이면 index.html로 리다이렉트
-          if (req.url.includes('main.html') || !req.url.includes('.')) {
-            req.url = '/index.html';
-          }
-
-          next();
-        }
-      }
-    ]
   },
-  build: {
-    // [수정일: 2026-02-04] main.html 접근을 위해 rollupOptions input 수정
-    rollupOptions: {
-      input: {
-        index: path.resolve(__dirname, 'index.html'),
-        main: path.resolve(__dirname, 'main.html'),
-      }
-    },
-  }
 })
 

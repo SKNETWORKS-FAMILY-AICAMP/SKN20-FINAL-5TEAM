@@ -154,10 +154,6 @@ const routes = [
   {
     path: '/practice/',
     redirect: '/practice/pseudo-code'
-  },
-  {
-    path: '/main.html',
-    redirect: '/'
   }
 ]
 
