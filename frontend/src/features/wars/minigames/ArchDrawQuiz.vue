@@ -23,6 +23,8 @@
             <button @click="joinCustomRoom" class="btn-join">JOIN</button>
           </div>
           <div class="current-room-info">현재 접속: <span class="neon-c">{{ currentRoomId }}</span></div>
+          <!-- [빌드버전: 2026-02-26 05:30] 캐시 확인용 태그 -->
+          <div style="font-size:10px; color:#334155; margin-top:5px;">BUILD: 2026-02-26-0530-FINAL</div>
         </div>
         <div class="lobby-info" v-if="!ds.connected.value">연결 중...</div>
         <div class="lobby-info" v-else-if="!ds.isReady.value">상대를 기다리는 중... ({{ ds.roomPlayers.value.length }}/2)</div>
@@ -430,15 +432,26 @@ onMounted(() => {
 
   // [Multi-Agent] CoachAgent 힌트 수신 — 소켓 연결 후 등록
   // watch로 소켓 준비 감지 후 리스너 등록
-  const stopWatch = watch(() => ds.socket.value, (sock) => {
+  // [최종수정: 2026-02-26 05:25] ReferenceError 및 TDZ 방지: if-else 패턴으로 로직 분리 (브라우저 캐시 갱신용 주석 추가)
+  const registerCoachHint = (sock) => {
     if (!sock) return
     sock.on('coach_hint', (data) => {
       if (coachTimer) clearTimeout(coachTimer)
       coachMsg.value = data.message
       coachTimer = setTimeout(() => { coachMsg.value = '' }, 6000)
     })
-    stopWatch() // 한 번 등록 후 watch 해제
-  }, { immediate: true })
+  }
+
+  if (ds.socket.value) {
+    registerCoachHint(ds.socket.value)
+  } else {
+    const unwatch = watch(() => ds.socket.value, (sock) => {
+      if (sock) {
+        registerCoachHint(sock)
+        unwatch()
+      }
+    })
+  }
 })
 onUnmounted(() => { 
   clearInterval(timer)
