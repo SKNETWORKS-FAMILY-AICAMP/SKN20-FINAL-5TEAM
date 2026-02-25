@@ -534,7 +534,10 @@ async def draw_submit(sid, data):
             print(f"✅ AI Review generated: {ai_reviews.keys()}")
         except Exception as e:
             print(f"❌ AI Review Error: {e}")
-            ai_reviews = {}
+            ai_reviews = arch_evaluator._fallback_review(
+                {'name': p1['name'], 'pts': p1['last_pts'], 'checks': p1['last_checks'], 'nodes': p1.get('last_nodes', []), 'arrows': p1.get('last_arrows', [])},
+                {'name': p2['name'], 'pts': p2['last_pts'], 'checks': p2['last_checks'], 'nodes': p2.get('last_nodes', []), 'arrows': p2.get('last_arrows', [])}
+            )
         
         results = []
         for i, p in enumerate(room['players']):

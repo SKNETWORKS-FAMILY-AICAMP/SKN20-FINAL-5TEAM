@@ -46,7 +46,7 @@ class ArchEvaluator:
             user_prompt = self._build_user_prompt(mission_title, player1_data, player2_data)
 
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
