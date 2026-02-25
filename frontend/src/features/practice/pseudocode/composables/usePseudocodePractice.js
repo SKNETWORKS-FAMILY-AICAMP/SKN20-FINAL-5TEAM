@@ -1,5 +1,5 @@
 ﻿/**
- * useCoduckWars.js - Refactored (Restored and Fixed)
+ * usePseudocodePractice.js - Refactored (Restored and Fixed)
  * 
  * 개선 사항:
  * - 5차원 메트릭 기반 평가 적용
@@ -14,10 +14,10 @@ import { ref, computed, reactive, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { evaluateDiagnosticAnswer } from '../api/pseudocodeApi.js';
 import { useEvaluationOrchestrator, EvaluationErrorType } from './useEvaluationOrchestrator.js';
-import { useGameEngine } from './useGameEngine.js';
+import { useStageEngine } from './useStageEngine.js';
 import { useCodeRunner } from './useCodeRunner.js';
 
-export function useCoduckWars() {
+export function usePseudocodePractice() {
     const router = useRouter();
 
     // Game Engine
@@ -35,7 +35,7 @@ export function useCoduckWars() {
         startGame,
         selectStage,
         restartMission: engineResetFlow
-    } = useGameEngine();
+    } = useStageEngine();
 
     // Code Runner
     const {
@@ -256,7 +256,7 @@ export function useCoduckWars() {
                 });
             });
         } catch (e) {
-            console.warn('[useCoduckWars] ruleChecklist watcher error:', e);
+            console.warn('[usePseudocodePractice] ruleChecklist watcher error:', e);
         }
         if (showHintDuck.value) updateDynamicHint();
     });

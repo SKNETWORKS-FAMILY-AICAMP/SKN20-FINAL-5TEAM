@@ -349,7 +349,7 @@ const getEvaluation = (ans) => {
   }
 
   // [2026-02-24 Fix] 구형식 호환: evaluation 래퍼 없이 metrics/summary가 최상위에 있는 경우
-  // (CoduckWars의 이전 completeMission()이 저장한 형식)
+  // (PseudocodePractice의 이전 completeMission()이 저장한 형식)
   if (data.track_type === 'pseudocode' && data.metrics && typeof data.metrics === 'object') {
     const metrics = [];
     Object.entries(data.metrics).forEach(([k, v]) => {

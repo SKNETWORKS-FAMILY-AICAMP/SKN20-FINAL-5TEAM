@@ -1,7 +1,7 @@
 import { reactive, computed, watch } from 'vue';
 import { useGameStore } from '@/stores/game';
 
-export function useGameEngine() {
+export function useStageEngine() {
     const gameStore = useGameStore();
 
     // [수정일: 2026-02-08] 맵에서 선택한 문제를 표시하기 위해 gameStore.selectedQuestIndex 사용

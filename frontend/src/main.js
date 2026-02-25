@@ -13,7 +13,7 @@ axios.defaults.xsrfCookieName = 'csrftoken'
 axios.defaults.xsrfHeaderName = 'X-CSRFToken'
 
 // 새로운 퀘스트 기반 Logic Mirror 임포트
-import CoduckWars from './features/practice/pseudocode/CoduckWars.vue'
+import PseudocodePractice from './features/practice/pseudocode/PseudocodePractice.vue'
 import SystemArchitecturePractice from './features/practice/architecture/SystemArchitecturePractice.vue'
 import BugHunt from './features/practice/bughunt/BugHunt.vue'
 // import OpsPractice from './features/practice/OpsPractice.vue'
@@ -48,7 +48,7 @@ const routes = [
   {
     path: '/practice/pseudo-code',
     name: 'PseudoCode',
-    component: CoduckWars
+    component: PseudocodePractice
   },
   {
     path: '/practice/system-architecture',

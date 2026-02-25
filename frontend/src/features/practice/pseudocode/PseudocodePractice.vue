@@ -158,7 +158,7 @@
                   </div>
                   <!-- AI 아키텍트 분석 오버레이 (진단 단계) -->
                   <div v-if="gameState.isEvaluatingDiagnostic" class="ai-loading-overlay">
-                      <LoadingDuck message="데이터 흐름 및 논리적 타당성을 정밀 분석 중입니다..." />
+                      <AnalysisLoadingScreen message="데이터 흐름 및 논리적 타당성을 정밀 분석 중입니다..." />
                   </div>
               </div>
 
@@ -166,7 +166,7 @@
               <div v-else-if="gameState.phase === 'PSEUDO_WRITE'" class="space-y-4 flex flex-col h-full max-w-5xl mx-auto w-full">
                   <!-- AI 아키텍트 분석 오버레이 (의사코드 심화 분석 단계) [추가: 2026-02-13] -->
                   <div v-if="isProcessing" class="ai-loading-overlay">
-                      <LoadingDuck message="작성하신 설계의 5차원 아키텍처 정밀 분석 및 Python 코드 변환 중입니다..." />
+                      <AnalysisLoadingScreen message="작성하신 설계의 5차원 아키텍처 정밀 분석 및 Python 코드 변환 중입니다..." />
                   </div>
                   <!-- [2026-02-12] 이미지 싱크: 메인 타이틀 및 설명 개편 (미션/제약조건 노출) [폰트 상향 및 중복 제거] -->
                   <div class="mission-instruction-compact">
@@ -270,13 +270,13 @@
                   <!-- submitDescriptiveDeepDive가 isProcessing=true 상태로 EVALUATION 진입 시 검은 화면 방지 -->
                   <div v-if="tutorialAnalyzing || isGeneratingReport" class="ai-analysis-simulation fixed inset-0 z-[200] bg-[#050505] flex flex-col items-center justify-center border border-emerald-500/30">
                       <div v-if="isGeneratingReport && !tutorialAnalyzing" class="pseudo-write-loading w-full h-full flex flex-col items-center justify-center">
-                          <LoadingDuck 
+                          <AnalysisLoadingScreen 
                             message="작성한 내용 토대로 종합평가 중입니다..."
                             :duration="4000"
                           />
                       </div>
                       <div v-else>
-                          <LoadingDuck 
+                          <AnalysisLoadingScreen 
                             :message="'튜토리얼 분석 중...'"
                             :duration="4000"
                           />
@@ -539,7 +539,7 @@
 import { computed, ref, reactive, onMounted, watch, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { useGameStore } from '@/stores/game';
-import { useCoduckWars } from './composables/useCoduckWars.js';
+import { usePseudocodePractice } from './composables/usePseudocodePractice.js';
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
 import { useMonacoEditor } from './composables/useMonacoEditor.js';
 import { 
@@ -550,13 +550,13 @@ import {
 } from 'lucide-vue-next';
 // [2026-02-21] ComprehensiveEvaluator 삭제: 프론트엔드 독립 GPT 호출 제거
 // import { ComprehensiveEvaluator } from './evaluationEngine.js';
-import { generateCompleteLearningReport } from './reportGenerator.js';
-import { getRecommendedVideos } from './learningResources.js';
+import { generateCompleteLearningReport } from './services/reportGenerator.js';
+import { getRecommendedVideos } from './data/learningResources.js';
 import Chart from 'chart.js/auto';
 
 const activeYoutubeId = ref(null);
 import CodeFlowVisualizer from './components/CodeFlowVisualizer.vue';
-import LoadingDuck from '../components/LoadingDuck.vue';
+import AnalysisLoadingScreen from '../components/AnalysisLoadingScreen.vue';
 import PseudocodeTutorialOverlay from './components/PseudocodeTutorialOverlay.vue';
 import { BookOpen } from 'lucide-vue-next';
 
@@ -573,10 +573,10 @@ const finalReport = ref(null);
 const radarChartCanvas = ref(null);
 let radarChartInstance = null;
 
-// [2026-02-14] useCoduckWars 분리 및 데이터 선언 (상단 이동)
-const coduckWarsComposable = useCoduckWars();
-const { resetHintTimer } = coduckWarsComposable;
-const originalSubmitPseudo = coduckWarsComposable.submitPseudo;
+// [2026-02-14] usePseudocodePractice 분리 및 데이터 선언 (상단 이동)
+const practiceComposable = usePseudocodePractice();
+const { resetHintTimer } = practiceComposable;
+const originalSubmitPseudo = practiceComposable.submitPseudo;
 
 const {
     gameState,
@@ -611,7 +611,7 @@ const {
     retryMcq,
     submitPseudo,
     resetFlow
-} = coduckWarsComposable;
+} = practiceComposable;
 
 onMounted(() => {
   if (!localStorage.getItem('pseudocode-tutorial-done')) {
@@ -730,9 +730,9 @@ const confirmClosePractice = () => {
   emit('close');
 };
 
-// [2026-02-22 Fix] useCoduckWars에서 resetFlow로 export되므로 engineResetFlow 대신 resetFlow 사용
+// [2026-02-22 Fix] usePseudocodePractice에서 resetFlow로 export되므로 engineResetFlow 대신 resetFlow 사용
 const handleResetFlow = () => {
-    resetFlow();              // useCoduckWars의 resetFlow (= engineResetFlow)
+    resetFlow();              // usePseudocodePractice의 resetFlow (= engineResetFlow)
     finalReport.value = null;
     showMetrics.value = false;
     isGeneratingReport.value = false;
@@ -1117,7 +1117,7 @@ watch(() => gameState.phase, async (newPhase) => {
             await nextTick();
             await runComprehensiveEvaluation();
         }
-    } catch(e) { console.warn("[CoduckWars] Main phase watcher error on unmount:", e); }
+    } catch(e) { console.warn("[PseudocodePractice] Main phase watcher error on unmount:", e); }
 });
 
 const { monacoOptions, handleMonacoMount } = useMonacoEditor(
@@ -1129,7 +1129,7 @@ const { monacoOptions, handleMonacoMount } = useMonacoEditor(
 );
 </script>
 
-<style scoped src="./CoduckWars.css"></style>
+<style scoped src="./PseudocodePractice.css"></style>
 
 <style scoped>
 /* [2026-02-14] 코덕 캐릭터 클릭 유도 효과 제거 (사용자 요청: 수동 힌트만 제공) */

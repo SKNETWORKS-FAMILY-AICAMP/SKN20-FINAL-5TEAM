@@ -236,7 +236,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue';
-import LoadingDuck from '../../components/LoadingDuck.vue';
+import AnalysisLoadingScreen from '../../components/AnalysisLoadingScreen.vue';
 
 const props = defineProps({
   phase: String,

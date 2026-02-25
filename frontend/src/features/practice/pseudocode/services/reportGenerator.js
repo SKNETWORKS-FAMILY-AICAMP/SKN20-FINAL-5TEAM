@@ -195,7 +195,7 @@ export async function generateCompleteLearningReport(evaluationResults, apiKey, 
   } else {
     // 백엔드 데이터가 없을 때만 로컬 하드코딩 리소스 사용 (폴백)
     console.log('[ReportGenerator] 로컬 하드코딩 폴백 데이터를 사용합니다.');
-    const { getRecommendedVideos } = await import('./learningResources.js');
+    const { getRecommendedVideos } = await import('../data/learningResources.js');
     const curatedVideos = getRecommendedVideos(questId, evaluationResults.metrics, 3);
     videos = curatedVideos.map(v => ({
       ...v,

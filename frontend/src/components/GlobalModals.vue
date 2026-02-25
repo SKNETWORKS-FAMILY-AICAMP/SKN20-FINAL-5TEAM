@@ -83,7 +83,7 @@
 
     <!-- [Logic Mirror 가이드북 모달] - Unit 1 전용 (수정일: 2026-01-24) -->
     <!-- [Bug Hunt 가이드북 모달] - Debug Practice 전용 (수정일: 2026-01-29) -->
-    <LogicMirrorGuidebook
+    <PracticeGuidebook
         :isOpen="ui.isGuidebookOpen"
         @close="ui.isGuidebookOpen = false"
     />
@@ -134,7 +134,7 @@ import SignUpModal from './SignUpModal.vue';
 import ConstructionModal from './ConstructionModal.vue';
 import ProfileSettingsModal from './ProfileSettingsModal.vue';
 import GlobalToast from './GlobalToast.vue'; // [수정일: 2026-02-16] 전역 토스트 추가
-import LogicMirrorGuidebook from '../features/practice/pseudocode/components/LogicMirrorGuidebook.vue'; // [수정일: 2026-02-06] 폴더 계층화(components) 반영
+import PracticeGuidebook from '../features/practice/pseudocode/components/PracticeGuidebook.vue';
 import JobPlannerModal from './JobPlannerModal.vue';
 
 /**
