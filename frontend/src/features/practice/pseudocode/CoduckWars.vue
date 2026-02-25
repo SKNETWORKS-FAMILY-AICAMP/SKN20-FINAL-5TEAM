@@ -766,7 +766,7 @@ const completeMission = async () => {
             || evaluationResult.overall_score
             || 0;
 
-        // [2026-02-24 Fix] MyHistoryView의 getEvaluation()이 인식하는 형식으로 submitted_data 구성
+        // [2026-02-24 Fix] MyRecordsView의 getEvaluation()이 인식하는 형식으로 submitted_data 구성
         const submittedData = {
             missionName: currentMission.value?.title || 'Unknown Pseudo Mission',
             track_type: 'pseudocode',
@@ -781,7 +781,7 @@ const completeMission = async () => {
             }
         };
 
-        // finalReport.metrics → dimensions 변환 (MyHistoryView가 기대하는 구조)
+        // finalReport.metrics → dimensions 변환 (MyRecordsView가 기대하는 구조)
         if (finalReport.value?.metrics) {
             Object.entries(finalReport.value.metrics).forEach(([key, metric]) => {
                 submittedData.evaluation.dimensions[key] = {

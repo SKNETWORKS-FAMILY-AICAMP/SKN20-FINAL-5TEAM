@@ -226,7 +226,7 @@
 import { ref, onMounted, defineEmits } from 'vue';
 import axios from 'axios';
 import { useAuthStore } from '@/stores/auth';
-import MermaidRenderer from '@/components/MermaidRenderer.vue';
+import MermaidRenderer from './MermaidRenderer.vue';
 
 const emit = defineEmits(['close']);
 const authStore = useAuthStore();
@@ -467,4 +467,4 @@ const getLevelClass = (level) => {
 onMounted(fetchUnits);
 </script>
 
-<style scoped src="./MyHistoryView.css"></style>
+<style scoped src="./MyRecordsView.css"></style>

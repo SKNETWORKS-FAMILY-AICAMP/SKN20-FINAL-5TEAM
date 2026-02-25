@@ -17,9 +17,9 @@ import CoduckWars from './features/practice/pseudocode/CoduckWars.vue'
 import SystemArchitecturePractice from './features/practice/architecture/SystemArchitecturePractice.vue'
 import BugHunt from './features/practice/bughunt/BugHunt.vue'
 // import OpsPractice from './features/practice/OpsPractice.vue'
-import ManagementView from './features/dashboard/ManagementView.vue'
-import MyHistoryView from './features/dashboard/MyHistoryView.vue'
-import AICoach from './features/dashboard/AICoach.vue'
+import ManagementView from './features/admin/ManagementView.vue'
+import MyRecordsView from './features/my-records/MyRecordsView.vue'
+import AICoach from './features/ai-coach/AICoach.vue'
 import MockInterview from './features/interview/MockInterview.vue'
 import MissionBriefing from './features/wars/MissionBriefing.vue'
 import PressureInterviewRoom from './features/wars/PressureInterviewRoom.vue'
@@ -138,8 +138,8 @@ const routes = [
   },
   {
     path: '/my-records',
-    name: 'MyHistory',
-    component: MyHistoryView
+    name: 'MyRecords',
+    component: MyRecordsView
   },
   {
     path: '/coach',

@@ -563,7 +563,7 @@ function buildChartConfig(chartData) {
   z-index: 1000;
 }
 
-/* ===== Header (MyHistoryView 패턴) ===== */
+/* ===== Header (MyRecordsView 패턴) ===== */
 .coach-header {
   text-align: center;
   padding: 2rem 2rem 1.5rem;
