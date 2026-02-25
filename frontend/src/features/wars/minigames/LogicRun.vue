@@ -66,23 +66,23 @@
       <div class="game-area phase1-layout">
         <!-- 좌측: 게임 화면 -->
         <div class="game-left">
-          <!-- 듀얼 트랙 레이싱 영역 -->
+          <!-- ← 수정: 각 플레이어 중심 화면 -->
           <div class="runner-stage dual-track">
-            <!-- 상단: P2 레인 -->
-            <div class="lane p2-lane">
-              <div class="lane-label">P2 TRACK</div>
-              <div class="runner-char" :style="{ left: p2ProgressPct + '%' }">
-                <img :src="playerP2?.avatarUrl || '/image/duck_idle.png'" class="main-avatar" />
+            <!-- 상단: 상대 레인 -->
+            <div class="lane opponent-lane" :class="myPlayerIdx === 0 ? 'p2-lane' : 'p1-lane'">
+              <div class="lane-label">👥 상대</div>
+              <div class="runner-char" :style="{ left: opponentProgressPct + '%' }">
+                <img :src="myPlayerIdx === 0 ? playerP2?.avatarUrl : playerP1?.avatarUrl || '/image/duck_idle.png'" class="main-avatar" />
               </div>
             </div>
 
-            <!-- 하단: P1 레인 -->
-            <div class="lane p1-lane">
-              <div class="runner-char" :style="{ left: p1ProgressPct + '%' }" :class="{ running: true, stumble: stumbling }">
-                <img :src="playerP1?.avatarUrl || '/image/duck_idle.png'" class="main-avatar" />
+            <!-- 하단: 내 레인 -->
+            <div class="lane my-lane" :class="myPlayerIdx === 0 ? 'p1-lane' : 'p2-lane'">
+              <div class="runner-char" :style="{ left: myProgressPct + '%' }" :class="{ running: true, stumble: stumbling }">
+                <img :src="myPlayerIdx === 0 ? playerP1?.avatarUrl : playerP2?.avatarUrl || '/image/duck_idle.png'" class="main-avatar" />
                 <div class="dust-effect"></div>
               </div>
-              <div class="lane-label">P1 TRACK</div>
+              <div class="lane-label">🎮 나</div>
             </div>
 
             <!-- 결승선 -->
@@ -293,22 +293,33 @@
         <div class="result-box" :class="resultClass">
           <div class="r-icon">{{ resultIcon }}</div>
           <h1 class="r-title">{{ resultTitle }}</h1>
+          <!-- ← 수정: 각 플레이어의 입장에서 자신이 좌측에 표시 -->
           <div class="r-scores">
-            <div class="score-item p1">
-              <span class="p-name">{{ playerP1?.name }}</span>
+            <!-- 나 (좌측) -->
+            <div class="score-item my-score" :class="myPlayerIdx === 0 ? 'p1' : 'p2'">
+              <span class="p-name">🎮 나</span>
               <div class="score-breakdown">
-                <div class="score-part">Phase1: {{ scoreP1Phase1 }}</div>
-                <div class="score-part">Phase2: {{ scoreP1Phase2 }}</div>
-                <div class="score-total">{{ totalScoreP1 }}</div>
+                <div class="score-part" v-if="myPlayerIdx === 0">
+                  Phase1: {{ scoreP1Phase1 }} | Phase2: {{ scoreP1Phase2 }}
+                </div>
+                <div class="score-part" v-else>
+                  Phase1: {{ scoreP2Phase1 }} | Phase2: {{ scoreP2Phase2 }}
+                </div>
+                <div class="score-total">{{ myTotalScore }}</div>
               </div>
             </div>
             <span class="vs">VS</span>
-            <div class="score-item p2">
-              <span class="p-name">{{ playerP2?.name }}</span>
+            <!-- 상대 (우측) -->
+            <div class="score-item opponent-score" :class="myPlayerIdx === 0 ? 'p2' : 'p1'">
+              <span class="p-name">👥 상대</span>
               <div class="score-breakdown">
-                <div class="score-part">Phase1: {{ scoreP2Phase1 }}</div>
-                <div class="score-part">Phase2: {{ scoreP2Phase2 }}</div>
-                <div class="score-total">{{ totalScoreP2 }}</div>
+                <div class="score-part" v-if="myPlayerIdx === 0">
+                  Phase1: {{ scoreP2Phase1 }} | Phase2: {{ scoreP2Phase2 }}
+                </div>
+                <div class="score-part" v-else>
+                  Phase1: {{ scoreP1Phase1 }} | Phase2: {{ scoreP1Phase2 }}
+                </div>
+                <div class="score-total">{{ opponentTotalScore }}</div>
               </div>
             </div>
           </div>
@@ -747,34 +758,52 @@ const roundTimeoutPct = computed(() => {
   return (roundTimeout.value / maxTime) * 100
 })
 
-// 결과 계산
-const totalScoreP1 = computed(() => scoreP1Phase1.value + scoreP1Phase2.value)
-const totalScoreP2 = computed(() => scoreP2Phase1.value + scoreP2Phase2.value)
+// ← 수정: 각 플레이어가 자신을 기준으로 계산
+const myTotalScore = computed(() => {
+  if (myPlayerIdx.value === 0) {
+    return scoreP1Phase1.value + scoreP1Phase2.value  // 나는 P1
+  } else {
+    return scoreP2Phase1.value + scoreP2Phase2.value  // 나는 P2
+  }
+})
 
+const opponentTotalScore = computed(() => {
+  if (myPlayerIdx.value === 0) {
+    return scoreP2Phase1.value + scoreP2Phase2.value  // 상대는 P2
+  } else {
+    return scoreP1Phase1.value + scoreP1Phase2.value  // 상대는 P1
+  }
+})
+
+// ← 각 플레이어의 이름
+const myName = computed(() => playerP1.value?.name || playerP2.value?.name || '나')
+const opponentName = computed(() => playerP2.value?.name || playerP1.value?.name || '상대')
+
+// ← 수정: 각 플레이어 기준으로 결과 계산
 const resultClass = computed(() => {
-  if (totalScoreP1.value > totalScoreP2.value) return 'res-p1-win'
-  if (totalScoreP2.value > totalScoreP1.value) return 'res-p2-win'
+  if (myTotalScore.value > opponentTotalScore.value) return 'res-my-win'
+  if (opponentTotalScore.value > myTotalScore.value) return 'res-opponent-win'
   return 'res-draw'
 })
 
 const resultIcon = computed(() => {
-  if (totalScoreP1.value > totalScoreP2.value) return '🏆'
-  if (totalScoreP2.value > totalScoreP1.value) return '🏆'
+  if (myTotalScore.value > opponentTotalScore.value) return '🏆'
+  if (opponentTotalScore.value > myTotalScore.value) return '🏆'
   return '🤝'
 })
 
 const resultTitle = computed(() => {
-  if (totalScoreP1.value > totalScoreP2.value) return `${playerP1.value?.name} 승리!`
-  if (totalScoreP2.value > totalScoreP1.value) return `${playerP2.value?.name} 승리!`
-  return '무승부!'
+  if (myTotalScore.value > opponentTotalScore.value) return `🎉 나 승리!`
+  if (opponentTotalScore.value > myTotalScore.value) return `😢 상대 승리`
+  return '🤝 무승부!'
 })
 
 const resultDetail = computed(() => {
-  return `${playerP1.value?.name} ${totalScoreP1.value}pt vs ${playerP2.value?.name} ${totalScoreP2.value}pt`
+  return `나 ${myTotalScore.value}pt vs 상대 ${opponentTotalScore.value}pt`
 })
 
 const resultGrade = computed(() => {
-  const myScore = totalScoreP1.value
+  const myScore = myTotalScore.value
   if (myScore >= 2000) return 'S'
   if (myScore >= 1500) return 'A'
   if (myScore >= 1000) return 'B'
@@ -788,6 +817,8 @@ function startGame(fromSocket = false, qIdx = null) {
   currentRound.value = 0
   currentBlankIdx.value = 0
   currentCombo.value = 0
+  remoteRound.value = 0  // ← 추가: 상대 진행도 초기화
+  remoteBlankIdx.value = 0  // ← 추가: 상대 진행도 초기화
   scoreP1.value = 0
   scoreP2.value = 0
   scoreP1Phase1.value = 0
@@ -1058,9 +1089,8 @@ function endGame(result) {
   if (phase2WaitingInterval) clearInterval(phase2WaitingInterval)
   phase.value = 'result'
 
-  // 멀티플레이어 동기화
-  const myIdx = rs.roomPlayers.value.findIndex(p => p.sid === rs.socket.value?.id)
-  const myTotal = myIdx === 0 ? totalScoreP1.value : totalScoreP2.value
+  // 멀티플레이어 동기화 (← 수정: 자신의 점수 사용)
+  const myTotal = myTotalScore.value
 
   rs.emitFinish(roomId.value, {
     totalScore: myTotal,
@@ -1192,6 +1222,17 @@ onUnmounted(() => {
   background: linear-gradient(0deg, rgba(255,255,255,0.02) 0%, transparent 100%);
 }
 .lane:last-child { border-bottom: none; }
+
+/* ← 추가: 각 플레이어 입장 반영 */
+.lane.my-lane {
+  background: linear-gradient(0deg, rgba(0,240,255,0.05) 0%, transparent 100%);
+  border-left: 2px solid rgba(0,240,255,0.3);
+}
+.lane.opponent-lane {
+  background: linear-gradient(0deg, rgba(255,100,100,0.05) 0%, transparent 100%);
+  border-left: 2px solid rgba(255,100,100,0.3);
+}
+
 .lane-label {
   position: absolute; top: 10px; left: 15px; font-family: 'Orbitron', sans-serif;
   font-size: 0.6rem; font-weight: 700; color: rgba(255,255,255,0.2);
@@ -1307,8 +1348,9 @@ onUnmounted(() => {
   border-radius:1.5rem; padding:3rem 2.5rem;
   box-shadow:0 0 60px rgba(0,240,255,.2);
 }
-.result-box.res-p1-win { border-color:#38bdf8; }
-.result-box.res-p2-win { border-color:#ff2d75; }
+/* ← 수정: 각 플레이어 입장 반영 */
+.result-box.res-my-win { border-color:#38bdf8; }
+.result-box.res-opponent-win { border-color:#ff2d75; }
 .result-box.res-draw { border-color:#ffe600; }
 
 .r-icon { font-size:3.5rem; margin-bottom:1rem; }
@@ -1317,11 +1359,25 @@ onUnmounted(() => {
   display:flex; align-items:center; justify-content:center; gap:1.5rem;
   margin-bottom:1.5rem;
 }
-.score-item { display:flex; flex-direction:column; align-items:center; gap:.4rem; }
-.score-item.p1 {  }
-.p-name { font-size:.9rem; color:#64748b; }
+.score-item {
+  display:flex; flex-direction:column; align-items:center; gap:.4rem;
+  padding: 1rem; border-radius: 0.5rem; background: rgba(0, 0, 0, 0.3);
+}
+
+/* ← 수정: 각 플레이어 입장 반영 */
+.score-item.my-score { border-left: 4px solid #38bdf8; }
+.score-item.opponent-score { border-left: 4px solid #ff2d75; }
+.score-item.p1 { }
+.score-item.p2 { }
+
+.p-name { font-size: 1rem; font-weight: bold; color: #00f0ff; }
+.score-item.opponent-score .p-name { color: #ffaa00; }
 .p-score { font-family:'Orbitron',sans-serif; font-size:2rem; font-weight:900; color:#38bdf8; }
 .score-item.p2 .p-score { color:#ff2d75; }
+
+.score-breakdown { text-align: center; }
+.score-part { font-size: 0.9rem; color: #b0b0b0; margin: 0.2rem 0; }
+.score-total { font-size: 1.3rem; font-weight: bold; color: #00ff00; margin-top: 0.5rem; }
 .vs { font-size:1.2rem; color:#475569; font-weight:700; }
 .r-detail { font-size:.85rem; color:#94a3b8; margin-bottom:1.5rem; }
 
