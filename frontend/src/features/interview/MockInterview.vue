@@ -52,27 +52,10 @@
           <!-- 웹캠 영역 -->
           <div class="iv-webcam-wrap">
             <WebcamDisplay ref="webcamRef" @ready="onWebcamReady" />
-          </div>
-
-          <div class="iv-label">면접관</div>
-          <div class="iv-topic">{{ currentTopic || currentSlot }}</div>
-
-          <div class="iv-progress-dots">
-            <span
-              v-for="i in totalSlots"
-              :key="i"
-              class="iv-dot"
-              :class="{ 'iv-dot--done': i <= slotsCleared, 'iv-dot--active': i === slotsCleared + 1 }"
-            ></span>
-          </div>
-
-          <div class="iv-turn-info">{{ currentTurn }}번째 질문</div>
-
-          <div class="iv-status" :class="{ 'iv-status--active': isStreaming }">
-            <span v-if="isStreaming">
-              <span class="iv-blink">●</span> 질문 생성 중...
-            </span>
-            <span v-else>답변 대기 중</span>
+            <div class="iv-overlay-top">
+              <span class="iv-rec"><span class="iv-rec-dot"></span>REC</span>
+              <span class="iv-timer">{{ formatTime(elapsedSec) }}</span>
+            </div>
           </div>
         </div>
 
@@ -107,7 +90,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useInterview } from './composables/useInterview';
 import JobPostingSelector from './components/JobPostingSelector.vue';
@@ -123,6 +106,25 @@ const webcamRef = ref(null);
 
 // 화면 단계: 'select' | 'loading' | 'interview' | 'feedback'
 const phase = ref('select');
+
+// 면접 경과 시간
+const elapsedSec = ref(0);
+let timerInterval = null;
+
+function startTimer() {
+  elapsedSec.value = 0;
+  timerInterval = setInterval(() => { elapsedSec.value++; }, 1000);
+}
+function stopTimer() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+}
+function formatTime(sec) {
+  const m = String(Math.floor(sec / 60)).padStart(2, '0');
+  const s = String(sec % 60).padStart(2, '0');
+  return `${m}:${s}`;
+}
+onUnmounted(stopTimer);
 
 const {
   sessionId,
@@ -149,6 +151,7 @@ const {
 // 면접 완료 시 피드백 화면으로 전환
 watch(isFinished, (val) => {
   if (val) {
+    stopTimer();
     phase.value = 'feedback';
   }
 });
@@ -158,6 +161,7 @@ async function onStartSession(jobPostingId) {
   try {
     await startSession(jobPostingId);
     phase.value = 'interview';
+    startTimer();
 
     // [수정일: 2026-02-23] [vision] 카메라 권한 획득 및 스트림 준비 완료 시점인 onWebcamReady 로직으로 위임 (setTimeout 제거)
   } catch {
@@ -183,6 +187,7 @@ function onRestart() {
 
 function onExit() {
   if (window.confirm('면접을 종료하시겠습니까? 진행 중인 내용은 저장되지 않습니다.')) {
+    stopTimer();
     resetSession();
     phase.value = 'select';
   }
@@ -290,7 +295,6 @@ function onExit() {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 18px;
   padding: 40px 28px;
   overflow: hidden;
   position: relative;
@@ -332,68 +336,61 @@ function onExit() {
   width: 100%;
   max-width: 380px;
   flex-shrink: 0;
+  position: relative;
 }
 
-.iv-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: rgba(255,255,255,0.5);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+/* REC + 타이머 오버레이 */
+.iv-overlay-top {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 12px;
+  pointer-events: none;
 }
 
-.iv-topic {
-  font-size: 17px;
+.iv-rec {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
   font-weight: 700;
   color: #fff;
-  text-align: center;
-  line-height: 1.4;
-  padding: 0 8px;
+  letter-spacing: 0.08em;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 3px 8px;
+  border-radius: 4px;
+  backdrop-filter: blur(4px);
 }
 
-/* 진행 점 */
-.iv-progress-dots {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-.iv-dot {
-  width: 10px; height: 10px;
+.iv-rec-dot {
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.2);
-  transition: background 0.3s;
-}
-.iv-dot--done { background: #6366f1; }
-.iv-dot--active { background: #a5b4fc; box-shadow: 0 0 8px rgba(165,180,252,0.8); }
-
-.iv-turn-info {
-  font-size: 13px;
-  color: rgba(255,255,255,0.4);
+  background: #ef4444;
+  animation: recBlink 1.2s ease-in-out infinite;
 }
 
-/* 상태 표시 */
-.iv-status {
-  font-size: 13px;
-  color: rgba(255,255,255,0.4);
-  padding: 6px 16px;
-  border-radius: 99px;
-  border: 1px solid rgba(255,255,255,0.1);
-  transition: all 0.3s;
-}
-.iv-status--active {
-  color: #a5b4fc;
-  border-color: rgba(165,180,252,0.4);
-  background: rgba(99,102,241,0.1);
-}
-.iv-blink {
-  animation: blink 1s infinite;
-  margin-right: 4px;
-}
-@keyframes blink {
+@keyframes recBlink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.2; }
 }
+
+.iv-timer {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 0.05em;
+  font-variant-numeric: tabular-nums;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 3px 8px;
+  border-radius: 4px;
+  backdrop-filter: blur(4px);
+}
+
 
 /* 오른쪽: 채팅 패널 */
 .chat-panel {

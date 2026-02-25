@@ -18,7 +18,6 @@ services:
     command: uvicorn config.asgi:application --host 0.0.0.0 --port 8000 --reload
     volumes:
       - ./backend:/app
-      - ./job-planner-agent:/job-planner-agent  # job-planner-agent 폴더 마운트
       - /var/run/docker.sock:/var/run/docker.sock # Docker socket 마운트
     ports:
       - "8000:8000"
@@ -45,7 +44,7 @@ services:
       - AWS_STORAGE_BUCKET_NAME=${AWS_STORAGE_BUCKET_NAME}
       - AWS_S3_REGION_NAME=${AWS_S3_REGION_NAME}
       - STT_RUNPOD_URL=${STT_RUNPOD_URL}
-      # [원복] 로컬 DB 의존성 복구
+      - MUSETALK_SERVICE_URL=${MUSETALK_SERVICE_URL}
     depends_on:
       - db
 
@@ -54,7 +53,7 @@ services:
     command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
     volumes:
       - ./frontend:/app
-      - /app/node_modules
+      - frontend_node_modules:/app/node_modules
     ports:
       - "5173:5173"
     stdin_open: true
@@ -68,6 +67,37 @@ services:
       - CHOKIDAR_USEPOLLING=true
       - WATCHPACK_POLLING=true
 
+  # AI 아바타 립싱크 서비스 (GPU 필요 시에만 실행: docker compose --profile gpu up)
+  musetalk:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.musetalk
+    command: uvicorn musetalk_server:app --host 0.0.0.0 --port 8001
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8001:8001"
+    env_file:
+      - ./.env
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DATABASE_URL=${DATABASE_URL}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    profiles: ["gpu"]
+    depends_on:
+      - db
+
   # [2026-02-09] 코드 실행 전용 샌드박스 이미지 빌드
   sandbox:
     build:
@@ -79,3 +109,4 @@ services:
 
 volumes:
   postgres_data:
+  frontend_node_modules:

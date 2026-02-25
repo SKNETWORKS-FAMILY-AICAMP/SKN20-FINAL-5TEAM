@@ -3,9 +3,9 @@
 Planner - 전략 추천
 원본 v3.1 섹션 9 기반
 """
-from agent.state import State, Action, ActionType
-from agent.models import JobPosting, UserProfile
-from llm.gateway import LLMGateway
+from .state import State, Action, ActionType
+from .models import JobPosting, UserProfile
+from ..llm.gateway import LLMGateway
 
 class Planner:
     def __init__(self, llm: LLMGateway):

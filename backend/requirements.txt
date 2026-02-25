@@ -2,6 +2,7 @@
 # 수정내용: Django 백엔드 핵심 라이브러리 정의
 
 django
+gunicorn>=21.2.0
 django-environ
 psycopg2-binary
 djangorestframework

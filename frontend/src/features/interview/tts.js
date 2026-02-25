@@ -1,8 +1,3 @@
-/**
- * [수정일: 2026-02-23]
- * [내용: 큐 기반 순차 재생 + onQueueEmpty 콜백 지원]
- */
-
 // 면접관 음성 설정 (변경 시 여기만 수정)
 // alloy(중성) | nova(여성) | onyx(남성) | shimmer(부드러운 여성) | echo | fable
 const DEFAULT_VOICE = 'nova'
@@ -17,6 +12,7 @@ class TTSManager {
         this._queue = [];         // 재생 대기열
         this._processing = false;
         this.onQueueEmpty = null; // 큐가 모두 비었을 때 호출되는 콜백
+        this.onFirstPlay = null;  // 첫 오디오가 실제로 재생될 때 1회 호출
     }
 
     /**
@@ -71,6 +67,12 @@ class TTSManager {
 
             await this._currentAudio.play();
 
+            if (this.onFirstPlay) {
+                const cb = this.onFirstPlay;
+                this.onFirstPlay = null;
+                cb();
+            }
+
         } catch (e) {
             console.error('[TTS] 재생 오류:', e);
             this._queue.shift();
@@ -78,9 +80,14 @@ class TTSManager {
         }
     }
 
+    get isEmpty() {
+        return !this._processing && this._queue.length === 0 && !this._currentAudio;
+    }
+
     stop() {
         this._queue = [];
         this._processing = false;
+        this.onFirstPlay = null;
         if (this._currentAudio) {
             this._currentAudio.pause();
             this._currentAudio = null;

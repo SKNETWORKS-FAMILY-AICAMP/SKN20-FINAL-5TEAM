@@ -1,7 +1,3 @@
-<!--
-수정일: 2026-02-16
-수정내용: Job Planner Agent - URL/이미지/텍스트 입력 지원
--->
 <template>
   <transition name="fade">
     <div v-if="isOpen" class="modal-overlay" @click.self="closeModal">
@@ -228,9 +224,14 @@
                 </div>
               </div>
 
-              <button class="btn-next" @click="currentStep = 'profile'">
-                다음: 내 정보 입력 →
-              </button>
+              <div class="job-preview-actions">
+                <button class="btn-reset-job" @click="resetJobData">
+                  🔄 공고 초기화
+                </button>
+                <button class="btn-next" @click="currentStep = 'profile'">
+                  다음: 내 정보 입력 →
+                </button>
+              </div>
             </div>
           </div>
 
@@ -968,15 +969,10 @@ export default {
   },
   data() {
     return {
-      currentStep: 'input',  // 'input', 'profile', 'result'
-      inputMethod: 'url',    // 'url', 'image', 'text'
+      currentStep: 'input',
 
       // Input data
       urlInput: '',
-      imageFiles: [],
-      imagePreviews: [],
-      currentParsingIndex: 0,
-      textInput: '',
 
       // Parsed job data
       jobData: null,
@@ -1040,46 +1036,18 @@ export default {
       this.errorMessage = '';
 
       try {
-        if (this.inputMethod === 'url') {
-          const requestData = { type: 'url', url: this.urlInput };
-          const response = await axios.post('/api/core/job-planner/parse/', requestData);
-          this.mergeJobData(response.data);
-        } else if (this.inputMethod === 'image') {
-          // Parse multiple images sequentially
-          for (let i = 0; i < this.imageFiles.length; i++) {
-            this.currentParsingIndex = i;
-            const file = this.imageFiles[i];
-
-            // Convert image to base64
-            const reader = new FileReader();
-            const base64Promise = new Promise((resolve) => {
-              reader.onload = (e) => resolve(e.target.result);
-              reader.readAsDataURL(file);
-            });
-            const imageData = await base64Promise;
-
-            const requestData = { type: 'image', image: imageData };
-            const response = await axios.post('/api/core/job-planner/parse/', requestData);
-            this.mergeJobData(response.data);
-          }
-        } else if (this.inputMethod === 'text') {
-          const requestData = { type: 'text', text: this.textInput };
-          const response = await axios.post('/api/core/job-planner/parse/', requestData);
-          this.mergeJobData(response.data);
-        }
+        const requestData = { type: 'url', url: this.urlInput };
+        const response = await axios.post('/api/core/job-planner/parse/', requestData);
+        this.mergeJobData(response.data);
 
       } catch (error) {
         console.error('파싱 실패:', error);
         this.errorMessage = error.response?.data?.error || '공고 파싱 중 오류가 발생했습니다.';
       } finally {
         this.isParsing = false;
-        this.currentParsingIndex = 0;
 
-        // 파싱 완료 후 정보 충분도 자동 체크
         if (this.jobData) {
           this.checkDataCompleteness();
-
-          // [수정일: 2026-02-23] 분석된 JD 데이터를 전역 스토어에 공유 (Coduck Wars 연동용)
           const gameStore = useGameStore();
           gameStore.setLastParsedJob(this.jobData);
         }
@@ -1318,35 +1286,23 @@ export default {
 
         // 부족한 스킬이 있으면 에이전트 질문 페이지로 이동
         if (this.analysisResult.missing_skills && this.analysisResult.missing_skills.length > 0) {
-          // 바로 질문 페이지로 이동 (질문과 추천은 백그라운드 로딩)
           this.currentStep = 'agent';
 
-          // 백그라운드로 질문 생성
           this.fetchAgentQuestions();
-          console.log('📡 추가 질문 백그라운드 생성 시작...');
 
-          // 준비도가 낮으면 추천 공고도 백그라운드로 가져오기
           if (this.analysisResult.readiness_score < 0.6) {
             this.fetchRecommendations();
-            console.log('📡 추천 공고 백그라운드 로딩 시작...');
           }
 
-          // 최종 보고서도 백그라운드로 생성 (SWOT, 면접 질문)
           this.generateFinalReport();
-          console.log('📡 최종 보고서 (SWOT/면접질문) 백그라운드 생성 시작...');
         } else {
-          // 부족한 스킬이 없으면 바로 최종 결과로
           this.currentStep = 'result';
 
-          // 준비도가 낮으면 추천 공고 백그라운드로 가져오기
           if (this.analysisResult.readiness_score < 0.6) {
             this.fetchRecommendations();
-            console.log('📡 추천 공고 백그라운드 로딩 시작...');
           }
 
-          // 최종 보고서도 백그라운드로 생성
           this.generateFinalReport();
-          console.log('📡 최종 보고서 백그라운드 생성 시작...');
         }
 
       } catch (error) {
@@ -1436,12 +1392,6 @@ export default {
         });
 
         this.recommendations = response.data.recommendations || [];
-        console.log(`✅ 추천 공고 ${this.recommendations.length}개 로드 완료 (백그라운드)`);
-
-        // 사용자에게 알림 (선택사항)
-        if (this.recommendations.length > 0) {
-          console.log('💡 추천 공고가 준비되었습니다!');
-        }
 
       } catch (error) {
         console.error('추천 공고 로드 실패:', error);
@@ -1476,28 +1426,6 @@ export default {
         this.errorMessage = error.response?.data?.error || '기업분석 중 오류가 발생했습니다.';
       } finally {
         this.isAnalyzingCompany = false;
-      }
-    },
-
-    handleImageUpload(event) {
-      const files = Array.from(event.target.files);
-      if (files.length > 0) {
-        files.forEach(file => {
-          this.imageFiles.push(file);
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            this.imagePreviews.push(e.target.result);
-          };
-          reader.readAsDataURL(file);
-        });
-      }
-    },
-
-    removeImage(index) {
-      this.imageFiles.splice(index, 1);
-      this.imagePreviews.splice(index, 1);
-      if (this.imageFiles.length === 0 && this.$refs.imageInput) {
-        this.$refs.imageInput.value = '';
       }
     },
 
@@ -1540,14 +1468,29 @@ export default {
       return 'poor';
     },
 
+    resetJobData() {
+      this.urlInput = '';
+      this.jobData = null;
+      this.dataCompleteness = null;
+      this.needsMoreInfo = false;
+      this.missingFields = [];
+      this.supplementMethod = 'image';
+      this.supplementImages = [];
+      this.supplementImagePreviews = [];
+      this.supplementText = '';
+      this.isSupplementParsing = false;
+      this.analysisResult = null;
+      this.agentQuestions = [];
+      this.agentAnswers = {};
+      this.finalReport = null;
+      this.recommendations = [];
+      this.errorMessage = '';
+      this.currentStep = 'input';
+    },
+
     resetAll() {
       this.currentStep = 'input';
-      this.inputMethod = 'url';
       this.urlInput = '';
-      this.imageFiles = [];
-      this.imagePreviews = [];
-      this.currentParsingIndex = 0;
-      this.textInput = '';
       this.jobData = null;
       this.dataCompleteness = null;
       this.needsMoreInfo = false;
@@ -1881,6 +1824,35 @@ export default {
 .btn-remove-image:hover {
   background: #ef4444;
   transform: scale(1.1);
+}
+
+.job-preview-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.job-preview-actions .btn-next {
+  margin-top: 0;
+  flex: 1;
+}
+
+.btn-reset-job {
+  padding: 14px 24px;
+  background: transparent;
+  border: 2px solid #6b7280;
+  border-radius: 10px;
+  color: #9ca3af;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-reset-job:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+  transform: translateY(-2px);
 }
 
 .btn-parse,

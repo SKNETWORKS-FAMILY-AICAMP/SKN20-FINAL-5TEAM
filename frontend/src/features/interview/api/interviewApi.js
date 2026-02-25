@@ -89,6 +89,16 @@ export async function createSession(jobPostingId = null) {
   return response.data;
 }
 
+/** 비전 분석 결과 저장 */
+export async function saveVisionAnalysis(sessionId, visionData) {
+  const response = await axios.patch(
+    `${API_BASE_URL}/interview/sessions/${sessionId}/vision/`,
+    { vision_analysis: visionData },
+    { withCredentials: true }
+  );
+  return response.data;
+}
+
 // ── 답변 제출 (SSE 스트리밍) ─────────────────────────────────
 
 /**

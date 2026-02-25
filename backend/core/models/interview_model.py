@@ -150,6 +150,7 @@ class InterviewFeedback(BaseModel):
     top_strengths = models.JSONField(default=list)
     top_improvements = models.JSONField(default=list)
     recommendation = models.TextField(blank=True, default='')
+    vision_analysis = models.JSONField(null=True, blank=True, default=None)
 
     class Meta:
         db_table = 'gym_interview_feedback'

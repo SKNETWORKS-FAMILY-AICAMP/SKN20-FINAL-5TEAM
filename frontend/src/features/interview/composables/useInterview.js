@@ -3,7 +3,7 @@
  * 채용공고 선택 → 세션 생성 → 답변 제출 → 피드백 수신 흐름을 관리한다.
  */
 import { ref, computed } from 'vue';
-import { createSession, submitAnswer } from '../api/interviewApi';
+import { createSession, submitAnswer, saveVisionAnalysis } from '../api/interviewApi';
 import { useVisionAnalysis } from '@/composables/useVisionAnalysis'; // [수정일: 2026-02-23] [vision] 비전 분석 연동
 
 export function useInterview() {
@@ -120,9 +120,14 @@ export function useInterview() {
         // [vision] 면접 종료 시 분석 정지 및 데이터 취합
         const visionReport = visionSystem.stopAnalysis();
 
-        // 피드백 데이터에 비전 분석 결과 병합
+        // 피드백 데이터에 비전 분석 결과 병합 (로컬 표시용)
         const enhancedFeedback = { ...feedback, vision_analysis: visionReport };
         finalFeedback.value = enhancedFeedback;
+
+        // [vision] 비전 분석 결과 백엔드에 저장 (실패해도 무시)
+        if (sessionId.value && visionReport) {
+          saveVisionAnalysis(sessionId.value, visionReport).catch(() => {});
+        }
       },
 
       onDone() {
