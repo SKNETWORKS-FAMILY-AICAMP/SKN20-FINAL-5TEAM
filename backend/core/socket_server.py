@@ -870,18 +870,22 @@ async def run_finish(sid, data):
     """게임 종료 (완료 또는 게임오버)"""
     room_id = data.get('room_id')
 
-    # [수정일: 2026-02-25] 상대 점수 정보 추가
+    # [수정일: 2026-02-25] 각 플레이어에게 자신의 상대 점수를 개별 전송
+    # (broadcast 시 모든 플레이어가 동일한 opponent_score를 받아 한 명은 자기 점수를 상대로 보는 버그 수정)
     if room_id in run_rooms:
         room = run_rooms[room_id]
-        opponent_player = next((p for p in room['players'] if p['sid'] != sid), None)
+        players = room['players']
 
-        if opponent_player:
-            # 상대 Phase 1, Phase 2 점수 가져오기
-            data['opponent_phase1_score'] = opponent_player.get('phase1_score', 0)
-            data['opponent_phase2_score'] = opponent_player.get('phase2_score', 0)
-            print(f"✅ Added opponent scores to run_end: P1={data['opponent_phase1_score']}, P2={data['opponent_phase2_score']}")
-
-    await sio.emit('run_end', data, room=room_id)
+        for player in players:
+            opponent = next((p for p in players if p['sid'] != player['sid']), None)
+            player_data = {**data}
+            if opponent:
+                player_data['opponent_phase1_score'] = opponent.get('phase1_score', 0)
+                player_data['opponent_phase2_score'] = opponent.get('phase2_score', 0)
+                print(f"✅ run_end → {player['name']}: opponent scores phase1={player_data['opponent_phase1_score']}, phase2={player_data['opponent_phase2_score']}")
+            await sio.emit('run_end', player_data, to=player['sid'])
+    else:
+        await sio.emit('run_end', data, room=room_id)
 
 @sio.event
 async def run_leave(sid, data):
