@@ -69,17 +69,17 @@
           <!-- ← 수정: 각 플레이어 중심 화면 -->
           <div class="runner-stage dual-track">
             <!-- 상단: 상대 레인 -->
-            <div class="lane opponent-lane" :class="myPlayerIdx === 0 ? 'p2-lane' : 'p1-lane'">
+            <div class="lane opponent-lane" :class="isP1 ? 'p2-lane' : 'p1-lane'">
               <div class="lane-label">👥 상대</div>
               <div class="runner-char" :style="{ left: opponentProgressPct + '%' }">
-                <img :src="myPlayerIdx === 0 ? playerP2?.avatarUrl : playerP1?.avatarUrl || '/image/duck_idle.png'" class="main-avatar" />
+                <img :src="(isP1 ? playerP2?.avatarUrl : playerP1?.avatarUrl) || '/image/duck_idle.png'" class="main-avatar" />
               </div>
             </div>
 
             <!-- 하단: 내 레인 -->
-            <div class="lane my-lane" :class="myPlayerIdx === 0 ? 'p1-lane' : 'p2-lane'">
+            <div class="lane my-lane" :class="isP1 ? 'p1-lane' : 'p2-lane'">
               <div class="runner-char" :style="{ left: myProgressPct + '%' }" :class="{ running: true, stumble: stumbling }">
-                <img :src="myPlayerIdx === 0 ? playerP1?.avatarUrl : playerP2?.avatarUrl || '/image/duck_idle.png'" class="main-avatar" />
+                <img :src="(isP1 ? playerP1?.avatarUrl : playerP2?.avatarUrl) || '/image/duck_idle.png'" class="main-avatar" />
                 <div class="dust-effect"></div>
               </div>
               <div class="lane-label">🎮 나</div>
@@ -151,7 +151,7 @@
       <div v-if="phase2Status === 'editing'" class="hud">
         <div class="hud-cell flex-grow">
           <span class="hud-lbl">DESIGN SPRINT</span>
-          <span class="hud-val neon-c">{{ checksCompletedP1 }}/{{ totalChecks }} checks</span>
+          <span class="hud-val neon-c">{{ myChecksCompleted }}/{{ totalChecks }} checks</span>
         </div>
         <div class="hud-cell timer-cell" :class="{ danger: roundTimeout <= 15 }">
           <div class="timer-bar-track">
@@ -160,8 +160,8 @@
           <span class="timer-num">{{ roundTimeout }}s</span>
         </div>
         <div class="hud-cell flex-grow">
-          <span class="hud-lbl">P2 PROGRESS</span>
-          <span class="hud-val neon-y">{{ checksCompletedP2 }}/{{ totalChecks }} checks</span>
+          <span class="hud-lbl">OPP PROGRESS</span>
+          <span class="hud-val neon-y">{{ oppChecksCompleted }}/{{ totalChecks }} checks</span>
         </div>
       </div>
 
@@ -293,31 +293,25 @@
         <div class="result-box" :class="resultClass">
           <div class="r-icon">{{ resultIcon }}</div>
           <h1 class="r-title">{{ resultTitle }}</h1>
-          <!-- ← 수정: 각 플레이어의 입장에서 자신이 좌측에 표시 -->
+          <!-- 각 플레이어의 입장에서 자신이 좌측에 표시 (isP1 기반, 타이밍 이슈 없음) -->
           <div class="r-scores">
             <!-- 나 (좌측) -->
-            <div class="score-item my-score" :class="myPlayerIdx === 0 ? 'p1' : 'p2'">
+            <div class="score-item my-score" :class="isP1 ? 'p1' : 'p2'">
               <span class="p-name">🎮 나</span>
               <div class="score-breakdown">
-                <div class="score-part" v-if="myPlayerIdx === 0">
-                  Phase1: {{ scoreP1Phase1 }} | Phase2: {{ scoreP1Phase2 }}
-                </div>
-                <div class="score-part" v-else>
-                  Phase1: {{ scoreP2Phase1 }} | Phase2: {{ scoreP2Phase2 }}
+                <div class="score-part">
+                  Phase1: {{ myPhase1Score }} | Phase2: {{ myPhase2Score }}
                 </div>
                 <div class="score-total">{{ myTotalScore }}</div>
               </div>
             </div>
             <span class="vs">VS</span>
             <!-- 상대 (우측) -->
-            <div class="score-item opponent-score" :class="myPlayerIdx === 0 ? 'p2' : 'p1'">
+            <div class="score-item opponent-score" :class="isP1 ? 'p2' : 'p1'">
               <span class="p-name">👥 상대</span>
               <div class="score-breakdown">
-                <div class="score-part" v-if="myPlayerIdx === 0">
-                  Phase1: {{ scoreP2Phase1 }} | Phase2: {{ scoreP2Phase2 }}
-                </div>
-                <div class="score-part" v-else>
-                  Phase1: {{ scoreP1Phase1 }} | Phase2: {{ scoreP1Phase2 }}
+                <div class="score-part">
+                  Phase1: {{ oppPhase1Score }} | Phase2: {{ oppPhase2Score }}
                 </div>
                 <div class="score-total">{{ opponentTotalScore }}</div>
               </div>
@@ -421,43 +415,28 @@ rs.onSync.value = (data) => {
   // ← 핵심: 게임 끝나면 점수 업데이트 금지 (버벅거림 원인)
   if (phase.value === 'result') return
 
+  // ← ArchDrawQuiz 패턴: data.sid로 직접 상대 구분 (myIdx 인덱스 의존 제거)
   if (data.sid !== rs.socket.value?.id) {
-    const myIdx = rs.roomPlayers.value.findIndex(p => p.sid === rs.socket.value.id)
     // Phase 1: speedFill
     if (data.phase === 'speedFill') {
-      // ← 수정: scoreP2Phase1만 업데이트 (scoreP2는 최종 계산에서만)
-      if (myIdx === 0) {
-        scoreP2Phase1.value = data.score || 0
-      } else {
-        scoreP1Phase1.value = data.score || 0
-      }
+      oppPhase1Score.value = data.score || 0
 
-      // ← 추가: 상대 진행도 동기화 (오리 위치 이동)
+      // ← 상대 진행도 동기화 (오리 위치 이동)
       remoteRound.value = data.round !== undefined ? data.round : remoteRound.value
       remoteBlankIdx.value = data.blankIdx !== undefined ? data.blankIdx : remoteBlankIdx.value
-      console.log(`📍 Remote P${myIdx === 0 ? 2 : 1} progress: Round ${remoteRound.value}, BlankIdx ${remoteBlankIdx.value}`)
+      console.log(`📍 Remote progress: Round ${remoteRound.value}, BlankIdx ${remoteBlankIdx.value}`)
     }
     // Phase 2: designSprint
     else if (data.phase === 'designSprint') {
       if (data.state === 'submitted') {
-        // 상대가 제출함 (중복 처리 방지를 위해 한 번만 업데이트)
+        // 상대가 제출함
         opponentSubmitted.value = true
         opponentCode.value = data.code || ''
-
-        if (myIdx === 0) {
-          checksCompletedP2.value = data.checksCompleted || 0
-          scoreP2Phase2.value = data.score || 0
-        } else {
-          checksCompletedP1.value = data.checksCompleted || 0
-          scoreP1Phase2.value = data.score || 0
-        }
+        oppChecksCompleted.value = data.checksCompleted || 0
+        oppPhase2Score.value = data.score || 0
       } else {
         // 일반 진행도 업데이트
-        if (myIdx === 0) {
-          checksCompletedP2.value = data.checksCompleted || 0
-        } else {
-          checksCompletedP1.value = data.checksCompleted || 0
-        }
+        oppChecksCompleted.value = data.checksCompleted || 0
       }
     }
   }
@@ -470,8 +449,6 @@ rs.onDesignEvaluation.value = (data) => {
     console.log('🔒 LLM evaluation already received, ignoring duplicate')
     return
   }
-
-  const myIdx = rs.roomPlayers.value.findIndex(p => p.sid === rs.socket.value.id)
 
   // P1 평가 결과
   if (data.player1_evaluation && data.player1_evaluation.status === 'success') {
@@ -486,7 +463,7 @@ rs.onDesignEvaluation.value = (data) => {
   console.log('🎓 LLM Evaluation Results:', { p1: llmEvaluationP1.value, p2: llmEvaluationP2.value })
 }
 
-// ← 추가: run_end 이벤트 처리 (게임 종료 시 최종 점수 수신)
+// ← run_end 이벤트 처리 (게임 종료 시 최종 점수 수신)
 rs.onEnd.value = (data) => {
   // ← 핵심: 이미 결과 화면이라면 점수 업데이트 금지
   if (phase.value === 'result') {
@@ -494,19 +471,11 @@ rs.onEnd.value = (data) => {
     return
   }
 
-  // ← 수정: 상대 점수가 포함되어 있으면 업데이트 (onSync에서 이미 받았을 수 있음)
-  // scoreP1/scoreP2는 setter로 계산되므로, Phase1/Phase2 각각만 업데이트
+  // ← ArchDrawQuiz 패턴: 상대 점수를 oppPhase 변수에 직접 할당 (myIdx 불필요)
   if (data.opponent_phase1_score !== undefined) {
-    const myIdx = rs.roomPlayers.value.findIndex(p => p.sid === rs.socket.value.id)
-    if (myIdx === 0) {
-      scoreP2Phase1.value = data.opponent_phase1_score
-      scoreP2Phase2.value = data.opponent_phase2_score || 0
-      console.log(`✅ P2 Final Scores: Phase1=${scoreP2Phase1.value}, Phase2=${scoreP2Phase2.value}`)
-    } else {
-      scoreP1Phase1.value = data.opponent_phase1_score
-      scoreP1Phase2.value = data.opponent_phase2_score || 0
-      console.log(`✅ P1 Final Scores: Phase1=${scoreP1Phase1.value}, Phase2=${scoreP1Phase2.value}`)
-    }
+    oppPhase1Score.value = data.opponent_phase1_score
+    oppPhase2Score.value = data.opponent_phase2_score || 0
+    console.log(`✅ Opp Final Scores: Phase1=${oppPhase1Score.value}, Phase2=${oppPhase2Score.value}`)
   }
   endGame(data.result)
 }
@@ -524,13 +493,11 @@ const stumbling = ref(false)
 const playerP1 = ref(null)
 const playerP2 = ref(null)
 
-// 점수
-const scoreP1 = ref(0)
-const scoreP2 = ref(0)
-const scoreP1Phase1 = ref(0)
-const scoreP1Phase2 = ref(0)
-const scoreP2Phase1 = ref(0)
-const scoreP2Phase2 = ref(0)
+// 점수 (my/opp 기준으로 직접 관리 - P1/P2 인덱스 의존 제거)
+const myPhase1Score = ref(0)
+const myPhase2Score = ref(0)
+const oppPhase1Score = ref(0)
+const oppPhase2Score = ref(0)
 
 // 타임아웃
 const roundTimeout = ref(0)
@@ -547,8 +514,8 @@ const currentRound = ref(0)
 const currentRoundData = ref(null)
 const currentBlankIdx = ref(0)
 const currentCombo = ref(0)
-const checksCompletedP1 = ref(0)
-const checksCompletedP2 = ref(0)
+const myChecksCompleted = ref(0)
+const oppChecksCompleted = ref(0)
 
 // ← 추가: 상대 진행도 추적 (동기화용)
 const remoteRound = ref(0)
@@ -695,59 +662,28 @@ const currentBlankData = computed(() => {
   return currentRoundData.value.blanks[blankId]
 })
 
-// ← 추가: 현재 플레이어 인덱스
-const myPlayerIdx = computed(() => {
-  return rs.roomPlayers.value.findIndex(p => p.sid === rs.socket.value?.id)
-})
+// ← ArchDrawQuiz 패턴: socket.id로 자신이 P1인지 직접 판단 (roomPlayers 타이밍 이슈 해결)
+const isP1 = computed(() => rs.socket.value?.id === playerP1.value?.sid)
 
-// ← 추가: 플레이어별 진행도 (자신)
+// ← 플레이어별 진행도 (자신)
 const myProgressPct = computed(() => {
   if (currentGamePhase.value === 'speedFill') {
     return ((currentRound.value * 2 + currentBlankIdx.value) / (totalRounds * 2)) * 100
   }
-  // Phase 2: 자신이 P1이면 checksCompletedP1, P2이면 checksCompletedP2
-  if (myPlayerIdx.value === 0) {
-    return (checksCompletedP1.value / totalChecks.value) * 100
-  } else {
-    return (checksCompletedP2.value / totalChecks.value) * 100
-  }
+  return (myChecksCompleted.value / totalChecks.value) * 100
 })
 
-// ← 추가: 플레이어별 진행도 (상대)
+// ← 플레이어별 진행도 (상대)
 const opponentProgressPct = computed(() => {
   if (currentGamePhase.value === 'speedFill') {
-    // ← 핵심: 상대의 실제 round/blankIdx 사용
     return ((remoteRound.value * 2 + remoteBlankIdx.value) / (totalRounds * 2)) * 100
   }
-  // Phase 2: 상대가 P1이면 checksCompletedP1, P2이면 checksCompletedP2
-  if (myPlayerIdx.value === 0) {
-    // 내가 P1이므로 상대는 P2
-    return (checksCompletedP2.value / totalChecks.value) * 100
-  } else {
-    // 내가 P2이므로 상대는 P1
-    return (checksCompletedP1.value / totalChecks.value) * 100
-  }
+  return (oppChecksCompleted.value / totalChecks.value) * 100
 })
 
-// ← 수정: UI 렌더링용 진행도
-const p1ProgressPct = computed(() => {
-  // UI 상단(P2)과 하단(P1)은 고정
-  // myPlayerIdx가 0이면 (자신이 P1): p1 = 자신, p2 = 상대
-  // myPlayerIdx가 1이면 (자신이 P2): p1 = 상대, p2 = 자신
-  if (myPlayerIdx.value === 0) {
-    return myProgressPct.value  // 자신이 P1
-  } else {
-    return opponentProgressPct.value  // 상대가 P1
-  }
-})
-
-const p2ProgressPct = computed(() => {
-  if (myPlayerIdx.value === 0) {
-    return opponentProgressPct.value  // 상대가 P2
-  } else {
-    return myProgressPct.value  // 자신이 P2
-  }
-})
+// ← UI 렌더링용 진행도 (isP1 기반 - roomPlayers 타이밍 이슈 없음)
+const p1ProgressPct = computed(() => isP1.value ? myProgressPct.value : opponentProgressPct.value)
+const p2ProgressPct = computed(() => isP1.value ? opponentProgressPct.value : myProgressPct.value)
 
 // 타임아웃 바 계산
 const roundTimeoutPct = computed(() => {
@@ -755,26 +691,17 @@ const roundTimeoutPct = computed(() => {
   return (roundTimeout.value / maxTime) * 100
 })
 
-// ← 수정: 각 플레이어가 자신을 기준으로 계산
-const myTotalScore = computed(() => {
-  if (myPlayerIdx.value === 0) {
-    return scoreP1Phase1.value + scoreP1Phase2.value  // 나는 P1
-  } else {
-    return scoreP2Phase1.value + scoreP2Phase2.value  // 나는 P2
-  }
-})
+// ← ArchDrawQuiz 패턴: my/opp 변수 직접 합산 (P1/P2 인덱스 불필요)
+const myTotalScore = computed(() => myPhase1Score.value + myPhase2Score.value)
+const opponentTotalScore = computed(() => oppPhase1Score.value + oppPhase2Score.value)
 
-const opponentTotalScore = computed(() => {
-  if (myPlayerIdx.value === 0) {
-    return scoreP2Phase1.value + scoreP2Phase2.value  // 상대는 P2
-  } else {
-    return scoreP1Phase1.value + scoreP1Phase2.value  // 상대는 P1
-  }
-})
+// ← HUD 표시용 P1/P2 총점 (isP1 기반)
+const scoreP1 = computed(() => isP1.value ? myTotalScore.value : opponentTotalScore.value)
+const scoreP2 = computed(() => isP1.value ? opponentTotalScore.value : myTotalScore.value)
 
 // ← 각 플레이어의 이름
-const myName = computed(() => playerP1.value?.name || playerP2.value?.name || '나')
-const opponentName = computed(() => playerP2.value?.name || playerP1.value?.name || '상대')
+const myName = computed(() => (isP1.value ? playerP1.value?.name : playerP2.value?.name) || '나')
+const opponentName = computed(() => (isP1.value ? playerP2.value?.name : playerP1.value?.name) || '상대')
 
 // ← 수정: 각 플레이어 기준으로 결과 계산
 const resultClass = computed(() => {
@@ -816,14 +743,12 @@ function startGame(fromSocket = false, qIdx = null) {
   currentCombo.value = 0
   remoteRound.value = 0  // ← 추가: 상대 진행도 초기화
   remoteBlankIdx.value = 0  // ← 추가: 상대 진행도 초기화
-  scoreP1.value = 0
-  scoreP2.value = 0
-  scoreP1Phase1.value = 0
-  scoreP1Phase2.value = 0
-  scoreP2Phase1.value = 0
-  scoreP2Phase2.value = 0
-  checksCompletedP1.value = 0
-  checksCompletedP2.value = 0
+  myPhase1Score.value = 0
+  myPhase2Score.value = 0
+  oppPhase1Score.value = 0
+  oppPhase2Score.value = 0
+  myChecksCompleted.value = 0
+  oppChecksCompleted.value = 0
   errorMsg.value = ''
   shaking.value = false
   flashOk.value = false
@@ -872,21 +797,13 @@ function selectBlankAnswer(answer) {
 }
 
 function handleBlankCorrect() {
-  const myIdx = rs.roomPlayers.value.findIndex(p => p.sid === rs.socket.value?.id)
-
-  // 점수 계산
+  // ← ArchDrawQuiz 패턴: 항상 내 점수(myPhase1Score)만 업데이트 (myIdx 불필요)
   const pointsBase = 100
   const comboBonus = currentCombo.value > 0 ? 15 * currentCombo.value : 0
   const points = pointsBase + comboBonus
 
   currentCombo.value++
-
-  // ← 수정: Phase1 점수만 업데이트 (최종 점수는 computed에서 자동 계산)
-  if (myIdx === 0) {
-    scoreP1Phase1.value += points
-  } else {
-    scoreP2Phase1.value += points
-  }
+  myPhase1Score.value += points
 
   flashOk.value = true
   setTimeout(() => { flashOk.value = false }, 300)
@@ -902,13 +819,11 @@ function handleBlankCorrect() {
     startPhase1Round()
   }
 
-  // ← 수정: Phase1 누적 점수만 전송 (scoreP1/scoreP2는 더 이상 직접 업데이트되지 않음)
-  const myScore = myIdx === 0 ? scoreP1Phase1.value : scoreP2Phase1.value
   rs.emitProgress(roomId.value, {
     phase: 'speedFill',
     round: currentRound.value,
     blankIdx: currentBlankIdx.value,  // ← 추가: 현재 블랭크 인덱스
-    score: myScore,
+    score: myPhase1Score.value,
     combo: currentCombo.value,
     sid: rs.socket.value?.id
   })
@@ -969,7 +884,7 @@ function evaluateDesign() {
   const code = designCode.value
 
   // 체크리스트 기반 자동 평가
-  const myIdx = rs.roomPlayers.value.findIndex(p => p.sid === rs.socket.value?.id)
+  // ← ArchDrawQuiz 패턴: 항상 내 점수(myPhase2Score)만 업데이트 (myIdx 불필요)
   const checkedItems = []
 
   for (const check of checklistItems.value) {
@@ -992,14 +907,8 @@ function evaluateDesign() {
   const timeBonus = Math.max(0, roundTimeout.value) * 3
   const totalPoints = basePoints + completionBonus + timeBonus
 
-  // ← 수정: Phase2 점수만 업데이트 (최종 점수는 computed에서 자동 계산)
-  if (myIdx === 0) {
-    scoreP1Phase2.value = totalPoints
-    checksCompletedP1.value = checkCount
-  } else {
-    scoreP2Phase2.value = totalPoints
-    checksCompletedP2.value = checkCount
-  }
+  myPhase2Score.value = totalPoints
+  myChecksCompleted.value = checkCount
 
   // 내 평가 결과 저장 (로컬)
   myEvaluation.value = {
