@@ -284,6 +284,17 @@
             </div>
           </div>
         </template>
+
+        <!-- 평가 완료 후 결과화면 로딩 -->
+        <template v-else-if="phase2Status === 'evaluated'">
+          <div class="game-area-loading">
+            <div class="loading-spinner-box">
+              <div class="spinner"></div>
+              <div class="loading-text">게임 결과 계산 중...</div>
+              <div class="loading-subtext">AI 평가가 진행되고 있습니다</div>
+            </div>
+          </div>
+        </template>
       </div>
     </div>
 
@@ -587,11 +598,19 @@ function generateBlanks(quest) {
     // keywords에서 첫 번째를 답으로, 나머지를 옵션으로
     const keywords = step.keywords || [step.pseudo?.split(' ')[0] || '답']
     const answer = keywords[0]
-    const options = [...new Set([answer, ...keywords.slice(1)])].slice(0, 4)
+    let options = [...new Set([answer, ...keywords.slice(1)])].slice(0, 4)
+
+    // 부족한 옵션 채우기
+    if (options.length < 4) {
+      options = [...options, 'None', 'Pass', 'Skip'].slice(0, 4)
+    }
+
+    // ← 핵심: 옵션 순서 랜덤화 (항상 1번이 정답이던 문제 해결)
+    options = shuffleArray(options)
 
     blanks[blankId] = {
       answer,
-      options: options.length < 4 ? [...options, 'None', 'Pass', 'Skip'].slice(0, 4) : options,
+      options,
       hint: step.pseudo ? step.pseudo.substring(0, 50) : step.id
     }
   })
@@ -602,6 +621,16 @@ function generateBlanks(quest) {
 function generateBlanksOrder(quest) {
   const steps = quest.blueprintSteps || []
   return steps.slice(0, 3).map((_, idx) => 'b' + (idx + 1))
+}
+
+// ← 추가: 배열 순서 섞기 (Fisher-Yates shuffle)
+function shuffleArray(array) {
+  const shuffled = [...array]
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+  return shuffled
 }
 
 function getDefaultRounds() {
@@ -1244,6 +1273,59 @@ onUnmounted(() => {
 .score-breakdown { display:flex; flex-direction:column; gap:.2rem; margin-top:.3rem; }
 .score-part { font-size:.7rem; color:#94a3b8; }
 .score-total { font-family:'Orbitron',sans-serif; font-size:1.3rem; font-weight:900; margin-top:.3rem; }
+
+/* ── 평가 완료 로딩 ────────────────────────────── */
+.game-area-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+}
+
+.loading-spinner-box {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+}
+
+.spinner {
+  width: 80px;
+  height: 80px;
+  border: 4px solid rgba(0, 240, 255, 0.2);
+  border-top: 4px solid #00f0ff;
+  border-right: 4px solid #fbbf24;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  box-shadow: 0 0 30px rgba(0, 240, 255, 0.3);
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 1.1rem;
+  color: #00f0ff;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.loading-subtext {
+  font-size: 0.85rem;
+  color: #64b5f6;
+  opacity: 0.8;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
 
 /* ── RESULT ────────────────────────────────── */
 .overlay { position:fixed; inset:0; background:rgba(0,0,0,.85); display:flex; align-items:center; justify-content:center; z-index:8000; }
