@@ -5,14 +5,14 @@
     <!-- ===== INTRO ===== -->
     <div v-if="phase === 'intro'" class="intro-screen">
       <div class="intro-box">
-        <div class="intro-badge">1 vs 1 SPEED MODE</div>
+        <div class="intro-badge">1 vs 1 HYBRID MODE</div>
         <h1 class="intro-title glitch" data-text="LOGIC RUN">LOGIC RUN</h1>
-        <p class="intro-sub">의사코드를 빨리 맞춰서 이겨라!</p>
+        <p class="intro-sub">2단계 의사코드 경쟁: 속도전 + 설계전!</p>
         <div class="intro-rules">
-          <div class="rule-item">⚡ 의사코드 정답을 빨리 입력하기</div>
-          <div class="rule-item">🏆 정답 개수가 많은 사람이 승리</div>
-          <div class="rule-item">⏱️ 총 1분 제한시간</div>
-          <div class="rule-item">🎯 같은 라인을 동시에 풀어라!</div>
+          <div class="rule-item">⚡ Phase 1: 빈칸 채우기 (5라운드, 15초/라운드)</div>
+          <div class="rule-item">🎨 Phase 2: 설계 스프린트 (핵심 의사코드 작성, 90초)</div>
+          <div class="rule-item">🏆 총점으로 승리 (Phase1 60% + Phase2 40%)</div>
+          <div class="rule-item">📊 수도코드 평가방식: 체크리스트 기반 채점</div>
         </div>
         <div class="team-select">
           <p class="team-label">방 관리 (1대1 경쟁)</p>
@@ -32,28 +32,38 @@
       </div>
     </div>
 
-    <!-- ===== PLAY ===== -->
-    <div v-if="phase === 'play'" class="game-screen">
-      <!-- 상단 HUD: 타이머 & 정답 수 -->
+    <!-- ===== PLAY: PHASE 1 (SPEED FILL) ===== -->
+    <div v-if="phase === 'play' && currentGamePhase === 'speedFill'" class="game-screen phase1">
+      <!-- 상단 HUD: 점수 & 라운드 & 타이머 -->
       <div class="hud">
         <div class="hud-cell">
-          <span class="hud-lbl">P1</span>
-          <span class="hud-val neon-c">{{ correctCountP1 }}정답</span>
+          <span class="hud-lbl">P1 SCORE</span>
+          <span class="hud-val neon-c">{{ scoreP1 }}pt</span>
         </div>
-        <div class="hud-cell timer-cell" :class="{ danger: roundTimeout <= 10 }">
+        <div class="hud-cell timer-cell" :class="{ danger: roundTimeout <= 5 }">
           <div class="timer-bar-track">
-            <div class="timer-bar-fill" :style="{ width: roundTimeoutPct + '%' }" :class="{ danger: roundTimeout <= 10 }"></div>
+            <div class="timer-bar-fill" :style="{ width: roundTimeoutPct + '%' }" :class="{ danger: roundTimeout <= 5 }"></div>
           </div>
           <span class="timer-num">{{ roundTimeout }}s</span>
         </div>
         <div class="hud-cell">
-          <span class="hud-lbl">P2</span>
-          <span class="hud-val neon-y">{{ correctCountP2 }}정답</span>
+          <span class="hud-lbl">R{{ currentRound + 1 }}/{{ totalRounds }}</span>
+          <span class="hud-badge">SPEED FILL</span>
+        </div>
+        <div class="hud-cell timer-cell" :class="{ danger: roundTimeout <= 5 }">
+          <div class="timer-bar-track">
+            <div class="timer-bar-fill" :style="{ width: roundTimeoutPct + '%' }" :class="{ danger: roundTimeout <= 5 }"></div>
+          </div>
+          <span class="timer-num">{{ roundTimeout }}s</span>
+        </div>
+        <div class="hud-cell">
+          <span class="hud-lbl">P2 SCORE</span>
+          <span class="hud-val neon-y">{{ scoreP2 }}pt</span>
         </div>
       </div>
 
-      <!-- 게임 영역 -->
-      <div class="game-area">
+      <!-- 게임 영역: Phase 1 -->
+      <div class="game-area phase1-layout">
         <!-- 좌측: 게임 화면 -->
         <div class="game-left">
           <!-- 듀얼 트랙 레이싱 영역 -->
@@ -61,18 +71,18 @@
             <!-- 상단: P2 레인 -->
             <div class="lane p2-lane">
               <div class="lane-label">P2 TRACK</div>
-              <div class="runner-char" :style="{ left: p2CorrectPct + '%' }">
+              <div class="runner-char" :style="{ left: p2ProgressPct + '%' }">
                 <img :src="playerP2?.avatarUrl || '/image/duck_idle.png'" class="main-avatar" />
               </div>
             </div>
 
             <!-- 하단: P1 레인 -->
             <div class="lane p1-lane">
-              <div class="lane-label">P1 TRACK</div>
-              <div class="runner-char" :style="{ left: p1CorrectPct + '%' }" :class="{ running: phase === 'play', stumble: stumbling }">
+              <div class="runner-char" :style="{ left: p1ProgressPct + '%' }" :class="{ running: true, stumble: stumbling }">
                 <img :src="playerP1?.avatarUrl || '/image/duck_idle.png'" class="main-avatar" />
-                <div class="dust-effect" v-if="phase === 'play'"></div>
+                <div class="dust-effect"></div>
               </div>
+              <div class="lane-label">P1 TRACK</div>
             </div>
 
             <!-- 결승선 -->
@@ -81,51 +91,132 @@
             </div>
           </div>
 
-          <!-- 라인 정보 -->
+          <!-- 컨텍스트 정보 -->
           <div class="line-info">
-            <span class="line-badge">라인 {{ currentLineIdx + 1 }} / {{ totalLines }}</span>
-            <span class="hint-text">💡 {{ currentHint }}</span>
+            <span class="line-badge">{{ currentRound + 1 }} / {{ totalRounds }}</span>
+            <span class="context-text">📋 {{ currentRoundData?.context }}</span>
           </div>
         </div>
 
-        <!-- 우측: 입력 패널 -->
+        <!-- 우측: 빈칸 채우기 패널 -->
         <div class="game-right">
-          <!-- IDE 스타일 에디터 -->
-          <div class="editor-panel neon-border">
+          <!-- 코드 블록 -->
+          <div class="code-block-panel neon-border">
             <div class="editor-header">
               <div class="editor-tabs">
-                <div class="tab active">logic_challenge.ps</div>
+                <div class="tab active">pseudocode.ps</div>
               </div>
-              <div class="editor-meta">SPEED MODE</div>
+              <div class="editor-meta">BLANK FILL</div>
             </div>
 
-            <div class="editor-body scrollbar">
-              <!-- 현재 라인 입력 -->
-              <div class="code-line active-line">
-                <div class="hint-bubble" v-if="currentHint">
-                  <span class="hb-ico">💡</span> {{ currentHint }}
-                </div>
-                <div class="input-row">
-                  <span class="input-cursor">&gt;</span>
-                  <input
-                    ref="codeInput"
-                    v-model="userInput"
-                    class="editor-input"
-                    :placeholder="inputPlaceholder"
-                    @keydown.enter.prevent="submitLine"
-                    :disabled="phase !== 'play'"
-                    autocomplete="off"
-                    spellcheck="false"
-                  />
-                </div>
+            <div class="code-display">
+              <div v-for="(line, idx) in currentRoundData?.codeBlock" :key="idx" class="code-line-display">
+                <span v-if="line.type === 'fixed'" class="code-text">{{ line.text }}</span>
+                <span v-else class="code-blank">{{ line.text }}</span>
+              </div>
+            </div>
+
+            <!-- 빈칸 정보 & 힌트 -->
+            <div v-if="currentBlankData" class="blank-info">
+              <div class="hint-bubble">
+                <span class="hb-ico">💡</span> {{ currentBlankData.hint }}
+              </div>
+              <div class="option-buttons">
+                <button
+                  v-for="opt in currentBlankData.options"
+                  :key="opt"
+                  @click="selectBlankAnswer(opt)"
+                  class="btn-option"
+                  :disabled="roundTimeout <= 0"
+                >
+                  {{ opt }}
+                </button>
               </div>
             </div>
 
             <div class="editor-footer">
               <div class="ef-left">UTF-8 | Pseudocode</div>
               <div class="ef-right">
+                <span class="combo-display" v-if="currentCombo > 0">🔥 x{{ currentCombo }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PLAY: PHASE 2 (DESIGN SPRINT) ===== -->
+    <div v-if="phase === 'play' && currentGamePhase === 'designSprint'" class="game-screen phase2">
+      <!-- 상단 HUD: 시간 & 체크리스트 진행도 -->
+      <div class="hud">
+        <div class="hud-cell flex-grow">
+          <span class="hud-lbl">DESIGN SPRINT</span>
+          <span class="hud-val neon-c">{{ checksCompletedP1 }}/{{ totalChecks }} checks</span>
+        </div>
+        <div class="hud-cell timer-cell" :class="{ danger: roundTimeout <= 15 }">
+          <div class="timer-bar-track">
+            <div class="timer-bar-fill" :style="{ width: roundTimeoutPct + '%' }" :class="{ danger: roundTimeout <= 15 }"></div>
+          </div>
+          <span class="timer-num">{{ roundTimeout }}s</span>
+        </div>
+        <div class="hud-cell flex-grow">
+          <span class="hud-lbl">P2 PROGRESS</span>
+          <span class="hud-val neon-y">{{ checksCompletedP2 }}/{{ totalChecks }} checks</span>
+        </div>
+      </div>
+
+      <!-- 게임 영역: Phase 2 -->
+      <div class="game-area phase2-layout">
+        <!-- 좌측: 시나리오 & 체크리스트 -->
+        <div class="game-left phase2-left">
+          <!-- 시나리오 박스 -->
+          <div class="scenario-box neon-border">
+            <div class="scenario-header">📋 시나리오</div>
+            <div class="scenario-text">{{ currentDesignScenario }}</div>
+          </div>
+
+          <!-- 체크리스트 -->
+          <div class="checklist-panel">
+            <div class="checklist-header">✓ 평가 체크리스트</div>
+            <div class="checklist-items">
+              <div
+                v-for="check in checklistItems"
+                :key="check.id"
+                class="check-item"
+                :class="{ checked: completedChecks.includes(check.id) }"
+              >
+                <span class="check-box">{{ completedChecks.includes(check.id) ? '✅' : '⬜' }}</span>
+                <span class="check-label">{{ check.label }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 우측: 코드 에디터 -->
+        <div class="game-right phase2-right">
+          <div class="editor-panel neon-border">
+            <div class="editor-header">
+              <div class="editor-tabs">
+                <div class="tab active">design_solution.ps</div>
+              </div>
+              <div class="editor-meta">PSEUDOCODE DESIGN</div>
+            </div>
+
+            <div class="editor-body scrollbar">
+              <textarea
+                ref="designEditor"
+                v-model="designCode"
+                class="design-textarea"
+                placeholder="핵심 의사코드를 입력하세요..."
+                spellcheck="false"
+              ></textarea>
+            </div>
+
+            <div class="editor-footer">
+              <div class="ef-left">UTF-8 | Pseudocode</div>
+              <div class="ef-right">
                 <span class="err-msg" v-if="errorMsg">⚠️ {{ errorMsg }}</span>
-                <button class="btn-ide-submit" @click="submitLine" :disabled="!userInput.trim()">RUN ↵</button>
+                <button class="btn-ide-submit" @click="submitDesign" :disabled="roundTimeout <= 0">SUBMIT ↵</button>
               </div>
             </div>
           </div>
@@ -142,15 +233,23 @@
           <div class="r-scores">
             <div class="score-item p1">
               <span class="p-name">{{ playerP1?.name }}</span>
-              <span class="p-score">{{ correctCountP1 }}</span>
+              <div class="score-breakdown">
+                <div class="score-part">Phase1: {{ scoreP1Phase1 }}</div>
+                <div class="score-part">Phase2: {{ scoreP1Phase2 }}</div>
+                <div class="score-total">{{ totalScoreP1 }}</div>
+              </div>
             </div>
             <span class="vs">VS</span>
             <div class="score-item p2">
               <span class="p-name">{{ playerP2?.name }}</span>
-              <span class="p-score">{{ correctCountP2 }}</span>
+              <div class="score-breakdown">
+                <div class="score-part">Phase1: {{ scoreP2Phase1 }}</div>
+                <div class="score-part">Phase2: {{ scoreP2Phase2 }}</div>
+                <div class="score-total">{{ totalScoreP2 }}</div>
+              </div>
             </div>
           </div>
-          <div class="r-detail">{{ resultDetail }}</div>
+          <div class="r-detail">{{ resultDetail }} | 등급: {{ resultGrade }}</div>
           <div class="go-btns">
             <button @click="startGame" class="btn-retry">🔄 다시하기</button>
             <button @click="$router.push('/practice/coduck-wars')" class="btn-exit">🏠 나가기</button>
@@ -168,11 +267,13 @@
 
 <script setup>
 // 수정일: 2026-02-25
-// 수정내용: 1대1 경쟁형 스피드 게임 (팀전 제거, 전체 1분 타임아웃, 동시 풀기)
+// 수정내용: 2단계 하이브리드 게임 (Phase1: 빈칸 채우기 + Phase2: 설계 스프린트)
+// 평가방식: 수도코드 평가방식(체크리스트 기반)
 
 import { ref, computed, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { aiQuests } from '@/features/practice/pseudocode/data/stages'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -199,28 +300,21 @@ function requestStart() {
 // 소켓 리스너 등록
 rs.onGameStart.value = (qIdx) => {
   const roomPlayers = rs.roomPlayers.value
-  // 1대1이므로 정확히 2명만 사용
   playerP1.value = roomPlayers[0] || { name: 'P1', avatar_url: '/image/duck_idle.png', sid: '' }
   playerP2.value = roomPlayers[1] || { name: 'P2', avatar_url: '/image/duck_idle.png', sid: '' }
-
   startGame(true, qIdx)
 }
 
 rs.onSync.value = (data) => {
-  // 상대방 정답 수 동기화
   if (data.sid !== rs.socket.value?.id) {
     const myIdx = rs.roomPlayers.value.findIndex(p => p.sid === rs.socket.value.id)
     if (myIdx === 0) {
-      // 내가 P1이면 P2 데이터 받기
-      correctCountP2.value = data.correctCountP2
+      scoreP2.value = data.scoreP2 || 0
+      checksCompletedP2.value = data.checksCompleted || 0
     } else {
-      // 내가 P2이면 P1 데이터 받기
-      correctCountP1.value = data.correctCountP1
+      scoreP1.value = data.scoreP1 || 0
+      checksCompletedP1.value = data.checksCompleted || 0
     }
-  }
-  // 라인 동기화
-  if (data.currentLineIdx !== undefined) {
-    currentLineIdx.value = data.currentLineIdx
   }
 }
 
@@ -228,115 +322,429 @@ rs.onEnd.value = (data) => {
   endGame(data.result)
 }
 
-// ─── 상태 ───────────────────────────────────────────
+// ─── 게임 상태 ───────────────────────────────────────────
 const phase = ref('intro')  // intro | play | result
+const currentGamePhase = ref('speedFill')  // speedFill | designSprint
 const errorMsg = ref('')
-const userInput = ref('')
 const shaking = ref(false)
 const flashOk = ref(false)
 const flashFail = ref(false)
 const stumbling = ref(false)
-const lastCorrectLine = ref('')
 
 // 플레이어 정보
 const playerP1 = ref(null)
 const playerP2 = ref(null)
 
-// 게임 상태
-const currentLineIdx = ref(0)
-const correctCountP1 = ref(0)
-const correctCountP2 = ref(0)
-const roundTimeout = ref(60)  // 전체 1분 타임아웃
+// 점수
+const scoreP1 = ref(0)
+const scoreP2 = ref(0)
+const scoreP1Phase1 = ref(0)
+const scoreP1Phase2 = ref(0)
+const scoreP2Phase1 = ref(0)
+const scoreP2Phase2 = ref(0)
 
+// 타임아웃
+const roundTimeout = ref(0)
 let roundTimeoutInterval = null
+
+// UI
 let fpopId = 0
 const fpops = ref([])
-const codeInput = ref(null)
 
-// 퀘스트 데이터
-const quests = [
-  {
-    title: '글로벌 로그인 아키텍처 구현',
-    lines: [
-      { hint: '로그인 정보를 처리하는 함수 인터페이스 정의', answer: '함수 로그인_처리(사용자_이메일, 사용자_비번):', altAnswers: ['FUNCTION login_process(user_email, user_pw):'] },
-      { hint: '이메일 형식의 유효성을 정규식을 통해 검사', answer: '  만약 이메일_형식_체크(사용자_이메일)가 아니면:', altAnswers: ['  IF NOT is_valid_email(user_email) THEN'] },
-      { hint: '잘못된 입력에 대한 에러 객체 반환', answer: '    반환 오류("잘못된_이메일")', altAnswers: ['    RETURN ERROR("INVALID_EMAIL")'] },
-      { hint: '비밀번호의 최소 길이(8자)를 검증', answer: '  만약 길이(사용자_비번) < 8 이면:', altAnswers: ['  IF LENGTH(user_pw) < 8 THEN'] },
-      { hint: '정책 미달 시 보안 정책 예외 전달', answer: '    반환 오류("비밀번호_제한")', altAnswers: ['    RETURN ERROR("WEAK_PASSWORD")'] },
-      { hint: 'DB 서버로부터 사용자 계정 정보를 조회', answer: '사용자 = DB_유저_조회(사용자_이메일)', altAnswers: ['user = FETCH_USER_FROM_DB(user_email)'] },
-      { hint: '조회된 사용자 데이터가 존재하는지 확인', answer: '만약 사용자가 비어있으면:', altAnswers: ['IF user IS NULL THEN'] },
-      { hint: '사용자 미발견 시 에러 반환', answer: '    반환 오류("사용자_없음")', altAnswers: ['    RETURN ERROR("USER_NOT_FOUND")'] },
-      { hint: '입력된 비밀번호와 해시값이 일치하는지 비교', answer: '만약 비번_검증(사용자_비번, 사용자.해시)이 실패면:', altAnswers: ['IF NOT BCRYPT_VERIFY(user_pw, user.hash) THEN'] },
-      { hint: '불일치 시 권한 거부 예외 반환', answer: '    반환 오류("권한_없음")', altAnswers: ['    RETURN ERROR("UNAUTHORIZED")'] },
-      { hint: '인증 성공 후 새로운 세션 토큰 발행', answer: '토큰 = 토큰_생성(사용자.아이디)', altAnswers: ['token = JWT_SIGN(user.id, "HS256")'] },
-      { hint: '최종 성공 결과와 토큰을 전달', answer: '반환 성공(토큰)', altAnswers: ['RETURN SUCCESS(token)'] },
-    ]
-  },
-]
+// ────── PHASE 1: SPEED FILL ──────────
+const totalRounds = 5
+const currentRound = ref(0)
+const currentRoundData = ref(null)
+const currentBlankIdx = ref(0)
+const currentCombo = ref(0)
+const checksCompletedP1 = ref(0)
+const checksCompletedP2 = ref(0)
 
-const currentQuest = ref(null)
-const totalLines = computed(() => currentQuest.value?.lines.length || 0)
-const currentHint = computed(() =>
-  currentQuest.value?.lines[currentLineIdx.value]?.hint || '완료!'
-)
-const inputPlaceholder = computed(() =>
-  currentQuest.value?.lines[currentLineIdx.value]?.answer
-    ? `예: ${currentQuest.value.lines[currentLineIdx.value].answer}`
-    : '의사코드를 입력하세요...'
-)
+// ────── PHASE 2: DESIGN SPRINT ──────────
+const designCode = ref('')
+const currentDesignScenario = ref('')
+const checklistItems = ref([])
+const completedChecks = ref([])
+const totalChecks = computed(() => checklistItems.value.length)
+const designEditor = ref(null)
 
-// 진행도 (정답 개수 기반)
-const maxCorrect = computed(() => totalLines.value)
-const p1CorrectPct = computed(() => (correctCountP1.value / maxCorrect.value) * 100)
-const p2CorrectPct = computed(() => (correctCountP2.value / maxCorrect.value) * 100)
+// ────── 라운드 데이터 동적 생성 ──────────
+function generateSpeedFillRounds() {
+  if (aiQuests.length === 0) {
+    // 폴백: 기본 문제들
+    return getDefaultRounds()
+  }
 
-// 결과 표시
-const roundTimeoutPct = computed(() => (roundTimeout.value / 60) * 100)
+  // 첫 5개 Quest에서 빈칩 채우기 라운드 생성
+  return aiQuests.slice(0, 5).map((quest, idx) => ({
+    id: idx + 1,
+    context: quest.title,
+    codeBlock: generateCodeBlock(quest),
+    blanks: generateBlanks(quest),
+    blanksOrder: generateBlanksOrder(quest)
+  }))
+}
+
+function generateCodeBlock(quest) {
+  // blueprintSteps에서 코드 라인 추출 후 일부를 빈칸으로 변환
+  const steps = quest.blueprintSteps || []
+  const blocks = []
+
+  // 제목 라인
+  blocks.push({ text: quest.title + ':', type: 'fixed' })
+
+  // 각 스텝을 2-3줄로 분해
+  steps.forEach((step, stepIdx) => {
+    const pseudo = step.pseudo || ''
+    // Python 코드의 첫 줄을 주석으로
+    blocks.push({ text: `  # ${pseudo}`, type: 'fixed' })
+    const pyLine = step.python || ''
+    if (pyLine.length < 80) {
+      blocks.push({ text: `  ${pyLine}`, type: 'fixed' })
+    }
+  })
+
+  return blocks.length > 0 ? blocks : [{ text: '# ' + quest.scenario, type: 'fixed' }]
+}
+
+function generateBlanks(quest) {
+  const steps = quest.blueprintSteps || []
+  const blanks = {}
+
+  steps.slice(0, 3).forEach((step, idx) => {
+    const blankId = 'b' + (idx + 1)
+    // keywords에서 첫 번째를 답으로, 나머지를 옵션으로
+    const keywords = step.keywords || [step.pseudo?.split(' ')[0] || '답']
+    const answer = keywords[0]
+    const options = [...new Set([answer, ...keywords.slice(1)])].slice(0, 4)
+
+    blanks[blankId] = {
+      answer,
+      options: options.length < 4 ? [...options, 'None', 'Pass', 'Skip'].slice(0, 4) : options,
+      hint: step.pseudo ? step.pseudo.substring(0, 50) : step.id
+    }
+  })
+
+  return blanks
+}
+
+function generateBlanksOrder(quest) {
+  const steps = quest.blueprintSteps || []
+  return steps.slice(0, 3).map((_, idx) => 'b' + (idx + 1))
+}
+
+function getDefaultRounds() {
+  return [
+    {
+      id: 1,
+      context: '데이터 전처리 파이프라인',
+      codeBlock: [
+        { text: '함수 데이터_전처리(원본_데이터):', type: 'fixed' },
+        { text: '  ________ 원본_데이터가 비어있으면:', type: 'blank', blankId: 'b1' },
+        { text: '    반환 오류("데이터_없음")', type: 'fixed' },
+      ],
+      blanks: {
+        b1: { answer: '만약', options: ['만약', '반복', '동안', '선택'], hint: '조건 분기 키워드' },
+      },
+      blanksOrder: ['b1']
+    }
+  ]
+}
+
+let speedFillRounds = generateSpeedFillRounds()
+
+// Design Sprint 데이터 (동적 로드 함수)
+function getDesignSprintData() {
+  if (aiQuests.length === 0) return null
+
+  // 랜덤 Quest 선택 (또는 라운드 기반)
+  const selectedQuestIdx = currentRound.value % aiQuests.length
+  const quest = aiQuests[selectedQuestIdx]
+
+  // 체크리스트 패턴을 정규식으로 변환
+  const checklist = (quest.checklist || []).map(item => ({
+    id: item.id,
+    label: item.label,
+    patterns: (item.patterns || []).map(p => {
+      if (typeof p === 'string') {
+        return new RegExp(p, 'i')
+      }
+      return p
+    })
+  }))
+
+  return {
+    scenario: quest.designContext?.description || quest.scenario,
+    checklist,
+    questId: quest.id,
+    questTitle: quest.title
+  }
+}
+
+let currentDesignSprintData = null
+
+// 현재 빈칸 데이터
+const currentBlankData = computed(() => {
+  if (!currentRoundData.value) return null
+  const blanksOrder = currentRoundData.value.blanksOrder
+  const blankId = blanksOrder[currentBlankIdx.value]
+  return currentRoundData.value.blanks[blankId]
+})
+
+// 진행도 계산
+const p1ProgressPct = computed(() => {
+  if (currentGamePhase.value === 'speedFill') {
+    return ((currentRound.value * 2 + currentBlankIdx.value) / (totalRounds * 2)) * 100
+  }
+  return (checksCompletedP1.value / totalChecks.value) * 100
+})
+
+const p2ProgressPct = computed(() => {
+  if (currentGamePhase.value === 'speedFill') {
+    return ((currentRound.value * 2) / (totalRounds * 2)) * 100
+  }
+  return (checksCompletedP2.value / totalChecks.value) * 100
+})
+
+// 타임아웃 바 계산
+const roundTimeoutPct = computed(() => {
+  const maxTime = currentGamePhase.value === 'speedFill' ? 15 : 90
+  return (roundTimeout.value / maxTime) * 100
+})
+
+// 결과 계산
+const totalScoreP1 = computed(() => scoreP1Phase1.value + scoreP1Phase2.value)
+const totalScoreP2 = computed(() => scoreP2Phase1.value + scoreP2Phase2.value)
+
 const resultClass = computed(() => {
-  if (correctCountP1.value > correctCountP2.value) return 'res-p1-win'
-  if (correctCountP2.value > correctCountP1.value) return 'res-p2-win'
+  if (totalScoreP1.value > totalScoreP2.value) return 'res-p1-win'
+  if (totalScoreP2.value > totalScoreP1.value) return 'res-p2-win'
   return 'res-draw'
 })
+
 const resultIcon = computed(() => {
-  if (correctCountP1.value > correctCountP2.value) return '🏆'
-  if (correctCountP2.value > correctCountP1.value) return '🏆'
+  if (totalScoreP1.value > totalScoreP2.value) return '🏆'
+  if (totalScoreP2.value > totalScoreP1.value) return '🏆'
   return '🤝'
 })
+
 const resultTitle = computed(() => {
-  if (correctCountP1.value > correctCountP2.value) return `${playerP1.value?.name} 승리!`
-  if (correctCountP2.value > correctCountP1.value) return `${playerP2.value?.name} 승리!`
+  if (totalScoreP1.value > totalScoreP2.value) return `${playerP1.value?.name} 승리!`
+  if (totalScoreP2.value > totalScoreP1.value) return `${playerP2.value?.name} 승리!`
   return '무승부!'
 })
+
 const resultDetail = computed(() => {
-  return `${playerP1.value?.name} ${correctCountP1.value}개 vs ${playerP2.value?.name} ${correctCountP2.value}개`
+  return `${playerP1.value?.name} ${totalScoreP1.value}pt vs ${playerP2.value?.name} ${totalScoreP2.value}pt`
+})
+
+const resultGrade = computed(() => {
+  const myScore = totalScoreP1.value
+  if (myScore >= 2000) return 'S'
+  if (myScore >= 1500) return 'A'
+  if (myScore >= 1000) return 'B'
+  if (myScore >= 500) return 'C'
+  return 'F'
 })
 
 // ─── 게임 시작 ────────────────────────────────────────
 function startGame(fromSocket = false, qIdx = null) {
-  if (qIdx !== null && quests[qIdx]) {
-    currentQuest.value = quests[qIdx]
-  } else {
-    currentQuest.value = quests[0]
-  }
-
-  currentLineIdx.value = 0
-  correctCountP1.value = 0
-  correctCountP2.value = 0
-  roundTimeout.value = 60
+  currentGamePhase.value = 'speedFill'
+  currentRound.value = 0
+  currentBlankIdx.value = 0
+  currentCombo.value = 0
+  scoreP1.value = 0
+  scoreP2.value = 0
+  scoreP1Phase1.value = 0
+  scoreP1Phase2.value = 0
+  scoreP2Phase1.value = 0
+  scoreP2Phase2.value = 0
+  checksCompletedP1.value = 0
+  checksCompletedP2.value = 0
   errorMsg.value = ''
-  userInput.value = ''
   shaking.value = false
   flashOk.value = false
   flashFail.value = false
   fpops.value = []
 
   phase.value = 'play'
-  startRoundTimeout()
-  nextTick(() => codeInput.value?.focus())
+  startPhase1Round()
 }
 
-// ─── 라운드 타임아웃 (전체 1분) ────────────────────────────────
-function startRoundTimeout() {
+// ─── PHASE 1: Speed Fill ──────────
+function startPhase1Round() {
+  if (currentRound.value >= totalRounds) {
+    startPhase2()
+    return
+  }
+
+  currentRoundData.value = speedFillRounds[currentRound.value]
+  currentBlankIdx.value = 0
+  roundTimeout.value = 15
+
+  startRoundTimeout(15)
+  nextTick(() => {
+    // 첫 빈칸이 포커스 준비
+  })
+}
+
+function selectBlankAnswer(answer) {
+  if (roundTimeout.value <= 0 || !currentBlankData.value) return
+
+  const correct = answer === currentBlankData.value.answer
+
+  if (correct) {
+    handleBlankCorrect()
+  } else {
+    handleBlankWrong()
+  }
+}
+
+function handleBlankCorrect() {
+  const myIdx = rs.roomPlayers.value.findIndex(p => p.sid === rs.socket.value?.id)
+
+  // 점수 계산
+  const pointsBase = 100
+  const comboBonus = currentCombo.value > 0 ? 15 * currentCombo.value : 0
+  const points = pointsBase + comboBonus
+
+  currentCombo.value++
+
+  if (myIdx === 0) {
+    scoreP1.value += points
+    scoreP1Phase1.value += points
+  } else {
+    scoreP2.value += points
+    scoreP2Phase1.value += points
+  }
+
+  flashOk.value = true
+  setTimeout(() => { flashOk.value = false }, 300)
+  spawnFpop('+' + points, '#34d399')
+
+  // 다음 빈칸으로
+  currentBlankIdx.value++
+  const blanksOrder = currentRoundData.value.blanksOrder
+
+  if (currentBlankIdx.value >= blanksOrder.length) {
+    // 라운드 완료, 다음 라운드
+    currentRound.value++
+    startPhase1Round()
+  }
+
+  // 동기화
+  const myScore = myIdx === 0 ? scoreP1.value : scoreP2.value
+  rs.emitProgress(roomId.value, {
+    phase: 'speedFill',
+    round: currentRound.value,
+    score: myScore,
+    combo: currentCombo.value,
+    sid: rs.socket.value?.id
+  })
+}
+
+function handleBlankWrong() {
+  currentCombo.value = 0
+  errorMsg.value = '틀렸습니다!'
+  setTimeout(() => { errorMsg.value = '' }, 800)
+
+  shaking.value = true
+  flashFail.value = true
+  setTimeout(() => {
+    shaking.value = false
+    flashFail.value = false
+  }, 300)
+
+  spawnFpop('오답 ✗', '#ef4444')
+}
+
+// ─── PHASE 2: Design Sprint ──────────
+function startPhase2() {
+  if (roundTimeoutInterval) clearInterval(roundTimeoutInterval)
+
+  currentGamePhase.value = 'designSprint'
+
+  // stages.js에서 데이터 가져오기
+  currentDesignSprintData = getDesignSprintData()
+  if (!currentDesignSprintData) {
+    // 폴백: 기본 데이터
+    currentDesignSprintData = {
+      scenario: '주어진 시나리오에 따라 핵심 의사코드를 설계하세요.',
+      checklist: [],
+      questId: 0,
+      questTitle: 'Design Sprint'
+    }
+  }
+
+  currentDesignScenario.value = currentDesignSprintData.scenario
+  checklistItems.value = currentDesignSprintData.checklist
+  completedChecks.value = []
+  designCode.value = ''
+  roundTimeout.value = 90
+
+  startRoundTimeout(90)
+  nextTick(() => designEditor.value?.focus())
+}
+
+function submitDesign() {
+  if (!designCode.value.trim() || roundTimeout.value <= 0) return
+
+  evaluateDesign()
+}
+
+function evaluateDesign() {
+  const code = designCode.value
+
+  // 체크리스트 기반 자동 평가
+  const myIdx = rs.roomPlayers.value.findIndex(p => p.sid === rs.socket.value?.id)
+  const checkedItems = []
+
+  for (const check of checklistItems.value) {
+    for (const pattern of check.patterns) {
+      if (pattern.test(code)) {
+        if (!checkedItems.includes(check.id)) {
+          checkedItems.push(check.id)
+        }
+        break
+      }
+    }
+  }
+
+  completedChecks.value = checkedItems
+
+  // 점수 계산
+  const checkCount = checkedItems.length
+  const basePoints = checkCount * 100
+  const completionBonus = checkedItems.length === totalChecks.value ? 200 : 0
+  const timeBonus = Math.max(0, roundTimeout.value) * 3
+  const totalPoints = basePoints + completionBonus + timeBonus
+
+  if (myIdx === 0) {
+    scoreP1Phase2.value = totalPoints
+    scoreP1.value = scoreP1Phase1.value + totalPoints
+    checksCompletedP1.value = checkCount
+  } else {
+    scoreP2Phase2.value = totalPoints
+    scoreP2.value = scoreP2Phase1.value + totalPoints
+    checksCompletedP2.value = checkCount
+  }
+
+  // 동기화 후 게임 종료
+  rs.emitProgress(roomId.value, {
+    phase: 'designSprint',
+    checksCompleted: checkCount,
+    totalChecks: totalChecks.value,
+    score: totalPoints,
+    sid: rs.socket.value?.id
+  })
+
+  setTimeout(() => {
+    endGame('complete')
+  }, 1500)
+}
+
+// ─── 타임아웃 관리 ────────────────────────────────
+function startRoundTimeout(maxTime) {
   if (roundTimeoutInterval) clearInterval(roundTimeoutInterval)
 
   roundTimeoutInterval = setInterval(() => {
@@ -344,91 +752,16 @@ function startRoundTimeout() {
 
     if (roundTimeout.value <= 0) {
       clearInterval(roundTimeoutInterval)
-      endGame('timeout')
+      if (currentGamePhase.value === 'speedFill') {
+        // Phase1 타임아웃: 다음 라운드
+        currentRound.value++
+        startPhase1Round()
+      } else {
+        // Phase2 타임아웃: 평가 후 게임 종료
+        evaluateDesign()
+      }
     }
   }, 1000)
-}
-
-// ─── 라인 제출 ────────────────────────────────────────
-function submitLine() {
-  const input = userInput.value.trim()
-  if (!input || phase.value !== 'play') return
-
-  const lineData = currentQuest.value.lines[currentLineIdx.value]
-  if (!lineData) return
-
-  const correct = checkAnswer(input, lineData)
-
-  if (correct) {
-    handleCorrect(input)
-  } else {
-    handleWrong()
-  }
-
-  userInput.value = ''
-  nextTick(() => codeInput.value?.focus())
-}
-
-function checkAnswer(input, lineData) {
-  const clean = s => s.replace(/\s+/g, '').trim().toLowerCase()
-  const answers = [lineData.answer, ...(lineData.altAnswers || [])]
-
-  for (const ans of answers) {
-    if (clean(input) === clean(ans)) return true
-
-    const keywords = ans.split(/[\s(),=:"'<>!]+/).filter(k => k.length >= 2)
-    const matched = keywords.filter(k => input.includes(k))
-
-    if (keywords.length > 0 && (matched.length / keywords.length) >= 0.6) return true
-  }
-  return false
-}
-
-function handleCorrect(input) {
-  // 현재 플레이어의 정답 카운트 증가
-  const myIdx = rs.roomPlayers.value.findIndex(p => p.sid === rs.socket.value?.id)
-  if (myIdx === 0) {
-    correctCountP1.value++
-  } else {
-    correctCountP2.value++
-  }
-
-  lastCorrectLine.value = input
-  flashOk.value = true
-  setTimeout(() => { flashOk.value = false }, 300)
-  spawnFpop('+100', '#34d399')
-
-  currentLineIdx.value++
-
-  // 멀티플레이어 동기화
-  const myCorrect = myIdx === 0 ? correctCountP1.value : correctCountP2.value
-  rs.emitProgress(roomId.value, {
-    correctCountP1: myIdx === 0 ? myCorrect : correctCountP1.value,
-    correctCountP2: myIdx === 1 ? myCorrect : correctCountP2.value,
-    currentLineIdx: currentLineIdx.value,
-    sid: rs.socket.value?.id
-  })
-
-  // 모든 라인 완료
-  if (currentLineIdx.value >= totalLines.value) {
-    endGame('complete')
-  }
-}
-
-function handleWrong() {
-  errorMsg.value = '정답과 다릅니다. 다시 시도하세요.'
-  setTimeout(() => { errorMsg.value = '' }, 1500)
-
-  shaking.value = true
-  stumbling.value = true
-  flashFail.value = true
-  setTimeout(() => {
-    shaking.value = false
-    stumbling.value = false
-    flashFail.value = false
-  }, 300)
-
-  spawnFpop('오타! 🍌', '#ef4444')
 }
 
 // ─── 게임 종료 ────────────────────────────────────────
@@ -437,7 +770,13 @@ function endGame(result) {
   phase.value = 'result'
 
   // 멀티플레이어 동기화
-  rs.emitFinish(roomId.value, { result })
+  const myIdx = rs.roomPlayers.value.findIndex(p => p.sid === rs.socket.value?.id)
+  const myTotal = myIdx === 0 ? totalScoreP1.value : totalScoreP2.value
+
+  rs.emitFinish(roomId.value, {
+    totalScore: myTotal,
+    result
+  })
 }
 
 // ─── 유틸 ─────────────────────────────────────────────
@@ -451,7 +790,7 @@ function spawnFpop(text, color = '#fbbf24') {
 }
 
 onUnmounted(() => {
-  clearInterval(roundTimeoutInterval)
+  if (roundTimeoutInterval) clearInterval(roundTimeoutInterval)
 })
 </script>
 
@@ -524,8 +863,10 @@ onUnmounted(() => {
   border-radius:1rem;
 }
 .hud-cell { display:flex; flex-direction:column; align-items:center; }
+.hud-cell.flex-grow { flex:1; }
 .hud-lbl { font-size:.5rem; font-weight:700; color:#475569; letter-spacing:2px; }
 .hud-val { font-family:'Orbitron',sans-serif; font-size:1.1rem; font-weight:900; }
+.hud-badge { font-family:'Orbitron',sans-serif; font-size:.6rem; color:#ffe600; }
 .timer-cell { flex:1; }
 .timer-bar-track { width:100%; height:8px; background:#0f172a; border-radius:4px; overflow:hidden; border:1px solid rgba(0,240,255,.1); }
 .timer-bar-fill { height:100%; background:linear-gradient(90deg,#00f0ff,#38bdf8); border-radius:4px; transition:width 1s linear; }
@@ -537,13 +878,16 @@ onUnmounted(() => {
 
 /* ── GAME AREA ────────────────────────────── */
 .game-screen { display:flex; flex-direction:column; height:calc(100vh - 80px); }
-.game-area { display:grid; grid-template-columns:1fr 380px; gap:1rem; padding:1rem; flex:1; min-height:0; overflow:hidden; }
+.game-area { display:grid; gap:1rem; padding:1rem; flex:1; min-height:0; overflow:hidden; }
+.game-area.phase1-layout { grid-template-columns:1fr 380px; }
+.game-area.phase2-layout { grid-template-columns:1fr 1fr; }
 
 /* 좌측 */
 .game-left { display:flex; flex-direction:column; gap:.75rem; }
 .line-info { display:flex; align-items:center; gap:.5rem; padding:.5rem 1rem; background:rgba(8,12,30,.6); border:1px solid rgba(0,240,255,.1); border-radius:.5rem; }
 .line-badge { font-family:'Orbitron',sans-serif; font-size:.7rem; font-weight:700; color:#00f0ff; }
 .hint-text { font-size:.8rem; color:#64748b; flex:1; }
+.context-text { font-size:.8rem; color:#94a3b8; flex:1; }
 
 /* 달리기 스테이지 */
 .runner-stage.dual-track {
@@ -625,6 +969,44 @@ onUnmounted(() => {
 .btn-ide-submit:disabled { background:#21262d; color:#484f58; cursor:not-allowed; }
 
 .neon-border { border:1px solid rgba(0,240,255,.15) !important; }
+
+/* ── PHASE 1: SPEED FILL ────────────────────────── */
+.code-block-panel { background:rgba(8,12,30,.8); border:1px solid rgba(0,240,255,.15); border-radius:.75rem; overflow:hidden; display:flex; flex-direction:column; height:100%; }
+.code-display { flex:1; background:#0f1419; overflow-y:auto; padding:1rem; font-family:'Courier New',monospace; font-size:.9rem; line-height:1.6; }
+.code-line-display { margin-bottom:.4rem; }
+.code-text { color:#e0f2fe; }
+.code-blank { color:#fbbf24; background:rgba(251,191,36,.1); padding:0.2rem 0.4rem; border-radius:0.2rem; border-bottom:2px dashed #fbbf24; }
+
+.blank-info { padding:1rem; background:rgba(8,12,30,.9); border-top:1px solid rgba(0,240,255,.1); }
+.option-buttons { display:grid; grid-template-columns:1fr 1fr; gap:.5rem; margin-top:.5rem; }
+.btn-option { background:rgba(0,240,255,.05); border:1px solid rgba(0,240,255,.3); color:#00f0ff; padding:.6rem .8rem; border-radius:.4rem; font-family:'Orbitron',sans-serif; font-size:.75rem; font-weight:700; cursor:pointer; transition:all .2s; }
+.btn-option:hover:not(:disabled) { background:rgba(0,240,255,.2); }
+.btn-option:disabled { opacity:.5; cursor:not-allowed; }
+.combo-display { font-family:'Orbitron',sans-serif; font-size:.8rem; color:#fbbf24; font-weight:900; }
+
+/* ── PHASE 2: DESIGN SPRINT ────────────────────────── */
+.phase2-left { display:flex; flex-direction:column; gap:1rem; }
+.phase2-right { display:flex; flex-direction:column; gap:.75rem; overflow-y:auto; }
+
+.scenario-box { background:rgba(8,12,30,.8); border:1px solid rgba(0,240,255,.15); border-radius:.75rem; padding:1.2rem; }
+.scenario-header { font-size:.8rem; font-weight:700; color:#00f0ff; margin-bottom:.5rem; letter-spacing:1px; }
+.scenario-text { font-size:.9rem; color:#cbd5e1; line-height:1.6; }
+
+.checklist-panel { background:rgba(8,12,30,.8); border:1px solid rgba(0,240,255,.15); border-radius:.75rem; padding:1rem; flex:1; overflow-y:auto; }
+.checklist-header { font-size:.8rem; font-weight:700; color:#34d399; margin-bottom:.75rem; letter-spacing:1px; }
+.checklist-items { display:flex; flex-direction:column; gap:.5rem; }
+.check-item { display:flex; align-items:center; gap:.5rem; padding:.4rem; background:rgba(255,255,255,.02); border-radius:.4rem; transition:all .2s; }
+.check-item.checked { background:rgba(52,211,153,.08); }
+.check-box { font-size:1rem; min-width:1.5rem; }
+.check-label { font-size:.8rem; color:#94a3b8; flex:1; }
+.check-item.checked .check-label { color:#34d399; font-weight:600; }
+
+.design-textarea { width:100%; height:100%; padding:1rem; background:#0f1419; border:none; color:#e0f2fe; font-family:'Courier New',monospace; font-size:.85rem; line-height:1.6; outline:none; resize:none; }
+.design-textarea::placeholder { color:#64748b; }
+
+.score-breakdown { display:flex; flex-direction:column; gap:.2rem; margin-top:.3rem; }
+.score-part { font-size:.7rem; color:#94a3b8; }
+.score-total { font-family:'Orbitron',sans-serif; font-size:1.3rem; font-weight:900; margin-top:.3rem; }
 
 /* ── RESULT ────────────────────────────────── */
 .overlay { position:fixed; inset:0; background:rgba(0,0,0,.85); display:flex; align-items:center; justify-content:center; z-index:8000; }
