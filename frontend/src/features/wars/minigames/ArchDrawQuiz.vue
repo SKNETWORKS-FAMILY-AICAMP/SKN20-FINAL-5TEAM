@@ -179,13 +179,22 @@
             <!-- 내 설계 -->
             <div class="jv-side">
               <div class="jv-tag you-tag">YOUR DESIGN</div>
-              <div class="jv-canvas">
+              <div class="jv-canvas" ref="myJudgeCanvas">
+                <!-- [버그수정] SVG defs를 judging 캔버스 내부에 직접 선언 -->
                 <svg class="canvas-svg">
-                  <line v-for="(a,i) in myFinalArrows" :key="'ma'+i" :x1="a.x1" :y1="a.y1" :x2="a.x2" :y2="a.y2" stroke="#00f0ff" stroke-width="2" marker-end="url(#ah)"/>
+                  <defs>
+                    <marker id="jah" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+                      <polygon points="0 0, 10 3.5, 0 7" fill="#00f0ff"/>
+                    </marker>
+                  </defs>
+                  <line v-for="(a,i) in myFinalArrows" :key="'ma'+i"
+                    :x1="a.x1" :y1="a.y1" :x2="a.x2" :y2="a.y2"
+                    stroke="#00f0ff" stroke-width="2" marker-end="url(#jah)"/>
                 </svg>
                 <div v-for="(n,i) in myFinalNodes" :key="'mn'+i" class="cnode" :style="{ left:n.x+'px', top:n.y+'px' }">
                   <span class="ni">{{ n.icon }}</span><span class="nn">{{ n.name }}</span>
                 </div>
+                <div v-if="!myFinalNodes.length" class="opp-empty" style="color:#475569">배치된 컴포넌트가 없습니다</div>
               </div>
             </div>
 
@@ -195,9 +204,18 @@
             <div class="jv-side">
               <div class="jv-tag opp-tag">{{ ds.opponentName.value || 'OPPONENT' }} DESIGN</div>
               <div class="jv-canvas">
+                <!-- [버그수정] 상대 캔버스도 독립 defs 선언 -->
                 <svg class="canvas-svg">
-                  <!-- [수정일: 2026-02-24] 결과 데이터가 아직 없으면 소켓 실시간 데이터를 보여줌 -->
-                  <line v-for="(a,i) in (oppFinalArrows.length ? oppFinalArrows : ds.opponentCanvas.value.arrows)" :key="'oa'+i" :x1="a.x1" :y1="a.y1" :x2="a.x2" :y2="a.y2" stroke="#ff2d75" stroke-width="2" marker-end="url(#ah2)"/>
+                  <defs>
+                    <marker id="jah2" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+                      <polygon points="0 0, 10 3.5, 0 7" fill="#ff2d75"/>
+                    </marker>
+                  </defs>
+                  <!-- [버그수정] onRoundResult에서 저장한 oppFinalArrows 우선, 없으면 실시간 데이터 폴백 -->
+                  <line v-for="(a,i) in (oppFinalArrows.length ? oppFinalArrows : ds.opponentCanvas.value.arrows)"
+                    :key="'oa'+i"
+                    :x1="a.x1" :y1="a.y1" :x2="a.x2" :y2="a.y2"
+                    stroke="#ff2d75" stroke-width="2" marker-end="url(#jah2)"/>
                 </svg>
                 <div v-for="(n,i) in (oppFinalNodes.length ? oppFinalNodes : ds.opponentCanvas.value.nodes)" :key="'on'+i" class="cnode opp-node" :style="{ left:n.x+'px', top:n.y+'px' }">
                   <span class="ni">{{ n.icon }}</span><span class="nn">{{ n.name }}</span>
@@ -530,9 +548,8 @@ ds.onRoundResult.value = (results) => {
     myScore.value = me.score 
     lastMyPts.value = me.last_pts || 0
     checkItems.value = me.last_checks || []
-    // 내 최종 설계는 이미 로컬에 있음
-    myFinalNodes.value = JSON.parse(JSON.stringify(nodes.value))
-    myFinalArrows.value = JSON.parse(JSON.stringify(arrows.value))
+    // [버그수정] myFinalNodes/Arrows는 submitDraw()에서 이미 고정됨 → 여기서 덮어쓰지 않음
+    // (서버 결과가 오기 전에 이미 judging 화면이 노출되므로 로컬 스냅샷이 더 신뢰성 높음)
     
     // AI 리뷰 데이터 매칭 (서버에서 같이 보낸 경우)
     if (me.ai_review) {
@@ -546,18 +563,25 @@ ds.onRoundResult.value = (results) => {
     oppScore.value = opp.score
     lastOppPts.value = opp.last_pts || 0
     oppCheckItems.value = opp.last_checks || []
-    // 상대방 최종 설계 저장 (서버가 보낸 last_nodes 등의 필드 혹은 실시간 마지막 데이터 사용)
-    oppFinalNodes.value = opp.last_nodes || []
-    oppFinalArrows.value = opp.last_arrows || []
+    // [버그수정] 서버에서 받은 상대방 최종 설계 저장
+    // last_nodes/last_arrows 없으면 실시간 캔버스 데이터로 폴백
+    oppFinalNodes.value = (opp.last_nodes && opp.last_nodes.length)
+      ? opp.last_nodes
+      : JSON.parse(JSON.stringify(ds.opponentCanvas.value.nodes))
+    oppFinalArrows.value = (opp.last_arrows && opp.last_arrows.length)
+      ? opp.last_arrows
+      : JSON.parse(JSON.stringify(ds.opponentCanvas.value.arrows))
   }
   
-  // 제출 직후 심사 단계로 진입하여 대조 화면 표시
-  phase.value = 'judging'
+  // [버그수정] 이미 judging 상태이므로 중복 전환 방지
+  if (phase.value !== 'judging') {
+    phase.value = 'judging'
+  }
   
   // 3.5초 후 자동으로 결과 리포트 화면으로 전환 (AI 분석 로딩 느낌)
   setTimeout(() => {
     phase.value = 'result'
-  }, 4000)
+  }, 3500)
 }
 
 // [수정일: 2026-02-24] .value를 사용하여 서버(AI)가 문제를 던져주었을 때의 처리 등록
@@ -667,10 +691,11 @@ function clearCanvas() { nodes.value = []; arrows.value = []; selectedNode.value
 function submitDraw() {
   clearInterval(timer); 
   
-  // [수정일: 2026-02-24] 심사 화면으로 넘어가기 전 내 설계 데이터를 즉시 고정
+  // [버그수정] 제출 직전 데이터 스냅샷 → phase 변경 전에 저장해야 watch가 덮어쓰지 않음
   myFinalNodes.value = JSON.parse(JSON.stringify(nodes.value))
   myFinalArrows.value = JSON.parse(JSON.stringify(arrows.value))
   
+  // [버그수정] watch([nodes, arrows]) 가 judging 전환 후에도 emit하지 않도록 play 상태를 먼저 닫음
   phase.value = 'judging'
   setTimeout(() => {
     // [수정일: 2026-02-25] 백엔드에서 온 미션의 DB rubric_functional 활용

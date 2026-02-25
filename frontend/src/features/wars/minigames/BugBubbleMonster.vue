@@ -3,11 +3,11 @@
     <!-- 방 입장 화면 -->
     <div v-if="!bs.connected.value" class="join-screen">
       <h1>👾 Bug-Bubble Monster</h1>
-      <p class="desc">방 번호를 입력하고 대결장에 입장하세요!</p>
+      <p class="desc">방 번호를 입력하고 버그 대결장에 입장하세요!</p>
       <div class="join-box">
-        <input 
-          v-model="inputRoomId" 
-          placeholder="방 번호 (예: room-123)" 
+        <input
+          v-model="inputRoomId"
+          placeholder="방 번호 (예: room-123)"
           @keyup.enter="joinRoom"
         />
         <button class="join-btn" @click="joinRoom" :disabled="!inputRoomId.trim()">입장하기</button>
@@ -18,212 +18,435 @@
     <!-- 대기실 화면 -->
     <div v-else-if="!bs.isPlaying.value && !bs.gameOver.value" class="lobby-screen">
       <h1>👾 Bug-Bubble Monster</h1>
-      <p class="desc">코드를 풀고 버그를 방울에 가둬 상대에게 전송하세요!</p>
-      
-      <div class="players-box">
-        <div class="player me">
-          <span>{{ auth.sessionNickname || '나' }}</span>
+      <p class="desc">버그를 찾아 방울에 가두고 상대에게 날려라!</p>
+      <div class="how-to-play">
+        <div class="htp-item">
+          <span class="htp-icon">🔍</span>
+          <div><strong>버그 코드 발견</strong><p>화면에 등장하는 버그 코드를 분석하세요</p></div>
         </div>
-        <div class="vs">VS</div>
-        <div class="player opponent">
-          <span>{{ bs.opponentName.value || '상대 대기 중...' }}</span>
+        <div class="htp-item">
+          <span class="htp-icon">✅</span>
+          <div><strong>정답 선택</strong><p>4지선다 중 올바른 수정 코드를 고르세요</p></div>
+        </div>
+        <div class="htp-item">
+          <span class="htp-icon">🫧</span>
+          <div><strong>버블 전송</strong><p>정답을 맞히면 버그 방울이 상대에게 날아갑니다</p></div>
+        </div>
+        <div class="htp-item">
+          <span class="htp-icon">💀</span>
+          <div><strong>화면이 버그로 가득 차면 패배!</strong><p>{{ maxMonsters }}개 이상 쌓이기 전에 버블을 날리세요</p></div>
         </div>
       </div>
-
-      <button 
-        class="start-btn" 
-        :disabled="!bs.isReady.value"
-        @click="startGame"
-      >
-        {{ bs.isReady.value ? '게임 시작' : '대기 중...' }}
+      <div class="players-box">
+        <div class="player me">{{ auth.sessionNickname || '나' }}</div>
+        <div class="vs">VS</div>
+        <div class="player opponent">{{ bs.opponentName.value || '상대 대기 중...' }}</div>
+      </div>
+      <button class="start-btn" :disabled="!bs.isReady.value" @click="startGame">
+        {{ bs.isReady.value ? '게임 시작!' : '상대방 대기 중...' }}
       </button>
     </div>
 
     <!-- 게임 결과 화면 -->
     <div v-else-if="bs.gameOver.value" class="result-screen">
       <h1 :class="{ win: isWinner, lose: !isWinner }">
-        {{ isWinner ? '승리! 🎉' : '패배... 💀' }}
+        {{ isWinner ? '승리! 🏆' : '패배... 💀' }}
       </h1>
       <p>{{ isWinner ? '상대방의 화면이 버그로 가득 찼습니다!' : '나의 화면이 버그로 마비되었습니다.' }}</p>
+      <div class="result-stats">
+        <div class="stat-item">
+          <span class="stat-label">맞힌 문제</span>
+          <span class="stat-value">{{ totalSolved }}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">최대 콤보</span>
+          <span class="stat-value">{{ bestCombo }}x</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">상대에게 보낸 버블</span>
+          <span class="stat-value">{{ totalBubblesSent }}</span>
+        </div>
+      </div>
       <button class="exit-btn" @click="router.push('/practice/coduck-wars')">로비로 돌아가기</button>
     </div>
 
     <!-- 플레이 화면 -->
-    <div v-else class="play-screen" ref="playArea">
+    <div v-else class="play-screen">
+      <!-- 헤더 -->
       <header class="game-header">
         <div class="player-panel me">
-          <div class="avatar">
-            <img v-if="auth.userAvatarUrl" :src="auth.userAvatarUrl" alt="My Avatar" />
-            <span v-else>🦆</span>
-          </div>
+          <div class="avatar"><span>🦆</span></div>
           <div class="info">
             <span class="name">{{ auth.sessionNickname || '나' }}</span>
-            <span class="status" :class="{ danger: activeMonsters.length > 20 }">
-              버그 👾: {{ activeMonsters.length }} / {{ maxMonsters }}
-            </span>
-            <span class="fever-gauge">콤보: {{ combo }}</span>
-          </div>
-        </div>
-        
-        <div class="center-console">
-          <div class="vs-badge">⚡ V S ⚡</div>
-          <span class="fever-gauge">콤보: {{ combo }}</span>
-        </div>
-
-        <div class="player-panel opp" ref="oppAvatarContainer">
-          <div class="info right">
-            <span class="name">{{ bs.opponentName.value }}</span>
-            <span class="status" :class="{ danger: opponentMonsterCount > 20 }">
-              버그 👾: {{ opponentMonsterCount }} / {{ maxMonsters }}
-            </span>
-          </div>
-          <div class="avatar opp-avatar">
-            <img v-if="bs.opponentAvatar.value" :src="bs.opponentAvatar.value" alt="Opponent Avatar" />
-            <span v-else>🤖</span>
-          </div>
-        </div>
-      </header>
-
-      <!-- 중앙 1개의 공동 코딩 에디터 영역 -->
-      <main class="battle-arena unified">
-        
-        <div class="editor-section">
-          <div class="editor-header">
-            <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
-            <span class="file-name">battle_ground.js</span>
-          </div>
-          <div class="editor-mockup">
-            <div class="line" v-for="i in 15" :key="i">
-              <span class="num">{{ i }}</span>
-              <span class="code" v-html="dummyCode[i-1] || ''"></span>
+            <div class="monster-bar">
+              <div class="monster-fill" :style="{ width: (activeMonsters.length / maxMonsters * 100) + '%' }"
+                   :class="{ danger: activeMonsters.length > maxMonsters * 0.7 }"></div>
+              <span class="monster-count">👾 {{ activeMonsters.length }} / {{ maxMonsters }}</span>
             </div>
           </div>
         </div>
-
-        <div class="action-panel">
-          <button class="solve-btn" @click="solveTestcase">정답 제출! (버그 넘기기 🫧)</button>
-          <button class="fever-btn" @click="solveAll" :disabled="combo < 3">완벽 해결! (폭탄 전송 �)</button>
+        <div class="center-hud">
+          <div class="vs-badge">⚡ VS ⚡</div>
+          <div class="combo-display" v-if="combo > 0" :class="{ 'mega-combo': combo >= 3 }">
+            COMBO x{{ combo }}
+          </div>
+          <div class="fever-ready" v-if="combo >= 3">🔥 FEVER READY!</div>
         </div>
-        
+        <div class="player-panel opp">
+          <div class="info right">
+            <span class="name">{{ bs.opponentName.value }}</span>
+            <div class="monster-bar opp-bar">
+              <div class="monster-fill opp-fill" :style="{ width: (opponentMonsterCount / maxMonsters * 100) + '%' }"
+                   :class="{ danger: opponentMonsterCount > maxMonsters * 0.7 }"></div>
+              <span class="monster-count">👾 {{ opponentMonsterCount }} / {{ maxMonsters }}</span>
+            </div>
+          </div>
+          <div class="avatar opp-avatar"><span>🤖</span></div>
+        </div>
+      </header>
+
+      <!-- 메인 게임 영역 -->
+      <main class="battle-arena">
+        <!-- 버그 문제 패널 -->
+        <div class="problem-panel" :class="{ 'pulse-warning': activeMonsters.length > maxMonsters * 0.7 }">
+          <div class="problem-header">
+            <span class="problem-badge">🐛 BUG #{{ currentProblemIndex + 1 }}</span>
+            <span class="bug-type-badge">{{ currentProblem?.bug_type_name || 'BUG' }}</span>
+            <span class="file-name">{{ currentProblem?.file_name || 'unknown.py' }}</span>
+          </div>
+
+          <!-- 에러 로그 -->
+          <div class="error-log" v-if="currentProblem?.error_log">
+            <div class="log-label">📋 ERROR LOG</div>
+            <pre>{{ currentProblem.error_log }}</pre>
+          </div>
+
+          <!-- 버그 코드 -->
+          <div class="code-block">
+            <div class="code-header">
+              <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+              <span class="code-title">{{ currentProblem?.file_name }}</span>
+            </div>
+            <div class="code-body">
+              <div v-for="(line, idx) in buggyCodeLines" :key="idx"
+                   class="code-line"
+                   :class="{ 'bug-line': idx + 1 === currentProblem?.bug_line }">
+                <span class="line-num">{{ idx + 1 }}</span>
+                <span class="line-code" :class="{ 'highlight-bug': idx + 1 === currentProblem?.bug_line }">{{ line }}</span>
+                <span class="bug-marker" v-if="idx + 1 === currentProblem?.bug_line">← BUG!</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 힌트 -->
+          <div class="hint-bar" v-if="showHint">
+            💡 {{ currentProblem?.hint }}
+          </div>
+          <button class="hint-btn" @click="showHint = !showHint" v-if="currentProblem?.hint">
+            {{ showHint ? '힌트 숨기기' : '💡 힌트 보기' }}
+          </button>
+        </div>
+
+        <!-- 선택지 패널 -->
+        <div class="choices-panel">
+          <div class="choices-title">올바른 수정 코드를 선택하세요</div>
+          <div class="choices-grid">
+            <button
+              v-for="(choice, idx) in currentProblem?.choices"
+              :key="idx"
+              class="choice-btn"
+              :class="getChoiceClass(idx)"
+              @click="selectChoice(idx)"
+              :disabled="answerState !== 'idle'"
+            >
+              <span class="choice-label">{{ ['A', 'B', 'C', 'D'][idx] }}</span>
+              <code class="choice-code">{{ choice.label }}</code>
+            </button>
+          </div>
+
+          <!-- 결과 피드백 -->
+          <transition name="slide-up">
+            <div class="answer-feedback" v-if="answerState !== 'idle'" :class="answerState">
+              <span v-if="answerState === 'correct'">✅ 정답! 버그를 가두고 상대에게 날렸습니다! 🫧</span>
+              <span v-else>❌ 오답! 버그가 내 화면으로 파고듭니다... 👾</span>
+            </div>
+          </transition>
+        </div>
       </main>
 
-      <!-- 투명 캔버스 오버레이 (버그 몬스터 표시 영역) -->
+      <!-- 버그 몬스터 오버레이 -->
       <div class="monster-overlay">
-        <!-- 돌아다니는 몬스터 -->
-        <div 
-          v-for="m in activeMonsters" 
-          :key="m.id" 
+        <div
+          v-for="m in activeMonsters"
+          :key="m.id"
           class="monster bug"
-          :style="{ left: m.x + 'px', top: m.y + 'px', opacity: m.isMasking ? 0.2 : 1 }"
-        >
-          👾
-        </div>
-        <!-- 거품에 갇힌 몬스터 (전송 애니메이션용) -->
-        <div 
-          v-for="b in bubbledMonsters" 
-          :key="b.id" 
-          class="monster bubble flying"
-          :style="{ left: b.x + 'px', top: b.y + 'px', transform: `translate(${b.targetX - b.x}px, ${b.targetY - b.y}px)` }"
-        >
-          🫧<span class="inner-bug">👾</span>
-        </div>
+          :style="{ left: m.x + 'px', top: m.y + 'px', fontSize: m.size + 'rem' }"
+        >👾</div>
+
+        <!-- 전송 중인 버블 -->
+        <transition-group name="bubble-fly" tag="div">
+          <div
+            v-for="b in flyingBubbles"
+            :key="b.id"
+            class="flying-bubble"
+            :style="{ left: b.x + 'px', top: b.y + 'px' }"
+          >🫧<span class="inner-bug">👾</span></div>
+        </transition-group>
+
+        <!-- 콤보 팝업 -->
+        <transition-group name="combo-pop" tag="div">
+          <div v-for="p in comboPops" :key="p.id" class="combo-pop" :style="{ left: p.x + 'px', top: p.y + 'px' }">
+            {{ p.text }}
+          </div>
+        </transition-group>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useBubbleSocket } from '../composables/useBubbleSocket'
 
-// === Stores & Routers ===
 const router = useRouter()
 const auth = useAuthStore()
-
-// === Socket ===
-const inputRoomId = ref('')
-const currentRoomId = ref('')
 const bs = useBubbleSocket()
 
-// === Game State ===
+// ── 방 상태 ──
+const inputRoomId = ref('')
+const currentRoomId = ref('')
+
+// ── 게임 상태 ──
 const activeMonsters = ref([])
-const bubbledMonsters = ref([])
+const flyingBubbles = ref([])
+const comboPops = ref([])
 const maxMonsters = 25
-const opponentMonsterCount = ref(0) // 상대방 버그 숫자
+const opponentMonsterCount = ref(0)
 const isWinner = ref(false)
 const combo = ref(0)
-let animationFrameId = null
-const playArea = ref(null)
-const oppAvatarContainer = ref(null) // 아바타 위치 추적용
+const bestCombo = ref(0)
+const totalSolved = ref(0)
+const totalBubblesSent = ref(0)
+let flyBubbleId = 0
+let combPopId = 0
+let animFrameId = null
 
-const dummyCode = [
-  "function <span style='color:#61afef'>calculateRank</span>(users) {",
-  "  if (!users) return [];",
-  "  return users.<span style='color:#61afef'>sort</span>((a, b) => b.score - a.score)",
-  "    .<span style='color:#61afef'>map</span>((u, i) => ({ ...u, rank: i + 1 }));",
-  "}",
-  "",
-  "const data = await <span style='color:#61afef'>fetchData</span>();",
-  "const ranked = <span style='color:#61afef'>calculateRank</span>(data);",
-  "console.<span style='color:#56b6c2'>log</span>(ranked);",
-]
+// ── 문제 상태 ──
+const allProblems = ref([])
+const currentProblemIndex = ref(0)
+const answerState = ref('idle') // 'idle' | 'correct' | 'wrong'
+const showHint = ref(false)
+const selectedChoiceIdx = ref(-1)
 
-// === Lifecycle ===
-onMounted(() => {
-  // 컴포넌트 마운트 시 기본 소켓 이벤트 리스너 세팅
-  bs.onGameStart.value = () => {
-    // 게임 시작 시 양쪽에 초기 몬스터 스폰
-    spawnMonsters(5)
-    opponentMonsterCount.value = 5 // 초기 상대방 몬스터 동기화
-    startGameLoop()
+const currentProblem = computed(() => allProblems.value[currentProblemIndex.value] || null)
+const buggyCodeLines = computed(() => {
+  if (!currentProblem.value?.buggy_code) return []
+  return currentProblem.value.buggy_code.split('\n')
+})
+
+// ── 문제 데이터 로드 (Vite static import) ──
+function loadProblems() {
+  try {
+    // Vite에서 JSON은 정적 import로 처리 (fetch('/src/...') 불가)
+    const json = { progressiveProblems: [] }
+    // progressive-problems.json을 동적 import로 로드
+    import('@/features/practice/bughunt/problem_data/progressive-problems.json')
+      .then(module => {
+        const data = module.default
+        const steps = []
+        for (const group of data.progressiveProblems) {
+          for (const step of group.steps || []) {
+            if (step.fix_mode === 'choice' && step.choices?.length) {
+              steps.push(step)
+            }
+          }
+        }
+        allProblems.value = steps.sort(() => Math.random() - 0.5)
+        console.log(`[BugBubble] 문제 ${steps.length}개 로드 완료`)
+      })
+      .catch(e => {
+        console.warn('[BugBubble] JSON import 실패, 폴백 사용:', e)
+        allProblems.value = getFallbackProblems()
+      })
+  } catch (e) {
+    console.warn('[BugBubble] 문제 로드 실패, 내장 문제 사용:', e)
+    allProblems.value = getFallbackProblems()
   }
+}
 
-  bs.onReceiveMonster.value = (data) => {
-    // 상대가 나에게 보낸 몬스터 받기
+// ── 내장 폴백 문제 ──
+function getFallbackProblems() {
+  return [
+    {
+      step: 1, title: '타입 오류 수정', bug_type: 'A', bug_type_name: 'TypeError',
+      file_name: 'calculator.py', fix_mode: 'choice', bug_line: 3,
+      buggy_code: 'score = "100"\nbonus = 50\ntotal = score + bonus\nprint(total)',
+      error_log: 'TypeError: can only concatenate str (not "int") to str\nLine 3: total = score + bonus',
+      hint: 'score의 타입이 무엇인지 확인해보세요.',
+      choices: [
+        { label: 'total = int(score) + bonus', correct: true },
+        { label: 'total = score + str(bonus)', correct: false },
+        { label: 'total = score.add(bonus)', correct: false },
+        { label: 'total = float(score + bonus)', correct: false },
+      ]
+    },
+    {
+      step: 2, title: '인덱스 오류 수정', bug_type: 'B', bug_type_name: 'IndexError',
+      file_name: 'list_handler.py', fix_mode: 'choice', bug_line: 2,
+      buggy_code: 'items = ["a", "b", "c"]\nlast = items[3]\nprint(last)',
+      error_log: 'IndexError: list index out of range\nLine 2: last = items[3]',
+      hint: '리스트 인덱스는 0부터 시작합니다. 길이가 3이면 마지막 인덱스는?',
+      choices: [
+        { label: 'last = items[2]', correct: true },
+        { label: 'last = items[-0]', correct: false },
+        { label: 'last = items[4]', correct: false },
+        { label: 'last = items.last()', correct: false },
+      ]
+    },
+    {
+      step: 3, title: 'None 반환 처리', bug_type: 'C', bug_type_name: 'AttributeError',
+      file_name: 'user_lookup.py', fix_mode: 'choice', bug_line: 4,
+      buggy_code: 'def find_user(users, name):\n    for u in users:\n        if u["name"] == name:\n            return u\n\nresult = find_user([], "Alice")\nprint(result["email"])',
+      error_log: "AttributeError: 'NoneType' object has no attribute '__getitem__'\nLine 7: print(result[\"email\"])",
+      hint: '함수가 아무것도 찾지 못할 때 무엇을 반환하나요?',
+      choices: [
+        { label: 'if result is not None: print(result["email"])', correct: true },
+        { label: 'print(result.email)', correct: false },
+        { label: 'print(str(result["email"]))', correct: false },
+        { label: 'result = find_user([], "Alice") or {}', correct: false },
+      ]
+    },
+    {
+      step: 4, title: '무한 루프 탈출', bug_type: 'D', bug_type_name: 'LogicError',
+      file_name: 'counter.py', fix_mode: 'choice', bug_line: 3,
+      buggy_code: 'count = 0\nwhile count < 5:\n    print(count)\n    count = count',
+      error_log: 'Program hangs (infinite loop)\nLine 4: count never changes',
+      hint: 'count가 언제 변하나요? 루프가 끝나려면 무엇이 필요할까요?',
+      choices: [
+        { label: 'count = count + 1', correct: true },
+        { label: 'count = count - 1', correct: false },
+        { label: 'count == count + 1', correct: false },
+        { label: 'break', correct: false },
+      ]
+    },
+    {
+      step: 5, title: '딕셔너리 키 오류', bug_type: 'E', bug_type_name: 'KeyError',
+      file_name: 'config_loader.py', fix_mode: 'choice', bug_line: 3,
+      buggy_code: 'config = {"host": "localhost", "port": 8080}\nhost = config["host"]\ndb_name = config["database"]',
+      error_log: "KeyError: 'database'\nLine 3: db_name = config[\"database\"]",
+      hint: '존재하지 않는 키에 접근할 때 안전하게 처리하는 방법은?',
+      choices: [
+        { label: 'db_name = config.get("database", "default_db")', correct: true },
+        { label: 'db_name = config["db"]', correct: false },
+        { label: 'db_name = config.database', correct: false },
+        { label: 'db_name = config or "default_db"', correct: false },
+      ]
+    },
+  ]
+}
+
+// ── 선택지 클래스 ──
+function getChoiceClass(idx) {
+  if (answerState.value === 'idle') return ''
+  const choice = currentProblem.value?.choices?.[idx]
+  if (!choice) return ''
+  if (choice.correct) return 'correct-choice'
+  if (idx === selectedChoiceIdx.value && !choice.correct) return 'wrong-choice'
+  return 'dim-choice'
+}
+
+// ── 정답 선택 ──
+function selectChoice(idx) {
+  if (answerState.value !== 'idle') return
+  selectedChoiceIdx.value = idx
+  const choice = currentProblem.value?.choices?.[idx]
+  if (!choice) return
+
+  if (choice.correct) {
+    answerState.value = 'correct'
+    combo.value++
+    if (combo.value > bestCombo.value) bestCombo.value = combo.value
+    totalSolved.value++
+    spawnComboPopup()
+
+    // 내 화면 버그 1개 제거
+    if (activeMonsters.value.length > 0) {
+      activeMonsters.value.pop()
+    }
+
+    // 버블 날리기 애니메이션 후 소켓 전송
+    launchBubble()
+
+    // 콤보 3개 이상 = 피버 공격 (버그 3개 전송)
+    if (combo.value >= 3 && combo.value % 3 === 0) {
+      setTimeout(() => {
+        bs.emitFeverAttack(currentRoomId.value, 3)
+        opponentMonsterCount.value = Math.min(maxMonsters, opponentMonsterCount.value + 3)
+        spawnComboPopup('🔥 FEVER! +3')
+      }, 300)
+    } else {
+      bs.emitSendMonster(currentRoomId.value, 'normal')
+      opponentMonsterCount.value = Math.min(maxMonsters, opponentMonsterCount.value + 1)
+    }
+  } else {
+    answerState.value = 'wrong'
+    combo.value = 0
+    // 틀리면 내 화면에 버그 +1
     spawnMonsters(1)
   }
-  
-  // [추가] 상대방의 버그 개수 동기화 처리 (백엔드 개조 필요하지만, 여기서는 내가 넘긴 걸로 유추하거나 상대가 주는 이벤트 수신)
-  // 임시로 내가 보낸 만큼 상대 값이 올라감
-  bs.onReceiveFever.value = (data) => {
-    spawnMonsters(data.count)
-  }
 
-  bs.onGameEnd.value = (result) => {
-    cancelAnimationFrame(animationFrameId)
-    isWinner.value = result.isWinner
-  }
-})
-
-onUnmounted(() => {
-  cancelAnimationFrame(animationFrameId)
-  bs.disconnect()
-})
-
-// === Logics ===
-function joinRoom() {
-  if (!inputRoomId.value.trim()) return
-  currentRoomId.value = inputRoomId.value.trim()
-  bs.connect(currentRoomId.value, auth.sessionNickname || 'Anonymous', auth.userAvatarUrl)
+  // 1.2초 후 다음 문제로
+  setTimeout(() => {
+    answerState.value = 'idle'
+    selectedChoiceIdx.value = -1
+    showHint.value = false
+    nextProblem()
+  }, 1200)
 }
 
-function startGame() {
-  bs.emitStart(currentRoomId.value)
+function nextProblem() {
+  if (allProblems.value.length === 0) return
+  currentProblemIndex.value = (currentProblemIndex.value + 1) % allProblems.value.length
 }
 
+// ── 버블 날리기 애니메이션 ──
+function launchBubble() {
+  const id = ++flyBubbleId
+  totalBubblesSent.value++
+  const startX = window.innerWidth * 0.15
+  const startY = window.innerHeight * 0.5
+  flyingBubbles.value.push({ id, x: startX, y: startY })
+  setTimeout(() => {
+    flyingBubbles.value = flyingBubbles.value.filter(b => b.id !== id)
+  }, 800)
+}
+
+// ── 콤보 팝업 ──
+function spawnComboPopup(text) {
+  const id = ++combPopId
+  const txt = text || (combo.value > 1 ? `COMBO x${combo.value}! 🔥` : '정답! ✅')
+  comboPops.value.push({
+    id, text: txt,
+    x: 30 + Math.random() * 40 + '%',
+    y: 30 + Math.random() * 30 + '%'
+  })
+  setTimeout(() => {
+    comboPops.value = comboPops.value.filter(p => p.id !== id)
+  }, 1000)
+}
+
+// ── 몬스터 스폰 ──
 function spawnMonsters(count) {
   for (let i = 0; i < count; i++) {
-    const w = window.innerWidth * 0.4
-    const h = window.innerHeight * 0.4
     activeMonsters.value.push({
       id: Date.now() + Math.random(),
-      x: Math.random() * w + 50,
-      y: Math.random() * h + 50,
-      dx: (Math.random() - 0.5) * 4,
-      dy: (Math.random() - 0.5) * 4,
-      isMasking: false // 방해 모드 여부
+      x: 20 + Math.random() * (window.innerWidth * 0.85 - 60),
+      y: 100 + Math.random() * (window.innerHeight * 0.6),
+      dx: (Math.random() - 0.5) * 3,
+      dy: (Math.random() - 0.5) * 3,
+      size: 1.5 + Math.random() * 0.8
     })
   }
   checkGameOver()
@@ -231,76 +454,73 @@ function spawnMonsters(count) {
 
 function checkGameOver() {
   if (activeMonsters.value.length >= maxMonsters) {
-    // 몬스터 한도 초과 -> 내 패배 전송
     bs.emitGameOver(currentRoomId.value)
   }
 }
 
-// 문제 하나 풀었을 때 (가두고 바로 날리기)
-function solveTestcase() {
-  if (activeMonsters.value.length > 0) {
-    const target = activeMonsters.value.pop()
-    
-    // 도착 지점 계산 (상대방 아바타 위치)
-    let targetX = window.innerWidth * 0.8
-    let targetY = 50
-    if (oppAvatarContainer.value) {
-      const rect = oppAvatarContainer.value.getBoundingClientRect()
-      targetX = rect.left + rect.width / 2 - 30 // 거품 크기 오프셋
-      targetY = rect.top + rect.height / 2 - 30
-    }
-
-    const bubbleId = target.id
-    bubbledMonsters.value.push({ ...target, targetX, targetY })
-    combo.value++
-    
-    // 비동기로 전송 효과 지연
-    setTimeout(() => {
-      sendBubble(bubbleId)
-    }, 500) // 애니메이션 지속 시간 (CSS transition 시간과 유사하게)
-  }
-}
-
-// 콤보 모아서 폭탄 쏘기 (피버)
-function solveAll() {
-  if (combo.value >= 3) {
-    const count = activeMonsters.value.length
-    
-    // 남아있는 몬스터들도 다 방울로 감싸서 날아가는 연출 추가 가능 (일단은 바로 소멸 후 전송)
-    activeMonsters.value = [] // 내 화면 클리어
-    combo.value = 0
-    const bombCount = count + 3
-    bs.emitFeverAttack(currentRoomId.value, bombCount) // 필드 몬스터 + 보너스 전송
-    opponentMonsterCount.value += bombCount // 프론트 예측용
-  }
-}
-
-// 게임 물리 엔진 (무작위 이동)
+// ── 게임 루프 (몬스터 이동) ──
 function startGameLoop() {
   function loop() {
     if (!bs.isPlaying.value) return
+    const W = window.innerWidth * 0.9
+    const H = window.innerHeight * 0.75
 
     activeMonsters.value.forEach(m => {
       m.x += m.dx
       m.y += m.dy
-      
-      // 화면 벽 튕기기 (가운데 공동 에디터 전체를 기어다니게)
-      if (m.x < 0 || m.x > window.innerWidth * 0.9) m.dx *= -1
-      if (m.y < 0 || m.y > window.innerHeight * 0.8) m.dy *= -1
-      
-      // 가끔 방향 틀기
-      if (Math.random() < 0.02) {
-        m.dx = (Math.random() - 0.5) * 4
-        m.dy = (Math.random() - 0.5) * 4
+      if (m.x < 0 || m.x > W) m.dx *= -1
+      if (m.y < 80 || m.y > H) m.dy *= -1
+      if (Math.random() < 0.015) {
+        m.dx = (Math.random() - 0.5) * 3
+        m.dy = (Math.random() - 0.5) * 3
       }
     })
-
-    // 거품 로직 정리 (이동은 css transform으로 위임됨)
-
-    animationFrameId = requestAnimationFrame(loop)
+    animFrameId = requestAnimationFrame(loop)
   }
   loop()
 }
+
+// ── 방 입장 ──
+function joinRoom() {
+  if (!inputRoomId.value.trim()) return
+  currentRoomId.value = inputRoomId.value.trim()
+  bs.connect(currentRoomId.value, auth.sessionNickname || 'Anonymous', null)
+}
+
+function startGame() {
+  bs.emitStart(currentRoomId.value)
+}
+
+// ── 소켓 이벤트 ──
+onMounted(() => {
+  loadProblems()
+
+  bs.onGameStart.value = () => {
+    spawnMonsters(3)
+    opponentMonsterCount.value = 3
+    startGameLoop()
+  }
+
+  // 상대가 내게 버그 1개 보냄
+  bs.onReceiveMonster.value = () => {
+    spawnMonsters(1)
+  }
+
+  // 상대가 피버 공격
+  bs.onReceiveFever.value = (data) => {
+    spawnMonsters(data.count || 3)
+  }
+
+  bs.onGameEnd.value = (result) => {
+    cancelAnimationFrame(animFrameId)
+    isWinner.value = result.isWinner
+  }
+})
+
+onUnmounted(() => {
+  cancelAnimationFrame(animFrameId)
+  bs.disconnect()
+})
 </script>
 
 <style scoped>
@@ -313,195 +533,287 @@ function startGameLoop() {
   overflow: hidden;
 }
 
-.lobby-screen, .result-screen {
+/* ── JOIN / LOBBY ── */
+.join-screen, .lobby-screen, .result-screen {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100vh;
-  gap: 2rem;
+  min-height: 100vh;
+  gap: 1.5rem;
+  padding: 2rem;
 }
+.join-screen h1, .lobby-screen h1 { font-size: 2.5rem; color: #58a6ff; }
+.desc { color: #8b949e; text-align: center; }
 
-.lobby-screen h1, .join-screen h1 { font-size: 3rem; color: #58a6ff; }
-.desc { color: #8b949e; }
-
-/* 방 입장 폼 */
-.join-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; gap: 2rem; }
 .join-box { display: flex; gap: 1rem; }
-.join-box input { padding: 1rem; font-size: 1.25rem; border-radius: 8px; border: 1px solid #30363d; background: #010409; color: #c9d1d9; width: 300px; }
-.join-btn { padding: 1rem 2rem; font-size: 1.25rem; background: #238636; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
-.join-btn:disabled { background: #2ea04366; cursor: not-allowed; }
-.back-btn { padding: 0.5rem 1.5rem; background: transparent; border: 1px solid #8b949e; color: #8b949e; border-radius: 8px; cursor: pointer; }
-.back-btn:hover { background: #8b949e; color: #0d1117; }
-
-.player-panel { display: flex; align-items: center; gap: 1rem; }
-.player-panel.opp { flex-direction: row; }
-.avatar { 
-  font-size: 3rem; 
-  background: #21262d; 
-  width: 80px; 
-  height: 80px; 
-  border-radius: 50%; 
-  border: 2px solid #30363d; 
-  display: flex; 
-  align-items: center; 
-  justify-content: center; 
-  overflow: hidden; 
+.join-box input {
+  padding: 0.75rem 1rem; font-size: 1rem;
+  border-radius: 8px; border: 1px solid #30363d;
+  background: #010409; color: #c9d1d9; width: 260px;
 }
-.avatar img { width: 100%; height: 100%; object-fit: cover; }
-.avatar.opp-avatar { border-color: #ff7b72; }
-.info { display: flex; flex-direction: column; }
-.info.right { text-align: right; }
-.info .name { font-size: 1.2rem; font-weight: bold; color: #c9d1d9; }
-.info .status { font-size: 1rem; color: #8b949e; }
+.join-btn {
+  padding: 0.75rem 1.5rem; background: #238636; color: white;
+  border: none; border-radius: 8px; cursor: pointer; font-weight: bold;
+}
+.join-btn:disabled { background: #2ea04366; cursor: not-allowed; }
+.back-btn {
+  padding: 0.5rem 1.5rem; background: transparent;
+  border: 1px solid #8b949e; color: #8b949e; border-radius: 8px; cursor: pointer;
+}
+
+.how-to-play {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 0.75rem; max-width: 600px; width: 100%;
+  background: #161b22; padding: 1.25rem; border-radius: 12px; border: 1px solid #30363d;
+}
+.htp-item { display: flex; align-items: flex-start; gap: 0.75rem; }
+.htp-icon { font-size: 1.5rem; }
+.htp-item strong { display: block; font-size: 0.9rem; color: #f0f6fc; margin-bottom: 2px; }
+.htp-item p { font-size: 0.75rem; color: #8b949e; margin: 0; }
 
 .players-box {
-  display: flex;
-  align-items: center;
-  gap: 2rem;
-  background: #161b22;
-  padding: 2rem;
-  border-radius: 12px;
-  border: 1px solid #30363d;
+  display: flex; align-items: center; gap: 2rem;
+  background: #161b22; padding: 1.5rem 3rem;
+  border-radius: 12px; border: 1px solid #30363d;
 }
-
-.player {
-  font-size: 1.5rem;
-  font-weight: bold;
-}
+.player { font-size: 1.3rem; font-weight: bold; }
 .player.me { color: #3fb950; }
 .player.opponent { color: #ff7b72; }
-.vs { font-size: 2rem; color: #8b949e; font-style: italic; }
+.vs { font-size: 1.5rem; color: #8b949e; }
 
-.start-btn, .solve-btn, .exit-btn, .fever-btn {
-  padding: 1rem 2rem;
-  font-size: 1.25rem;
-  background: #238636;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: bold;
+.start-btn {
+  padding: 1rem 3rem; font-size: 1.25rem; background: #238636;
+  color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;
+  transition: all 0.2s;
 }
-.start-btn:disabled, .fever-btn:disabled { background: #2ea04366; cursor: not-allowed; }
+.start-btn:hover:not(:disabled) { background: #2ea043; transform: translateY(-2px); }
+.start-btn:disabled { background: #2ea04366; cursor: not-allowed; }
+
+/* ── RESULT ── */
+.result-screen h1.win { color: #3fb950; font-size: 3rem; }
+.result-screen h1.lose { color: #ff7b72; font-size: 3rem; }
+.result-stats {
+  display: flex; gap: 2rem;
+  background: #161b22; padding: 1.5rem 3rem;
+  border-radius: 12px; border: 1px solid #30363d;
+}
+.stat-item { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; }
+.stat-label { font-size: 0.75rem; color: #8b949e; }
+.stat-value { font-size: 2rem; font-weight: bold; color: #58a6ff; }
+.exit-btn {
+  padding: 0.75rem 2rem; background: #21262d; color: #58a6ff;
+  border: 1px solid #30363d; border-radius: 8px; cursor: pointer; font-size: 1rem;
+}
+
+/* ── PLAY SCREEN ── */
+.play-screen { min-height: 100vh; display: flex; flex-direction: column; position: relative; }
 
 .game-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 2rem;
-  background: #161b22;
-  border-bottom: 2px solid #30363d;
-  position: relative;
-  z-index: 10;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0.75rem 1.5rem;
+  background: #161b22; border-bottom: 1px solid #30363d;
+  position: relative; z-index: 10;
+}
+.player-panel { display: flex; align-items: center; gap: 0.75rem; }
+.player-panel.opp { flex-direction: row-reverse; }
+.avatar { font-size: 2rem; background: #21262d; width: 50px; height: 50px; border-radius: 50%; border: 2px solid #3fb950; display: flex; align-items: center; justify-content: center; }
+.opp-avatar { border-color: #ff7b72; }
+.info { display: flex; flex-direction: column; gap: 4px; }
+.info.right { align-items: flex-end; }
+.info .name { font-weight: bold; color: #f0f6fc; }
+.monster-bar {
+  width: 160px; height: 12px; background: #21262d;
+  border-radius: 6px; border: 1px solid #30363d;
+  position: relative; overflow: hidden;
+}
+.monster-fill {
+  height: 100%; background: #3fb950;
+  border-radius: 6px; transition: width 0.3s;
+}
+.monster-fill.danger { background: #ff7b72; animation: pulse-bar 0.5s infinite alternate; }
+.opp-fill { background: #ff7b72; }
+.opp-bar .opp-fill { background: #ff7b72; }
+.opp-bar .opp-fill.danger { background: #ff0000; }
+@keyframes pulse-bar { from { opacity: 0.7; } to { opacity: 1; } }
+.monster-count {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.6rem; font-weight: bold; color: #f0f6fc;
+  white-space: nowrap;
 }
 
-.center-console { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
-.vs-badge { background: linear-gradient(135deg, #d2a8ff, #ff7b72); color: #0d1117; padding: 4px 16px; border-radius: 20px; font-weight: 800; font-size: 1.2rem;}
-.fever-gauge { color: #d2a8ff; font-weight: bold; font-size: 1.2rem; }
+.center-hud { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.vs-badge {
+  background: linear-gradient(135deg, #3fb950, #58a6ff);
+  color: #0d1117; padding: 4px 16px; border-radius: 20px;
+  font-weight: 900; font-size: 1rem;
+}
+.combo-display {
+  font-family: 'Orbitron', monospace; font-size: 0.9rem; font-weight: 900;
+  color: #fbbf24; text-shadow: 0 0 10px rgba(251,191,36,0.5);
+}
+.combo-display.mega-combo { color: #ff7b72; animation: combo-flash 0.4s infinite alternate; }
+@keyframes combo-flash { from { transform: scale(1); } to { transform: scale(1.2); } }
+.fever-ready { font-size: 0.7rem; color: #ff7b72; font-weight: bold; animation: blink 0.8s infinite; }
+@keyframes blink { 50% { opacity: 0.3; } }
 
-/* 1:1 대전 공동 에디터 아레나 */
-.battle-arena.unified {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 2rem;
-  height: calc(100vh - 120px);
+/* ── BATTLE ARENA ── */
+.battle-arena {
+  display: grid; grid-template-columns: 1.2fr 1fr;
+  gap: 1rem; padding: 1rem 1.5rem;
+  flex: 1; position: relative; z-index: 5;
 }
 
-.editor-section {
-  width: 100%;
-  max-width: 1000px;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-}
-
-.editor-header {
-  background: #161b22;
-  padding: 0.5rem 1rem;
-  border-radius: 12px 12px 0 0;
+/* 문제 패널 */
+.problem-panel {
+  background: #161b22; border-radius: 12px;
   border: 1px solid #30363d;
-  border-bottom: none;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  display: flex; flex-direction: column; gap: 0.75rem;
+  padding: 1rem; transition: border-color 0.3s;
 }
-.dot { width: 12px; height: 12px; border-radius: 50%; }
+.problem-panel.pulse-warning { border-color: #ff7b72; box-shadow: 0 0 20px rgba(255,123,114,0.2); }
+
+.problem-header {
+  display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+}
+.problem-badge {
+  background: #388bfd20; color: #58a6ff; border: 1px solid #388bfd;
+  padding: 2px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: bold;
+}
+.bug-type-badge {
+  background: #ff7b7220; color: #ff7b72; border: 1px solid #ff7b72;
+  padding: 2px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: bold;
+}
+.file-name { color: #8b949e; font-size: 0.75rem; margin-left: auto; }
+
+.error-log {
+  background: #0d1117; border: 1px solid #ff7b7240;
+  border-radius: 8px; padding: 0.5rem 0.75rem;
+}
+.log-label { color: #ff7b72; font-size: 0.65rem; font-weight: bold; margin-bottom: 4px; }
+.error-log pre { font-size: 0.7rem; color: #ff7b72; margin: 0; white-space: pre-wrap; line-height: 1.5; }
+
+.code-block { border-radius: 8px; overflow: hidden; }
+.code-header {
+  background: #21262d; padding: 0.4rem 0.75rem;
+  display: flex; align-items: center; gap: 6px;
+}
+.dot { width: 10px; height: 10px; border-radius: 50%; }
 .dot.red { background: #ff5f56; }
 .dot.yellow { background: #ffbd2e; }
 .dot.green { background: #27c93f; }
-.file-name { margin-left: 10px; color: #8b949e; font-size: 0.9rem; font-family: monospace; }
-
-.editor-mockup {
-  background: #010409;
-  border: 1px solid #30363d;
-  border-radius: 0 0 12px 12px;
-  padding: 1.5rem;
-  font-family: 'Consolas', monospace;
-  font-size: 1.2rem;
-  height: 500px;
-  overflow: hidden;
-  position: relative;
+.code-title { color: #8b949e; font-size: 0.75rem; margin-left: 6px; }
+.code-body {
+  background: #010409; padding: 0.75rem;
+  max-height: 220px; overflow-y: auto;
 }
-
-.line { display: flex; gap: 1rem; margin-bottom: 0.25rem; }
-.num { color: #484f58; width: 30px; text-align: right; user-select: none; }
-.code { color: #e6edf3; }
-
-.action-panel {
-  margin-top: 2rem;
-  display: flex;
-  justify-content: center;
-  gap: 1.5rem;
-  z-index: 10;
+.code-line {
+  display: flex; align-items: baseline; gap: 0.75rem;
+  padding: 1px 0; border-radius: 3px;
 }
+.code-line.bug-line { background: rgba(255,123,114,0.1); }
+.line-num { color: #484f58; font-size: 0.75rem; width: 20px; text-align: right; flex-shrink: 0; }
+.line-code { color: #e6edf3; font-size: 0.8rem; font-family: monospace; white-space: pre; }
+.line-code.highlight-bug { color: #ff7b72; text-decoration: underline wavy #ff7b72; }
+.bug-marker { color: #ff7b72; font-size: 0.65rem; font-weight: bold; margin-left: auto; flex-shrink: 0; }
 
-.solve-btn { background: #3fb950; font-size: 1.3rem; padding: 1rem 2.5rem; }
-.fever-btn { background: #a371f7; font-size: 1.3rem; padding: 1rem 2.5rem; }
+.hint-bar {
+  background: rgba(88,166,255,0.1); border: 1px solid rgba(88,166,255,0.3);
+  border-radius: 8px; padding: 0.5rem 0.75rem;
+  font-size: 0.8rem; color: #58a6ff;
+}
+.hint-btn {
+  background: transparent; border: 1px solid #30363d; color: #8b949e;
+  padding: 4px 12px; border-radius: 6px; cursor: pointer; font-size: 0.75rem;
+  transition: all 0.2s;
+}
+.hint-btn:hover { border-color: #58a6ff; color: #58a6ff; }
 
-/* 전체 화면 캔버스 오버레이 (버그 몬스터 표시 영역) */
+/* 선택지 패널 */
+.choices-panel {
+  background: #161b22; border-radius: 12px;
+  border: 1px solid #30363d; padding: 1rem;
+  display: flex; flex-direction: column; gap: 0.75rem;
+}
+.choices-title { font-size: 0.85rem; color: #8b949e; font-weight: bold; }
+
+.choices-grid { display: flex; flex-direction: column; gap: 0.5rem; }
+.choice-btn {
+  display: flex; align-items: center; gap: 0.75rem;
+  background: #21262d; border: 1px solid #30363d;
+  border-radius: 8px; padding: 0.75rem 1rem;
+  cursor: pointer; color: #c9d1d9; text-align: left;
+  transition: all 0.2s; width: 100%;
+}
+.choice-btn:hover:not(:disabled) { border-color: #58a6ff; background: rgba(88,166,255,0.08); }
+.choice-btn:disabled { cursor: not-allowed; }
+.choice-label {
+  width: 22px; height: 22px; border-radius: 50%; border: 1px solid #30363d;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.7rem; font-weight: bold; flex-shrink: 0; color: #8b949e;
+}
+.choice-code { font-family: monospace; font-size: 0.78rem; color: #e6edf3; }
+
+.choice-btn.correct-choice { border-color: #3fb950; background: rgba(63,185,80,0.1); }
+.choice-btn.correct-choice .choice-label { border-color: #3fb950; color: #3fb950; background: rgba(63,185,80,0.1); }
+.choice-btn.wrong-choice { border-color: #ff7b72; background: rgba(255,123,114,0.1); }
+.choice-btn.wrong-choice .choice-label { border-color: #ff7b72; color: #ff7b72; }
+.choice-btn.dim-choice { opacity: 0.35; }
+
+.answer-feedback {
+  border-radius: 8px; padding: 0.6rem 1rem;
+  font-size: 0.85rem; font-weight: bold;
+}
+.answer-feedback.correct { background: rgba(63,185,80,0.15); border: 1px solid #3fb950; color: #3fb950; }
+.answer-feedback.wrong { background: rgba(255,123,114,0.15); border: 1px solid #ff7b72; color: #ff7b72; }
+
+/* ── 몬스터 오버레이 ── */
 .monster-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%; 
-  height: 100%;
-  pointer-events: none;
-  overflow: hidden;
-  z-index: 50;
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 30; overflow: hidden;
 }
-
-.monster {
-  position: absolute;
-  font-size: 2rem;
-  will-change: transform;
-  user-select: none;
-}
-
 .monster.bug {
-  filter: drop-shadow(0 0 10px rgba(255, 123, 114, 0.5));
+  position: absolute; user-select: none;
+  filter: drop-shadow(0 0 8px rgba(255,123,114,0.6));
+  animation: monster-wobble 2s infinite;
+}
+@keyframes monster-wobble {
+  0%, 100% { transform: rotate(-5deg); }
+  50% { transform: rotate(5deg); }
 }
 
-.monster.bubble {
-  font-size: 3.5rem;
-  pointer-events: none; /* 자동 날아가므로 클릭 방지 */
-  filter: drop-shadow(0 0 15px rgba(88, 166, 255, 0.8));
-}
-
-.monster.bubble.flying {
-  transition: transform 0.6s cubic-bezier(0.5, 0, 0.75, 0);
-  opacity: 0.5;
-}
-
-.inner-bug {
+.flying-bubble {
   position: absolute;
-  top: 50%;
-  left: 50%;
+  font-size: 2.5rem;
+  filter: drop-shadow(0 0 12px rgba(88,166,255,0.8));
+}
+.inner-bug {
+  position: absolute; top: 50%; left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 1.5rem !important;
+  font-size: 1.2rem;
 }
 
-.result-screen h1.win { color: #3fb950; }
-.result-screen h1.lose { color: #ff7b72; }
+.bubble-fly-enter-active { animation: fly-to-right 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+@keyframes fly-to-right {
+  0% { transform: translate(0, 0) scale(1); opacity: 1; }
+  50% { transform: translate(250px, -80px) scale(0.9); opacity: 0.9; }
+  100% { transform: translate(600px, -30px) scale(0.5); opacity: 0; }
+}
+
+.combo-pop {
+  position: absolute;
+  font-size: 1.1rem; font-weight: 900; color: #fbbf24;
+  text-shadow: 0 0 10px rgba(251,191,36,0.8);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.combo-pop-enter-active { animation: pop-up 1s ease-out forwards; }
+@keyframes pop-up {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-60px) scale(1.3); }
+}
+
+.slide-up-enter-active { transition: all 0.2s ease-out; }
+.slide-up-enter-from { opacity: 0; transform: translateY(8px); }
 </style>
