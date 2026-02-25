@@ -417,11 +417,16 @@ rs.onSync.value = (data) => {
       // 누적 점수를 Phase 1 점수로 저장 (Phase 2 점수는 아직 0)
       if (myIdx === 0) {
         scoreP2.value = data.score || 0
-        scoreP2Phase1.value = data.score || 0  // ← 추가: 상대 Phase 1 점수 저장
+        scoreP2Phase1.value = data.score || 0
       } else {
         scoreP1.value = data.score || 0
-        scoreP1Phase1.value = data.score || 0  // ← 추가: 상대 Phase 1 점수 저장
+        scoreP1Phase1.value = data.score || 0
       }
+
+      // ← 추가: 상대 진행도 동기화 (오리 위치 이동)
+      remoteRound.value = data.round !== undefined ? data.round : remoteRound.value
+      remoteBlankIdx.value = data.blankIdx !== undefined ? data.blankIdx : remoteBlankIdx.value
+      console.log(`📍 Remote P${myIdx === 0 ? 2 : 1} progress: Round ${remoteRound.value}, BlankIdx ${remoteBlankIdx.value}`)
     }
     // Phase 2: designSprint
     else if (data.phase === 'designSprint') {
@@ -536,6 +541,10 @@ const currentBlankIdx = ref(0)
 const currentCombo = ref(0)
 const checksCompletedP1 = ref(0)
 const checksCompletedP2 = ref(0)
+
+// ← 추가: 상대 진행도 추적 (동기화용)
+const remoteRound = ref(0)
+const remoteBlankIdx = ref(0)
 
 // ────── PHASE 2: DESIGN SPRINT ──────────
 const designCode = ref('')
@@ -678,19 +687,58 @@ const currentBlankData = computed(() => {
   return currentRoundData.value.blanks[blankId]
 })
 
-// 진행도 계산
-const p1ProgressPct = computed(() => {
+// ← 추가: 현재 플레이어 인덱스
+const myPlayerIdx = computed(() => {
+  return rs.roomPlayers.value.findIndex(p => p.sid === rs.socket.value?.id)
+})
+
+// ← 추가: 플레이어별 진행도 (자신)
+const myProgressPct = computed(() => {
   if (currentGamePhase.value === 'speedFill') {
     return ((currentRound.value * 2 + currentBlankIdx.value) / (totalRounds * 2)) * 100
   }
-  return (checksCompletedP1.value / totalChecks.value) * 100
+  // Phase 2: 자신이 P1이면 checksCompletedP1, P2이면 checksCompletedP2
+  if (myPlayerIdx.value === 0) {
+    return (checksCompletedP1.value / totalChecks.value) * 100
+  } else {
+    return (checksCompletedP2.value / totalChecks.value) * 100
+  }
+})
+
+// ← 추가: 플레이어별 진행도 (상대)
+const opponentProgressPct = computed(() => {
+  if (currentGamePhase.value === 'speedFill') {
+    // ← 핵심: 상대의 실제 round/blankIdx 사용
+    return ((remoteRound.value * 2 + remoteBlankIdx.value) / (totalRounds * 2)) * 100
+  }
+  // Phase 2: 상대가 P1이면 checksCompletedP1, P2이면 checksCompletedP2
+  if (myPlayerIdx.value === 0) {
+    // 내가 P1이므로 상대는 P2
+    return (checksCompletedP2.value / totalChecks.value) * 100
+  } else {
+    // 내가 P2이므로 상대는 P1
+    return (checksCompletedP1.value / totalChecks.value) * 100
+  }
+})
+
+// ← 수정: UI 렌더링용 진행도
+const p1ProgressPct = computed(() => {
+  // UI 상단(P2)과 하단(P1)은 고정
+  // myPlayerIdx가 0이면 (자신이 P1): p1 = 자신, p2 = 상대
+  // myPlayerIdx가 1이면 (자신이 P2): p1 = 상대, p2 = 자신
+  if (myPlayerIdx.value === 0) {
+    return myProgressPct.value  // 자신이 P1
+  } else {
+    return opponentProgressPct.value  // 상대가 P1
+  }
 })
 
 const p2ProgressPct = computed(() => {
-  if (currentGamePhase.value === 'speedFill') {
-    return ((currentRound.value * 2) / (totalRounds * 2)) * 100
+  if (myPlayerIdx.value === 0) {
+    return opponentProgressPct.value  // 상대가 P2
+  } else {
+    return myProgressPct.value  // 자신이 P2
   }
-  return (checksCompletedP2.value / totalChecks.value) * 100
 })
 
 // 타임아웃 바 계산
@@ -827,11 +875,12 @@ function handleBlankCorrect() {
     startPhase1Round()
   }
 
-  // 동기화
+  // 동기화 (← 추가: blankIdx로 정확한 위치 동기화)
   const myScore = myIdx === 0 ? scoreP1.value : scoreP2.value
   rs.emitProgress(roomId.value, {
     phase: 'speedFill',
     round: currentRound.value,
+    blankIdx: currentBlankIdx.value,  // ← 추가: 현재 블랭크 인덱스
     score: myScore,
     combo: currentCombo.value,
     sid: rs.socket.value?.id
