@@ -44,7 +44,6 @@ services:
       - AWS_STORAGE_BUCKET_NAME=${AWS_STORAGE_BUCKET_NAME}
       - AWS_S3_REGION_NAME=${AWS_S3_REGION_NAME}
       - STT_RUNPOD_URL=${STT_RUNPOD_URL}
-      - MUSETALK_SERVICE_URL=${MUSETALK_SERVICE_URL}
     depends_on:
       - db
 
@@ -66,37 +65,6 @@ services:
       - VITE_API_Target=http://backend:8000
       - CHOKIDAR_USEPOLLING=true
       - WATCHPACK_POLLING=true
-
-  # AI 아바타 립싱크 서비스 (GPU 필요 시에만 실행: docker compose --profile gpu up)
-  musetalk:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.musetalk
-    command: uvicorn musetalk_server:app --host 0.0.0.0 --port 8001
-    volumes:
-      - ./backend:/app
-    ports:
-      - "8001:8001"
-    env_file:
-      - ./.env
-    environment:
-      - DJANGO_SETTINGS_MODULE=config.settings
-      - DB_NAME=${DB_NAME}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - DATABASE_URL=${DATABASE_URL}
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
-    profiles: ["gpu"]
-    depends_on:
-      - db
 
   # [2026-02-09] 코드 실행 전용 샌드박스 이미지 빌드
   sandbox:

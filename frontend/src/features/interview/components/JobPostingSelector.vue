@@ -56,7 +56,10 @@
 
         <!-- 오른쪽: 공고 파싱 -->
         <div class="panel panel--right">
-          <h3 class="panel-title">공고 파싱</h3>
+          <div class="panel-header">
+            <h3 class="panel-title" style="margin: 0;">공고 파싱</h3>
+            <button class="btn-history-inline" @click="$emit('showHistory')">📋 면접 기록</button>
+          </div>
 
           <!-- Step 1: URL 입력 (항상 표시) -->
           <div class="input-panel">
@@ -211,7 +214,7 @@ import { ref, computed, onMounted } from 'vue';
 import axios from 'axios';
 import { getJobPostings, createJobPosting, deleteJobPosting } from '../api/interviewApi';
 
-const emit = defineEmits(['start']);
+const emit = defineEmits(['start', 'showHistory']);
 const avatarType = ref('woman');
 
 // ── 공통 상태 ──────────────────────────────────────────────
@@ -501,6 +504,30 @@ async function onStart() {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.btn-history-inline {
+  padding: 6px 12px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.7);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-history-inline:hover {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: #6366f1;
+  color: #a5b4fc;
 }
 
 .panel-title {

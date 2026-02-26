@@ -3,7 +3,7 @@
  * 채용공고 선택 → 세션 생성 → 답변 제출 → 피드백 수신 흐름을 관리한다.
  */
 import { ref, computed } from 'vue';
-import { createSession, submitAnswer, saveVisionAnalysis, generateAvatarVideo } from '../api/interviewApi';
+import { createSession, submitAnswer, saveVisionAnalysis } from '../api/interviewApi';
 import { tts } from '../tts';
 import { useVisionAnalysis } from './useVisionAnalysis'; // [수정일: 2026-02-23] [vision] 비전 분석 연동
 
@@ -41,50 +41,17 @@ export function useInterview() {
     return Math.round((slotsCleared.value / totalSlots.value) * 100);
   });
 
-  const videoQueue = ref([]); // { url: string, text: string }[] (비디오 URL과 해당 자막)
+  const videoQueue = ref([]); // { text: string, isReady: bool }[] (TTS + 자막 재생 큐)
   let currentChunkText = '';   // 스트리밍 중 누적되는 현재 문장
-  let chunkIndex = 0;          // 현재 생성 중인 청크 인덱스
-  let isGeneratingVideo = false; // 백엔드 동시 요청 제한 락
+  let chunkIndex = 0;          // 현재 청크 인덱스
 
   /**
-   * 문장 단위 비디오 생성 처리 루프
-   * - 백엔드 과부하 방지를 위해 순차적(Sequential)으로 생성 API 호출
-   */
-  async function processNextGeneration() {
-    if (isGeneratingVideo) return;
-
-    // 아직 생성되지 않은 첫 번째 청크 찾기
-    const targetItem = videoQueue.value.find(item => !item.isReady && !item.url && !item.failed);
-    if (!targetItem) return;
-
-    isGeneratingVideo = true;
-    try {
-      const url = await generateAvatarVideo(targetItem.text, sessionId.value, avatarType.value);
-      targetItem.url = url;
-      targetItem.isReady = true;
-    } catch (err) {
-      console.error('[Vision] 청크 비디오 생성 실패:', err);
-      targetItem.failed = true; // 실패 마킹 (무한 루프 방지)
-    } finally {
-      isGeneratingVideo = false;
-      // 다음 항목이 있으면 이어서 처리
-      processNextGeneration();
-    }
-  }
-
-  /**
-   * 스트리밍 중 분리된 텍스트 청크를 큐에 등록하고 생성 트리거
+   * 스트리밍 중 분리된 텍스트 청크를 큐에 즉시 등록 (정적 이미지 모드: 비디오 생성 없음)
    */
   function processChunk(textChunk) {
     if (!textChunk.trim()) return;
     const chunkId = chunkIndex++;
-
-    // UI 큐에 대기 상태로 등록
-    const queueItem = { id: chunkId, text: textChunk, url: null, isReady: false, failed: false };
-    videoQueue.value.push(queueItem);
-
-    // 생성 루프 트리거
-    processNextGeneration();
+    videoQueue.value.push({ id: chunkId, text: textChunk, isReady: true, failed: false });
   }
 
   /**
@@ -118,7 +85,7 @@ export function useInterview() {
         { role: 'interviewer', content: data.first_question },
       ];
 
-      // 첫 질문 영상 생성
+      // 첫 질문 TTS 큐 등록
       if (data.first_question) {
         processChunk(data.first_question);
       }
@@ -145,7 +112,6 @@ export function useInterview() {
     videoQueue.value = [];
     currentChunkText = '';
     chunkIndex = 0;
-    isGeneratingVideo = false;
 
     // 사용자 메시지 추가
     messages.value.push({ role: 'user', content: answer });
@@ -166,7 +132,7 @@ export function useInterview() {
         nextInterviewerMsg.content += token;
         currentChunkText += token;
 
-        // 첫 문장만 1번 청크로 분리하고, 나머지는 모두 끝날 때까지 모아 2번 청크로 생성 (GPU 부하 절감)
+        // 첫 문장 완성 시 즉시 TTS 큐에 등록, 나머지는 onDone에서 처리
         if (chunkIndex === 0 && (/[.?!]\s|\n/.test(token) || (/[.?!]$/.test(token) && currentChunkText.length > 20))) {
           processChunk(currentChunkText.trim());
           currentChunkText = '';
@@ -229,11 +195,9 @@ export function useInterview() {
     isFinished.value = false;
     finalFeedback.value = null;
     error.value = '';
-    // avatarVideoUrl.value = null; // 더 이상 단일 URL 안 씀
     videoQueue.value = [];
     currentChunkText = '';
     chunkIndex = 0;
-    isGeneratingVideo = false;
   }
 
   return {
@@ -257,6 +221,6 @@ export function useInterview() {
     resetSession,
     visionSystem,
     avatarType,
-    videoQueue, // UI에서 연속 재생할 비디오 큐
+    videoQueue, // UI에서 TTS + 자막 재생할 텍스트 큐
   };
 }

@@ -42,7 +42,6 @@ from core.views.interview import (
     InterviewSessionView, InterviewSessionDetailView, InterviewAnswerView,
     STTTranscribeView,
     TTSSynthesizeView,
-    AvatarVideoView,
 )
 
 router = DefaultRouter()
@@ -108,7 +107,6 @@ urlpatterns = [
     path('interview/sessions/<int:pk>/vision/', InterviewVisionView.as_view(), name='interview_vision'),
     path('stt/transcribe/', STTTranscribeView.as_view(), name='stt_transcribe'),
     path('tts/synthesize/', TTSSynthesizeView.as_view(), name='tts_synthesize'),
-    path('video/generate/', AvatarVideoView.as_view(), name='video_generate'),
 
     # Job Planner API
     path('job-planner/parse/', JobPlannerParseView.as_view(), name='job_planner_parse'),
