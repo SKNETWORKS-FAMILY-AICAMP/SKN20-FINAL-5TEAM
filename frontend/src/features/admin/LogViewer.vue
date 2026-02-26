@@ -40,29 +40,29 @@
     </div>
 
     <!-- 로그 뷰어 대시보드 화면 -->
-    <div v-else class="flex flex-col h-screen p-6 space-y-6 max-w-[1600px] mx-auto">
+    <div v-else class="flex flex-col h-screen overflow-hidden p-4 md:p-6 space-y-4 md:space-y-6 max-w-[1600px] mx-auto box-border">
       
       <!-- 헤더 -->
-      <header class="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-        <div class="flex items-center space-x-6">
+      <header class="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-3 md:p-4 rounded-xl shadow-sm border border-gray-200 gap-4 md:gap-0">
+        <div class="flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-6 w-full md:w-auto">
           <div>
-            <h1 class="text-2xl font-bold text-gray-800 flex items-center">
-              <activity class="w-6 h-6 mr-2 text-blue-600" />
+            <h1 class="text-xl md:text-2xl font-bold text-gray-800 flex items-center">
+              <activity class="w-5 h-5 md:w-6 md:h-6 mr-2 text-blue-600" />
               시스템 모니터링 대시보드
             </h1>
-            <p class="text-gray-500 text-sm mt-1">서버 상태 및 에러 로그 과거 이력 모니터링</p>
+            <p class="text-gray-500 text-xs md:text-sm mt-1">서버 상태 및 에러 로그 과거 이력 모니터링</p>
           </div>
           <!-- 시간 범위 선택 -->
-          <div class="flex items-center bg-gray-100/80 rounded-lg p-1 border border-gray-200 shadow-inner">
-            <label for="timeRange" class="text-sm text-gray-500 font-extrabold px-3 flex items-center">
-              <activity class="w-4 h-4 mr-1.5 text-gray-400"/>
+          <div class="flex items-center bg-gray-100/80 rounded-lg p-1 border border-gray-200 shadow-inner flex-shrink-0 self-start lg:self-auto">
+            <label for="timeRange" class="text-xs md:text-sm text-gray-500 font-extrabold px-2 md:px-3 flex items-center whitespace-nowrap">
+              <activity class="w-3.5 h-3.5 md:w-4 md:h-4 mr-1 md:mr-1.5 text-gray-400"/>
               기간 조회
             </label>
             <select 
               id="timeRange" 
               v-model="timeRange" 
               @change="fetchServerStatus"
-              class="bg-white border-transparent text-blue-700 font-bold text-sm rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm block py-1.5 px-3 cursor-pointer outline-none transition-all appearance-none pr-8 relative"
+              class="bg-white border-transparent text-blue-700 font-bold text-xs md:text-sm rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm block py-1.5 px-2 md:px-3 cursor-pointer outline-none transition-all appearance-none pr-8 relative"
               style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%232563EB%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right .7rem top 50%; background-size: .65rem auto;"
             >
               <option value="24h">최근 24시간</option>
@@ -71,27 +71,27 @@
             </select>
           </div>
         </div>
-        <div class="actions flex space-x-3 items-center">
+        <div class="actions flex space-x-2 md:space-x-3 items-center self-end md:self-auto flex-shrink-0">
           <button 
             @click="refreshAll" 
-            class="bg-white border border-gray-200 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 text-gray-700 font-bold py-2 px-4 rounded-lg flex items-center transition-all duration-200 shadow-sm group"
+            class="bg-white border border-gray-200 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 text-gray-700 font-bold py-1.5 px-3 md:py-2 md:px-4 rounded-lg flex items-center transition-all duration-200 shadow-sm group text-sm md:text-base whitespace-nowrap flex-shrink-0"
             :disabled="isLoading || isLoadingStatus"
           >
-            <refresh-cw class="w-4 h-4 mr-2 text-gray-400 group-hover:text-blue-500 transition-colors" :class="{ 'animate-spin text-blue-500': (isLoading || isLoadingStatus) }" />
+            <refresh-cw class="w-3.5 h-3.5 md:w-4 md:h-4 mr-1.5 md:mr-2 text-gray-400 group-hover:text-blue-500 transition-colors" :class="{ 'animate-spin text-blue-500': (isLoading || isLoadingStatus) }" />
             새로고침
           </button>
           <button 
             @click="logout" 
-            class="bg-slate-800 border border-slate-700 hover:bg-red-600 hover:border-red-500 text-white font-bold py-2 px-4 rounded-lg flex items-center transition-all duration-200 shadow-sm shadow-slate-200 group"
+            class="bg-slate-800 border border-slate-700 hover:bg-red-600 hover:border-red-500 text-white font-bold py-1.5 px-3 md:py-2 md:px-4 rounded-lg flex items-center transition-all duration-200 shadow-sm shadow-slate-200 group text-sm md:text-base whitespace-nowrap flex-shrink-0"
           >
-            <log-out class="w-4 h-4 mr-2 text-slate-300 group-hover:text-white transition-colors" />
+            <log-out class="w-3.5 h-3.5 md:w-4 md:h-4 mr-1.5 md:mr-2 text-slate-300 group-hover:text-white transition-colors" />
             로그아웃
           </button>
         </div>
       </header>
 
       <!-- 상단 차트 영역 -->
-      <section class="chart-section bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex flex-col" style="height: 320px;">
+      <section class="chart-section bg-white p-4 md:p-5 rounded-xl shadow-sm border border-gray-200 flex flex-col flex-shrink-0" style="height: 30vh; min-height: 250px; max-height: 320px;">
         <div class="flex items-center justify-between mb-4 border-b border-gray-100 pb-3">
           <h2 class="text-xl font-extrabold text-gray-800 flex items-center tracking-tight">
             <div class="bg-blue-100 p-2 rounded-lg mr-3 shadow-inner">
@@ -113,7 +113,7 @@
       </section>
 
       <!-- 하단 로그 뷰어 & 아카이브 패널 -->
-      <section class="flex flex-col space-y-6 flex-grow overflow-hidden pb-6">
+      <section class="flex flex-col space-y-4 md:space-y-6 flex-grow overflow-hidden pb-2 md:pb-4">
         
         <!-- 상단: 현재 / 과거 로그 상세 -->
         <div class="current-log-section w-full flex-1 flex flex-col bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden min-h-0">
@@ -135,7 +135,7 @@
               </div>
             </div>
 
-            <div class="bg-gray-900 border-t border-gray-200 flex-grow overflow-hidden flex flex-col p-4 relative">
+            <div class="bg-gray-900 flex-grow overflow-hidden flex flex-col relative">
                <div v-if="saveSuccessMsg" class="absolute top-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-md opacity-90 transition-opacity z-10 text-sm">
                  {{ saveSuccessMsg }}
                </div>
@@ -149,12 +149,12 @@
               <div v-else-if="!logs" class="flex items-center justify-center flex-grow text-gray-500">
                 기록된 로그가 없습니다.
               </div>
-              <div v-else class="log-lines-container overflow-auto w-full h-full text-sm font-mono text-gray-300 pb-10">
+              <div v-else class="log-lines-container overflow-y-auto overflow-x-hidden flex-grow w-full h-full text-sm font-mono text-gray-300 p-4 pb-10 relative">
                 <div 
                   v-for="(line, idx) in logLines" 
                   :key="idx" 
                   :id="'log-line-' + idx"
-                  class="px-3 py-0.5 whitespace-pre-wrap break-all border-l-4 transition-colors"
+                  class="px-3 py-0.5 whitespace-pre-wrap break-words border-l-4 transition-colors"
                   :class="highlightedLine === idx ? 'bg-yellow-100 border-yellow-500 text-gray-900' : 'border-transparent hover:bg-gray-800'"
                 >
                   {{ line }}

@@ -123,6 +123,7 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')   # <-- 이 줄 추가!
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # [수정일: 2026-02-06] 나노바나나 아바타 이미지 저장을 위한 미디어 설정
