@@ -22,12 +22,14 @@ SECRET_KEY = env('SECRET_KEY', default='django-insecure-default-key-for-dev')
 
 DEBUG = env('DEBUG', default=True)
 
-# [추가: 2026-02-26] Cloudflare 터널 접속 허용
+# [추가: 2026-02-26] Cloudflare 터널 접속 허용 + Docker 네트워크 지원
 ALLOWED_HOSTS = [
     'okay-leisure-mitsubishi-registry.trycloudflare.com',  # 새 터널 주소
     '.trycloudflare.com',
     'localhost',
     '127.0.0.1',
+    'backend',  # Docker 컨테이너 서비스명 (프론트엔드 → 백엔드 요청용)
+    'host.docker.internal',  # Docker Desktop 호스트 접근용
 ]
 
 # Application definition

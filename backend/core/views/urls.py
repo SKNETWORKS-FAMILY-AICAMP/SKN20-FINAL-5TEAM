@@ -123,3 +123,6 @@ urlpatterns = [
     path('wars/pressure-question/', CoduckWarsPressureView.as_view(), name='wars_pressure_question'),
     path('wars/evaluate/', CoduckWarsEvaluationView.as_view(), name='wars_evaluate'),
 ]
+
+# [추가: 2026-02-26] Router 등록 (practices, users 등 ViewSet 기반 엔드포인트)
+urlpatterns += router.urls
