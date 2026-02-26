@@ -4,6 +4,8 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 import logging
 logger = logging.getLogger(__name__)
 from django.db.models import Sum, Count, Max
@@ -119,14 +121,20 @@ class LeaderboardView(APIView):
             'has_previous': page_obj.has_previous()
         }, status=status.HTTP_200_OK)
 
+@method_decorator(csrf_exempt, name='dispatch')
 class UserProgressView(APIView):
     """
     사용자의 전체 학습 진행도 및 특정 유닛 진행 상태 조회
+    [수정일: 2026-02-26] CSRF_EXEMPT 추가 - AWS HTTPS 배포 환경 대응
     """
-    permission_classes = [permissions.IsAuthenticated]
+    from rest_framework import permissions
+    permission_classes = [permissions.AllowAny]
 
     def get(self, request):
         user = request.user
+        if not user.is_authenticated:
+            return Response([], status=status.HTTP_200_OK)
+            
         # UserProfile 조회 (email 매칭)
         from core.models import UserProfile
         profile = get_object_or_404(UserProfile, email=user.email)
@@ -150,6 +158,9 @@ class UserProgressView(APIView):
         - detail_id 없이 진행 상태만 저장해야 하는 경우(예: 미션 완료 후 다음 스테이지 해금) 사용합니다.
         """
         user = request.user
+        if not user.is_authenticated:
+            return Response({'message': 'Guest progress not saved to DB'}, status=status.HTTP_200_OK)
+            
         from core.models import UserProfile, Practice
         profile = get_object_or_404(UserProfile, email=user.email)
         
@@ -177,9 +188,11 @@ class UserProgressView(APIView):
             'unlocked_nodes': progress.unlocked_nodes
         }, status=status.HTTP_200_OK)
 
+@method_decorator(csrf_exempt, name='dispatch')
 class SubmitProblemView(APIView):
     """
     문제 해결 시 점수 저장 및 활동 상태 업데이트
+    [수정일: 2026-02-26] CSRF_EXEMPT 추가 - AWS HTTPS 배포 환경 대응
     """
     permission_classes = [permissions.IsAuthenticated]
 

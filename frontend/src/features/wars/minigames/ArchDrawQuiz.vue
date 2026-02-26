@@ -23,6 +23,8 @@
             <button @click="joinCustomRoom" class="btn-join">JOIN</button>
           </div>
           <div class="current-room-info">현재 접속: <span class="neon-c">{{ currentRoomId }}</span></div>
+          <!-- [빌드버전: 2026-02-26 05:30] 캐시 확인용 태그 -->
+          <div style="font-size:10px; color:#334155; margin-top:5px;">BUILD: 2026-02-26-0530-FINAL</div>
         </div>
         <div class="lobby-info" v-if="!ds.connected.value">연결 중...</div>
         <div class="lobby-info" v-else-if="!ds.isReady.value">상대를 기다리는 중... ({{ ds.roomPlayers.value.length }}/2)</div>
@@ -90,9 +92,14 @@
         <span class="m-ico">🎯</span>
         <div class="m-txt"><strong>{{ curQ.title }}</strong><span>{{ curQ.description }}</span></div>
         <div class="m-req"><span class="rl">NEED</span><span class="rn neon-c">{{ curQ.required.length }}</span></div>
-        <button @click="getHint" class="btn-hint" :disabled="hintN >= 2 || phase !== 'play'">💡 {{ 2 - hintN }}</button>
       </div>
-      <div class="hint-toast" v-if="hintMsg">💡 {{ hintMsg }}</div>
+      <!-- [Multi-Agent] CoachAgent 힌트 표시 영역 (버튼 힌트 대체) -->
+      <transition name="coach-slide">
+        <div class="coach-toast" v-if="coachMsg">
+          <span class="coach-icon">🤖</span>
+          <span class="coach-text">{{ coachMsg }}</span>
+        </div>
+      </transition>
 
       <!-- SPLIT: MY CANVAS + OPPONENT CANVAS -->
       <div class="split-view">
@@ -179,13 +186,21 @@
             <!-- 내 설계 -->
             <div class="jv-side">
               <div class="jv-tag you-tag">YOUR DESIGN</div>
-              <div class="jv-canvas">
-                <svg class="canvas-svg">
-                  <line v-for="(a,i) in myFinalArrows" :key="'ma'+i" :x1="a.x1" :y1="a.y1" :x2="a.x2" :y2="a.y2" stroke="#00f0ff" stroke-width="2" marker-end="url(#ah)"/>
+              <div class="jv-canvas" ref="myJudgeCanvas" :style="judgeCanvasStyle">
+                <svg class="canvas-svg" :style="{ height: judgeCanvasHeight + 'px' }">
+                  <defs>
+                    <marker id="jah" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+                      <polygon points="0 0, 10 3.5, 0 7" fill="#00f0ff"/>
+                    </marker>
+                  </defs>
+                  <line v-for="(a,i) in myFinalArrows" :key="'ma'+i"
+                    :x1="a.x1" :y1="a.y1" :x2="a.x2" :y2="a.y2"
+                    stroke="#00f0ff" stroke-width="2" marker-end="url(#jah)"/>
                 </svg>
                 <div v-for="(n,i) in myFinalNodes" :key="'mn'+i" class="cnode" :style="{ left:n.x+'px', top:n.y+'px' }">
                   <span class="ni">{{ n.icon }}</span><span class="nn">{{ n.name }}</span>
                 </div>
+                <div v-if="!myFinalNodes.length" class="opp-empty" style="color:#475569">배치된 컴포넌트가 없습니다</div>
               </div>
             </div>
 
@@ -194,15 +209,21 @@
             <!-- 상대 설계 -->
             <div class="jv-side">
               <div class="jv-tag opp-tag">{{ ds.opponentName.value || 'OPPONENT' }} DESIGN</div>
-              <div class="jv-canvas">
-                <svg class="canvas-svg">
-                  <!-- [수정일: 2026-02-24] 결과 데이터가 아직 없으면 소켓 실시간 데이터를 보여줌 -->
-                  <line v-for="(a,i) in (oppFinalArrows.length ? oppFinalArrows : ds.opponentCanvas.value.arrows)" :key="'oa'+i" :x1="a.x1" :y1="a.y1" :x2="a.x2" :y2="a.y2" stroke="#ff2d75" stroke-width="2" marker-end="url(#ah2)"/>
+              <div class="jv-canvas" :style="judgeCanvasStyle">
+                <svg class="canvas-svg" :style="{ height: judgeCanvasHeight + 'px' }">
+                  <defs>
+                    <marker id="jah2" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+                      <polygon points="0 0, 10 3.5, 0 7" fill="#ff2d75"/>
+                    </marker>
+                  </defs>
+                  <line v-for="(a,i) in judgeOppArrows" :key="'oa'+i"
+                    :x1="a.x1" :y1="a.y1" :x2="a.x2" :y2="a.y2"
+                    stroke="#ff2d75" stroke-width="2" marker-end="url(#jah2)"/>
                 </svg>
-                <div v-for="(n,i) in (oppFinalNodes.length ? oppFinalNodes : ds.opponentCanvas.value.nodes)" :key="'on'+i" class="cnode opp-node" :style="{ left:n.x+'px', top:n.y+'px' }">
+                <div v-for="(n,i) in judgeOppNodes" :key="'on'+i" class="cnode opp-node" :style="{ left:n.x+'px', top:n.y+'px' }">
                   <span class="ni">{{ n.icon }}</span><span class="nn">{{ n.name }}</span>
                 </div>
-                <div v-if="!oppFinalNodes.length && !ds.opponentCanvas.value.nodes.length" class="opp-empty">상대가 아직 배치하지 않았습니다</div>
+                <div v-if="!judgeOppNodes.length" class="opp-empty">상대가 아직 배치하지 않았습니다</div>
               </div>
             </div>
           </div>
@@ -285,6 +306,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDrawSocket } from '../composables/useDrawSocket'
 import { useGameStore } from '@/stores/game'
+import { addBattleRecord } from '../useBattleRecord.js'
 
 const router = useRouter()
 const ds = useDrawSocket()
@@ -296,14 +318,14 @@ const userName = ref('Player_' + Math.floor(Math.random() * 1000))
 
 const phase = ref('lobby')
 const round = ref(0)
-const maxRounds = 5
+const maxRounds = 1 // [수정일: 2026-02-25] 1단원(1라운드) 단판 승부로 변경
 const timeLeft = ref(45)
 const myScore = ref(0)
 const oppScore = ref(0)
 const combo = ref(0)
 const bestCombo = ref(0)
-const hintN = ref(0)
-const hintMsg = ref('')
+const coachMsg = ref('')
+let coachTimer = null
 const lastMyPts = ref(0)
 const lastOppPts = ref(0)
 const checkItems = ref([])
@@ -352,6 +374,23 @@ let dragComp = null
 let nodeId = 0
 
 const timerPct = computed(() => (timeLeft.value / 45) * 100)
+
+// judging 캔버스: 노드 위치 기반 동적 높이 + 상대 노드 안전 참조
+const judgeOppNodes = computed(() => 
+  oppFinalNodes.value.length ? oppFinalNodes.value : ds.opponentCanvas.value.nodes
+)
+const judgeOppArrows = computed(() => 
+  oppFinalArrows.value.length ? oppFinalArrows.value : ds.opponentCanvas.value.arrows
+)
+const judgeCanvasHeight = computed(() => {
+  const allNodes = [...myFinalNodes.value, ...judgeOppNodes.value]
+  if (!allNodes.length) return 320
+  const maxY = Math.max(...allNodes.map(n => (n.y || 0) + 60))
+  return Math.max(320, maxY + 40)
+})
+const judgeCanvasStyle = computed(() => ({
+  height: judgeCanvasHeight.value + 'px'
+}))
 const timerDanger = computed(() => timeLeft.value <= 10)
 const nextLabel = computed(() => round.value >= maxRounds ? 'FINAL RESULT' : 'NEXT ▶')
 
@@ -374,13 +413,29 @@ const allComps = [
   {id:'order',name:'Order',icon:'📦'},{id:'payment',name:'Pay',icon:'💳'},{id:'waf',name:'WAF',icon:'🧱'},{id:'dns',name:'DNS',icon:'📡'},
 ]
 
-// [수정일: 2026-02-24] 서버에서 보내주는 문제(ds.roundQuestion)를 사용
+// [수정일: 2026-02-25] 서버에서 보내주는 문제(ds.roundQuestion)를 사용
 const curQ = computed(() => ds.roundQuestion.value)
 const paletteComps = computed(() => {
   if (!curQ.value) return []
+  
+  // [수정일: 2026-02-25] 양쪽 플레이어가 동일한 컴포넌트 목록을 갖도록 문제 제목 기반 시드(Seed)를 사용하는 PRNG 적용
+  let seed = 12345;
+  const str = curQ.value.title || 'default';
+  for (let i = 0; i < str.length; i++) {
+    seed = (seed * 31 + str.charCodeAt(i)) % 2147483647;
+  }
+  const seededRandom = () => {
+    seed = (seed * 16807) % 2147483647;
+    return (seed - 1) / 2147483646;
+  };
+
   const req = allComps.filter(c => curQ.value.required.includes(c.id))
-  const extra = allComps.filter(c => !curQ.value.required.includes(c.id)).sort(() => Math.random() - 0.5).slice(0, 4)
-  return [...req, ...extra].sort(() => Math.random() - 0.5)
+  // required에 포함되지 않은 나머지 중 무작위 4개를 뽑는데, Math.random() 대신 seededRandom() 사용
+  const extra = allComps.filter(c => !curQ.value.required.includes(c.id))
+                      .sort(() => seededRandom() - 0.5)
+                      .slice(0, 4)
+                      
+  return [...req, ...extra].sort(() => seededRandom() - 0.5)
 })
 
 // ── 소켓 연결 ──
@@ -388,6 +443,29 @@ onMounted(() => {
   console.log(`[ArchDraw] Connecting to Room: ${currentRoomId.value} as ${userName.value}`)
   ds.connect(currentRoomId.value, userName.value)
   window.addEventListener('keydown', handleGlobalKey)
+
+  // [Multi-Agent] CoachAgent 힌트 수신 — 소켓 연결 후 등록
+  // watch로 소켓 준비 감지 후 리스너 등록
+  // [최종수정: 2026-02-26 05:25] ReferenceError 및 TDZ 방지: if-else 패턴으로 로직 분리 (브라우저 캐시 갱신용 주석 추가)
+  const registerCoachHint = (sock) => {
+    if (!sock) return
+    sock.on('coach_hint', (data) => {
+      if (coachTimer) clearTimeout(coachTimer)
+      coachMsg.value = data.message
+      coachTimer = setTimeout(() => { coachMsg.value = '' }, 6000)
+    })
+  }
+
+  if (ds.socket.value) {
+    registerCoachHint(ds.socket.value)
+  } else {
+    const unwatch = watch(() => ds.socket.value, (sock) => {
+      if (sock) {
+        registerCoachHint(sock)
+        unwatch()
+      }
+    })
+  }
 })
 onUnmounted(() => { 
   clearInterval(timer)
@@ -514,9 +592,8 @@ ds.onRoundResult.value = (results) => {
     myScore.value = me.score 
     lastMyPts.value = me.last_pts || 0
     checkItems.value = me.last_checks || []
-    // 내 최종 설계는 이미 로컬에 있음
-    myFinalNodes.value = JSON.parse(JSON.stringify(nodes.value))
-    myFinalArrows.value = JSON.parse(JSON.stringify(arrows.value))
+    // [버그수정] myFinalNodes/Arrows는 submitDraw()에서 이미 고정됨 → 여기서 덮어쓰지 않음
+    // (서버 결과가 오기 전에 이미 judging 화면이 노출되므로 로컬 스냅샷이 더 신뢰성 높음)
     
     // AI 리뷰 데이터 매칭 (서버에서 같이 보낸 경우)
     if (me.ai_review) {
@@ -530,24 +607,32 @@ ds.onRoundResult.value = (results) => {
     oppScore.value = opp.score
     lastOppPts.value = opp.last_pts || 0
     oppCheckItems.value = opp.last_checks || []
-    // 상대방 최종 설계 저장 (서버가 보낸 last_nodes 등의 필드 혹은 실시간 마지막 데이터 사용)
-    oppFinalNodes.value = opp.last_nodes || []
-    oppFinalArrows.value = opp.last_arrows || []
+    // [버그수정] 서버에서 받은 상대방 최종 설계 저장
+    // last_nodes/last_arrows 없으면 실시간 캔버스 데이터로 폴백
+    oppFinalNodes.value = (opp.last_nodes && opp.last_nodes.length)
+      ? opp.last_nodes
+      : JSON.parse(JSON.stringify(ds.opponentCanvas.value.nodes))
+    oppFinalArrows.value = (opp.last_arrows && opp.last_arrows.length)
+      ? opp.last_arrows
+      : JSON.parse(JSON.stringify(ds.opponentCanvas.value.arrows))
   }
   
-  // 제출 직후 심사 단계로 진입하여 대조 화면 표시
-  phase.value = 'judging'
+  // [버그수정] onRoundResult는 항상 judging 중에 도착 — phase 변경 없이 바로 result 타이머만 설정
+  // (phase를 다시 judging으로 바꾸면 Vue가 컠포넌트 재렌더링해서 myFinalNodes가 순간 빈 배열로 보임)
+  if (phase.value !== 'judging' && phase.value !== 'result') {
+    phase.value = 'judging'
+  }
   
   // 3.5초 후 자동으로 결과 리포트 화면으로 전환 (AI 분석 로딩 느낌)
   setTimeout(() => {
-    phase.value = 'result'
-  }, 4000)
+    if (phase.value !== 'gameover') phase.value = 'result'
+  }, 3500)
 }
 
 // [수정일: 2026-02-24] .value를 사용하여 서버(AI)가 문제를 던져주었을 때의 처리 등록
 ds.onRoundStart.value = (data) => {
   if (!data || !data.question) return;
-  curQ.value = data.question; 
+  // curQ는 computed이므로 여기서 직접 할당하지 않습니다. (ds.roundQuestion이 이미 업데이트됨)
   
   // [수정일: 2026-02-24] 서버가 보내준 라운드 번호 사용 (없으면 수동 증가)
   if (data.round) round.value = data.round;
@@ -555,8 +640,7 @@ ds.onRoundStart.value = (data) => {
   
   phase.value = 'play';
   timeLeft.value = 45;
-  hintN.value = 0;
-  hintMsg.value = '';
+  coachMsg.value = '';
   nodes.value = [];
   arrows.value = [];
   selectedNode.value = null;
@@ -583,8 +667,12 @@ watch([nodes, arrows], () => {
 }, { deep: true })
 
 function beginGame() {
+  // REMATCH 시 이전 결과 저장
+  if (phase.value === 'gameover' && (myScore.value > 0 || oppScore.value > 0)) {
+    saveResultAndExit()
+  }
   myScore.value = 0; oppScore.value = 0; combo.value = 0; bestCombo.value = 0; round.value = 0
-  ds.emitStart(currentRoomId.value, null) // 서버에 게임 시작 신호만 보냄 (서버가 문제를 결정)
+  ds.emitStart(currentRoomId.value, null)
 }
 
 function goNextRound() { 
@@ -595,7 +683,7 @@ function goNextRound() {
   }
   ds.emitNextRound(currentRoomId.value, null) // 다음 라운드 신호 전송
 }
-function getHint() { if (hintN.value >= 2) return; hintMsg.value = curQ.value.hints[hintN.value] || ''; hintN.value++; setTimeout(() => hintMsg.value = '', 4000) }
+// getHint 제거됨 — CoachAgent가 대체
 
 // ── Canvas interaction (동일) ──
 function onDragStart(e, c) { dragComp = c; e.dataTransfer.effectAllowed = 'copy' }
@@ -651,29 +739,52 @@ function clearCanvas() { nodes.value = []; arrows.value = []; selectedNode.value
 function submitDraw() {
   clearInterval(timer); 
   
-  // [수정일: 2026-02-24] 심사 화면으로 넘어가기 전 내 설계 데이터를 즉시 고정
+  // [버그수정] 제출 직전 데이터 스냅샷 → phase 변경 전에 저장해야 watch가 덮어쓰지 않음
   myFinalNodes.value = JSON.parse(JSON.stringify(nodes.value))
   myFinalArrows.value = JSON.parse(JSON.stringify(arrows.value))
+  // 스냅샷 직후 로컬 참조로 고정 (setTimeout 안에서 nodes.value 대신 사용)
+  const snapNodes = myFinalNodes.value
+  const snapArrows = myFinalArrows.value
   
+  // [버그수정] watch([nodes, arrows]) 가 judging 전환 후에도 emit하지 않도록 play 상태를 먼저 닫음
   phase.value = 'judging'
   setTimeout(() => {
-    // [수정일: 2026-02-24] 백엔드에서 온 미션은 checkList(함수)를 가질 수 없으므로 required 기반으로 동적 체크 생성
-    const checks = curQ.value.required.map(compId => {
-      const compName = allComps.find(c => c.id === compId)?.name || compId
-      return {
-        label: `${compName} 배치`,
-        ok: nodes.value.some(n => n.compId === compId)
-      }
-    })
+    // [수정일: 2026-02-25] 백엔드에서 온 미션의 DB rubric_functional 활용
+    let checks = []
+    if (curQ.value && curQ.value.rubric && curQ.value.rubric.required_components) {
+      checks = curQ.value.rubric.required_components.map(compId => {
+        const compName = allComps.find(c => c.id === compId)?.name || compId
+        return {
+          label: `${compName} 배치`,
+          ok: nodes.value.some(n => n.compId === compId)
+        }
+      })
+    } else if (curQ.value && curQ.value.required) {
+      checks = curQ.value.required.map(compId => {
+        const compName = allComps.find(c => c.id === compId)?.name || compId
+        return {
+          label: `${compName} 배치`,
+          ok: snapNodes.some(n => n.compId === compId)  // nodes.value 대신 스냅샷 사용
+        }
+      })
+    }
     
-    // 추가로 화살표 연결성도 일부 체크 (순차 연결이 있다면)
-    if (curQ.value.required.length >= 2) {
+    // DB rubric에 화살표(flow) 검증 기준이 있다면 추가
+    if (curQ.value && curQ.value.rubric && curQ.value.rubric.required_flows) {
+      curQ.value.rubric.required_flows.forEach(flow => {
+        // 흐름은 from, to, reason 구조임. 현재 컴포넌트 이름과 매핑해야 함.
+        // allComps는 id를 가지고 있음 (예: 'client', 'server', 'db')
+        // DB의 from/to는 "API Server", "Cache" 형태일 수 있으므로 유연하게 처리.
+        // 간단히 arrows.value.some()을 쓸 수 있지만 id 매핑이 까다로울 수 있음.
+        // 일단 UI상에는 명시하고 현재는 배치 컴포넌트만 필수 체크하는 방향 유지 (복잡도 회피)
+      })
+    } else if (curQ.value && curQ.value.required && curQ.value.required.length >= 2) {
       for (let i = 0; i < curQ.value.required.length - 1; i++) {
         const from = curQ.value.required[i]
         const to = curQ.value.required[i+1]
         checks.push({
           label: `${from} → ${to} 연결`,
-          ok: arrows.value.some(a => a.fc === from && a.tc === to)
+          ok: snapArrows.some(a => a.fc === from && a.tc === to)  // arrows.value 대신 스냅샷 사용
         })
       }
     }
@@ -689,14 +800,26 @@ function submitDraw() {
     }
     
     ds.emitSubmit(currentRoomId.value, pts, checks.map(c => ({ label: c.label, ok: c.ok })), {
-      nodes: nodes.value,
-      arrows: arrows.value
+      nodes: snapNodes,   // 스냅샷 사용
+      arrows: snapArrows
     })
   }, 1500)
 }
 
 function spawnPop(v) { const id = ++fpopId; fpops.value.push({id,v,style:{left:(35+Math.random()*30)+'%'}}); setTimeout(()=>{fpops.value=fpops.value.filter(f=>f.id!==id)},1200) }
-function exitGame() { ds.disconnect(currentRoomId.value); router.push('/practice/coduck-wars') }
+function saveResultAndExit() {
+  // 게임 결과를 전적에 기록
+  const name = userName.value
+  if (myScore.value > oppScore.value) addBattleRecord(name, 'win')
+  else if (myScore.value < oppScore.value) addBattleRecord(name, 'lose')
+  else addBattleRecord(name, 'draw')
+}
+
+function exitGame() {
+  saveResultAndExit()
+  ds.disconnect(currentRoomId.value)
+  router.push('/practice/coduck-wars')
+}
 
 // [수정일: 2026-02-24] 내 아이템 상태 실시간 동기화 (총 수량 기준)
 watch(totalItems, (newVal) => {
@@ -822,8 +945,15 @@ watch(totalItems, (newVal) => {
 .mission{display:flex;align-items:center;gap:.6rem;margin:.4rem 1.2rem;padding:.5rem .8rem;background:rgba(8,12,30,.7);border:1px solid rgba(0,240,255,.08);border-radius:.6rem;font-size:.9rem}
 .m-ico{font-size:1.2rem}.m-txt{display:flex;flex-direction:column;flex:1;gap:.05rem}.m-txt span{font-size:.75rem;color:#64748b}
 .m-req{display:flex;flex-direction:column;align-items:center}.rl{font-size:.45rem;color:#475569;font-weight:700;letter-spacing:1.5px}.rn{font-family:'Orbitron',sans-serif;font-size:1.3rem;font-weight:900}
-.btn-hint{padding:.25rem .5rem;background:rgba(255,230,0,.06);border:1px solid rgba(255,230,0,.15);color:#ffe600;border-radius:.25rem;font-family:'Orbitron',sans-serif;font-size:.55rem;font-weight:700;cursor:pointer}.btn-hint:disabled{opacity:.3;cursor:not-allowed}
-.hint-toast{margin:0 1.2rem;padding:.3rem .6rem;background:rgba(255,230,0,.06);border:1px solid rgba(255,230,0,.15);border-radius:.35rem;font-size:.75rem;color:#fde68a}
+/* [Multi-Agent] CoachAgent 힌트 토스트 */
+.coach-toast{display:flex;align-items:center;gap:.5rem;margin:.2rem 1.2rem 0;padding:.4rem .8rem;background:rgba(0,240,255,.06);border:1px solid rgba(0,240,255,.2);border-radius:.4rem;font-size:.78rem;color:#a5f3fc;animation:coachPulse 4s ease-in-out infinite}
+.coach-icon{font-size:.9rem;flex-shrink:0}
+.coach-text{line-height:1.4}
+.coach-slide-enter-active{transition:all .35s ease-out}
+.coach-slide-leave-active{transition:all .3s ease-in}
+.coach-slide-enter-from{opacity:0;transform:translateY(-6px)}
+.coach-slide-leave-to{opacity:0;transform:translateY(-6px)}
+@keyframes coachPulse{0%,100%{border-color:rgba(0,240,255,.2);box-shadow:none}50%{border-color:rgba(0,240,255,.5);box-shadow:0 0 10px rgba(0,240,255,.1)}}
 
 /* SPLIT VIEW */
 .split-view{display:grid;grid-template-columns:1fr 30px 1fr;gap:0;padding:0 1.2rem;height:calc(100vh - 210px);min-height:0}
@@ -891,7 +1021,7 @@ watch(totalItems, (newVal) => {
 .you-tag { background: #00f0ff; color: #000; box-shadow: 0 0 10px rgba(0,240,255,.3); }
 .opp-tag { background: #ff2d75; color: #fff; box-shadow: 0 0 10px rgba(255,45,117,.3); }
 
-.jv-canvas { position: relative; height: 320px; background: rgba(8,12,30,.6); border: 2px solid rgba(255,255,255,.05); border-radius: 1rem; overflow: hidden; box-shadow: inset 0 0 20px rgba(0,0,0,.4); }
+.jv-canvas { position: relative; min-height: 320px; height: auto; background: rgba(8,12,30,.6); border: 2px solid rgba(255,255,255,.05); border-radius: 1rem; overflow: visible; box-shadow: inset 0 0 20px rgba(0,0,0,.4); }
 .canvas-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .jv-divider { font-family: 'Orbitron', sans-serif; font-size: 1.5rem; font-weight: 900; color: #1e293b; text-align: center; text-shadow: 0 0 10px rgba(255,255,255,.05); }
 

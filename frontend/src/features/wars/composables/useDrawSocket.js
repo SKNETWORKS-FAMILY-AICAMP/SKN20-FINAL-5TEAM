@@ -1,4 +1,4 @@
-import { ref, onUnmounted } from 'vue'
+﻿import { ref, onUnmounted } from 'vue'
 import { io } from 'socket.io-client'
 
 /**
@@ -26,10 +26,18 @@ export function useDrawSocket() {
   function connect(roomId, userName) {
     if (socket.value) return
 
-    // [수정일: 2026-02-25] 소켓을 백엔드(8000)에 직접 연결 (Vite 프록시 우회)
-    const socketUrl = import.meta.env.VITE_SOCKET_URL || `${window.location.protocol}//${window.location.hostname}:8000`
+    // [수정일: 2026-02-26] Mixed Content 방지 및 배포 환경(ngrok) 탄력성 강화
+    const envSocketUrl = import.meta.env.VITE_SOCKET_URL;
+    // HTTPS(ngrok 등) 환경에서는 반드시 상대 경로를 사용하여 Vite 프록시를 타도록 강제함
+    const socketUrl = (window.location.protocol === 'https:' || !envSocketUrl) ? "" : envSocketUrl;
+
+    console.log(`[Socket Debug] Protocol: ${window.location.protocol}`);
+    console.log(`[Socket Debug] Env Variable VITE_SOCKET_URL: "${envSocketUrl}"`);
+    console.log(`[Socket Debug] Final Connection URL: "${socketUrl || window.location.origin}"`);
+
     socket.value = io(socketUrl, {
-      path: '/socket.io',
+      // [수정일: 2026-02-26] AWS ALB 및 Nginx의 /socket.io/ 라우팅 누락 문제 해결을 위해 /api/socket.io 로 경로 변경
+      path: '/api/socket.io',
       transports: ['polling', 'websocket'],
       forceNew: true
     })

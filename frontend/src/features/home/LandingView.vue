@@ -58,6 +58,10 @@
           <LayoutGrid class="nav-icon" />
           <span class="nav-label">Stages</span>
         </a>
+        <a href="#leaderboard" class="nav-item" @click.prevent="scrollToSection('leaderboard')">
+          <Trophy class="nav-icon" />
+          <span class="nav-label">Ranking</span>
+        </a>
 
         <div class="protein-status">
           <Zap class="icon-protein" />
@@ -75,6 +79,10 @@
         <a href="#chapters" class="nav-item" @click.prevent="scrollToSection('chapters')">
           <LayoutGrid class="nav-icon" />
           <span class="nav-label">Stages</span>
+        </a>
+        <a href="#leaderboard" class="nav-item" @click.prevent="scrollToSection('leaderboard')">
+          <Trophy class="nav-icon" />
+          <span class="nav-label">Ranking</span>
         </a>
 
         <div class="protein-status">
@@ -221,14 +229,14 @@
         </div>
       </transition>
       
-      <div class="lb-glass-table-v2">
+      <div class="lb-glass-table-v2" :class="{ 'lb-locked': !isLoggedIn }">
           <div class="lb-table-head">
             <span class="col-rank">Rank</span>
             <span class="col-user">Engineer</span>
             <span class="col-solved">Stages Mastered</span>
             <span class="col-shakes">Arcade Points</span>
           </div>
-          <div v-for="(user, index) in leaderboard" :key="user.id" 
+          <div v-for="(user, index) in leaderboard" :key="user.id"
                class="lb-row-v2" :class="'row-rank-' + user.rank">
             <div class="col-rank">
               <div class="rank-box">
@@ -237,19 +245,19 @@
               </div>
             </div>
             <div class="col-user">
-              <AvatarFrame 
-                :src="user.avatar_url" 
-                :rank="user.current_grade || 'BRONZE'" 
-                size="50px" 
-                hoverZoom 
+              <AvatarFrame
+                :src="user.avatar_url"
+                :rank="user.current_grade || 'BRONZE'"
+                size="50px"
+                hoverZoom
                 class="user-avatar-mini"
               />
               <span class="username-premium">{{ user.nickname }}</span>
             </div>
             <div class="col-solved">
               <div class="unit-badges-container">
-                <div v-for="unit in (user.mastered_units || [])" 
-                     :key="unit.unit_id" 
+                <div v-for="unit in (user.mastered_units || [])"
+                     :key="unit.unit_id"
                      class="unit-badge-mini"
                      :class="[
                        'unit-color-' + unit.unit_number,
@@ -272,17 +280,17 @@
 
           <!-- [수정일: 2026-02-09] 페이징 컨트롤 UI 추가 -->
           <div class="lb-pagination" v-if="leaderboardTotalPages > 1">
-            <button 
-              class="btn-pg prev" 
+            <button
+              class="btn-pg prev"
               :disabled="leaderboardCurrentPage === 1"
               @click="$emit('change-page', leaderboardCurrentPage - 1)"
             >
               <ChevronLeft style="width: 20px;" />
             </button>
-            
+
             <div class="pg-numbers">
-              <span 
-                v-for="p in leaderboardTotalPages" 
+              <span
+                v-for="p in leaderboardTotalPages"
                 :key="'pg-'+p"
                 class="pg-num"
                 :class="{ active: p === leaderboardCurrentPage }"
@@ -292,13 +300,24 @@
               </span>
             </div>
 
-            <button 
-              class="btn-pg next" 
+            <button
+              class="btn-pg next"
               :disabled="leaderboardCurrentPage === leaderboardTotalPages"
               @click="$emit('change-page', leaderboardCurrentPage + 1)"
             >
               <ChevronRight style="width: 20px;" />
             </button>
+          </div>
+
+          <!-- [수정일: 2026-02-26] 비로그인 시 블러 잠금 오버레이 -->
+          <div v-if="!isLoggedIn" class="lb-lock-overlay">
+            <div class="lb-lock-content">
+              <div class="lb-lock-icon-wrap">
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              </div>
+              <p class="lb-lock-title">로그인 후 확인할 수 있습니다</p>
+              <p class="lb-lock-desc">명예의 전당은 로그인한 엔지니어만 열람 가능합니다</p>
+            </div>
           </div>
       </div>
     </section>

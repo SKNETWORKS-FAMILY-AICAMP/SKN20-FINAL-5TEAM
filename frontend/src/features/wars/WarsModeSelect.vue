@@ -9,57 +9,13 @@
     <header class="mode-header">
       <div class="logo-area">
         <span class="logo-icon">🗡️</span>
-        <h1 class="logo-text">TEAM BATTLE</h1>
+        <h1 class="logo-text">BATTLE GAME</h1>
       </div>
       <p class="tagline">아키텍처 능력을 증명하라. 당신의 전장을 선택하세요.</p>
     </header>
 
     <main class="mode-grid">
-      <!-- Mode 1: 기존 아키텍처 서바이벌 -->
-      <div class="mode-card survival" @click="goTo('/practice/coduck-wars/briefing')">
-        <div class="card-glow"></div>
-        <div class="card-inner">
-          <div class="mode-badge">ORIGINAL</div>
-          <div class="mode-icon">🏗️</div>
-          <h2 class="mode-title">아키텍처 서바이벌</h2>
-          <p class="mode-desc">AI 면접관의 압박 속에서 실시간으로 시스템을 설계하고, 장애를 복구하라.</p>
-          <div class="mode-tags">
-            <span class="tag">3인 협동</span>
-            <span class="tag">실시간 코딩</span>
-            <span class="tag">AI 면접</span>
-          </div>
-          <div class="mode-meta">
-            <span>⏱ 10분</span>
-            <span>👥 1~3인</span>
-            <span>🔥 고급</span>
-          </div>
-        </div>
-        <div class="card-arrow">→</div>
-      </div>
-
-      <!-- Mode 2: 아키텍처 드로잉 퀴즈 -->
-      <div class="mode-card drawing" @click="goTo('/practice/coduck-wars/draw-quiz')">
-        <div class="card-glow"></div>
-        <div class="card-inner">
-          <div class="mode-badge hot">NEW</div>
-          <div class="mode-icon">🎨</div>
-          <h2 class="mode-title">아키텍처 캐치마인드</h2>
-          <p class="mode-desc">AI가 다이어그램을 하나씩 그린다. 완성되기 전에 어떤 아키텍처 패턴인지 맞춰라!</p>
-          <div class="mode-tags">
-            <span class="tag">실시간 드로잉</span>
-            <span class="tag">AI 힌트</span>
-            <span class="tag">5라운드</span>
-          </div>
-          <div class="mode-meta">
-            <span>⏱ 5분</span>
-            <span>👤 1인</span>
-            <span>⭐ 초급~중급</span>
-          </div>
-        </div>
-        <div class="card-arrow">→</div>
-      </div>
-
-      <!-- Mode 3: 로직 런 (2026-02-24 수정 - 스피드 아키텍처 빌더에서 교체) -->
+      <!-- Mode 1: 로직 런 (2026-02-26 수정 - 순서 변경, 1vs1 설정) -->
       <div class="mode-card speed" @click="goTo('/practice/coduck-wars/logic-run')">
         <div class="card-glow"></div>
         <div class="card-inner">
@@ -74,75 +30,137 @@
           </div>
           <div class="mode-meta">
             <span>⏱ 10분</span>
-            <span>👥 2~3인</span>
+            <span>👥 1vs1</span>
             <span>⭐ 중급</span>
           </div>
         </div>
         <div class="card-arrow">→</div>
       </div>
 
-      <!-- Mode 4: 1:1 아키텍처 배틀 -->
-      <div class="mode-card battle" @click="goTo('/practice/coduck-wars/arch-battle')">
+      <!-- Mode 2: 1:1 버그 버블 몬스터 (신규) -->
+      <div class="mode-card battle" @click="goTo('/practice/coduck-wars/bug-bubble')">
         <div class="card-glow"></div>
         <div class="card-inner">
           <div class="mode-badge hot">NEW</div>
-          <div class="mode-icon">🆚</div>
-          <h2 class="mode-title">아키텍처 배틀</h2>
-          <p class="mode-desc">같은 장애 시나리오, 같은 시간. AI와 1:1로 대결하고 더 나은 설계를 증명하라.</p>
+          <div class="mode-icon">🫧</div>
+          <h2 class="mode-title">버그버블 몬스터</h2>
+          <p class="mode-desc">문제를 풀고 버그를 가둬 상대에게 날려라! 보글보글 1:1 디펜스 승부.</p>
           <div class="mode-tags">
-            <span class="tag">AI 대전</span>
-            <span class="tag">실시간 비교</span>
-            <span class="tag">AI 심판</span>
+            <span class="tag">1:1 대전</span>
+            <span class="tag">실시간 어택</span>
+            <span class="tag">디펜스</span>
           </div>
           <div class="mode-meta">
-            <span>⏱ 6분</span>
-            <span>👤 1인 vs AI</span>
-            <span>🔥 고급</span>
+            <span>⏱ 무제한</span>
+            <span>👤 1vs1</span>
+            <span>🔥 버그 파티</span>
+          </div>
+        </div>
+        <div class="card-arrow">→</div>
+      </div>
+
+      <!-- Mode 3: 아키텍처 드로잉 퀴즈 (2026-02-26 수정 - 순서 변경, 1vs1 설정) -->
+      <div class="mode-card drawing" @click="goTo('/practice/coduck-wars/draw-quiz')">
+        <div class="card-glow"></div>
+        <div class="card-inner">
+          <div class="mode-badge hot">NEW</div>
+          <div class="mode-icon">🎨</div>
+          <h2 class="mode-title">아키텍처 캐치마인드</h2>
+          <p class="mode-desc">AI가 다이어그램을 하나씩 그린다. 완성되기 전에 어떤 아키텍처 패턴인지 맞춰라!</p>
+          <div class="mode-tags">
+            <span class="tag">실시간 드로잉</span>
+            <span class="tag">AI 힌트</span>
+            <span class="tag">5라운드</span>
+          </div>
+          <div class="mode-meta">
+            <span>⏱ 5분</span>
+            <span>👤 1vs1</span>
+            <span>⭐ 초급~중급</span>
           </div>
         </div>
         <div class="card-arrow">→</div>
       </div>
     </main>
 
-    <!-- Leaderboard Peek -->
+    <!-- 전적 표 -->
     <footer class="mode-footer">
       <div class="leaderboard-peek glass-card">
         <div class="lb-header">
-          <span class="lb-icon">🏆</span>
-          <span>TOP ARCHITECTS</span>
+          <span class="lb-icon">⚔️</span>
+          <span>BATTLE RECORDS</span>
+          <button class="lb-reset-btn" @click="resetRecords" title="전적 초기화">↺</button>
         </div>
-        <div class="lb-rows">
-          <div class="lb-row" v-for="(player, idx) in topPlayers" :key="idx">
-            <span class="lb-rank" :class="'rank-' + (idx + 1)">{{ idx === 0 ? '👑' : '#' + (idx + 1) }}</span>
-            <span class="lb-name">{{ player.name }}</span>
-            <span class="lb-score">{{ player.score }}pt</span>
+
+        <!-- 전적 없을 때 -->
+        <div v-if="!records.length" class="lb-empty">
+          <span>아직 전적이 없습니다. 첫 대전을 시작하세요!</span>
+        </div>
+
+        <!-- 전적 있을 때 -->
+        <template v-else>
+          <div class="lb-col-header">
+            <span class="col-name">플레이어</span>
+            <span class="col-w">승</span>
+            <span class="col-d">무</span>
+            <span class="col-l">패</span>
+            <span class="col-rate">승률</span>
           </div>
-        </div>
+          <div class="lb-row" v-for="(r, idx) in records" :key="r.name">
+            <span class="lb-rank" :class="'rank-' + (idx + 1)">{{ idx === 0 ? '👑' : '#' + (idx + 1) }}</span>
+            <span class="lb-name">{{ r.name }}</span>
+            <span class="col-w stat-win">{{ r.win }}</span>
+            <span class="col-d stat-draw">{{ r.draw }}</span>
+            <span class="col-l stat-lose">{{ r.lose }}</span>
+            <span class="col-rate">
+              <span class="rate-bar-wrap">
+                <span class="rate-bar" :style="{ width: winRate(r) + '%' }"></span>
+              </span>
+              <span class="rate-txt">{{ winRate(r) }}%</span>
+            </span>
+          </div>
+        </template>
       </div>
       <div class="footer-hint">
-        <span>💡 새 모드에서 획득한 점수는 통합 랭킹에 반영됩니다</span>
+        <span>💡 대전 결과가 자동으로 이 화면에 기록됩니다</span>
       </div>
     </footer>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { loadBattleRecords, clearBattleRecords } from './useBattleRecord.js';
 
 const router = useRouter();
 
-const topPlayers = ref([
-  { name: 'ArchMaster_Kim', score: 2480 },
-  { name: 'CloudNinja_23', score: 2210 },
-  { name: 'SRE_Hero', score: 1950 },
-  { name: 'DevOps_Duck', score: 1820 },
-  { name: 'SystemPro_J', score: 1700 },
-]);
+const rawRecords = ref([])
+onMounted(() => { rawRecords.value = loadBattleRecords() })
 
-const goTo = (path) => {
-  router.push(path);
-};
+// 승률 기준 내림차순 정렬
+const records = computed(() =>
+  [...rawRecords.value]
+    .map(r => ({ ...r, total: r.win + r.draw + r.lose }))
+    .sort((a, b) => {
+      const rateA = a.total ? a.win / a.total : 0
+      const rateB = b.total ? b.win / b.total : 0
+      if (rateB !== rateA) return rateB - rateA
+      return b.win - a.win
+    })
+)
+
+function winRate(r) {
+  const total = r.win + r.draw + r.lose
+  return total ? Math.round((r.win / total) * 100) : 0
+}
+
+function resetRecords() {
+  if (!confirm('전적을 모두 삭제하시겠습니까?')) return
+  clearBattleRecords()
+  rawRecords.value = []
+}
+
+const goTo = (path) => router.push(path);
 </script>
 
 <style scoped>
@@ -414,6 +432,61 @@ const goTo = (path) => {
   font-size: 0.75rem;
   color: #475569;
 }
+
+/* 전적 테이블 */
+.lb-reset-btn {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.08);
+  color: #475569;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.lb-reset-btn:hover { color: #ff2d75; border-color: rgba(255,45,117,0.4); }
+
+.lb-empty {
+  text-align: center;
+  padding: 1rem 0;
+  font-size: 0.8rem;
+  color: #475569;
+}
+
+.lb-col-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #475569;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  margin-bottom: 0.3rem;
+}
+
+.lb-row { display: flex; align-items: center; gap: 0.5rem; padding: 0.45rem 0.5rem; border-radius: 0.5rem; transition: background 0.2s; }
+.lb-row:hover { background: rgba(255,255,255,0.03); }
+
+.lb-rank { width: 24px; text-align: center; font-size: 0.8rem; flex-shrink: 0; }
+.lb-rank.rank-1 { font-size: 1rem; }
+.lb-name { flex: 1; font-weight: 600; font-size: 0.8rem; color: #e2e8f0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.col-name { flex: 1; }
+.col-w  { width: 28px; text-align: center; flex-shrink: 0; }
+.col-d  { width: 28px; text-align: center; flex-shrink: 0; }
+.col-l  { width: 28px; text-align: center; flex-shrink: 0; }
+.col-rate { width: 90px; display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+
+.stat-win  { font-weight: 700; font-size: 0.82rem; color: #34d399; }
+.stat-draw { font-weight: 700; font-size: 0.82rem; color: #94a3b8; }
+.stat-lose { font-weight: 700; font-size: 0.82rem; color: #f87171; }
+
+.rate-bar-wrap { flex: 1; height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; }
+.rate-bar { height: 100%; background: linear-gradient(90deg, #34d399, #60a5fa); border-radius: 2px; transition: width 0.5s ease; }
+.rate-txt { font-size: 0.68rem; color: #94a3b8; font-weight: 600; white-space: nowrap; }
 
 /* Responsive */
 @media (max-width: 768px) {

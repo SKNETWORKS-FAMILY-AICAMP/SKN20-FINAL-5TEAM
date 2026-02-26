@@ -24,7 +24,7 @@
           <BookOpen class="w-4 h-4 mr-2" /> 사용법(튜토리얼)
         </button>
         <button class="btn-practice-close" @click="closePractice">
-          <X class="w-4 h-4 mr-2" /> 실습 종료
+          <X class="w-4 h-4 mr-2" /> 나가기
         </button>
       </div>
     </header>
@@ -481,29 +481,11 @@
       <span class="toast-icon">!</span> {{ gameState.feedbackMessage }}
     </div>
 
-    <!-- [2026-02-21] 실습 종료 확인 모달 (NeoModal) -->
-    <Transition name="fade-in">
-      <div v-if="showCloseConfirmModal" class="neo-modal-overlay">
-        <div class="neo-modal-card">
-          <div class="modal-header-neo">
-            <AlertTriangle class="text-rose-400 w-6 h-6 mr-2" />
-            <h3 class="modal-title-neo">실습 종료</h3>
-          </div>
-          <div class="modal-body-neo">
-            <p class="modal-main-text">실습을 종료하고 목록으로 돌아가시겠습니까?</p>
-            <p class="modal-sub-text">현재까지 진행된 내용은 저장되지 않습니다.</p>
-          </div>
-          <div class="modal-footer-neo">
-            <button class="btn-modal-cancel" @click="showCloseConfirmModal = false">
-              계속 진행하기
-            </button>
-            <button class="btn-modal-confirm btn-modal-danger" @click="confirmClosePractice">
-              종료하기 <X class="w-4 h-4 ml-1" />
-            </button>
-          </div>
-        </div>
-      </div>
-    </Transition>
+    <PracticeExitConfirmModal
+      :is-active="showCloseConfirmModal"
+      @cancel="showCloseConfirmModal = false"
+      @confirm="confirmClosePractice"
+    />
 
     <!-- [2026-02-19] 무성의 입력 경고용 프리미엄 모달 (NeoModal) -->
     <Transition name="fade-in">
@@ -558,6 +540,7 @@ const activeYoutubeId = ref(null);
 import CodeFlowVisualizer from './components/CodeFlowVisualizer.vue';
 import AnalysisLoadingScreen from '../components/AnalysisLoadingScreen.vue';
 import PseudocodeTutorialOverlay from './components/PseudocodeTutorialOverlay.vue';
+import PracticeExitConfirmModal from '../components/PracticeExitConfirmModal.vue';
 import { BookOpen } from 'lucide-vue-next';
 
 const router = useRouter();
@@ -1191,9 +1174,9 @@ const { monacoOptions, handleMonacoMount } = useMonacoEditor(
 }
 
 .btn-practice-close {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  color: #f1f5f9;
+  background: rgba(79, 195, 247, 0.08);
+  border: 1px solid rgba(79, 195, 247, 0.38);
+  color: #4fc3f7;
   padding: 8px 16px;
   border-radius: 8px;
   font-weight: 700;
@@ -1205,22 +1188,10 @@ const { monacoOptions, handleMonacoMount } = useMonacoEditor(
 }
 
 .btn-practice-close:hover {
-  background: rgba(239, 68, 68, 0.25);
-  border-color: #ef4444;
+  background: rgba(79, 195, 247, 0.2);
+  border-color: #4fc3f7;
   color: #fff;
-  box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
-}
-
-/* [2026-02-21] 실습 종료 모달 위험 버튼 */
-.btn-modal-danger {
-  background: rgba(239, 68, 68, 0.15) !important;
-  border-color: #ef4444 !important;
-  color: #f87171 !important;
-}
-.btn-modal-danger:hover {
-  background: #ef4444 !important;
-  color: #fff !important;
-  box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+  box-shadow: 0 0 15px rgba(79, 195, 247, 0.35);
 }
 
 /* [2026-02-14] 헤더용 힌트 버튼 (붉은색 위치) */

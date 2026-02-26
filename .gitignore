@@ -68,6 +68,6 @@ backend/test_validator.py
 
 CLAUDE.md
 frontend/.env.local
-
+CLOUDFLARE_TEAM_SETUP_GUIDE.md
 
 backend/GFPGANv1.4.pth

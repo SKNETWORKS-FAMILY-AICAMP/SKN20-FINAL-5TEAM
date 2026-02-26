@@ -9,7 +9,7 @@ export const useAuthStore = defineStore('auth', {
     state: () => ({
         isLoggedIn: false,
         sessionNickname: '',
-        userProteinShakes: 420, // 초기/더미 값
+        userProteinShakes: 0, // 비로그인 시 기본값
         userAvatarUrl: null,    // [수정일: 2026-02-06] 나노바나나 아바타 URL
         userRank: 'BRONZE',     // [수정일: 2026-02-06] 현재 등급
         user: null              // [수정일: 2026-02-06] 전체 유저 데이터 (프로필 수정용)
@@ -92,13 +92,16 @@ export const useAuthStore = defineStore('auth', {
         async logout() {
             try {
                 await axios.post('/api/core/auth/logout/');
-                this.isLoggedIn = false;
-                this.sessionNickname = '';
             } catch (error) {
                 console.error('Logout failed:', error);
+            } finally {
                 // 네트워크 오류 등으로 실패하더라도 클라이언트 상태는 초기화하여 보안 유지
                 this.isLoggedIn = false;
                 this.sessionNickname = '';
+                this.userProteinShakes = 0;
+                this.userAvatarUrl = null;
+                this.userRank = 'BRONZE';
+                this.user = null;
             }
         },
 

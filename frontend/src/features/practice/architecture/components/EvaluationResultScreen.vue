@@ -163,7 +163,7 @@
             <span class="btn-glow"></span>
           </button>
           <!-- 홈 버튼 -->
-          <button class="btn-home" @click="goToHome">
+          <button class="btn-home" @click="$emit('home')">
             <span class="btn-text">HOME</span>
             <span class="btn-glow"></span>
           </button>
@@ -200,7 +200,7 @@ export default {
       default: false
     }
   },
-  emits: ['retry', 'next', 'complete'],
+  emits: ['retry', 'next', 'complete', 'home'],
   data() {
     return {
       showStamp: false,
@@ -267,9 +267,6 @@ export default {
     },
     toggleAccordion(index) {
       this.expandedIndex = this.expandedIndex === index ? null : index;
-    },
-    goToHome() {
-      this.$router.push('/');
     }
   }
 };
@@ -984,7 +981,8 @@ export default {
 
 .btn-retry,
 .btn-next,
-.btn-complete {
+.btn-complete,
+.btn-home {
   position: relative;
   font-family: 'Orbitron', sans-serif;
   font-size: 0.8rem;

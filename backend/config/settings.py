@@ -22,7 +22,14 @@ SECRET_KEY = env('SECRET_KEY', default='django-insecure-default-key-for-dev')
 
 DEBUG = env('DEBUG', default=True)
 
-ALLOWED_HOSTS = ['*']
+# [추가: 2026-02-26] AWS 마이그레이션 - 클라우드플레어 제거 후 새 도메인 추가 + Docker 네트워크 지원
+ALLOWED_HOSTS = [
+    'aiarcade.kro.kr',  # 새 AWS 도메인
+    'localhost',
+    '127.0.0.1',
+    'backend',  # Docker 컨테이너 서비스명 (프론트엔드 → 백엔드 요청용)
+    'host.docker.internal',  # Docker Desktop 호스트 접근용
+]
 
 # Application definition
 INSTALLED_APPS = [
@@ -146,6 +153,7 @@ CORS_ALLOWED_ORIGINS = [
     'http://192.168.45.138:5173',
     'http://192.168.45.138:8000',
     'http://15.164.222.83',
+    'https://aiarcade.kro.kr', # [수정일: 2026-02-26] AWS 도메인 추가
 ]
 CORS_ALLOW_CREDENTIALS = True
 
@@ -158,6 +166,7 @@ CSRF_TRUSTED_ORIGINS = [
     'http://192.168.45.138:5173',
     'http://192.168.45.138:8000',
     'http://15.164.222.83',
+    'https://aiarcade.kro.kr', # [수정일: 2026-02-26] AWS 도메인 추가
 ]
 
 # [수정일: 2026-02-25] localtunnel 지원: TUNNEL_URL 환경변수로 외부 터널 도메인 허용

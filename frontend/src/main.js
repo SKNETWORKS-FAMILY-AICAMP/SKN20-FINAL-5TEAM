@@ -18,7 +18,6 @@ import ManagementView from './features/admin/ManagementView.vue'
 import MyRecordsView from './features/my-records/MyRecordsView.vue'
 import AICoach from './features/ai-coach/AICoach.vue'
 import MockInterview from './features/interview/MockInterview.vue'
-import MissionBriefing from './features/wars/MissionBriefing.vue'
 import PressureInterviewRoom from './features/wars/PressureInterviewRoom.vue'
 import GrowthReport from './features/wars/GrowthReport.vue'
 import WarLobby from './features/wars/WarLobby.vue'
@@ -27,7 +26,10 @@ import WarsModeSelect from './features/wars/WarsModeSelect.vue'
 import ArchDrawQuiz from './features/wars/minigames/ArchDrawQuiz.vue'
 // [수정일: 2026-02-24] SpeedArchBuilder → LogicRun으로 교체
 import LogicRun from './features/wars/minigames/LogicRun.vue'
-import ArchBattle from './features/wars/minigames/ArchBattle.vue'
+// [추가일: 2026-02-25] 신규 1:1 디펜스 게임 Bug-Bubble Monster
+import BugBubbleMonster from './features/wars/minigames/BugBubbleMonster.vue'
+// [수정일: 2026-02-25] 미사용 ArchBattle 컴포넌트 제거
+// import ArchBattle from './features/wars/minigames/ArchBattle.vue'
 
 // [수정일: 2026-02-26] 로그 뷰어화면 임포트
 import LogViewer from './features/admin/LogViewer.vue'
@@ -59,11 +61,7 @@ const routes = [
     name: 'CoduckWars',
     component: WarsModeSelect
   },
-  {
-    path: '/practice/coduck-wars/briefing',
-    name: 'MissionBriefing',
-    component: MissionBriefing
-  },
+  // [삭제: 2026-02-26] 아키텍처 서바이벌(MissionBriefing) 삭제
   // [수정일: 2026-02-23] 미니게임 모드 라우트
   {
     path: '/practice/coduck-wars/draw-quiz',
@@ -77,10 +75,11 @@ const routes = [
     component: LogicRun
   },
   {
-    path: '/practice/coduck-wars/arch-battle',
-    name: 'ArchBattle',
-    component: ArchBattle
+    path: '/practice/coduck-wars/bug-bubble',
+    name: 'BugBubbleMonster',
+    component: BugBubbleMonster
   },
+
   {
     path: '/practice/coduck-wars/battle',
     name: 'PressureInterviewRoom',
@@ -102,7 +101,7 @@ const routes = [
     component: ManagementView
   },
   {
-    path: '/admin/logs',
+    path: '/management/logs',
     name: 'LogViewer',
     component: LogViewer
   },

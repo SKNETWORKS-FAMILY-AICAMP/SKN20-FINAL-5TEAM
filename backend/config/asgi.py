@@ -12,4 +12,5 @@ from core.socket_server import sio
 # HTTP 요청은 Django가 처리하고, /socket.io/ 경로는 Socket.io 서버가 처리합니다.
 
 django_app = get_asgi_application()
-application = socketio.ASGIApp(sio, django_app)
+# [수정일: 2026-02-26] Nginx 등 앞단 프록시에서 /api/ 로 시작하는 라우팅 규칙을 타게 하기 위해 socket.io 기본 경로를 /api/socket.io 로 우회 설정함.
+application = socketio.ASGIApp(sio, django_app, socketio_path='api/socket.io')

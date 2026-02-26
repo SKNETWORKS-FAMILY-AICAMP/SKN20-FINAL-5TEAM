@@ -199,10 +199,9 @@ const isPracticePage = computed(() => {
     'SystemArchitecturePractice',
     'BugHunt',
     'CoduckWars',
-    'MissionBriefing',
     'ArchDrawQuiz',
     'LogicRun', // [수정일: 2026-02-24] SpeedArchBuilder → LogicRun으로 교체 (미추가 시 메인으로 이동되는 버그)
-    'ArchBattle',
+    'BugBubbleMonster', // [추가일: 2026-02-25] 신규 1:1 디펜스 게임
     'PressureInterviewRoom',
     'GrowthReport',
     'ProgressiveProblems',

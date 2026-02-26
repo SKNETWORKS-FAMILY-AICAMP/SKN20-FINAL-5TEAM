@@ -17,5 +17,17 @@ jobs:
           script: |
             cd ~/SKN20-FINAL-5TEAM
             git pull origin main
+            
+            # 1. 백엔드 재시작
             docker compose down
             docker compose up -d --build
+            
+            # 2. 프론트엔드 빌드 부분 
+            cd frontend      
+            npm install
+            npm run build
+            # 만들어진 dist 폴더를 최상위 폴더로 넘겨줌
+            cp -r dist/ ../dist/
+            # Nginx에 덮어쓰기
+            sudo rm -rf /var/www/html/*
+            sudo cp -r /home/ubuntu/SKN20-FINAL-5TEAM/dist/* /var/www/html/

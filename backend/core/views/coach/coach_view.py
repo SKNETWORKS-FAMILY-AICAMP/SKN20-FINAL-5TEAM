@@ -13,6 +13,8 @@ from asgiref.sync import sync_to_async
 from django.conf import settings
 from django.http import StreamingHttpResponse
 from django.shortcuts import get_object_or_404
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -75,9 +77,11 @@ def _should_show_chart(intent_type, user_message):
     return intent_defaults.get(intent_type, False)
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class AICoachView(APIView):
     """ReAct 에이전트 기반 AI 코치 (임시 비활성화됨)
     [수정일: 2026-02-24] 누락된 모듈 오류로 인해 임시 비활성화 조치
+    [수정일: 2026-02-26] CSRF_EXEMPT 추가 - AWS HTTPS 배포 환경 대응
     """
 
     permission_classes = [permissions.IsAuthenticated]

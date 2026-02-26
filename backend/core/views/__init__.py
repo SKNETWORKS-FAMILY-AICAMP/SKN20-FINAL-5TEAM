@@ -23,6 +23,12 @@ from .job_planner.job_planner_view import (
     JobPlannerAgentReportView,
     JobPlannerRecommendView,
 )
+from .coduck_wars_view import (
+    CoduckWarsAnalyzeCodeView,
+    CoduckWarsStartView,
+    CoduckWarsPressureView,
+    CoduckWarsEvaluationView
+)
 
 # [수정일: 2026-02-26] 로그 뷰어 관리자 기능 추가
 from .admin_views import (
