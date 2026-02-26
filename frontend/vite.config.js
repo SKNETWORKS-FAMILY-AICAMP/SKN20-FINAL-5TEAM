@@ -17,24 +17,27 @@ export default defineConfig({
     port: 5173,
 
     // [수정: 2026-02-25] 명시적 호스트 허용으로 ngrok 도메인 등록하여 ngrok 에러 방지 및 보안 강화
+    // [추가: 2026-02-26] Cloudflare 터널 접속 허용
     allowedHosts: [
       'flockier-harlee-ontogenically.ngrok-free.dev',
       'localhost',
-      '.ngrok-free.dev'
+      '.ngrok-free.dev',
+      '.trycloudflare.com',
+      'okay-leisure-mitsubishi-registry.trycloudflare.com'
     ],
 
     // [추가: 2026-02-25] ngrok (https) 환경에서 웹소켓 통신(HMR)을 위한 설정 
-    hmr: {
-      host: 'flockier-harlee-ontogenically.ngrok-free.dev',
-      port: 443,
-      clientPort: 443,
-      protocol: 'wss'
-    },
+    // hmr: {
+    //   host: 'flockier-harlee-ontogenically.ngrok-free.dev',
+    //   port: 443,
+    //   clientPort: 443,
+    //   protocol: 'wss'
+    // },
 
-    watch: {
-      usePolling: true,
-      interval: 1000,
-    },
+    // watch: {
+    //   usePolling: true,
+    //   interval: 1000,
+    // },
     // [수정] target을 localhost로 변경하여 장소에 상관없이 내 컴퓨터의 백엔드와 통신합니다.
     proxy: {
       '/api': {

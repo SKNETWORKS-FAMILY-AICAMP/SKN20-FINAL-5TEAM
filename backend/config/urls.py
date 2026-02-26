@@ -14,8 +14,8 @@ urlpatterns = [
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     
-    # 각 앱의 URL 연결 (협업 시 담당 앱을 추가)
-    path('api/core/', include('core.urls')),
+    # [수정: 2026-02-26] core.urls가 아닌 core.views.urls로 변경하여 ModuleNotFoundError 해결
+    path('api/core/', include('core.views.urls')),
 ]
 
 # [수정일: 2026-02-06] 미디어 파일 서빙 설정 추가 (Antigravity)

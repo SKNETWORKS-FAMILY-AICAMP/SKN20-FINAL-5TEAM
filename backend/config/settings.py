@@ -22,7 +22,13 @@ SECRET_KEY = env('SECRET_KEY', default='django-insecure-default-key-for-dev')
 
 DEBUG = env('DEBUG', default=True)
 
-ALLOWED_HOSTS = ['*']
+# [추가: 2026-02-26] Cloudflare 터널 접속 허용
+ALLOWED_HOSTS = [
+    'okay-leisure-mitsubishi-registry.trycloudflare.com',  # 새 터널 주소
+    '.trycloudflare.com',
+    'localhost',
+    '127.0.0.1',
+]
 
 # Application definition
 INSTALLED_APPS = [

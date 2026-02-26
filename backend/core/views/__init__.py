@@ -29,3 +29,4 @@ from .coduck_wars_view import (
     CoduckWarsPressureView,
     CoduckWarsEvaluationView
 )
+from .google_auth import GoogleLoginView
