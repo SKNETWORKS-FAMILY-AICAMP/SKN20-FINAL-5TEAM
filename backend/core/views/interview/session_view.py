@@ -29,7 +29,11 @@ engine = StateEngine()
 
 def _get_user(request):
     """세션에서 UserProfile을 가져온다. 없으면 None."""
+    print(f"DEBUG _get_user - Cookies: {request.COOKIES}")
+    print(f"DEBUG _get_user - Session Keys: {list(request.session.keys())}")
     user_id = request.session.get('user_id') or request.session.get('_auth_user_id')
+    print(f"DEBUG _get_user - Parsed user_id: {user_id}")
+    
     if not user_id:
         return None
     try:
@@ -175,7 +179,6 @@ class InterviewSessionView(APIView):
                 slot_status_after='UNKNOWN',
                 engine_action='',
                 intent=intent,
-                coach_feedback='',
             )
 
             return Response({
@@ -191,6 +194,15 @@ class InterviewSessionView(APIView):
             }, status=status.HTTP_201_CREATED)
 
         except Exception as e:
+            import traceback
+            import os
+            try:
+                base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                with open(os.path.join(base_dir, 'error_traceback.txt'), 'w', encoding='utf-8') as f:
+                    traceback.print_exc(file=f)
+                    f.write(f"\n세션 생성 오류: {e}")
+            except:
+                pass
             print(f'[SessionView] 세션 생성 오류: {e}')
             return Response({'error': '세션 생성 중 오류가 발생했습니다.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -225,7 +237,6 @@ class InterviewSessionDetailView(APIView):
                 'slot': t.slot,
                 'question': t.question,
                 'answer': t.answer,
-                'coach_feedback': t.coach_feedback,
                 'slot_status_after': t.slot_status_after,
             }
             for t in completed_turns

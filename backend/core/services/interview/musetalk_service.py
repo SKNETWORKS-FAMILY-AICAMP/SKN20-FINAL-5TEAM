@@ -208,10 +208,10 @@ class MuseTalkService:
             # MP4 파일 생성을 위한 VideoWriter 설정 (시뮬레이션용 25fps, 1초)
             # H264 대신 XVID 또는 avc1 사용 (환경에 따라 다를 수 있음)
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            out = cv2.VideoWriter(output_path, fourcc, 25, size)
+            out = cv2.VideoWriter(output_path, fourcc, 20, size)
             
-            # 25프레임(약 1초) 동안 동일 이미지 기록
-            for _ in range(25):
+            # 20프레임(약 1초) 동안 동일 이미지 기록
+            for _ in range(20):
                 out.write(img)
             out.release()
             

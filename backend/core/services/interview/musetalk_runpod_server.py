@@ -196,6 +196,7 @@ async def generate(
                 y2 = min(y2 + extra_margin, ori_frame.shape[0])
                 try:
                     res_frame = cv2.resize(res_frame.astype(np.uint8), (x2 - x1, y2 - y1))
+                    res_frame = cv2.cvtColor(res_frame, cv2.COLOR_RGB2BGR)
                 except Exception:
                     result_frames.append(ori_frame)
                     continue
