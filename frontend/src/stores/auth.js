@@ -92,13 +92,16 @@ export const useAuthStore = defineStore('auth', {
         async logout() {
             try {
                 await axios.post('/api/core/auth/logout/');
-                this.isLoggedIn = false;
-                this.sessionNickname = '';
             } catch (error) {
                 console.error('Logout failed:', error);
+            } finally {
                 // 네트워크 오류 등으로 실패하더라도 클라이언트 상태는 초기화하여 보안 유지
                 this.isLoggedIn = false;
                 this.sessionNickname = '';
+                this.userProteinShakes = 0;
+                this.userAvatarUrl = null;
+                this.userRank = 'BRONZE';
+                this.user = null;
             }
         },
 
