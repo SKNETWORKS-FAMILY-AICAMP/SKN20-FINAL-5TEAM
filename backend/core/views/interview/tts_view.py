@@ -67,20 +67,25 @@ class TTSSynthesizeView(APIView):
         if voice not in self.VALID_VOICES:
             voice = "alloy"
 
+        fmt = request.data.get("format", "mp3")
+        if fmt not in {"mp3", "wav"}:
+            fmt = "mp3"
+
         try:
             client = _get_client()
             response = client.audio.speech.create(
                 model="tts-1",
                 voice=voice,
                 input=text,
-                response_format="mp3",
+                response_format=fmt,
             )
 
             audio_bytes = response.content
+            content_type = "audio/wav" if fmt == "wav" else "audio/mpeg"
 
             return HttpResponse(
                 audio_bytes,
-                content_type="audio/mpeg",
+                content_type=content_type,
                 status=200,
             )
 

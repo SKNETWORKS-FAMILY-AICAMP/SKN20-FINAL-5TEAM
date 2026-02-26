@@ -15,12 +15,27 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/core';
  * @param {string} sessionId - 세션 ID
  * @returns {string} 영상 Object URL
  */
-export async function generateAvatarVideo(text, sessionId = 'temp') {
-  const response = await fetch(`${API_BASE_URL}/video/generate/`, {
+export async function generateAvatarVideo(text, sessionId = 'temp', avatarType = 'woman') {
+  // TTS WAV 먼저 가져오기 (tts.speak()와 동시에 실행됨)
+  const ttsResponse = await fetch(`${API_BASE_URL}/tts/synthesize/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify({ text, session_id: sessionId, avatar_type: 'woman' }),
+    body: JSON.stringify({ text: text, voice: avatarType === 'man' ? 'onyx' : 'nova', format: 'wav' }),
+  });
+  if (!ttsResponse.ok) throw new Error(`TTS 실패: HTTP ${ttsResponse.status}`);
+  const audioBlob = await ttsResponse.blob();
+
+  // WAV blob을 MuseTalk에 직접 전달 (백엔드 TTS 단계 생략)
+  const formData = new FormData();
+  formData.append('audio', audioBlob, 'tts.wav');
+  formData.append('session_id', sessionId);
+  formData.append('avatar_type', avatarType);
+
+  const response = await fetch(`${API_BASE_URL}/video/generate/`, {
+    method: 'POST',
+    credentials: 'include',
+    body: formData,
   });
 
   if (!response.ok) {
@@ -141,12 +156,12 @@ export async function saveVisionAnalysis(sessionId, visionData) {
  */
 export async function submitAnswer(sessionId, answer, callbacks = {}) {
   const {
-    onCoachFeedback = () => {},
-    onToken = () => {},
-    onMeta = () => {},
-    onFinalFeedback = () => {},
-    onDone = () => {},
-    onError = () => {},
+    onCoachFeedback = () => { },
+    onToken = () => { },
+    onMeta = () => { },
+    onFinalFeedback = () => { },
+    onDone = () => { },
+    onError = () => { },
   } = callbacks;
 
   try {

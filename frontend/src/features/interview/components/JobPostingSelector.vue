@@ -181,6 +181,20 @@
       </div>
     </template>
 
+    <!-- 면접관 선택 -->
+    <div class="avatar-select">
+      <button
+        class="avatar-btn"
+        :class="{ 'avatar-btn--active': avatarType === 'woman' }"
+        @click="avatarType = 'woman'"
+      >여성 면접관</button>
+      <button
+        class="avatar-btn"
+        :class="{ 'avatar-btn--active': avatarType === 'man' }"
+        @click="avatarType = 'man'"
+      >남성 면접관</button>
+    </div>
+
     <!-- 시작 버튼 -->
     <button
       class="start-btn"
@@ -198,6 +212,7 @@ import axios from 'axios';
 import { getJobPostings, createJobPosting, deleteJobPosting } from '../api/interviewApi';
 
 const emit = defineEmits(['start']);
+const avatarType = ref('woman');
 
 // ── 공통 상태 ──────────────────────────────────────────────
 const postings = ref([]);
@@ -407,13 +422,13 @@ async function onStart() {
           experience_range: jobData.value.experience_range || '',
           source: 'url',
         });
-        emit('start', saved.id);
+        emit('start', { jobPostingId: saved.id, avatarType: avatarType.value });
       } else {
-        emit('start', postingId);
+        emit('start', { jobPostingId: postingId, avatarType: avatarType.value });
       }
     } else {
       // 저장된 공고 또는 공고 없이 시작
-      emit('start', selectedId.value);
+      emit('start', { jobPostingId: selectedId.value, avatarType: avatarType.value });
     }
   } catch (err) {
     errorMessage.value = err.response?.data?.error || '시작에 실패했습니다. 다시 시도해주세요.';
@@ -780,6 +795,29 @@ async function onStart() {
   border: 1px solid rgba(99, 102, 241, 0.3);
   padding: 2px 8px;
   border-radius: 99px;
+}
+
+/* ── 면접관 선택 ────────────────────────────────────────── */
+.avatar-select {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.avatar-btn {
+  flex: 1;
+  padding: 10px;
+  border: 2px solid #444;
+  border-radius: 8px;
+  background: transparent;
+  color: #ccc;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+.avatar-btn--active {
+  border-color: #6366f1;
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
 }
 
 /* ── 시작 버튼 ─────────────────────────────────────────── */

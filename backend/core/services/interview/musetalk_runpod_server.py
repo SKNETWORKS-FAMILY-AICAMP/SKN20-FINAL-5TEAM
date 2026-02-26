@@ -41,9 +41,9 @@ def get_models():
     from transformers import WhisperModel
 
     _vae, _unet, _pe = load_all_model(
-        unet_model_path=f"{MODEL_DIR}/musetalkV15/unet.pth",
+        unet_model_path=f"{MODEL_DIR}/musetalk/pytorch_model.bin",
         vae_type="sd-vae",
-        unet_config=f"{MODEL_DIR}/musetalkV15/musetalk.json",
+        unet_config=f"{MODEL_DIR}/musetalk/musetalk.json",
         device=_device,
     )
     _pe = _pe.to(dtype=_weight_dtype, device=_device)

@@ -55,6 +55,7 @@ class MuseTalkService:
             self.pe = None
             self.landmarker = None
             self.restorer = None
+            self.face_info_cache = {} # [Optimization] 아바타 이미지별 랜드마크 캐싱
             self._is_initialized = True
 
     def initialize_models(self):
@@ -100,9 +101,12 @@ class MuseTalkService:
             # 리얼 모드에서는 모델 로드 실패 시 로그를 남기고 raise 하는 것이 디버깅에 유리
             raise e
 
-    def generate_video(self, image_path: str, audio_path: str, output_path: str, fps: int = 25) -> str:
+    def generate_video(self, image_path: str, audio_path: str, output_path: str, fps: int = 25, use_restorer: bool = True) -> str:
         """
         이미지와 음성(WAV/MP3)을 입력받아 실제 립싱크 영상을 생성합니다.
+        
+        Args:
+            use_restorer (bool): GFPGAN 얼굴 보정 사용 여부. (기본값 True: 고화질 유지)
         """
         if MUSETALK_SERVICE_URL:
             try:
@@ -133,8 +137,14 @@ class MuseTalkService:
             if Inference is None or self.landmarker is None:
                 raise ImportError("MuseTalk libraries are not installed. Please check Docker environment.")
 
-            # 1. 이미지에서 얼굴 영역 및 랜드마크 추출
-            face_info = self.landmarker.get_face_area(image_path)
+            # 1. 이미지에서 얼굴 영역 및 랜드마크 추출 (캐싱 적용)
+            if image_path in self.face_info_cache:
+                face_info = self.face_info_cache[image_path]
+                print(f"[MuseTalkService] Landmark cache hit: {image_path}")
+            else:
+                print(f"[MuseTalkService] Landmark cache miss. Extracting face info: {image_path}")
+                face_info = self.landmarker.get_face_area(image_path)
+                self.face_info_cache[image_path] = face_info
             
             # 2. 음성 특성 추출 및 MuseTalk 추론 엔진 초기화
             inference_engine = Inference(
@@ -154,8 +164,8 @@ class MuseTalkService:
                 fps=fps
             )
             
-            # (옵션) 얼굴 보정 적용
-            if self.restorer:
+            # (옵션) 얼굴 보정 적용 - 성능을 위해 기본 비활성화
+            if use_restorer and self.restorer:
                 print("[MuseTalkService] GFPGAN 얼굴 보정 적용 중...")
                 video_result = self.restorer.enhance_video(video_result)
 
