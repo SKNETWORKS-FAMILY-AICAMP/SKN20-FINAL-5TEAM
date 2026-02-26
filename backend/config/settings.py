@@ -123,6 +123,7 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')   # <-- 이 줄 추가!
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # [수정일: 2026-02-06] 나노바나나 아바타 이미지 저장을 위한 미디어 설정
@@ -136,7 +137,7 @@ REST_FRAMEWORK = {
 
 # [수정일: 2026-01-22] 로그인 유지 문제 해결을 위한 CORS 및 세션 설정 (Antigravity)
 # credentials 허용 시 ALL_ORIGINS = True 를 사용할 수 없으므로 화이트리스트 방식으로 변경
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:5173',
     'http://127.0.0.1:5173',
@@ -144,6 +145,7 @@ CORS_ALLOWED_ORIGINS = [
     'http://127.0.0.1:8000',
     'http://192.168.45.138:5173',
     'http://192.168.45.138:8000',
+    'http://15.164.222.83',
 ]
 CORS_ALLOW_CREDENTIALS = True
 
@@ -155,6 +157,7 @@ CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:5173',
     'http://192.168.45.138:5173',
     'http://192.168.45.138:8000',
+    'http://15.164.222.83',
 ]
 
 # [수정일: 2026-02-25] localtunnel 지원: TUNNEL_URL 환경변수로 외부 터널 도메인 허용
@@ -183,3 +186,49 @@ SESSION_COOKIE_HTTPONLY = True
 OPENAI_API_KEY = env('OPENAI_API_KEY', default='')
 GOOGLE_API_KEY = env('GOOGLE_API_KEY', default='')
 YOUTUBE_API_KEY = env('YOUTUBE_API_KEY', default=GOOGLE_API_KEY)
+
+# Admin Settings
+ADMIN_USERNAME = env('ADMIN_USERNAME', default='')
+ADMIN_PASSWORD = env('ADMIN_PASSWORD', default='')
+ADMIN_TOKEN_SECRET = env('ADMIN_TOKEN_SECRET', default='')
+
+# [수정일: 2026-02-26] 파일 기반 에러 로깅 설정
+LOGS_DIR = os.path.join(BASE_DIR, 'logs')
+if not os.path.exists(LOGS_DIR):
+    os.makedirs(LOGS_DIR)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': 'WARNING',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(LOGS_DIR, 'error.log'),
+            'formatter': 'verbose',
+        },
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['file', 'console'],
+            'level': 'WARNING',
+            'propagate': True,
+        },
+        'core': {  # 애플리케이션 로그
+            'handlers': ['file', 'console'],
+            'level': 'WARNING',
+            'propagate': True,
+        },
+    },
+}
