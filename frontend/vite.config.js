@@ -42,7 +42,7 @@ export default defineConfig({
       '/api': {
         target: process.env.VITE_API_Target || 'http://localhost:8000',
         changeOrigin: true,
-        cookieDomainRewrite: ""
+        cookieDomainRewrite: "localhost"
       },
       '/media': {
         target: process.env.VITE_API_Target || 'http://localhost:8000',

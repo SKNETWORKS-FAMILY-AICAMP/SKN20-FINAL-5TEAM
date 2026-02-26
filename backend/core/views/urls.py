@@ -42,6 +42,7 @@ from core.views import youtube_recommendation
 from core.views.architecture.architecture_view import ArchitectureEvaluationView, ArchitectureQuestionGeneratorView
 from core.views.coach.coach_view import AICoachView
 from core.views.interview import (
+    InterviewVisionView,
     InterviewJobPostingView, InterviewJobPostingDetailView,
     InterviewSessionView, InterviewSessionDetailView, InterviewAnswerView,
     STTTranscribeView,
@@ -107,6 +108,7 @@ urlpatterns = [
     path('interview/sessions/', InterviewSessionView.as_view(), name='interview_sessions'),
     path('interview/sessions/<int:pk>/', InterviewSessionDetailView.as_view(), name='interview_session_detail'),
     path('interview/sessions/<int:pk>/answer/', InterviewAnswerView.as_view(), name='interview_answer'),
+    path('interview/sessions/<int:pk>/vision/', InterviewVisionView.as_view(), name='interview_vision'),
     path('stt/transcribe/', STTTranscribeView.as_view(), name='stt_transcribe'),
     path('tts/synthesize/', TTSSynthesizeView.as_view(), name='tts_synthesize'),
 

@@ -11,7 +11,7 @@
     <div v-if="isLoading" class="loading-msg">불러오는 중...</div>
 
     <div v-else-if="!sessions.length" class="empty-msg">
-      <div class="empty-icon">📋</div>
+      <div class="empty-icon"></div>
       <p>완료된 면접 기록이 없습니다.</p>
       <p class="empty-sub">면접을 진행하면 여기서 결과를 확인할 수 있어요.</p>
     </div>
@@ -25,7 +25,7 @@
       >
         <div class="session-card__top">
           <div class="session-company">
-            <span class="company-icon">🏢</span>
+            <span class="company-icon"></span>
             <div>
               <div class="company-name">{{ session.job_posting?.company_name || '공고 없이 진행' }}</div>
               <div class="company-position">{{ session.job_posting?.position || '-' }}</div>
@@ -72,19 +72,25 @@
         </div>
 
         <div class="detail-body">
+          <!-- 비전 분석 결과 -->
+          <VisionAnalysisReport
+            v-if="selectedSession.feedback?.vision_analysis"
+            :analysis="selectedSession.feedback.vision_analysis"
+          />
+
           <!-- 피드백 섹션 -->
           <div v-if="selectedSession.feedback" class="detail-feedback">
-            <h4 class="section-title">📊 전체 평가</h4>
+            <h4 class="section-title">전체 평가</h4>
             <p class="feedback-summary">{{ selectedSession.feedback.overall_summary }}</p>
 
             <div class="feedback-two-col">
-              <div v-if="selectedSession.feedback.top_strengths?.length" class="feedback-col">
+              <div v-if="selectedSession.feedback.top_strengths?.length" class="feedback-col feedback-col--strength">
                 <strong class="feedback-col__title strength">강점</strong>
                 <ul class="feedback-list">
                   <li v-for="s in selectedSession.feedback.top_strengths" :key="s">{{ s }}</li>
                 </ul>
               </div>
-              <div v-if="selectedSession.feedback.top_improvements?.length" class="feedback-col">
+              <div v-if="selectedSession.feedback.top_improvements?.length" class="feedback-col feedback-col--improve">
                 <strong class="feedback-col__title improve">개선점</strong>
                 <ul class="feedback-list">
                   <li v-for="i in selectedSession.feedback.top_improvements" :key="i">{{ i }}</li>
@@ -93,7 +99,7 @@
             </div>
 
             <div v-if="selectedSession.feedback.recommendation" class="feedback-recommendation">
-              💡 {{ selectedSession.feedback.recommendation }}
+              {{ selectedSession.feedback.recommendation }}
             </div>
           </div>
 
@@ -129,6 +135,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { getSessions, getSession, deleteSession } from '../api/interviewApi';
+import VisionAnalysisReport from './VisionAnalysisReport.vue';
 
 defineEmits(['back']);
 
@@ -174,7 +181,7 @@ function slotStatusClass(s) {
 }
 
 function slotStatusKo(s) {
-  return { CLEAR: '✅ 완료', PARTIAL: '🔶 부분', UNKNOWN: '❓ 미확인', UNCERTAIN: '❓ 미확인' }[s] || s;
+  return { CLEAR: '완료', PARTIAL: '부분', UNKNOWN: '미확인', UNCERTAIN: '미확인' }[s] || s;
 }
 
 function formatDate(isoStr) {
@@ -374,21 +381,34 @@ function formatDate(isoStr) {
 
 .detail-body {
   overflow-y: auto;
-  padding: 20px 24px;
+  padding: 16px 20px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 12px;
+  background: #f0f2f5;
 }
 
 .section-title {
-  font-size: 14px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
   font-weight: 700;
   color: #374151;
+  -webkit-text-fill-color: #374151;
+  background: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
   margin: 0 0 12px;
+  padding-left: 10px;
+  border-left: 3px solid #6366f1;
 }
 
 /* 피드백 */
-.detail-feedback { }
+.detail-feedback {
+  background: white;
+  border-radius: 12px;
+  padding: 16px 18px;
+  border: 1px solid #e5e7eb;
+}
 
 .feedback-summary {
   font-size: 14px;
@@ -402,7 +422,19 @@ function formatDate(isoStr) {
 
 .feedback-two-col { display: flex; gap: 16px; margin-bottom: 12px; }
 
-.feedback-col { flex: 1; }
+.feedback-col {
+  flex: 1;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.feedback-col--strength {
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+}
+.feedback-col--improve {
+  background: #fff5f5;
+  border: 1px solid #fca5a5;
+}
 
 .feedback-col__title {
   display: block;
@@ -432,6 +464,13 @@ function formatDate(isoStr) {
 }
 
 /* 역량별 결과 */
+.detail-slots {
+  background: white;
+  border-radius: 12px;
+  padding: 16px 18px;
+  border: 1px solid #e5e7eb;
+}
+
 .slot-result-row {
   display: flex;
   justify-content: space-between;
@@ -455,30 +494,60 @@ function formatDate(isoStr) {
 .slot-status-badge.pill--uncertain { background: #f3f4f6; color: #6b7280; }
 
 /* Q&A */
-.detail-qa { }
+.detail-qa {
+  background: white;
+  border-radius: 12px;
+  padding: 16px 18px;
+  border: 1px solid #e5e7eb;
+}
 
 .qa-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   margin-bottom: 16px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #f3f4f6;
 }
-.qa-item:last-child { border-bottom: none; margin-bottom: 0; }
+.qa-item:last-child { margin-bottom: 0; }
 
 .qa-q {
+  align-self: flex-start;
+  max-width: 85%;
   font-size: 13px;
-  font-weight: 600;
-  color: #4f46e5;
-  margin-bottom: 6px;
-  line-height: 1.5;
+  font-weight: 400;
+  color: #374151;
+  background: #f3f4f6;
+  border-radius: 0 12px 12px 12px;
+  padding: 10px 14px;
+  line-height: 1.6;
+}
+
+.qa-q::before {
+  content: '면접관';
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7280;
+  margin-bottom: 5px;
 }
 
 .qa-a {
+  align-self: flex-end;
+  max-width: 85%;
   font-size: 13px;
-  color: #374151;
+  color: #1e1b4b;
+  background: #ede9fe;
+  border-radius: 12px 0 12px 12px;
+  padding: 10px 14px;
   line-height: 1.6;
-  background: #f8fafc;
-  padding: 10px 12px;
-  border-radius: 8px;
   white-space: pre-wrap;
+}
+
+.qa-a::before {
+  content: '나';
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #6366f1;
+  margin-bottom: 5px;
 }
 </style>

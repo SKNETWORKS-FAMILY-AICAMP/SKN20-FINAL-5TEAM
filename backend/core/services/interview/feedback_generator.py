@@ -6,7 +6,7 @@ feedback_generator.py — 최종 피드백 생성기
 import json
 import openai
 from django.conf import settings
-from core.services.interview.coach import EVIDENCE_LABELS, SLOT_REQUIRED
+from core.services.interview.constants import EVIDENCE_LABELS, SLOT_REQUIRED
 
 
 def generate_feedback(session) -> dict:
