@@ -11,6 +11,8 @@ import App from './App.vue'
 axios.defaults.withCredentials = true
 axios.defaults.xsrfCookieName = 'csrftoken'
 axios.defaults.xsrfHeaderName = 'X-CSRFToken'
+// [2026-02-25] Nginx 배포 환경을 위한 전역 Base URL 설정
+axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL || ''
 
 // 새로운 퀘스트 기반 Logic Mirror 임포트
 import PseudocodePractice from './features/practice/pseudocode/PseudocodePractice.vue'
@@ -31,6 +33,9 @@ import ArchDrawQuiz from './features/wars/minigames/ArchDrawQuiz.vue'
 // [수정일: 2026-02-24] SpeedArchBuilder → LogicRun으로 교체
 import LogicRun from './features/wars/minigames/LogicRun.vue'
 import ArchBattle from './features/wars/minigames/ArchBattle.vue'
+
+// [수정일: 2026-02-26] 로그 뷰어화면 임포트
+import LogViewer from './features/admin/LogViewer.vue'
 
 // [수정일: 2026-01-31] 사용하지 않는 구버전/비활성 컴포넌트 임포트 주석 처리
 // import AiDetectivePractice from './features/practice/AiDetectivePractice.vue'
@@ -135,6 +140,11 @@ const routes = [
     path: '/management/progress',
     name: 'Management',
     component: ManagementView
+  },
+  {
+    path: '/admin/logs',
+    name: 'LogViewer',
+    component: LogViewer
   },
   {
     path: '/my-records',

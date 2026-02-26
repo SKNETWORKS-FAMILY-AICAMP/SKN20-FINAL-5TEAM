@@ -212,7 +212,8 @@ const isPracticePage = computed(() => {
     'MyRecords',
     'AICoach',
     'MockInterview',
-    'WarLobby'
+    'WarLobby',
+    'LogViewer'
   ];
   return practiceRoutes.includes(route?.name);
 
