@@ -391,6 +391,7 @@ import { ref, computed, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { aiQuests } from '@/features/practice/pseudocode/data/stages'
+import { addBattleRecord } from '../useBattleRecord.js'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -1022,14 +1023,14 @@ function endGame(result) {
   if (phase2WaitingInterval) clearInterval(phase2WaitingInterval)
   phase.value = 'result'
 
-  // 멀티플레이어 동기화 (← 수정: 자신의 점수 사용)
   const myTotal = myTotalScore.value
+  const oppTotal = opponentTotalScore.value
+  const name = auth.sessionNickname || myName.value || 'Player'
+  if (myTotal > oppTotal) addBattleRecord(name, 'win')
+  else if (myTotal < oppTotal) addBattleRecord(name, 'lose')
+  else addBattleRecord(name, 'draw')
 
-  // LogicRun 전용: 상대 점수 개별 전송 (run_finish는 broadcast라 모두 같은 값을 받음)
-  rs.emitLogicFinish(roomId.value, {
-    totalScore: myTotal,
-    result
-  })
+  rs.emitLogicFinish(roomId.value, { totalScore: myTotal, result })
 }
 
 // ─── 유틸 ─────────────────────────────────────────────

@@ -209,6 +209,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useBubbleSocket } from '../composables/useBubbleSocket'
+import { addBattleRecord } from '../useBattleRecord.js'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -514,6 +515,8 @@ onMounted(() => {
   bs.onGameEnd.value = (result) => {
     cancelAnimationFrame(animFrameId)
     isWinner.value = result.isWinner
+    const name = auth.sessionNickname || 'Player'
+    addBattleRecord(name, result.isWinner ? 'win' : 'lose')
   }
 })
 

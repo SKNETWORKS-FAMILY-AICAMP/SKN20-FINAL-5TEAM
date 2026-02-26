@@ -306,6 +306,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDrawSocket } from '../composables/useDrawSocket'
 import { useGameStore } from '@/stores/game'
+import { addBattleRecord } from '../useBattleRecord.js'
 
 const router = useRouter()
 const ds = useDrawSocket()
@@ -666,8 +667,12 @@ watch([nodes, arrows], () => {
 }, { deep: true })
 
 function beginGame() {
+  // REMATCH 시 이전 결과 저장
+  if (phase.value === 'gameover' && (myScore.value > 0 || oppScore.value > 0)) {
+    saveResultAndExit()
+  }
   myScore.value = 0; oppScore.value = 0; combo.value = 0; bestCombo.value = 0; round.value = 0
-  ds.emitStart(currentRoomId.value, null) // 서버에 게임 시작 신호만 보냄 (서버가 문제를 결정)
+  ds.emitStart(currentRoomId.value, null)
 }
 
 function goNextRound() { 
@@ -802,7 +807,19 @@ function submitDraw() {
 }
 
 function spawnPop(v) { const id = ++fpopId; fpops.value.push({id,v,style:{left:(35+Math.random()*30)+'%'}}); setTimeout(()=>{fpops.value=fpops.value.filter(f=>f.id!==id)},1200) }
-function exitGame() { ds.disconnect(currentRoomId.value); router.push('/practice/coduck-wars') }
+function saveResultAndExit() {
+  // 게임 결과를 전적에 기록
+  const name = userName.value
+  if (myScore.value > oppScore.value) addBattleRecord(name, 'win')
+  else if (myScore.value < oppScore.value) addBattleRecord(name, 'lose')
+  else addBattleRecord(name, 'draw')
+}
+
+function exitGame() {
+  saveResultAndExit()
+  ds.disconnect(currentRoomId.value)
+  router.push('/practice/coduck-wars')
+}
 
 // [수정일: 2026-02-24] 내 아이템 상태 실시간 동기화 (총 수량 기준)
 watch(totalItems, (newVal) => {
