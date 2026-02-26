@@ -70,7 +70,7 @@ export const useProgressStore = defineStore('progress', {
         },
 
         // 3. 문제(미션) 클리어 및 점수 제출 시
-        // BugHunt나 CoduckWars에서 클리어 시 호출합니다.
+        // BugHunt나 PseudocodePractice에서 클리어 시 호출합니다.
         async submitScore(detailId, score, submittedData = {}) {
             try {
                 const res = await axios.post('/api/core/activity/submit/', {

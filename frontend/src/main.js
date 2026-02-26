@@ -11,15 +11,17 @@ import App from './App.vue'
 axios.defaults.withCredentials = true
 axios.defaults.xsrfCookieName = 'csrftoken'
 axios.defaults.xsrfHeaderName = 'X-CSRFToken'
+// [2026-02-25] Nginx 배포 환경을 위한 전역 Base URL 설정
+axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL || ''
 
 // 새로운 퀘스트 기반 Logic Mirror 임포트
-import CoduckWars from './features/practice/pseudocode/CoduckWars.vue'
+import PseudocodePractice from './features/practice/pseudocode/PseudocodePractice.vue'
 import SystemArchitecturePractice from './features/practice/architecture/SystemArchitecturePractice.vue'
 import BugHunt from './features/practice/bughunt/BugHunt.vue'
 // import OpsPractice from './features/practice/OpsPractice.vue'
-import ManagementView from './features/dashboard/ManagementView.vue'
-import MyHistoryView from './features/dashboard/MyHistoryView.vue'
-import AICoach from './features/dashboard/AICoach.vue'
+import ManagementView from './features/admin/ManagementView.vue'
+import MyRecordsView from './features/my-records/MyRecordsView.vue'
+import AICoach from './features/ai-coach/AICoach.vue'
 import MockInterview from './features/interview/MockInterview.vue'
 import MissionBriefing from './features/wars/MissionBriefing.vue'
 import PressureInterviewRoom from './features/wars/PressureInterviewRoom.vue'
@@ -33,6 +35,11 @@ import LogicRun from './features/wars/minigames/LogicRun.vue'
 // [추가일: 2026-02-25] 신규 1:1 디펜스 게임 Bug-Bubble Monster
 import BugBubbleMonster from './features/wars/minigames/BugBubbleMonster.vue'
 // [수정일: 2026-02-25] 미사용 ArchBattle 컴포넌트 제거
+// import ArchBattle from './features/wars/minigames/ArchBattle.vue'
+
+// [수정일: 2026-02-26] 로그 뷰어화면 임포트
+import LogViewer from './features/admin/LogViewer.vue'
+
 // [수정일: 2026-01-31] 사용하지 않는 구버전/비활성 컴포넌트 임포트 주석 처리
 // import AiDetectivePractice from './features/practice/AiDetectivePractice.vue'
 // import PseudoForest from './features/practice/PseudoForest.vue'
@@ -49,7 +56,7 @@ const routes = [
   {
     path: '/practice/pseudo-code',
     name: 'PseudoCode',
-    component: CoduckWars
+    component: PseudocodePractice
   },
   {
     path: '/practice/system-architecture',
@@ -139,9 +146,14 @@ const routes = [
     component: ManagementView
   },
   {
+    path: '/admin/logs',
+    name: 'LogViewer',
+    component: LogViewer
+  },
+  {
     path: '/my-records',
-    name: 'MyHistory',
-    component: MyHistoryView
+    name: 'MyRecords',
+    component: MyRecordsView
   },
   {
     path: '/coach',
@@ -156,10 +168,6 @@ const routes = [
   {
     path: '/practice/',
     redirect: '/practice/pseudo-code'
-  },
-  {
-    path: '/main.html',
-    redirect: '/'
   }
 ]
 

@@ -2,24 +2,26 @@
   역할: 시스템 공지사항 및 보안 알림을 표시하는 팝업 모달 컴포넌트
   수정일: 2026-01-20
   수정내용: 공지사항 모달 컴포넌트 분리 (App.vue에서 분리됨)
+  수정일: 2026-02-26
+  수정내용: Coduck Wars, AI-Coach 등 최신 업데이트 내용을 반영하여 공지 내용 및 UI 텍스트(UPDATE 테마) 변경
 -->
 <template>
   <transition name="fade">
     <div v-if="isOpen" class="modal-overlay notice-overlay" @click.self="closeNotice">
       <div class="notice-container" style="font-family: var(--font-main);">
-        <div class="notice-badge" style="background: var(--accent); font-family: var(--font-retro); font-size: 8px;">SECURITY</div>
-        <h2 class="notice-title" style="font-weight: 800; letter-spacing: -0.02em;">AI-Arcade 보안 고도화 안내</h2>
+        <div class="notice-badge" style="background: var(--accent); font-family: var(--font-retro); font-size: 8px;">UPDATE</div>
+        <h2 class="notice-title" style="font-weight: 800; letter-spacing: -0.02em;">AI-Arcade 대규모 업데이트 안내</h2>
         <div class="notice-body">
-          <p style="line-height: 1.6;">안녕하세요, 엔지니어 여러분! 여러분의 훈련 데이터를 보호하기 위해 <strong>시스템 보안 체계</strong>가 강화되었습니다.</p>
+          <p style="line-height: 1.6;">안녕하세요, 시스템 엔지니어 여러분! AI-Arcade에 새로운 훈련 모드와 강력한 기능들이 대거 업데이트 되었습니다.</p>
           <ul class="notice-list">
-            <li><i data-lucide="shield-check" class="notice-icon"></i> 미인증 사용자 콘텐츠 접근 제한 시스템 도입</li>
-            <li><i data-lucide="lock" class="notice-icon"></i> 로그인 및 세션 관리 보안 프로토콜 강화</li>
-            <li><i data-lucide="bell" class="notice-icon"></i> 부적절한 접근 시도시 실시간 보안 알림 가동</li>
+            <li><i data-lucide="gamepad-2" class="notice-icon"></i> <strong>Team Battle 미니게임 모드</strong> (로직 런, 아키텍처 배틀 등) 정식 오픈</li>
+            <li><i data-lucide="bot" class="notice-icon"></i> <strong>AI-Coach 및 압박 면접 시뮬레이션</strong> 시스템 고도화 (비전 분석 탑재)</li>
+            <li><i data-lucide="layers" class="notice-icon"></i> 실전형 <strong>시스템 아키텍처</strong> 및 의사코드 훈련 퀘스트 확장</li>
           </ul>
-          <p class="notice-footer-text" style="font-weight: 600;">더욱 안전하고 쾌적한 환경에서 <strong>최고의 아키텍처</strong>를 설계해 보세요!</p>
+          <p class="notice-footer-text" style="font-weight: 600;">지금 바로 새롭게 추가된 기능들을 활용하여 <strong>최고의 엔지니어</strong>에 도전해보세요!</p>
         </div>
         <div class="notice-actions">
-          <button class="btn btn-primary" @click="closeNotice" style="width: 100%; font-weight: 700;">보안 지침 확인 및 훈련하기</button>
+          <button class="btn btn-primary" @click="closeNotice" style="width: 100%; font-weight: 700;">새로운 기능 체험하기</button>
         </div>
       </div>
     </div>

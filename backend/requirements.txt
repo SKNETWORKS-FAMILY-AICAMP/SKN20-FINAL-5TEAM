@@ -1,5 +1,5 @@
-# 수정일: 2026-01-20
-# 수정내용: Django 백엔드 핵심 라이브러리 정의
+# 수정일: 2026-02-24
+# 수정내용: Django 백엔드 핵심 라이브러리 정의 및 Socket.io 통신 관련 중복 라이브러리 제거
 
 django
 django-environ
@@ -20,8 +20,8 @@ boto3
 django-storages
 
 # Job Planner Agent
-sentence-transformers>=2.2.0
-torch>=2.0.0
+# sentence-transformers>=2.2.0
+# torch>=2.0.0
 requests>=2.31.0
 beautifulsoup4>=4.12.0
 playwright>=1.40.0

@@ -29,7 +29,13 @@ from core.views import (
     CoduckWarsAnalyzeCodeView,
     CoduckWarsStartView,
     CoduckWarsPressureView,
-    CoduckWarsEvaluationView
+    CoduckWarsEvaluationView,
+    AdminLoginView,
+    AdminLogView,
+    AdminLogSaveView,
+    AdminLogArchiveListView,
+    AdminLogArchiveDetailView,
+    AdminServerStatusView
 )
 from core.views.pseudocode.pseudocode_execution import execute_python_code
 from core.views.pseudocode import pseudocode_evaluation
@@ -122,7 +128,16 @@ urlpatterns = [
     path('wars/start/', CoduckWarsStartView.as_view(), name='wars_start'),
     path('wars/pressure-question/', CoduckWarsPressureView.as_view(), name='wars_pressure_question'),
     path('wars/evaluate/', CoduckWarsEvaluationView.as_view(), name='wars_evaluate'),
+    
+    # [수정일: 2026-02-26] 관리자 로그 뷰어 API 추가
+    path('admin/login/', AdminLoginView.as_view(), name='admin_login'),
+    path('admin/logs/', AdminLogView.as_view(), name='admin_logs'),
+    path('admin/logs/save/', AdminLogSaveView.as_view(), name='admin_logs_save'),
+    path('admin/logs/archives/', AdminLogArchiveListView.as_view(), name='admin_logs_archives'),
+    path('admin/logs/archives/<str:filename>/', AdminLogArchiveDetailView.as_view(), name='admin_logs_archive_detail'),
+    path('admin/server-status/', AdminServerStatusView.as_view(), name='admin_server_status'),
 ]
+
 
 # [추가: 2026-02-26] Router 등록 (practices, users 등 ViewSet 기반 엔드포인트)
 urlpatterns += router.urls

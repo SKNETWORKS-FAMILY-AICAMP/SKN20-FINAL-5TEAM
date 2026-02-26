@@ -209,10 +209,11 @@ const isPracticePage = computed(() => {
     'GrowthReport',
     'ProgressiveProblems',
     'Management',
-    'MyHistory',
+    'MyRecords',
     'AICoach',
     'MockInterview',
-    'WarLobby'
+    'WarLobby',
+    'LogViewer'
   ];
   return practiceRoutes.includes(route?.name);
 
@@ -359,7 +360,7 @@ function selectProblem(problem) {
 
 function handlePracticeClose() {
     // [2026-02-08] 기록 조회나 관리 화면에서 나갈 때는 유닛 모달을 띄우지 않음
-    const noModalRoutes = ['Management', 'MyHistory', 'AICoach'];
+    const noModalRoutes = ['Management', 'MyRecords', 'AICoach'];
     const currentRouteName = route.name;
 
     ui.isPseudoCodeOpen = false;

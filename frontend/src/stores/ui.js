@@ -13,7 +13,6 @@ export const useUiStore = defineStore('ui', {
         isUnitModalOpen: false,
         isConstructionModalOpen: false,
         isPseudoCodeOpen: false,
-        isGuidebookOpen: false,
         isAgentModalOpen: false,
         isReportModalOpen: false,
         isProfileSettingsModalOpen: false,
@@ -57,7 +56,6 @@ export const useUiStore = defineStore('ui', {
             this.isUnitModalOpen = false;
             this.isConstructionModalOpen = false;
             this.isPseudoCodeOpen = false;
-            this.isGuidebookOpen = false;
             this.isAgentModalOpen = false;
             this.isReportModalOpen = false;
             this.isJobPlannerModalOpen = false;
