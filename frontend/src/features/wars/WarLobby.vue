@@ -231,7 +231,7 @@ onMounted(async () => {
   }
 
   if (!gameStore.activeWarsMission) {
-    router.push('/practice/coduck-wars/briefing');
+    router.push('/practice/coduck-wars');
     return;
   }
 

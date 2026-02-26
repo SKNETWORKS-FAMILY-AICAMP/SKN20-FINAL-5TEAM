@@ -23,7 +23,6 @@ import ManagementView from './features/admin/ManagementView.vue'
 import MyRecordsView from './features/my-records/MyRecordsView.vue'
 import AICoach from './features/ai-coach/AICoach.vue'
 import MockInterview from './features/interview/MockInterview.vue'
-import MissionBriefing from './features/wars/MissionBriefing.vue'
 import PressureInterviewRoom from './features/wars/PressureInterviewRoom.vue'
 import GrowthReport from './features/wars/GrowthReport.vue'
 import WarLobby from './features/wars/WarLobby.vue'
@@ -80,11 +79,7 @@ const routes = [
     name: 'CoduckWars',
     component: WarsModeSelect
   },
-  {
-    path: '/practice/coduck-wars/briefing',
-    name: 'MissionBriefing',
-    component: MissionBriefing
-  },
+  // [삭제: 2026-02-26] 아키텍처 서바이벌(MissionBriefing) 삭제
   // [수정일: 2026-02-23] 미니게임 모드 라우트
   {
     path: '/practice/coduck-wars/draw-quiz',

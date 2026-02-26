@@ -15,51 +15,7 @@
     </header>
 
     <main class="mode-grid">
-      <!-- Mode 1: 기존 아키텍처 서바이벌 -->
-      <div class="mode-card survival" @click="goTo('/practice/coduck-wars/briefing')">
-        <div class="card-glow"></div>
-        <div class="card-inner">
-          <div class="mode-badge">ORIGINAL</div>
-          <div class="mode-icon">🏗️</div>
-          <h2 class="mode-title">아키텍처 서바이벌</h2>
-          <p class="mode-desc">AI 면접관의 압박 속에서 실시간으로 시스템을 설계하고, 장애를 복구하라.</p>
-          <div class="mode-tags">
-            <span class="tag">3인 협동</span>
-            <span class="tag">실시간 코딩</span>
-            <span class="tag">AI 면접</span>
-          </div>
-          <div class="mode-meta">
-            <span>⏱ 10분</span>
-            <span>👥 1~3인</span>
-            <span>🔥 고급</span>
-          </div>
-        </div>
-        <div class="card-arrow">→</div>
-      </div>
-
-      <!-- Mode 2: 아키텍처 드로잉 퀴즈 -->
-      <div class="mode-card drawing" @click="goTo('/practice/coduck-wars/draw-quiz')">
-        <div class="card-glow"></div>
-        <div class="card-inner">
-          <div class="mode-badge hot">NEW</div>
-          <div class="mode-icon">🎨</div>
-          <h2 class="mode-title">아키텍처 캐치마인드</h2>
-          <p class="mode-desc">AI가 다이어그램을 하나씩 그린다. 완성되기 전에 어떤 아키텍처 패턴인지 맞춰라!</p>
-          <div class="mode-tags">
-            <span class="tag">실시간 드로잉</span>
-            <span class="tag">AI 힌트</span>
-            <span class="tag">5라운드</span>
-          </div>
-          <div class="mode-meta">
-            <span>⏱ 5분</span>
-            <span>👤 1인</span>
-            <span>⭐ 초급~중급</span>
-          </div>
-        </div>
-        <div class="card-arrow">→</div>
-      </div>
-
-      <!-- Mode 3: 로직 런 (2026-02-24 수정 - 스피드 아키텍처 빌더에서 교체) -->
+      <!-- Mode 1: 로직 런 (2026-02-26 수정 - 순서 변경, 1vs1 설정) -->
       <div class="mode-card speed" @click="goTo('/practice/coduck-wars/logic-run')">
         <div class="card-glow"></div>
         <div class="card-inner">
@@ -74,14 +30,14 @@
           </div>
           <div class="mode-meta">
             <span>⏱ 10분</span>
-            <span>👥 2~3인</span>
+            <span>👥 1vs1</span>
             <span>⭐ 중급</span>
           </div>
         </div>
         <div class="card-arrow">→</div>
       </div>
 
-      <!-- Mode 4: 1:1 버그 버블 몬스터 (신규) -->
+      <!-- Mode 2: 1:1 버그 버블 몬스터 (신규) -->
       <div class="mode-card battle" @click="goTo('/practice/coduck-wars/bug-bubble')">
         <div class="card-glow"></div>
         <div class="card-inner">
@@ -98,6 +54,28 @@
             <span>⏱ 무제한</span>
             <span>👤 1vs1</span>
             <span>🔥 버그 파티</span>
+          </div>
+        </div>
+        <div class="card-arrow">→</div>
+      </div>
+
+      <!-- Mode 3: 아키텍처 드로잉 퀴즈 (2026-02-26 수정 - 순서 변경, 1vs1 설정) -->
+      <div class="mode-card drawing" @click="goTo('/practice/coduck-wars/draw-quiz')">
+        <div class="card-glow"></div>
+        <div class="card-inner">
+          <div class="mode-badge hot">NEW</div>
+          <div class="mode-icon">🎨</div>
+          <h2 class="mode-title">아키텍처 캐치마인드</h2>
+          <p class="mode-desc">AI가 다이어그램을 하나씩 그린다. 완성되기 전에 어떤 아키텍처 패턴인지 맞춰라!</p>
+          <div class="mode-tags">
+            <span class="tag">실시간 드로잉</span>
+            <span class="tag">AI 힌트</span>
+            <span class="tag">5라운드</span>
+          </div>
+          <div class="mode-meta">
+            <span>⏱ 5분</span>
+            <span>👤 1vs1</span>
+            <span>⭐ 초급~중급</span>
           </div>
         </div>
         <div class="card-arrow">→</div>
