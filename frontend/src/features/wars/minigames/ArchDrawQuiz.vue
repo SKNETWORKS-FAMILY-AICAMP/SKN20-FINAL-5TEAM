@@ -186,9 +186,8 @@
             <!-- 내 설계 -->
             <div class="jv-side">
               <div class="jv-tag you-tag">YOUR DESIGN</div>
-              <div class="jv-canvas" ref="myJudgeCanvas">
-                <!-- [버그수정] SVG defs를 judging 캔버스 내부에 직접 선언 -->
-                <svg class="canvas-svg">
+              <div class="jv-canvas" ref="myJudgeCanvas" :style="judgeCanvasStyle">
+                <svg class="canvas-svg" :style="{ height: judgeCanvasHeight + 'px' }">
                   <defs>
                     <marker id="jah" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
                       <polygon points="0 0, 10 3.5, 0 7" fill="#00f0ff"/>
@@ -210,24 +209,21 @@
             <!-- 상대 설계 -->
             <div class="jv-side">
               <div class="jv-tag opp-tag">{{ ds.opponentName.value || 'OPPONENT' }} DESIGN</div>
-              <div class="jv-canvas">
-                <!-- [버그수정] 상대 캔버스도 독립 defs 선언 -->
-                <svg class="canvas-svg">
+              <div class="jv-canvas" :style="judgeCanvasStyle">
+                <svg class="canvas-svg" :style="{ height: judgeCanvasHeight + 'px' }">
                   <defs>
                     <marker id="jah2" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
                       <polygon points="0 0, 10 3.5, 0 7" fill="#ff2d75"/>
                     </marker>
                   </defs>
-                  <!-- [버그수정] onRoundResult에서 저장한 oppFinalArrows 우선, 없으면 실시간 데이터 폴백 -->
-                  <line v-for="(a,i) in (oppFinalArrows.length ? oppFinalArrows : ds.opponentCanvas.value.arrows)"
-                    :key="'oa'+i"
+                  <line v-for="(a,i) in judgeOppArrows" :key="'oa'+i"
                     :x1="a.x1" :y1="a.y1" :x2="a.x2" :y2="a.y2"
                     stroke="#ff2d75" stroke-width="2" marker-end="url(#jah2)"/>
                 </svg>
-                <div v-for="(n,i) in (oppFinalNodes.length ? oppFinalNodes : ds.opponentCanvas.value.nodes)" :key="'on'+i" class="cnode opp-node" :style="{ left:n.x+'px', top:n.y+'px' }">
+                <div v-for="(n,i) in judgeOppNodes" :key="'on'+i" class="cnode opp-node" :style="{ left:n.x+'px', top:n.y+'px' }">
                   <span class="ni">{{ n.icon }}</span><span class="nn">{{ n.name }}</span>
                 </div>
-                <div v-if="!oppFinalNodes.length && !ds.opponentCanvas.value.nodes.length" class="opp-empty">상대가 아직 배치하지 않았습니다</div>
+                <div v-if="!judgeOppNodes.length" class="opp-empty">상대가 아직 배치하지 않았습니다</div>
               </div>
             </div>
           </div>
@@ -377,6 +373,23 @@ let dragComp = null
 let nodeId = 0
 
 const timerPct = computed(() => (timeLeft.value / 45) * 100)
+
+// judging 캔버스: 노드 위치 기반 동적 높이 + 상대 노드 안전 참조
+const judgeOppNodes = computed(() => 
+  oppFinalNodes.value.length ? oppFinalNodes.value : ds.opponentCanvas.value.nodes
+)
+const judgeOppArrows = computed(() => 
+  oppFinalArrows.value.length ? oppFinalArrows.value : ds.opponentCanvas.value.arrows
+)
+const judgeCanvasHeight = computed(() => {
+  const allNodes = [...myFinalNodes.value, ...judgeOppNodes.value]
+  if (!allNodes.length) return 320
+  const maxY = Math.max(...allNodes.map(n => (n.y || 0) + 60))
+  return Math.max(320, maxY + 40)
+})
+const judgeCanvasStyle = computed(() => ({
+  height: judgeCanvasHeight.value + 'px'
+}))
 const timerDanger = computed(() => timeLeft.value <= 10)
 const nextLabel = computed(() => round.value >= maxRounds ? 'FINAL RESULT' : 'NEXT ▶')
 
@@ -603,14 +616,15 @@ ds.onRoundResult.value = (results) => {
       : JSON.parse(JSON.stringify(ds.opponentCanvas.value.arrows))
   }
   
-  // [버그수정] 이미 judging 상태이므로 중복 전환 방지
-  if (phase.value !== 'judging') {
+  // [버그수정] onRoundResult는 항상 judging 중에 도착 — phase 변경 없이 바로 result 타이머만 설정
+  // (phase를 다시 judging으로 바꾸면 Vue가 컠포넌트 재렌더링해서 myFinalNodes가 순간 빈 배열로 보임)
+  if (phase.value !== 'judging' && phase.value !== 'result') {
     phase.value = 'judging'
   }
   
   // 3.5초 후 자동으로 결과 리포트 화면으로 전환 (AI 분석 로딩 느낌)
   setTimeout(() => {
-    phase.value = 'result'
+    if (phase.value !== 'gameover') phase.value = 'result'
   }, 3500)
 }
 
@@ -723,6 +737,9 @@ function submitDraw() {
   // [버그수정] 제출 직전 데이터 스냅샷 → phase 변경 전에 저장해야 watch가 덮어쓰지 않음
   myFinalNodes.value = JSON.parse(JSON.stringify(nodes.value))
   myFinalArrows.value = JSON.parse(JSON.stringify(arrows.value))
+  // 스냅샷 직후 로컬 참조로 고정 (setTimeout 안에서 nodes.value 대신 사용)
+  const snapNodes = myFinalNodes.value
+  const snapArrows = myFinalArrows.value
   
   // [버그수정] watch([nodes, arrows]) 가 judging 전환 후에도 emit하지 않도록 play 상태를 먼저 닫음
   phase.value = 'judging'
@@ -742,7 +759,7 @@ function submitDraw() {
         const compName = allComps.find(c => c.id === compId)?.name || compId
         return {
           label: `${compName} 배치`,
-          ok: nodes.value.some(n => n.compId === compId)
+          ok: snapNodes.some(n => n.compId === compId)  // nodes.value 대신 스냅샷 사용
         }
       })
     }
@@ -762,7 +779,7 @@ function submitDraw() {
         const to = curQ.value.required[i+1]
         checks.push({
           label: `${from} → ${to} 연결`,
-          ok: arrows.value.some(a => a.fc === from && a.tc === to)
+          ok: snapArrows.some(a => a.fc === from && a.tc === to)  // arrows.value 대신 스냅샷 사용
         })
       }
     }
@@ -778,8 +795,8 @@ function submitDraw() {
     }
     
     ds.emitSubmit(currentRoomId.value, pts, checks.map(c => ({ label: c.label, ok: c.ok })), {
-      nodes: nodes.value,
-      arrows: arrows.value
+      nodes: snapNodes,   // 스냅샷 사용
+      arrows: snapArrows
     })
   }, 1500)
 }
@@ -987,7 +1004,7 @@ watch(totalItems, (newVal) => {
 .you-tag { background: #00f0ff; color: #000; box-shadow: 0 0 10px rgba(0,240,255,.3); }
 .opp-tag { background: #ff2d75; color: #fff; box-shadow: 0 0 10px rgba(255,45,117,.3); }
 
-.jv-canvas { position: relative; height: 320px; background: rgba(8,12,30,.6); border: 2px solid rgba(255,255,255,.05); border-radius: 1rem; overflow: hidden; box-shadow: inset 0 0 20px rgba(0,0,0,.4); }
+.jv-canvas { position: relative; min-height: 320px; height: auto; background: rgba(8,12,30,.6); border: 2px solid rgba(255,255,255,.05); border-radius: 1rem; overflow: visible; box-shadow: inset 0 0 20px rgba(0,0,0,.4); }
 .canvas-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .jv-divider { font-family: 'Orbitron', sans-serif; font-size: 1.5rem; font-weight: 900; color: #1e293b; text-align: center; text-shadow: 0 0 10px rgba(255,255,255,.05); }
 

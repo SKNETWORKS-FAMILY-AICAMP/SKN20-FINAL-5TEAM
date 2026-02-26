@@ -411,17 +411,17 @@ async def draw_start(sid, data):
         COMP_MAP = {
             "client": ["client", "사용자", "단말", "user", "app", "web", "클라이언트"],
             "lb": ["lb", "load balancer", "로드밸런서", "elb", "alb", "분산"],
-            "server": ["server", "서버", "ec2", "was", "web server", "api server", "웹서버", "어플리케이션", "랭킹", "게시물"],
+            "server": ["server", "서버", "ec2", "was", "web server", "api server", "웹서버", "어플리케이션", "랭킹", "게시물", "worker", "워커", "작업자"],
             "cdn": ["cdn", "cloudfront", "콘텐츠"],
             "origin": ["origin", "오리진"],
             "cache": ["cache", "캐시", "redis", "memcached"],
             "db": ["db", "database", "데이터베이스", "rdbms", "mysql", "postgresql", "oracle", "저장소"],
-            "producer": ["producer", "프로듀서"],
+            "producer": ["producer", "프로듀서", "발행자"],
             "queue": ["queue", "msgq", "message queue", "큐", "메시지", "kafka", "rabbitmq", "sqs", "비동기"],
-            "consumer": ["consumer", "컨슈머"],
+            "consumer": ["consumer", "컨슈머", "소비자"],
             "api": ["api", "api gw", "api gateway", "gateway", "게이트웨이"],
-            "writesvc": ["write", "쓰기"],
-            "readsvc": ["read", "읽기"],
+            "writesvc": ["write", "쓰기", "write service", "쓰기 서비스"],
+            "readsvc": ["read", "읽기", "read service", "읽기 서비스"],
             "writedb": ["writedb", "쓰기 db", "마스터", "master"],
             "readdb": ["readdb", "읽기 db", "슬레이브", "slave", "read replica", "복제"],
             "auth": ["auth", "인증", "권리", "권한", "로그인", "iam"],
@@ -442,6 +442,14 @@ async def draw_start(sid, data):
                 elif "서비스" in req_lower or "시스템" in req_lower: mapped_required.add("server")
 
         question = {
+            "title": q_data.get('title', 'Unknown Mission'),
+            "description": q_data.get('scenario', ''),
+            "required": list(mapped_required) if mapped_required else ["client", "server", "db"],
+        }
+        # [디버그] DB required_components → 매핑 결과 확인
+        print(f"[draw_start] DB required_components: {required_names}")
+        print(f"[draw_start] Mapped required IDs: {list(mapped_required)}")
+        question = {  # 위 question을 덮어씀 (rubric, hints 포함)
             "title": q_data.get('title', 'Unknown Mission'),
             "description": q_data.get('scenario', ''),
             "required": list(mapped_required) if mapped_required else ["client", "server", "db"],
