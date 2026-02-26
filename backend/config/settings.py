@@ -187,6 +187,11 @@ OPENAI_API_KEY = env('OPENAI_API_KEY', default='')
 GOOGLE_API_KEY = env('GOOGLE_API_KEY', default='')
 YOUTUBE_API_KEY = env('YOUTUBE_API_KEY', default=GOOGLE_API_KEY)
 
+# Admin Settings
+ADMIN_USERNAME = env('ADMIN_USERNAME', default='')
+ADMIN_PASSWORD = env('ADMIN_PASSWORD', default='')
+ADMIN_TOKEN_SECRET = env('ADMIN_TOKEN_SECRET', default='')
+
 # Job Planner Agent - Python path 추가
 # job-planner-agent 폴더 이름에 하이픈(-)이 있어서 직접 import 불가
 # Django 시작 시 sys.path에 경로를 추가하여 'from collectors import' 가능하게 설정

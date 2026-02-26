@@ -4,10 +4,6 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.conf import settings
 
-# [수정일: 2026-02-26] 간단한 관리자 로그 조회를 위한 하드코딩 인증/권한
-ADMIN_USERNAME = "admin@admin.com"
-ADMIN_PASSWORD = "admin1234"
-ADMIN_TOKEN_SECRET = "skn20-admin-secret-token"
 
 class AdminLoginView(APIView):
     """관리자 로그인용 뷰"""
@@ -17,8 +13,8 @@ class AdminLoginView(APIView):
         username = request.data.get("username")
         password = request.data.get("password")
 
-        if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
-            return Response({"token": ADMIN_TOKEN_SECRET}, status=status.HTTP_200_OK)
+        if username == settings.ADMIN_USERNAME and password == settings.ADMIN_PASSWORD:
+            return Response({"token": settings.ADMIN_TOKEN_SECRET}, status=status.HTTP_200_OK)
         else:
             return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
 
@@ -29,7 +25,7 @@ class AdminLogView(APIView):
 
     def get(self, request):
         auth_header = request.headers.get("Authorization")
-        expected_token = f"Bearer {ADMIN_TOKEN_SECRET}"
+        expected_token = f"Bearer {settings.ADMIN_TOKEN_SECRET}"
 
         if not auth_header or auth_header != expected_token:
             return Response({"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
@@ -67,7 +63,7 @@ class AdminLogSaveView(APIView):
 
     def post(self, request):
         auth_header = request.headers.get("Authorization")
-        expected_token = f"Bearer {ADMIN_TOKEN_SECRET}"
+        expected_token = f"Bearer {settings.ADMIN_TOKEN_SECRET}"
 
         if not auth_header or auth_header != expected_token:
             return Response({"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
@@ -101,7 +97,7 @@ class AdminLogArchiveListView(APIView):
 
     def get(self, request):
         auth_header = request.headers.get("Authorization")
-        expected_token = f"Bearer {ADMIN_TOKEN_SECRET}"
+        expected_token = f"Bearer {settings.ADMIN_TOKEN_SECRET}"
 
         if not auth_header or auth_header != expected_token:
             return Response({"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
@@ -137,7 +133,7 @@ class AdminLogArchiveDetailView(APIView):
 
     def get(self, request, filename):
         auth_header = request.headers.get("Authorization")
-        expected_token = f"Bearer {ADMIN_TOKEN_SECRET}"
+        expected_token = f"Bearer {settings.ADMIN_TOKEN_SECRET}"
 
         if not auth_header or auth_header != expected_token:
             return Response({"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
@@ -174,7 +170,7 @@ class AdminServerStatusView(APIView):
 
     def get(self, request):
         auth_header = request.headers.get("Authorization")
-        expected_token = f"Bearer {ADMIN_TOKEN_SECRET}"
+        expected_token = f"Bearer {settings.ADMIN_TOKEN_SECRET}"
 
         if not auth_header or auth_header != expected_token:
             return Response({"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
