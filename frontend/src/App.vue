@@ -190,8 +190,6 @@ const fetchLeaderboard = async (page = 1) => {
     }
 };
 
-// [수정일: 2026-01-31] 미사용 상태 제거 (모드 통합으로 인해 불필요)
-// const detectiveLevel = ref('초급');
 
 // Computed
 const isPracticePage = computed(() => {
@@ -284,7 +282,7 @@ const currentMaxIdx = computed(() => {
 
 // [수정일: 2026-01-28] 라우트 감시: 연습 페이지에서 홈으로 돌아올 때 유닛 상세 모달 자동 재개
 watch(() => route.name, async (newNav, oldNav) => {
-  const practiceRoutes = ['PseudoCode', 'SystemArchitecturePractice', 'BugHunt' /*, 'OpsPractice', 'AiDetective', 'PseudoForest', 'PseudoCompany', 'PseudoEmergency' */];
+  const practiceRoutes = ['PseudoCode', 'SystemArchitecturePractice', 'BugHunt'];
   // 연습 페이지에서 홈('/')으로 돌아오는 경우
   if (newNav === 'Home' && practiceRoutes.includes(oldNav)) {
     if (game.activeUnit) {
@@ -301,7 +299,6 @@ watch(() => route.name, async (newNav, oldNav) => {
 });
 
 // Methods
-// [수정일: 2026-02-24] syncDebugProgress() (localStorage 의존 데이터 동기화) 완전 제거 (DB 연동으로 대체됨)
 
 function isUnlocked(pIdx) {
   return game.currentUnitProgress.includes(pIdx);
@@ -372,16 +369,8 @@ function handlePracticeClose() {
     }
 }
 
-// [수정일: 2026-01-31] 미사용 메서드 제거 (모드 전환 기능 제거)
-// function selectUnit1Mode(mode) { ... }
-
 function selectGameMode(mode) {
   game.currentDebugMode = mode;
-
-  // Bug Hunt 모드 진행도 동기화
-  if (mode === 'bug-hunt') {
-    syncDebugProgress();
-  }
 
   nextTick(() => {
     if (window.lucide) window.lucide.createIcons();
