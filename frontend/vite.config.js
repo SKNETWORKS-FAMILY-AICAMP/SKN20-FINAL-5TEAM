@@ -48,7 +48,8 @@ export default defineConfig({
         target: process.env.VITE_API_Target || 'http://localhost:8000',
         changeOrigin: true
       },
-      '/socket.io': {
+      // [수정일: 2026-02-26] 프론트엔드 소켓 연결 경로 변경에 맞춰 프록시 규칙명 업데이트
+      '/api/socket.io': {
         target: process.env.VITE_API_Target || 'http://localhost:8000',
         changeOrigin: true,
         ws: true

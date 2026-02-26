@@ -43,7 +43,8 @@ export function useRunSocket() {
         console.log(`[Socket Debug] Final Connection URL: "${socketUrl || window.location.origin}"`);
 
         socket.value = io(socketUrl, {
-            path: '/socket.io',
+            // [수정일: 2026-02-26] AWS ALB 및 Nginx의 /socket.io/ 라우팅 누락 문제 해결을 위해 /api/socket.io 로 경로 변경
+            path: '/api/socket.io',
             transports: ['polling', 'websocket'],
             forceNew: true
         })
