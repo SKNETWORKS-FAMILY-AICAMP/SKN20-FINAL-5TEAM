@@ -1,0 +1,3931 @@
+{
+  "metadata": {
+    "total_samples": 20,
+    "trials_per_sample": 5,
+    "total_evaluations": 100,
+    "completed_evaluations": 100,
+    "elapsed_seconds": 3263.1
+  },
+  "results": [
+    {
+      "sample_id": "jr_001_url_shortener_excellent",
+      "problem_id": "jr_001_url_shortener",
+      "quality_level": "excellent",
+      "expected_score_range": [
+        85,
+        100
+      ],
+      "trials": [
+        {
+          "trial": 1,
+          "overall_score": 72,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 80,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 78,
+              "grade": "good",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 65,
+              "grade": "fair",
+              "weight": 10
+            },
+            "security": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 50,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "good"
+        },
+        {
+          "trial": 2,
+          "overall_score": 64,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 80,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 78,
+              "grade": "good",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 10
+            },
+            "security": {
+              "score": 55,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 5
+            }
+          },
+          "overall_grade": "good"
+        },
+        {
+          "trial": 3,
+          "overall_score": 60,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 78,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 70,
+              "grade": "good",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 65,
+              "grade": "fair",
+              "weight": 10
+            },
+            "security": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 5
+            },
+            "sustainability": {
+              "score": 30,
+              "grade": "failing",
+              "weight": 5
+            }
+          },
+          "overall_grade": "good"
+        },
+        {
+          "trial": 4,
+          "overall_score": 70,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 82,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 78,
+              "grade": "good",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 10
+            },
+            "security": {
+              "score": 58,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 30,
+              "grade": "failing",
+              "weight": 10
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 5,
+          "overall_score": 72,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 80,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 78,
+              "grade": "good",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 65,
+              "grade": "fair",
+              "weight": 10
+            },
+            "security": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 50,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "fair"
+        }
+      ]
+    },
+    {
+      "sample_id": "jr_001_url_shortener_good",
+      "problem_id": "jr_001_url_shortener",
+      "quality_level": "good",
+      "expected_score_range": [
+        72,
+        84
+      ],
+      "trials": [
+        {
+          "trial": 1,
+          "overall_score": 70,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 80,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 78,
+              "grade": "good",
+              "weight": 30
+            },
+            "operational_excellence": {
+              "score": 65,
+              "grade": "fair",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 10
+            },
+            "security": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 5
+            },
+            "sustainability": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 5
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 2,
+          "overall_score": 58,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 82,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 65,
+              "grade": "fair",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 10
+            },
+            "security": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 5
+            },
+            "sustainability": {
+              "score": 35,
+              "grade": "poor",
+              "weight": 5
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 3,
+          "overall_score": 66,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 78,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 10
+            },
+            "security": {
+              "score": 65,
+              "grade": "fair",
+              "weight": 15
+            },
+            "sustainability": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 4,
+          "overall_score": 61,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 82,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 74,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 10
+            },
+            "security": {
+              "score": 58,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 5
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 5,
+          "overall_score": 62,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 80,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 65,
+              "grade": "fair",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 10
+            },
+            "security": {
+              "score": 55,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 5
+            }
+          },
+          "overall_grade": "fair"
+        }
+      ]
+    },
+    {
+      "sample_id": "jr_001_url_shortener_average",
+      "problem_id": "jr_001_url_shortener",
+      "quality_level": "average",
+      "expected_score_range": [
+        55,
+        71
+      ],
+      "trials": [
+        {
+          "trial": 1,
+          "overall_score": 69,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 82,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 78,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 66,
+              "grade": "fair",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 50,
+              "grade": "poor",
+              "weight": 10
+            },
+            "security": {
+              "score": 62,
+              "grade": "fair",
+              "weight": 15
+            },
+            "sustainability": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "good"
+        },
+        {
+          "trial": 2,
+          "overall_score": 64,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 82,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 10
+            },
+            "security": {
+              "score": 55,
+              "grade": "fair",
+              "weight": 15
+            },
+            "sustainability": {
+              "score": 30,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 3,
+          "overall_score": 68,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 82,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 55,
+              "grade": "fair",
+              "weight": 10
+            },
+            "security": {
+              "score": 62,
+              "grade": "fair",
+              "weight": 15
+            },
+            "sustainability": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "good"
+        },
+        {
+          "trial": 4,
+          "overall_score": 69,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 82,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 78,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 65,
+              "grade": "fair",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 10
+            },
+            "security": {
+              "score": 57,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 5,
+          "overall_score": 69,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 82,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 80,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 65,
+              "grade": "fair",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 58,
+              "grade": "fair",
+              "weight": 10
+            },
+            "security": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 15
+            },
+            "sustainability": {
+              "score": 35,
+              "grade": "failing",
+              "weight": 10
+            }
+          },
+          "overall_grade": "fair"
+        }
+      ]
+    },
+    {
+      "sample_id": "jr_001_url_shortener_poor",
+      "problem_id": "jr_001_url_shortener",
+      "quality_level": "poor",
+      "expected_score_range": [
+        40,
+        54
+      ],
+      "trials": [
+        {
+          "trial": 1,
+          "overall_score": 59,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 75,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 78,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 10
+            },
+            "security": {
+              "score": 55,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 30,
+              "grade": "poor",
+              "weight": 5
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 2,
+          "overall_score": 58,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 82,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 10
+            },
+            "security": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 20,
+              "grade": "fail",
+              "weight": 5
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 3,
+          "overall_score": 68,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 80,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 55,
+              "grade": "fair",
+              "weight": 10
+            },
+            "security": {
+              "score": 65,
+              "grade": "fair",
+              "weight": 15
+            },
+            "sustainability": {
+              "score": 50,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 4,
+          "overall_score": 63,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 82,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 10
+            },
+            "security": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 15
+            },
+            "sustainability": {
+              "score": 35,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 5,
+          "overall_score": 64,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 82,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 10
+            },
+            "security": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 35,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "fair"
+        }
+      ]
+    },
+    {
+      "sample_id": "jr_001_url_shortener_very_poor",
+      "problem_id": "jr_001_url_shortener",
+      "quality_level": "very_poor",
+      "expected_score_range": [
+        0,
+        39
+      ],
+      "trials": [
+        {
+          "trial": 1,
+          "overall_score": 43,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 80,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 35,
+              "grade": "poor",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 30,
+              "grade": "poor",
+              "weight": 10
+            },
+            "security": {
+              "score": 25,
+              "grade": "poor",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 10,
+              "grade": "failing",
+              "weight": 5
+            }
+          },
+          "overall_grade": "poor"
+        },
+        {
+          "trial": 2,
+          "overall_score": 50,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 80,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 35,
+              "grade": "poor",
+              "weight": 10
+            },
+            "security": {
+              "score": 30,
+              "grade": "poor",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 25,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "poor"
+        },
+        {
+          "trial": 3,
+          "overall_score": 45,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 75,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 30,
+              "grade": "poor",
+              "weight": 10
+            },
+            "security": {
+              "score": 35,
+              "grade": "poor",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 20,
+              "grade": "poor",
+              "weight": 5
+            }
+          },
+          "overall_grade": "poor"
+        },
+        {
+          "trial": 4,
+          "overall_score": 33,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 35,
+              "grade": "poor",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 30,
+              "grade": "poor",
+              "weight": 10
+            },
+            "security": {
+              "score": 20,
+              "grade": "poor",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 25,
+              "grade": "poor",
+              "weight": 5
+            }
+          },
+          "overall_grade": "failing"
+        },
+        {
+          "trial": 5,
+          "overall_score": 36,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 35,
+              "grade": "poor",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 30,
+              "grade": "poor",
+              "weight": 10
+            },
+            "security": {
+              "score": 25,
+              "grade": "poor",
+              "weight": 15
+            },
+            "sustainability": {
+              "score": 20,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "poor"
+        }
+      ]
+    },
+    {
+      "sample_id": "jr_002_pastebin_excellent",
+      "problem_id": "jr_002_pastebin",
+      "quality_level": "excellent",
+      "expected_score_range": [
+        85,
+        100
+      ],
+      "trials": [
+        {
+          "trial": 1,
+          "overall_score": 75,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 82,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 78,
+              "grade": "good",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 80,
+              "grade": "good",
+              "weight": 15
+            },
+            "security": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 5
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 2,
+          "overall_score": 78,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 80,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 90,
+              "grade": "excellent",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 78,
+              "grade": "good",
+              "weight": 10
+            },
+            "security": {
+              "score": 72,
+              "grade": "good",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 10
+            }
+          },
+          "overall_grade": "good"
+        },
+        {
+          "trial": 3,
+          "overall_score": 72,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 80,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 78,
+              "grade": "good",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 72,
+              "grade": "good",
+              "weight": 10
+            },
+            "security": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 4,
+          "overall_score": 71,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 78,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 80,
+              "grade": "good",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 15
+            },
+            "security": {
+              "score": 55,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 5
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 5,
+          "overall_score": 74,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 78,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 80,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 72,
+              "grade": "good",
+              "weight": 10
+            },
+            "security": {
+              "score": 65,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 10
+            }
+          },
+          "overall_grade": "good"
+        }
+      ]
+    },
+    {
+      "sample_id": "jr_002_pastebin_good",
+      "problem_id": "jr_002_pastebin",
+      "quality_level": "good",
+      "expected_score_range": [
+        72,
+        84
+      ],
+      "trials": [
+        {
+          "trial": 1,
+          "overall_score": 72,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 80,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 78,
+              "grade": "good",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 65,
+              "grade": "fair",
+              "weight": 10
+            },
+            "security": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 50,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "good"
+        },
+        {
+          "trial": 2,
+          "overall_score": 72,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 75,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 78,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 80,
+              "grade": "good",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 65,
+              "grade": "fair",
+              "weight": 15
+            },
+            "security": {
+              "score": 62,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 5
+            }
+          },
+          "overall_grade": "good"
+        },
+        {
+          "trial": 3,
+          "overall_score": 65,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 80,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 78,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 75,
+              "grade": "good",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 72,
+              "grade": "good",
+              "weight": 10
+            },
+            "security": {
+              "score": 56,
+              "grade": "fair",
+              "weight": 5
+            },
+            "sustainability": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "good"
+        },
+        {
+          "trial": 4,
+          "overall_score": 72,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 80,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 78,
+              "grade": "good",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 70,
+              "grade": "good",
+              "weight": 10
+            },
+            "security": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "good"
+        },
+        {
+          "trial": 5,
+          "overall_score": 72,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 78,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 80,
+              "grade": "good",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 72,
+              "grade": "good",
+              "weight": 10
+            },
+            "security": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "fair"
+        }
+      ]
+    },
+    {
+      "sample_id": "jr_002_pastebin_average",
+      "problem_id": "jr_002_pastebin",
+      "quality_level": "average",
+      "expected_score_range": [
+        55,
+        71
+      ],
+      "trials": [
+        {
+          "trial": 1,
+          "overall_score": 68,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 80,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 78,
+              "grade": "good",
+              "weight": 10
+            },
+            "security": {
+              "score": 55,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 2,
+          "overall_score": 70,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 78,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 74,
+              "grade": "good",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 10
+            },
+            "security": {
+              "score": 62,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 3,
+          "overall_score": 74,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 80,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 30
+            },
+            "operational_excellence": {
+              "score": 78,
+              "grade": "good",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 65,
+              "grade": "fair",
+              "weight": 10
+            },
+            "security": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 5
+            },
+            "sustainability": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 5
+            }
+          },
+          "overall_grade": "good"
+        },
+        {
+          "trial": 4,
+          "overall_score": 70,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 75,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 80,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 77,
+              "grade": "good",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 65,
+              "grade": "fair",
+              "weight": 10
+            },
+            "security": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "good"
+        },
+        {
+          "trial": 5,
+          "overall_score": 72,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 80,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 78,
+              "grade": "good",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 65,
+              "grade": "fair",
+              "weight": 10
+            },
+            "security": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "good"
+        }
+      ]
+    },
+    {
+      "sample_id": "jr_002_pastebin_poor",
+      "problem_id": "jr_002_pastebin",
+      "quality_level": "poor",
+      "expected_score_range": [
+        40,
+        54
+      ],
+      "trials": [
+        {
+          "trial": 1,
+          "overall_score": 57,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 80,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 65,
+              "grade": "fair",
+              "weight": 15
+            },
+            "operational_excellence": {
+              "score": 50,
+              "grade": "poor",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 10
+            },
+            "security": {
+              "score": 55,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 2,
+          "overall_score": 56,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 75,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 58,
+              "grade": "fair",
+              "weight": 10
+            },
+            "security": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 30,
+              "grade": "failing",
+              "weight": 10
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 3,
+          "overall_score": 56,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 78,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 55,
+              "grade": "fair",
+              "weight": 10
+            },
+            "security": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 20,
+              "grade": "failing",
+              "weight": 10
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 4,
+          "overall_score": 61,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 75,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 58,
+              "grade": "fair",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 55,
+              "grade": "fair",
+              "weight": 10
+            },
+            "security": {
+              "score": 55,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 5,
+          "overall_score": 56,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 75,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 55,
+              "grade": "fair",
+              "weight": 10
+            },
+            "security": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 35,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "fair"
+        }
+      ]
+    },
+    {
+      "sample_id": "jr_002_pastebin_very_poor",
+      "problem_id": "jr_002_pastebin",
+      "quality_level": "very_poor",
+      "expected_score_range": [
+        0,
+        39
+      ],
+      "trials": [
+        {
+          "trial": 1,
+          "overall_score": 48,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 75,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 30,
+              "grade": "poor",
+              "weight": 10
+            },
+            "security": {
+              "score": 35,
+              "grade": "poor",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 25,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "poor"
+        },
+        {
+          "trial": 2,
+          "overall_score": 36,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 15
+            },
+            "operational_excellence": {
+              "score": 35,
+              "grade": "poor",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 30,
+              "grade": "poor",
+              "weight": 10
+            },
+            "security": {
+              "score": 30,
+              "grade": "poor",
+              "weight": 15
+            },
+            "sustainability": {
+              "score": 25,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "failing"
+        },
+        {
+          "trial": 3,
+          "overall_score": 53,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 75,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 15
+            },
+            "security": {
+              "score": 35,
+              "grade": "poor",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 30,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 4,
+          "overall_score": 43,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 15
+            },
+            "operational_excellence": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 55,
+              "grade": "fair",
+              "weight": 10
+            },
+            "security": {
+              "score": 35,
+              "grade": "poor",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 30,
+              "grade": "poor",
+              "weight": 5
+            }
+          },
+          "overall_grade": "poor"
+        },
+        {
+          "trial": 5,
+          "overall_score": 48,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 75,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 15
+            },
+            "operational_excellence": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 10
+            },
+            "security": {
+              "score": 35,
+              "grade": "poor",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 20,
+              "grade": "failing",
+              "weight": 5
+            }
+          },
+          "overall_grade": "fair"
+        }
+      ]
+    },
+    {
+      "sample_id": "jr_003_notification_excellent",
+      "problem_id": "jr_003_notification",
+      "quality_level": "excellent",
+      "expected_score_range": [
+        85,
+        100
+      ],
+      "trials": [
+        {
+          "trial": 1,
+          "overall_score": 70,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 80,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 78,
+              "grade": "good",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 58,
+              "grade": "fair",
+              "weight": 10
+            },
+            "security": {
+              "score": 55,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "good"
+        },
+        {
+          "trial": 2,
+          "overall_score": 70,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 80,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 78,
+              "grade": "good",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 10
+            },
+            "security": {
+              "score": 55,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "good"
+        },
+        {
+          "trial": 3,
+          "overall_score": 70,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 80,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 78,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 10
+            },
+            "security": {
+              "score": 55,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 4,
+          "overall_score": 73,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 82,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 76,
+              "grade": "good",
+              "weight": 30
+            },
+            "operational_excellence": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 10
+            },
+            "security": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 5
+            },
+            "sustainability": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 5
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 5,
+          "overall_score": 71,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 82,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 78,
+              "grade": "good",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 10
+            },
+            "security": {
+              "score": 55,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "good"
+        }
+      ]
+    },
+    {
+      "sample_id": "jr_003_notification_good",
+      "problem_id": "jr_003_notification",
+      "quality_level": "good",
+      "expected_score_range": [
+        72,
+        84
+      ],
+      "trials": [
+        {
+          "trial": 1,
+          "overall_score": 67,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 80,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 30
+            },
+            "operational_excellence": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 10
+            },
+            "security": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 5
+            },
+            "sustainability": {
+              "score": 35,
+              "grade": "poor",
+              "weight": 5
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 2,
+          "overall_score": 61,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 82,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 65,
+              "grade": "fair",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 10
+            },
+            "security": {
+              "score": 58,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 30,
+              "grade": "poor",
+              "weight": 5
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 3,
+          "overall_score": 64,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 82,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 65,
+              "grade": "fair",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 10
+            },
+            "security": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 30,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 4,
+          "overall_score": 68,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 80,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 30
+            },
+            "operational_excellence": {
+              "score": 65,
+              "grade": "fair",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 10
+            },
+            "security": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 5
+            },
+            "sustainability": {
+              "score": 35,
+              "grade": "poor",
+              "weight": 5
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 5,
+          "overall_score": 63,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 82,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 78,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 66,
+              "grade": "fair",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 50,
+              "grade": "poor",
+              "weight": 10
+            },
+            "security": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 5
+            }
+          },
+          "overall_grade": "fair"
+        }
+      ]
+    },
+    {
+      "sample_id": "jr_003_notification_average",
+      "problem_id": "jr_003_notification",
+      "quality_level": "average",
+      "expected_score_range": [
+        55,
+        71
+      ],
+      "trials": [
+        {
+          "trial": 1,
+          "overall_score": 67,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 82,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 78,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 65,
+              "grade": "fair",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 10
+            },
+            "security": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 35,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 2,
+          "overall_score": 67,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 80,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 30
+            },
+            "operational_excellence": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 10
+            },
+            "security": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 5
+            },
+            "sustainability": {
+              "score": 35,
+              "grade": "poor",
+              "weight": 5
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 3,
+          "overall_score": 67,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 82,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 65,
+              "grade": "fair",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 10
+            },
+            "security": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 4,
+          "overall_score": 67,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 80,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 30
+            },
+            "operational_excellence": {
+              "score": 65,
+              "grade": "fair",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 50,
+              "grade": "poor",
+              "weight": 10
+            },
+            "security": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 30,
+              "grade": "poor",
+              "weight": 5
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 5,
+          "overall_score": 63,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 82,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 10
+            },
+            "security": {
+              "score": 55,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "fair"
+        }
+      ]
+    },
+    {
+      "sample_id": "jr_003_notification_poor",
+      "problem_id": "jr_003_notification",
+      "quality_level": "poor",
+      "expected_score_range": [
+        40,
+        54
+      ],
+      "trials": [
+        {
+          "trial": 1,
+          "overall_score": 55,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 78,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 62,
+              "grade": "fair",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 10
+            },
+            "security": {
+              "score": 35,
+              "grade": "poor",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 30,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 2,
+          "overall_score": 60,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 82,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 65,
+              "grade": "fair",
+              "weight": 30
+            },
+            "operational_excellence": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 10
+            },
+            "security": {
+              "score": 38,
+              "grade": "poor",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 30,
+              "grade": "poor",
+              "weight": 5
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 3,
+          "overall_score": 50,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 75,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 10
+            },
+            "security": {
+              "score": 35,
+              "grade": "poor",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 30,
+              "grade": "poor",
+              "weight": 5
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 4,
+          "overall_score": 54,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 75,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 35,
+              "grade": "poor",
+              "weight": 10
+            },
+            "security": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 30,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 5,
+          "overall_score": 50,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 75,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 10
+            },
+            "security": {
+              "score": 35,
+              "grade": "poor",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 30,
+              "grade": "poor",
+              "weight": 5
+            }
+          },
+          "overall_grade": "poor"
+        }
+      ]
+    },
+    {
+      "sample_id": "jr_003_notification_very_poor",
+      "problem_id": "jr_003_notification",
+      "quality_level": "very_poor",
+      "expected_score_range": [
+        0,
+        39
+      ],
+      "trials": [
+        {
+          "trial": 1,
+          "overall_score": 30,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 30,
+              "grade": "failing",
+              "weight": 30
+            },
+            "operational_excellence": {
+              "score": 35,
+              "grade": "poor",
+              "weight": 10
+            },
+            "cost_optimization": {
+              "score": 20,
+              "grade": "failing",
+              "weight": 10
+            },
+            "security": {
+              "score": 25,
+              "grade": "failing",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 10,
+              "grade": "failing",
+              "weight": 10
+            }
+          },
+          "overall_grade": "failing"
+        },
+        {
+          "trial": 2,
+          "overall_score": 35,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 35,
+              "grade": "poor",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 20,
+              "grade": "failing",
+              "weight": 10
+            },
+            "security": {
+              "score": 30,
+              "grade": "poor",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 15,
+              "grade": "failing",
+              "weight": 10
+            }
+          },
+          "overall_grade": "poor"
+        },
+        {
+          "trial": 3,
+          "overall_score": 30,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 20,
+              "grade": "failing",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 35,
+              "grade": "poor",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 10,
+              "grade": "failing",
+              "weight": 10
+            },
+            "security": {
+              "score": 30,
+              "grade": "poor",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 15,
+              "grade": "failing",
+              "weight": 10
+            }
+          },
+          "overall_grade": "failing"
+        },
+        {
+          "trial": 4,
+          "overall_score": 40,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 35,
+              "grade": "poor",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 30,
+              "grade": "poor",
+              "weight": 10
+            },
+            "security": {
+              "score": 25,
+              "grade": "poor",
+              "weight": 15
+            },
+            "sustainability": {
+              "score": 20,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 5,
+          "overall_score": 36,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 25
+            },
+            "operational_excellence": {
+              "score": 35,
+              "grade": "poor",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 30,
+              "grade": "poor",
+              "weight": 10
+            },
+            "security": {
+              "score": 25,
+              "grade": "poor",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 20,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "poor"
+        }
+      ]
+    },
+    {
+      "sample_id": "jr_004_image_feed_excellent",
+      "problem_id": "jr_004_image_feed",
+      "quality_level": "excellent",
+      "expected_score_range": [
+        85,
+        100
+      ],
+      "trials": [
+        {
+          "trial": 1,
+          "overall_score": 74,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 82,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 80,
+              "grade": "good",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 78,
+              "grade": "good",
+              "weight": 15
+            },
+            "security": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "good"
+        },
+        {
+          "trial": 2,
+          "overall_score": 73,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 82,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 78,
+              "grade": "good",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 80,
+              "grade": "good",
+              "weight": 15
+            },
+            "security": {
+              "score": 55,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "good"
+        },
+        {
+          "trial": 3,
+          "overall_score": 75,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 82,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 78,
+              "grade": "good",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 76,
+              "grade": "good",
+              "weight": 15
+            },
+            "security": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 5
+            }
+          },
+          "overall_grade": "good"
+        },
+        {
+          "trial": 4,
+          "overall_score": 74,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 80,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 78,
+              "grade": "good",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 76,
+              "grade": "good",
+              "weight": 15
+            },
+            "security": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 5
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 5,
+          "overall_score": 77,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 85,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 78,
+              "grade": "good",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 80,
+              "grade": "good",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 75,
+              "grade": "good",
+              "weight": 15
+            },
+            "security": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 5
+            }
+          },
+          "overall_grade": "good"
+        }
+      ]
+    },
+    {
+      "sample_id": "jr_004_image_feed_good",
+      "problem_id": "jr_004_image_feed",
+      "quality_level": "good",
+      "expected_score_range": [
+        72,
+        84
+      ],
+      "trials": [
+        {
+          "trial": 1,
+          "overall_score": 68,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 82,
+              "grade": "good",
+              "weight": 30
+            },
+            "cost_optimization": {
+              "score": 78,
+              "grade": "good",
+              "weight": 20
+            },
+            "reliability": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 55,
+              "grade": "fair",
+              "weight": 10
+            },
+            "security": {
+              "score": 55,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 2,
+          "overall_score": 65,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 80,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 15
+            },
+            "operational_excellence": {
+              "score": 58,
+              "grade": "fair",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 75,
+              "grade": "good",
+              "weight": 15
+            },
+            "security": {
+              "score": 55,
+              "grade": "fair",
+              "weight": 15
+            },
+            "sustainability": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 3,
+          "overall_score": 75,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 85,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 65,
+              "grade": "fair",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 78,
+              "grade": "good",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 80,
+              "grade": "good",
+              "weight": 15
+            },
+            "security": {
+              "score": 62,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 5
+            }
+          },
+          "overall_grade": "good"
+        },
+        {
+          "trial": 4,
+          "overall_score": 67,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 80,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 65,
+              "grade": "fair",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 75,
+              "grade": "good",
+              "weight": 15
+            },
+            "security": {
+              "score": 55,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 5,
+          "overall_score": 69,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 82,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 65,
+              "grade": "fair",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "security": {
+              "score": 50,
+              "grade": "poor",
+              "weight": 5
+            },
+            "sustainability": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 5
+            }
+          },
+          "overall_grade": "fair"
+        }
+      ]
+    },
+    {
+      "sample_id": "jr_004_image_feed_average",
+      "problem_id": "jr_004_image_feed",
+      "quality_level": "average",
+      "expected_score_range": [
+        55,
+        71
+      ],
+      "trials": [
+        {
+          "trial": 1,
+          "overall_score": 67,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 82,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 65,
+              "grade": "fair",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 78,
+              "grade": "good",
+              "weight": 15
+            },
+            "security": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 30,
+              "grade": "poor",
+              "weight": 5
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 2,
+          "overall_score": 67,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 80,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 15
+            },
+            "operational_excellence": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 78,
+              "grade": "good",
+              "weight": 15
+            },
+            "security": {
+              "score": 55,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 5
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 3,
+          "overall_score": 66,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 82,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 65,
+              "grade": "fair",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 75,
+              "grade": "good",
+              "weight": 15
+            },
+            "security": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 4,
+          "overall_score": 64,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 80,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 15
+            },
+            "operational_excellence": {
+              "score": 55,
+              "grade": "fair",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 75,
+              "grade": "good",
+              "weight": 15
+            },
+            "security": {
+              "score": 50,
+              "grade": "fair",
+              "weight": 15
+            },
+            "sustainability": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 5,
+          "overall_score": 71,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 78,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 65,
+              "grade": "fair",
+              "weight": 15
+            },
+            "operational_excellence": {
+              "score": 75,
+              "grade": "good",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 80,
+              "grade": "good",
+              "weight": 15
+            },
+            "security": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "fair"
+        }
+      ]
+    },
+    {
+      "sample_id": "jr_004_image_feed_poor",
+      "problem_id": "jr_004_image_feed",
+      "quality_level": "poor",
+      "expected_score_range": [
+        40,
+        54
+      ],
+      "trials": [
+        {
+          "trial": 1,
+          "overall_score": 58,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 82,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 76,
+              "grade": "good",
+              "weight": 15
+            },
+            "security": {
+              "score": 35,
+              "grade": "poor",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 30,
+              "grade": "poor",
+              "weight": 5
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 2,
+          "overall_score": 56,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 78,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 75,
+              "grade": "good",
+              "weight": 15
+            },
+            "security": {
+              "score": 30,
+              "grade": "poor",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 35,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "fair"
+        },
+        {
+          "trial": 3,
+          "overall_score": 50,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 75,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 10
+            },
+            "security": {
+              "score": 30,
+              "grade": "poor",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 20,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "poor"
+        },
+        {
+          "trial": 4,
+          "overall_score": 53,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 75,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 60,
+              "grade": "fair",
+              "weight": 15
+            },
+            "security": {
+              "score": 30,
+              "grade": "poor",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 25,
+              "grade": "poor",
+              "weight": 5
+            }
+          },
+          "overall_grade": "poor"
+        },
+        {
+          "trial": 5,
+          "overall_score": 54,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 75,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 15
+            },
+            "operational_excellence": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 72,
+              "grade": "good",
+              "weight": 15
+            },
+            "security": {
+              "score": 35,
+              "grade": "poor",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 30,
+              "grade": "poor",
+              "weight": 15
+            }
+          },
+          "overall_grade": "poor"
+        }
+      ]
+    },
+    {
+      "sample_id": "jr_004_image_feed_very_poor",
+      "problem_id": "jr_004_image_feed",
+      "quality_level": "very_poor",
+      "expected_score_range": [
+        0,
+        39
+      ],
+      "trials": [
+        {
+          "trial": 1,
+          "overall_score": 48,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 78,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 15
+            },
+            "operational_excellence": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 35,
+              "grade": "poor",
+              "weight": 15
+            },
+            "security": {
+              "score": 30,
+              "grade": "poor",
+              "weight": 15
+            },
+            "sustainability": {
+              "score": 25,
+              "grade": "poor",
+              "weight": 10
+            }
+          },
+          "overall_grade": "poor"
+        },
+        {
+          "trial": 2,
+          "overall_score": 48,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 75,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 15
+            },
+            "operational_excellence": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 35,
+              "grade": "poor",
+              "weight": 15
+            },
+            "security": {
+              "score": 30,
+              "grade": "poor",
+              "weight": 15
+            },
+            "sustainability": {
+              "score": 25,
+              "grade": "failing",
+              "weight": 10
+            }
+          },
+          "overall_grade": "poor"
+        },
+        {
+          "trial": 3,
+          "overall_score": 51,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 75,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 15
+            },
+            "operational_excellence": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 15
+            },
+            "cost_optimization": {
+              "score": 42,
+              "grade": "poor",
+              "weight": 15
+            },
+            "security": {
+              "score": 35,
+              "grade": "poor",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 38,
+              "grade": "poor",
+              "weight": 15
+            }
+          },
+          "overall_grade": "poor"
+        },
+        {
+          "trial": 4,
+          "overall_score": 52,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 75,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 50,
+              "grade": "poor",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 15
+            },
+            "security": {
+              "score": 30,
+              "grade": "poor",
+              "weight": 10
+            },
+            "sustainability": {
+              "score": 20,
+              "grade": "poor",
+              "weight": 5
+            }
+          },
+          "overall_grade": "poor"
+        },
+        {
+          "trial": 5,
+          "overall_score": 53,
+          "axis_scores": {
+            "performance_optimization": {
+              "score": 75,
+              "grade": "good",
+              "weight": 30
+            },
+            "reliability": {
+              "score": 50,
+              "grade": "poor",
+              "weight": 20
+            },
+            "operational_excellence": {
+              "score": 40,
+              "grade": "poor",
+              "weight": 20
+            },
+            "cost_optimization": {
+              "score": 45,
+              "grade": "poor",
+              "weight": 20
+            },
+            "security": {
+              "score": 35,
+              "grade": "poor",
+              "weight": 5
+            },
+            "sustainability": {
+              "score": 30,
+              "grade": "poor",
+              "weight": 5
+            }
+          },
+          "overall_grade": "poor"
+        }
+      ]
+    }
+  ]
+}

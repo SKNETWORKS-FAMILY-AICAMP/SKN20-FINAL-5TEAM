@@ -1,0 +1,418 @@
+{
+  "consistency": {
+    "avg_std_dev": 2.119,
+    "max_std_dev": 4.561,
+    "passed": true,
+    "details": [
+      {
+        "sample_id": "quest1_excellent",
+        "quality": "excellent",
+        "mean": 83.0,
+        "std_dev": 3.74,
+        "scores": [
+          82,
+          88,
+          85,
+          78,
+          82
+        ]
+      },
+      {
+        "sample_id": "quest1_good",
+        "quality": "good",
+        "mean": 79.2,
+        "std_dev": 1.79,
+        "scores": [
+          80,
+          80,
+          80,
+          80,
+          76
+        ]
+      },
+      {
+        "sample_id": "quest1_average",
+        "quality": "average",
+        "mean": 78.6,
+        "std_dev": 1.95,
+        "scores": [
+          77,
+          82,
+          78,
+          78,
+          78
+        ]
+      },
+      {
+        "sample_id": "quest1_poor",
+        "quality": "poor",
+        "mean": 48.4,
+        "std_dev": 1.34,
+        "scores": [
+          49,
+          49,
+          46,
+          49,
+          49
+        ]
+      },
+      {
+        "sample_id": "quest1_very_poor",
+        "quality": "very_poor",
+        "mean": 34.6,
+        "std_dev": 2.61,
+        "scores": [
+          39,
+          34,
+          34,
+          34,
+          32
+        ]
+      },
+      {
+        "sample_id": "quest2_excellent",
+        "quality": "excellent",
+        "mean": 92.0,
+        "std_dev": 0.0,
+        "scores": [
+          92,
+          92,
+          92,
+          92,
+          92
+        ]
+      },
+      {
+        "sample_id": "quest2_good",
+        "quality": "good",
+        "mean": 80.0,
+        "std_dev": 0.0,
+        "scores": [
+          80,
+          80,
+          80,
+          80,
+          80
+        ]
+      },
+      {
+        "sample_id": "quest2_average",
+        "quality": "average",
+        "mean": 73.6,
+        "std_dev": 4.45,
+        "scores": [
+          71,
+          77,
+          77,
+          67,
+          76
+        ]
+      },
+      {
+        "sample_id": "quest2_poor",
+        "quality": "poor",
+        "mean": 22.0,
+        "std_dev": 4.24,
+        "scores": [
+          22,
+          26,
+          26,
+          16,
+          20
+        ]
+      },
+      {
+        "sample_id": "quest2_very_poor",
+        "quality": "very_poor",
+        "mean": 20.2,
+        "std_dev": 1.64,
+        "scores": [
+          19,
+          22,
+          19,
+          19,
+          22
+        ]
+      },
+      {
+        "sample_id": "quest3_excellent",
+        "quality": "excellent",
+        "mean": 85.6,
+        "std_dev": 0.89,
+        "scores": [
+          86,
+          86,
+          84,
+          86,
+          86
+        ]
+      },
+      {
+        "sample_id": "quest3_good",
+        "quality": "good",
+        "mean": 90.8,
+        "std_dev": 2.68,
+        "scores": [
+          92,
+          92,
+          86,
+          92,
+          92
+        ]
+      },
+      {
+        "sample_id": "quest3_average",
+        "quality": "average",
+        "mean": 91.2,
+        "std_dev": 1.79,
+        "scores": [
+          88,
+          92,
+          92,
+          92,
+          92
+        ]
+      },
+      {
+        "sample_id": "quest3_poor",
+        "quality": "poor",
+        "mean": 32.4,
+        "std_dev": 1.67,
+        "scores": [
+          34,
+          32,
+          34,
+          30,
+          32
+        ]
+      },
+      {
+        "sample_id": "quest3_very_poor",
+        "quality": "very_poor",
+        "mean": 22.0,
+        "std_dev": 2.74,
+        "scores": [
+          25,
+          20,
+          20,
+          25,
+          20
+        ]
+      },
+      {
+        "sample_id": "quest4_excellent",
+        "quality": "excellent",
+        "mean": 73.6,
+        "std_dev": 2.61,
+        "scores": [
+          78,
+          72,
+          72,
+          74,
+          72
+        ]
+      },
+      {
+        "sample_id": "quest4_good",
+        "quality": "good",
+        "mean": 73.2,
+        "std_dev": 3.63,
+        "scores": [
+          78,
+          74,
+          74,
+          68,
+          72
+        ]
+      },
+      {
+        "sample_id": "quest4_average",
+        "quality": "average",
+        "mean": 60.6,
+        "std_dev": 4.56,
+        "scores": [
+          58,
+          57,
+          62,
+          58,
+          68
+        ]
+      },
+      {
+        "sample_id": "quest4_poor",
+        "quality": "poor",
+        "mean": 33.8,
+        "std_dev": 1.64,
+        "scores": [
+          32,
+          35,
+          35,
+          32,
+          35
+        ]
+      },
+      {
+        "sample_id": "quest4_very_poor",
+        "quality": "very_poor",
+        "mean": 20.4,
+        "std_dev": 0.89,
+        "scores": [
+          20,
+          22,
+          20,
+          20,
+          20
+        ]
+      },
+      {
+        "sample_id": "quest5_excellent",
+        "quality": "excellent",
+        "mean": 86.0,
+        "std_dev": 0.0,
+        "scores": [
+          86,
+          86,
+          86,
+          86,
+          86
+        ]
+      },
+      {
+        "sample_id": "quest5_good",
+        "quality": "good",
+        "mean": 62.2,
+        "std_dev": 2.49,
+        "scores": [
+          59,
+          62,
+          66,
+          62,
+          62
+        ]
+      },
+      {
+        "sample_id": "quest5_average",
+        "quality": "average",
+        "mean": 57.8,
+        "std_dev": 1.79,
+        "scores": [
+          58,
+          58,
+          60,
+          55,
+          58
+        ]
+      },
+      {
+        "sample_id": "quest5_poor",
+        "quality": "poor",
+        "mean": 20.0,
+        "std_dev": 2.83,
+        "scores": [
+          16,
+          20,
+          24,
+          20,
+          20
+        ]
+      },
+      {
+        "sample_id": "quest5_very_poor",
+        "quality": "very_poor",
+        "mean": 21.0,
+        "std_dev": 2.24,
+        "scores": [
+          25,
+          20,
+          20,
+          20,
+          20
+        ]
+      },
+      {
+        "sample_id": "quest6_excellent",
+        "quality": "excellent",
+        "mean": 80.8,
+        "std_dev": 2.49,
+        "scores": [
+          81,
+          81,
+          84,
+          81,
+          77
+        ]
+      },
+      {
+        "sample_id": "quest6_good",
+        "quality": "good",
+        "mean": 78.6,
+        "std_dev": 2.07,
+        "scores": [
+          79,
+          79,
+          75,
+          80,
+          80
+        ]
+      },
+      {
+        "sample_id": "quest6_average",
+        "quality": "average",
+        "mean": 72.8,
+        "std_dev": 3.9,
+        "scores": [
+          71,
+          67,
+          74,
+          75,
+          77
+        ]
+      },
+      {
+        "sample_id": "quest6_poor",
+        "quality": "poor",
+        "mean": 31.4,
+        "std_dev": 0.89,
+        "scores": [
+          31,
+          31,
+          31,
+          31,
+          33
+        ]
+      },
+      {
+        "sample_id": "quest6_very_poor",
+        "quality": "very_poor",
+        "mean": 16.0,
+        "std_dev": 0.0,
+        "scores": [
+          16,
+          16,
+          16,
+          16,
+          16
+        ]
+      }
+    ]
+  },
+  "discrimination": {
+    "excellent_mean": 83.5,
+    "very_poor_mean": 22.37,
+    "score_diff": 61.13,
+    "passed": true
+  },
+  "ranking": {
+    "avg_kendall_tau": 0.8667,
+    "perfect_rankings": 4,
+    "total_quests": 6,
+    "passed": true
+  },
+  "convergent_validity": {
+    "pearson_r": 0.7514,
+    "p_value": 2e-06,
+    "n_samples": 30,
+    "passed": true
+  },
+  "all_passed": true
+}

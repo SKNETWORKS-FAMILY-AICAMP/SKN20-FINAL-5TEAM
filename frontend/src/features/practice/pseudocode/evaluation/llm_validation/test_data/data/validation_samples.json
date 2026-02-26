@@ -1,0 +1,332 @@
+[
+  {
+    "sample_id": "quest1_excellent",
+    "quest_id": "1",
+    "quest_title": "데이터 전처리 누수 방어 시스템 설계",
+    "quality_level": "excellent",
+    "expected_score_range": [
+      75,
+      85
+    ],
+    "pseudocode": "1. 데이터 불러오기\n   - 데이터셋을 pandas의 read_csv 함수를 사용하여 불러온다.\n   - df = pd.read_csv('customer_data.csv')\n\n2. 데이터 탐색\n   - 데이터의 기본 정보와 통계 요약을 확인하여 결측치 및 이상치를 파악한다.\n   - print(df.info())\n   - print(df.describe())\n\n3. 결측치 처리\n   - 결측치가 있는 컬럼을 확인하고, 각 컬럼의 특성에 맞게 결측치를 처리한다.\n   - df['age'].fillna(df['age'].median(), inplace=True)  # 중앙값으로 대체\n   - df.dropna(subset=['customer_id'], inplace=True)  # 중요 컬럼의 결측치는 삭제\n\n4. 이상치 탐지\n   - IQR을 사용하여 이상치를 탐지하고 제거한다.\n   - Q1 = df['income'].quantile(0.25)\n   - Q3 = df['income'].quantile(0.75)\n   - IQR = Q3 - Q1\n   - df = df[(df['income'] >= (Q1 - 1.5 * IQR)) & (df['income'] <= (Q3 + 1.5 * IQR))]\n\n5. 데이터 분할\n   - train_test_split을 사용하여 데이터를 훈련 세트와 테스트 세트로 분할한다.\n   - from sklearn.model_selection import train_test_split\n   - X = df.drop('churn', axis=1)  # 특성\n   - y = df['churn']  # 레이블\n   - X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)\n\n6. 전처리 파이프라인 구성\n   - Pipeline을 사용하여 전처리 단계와 모델 학습 단계를 연결한다.\n   - from sklearn.preprocessing import StandardScaler\n   - from sklearn.pipeline import Pipeline\n   - preprocessor = ColumnTransformer(transformers=[('num', StandardScaler(), numerical_features)])  # 수치형 컬럼 정규화\n   - pipeline = Pipeline(steps=[('preprocessor', preprocessor), ('classifier', LogisticRegression())])\n\n7. 모델 학습\n   - 훈련 데이터에 파이프라인을 적합시킨다.\n   - pipeline.fit(X_train, y_train)\n\n8. 데이터 누수 방지 확인\n   - fit/transform을 분리하여 데이터 누수가 발생하지 않도록 한다.\n   - X_train_transformed = pipeline.named_steps['preprocessor'].fit_transform(X_train)\n   - y_pred = pipeline.predict(X_test)\n\n9. 모델 성능 평가\n   - 테스트 세트에 대한 모델 성능을 평가하고, confusion matrix 및 accuracy를 출력한다"
+  },
+  {
+    "sample_id": "quest1_good",
+    "quest_id": "1",
+    "quest_title": "데이터 전처리 누수 방어 시스템 설계",
+    "quality_level": "good",
+    "expected_score_range": [
+      60,
+      74
+    ],
+    "pseudocode": "1. 데이터셋 로드\n   - 원본 데이터셋을 CSV 파일에서 로드한다.\n\n2. train_test_split 수행\n   - 데이터를 훈련 세트와 테스트 세트로 나눈다.\n   - train_test_split 함수에서 random_state를 설정하여 재현성을 보장한다.\n\n3. 전처리 파이프라인 생성\n   - Pipeline을 사용하여 StandardScaler와 필요한 전처리 단계를 정의한다.\n   - 훈련 세트에 대해 fit/transform을 수행한다.\n\n4. 모델 훈련\n   - 전처리된 훈련 데이터를 사용하여 모델을 훈련시킨다.\n\n5. 테스트 세트 평가\n   - 전처리 파이프라인을 사용하여 테스트 세트에 transform을 적용한 후 모델 성능을 평가한다.\n   - 예외 처리로 데이터 누수 여부를 확인하고, 문제가 발생할 경우 경고 메시지를 출력한다."
+  },
+  {
+    "sample_id": "quest1_average",
+    "quest_id": "1",
+    "quest_title": "데이터 전처리 누수 방어 시스템 설계",
+    "quality_level": "average",
+    "expected_score_range": [
+      45,
+      59
+    ],
+    "pseudocode": "1. 데이터를 준비한다. \n   - 필요한 라이브러리를 불러온다.\n   - 데이터를 불러온 후, 목표 변수와 피처를 나눈다.\n\n2. 데이터를 학습 세트와 테스트 세트로 나눈다.\n   - train_test_split 함수를 사용하여 데이터를 무작위로 나눈다.\n\n3. 데이터를 표준화하기 위해 스케일러를 준비한다.\n   - StandardScaler 객체를 생성한다.\n\n4. 파이프라인을 만든다.\n   - 스케일러를 포함하는 파이프라인 객체를 생성한다.\n   - 학습 세트에 파이프라인을 적용하여 변환한다.\n   - 테스트 세트는 학습 세트를 기준으로 변환한다."
+  },
+  {
+    "sample_id": "quest1_poor",
+    "quest_id": "1",
+    "quest_title": "데이터 전처리 누수 방어 시스템 설계",
+    "quality_level": "poor",
+    "expected_score_range": [
+      25,
+      44
+    ],
+    "pseudocode": "데이터를 모두 불러와서 하나의 변수에 저장합니다.  \n그냥 데이터를 훈련 세트와 테스트 세트로 나누고, 훈련 세트에서 스케일링을 합니다.  \n테스트 세트에도 같은 방법으로 스케일링을 적용합니다."
+  },
+  {
+    "sample_id": "quest1_very_poor",
+    "quest_id": "1",
+    "quest_title": "데이터 전처리 누수 방어 시스템 설계",
+    "quality_level": "very_poor",
+    "expected_score_range": [
+      5,
+      24
+    ],
+    "pseudocode": "데이터를 통합한 후 스케일링하고 모델을 학습시킨다. 테스트 데이터에도 같은 방법으로 변환을 적용한다."
+  },
+  {
+    "sample_id": "quest2_excellent",
+    "quest_id": "2",
+    "quest_title": "과적합 방어 정규화 시스템 설계",
+    "quality_level": "excellent",
+    "expected_score_range": [
+      75,
+      85
+    ],
+    "pseudocode": "1. 데이터 로드 및 전처리\n   - 데이터프레임을 pandas로 로드한다.\n   - 결측치를 확인하고, 결측치가 있으면 평균 또는 중앙값으로 대체한다.\n   - 이상치를 탐지하여, IQR 방법 등을 사용해 이상치를 처리한다.\n\n2. 특성 선택\n   - 특성 간의 상관관계를 분석하여 높은 상관관계를 가진 특성을 선택한다.\n   - 중요하지 않은 특성을 제거하여 차원을 감소시킨다.\n\n3. 훈련 및 테스트 데이터 분할\n   - train_test_split 함수를 사용해 데이터를 훈련 세트와 테스트 세트로 80:20 비율로 분할한다.\n\n4. 정규화 기법 선택\n   - Ridge와 Lasso 정규화 기법을 선택하고, 각각의 하이퍼파라미터(알파 값)를 설정한다.\n   - GridSearchCV를 사용하여 최적의 하이퍼파라미터를 찾기 위한 범위를 정의한다.\n\n5. 교차검증 설정\n   - KFold 또는 StratifiedKFold를 사용하여 교차검증을 설정하고, K 값을 정의한다.\n   - 각 fold에 대해 모델을 훈련시키고 검증 세트에서 성능을 측정한다.\n\n6. 모델 훈련\n   - Ridge 회귀 모델과 Lasso 회귀 모델을 각각 훈련 세트에 대해 훈련시킨다.\n   - fit 함수를 사용하여 모델을 훈련시키고, 훈련 과정에서의 손실을 기록한다.\n\n7. 조기 종료 설정\n   - early stopping을 구현하여 검증 손실이 개선되지 않을 때 훈련을 중단한다.\n   - patience 값을 설정하여 성능 향상이 없을 경우 몇 번의 에포크 후에 종료할지를 결정한다.\n\n8. 성능 평가\n   - 테스트 세트에 대해 최적화된 모델을 평가하고, RMSE, MAE 등의 성능 지표를 계산한다.\n   - 정규화 기법에 따른 성능 변화를 비교 분석한다.\n\n9. 결과 시각화\n   - matplotlib 또는 seaborn을 사용하여 실제 값과 예측 값의 분포를 시각화한다.\n   - 학습 곡선과 검증 곡선을 시각화하여 과적합 여부를 진단한다."
+  },
+  {
+    "sample_id": "quest2_good",
+    "quest_id": "2",
+    "quest_title": "과적합 방어 정규화 시스템 설계",
+    "quality_level": "good",
+    "expected_score_range": [
+      60,
+      74
+    ],
+    "pseudocode": "데이터 로드 및 전처리 수행  \n  데이터 = 로드_데이터(파일_경로)  \n  특성, 타겟 = 데이터_전처리(데이터)  \n\n훈련 및 테스트 데이터 분할  \n  훈련_데이터, 테스트_데이터 = 데이터_분할(특성, 타겟, 비율=0.8)  \n\n모델 초기화 및 정규화 설정  \n  모델 = 초기화_모델(정규화_종류='Ridge', 알파=0.1)  \n\n교차 검증 수행  \n  점수 = 교차_검증(모델, 훈련_데이터, 폴드=5)  \n  평균_점수 = 계산_평균(점수)  \n\n모델 훈련 및 조기 중단 적용  \n  최적_모델 = 훈련_모델(모델, 훈련_데이터, 조기_중단=True)"
+  },
+  {
+    "sample_id": "quest2_average",
+    "quest_id": "2",
+    "quest_title": "과적합 방어 정규화 시스템 설계",
+    "quality_level": "average",
+    "expected_score_range": [
+      45,
+      59
+    ],
+    "pseudocode": "데이터를 준비한다  \n모델의 복잡성을 줄이기 위해 두 가지 방법을 선택한다: Ridge와 Lasso  \n데이터를 여러 부분으로 나누어 각 부분을 검증에 사용한다  \n\n각 부분에 대해  \n모델을 학습시킨다  \n정규화 기법을 적용한다  \n과적합 여부를 확인한다  \n\n모든 부분에 대해 결과를 평균내어 최종 성능을 평가한다  \n가장 좋은 성능을 보인 모델을 선택한다"
+  },
+  {
+    "sample_id": "quest2_poor",
+    "quest_id": "2",
+    "quest_title": "과적합 방어 정규화 시스템 설계",
+    "quality_level": "poor",
+    "expected_score_range": [
+      25,
+      44
+    ],
+    "pseudocode": "데이터 준비하기  \n모델을 만들고 학습시킨다  \n모델 성능을 평가한다"
+  },
+  {
+    "sample_id": "quest2_very_poor",
+    "quest_id": "2",
+    "quest_title": "과적합 방어 정규화 시스템 설계",
+    "quality_level": "very_poor",
+    "expected_score_range": [
+      5,
+      24
+    ],
+    "pseudocode": "모델 훈련 후 바로 테스트하고 성능 평가하기. 교차검증은 필요 없고, 정규화는 안 해도 괜찮음."
+  },
+  {
+    "sample_id": "quest3_excellent",
+    "quest_id": "3",
+    "quest_title": "불균형 데이터 처리 시스템 설계",
+    "quality_level": "excellent",
+    "expected_score_range": [
+      75,
+      85
+    ],
+    "pseudocode": "1. 데이터 불러오기  \n   데이터셋을 pandas 라이브러리를 사용하여 불러온다.  \n   `df = pd.read_csv('medical_data.csv')`\n\n2. 데이터 탐색  \n   각 클래스의 분포를 확인하고, 결측치 및 이상치를 탐색한다.  \n   `df['class'].value_counts()`  \n   `df.isnull().sum()`  \n\n3. 결측치 처리  \n   결측치가 있는 경우, 적절한 방법(예: 평균 또는 중위수 대체)으로 처리한다.  \n   `df.fillna(df.mean(), inplace=True)`  \n\n4. 이상치 처리  \n   IQR(Interquartile Range) 방법을 사용하여 이상치를 탐지하고 제거한다.  \n   `Q1 = df.quantile(0.25)`  \n   `Q3 = df.quantile(0.75)`  \n   `IQR = Q3 - Q1`  \n   `df = df[~((df < (Q1 - 1.5 * IQR)) | (df > (Q3 + 1.5 * IQR))).any(axis=1)]`\n\n5. 특성과 레이블 분리  \n   특성과 레이블을 분리하여 X와 y로 정의한다.  \n   `X = df.drop('class', axis=1)`  \n   `y = df['class']`\n\n6. 데이터 분할  \n   stratified split을 사용하여 train/test 데이터로 분할한다.  \n   `from sklearn.model_selection import train_test_split`  \n   `X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)`\n\n7. SMOTE 적용  \n   소수 클래스를 증가시키기 위해 SMOTE를 적용한다.  \n   `from imblearn.over_sampling import SMOTE`  \n   `smote = SMOTE(random_state=42)`  \n   `X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)`\n\n8. 모델 학습  \n   불균형 데이터에 적합한 모델(예: Random Forest)을 학습시킨다.  \n   `from sklearn.ensemble import RandomForestClassifier`  \n   `model = RandomForestClassifier(class_weight='balanced', random_state=42)`  \n   `model.fit(X_train_resampled, y_train_resampled)`\n\n9. 예측 및 평가  \n   테스트 데이터에 대한 예측을 수행하고 F1-score 및 AUC-ROC를 계산한다.  \n   `from sklearn.metrics import f1_score, roc_auc_score`  \n   `y_pred = model.predict(X_test)`  \n   `f1 = f1_score(y_test, y_pred)`  \n   `y_pred_proba = model.predict_proba(X_test)[:, 1]`"
+  },
+  {
+    "sample_id": "quest3_good",
+    "quest_id": "3",
+    "quest_title": "불균형 데이터 처리 시스템 설계",
+    "quality_level": "good",
+    "expected_score_range": [
+      60,
+      74
+    ],
+    "pseudocode": "1. 데이터 로드:\n   - csv 파일에서 의료 데이터를 로드한다.\n   - 데이터프레임 형태로 변환한다.\n\n2. 데이터 전처리:\n   - 결측값 처리: 각 컬럼의 결측값을 확인하고, 적절한 방법으로 처리한다.\n   - 특성 선택: 예측에 유용한 특성만 선택하여 새로운 데이터프레임을 생성한다.\n\n3. 클래스 불균형 확인:\n   - 각 클래스의 분포를 확인하여 불균형 정도를 평가한다.\n   - 소수 클래스를 정확히 예측할 수 있는 모델이 필요한 이유를 명시한다.\n\n4. SMOTE 적용:\n   - imblearn 라이브러리의 SMOTE를 사용하여 소수 클래스의 샘플을 증가시킨다.\n   - 증가된 데이터를 기존 데이터와 결합하여 새로운 학습 데이터셋을 만든다.\n\n5. 모델 학습 및 평가:\n   - Stratified split 방법을 사용하여 학습용 데이터와 테스트용 데이터로 분할한다.\n   - class_weight 파라미터를 설정하여 모델을 학습시킨다.\n   - F1-score와 AUC-ROC을 사용하여 모델 성능을 평가한다."
+  },
+  {
+    "sample_id": "quest3_average",
+    "quest_id": "3",
+    "quest_title": "불균형 데이터 처리 시스템 설계",
+    "quality_level": "average",
+    "expected_score_range": [
+      45,
+      59
+    ],
+    "pseudocode": "1. 데이터셋을 준비한다. \n   - 의료 데이터에서 클래스 레이블과 특성 데이터를 분리한다. \n\n2. 데이터의 클래스 분포를 확인한다. \n   - 각 클래스의 샘플 수를 세고, 어떤 클래스가 소수인지 확인한다.\n\n3. 소수 클래스의 샘플 수를 늘린다. \n   - SMOTE 기법을 사용하여 소수 클래스의 데이터를 인위적으로 생성한다.\n\n4. 데이터를 훈련 세트와 테스트 세트로 나눈다. \n   - 데이터의 불균형을 유지하기 위해 stratified split을 사용한다.\n\n5. 모델을 훈련시킨다. \n   - class_weight를 조정하여 소수 클래스에 더 많은 가중치를 부여한다.\n\n6. 모델의 성능을 평가한다. \n   - F1-score과 AUC-ROC 지표를 사용하여 모델의 예측 성능을 확인한다. \n\n7. 결과를 분석하고 필요시 모델을 개선한다. \n   - 평가 결과를 바탕으로 모델의 파라미터를 조정하거나 다른 기법을 시도한다."
+  },
+  {
+    "sample_id": "quest3_poor",
+    "quest_id": "3",
+    "quest_title": "불균형 데이터 처리 시스템 설계",
+    "quality_level": "poor",
+    "expected_score_range": [
+      25,
+      44
+    ],
+    "pseudocode": "1. 데이터를 불러와서 전체 데이터에서 소수 클래스와 다수 클래스의 비율을 확인합니다.  \n2. 데이터를 학습 데이터와 테스트 데이터로 나누고, 그냥 무작위로 나눕니다.  \n3. 모델을 훈련 시키고, 간단한 정확도를 계산하여 소수 클래스를 잘 예측하는지 확인합니다."
+  },
+  {
+    "sample_id": "quest3_very_poor",
+    "quest_id": "3",
+    "quest_title": "불균형 데이터 처리 시스템 설계",
+    "quality_level": "very_poor",
+    "expected_score_range": [
+      5,
+      24
+    ],
+    "pseudocode": "데이터를 그냥 나누고, 그냥 모델을 학습시킨다. 그런 다음 정확도만 보고 결과를 평가한다."
+  },
+  {
+    "sample_id": "quest4_excellent",
+    "quest_id": "4",
+    "quest_title": "피처 엔지니어링 최적화 설계",
+    "quality_level": "excellent",
+    "expected_score_range": [
+      75,
+      85
+    ],
+    "pseudocode": "1. 데이터 불러오기\n   - `import pandas as pd`\n   - `data = pd.read_csv('data.csv')`\n\n2. 결측치 처리\n   - 결측치 확인: `missing_values = data.isnull().sum()`\n   - 결측치가 있는 피처를 평균 또는 중앙값으로 대체:  \n     `data.fillna(data.mean(), inplace=True)`  # 평균으로 대체\n   - 또는 특정 피처에 대해 중앙값으로 대체:  \n     `data['특정_피처'].fillna(data['특정_피처'].median(), inplace=True)`\n\n3. 이상치 탐지 및 처리\n   - IQR 방식으로 이상치 탐지:  \n     `Q1 = data.quantile(0.25)`  \n     `Q3 = data.quantile(0.75)`  \n     `IQR = Q3 - Q1`  \n     `data = data[~((data < (Q1 - 1.5 * IQR)) | (data > (Q3 + 1.5 * IQR))).any(axis=1)]`  # 이상치 제거\n\n4. 데이터 표준화\n   - `from sklearn.preprocessing import StandardScaler`\n   - 스케일러 객체 생성: `scaler = StandardScaler()`\n   - 데이터 표준화: `scaled_data = scaler.fit_transform(data)`\n\n5. 피처 간 상관관계 분석\n   - 상관 행렬 계산: `correlation_matrix = pd.DataFrame(scaled_data).corr()`\n   - 상관관계 시각화:  \n     `import seaborn as sns`  \n     `import matplotlib.pyplot as plt`  \n     `sns.heatmap(correlation_matrix, annot=True)`  \n     `plt.show()` \n\n6. PCA를 통한 차원 축소\n   - `from sklearn.decomposition import PCA`\n   - PCA 객체 생성 및 적합: `pca = PCA(n_components=0.95)`  # 설명된 분산 95% 유지\n   - 변환: `reduced_data = pca.fit_transform(scaled_data)`\n\n7. 피처 중요도 평가\n   - Random Forest 모델로 피처 중요도 평가:  \n     `from sklearn.ensemble import RandomForestClassifier`  \n     `model = RandomForestClassifier()`  \n     `model.fit(reduced_data, target)`  # target은 라벨 데이터\n   - 중요도 추출: `feature_importances = model.feature_importances_`\n   - 중요도 시각화:  \n     `feature_importance_df = pd.DataFrame({'Feature': range(len(feature_importances)), 'Importance': feature_importances})`  \n     `feature_importance_df.sort_values(by='Importance', ascending=False, inplace=True)`  \n     `sns.barplot(x='Importance', y='Feature', data=feature_importance_df"
+  },
+  {
+    "sample_id": "quest4_good",
+    "quest_id": "4",
+    "quest_title": "피처 엔지니어링 최적화 설계",
+    "quality_level": "good",
+    "expected_score_range": [
+      60,
+      74
+    ],
+    "pseudocode": "1. 데이터 로드 및 전처리 시작  \n   a. 데이터셋을 로드한다.  \n   b. 결측치가 있는 피처를 확인하고, 적절한 방법으로 처리한다 (예: 평균, 중앙값으로 대체).  \n   c. 이상치를 탐지하고, 이를 제거하거나 수정한다.  \n\n2. 피처 스케일링  \n   a. StandardScaler를 사용하여 피처 스케일링을 적용한다.  \n   b. 스케일링된 데이터의 분포를 확인하여 이상적인 상태인지 점검한다.  \n\n3. 피처 선택  \n   a. 상관 행렬을 계산하여 피처 간의 상관관계를 분석한다.  \n   b. 상관관계가 높은 피처들 중에서 중요도가 낮은 피처를 제거한다.  \n\n4. 차원 축소  \n   a. PCA를 적용하여 데이터의 차원을 축소한다.  \n   b. PCA 결과를 시각화하여 분산 설명 비율을 확인한다.  \n\n5. 피처 엔지니어링 최적화  \n   a. 모델 성능을 평가하기 위해 선택된 피처에 대해 중요도를 계산한다.  \n   b. 최적의 피처 조합을 찾아 모델을 학습시키고, 성능을 비교한다.  \n   c. 필요에 따라 반복하여 피처 엔지니어링 단계를 최적화한다."
+  },
+  {
+    "sample_id": "quest4_average",
+    "quest_id": "4",
+    "quest_title": "피처 엔지니어링 최적화 설계",
+    "quality_level": "average",
+    "expected_score_range": [
+      45,
+      59
+    ],
+    "pseudocode": "1. 데이터를 불러온다.\n2. 결측치와 이상치를 확인하고 적절한 방법으로 처리한다.\n3. 데이터를 정규화하여 스케일링한다.\n4. 피처 간의 상관관계를 분석하고 중요도가 높은 피처를 선택한다.\n5. PCA를 적용하여 차원을 축소하고 최적의 피처 집합을 구성한다."
+  },
+  {
+    "sample_id": "quest4_poor",
+    "quest_id": "4",
+    "quest_title": "피처 엔지니어링 최적화 설계",
+    "quality_level": "poor",
+    "expected_score_range": [
+      25,
+      44
+    ],
+    "pseudocode": "데이터를 불러온다.  \n피처를 줄이기 위해 랜덤하게 몇 개의 피처를 선택한다.  \n정규화를 위해 모든 피처를 0과 1 사이로 바꾼다."
+  },
+  {
+    "sample_id": "quest4_very_poor",
+    "quest_id": "4",
+    "quest_title": "피처 엔지니어링 최적화 설계",
+    "quality_level": "very_poor",
+    "expected_score_range": [
+      5,
+      24
+    ],
+    "pseudocode": "피처들을 그냥 모두 사용해서 모델을 학습하고, 최적화는 필요 없어. 결과는 확인하지 않아도 돼."
+  },
+  {
+    "sample_id": "quest5_excellent",
+    "quest_id": "5",
+    "quest_title": "하이퍼파라미터 튜닝 전략 설계",
+    "quality_level": "excellent",
+    "expected_score_range": [
+      75,
+      85
+    ],
+    "pseudocode": "1. 데이터셋 로드하기  \n   데이터셋을 pandas 라이브러리를 사용하여 로드한다.  \n   예외: 파일이 존재하지 않으면 오류 메시지를 출력하고 종료한다.\n\n2. 결측치 및 이상치 처리하기  \n   - 결측치를 평균 또는 중앙값으로 대체한다.  \n   - 이상치는 IQR 방법을 사용하여 제거한다.\n\n3. 특성 및 레이블 분리하기  \n   데이터프레임에서 입력 특성과 레이블을 분리한다.  \n   입력 특성(X)과 레이블(y)을 정의한다.\n\n4. 하이퍼파라미터 공간 정의하기  \n   - 학습률(lr): [1e-5, 1e-4, 1e-3, 1e-2]의 리스트로 설정한다.  \n   - 배치 크기(batch_size): [16, 32, 64]의 리스트로 설정한다.  \n   - 레이어 수(layers): [1, 2, 3]의 리스트로 설정한다.\n\n5. GridSearchCV 및 RandomizedSearchCV 객체 생성하기  \n   - Scikit-learn의 GridSearchCV 및 RandomizedSearchCV를 사용하여 하이퍼파라미터 탐색 객체를 생성한다.  \n   - 교차 검증 전략으로 KFold를 사용하여 5겹으로 설정한다.\n\n6. 모델 정의하기  \n   - Keras의 Sequential 모델을 사용하여 기본 신경망 모델을 정의한다.  \n   - 입력층, 은닉층, 출력층을 추가하고 활성화 함수를 지정한다.\n\n7. 하이퍼파라미터 탐색 수행하기  \n   - GridSearchCV 또는 RandomizedSearchCV의 fit() 메소드를 사용하여 모델 학습을 수행한다.  \n   - 각각의 하이퍼파라미터 조합에 대한 성능을 기록한다.\n\n8. 최적의 하이퍼파라미터 및 성능 출력하기  \n   - best_params_ 속성을 사용하여 최적의 하이퍼파라미터를 출력한다.  \n   - best_score_ 속성을 사용하여 최상의 성능을 출력한다.  \n\n9. 최적 모델로 재학습하기  \n   - 최적의 하이퍼파라미터로 모델을 재정의하고 데이터로 학습시킨다.\n\n10. 테스트 데이터에 대한 성능 평가하기  \n    - 테스트 데이터셋을 사용하여 모델의 성능을 평가하고 결과를 출력한다.  \n    예외: 평가 중 오류가 발생할 경우 오류 메시지를 출력한다."
+  },
+  {
+    "sample_id": "quest5_good",
+    "quest_id": "5",
+    "quest_title": "하이퍼파라미터 튜닝 전략 설계",
+    "quality_level": "good",
+    "expected_score_range": [
+      60,
+      74
+    ],
+    "pseudocode": "하이퍼파라미터 튜닝 전략 설계\n\n1. 데이터셋 로드하기\n   - 데이터셋 = 데이터 로드 함수()\n   - 훈련 데이터, 검증 데이터 = 데이터셋 나누기(비율)\n\n2. 하이퍼파라미터 그리드 정의하기\n   - 학습률 리스트 = [0.001, 0.01, 0.1]\n   - 배치 크기 리스트 = [16, 32, 64]\n   - 레이어 수 리스트 = [1, 2, 3]\n\n3. 모델 초기화하기\n   - 모델 = 모델 생성 함수()\n\n4. 하이퍼파라미터 탐색하기\n   - 각 학습률에 대해:\n     - 각 배치 크기에 대해:\n       - 각 레이어 수에 대해:\n         - 모델 학습하기(훈련 데이터, 현재 하이퍼파라미터)\n         - 검증 정확도 계산하기\n         - 최적 하이퍼파라미터 업데이트하기(현재 정확도보다 높은 경우)\n\n5. 최적 하이퍼파라미터 출력하기\n   - 최적 하이퍼파라미터 = 최적 값 저장\n   - 출력(최적 하이퍼파라미터)"
+  },
+  {
+    "sample_id": "quest5_average",
+    "quest_id": "5",
+    "quest_title": "하이퍼파라미터 튜닝 전략 설계",
+    "quality_level": "average",
+    "expected_score_range": [
+      45,
+      59
+    ],
+    "pseudocode": "1. 하이퍼파라미터 후보 목록을 준비합니다.\n   - 학습률, 배치 크기, 레이어 수 등의 다양한 값을 생성합니다.\n\n2. 모델과 데이터셋을 준비합니다.\n   - 사용할 딥러닝 모델을 정의하고, 학습할 데이터셋을 로드합니다.\n\n3. 하이퍼파라미터 탐색 방법을 선택합니다.\n   - GridSearchCV 또는 RandomizedSearchCV 중 하나를 결정합니다.\n\n4. 선택한 방법을 사용하여 하이퍼파라미터를 조정하고 모델 성능을 평가합니다.\n   - 최적의 하이퍼파라미터 조합을 찾기 위해 여러 번 모델을 학습하고 검증합니다."
+  },
+  {
+    "sample_id": "quest5_poor",
+    "quest_id": "5",
+    "quest_title": "하이퍼파라미터 튜닝 전략 설계",
+    "quality_level": "poor",
+    "expected_score_range": [
+      25,
+      44
+    ],
+    "pseudocode": "하이퍼파라미터 튜닝을 위한 데이터셋을 준비한다.  \n모델의 파라미터를 바꿔가며 학습한다.  \n결과를 비교해서 가장 좋은 값을 선택한다."
+  },
+  {
+    "sample_id": "quest5_very_poor",
+    "quest_id": "5",
+    "quest_title": "하이퍼파라미터 튜닝 전략 설계",
+    "quality_level": "very_poor",
+    "expected_score_range": [
+      5,
+      24
+    ],
+    "pseudocode": "하이퍼파라미터를 무작위로 선택하고 모델을 학습시킨다. 결과는 그냥 출력한다."
+  },
+  {
+    "sample_id": "quest6_excellent",
+    "quest_id": "6",
+    "quest_title": "모델 해석성과 설명가능성 설계",
+    "quality_level": "excellent",
+    "expected_score_range": [
+      75,
+      85
+    ],
+    "pseudocode": "1. 데이터 로드: pandas 라이브러리를 사용하여 금융 대출 데이터를 로드합니다.  \n   `import pandas as pd`  \n   `data = pd.read_csv('loan_data.csv')`\n\n2. 데이터 전처리: 결측치 및 이상치를 확인하고 처리합니다.  \n   - 결측치는 평균 또는 중앙값으로 대체합니다.  \n   - 이상치는 IQR(Interquartile Range) 방법을 사용하여 제거합니다.  \n   `data.fillna(data.mean(), inplace=True)`  \n   `Q1 = data.quantile(0.25)`  \n   `Q3 = data.quantile(0.75)`  \n   `IQR = Q3 - Q1`  \n   `data = data[~((data < (Q1 - 1.5 * IQR)) | (data > (Q3 + 1.5 * IQR))).any(axis=1)]`\n\n3. 피처 선택: 금융 대출 심사 모델에 중요한 피처를 식별합니다.  \n   `from sklearn.feature_selection import SelectKBest, f_classif`  \n   `X = data.drop('target', axis=1)`  \n   `y = data['target']`  \n   `X_new = SelectKBest(f_classif, k=10).fit_transform(X, y)`\n\n4. 모델 훈련: RandomForestClassifier를 사용하여 모델을 훈련합니다.  \n   `from sklearn.ensemble import RandomForestClassifier`  \n   `model = RandomForestClassifier(random_state=42)`  \n   `model.fit(X_new, y)`\n\n5. 예측: 훈련된 모델로 예측을 수행합니다.  \n   `predictions = model.predict(X_new)`\n\n6. 설명가능성 기법 적용: SHAP 및 LIME을 사용하여 모델의 예측 결과에 대한 설명을 생성합니다.  \n   - SHAP 값 계산  \n   `import shap`  \n   `explainer = shap.TreeExplainer(model)`  \n   `shap_values = explainer.shap_values(X_new)`  \n   - LIME 해석  \n   `from lime.lime_tabular import LimeTabularExplainer`  \n   `explainer_lime = LimeTabularExplainer(X_new, feature_names=X.columns, class_names=['not_default', 'default'])`  \n   `lime_explanation = explainer_lime.explain_instance(X_new.iloc[0], model.predict_proba, num_features=10)`\n\n7. 편향 분석: 모델의 편향을 평가하기 위해 다양한 인구통계학적 그룹에 대한 성능을 비교합니다.  \n   `from sklearn.metrics import confusion_matrix, classification_report`  \n   `cm = confusion_matrix(y, predictions)`  \n   `report = classification_report(y, predictions)`  \n   - 인구통계학적 그룹에 따른 성능 분석 수행  \n\n8"
+  },
+  {
+    "sample_id": "quest6_good",
+    "quest_id": "6",
+    "quest_title": "모델 해석성과 설명가능성 설계",
+    "quality_level": "good",
+    "expected_score_range": [
+      60,
+      74
+    ],
+    "pseudocode": "1. 데이터 수집\n   - 금융 대출 심사 관련 데이터셋 수집 (예: 고객 정보, 대출 이력, 상환 기록)\n   - 수집된 데이터에서 필요한 특성(feature) 선택 (예: 연소득, 신용 점수, 대출 금액)\n\n2. 데이터 전처리\n   - 결측치 및 이상치 처리\n   - 범주형 변수 인코딩 (예: 원-핫 인코딩)\n   - 특성 스케일링 (예: 정규화 또는 표준화)\n\n3. 모델 학습\n   - 선정된 특성을 사용하여 대출 심사 AI 모델 학습\n   - 학습된 모델을 평가하기 위한 검증 데이터셋 분리\n\n4. 설명 가능성 기법 적용\n   - SHAP 값을 사용하여 각 특성이 모델 예측에 미치는 영향 분석\n   - LIME을 사용하여 특정 사례에 대해 모델 예측 설명\n\n5. 결과 분석 및 편향 검토\n   - 특성 중요도 시각화 및 결과 해석\n   - 특정 그룹에 대한 편향 확인 (예: 성별, 인종)\n   - 발견된 편향에 대해 수정 방안 제시 (예: 데이터 리샘플링, 모델 재훈련)"
+  },
+  {
+    "sample_id": "quest6_average",
+    "quest_id": "6",
+    "quest_title": "모델 해석성과 설명가능성 설계",
+    "quality_level": "average",
+    "expected_score_range": [
+      45,
+      59
+    ],
+    "pseudocode": "데이터 수집 단계  \n1. 대출 신청자 데이터 수집  \n   - 사용자 정보, 신용 점수, 소득, 대출 금액 등 포함  \n\n모델 학습 단계  \n2. 머신러닝 모델 학습  \n   - 수집한 데이터를 사용하여 대출 심사 모델 학습  \n   - 모델의 성능을 평가하고 필요한 경우 조정  \n\n설명 생성 단계  \n3. 모델 해석 도구 적용  \n   - SHAP 또는 LIME을 사용하여 모델의 예측 결과에 대한 설명 생성  \n   - 각 특성이 결과에 미치는 영향 분석  \n\n편향 검토 단계  \n4. 모델 편향 분석  \n   - 다양한 그룹에 대한 모델의 성능 비교  \n   - 필요 시 편향을 줄이기 위한 추가 조치 설계"
+  },
+  {
+    "sample_id": "quest6_poor",
+    "quest_id": "6",
+    "quest_title": "모델 해석성과 설명가능성 설계",
+    "quality_level": "poor",
+    "expected_score_range": [
+      25,
+      44
+    ],
+    "pseudocode": "1. 데이터가 있으면, 대출 신청자의 정보를 가져와서 모델을 학습시킴.\n2. 모델의 중요성을 평가하기 위해 몇몇 변수를 선택하고, 그 변수를 기반으로 대출 승인 여부를 결정함.\n3. 결과를 보여주고, 왜 그렇게 결정했는지 설명함."
+  },
+  {
+    "sample_id": "quest6_very_poor",
+    "quest_id": "6",
+    "quest_title": "모델 해석성과 설명가능성 설계",
+    "quality_level": "very_poor",
+    "expected_score_range": [
+      5,
+      24
+    ],
+    "pseudocode": "모델의 예측 결과를 그냥 보여주고, SHAP나 LIME 같은 기술은 필요 없어. 편향 문제는 무시하고 설명할 필요도 없어."
+  }
+]
