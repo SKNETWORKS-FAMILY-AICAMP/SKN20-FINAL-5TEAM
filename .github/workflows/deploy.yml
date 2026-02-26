@@ -22,12 +22,12 @@ jobs:
             docker compose down
             docker compose up -d --build
             
-            # 2. 프론트엔드 빌드 및 Nginx에 덮어쓰기 (자동화 추가)
-            cd frontend
+            # 2. 프론트엔드 빌드 부분 
+            cd frontend      
             npm install
             npm run build
-            # 빌드된 dist 폴더를 최상위 폴더로 이동(또는 복사)해 줌
+            # 만들어진 dist 폴더를 최상위 폴더로 넘겨줌
             cp -r dist/ ../dist/
+            # Nginx에 덮어쓰기
             sudo rm -rf /var/www/html/*
-            # 이제 원하시던 최상위 폴더의 dist에서 읽어와도 에러가 나지 않고 성공합니다!
             sudo cp -r /home/ubuntu/SKN20-FINAL-5TEAM/dist/* /var/www/html/
