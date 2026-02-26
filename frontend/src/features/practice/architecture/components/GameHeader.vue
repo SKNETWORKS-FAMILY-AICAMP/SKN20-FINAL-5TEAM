@@ -20,7 +20,7 @@
       >
         {{ isHintActive ? 'HINT_OFF' : 'HINT_ON' }}
       </button>
-      <button class="ctrl-btn home" @click="goToHome">HOME</button>
+      <button class="ctrl-btn exit" @click="$emit('exit-game')">EXIT</button>
     </div>
   </div>
 </template>
@@ -38,12 +38,7 @@ export default {
       default: false
     }
   },
-  emits: ['toggle-mode', 'clear-canvas', 'toggle-hint'],
-  methods: {
-    goToHome() {
-      this.$router.push('/');
-    }
-  }
+  emits: ['toggle-mode', 'clear-canvas', 'toggle-hint', 'exit-game']
 };
 </script>
 
@@ -155,12 +150,12 @@ export default {
   animation: hint-pulse 1.5s infinite;
 }
 
-.ctrl-btn.home {
+.ctrl-btn.exit {
   border-color: rgba(188, 19, 254, 0.4);
   color: var(--neon-purple);
 }
 
-.ctrl-btn.home:hover {
+.ctrl-btn.exit:hover {
   background: rgba(188, 19, 254, 0.15);
   border-color: var(--neon-purple);
   box-shadow: 0 0 20px rgba(188, 19, 254, 0.3);

@@ -24,6 +24,7 @@
       @retry="handleRetry"
       @next="handleNextProblem"
       @complete="handleComplete"
+      @home="goHome"
     />
 
     <!-- ✅ 미션 잠금 화면 제거 (모든 미션이 항상 해금됨) -->
@@ -60,6 +61,7 @@
             @toggle-mode="toggleMode"
             @clear-canvas="clearCanvas"
             @toggle-hint="toggleHint"
+            @exit-game="handleExitGame"
           />
 
           <!-- 작업 공간 (툴박스 + 캔버스) -->
@@ -121,6 +123,13 @@
         @submit-explanation="submitUserExplanation"
       />
 
+      <!-- ✅ NEW: EXIT 컨펌 모달 -->
+      <ExitConfirmModal
+        :is-active="showExitModal"
+        @confirm="confirmExit"
+        @cancel="cancelExit"
+      />
+
       <!-- ✅ NEW: 검증 피드백 모달 -->
       <ValidationFeedback
         v-if="showValidationFeedback"
@@ -150,6 +159,8 @@ import CaseFilePanel from './components/CaseFilePanel.vue';
 import TutorialOverlay from './components/TutorialOverlay.vue';
 // ✅ NEW: 검증 피드백 컴포넌트
 import ValidationFeedback from './components/ValidationFeedback.vue';
+// ✅ NEW: EXIT 컨펌 모달
+import ExitConfirmModal from './components/ExitConfirmModal.vue';
 
 // Composables
 import { useToast } from './composables/useToast';
@@ -175,7 +186,8 @@ export default {
     IntroScene,
     CaseFilePanel,
     TutorialOverlay,
-    ValidationFeedback
+    ValidationFeedback,
+    ExitConfirmModal
   },
   data() {
     return {
@@ -201,7 +213,10 @@ export default {
 
       // ✅ NEW: 진행 상태 관리
       completedProblems: [], // 완료된 문제 ID 목록
-      problemScores: {} // 문제별 점수 저장
+      problemScores: {}, // 문제별 점수 저장
+
+      // ✅ NEW: EXIT 컨펌 모달 상태
+      showExitModal: false
     };
   },
   setup() {
@@ -567,6 +582,27 @@ export default {
       );
       // 필요시 메인 화면으로 이동
       // this.$router.push('/');
+    },
+
+    // ✅ NEW: EXIT 버튼 클릭 - 모달로 확인 메시지 표시
+    handleExitGame() {
+      this.showExitModal = true;
+    },
+
+    // ✅ NEW: EXIT 모달 - 확인 (게임 종료)
+    confirmExit() {
+      this.showExitModal = false;
+      this.$router.push('/');
+    },
+
+    // ✅ NEW: EXIT 모달 - 취소 (계속 진행)
+    cancelExit() {
+      this.showExitModal = false;
+    },
+
+    // ✅ NEW: 결과 화면에서 HOME 버튼 클릭
+    goHome() {
+      this.$router.push('/');
     },
 
     // ✅ NEW: 진행 상태 관리 (Progress Store 연동)
