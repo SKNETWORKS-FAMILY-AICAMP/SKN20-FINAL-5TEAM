@@ -103,7 +103,7 @@
             <!-- 면접자 자막 오버레이 -->
             <div class="subtitle-wrap subtitle-right">
               <div class="subtitle-badge user-badge">YOU</div>
-              <div class="subtitle-text user-text">
+              <div class="subtitle-text user-text" ref="userSubtitleRef">
                 <span v-if="userTypewriterText">{{ userTypewriterText }}</span>
                 <span v-else class="subtitle-placeholder">답변을 입력해 주세요...</span>
               </div>
@@ -146,6 +146,7 @@ const router = useRouter();
 
 // [수정일: 2026-02-23] [vision] WebcamDisplay 컴포넌트 참조
 const webcamRef = ref(null);
+const userSubtitleRef = ref(null);
 
 // 화면 단계: 'select' | 'loading' | 'interview' | 'feedback'
 const phase = ref('select');
@@ -380,6 +381,14 @@ async function startTTS(text) {
   // TTS API 요청 후 오디오가 재생되기 시작할 때까지 대기
   await tts.speak(text.trim());
 }
+
+// 사용자 자막 자동 스크롤 (타자기 효과로 텍스트 추가될 때마다 맨 아래로)
+watch(userTypewriterText, async () => {
+  await nextTick();
+  if (userSubtitleRef.value) {
+    userSubtitleRef.value.scrollTop = userSubtitleRef.value.scrollHeight;
+  }
+});
 
 // 메시지 변화 감시하여 자막 업데이트 (사용자 자막만 처리, 면접관은 비디오 큐에서 처리)
 watch(() => messages.value.length, (newLen, oldLen) => {
@@ -654,7 +663,8 @@ function onExit() {
 
 .subtitle-text {
   width: 100%;
-  min-height: 80px;
+  height: 120px;
+  overflow-y: auto;
   font-size: 18px;
   line-height: 1.6;
   font-weight: 400;
