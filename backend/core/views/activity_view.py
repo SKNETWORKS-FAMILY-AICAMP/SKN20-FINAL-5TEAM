@@ -4,6 +4,8 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 import logging
 logger = logging.getLogger(__name__)
 from django.db.models import Sum, Count, Max
@@ -119,9 +121,11 @@ class LeaderboardView(APIView):
             'has_previous': page_obj.has_previous()
         }, status=status.HTTP_200_OK)
 
+@method_decorator(csrf_exempt, name='dispatch')
 class UserProgressView(APIView):
     """
     사용자의 전체 학습 진행도 및 특정 유닛 진행 상태 조회
+    [수정일: 2026-02-26] CSRF_EXEMPT 추가 - AWS HTTPS 배포 환경 대응
     """
     permission_classes = [permissions.IsAuthenticated]
 
@@ -177,9 +181,11 @@ class UserProgressView(APIView):
             'unlocked_nodes': progress.unlocked_nodes
         }, status=status.HTTP_200_OK)
 
+@method_decorator(csrf_exempt, name='dispatch')
 class SubmitProblemView(APIView):
     """
     문제 해결 시 점수 저장 및 활동 상태 업데이트
+    [수정일: 2026-02-26] CSRF_EXEMPT 추가 - AWS HTTPS 배포 환경 대응
     """
     permission_classes = [permissions.IsAuthenticated]
 
