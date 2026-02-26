@@ -132,7 +132,7 @@
           <button class="editor-btn tutorial-btn" @click="startTutorial" style="margin-right: 10px;">
             📖 튜토리얼
           </button>
-          <button class="back-btn" @click="confirmExit">EXIT</button>
+          <button class="back-btn" @click="confirmExit">나가기</button>
         </div>
       </header>
 
@@ -1106,19 +1106,11 @@
       </div>
     </div>
 
-    <!-- 종료 확인 모달 -->
-    <transition name="fade">
-      <div v-if="showExitConfirm" class="confirm-overlay">
-        <div class="confirm-modal">
-          <h3>⚠️ EXIT PRACTICE?</h3>
-          <p>진행 중인 문제를 종료하시겠습니까?</p>
-          <div class="confirm-actions">
-            <button class="confirm-btn cancel" @click="showExitConfirm = false">CANCEL</button>
-            <button class="confirm-btn exit" @click="exitPractice">EXIT</button>
-          </div>
-        </div>
-      </div>
-    </transition>
+    <PracticeExitConfirmModal
+      :is-active="showExitConfirm"
+      @cancel="showExitConfirm = false"
+      @confirm="exitPractice"
+    />
 
     <!-- 튜토리얼 오버레이 -->
     <BugHuntTutorialOverlay
@@ -1157,6 +1149,7 @@ import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
 import axios from 'axios';
 import { evaluateBugHunt, verifyCodeBehavior, interviewBugHunt, interviewBugHuntStream } from './api/bugHuntApi';
 import BugHuntTutorialOverlay from './components/BugHuntTutorialOverlay.vue';
+import PracticeExitConfirmModal from '../components/PracticeExitConfirmModal.vue';
 import { useAuthStore } from '@/stores/auth';
 import './BugHunt.css';
 

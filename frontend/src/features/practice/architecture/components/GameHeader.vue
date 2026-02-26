@@ -20,7 +20,7 @@
       >
         {{ isHintActive ? 'HINT_OFF' : 'HINT_ON' }}
       </button>
-      <button class="ctrl-btn exit" @click="$emit('exit-game')">EXIT</button>
+      <button class="ctrl-btn exit" @click="$emit('exit-game')">나가기</button>
     </div>
   </div>
 </template>
@@ -151,14 +151,19 @@ export default {
 }
 
 .ctrl-btn.exit {
-  border-color: rgba(188, 19, 254, 0.4);
-  color: var(--neon-purple);
+  border-color: rgba(79, 195, 247, 0.38);
+  color: #4fc3f7;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .ctrl-btn.exit:hover {
-  background: rgba(188, 19, 254, 0.15);
-  border-color: var(--neon-purple);
-  box-shadow: 0 0 20px rgba(188, 19, 254, 0.3);
+  background: rgba(79, 195, 247, 0.2);
+  border-color: #4fc3f7;
+  box-shadow: 0 0 15px rgba(79, 195, 247, 0.35);
 }
 
 @keyframes hint-pulse {

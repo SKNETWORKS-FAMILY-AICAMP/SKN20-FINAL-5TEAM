@@ -167,18 +167,23 @@
 }
 
 .back-btn {
-  background: transparent;
-  border: 1px solid var(--neon-cyan);
+  background: rgba(79, 195, 247, 0.08);
+  border: 1px solid rgba(79, 195, 247, 0.38);
   color: var(--neon-cyan);
   padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
   font-family: 'Orbitron', monospace;
   cursor: pointer;
   transition: all 0.3s;
 }
 
 .back-btn:hover {
-  background: var(--neon-cyan);
-  color: #000;
+  background: rgba(79, 195, 247, 0.2);
+  border-color: var(--neon-cyan);
+  color: #fff;
+  box-shadow: 0 0 15px rgba(79, 195, 247, 0.35);
 }
 
 /* 플레이어 스탯 바 */
@@ -1694,76 +1699,6 @@
 }
 
 /* Terminal styles removed */
-
-/* 종료 확인 모달 */
-.confirm-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 300;
-}
-
-.confirm-modal {
-  background: var(--panel-bg);
-  border: 2px solid var(--neon-yellow);
-  border-radius: 12px;
-  padding: 30px;
-  text-align: center;
-  max-width: 400px;
-}
-
-.confirm-modal h3 {
-  color: var(--neon-yellow);
-  margin-bottom: 15px;
-}
-
-.confirm-modal p {
-  color: #a0aec0;
-  line-height: 1.6;
-  margin-bottom: 25px;
-}
-
-.confirm-actions {
-  display: flex;
-  gap: 15px;
-}
-
-.confirm-btn {
-  flex: 1;
-  padding: 12px;
-  border-radius: 6px;
-  font-family: 'Orbitron', monospace;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.confirm-btn.cancel {
-  background: transparent;
-  border: 2px solid #718096;
-  color: #718096;
-}
-
-.confirm-btn.cancel:hover {
-  background: #718096;
-  color: #000;
-}
-
-.confirm-btn.exit {
-  background: transparent;
-  border: 2px solid var(--neon-red);
-  color: var(--neon-red);
-}
-
-.confirm-btn.exit:hover {
-  background: var(--neon-red);
-  color: #fff;
-}
 
 /* 레벨업 이펙트 */
 .levelup-overlay {
