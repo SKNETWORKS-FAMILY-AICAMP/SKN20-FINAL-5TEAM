@@ -1,6 +1,3 @@
-// 수정일: 2026-01-23
-// 수정내용: 퀘스트 기반 Logic Mirror로 교체
-
 import { createApp } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import { createPinia } from 'pinia'
@@ -14,11 +11,9 @@ axios.defaults.xsrfHeaderName = 'X-CSRFToken'
 // [2026-02-25] Nginx 배포 환경을 위한 전역 Base URL 설정
 axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL || ''
 
-// 새로운 퀘스트 기반 Logic Mirror 임포트
 import PseudocodePractice from './features/practice/pseudocode/PseudocodePractice.vue'
 import SystemArchitecturePractice from './features/practice/architecture/SystemArchitecturePractice.vue'
 import BugHunt from './features/practice/bughunt/BugHunt.vue'
-// import OpsPractice from './features/practice/OpsPractice.vue'
 import ManagementView from './features/admin/ManagementView.vue'
 import MyRecordsView from './features/my-records/MyRecordsView.vue'
 import AICoach from './features/ai-coach/AICoach.vue'
@@ -39,11 +34,6 @@ import BugBubbleMonster from './features/wars/minigames/BugBubbleMonster.vue'
 // [수정일: 2026-02-26] 로그 뷰어화면 임포트
 import LogViewer from './features/admin/LogViewer.vue'
 
-// [수정일: 2026-01-31] 사용하지 않는 구버전/비활성 컴포넌트 임포트 주석 처리
-// import AiDetectivePractice from './features/practice/AiDetectivePractice.vue'
-// import PseudoForest from './features/practice/PseudoForest.vue'
-// import PseudoCompany from './features/practice/PseudoCompany.vue'
-// import PseudoEmergency from './features/practice/PseudoEmergency.vue'
 
 const routes = [
   {
@@ -51,7 +41,6 @@ const routes = [
     name: 'Home',
     component: { render: () => null }
   },
-  // [2026-01-27] Pseudo Practice (구 Logic Mirror) 라우트 최신화
   {
     path: '/practice/pseudo-code',
     name: 'PseudoCode',
@@ -67,14 +56,7 @@ const routes = [
     name: 'BugHunt',
     component: BugHunt
   },
-  /*
-    {
-      path: '/practice/ops-practice',
-      name: 'OpsPractice',
-      component: OpsPractice
-    },
-  */
-  {
+{
     path: '/practice/coduck-wars',
     name: 'CoduckWars',
     component: WarsModeSelect
@@ -113,29 +95,7 @@ const routes = [
     name: 'WarLobby',
     component: WarLobby
   },
-  /* [수정일: 2026-01-31] 비활성 라우트 주석 처리
-  {
-    path: '/practice/ai-detective',
-    name: 'AiDetective',
-    component: AiDetectivePractice
-  },
-  {
-    path: '/practice/pseudo-forest',
-    name: 'PseudoForest',
-    component: PseudoForest
-  },
-  {
-    path: '/practice/pseudo-company',
-    name: 'PseudoCompany',
-    component: PseudoCompany
-  },
-    {
-      path: '/practice/pseudo-emergency',
-      name: 'PseudoEmergency',
-      component: PseudoEmergency
-    },
-  */
-  {
+{
     path: '/management/progress',
     name: 'Management',
     component: ManagementView

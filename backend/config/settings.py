@@ -153,7 +153,7 @@ CORS_ALLOWED_ORIGINS = [
     'http://127.0.0.1:8000',
     'http://192.168.45.138:5173',
     'http://192.168.45.138:8000',
-    'http://13.209.8.169',
+    'http://15.164.222.83',
 ]
 CORS_ALLOW_CREDENTIALS = True
 
@@ -165,7 +165,7 @@ CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:5173',
     'http://192.168.45.138:5173',
     'http://192.168.45.138:8000',
-    'http://13.209.8.169',
+    'http://15.164.222.83',
 ]
 
 # [수정일: 2026-02-25] localtunnel 지원: TUNNEL_URL 환경변수로 외부 터널 도메인 허용
@@ -194,6 +194,11 @@ SESSION_COOKIE_HTTPONLY = True
 OPENAI_API_KEY = env('OPENAI_API_KEY', default='')
 GOOGLE_API_KEY = env('GOOGLE_API_KEY', default='')
 YOUTUBE_API_KEY = env('YOUTUBE_API_KEY', default=GOOGLE_API_KEY)
+
+# Admin Settings
+ADMIN_USERNAME = env('ADMIN_USERNAME', default='')
+ADMIN_PASSWORD = env('ADMIN_PASSWORD', default='')
+ADMIN_TOKEN_SECRET = env('ADMIN_TOKEN_SECRET', default='')
 
 # Job Planner Agent - Python path 추가
 # job-planner-agent 폴더 이름에 하이픈(-)이 있어서 직접 import 불가
