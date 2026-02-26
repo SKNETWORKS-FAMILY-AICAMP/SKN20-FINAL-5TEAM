@@ -7,10 +7,6 @@ POST /api/core/interview/sessions/<pk>/answer/
 2. L2 Engine → update_slot + decide_action
 3. if finish → feedback_generator → SSE final_feedback → [DONE]
 4. if move_slot → 다음 슬롯 이동
-5. Coach → coach_feedback (빈 문자열이면 전송 안 함)
-6. L3 Planner → intent
-7. L5 Humanizer → context
-8. L4 Interviewer → SSE question tokens
 9. SSE meta
 10. [DONE]
 11. InterviewTurn DB 저장
@@ -28,7 +24,6 @@ from rest_framework.permissions import AllowAny
 from core.models import UserProfile, InterviewSession, InterviewTurn, InterviewFeedback
 from core.services.interview.analyst import extract_evidence
 from core.services.interview.state_engine import StateEngine
-from core.services.interview import coach as Coach
 from core.services.interview.planner import decide_intent
 from core.services.interview.humanizer import build_context
 from core.services.interview.interviewer import generate_question
@@ -117,8 +112,6 @@ def _stream_answer(session, answer: str, old_turn: InterviewTurn):
         old_turn.slot_status_before = slot_status_before
         old_turn.slot_status_after = slot_status_after
         old_turn.engine_action = 'finish'
-        coach_fb = Coach.generate_feedback(current_slot, merged_evidence, required)
-        old_turn.coach_feedback = coach_fb
         old_turn.save()
 
         # 최종 피드백 생성
@@ -140,10 +133,7 @@ def _stream_answer(session, answer: str, old_turn: InterviewTurn):
         yield 'data: [DONE]\n\n'
         return
 
-    # ── Phase 3: Coach 피드백 (이전 슬롯 기반) ───────────────
-    coach_fb = Coach.generate_feedback(current_slot, merged_evidence, required)
-
-    # ── Phase 4: MOVE_SLOT 처리 ──────────────────────────────
+    # ── Phase 3: MOVE_SLOT 처리 ──────────────────────────────
     if action == 'move_slot':
         if slot_status_after != 'CLEAR':
             engine.mark_uncertain(session, current_slot)
@@ -159,7 +149,6 @@ def _stream_answer(session, answer: str, old_turn: InterviewTurn):
             old_turn.slot_status_before = slot_status_before
             old_turn.slot_status_after = slot_status_after
             old_turn.engine_action = 'finish'
-            old_turn.coach_feedback = coach_fb
             old_turn.save()
 
             try:
@@ -185,11 +174,7 @@ def _stream_answer(session, answer: str, old_turn: InterviewTurn):
         # continue
         session.just_moved_slot = False
 
-    # ── Phase 5: Coach 피드백 SSE 전송 ─────────────────────
-    if coach_fb:
-        yield _sse({'type': 'coach_feedback', 'text': coach_fb})
-
-    # ── Phase 6: 다음 질문 생성 (L3 → L5 → L4 stream) ──────
+    # ── Phase 4: 다음 질문 생성 (L3 → L5 → L4 stream) ──────
     new_slot = session.current_slot
     new_slot_states = session.slot_states
     missing_required = new_slot_states.get(new_slot, {}).get('missing_required', [])
@@ -204,13 +189,13 @@ def _stream_answer(session, answer: str, old_turn: InterviewTurn):
     past_turns = session.turns.exclude(answer='').order_by('turn_number').values('question', 'answer')
     conversation_history = [{"q": t['question'], "a": t['answer']} for t in past_turns][-4:]
 
-    # ── Phase 7: L4 Interviewer SSE 스트리밍 ────────────────
+    # ── Phase 5: L4 Interviewer SSE 스트리밍 ────────────────
     full_question = ''
     for token in generate_question(intent, ctx, previous_answer=answer, conversation_history=conversation_history):
         full_question += token
         yield _sse({'type': 'question', 'token': token})
 
-    # ── Phase 8: Meta SSE 전송 ───────────────────────────────
+    # ── Phase 6: Meta SSE 전송 ───────────────────────────────
     new_turn_number = session.current_turn + 1
 
     slot_plan_slots = session.interview_plan.get('slots', [])
@@ -232,13 +217,12 @@ def _stream_answer(session, answer: str, old_turn: InterviewTurn):
     })
     yield 'data: [DONE]\n\n'
 
-    # ── Phase 9: DB 저장 (스트리밍 완료 후) ─────────────────
+    # ── Phase 7: DB 저장 (스트리밍 완료 후) ─────────────────
     old_turn.answer = answer
     old_turn.evidence_map = evidence_map
     old_turn.slot_status_before = slot_status_before
     old_turn.slot_status_after = slot_status_after
     old_turn.engine_action = action
-    old_turn.coach_feedback = coach_fb
     old_turn.intent = intent
     old_turn.save()
 
@@ -260,7 +244,6 @@ def _stream_answer(session, answer: str, old_turn: InterviewTurn):
         slot_status_after='UNKNOWN',
         engine_action='',
         intent=intent,
-        coach_feedback='',
     )
 
 

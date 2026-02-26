@@ -124,7 +124,7 @@ class StateEngine:
         Returns:
             초기화된 slot_states dict
         """
-        from core.services.interview.coach import SLOT_REQUIRED
+        from core.services.interview.constants import SLOT_REQUIRED
 
         slot_states = {}
         for slot_plan in interview_plan.get("slots", []):

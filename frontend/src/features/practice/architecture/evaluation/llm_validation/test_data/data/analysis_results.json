@@ -1,0 +1,288 @@
+{
+  "consistency": {
+    "avg_std_dev": 3.371,
+    "max_std_dev": 6.877,
+    "passed": true,
+    "details": [
+      {
+        "sample_id": "jr_001_url_shortener_excellent",
+        "quality": "excellent",
+        "mean": 67.6,
+        "std_dev": 5.37,
+        "scores": [
+          72,
+          64,
+          60,
+          70,
+          72
+        ]
+      },
+      {
+        "sample_id": "jr_001_url_shortener_good",
+        "quality": "good",
+        "mean": 63.4,
+        "std_dev": 4.67,
+        "scores": [
+          70,
+          58,
+          66,
+          61,
+          62
+        ]
+      },
+      {
+        "sample_id": "jr_001_url_shortener_average",
+        "quality": "average",
+        "mean": 67.8,
+        "std_dev": 2.17,
+        "scores": [
+          69,
+          64,
+          68,
+          69,
+          69
+        ]
+      },
+      {
+        "sample_id": "jr_001_url_shortener_poor",
+        "quality": "poor",
+        "mean": 62.4,
+        "std_dev": 4.04,
+        "scores": [
+          59,
+          58,
+          68,
+          63,
+          64
+        ]
+      },
+      {
+        "sample_id": "jr_001_url_shortener_very_poor",
+        "quality": "very_poor",
+        "mean": 41.4,
+        "std_dev": 6.88,
+        "scores": [
+          43,
+          50,
+          45,
+          33,
+          36
+        ]
+      },
+      {
+        "sample_id": "jr_002_pastebin_excellent",
+        "quality": "excellent",
+        "mean": 74.0,
+        "std_dev": 2.74,
+        "scores": [
+          75,
+          78,
+          72,
+          71,
+          74
+        ]
+      },
+      {
+        "sample_id": "jr_002_pastebin_good",
+        "quality": "good",
+        "mean": 70.6,
+        "std_dev": 3.13,
+        "scores": [
+          72,
+          72,
+          65,
+          72,
+          72
+        ]
+      },
+      {
+        "sample_id": "jr_002_pastebin_average",
+        "quality": "average",
+        "mean": 70.8,
+        "std_dev": 2.28,
+        "scores": [
+          68,
+          70,
+          74,
+          70,
+          72
+        ]
+      },
+      {
+        "sample_id": "jr_002_pastebin_poor",
+        "quality": "poor",
+        "mean": 57.2,
+        "std_dev": 2.17,
+        "scores": [
+          57,
+          56,
+          56,
+          61,
+          56
+        ]
+      },
+      {
+        "sample_id": "jr_002_pastebin_very_poor",
+        "quality": "very_poor",
+        "mean": 45.6,
+        "std_dev": 6.43,
+        "scores": [
+          48,
+          36,
+          53,
+          43,
+          48
+        ]
+      },
+      {
+        "sample_id": "jr_003_notification_excellent",
+        "quality": "excellent",
+        "mean": 70.8,
+        "std_dev": 1.3,
+        "scores": [
+          70,
+          70,
+          70,
+          73,
+          71
+        ]
+      },
+      {
+        "sample_id": "jr_003_notification_good",
+        "quality": "good",
+        "mean": 64.6,
+        "std_dev": 2.88,
+        "scores": [
+          67,
+          61,
+          64,
+          68,
+          63
+        ]
+      },
+      {
+        "sample_id": "jr_003_notification_average",
+        "quality": "average",
+        "mean": 66.2,
+        "std_dev": 1.79,
+        "scores": [
+          67,
+          67,
+          67,
+          67,
+          63
+        ]
+      },
+      {
+        "sample_id": "jr_003_notification_poor",
+        "quality": "poor",
+        "mean": 53.8,
+        "std_dev": 4.15,
+        "scores": [
+          55,
+          60,
+          50,
+          54,
+          50
+        ]
+      },
+      {
+        "sample_id": "jr_003_notification_very_poor",
+        "quality": "very_poor",
+        "mean": 34.2,
+        "std_dev": 4.27,
+        "scores": [
+          30,
+          35,
+          30,
+          40,
+          36
+        ]
+      },
+      {
+        "sample_id": "jr_004_image_feed_excellent",
+        "quality": "excellent",
+        "mean": 74.6,
+        "std_dev": 1.52,
+        "scores": [
+          74,
+          73,
+          75,
+          74,
+          77
+        ]
+      },
+      {
+        "sample_id": "jr_004_image_feed_good",
+        "quality": "good",
+        "mean": 68.8,
+        "std_dev": 3.77,
+        "scores": [
+          68,
+          65,
+          75,
+          67,
+          69
+        ]
+      },
+      {
+        "sample_id": "jr_004_image_feed_average",
+        "quality": "average",
+        "mean": 67.0,
+        "std_dev": 2.55,
+        "scores": [
+          67,
+          67,
+          66,
+          64,
+          71
+        ]
+      },
+      {
+        "sample_id": "jr_004_image_feed_poor",
+        "quality": "poor",
+        "mean": 54.2,
+        "std_dev": 3.03,
+        "scores": [
+          58,
+          56,
+          50,
+          53,
+          54
+        ]
+      },
+      {
+        "sample_id": "jr_004_image_feed_very_poor",
+        "quality": "very_poor",
+        "mean": 50.4,
+        "std_dev": 2.3,
+        "scores": [
+          48,
+          48,
+          51,
+          52,
+          53
+        ]
+      }
+    ]
+  },
+  "discrimination": {
+    "excellent_mean": 71.75,
+    "very_poor_mean": 42.9,
+    "score_diff": 28.85,
+    "passed": false
+  },
+  "ranking": {
+    "avg_kendall_tau": 0.8,
+    "perfect_rankings": 1,
+    "total_problems": 4,
+    "passed": true
+  },
+  "convergent_validity": {
+    "pearson_r": 0.6849,
+    "p_value": 0.000863,
+    "n_samples": 20,
+    "passed": true
+  },
+  "all_passed": false
+}

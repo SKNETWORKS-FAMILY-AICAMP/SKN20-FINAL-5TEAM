@@ -60,7 +60,6 @@ execution_plan.md
 execution_plan.md
 GIT_STATUS.md
 UPDATE_GUIDE.md
-/backend/media/avatars
 README_PSEUDOCODE.md
 README.md
 backend/test_llm_quick.py
@@ -70,3 +69,5 @@ backend/test_validator.py
 CLAUDE.md
 frontend/.env.local
 CLOUDFLARE_TEAM_SETUP_GUIDE.md
+
+backend/GFPGANv1.4.pth

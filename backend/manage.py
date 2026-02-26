@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # 수정일: 2026-01-20
 # 수정내용: Django 관리 명령줄 유틸리티 생성
+# Django 프로젝트의 뼈대이자 명령어 실행기입니다. 
+# 서버를 켜거나(runserver), 데이터베이스를 세팅(migrate)할 때 사용하는 스크립트
 
 import os
 import sys

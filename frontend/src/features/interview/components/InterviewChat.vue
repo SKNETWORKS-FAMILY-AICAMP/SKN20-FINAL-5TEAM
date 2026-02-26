@@ -1,17 +1,5 @@
 <template>
   <div class="interview-chat">
-    <!-- 헤더: 슬롯 진행 상황 -->
-    <div class="chat-header">
-      <div class="slot-info">
-        <span class="slot-label">{{ currentTopic || currentSlot }}</span>
-        <span class="turn-badge">턴 {{ currentTurn }}</span>
-      </div>
-      <div class="progress-bar">
-        <div class="progress-fill" :style="{ width: slotProgress + '%' }"></div>
-      </div>
-      <div class="progress-text">역량 {{ slotsCleared }}/{{ totalSlots }} 확인</div>
-    </div>
-
     <!-- 대화 영역 -->
     <div class="chat-messages" ref="messagesContainerRef">
       <div
@@ -30,9 +18,13 @@
         <div v-else-if="msg.role === 'interviewer'" class="interviewer-bubble">
           <div class="avatar interviewer-avatar">🎙️</div>
           <div class="bubble">
-            <span v-if="!msg.content && isStreaming" class="typing-dots">
+            <!-- TTS 대기 중: dots -->
+            <span v-if="idx === ttsActiveIdx && !displayedText" class="typing-dots">
               <span></span><span></span><span></span>
             </span>
+            <!-- TTS 재생 중: 타자기 텍스트 -->
+            <span v-else-if="idx === ttsActiveIdx">{{ displayedText }}</span>
+            <!-- 이미 재생 완료된 메시지 -->
             <span v-else>{{ msg.content }}</span>
           </div>
         </div>
@@ -103,7 +95,7 @@
 <script setup>
 import { ref, watch, nextTick, onMounted } from 'vue';
 import AudioRecorder from './AudioRecorder.vue';
-import { tts } from '@/utils/tts';
+import { tts } from '../tts';
 
 const props = defineProps({
   messages: { type: Array, default: () => [] },
@@ -126,13 +118,34 @@ const voiceMode = ref(true);  // 기본: 음성 모드
 const lastSpokenContent = ref('');  // 중복 재생 방지
 const isTTSPlaying = ref(!!props.messages.find(m => m.role === 'interviewer')?.content);
 
+// 타자기 효과
+const firstInterviewerIdx = props.messages.findIndex(m => m.role === 'interviewer' && m.content);
+const ttsActiveIdx = ref(firstInterviewerIdx);  // 현재 TTS 중인 메시지 인덱스 (-1이면 없음)
+const displayedText = ref('');                  // 타자기로 출력 중인 텍스트
+let typewriterTimer = null;
+
+function startTypewriter(fullText) {
+  clearInterval(typewriterTimer);
+  displayedText.value = '';
+  let i = 0;
+  typewriterTimer = setInterval(() => {
+    i = Math.min(i + 4, fullText.length);
+    displayedText.value = fullText.slice(0, i);
+    if (i >= fullText.length) {
+      clearInterval(typewriterTimer);
+      typewriterTimer = null;
+    }
+  }, 30); // ~130자/초
+}
+
 // TTS 시작 + isTTSPlaying 추적
-function startTTS(text) {
+function startTTS(text, msgIdx) {
   if (!text?.trim()) return;
-  if (!isTTSPlaying.value) {
-    isTTSPlaying.value = true;
-    tts.onQueueEmpty = () => { isTTSPlaying.value = false; };
-  }
+  ttsActiveIdx.value = msgIdx ?? ttsActiveIdx.value;
+  displayedText.value = '';
+  isTTSPlaying.value = true;
+  tts.onFirstPlay = () => { startTypewriter(text); };
+  tts.onQueueEmpty = () => { isTTSPlaying.value = false; };
   tts.speak(text.trim());
 }
 
@@ -156,51 +169,56 @@ onMounted(async () => {
   const firstMsg = props.messages.find(m => m.role === 'interviewer');
   if (firstMsg?.content) {
     lastSpokenContent.value = firstMsg.content;
-    // isTTSPlaying은 이미 true로 초기화됨. onQueueEmpty만 등록하면 됨.
-    tts.onQueueEmpty = () => { isTTSPlaying.value = false; };
-    tts.speak(firstMsg.content.trim());
+    startTTS(firstMsg.content, firstInterviewerIdx);
   }
 });
 
 // case 1: 스트리밍 없이 바로 추가된 면접관 메시지 → 즉시 TTS
 watch(
   () => props.messages.length,
-  async (newLen, oldLen) => {
+  (newLen, oldLen) => {
     if (newLen <= oldLen) return;
     const newMsg = props.messages[newLen - 1];
     if (newMsg?.role === 'interviewer' && newMsg?.content && !props.isStreaming) {
       if (newMsg.content !== lastSpokenContent.value) {
         lastSpokenContent.value = newMsg.content;
-        startTTS(newMsg.content);
+        startTTS(newMsg.content, newLen - 1);
       }
     }
   }
 );
 
-// case 3: 스트리밍 완료 → 전체 텍스트 TTS + 포커스
+// 첫 토큰 도착 시 → 해당 메시지를 TTS 대기 상태로 전환 (dots 표시)
+watch(() => props.hasStreamedToken, (val) => {
+  if (val && props.isStreaming) {
+    ttsActiveIdx.value = props.messages.length - 1;
+    displayedText.value = '';
+  }
+});
+
+// 스트리밍 완료 → 전체 텍스트 TTS 전송
 watch(
   () => props.isStreaming,
   async (val, oldVal) => {
     if (val && !oldVal) {
-      // 스트리밍 시작: 이전 TTS 중단
+      // 스트리밍 시작: 이전 TTS·타자기 중단
       tts.stop();
+      clearInterval(typewriterTimer);
+      typewriterTimer = null;
       isTTSPlaying.value = false;
+      ttsActiveIdx.value = -1;
+      displayedText.value = '';
     }
-    if (!val && oldVal) {  // true → false (스트리밍 끝)
-      // nextTick 전에 미리 블록 → AudioRecorder가 켜지는 틈 방지
-      isTTSPlaying.value = true;
-      tts.onQueueEmpty = () => { isTTSPlaying.value = false; };
-
+    if (!val && oldVal) {  // 스트리밍 끝
       await nextTick();
       inputRef.value?.focus();
 
-      const lastMsg = [...props.messages].reverse().find(m => m.role === 'interviewer');
+      const lastMsgIdx = props.messages.reduce((acc, m, i) => m.role === 'interviewer' ? i : acc, -1);
+      const lastMsg = props.messages[lastMsgIdx];
       if (lastMsg?.content && lastMsg.content !== lastSpokenContent.value) {
         lastSpokenContent.value = lastMsg.content;
-        tts.speak(lastMsg.content.trim());
+        startTTS(lastMsg.content, lastMsgIdx);
       } else {
-        // TTS할 내용이 없으면 즉시 해제
-        tts.onQueueEmpty = null;
         isTTSPlaying.value = false;
       }
     }
@@ -243,53 +261,6 @@ watch(
   width: 100%;
 }
 
-/* 헤더 */
-.chat-header {
-  padding: 12px 16px;
-  border-bottom: 1px solid #e5e7eb;
-  background: #fff;
-}
-
-.slot-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-
-.slot-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: #4f46e5;
-}
-
-.turn-badge {
-  font-size: 12px;
-  color: #888;
-  background: #f3f4f6;
-  padding: 2px 8px;
-  border-radius: 99px;
-}
-
-.progress-bar {
-  height: 4px;
-  background: #e5e7eb;
-  border-radius: 2px;
-  overflow: hidden;
-  margin-bottom: 4px;
-}
-
-.progress-fill {
-  height: 100%;
-  background: #6366f1;
-  transition: width 0.4s ease;
-}
-
-.progress-text {
-  font-size: 11px;
-  color: #9ca3af;
-  text-align: right;
-}
 
 /* 메시지 영역 */
 .chat-messages {

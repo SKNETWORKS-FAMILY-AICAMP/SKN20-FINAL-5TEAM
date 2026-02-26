@@ -1,7 +1,7 @@
 <template>
   <div class="interview-feedback">
     <div class="feedback-header">
-      <div class="feedback-icon">🎯</div>
+      <div class="feedback-icon"></div>
       <h2 class="feedback-title">면접 완료</h2>
       <p class="feedback-subtitle">모의면접이 끝났습니다. 아래 피드백을 확인해보세요.</p>
     </div>
@@ -11,21 +11,21 @@
 
     <!-- 전체 총평 -->
     <section class="feedback-section mt-8">
-      <h3 class="section-title">📋 전체 총평</h3>
+      <h3 class="section-title">전체 총평</h3>
       <p class="overall-summary">{{ feedback.overall_summary }}</p>
     </section>
 
     <!-- 강점 -->
-    <section v-if="feedback.top_strengths?.length" class="feedback-section">
-      <h3 class="section-title">✅ 강점</h3>
+    <section v-if="feedback.top_strengths?.length" class="feedback-section feedback-section--strength">
+      <h3 class="section-title">강점</h3>
       <ul class="feedback-list feedback-list--strength">
         <li v-for="(item, idx) in feedback.top_strengths" :key="idx">{{ item }}</li>
       </ul>
     </section>
 
     <!-- 개선 방향 -->
-    <section v-if="feedback.top_improvements?.length" class="feedback-section">
-      <h3 class="section-title">💡 개선 방향</h3>
+    <section v-if="feedback.top_improvements?.length" class="feedback-section feedback-section--improve">
+      <h3 class="section-title">개선 방향</h3>
       <ul class="feedback-list feedback-list--improve">
         <li v-for="(item, idx) in feedback.top_improvements" :key="idx">{{ item }}</li>
       </ul>
@@ -33,13 +33,13 @@
 
     <!-- 학습 추천 -->
     <section v-if="feedback.recommendation" class="feedback-section">
-      <h3 class="section-title">📚 학습 추천</h3>
+      <h3 class="section-title">학습 추천</h3>
       <p class="recommendation">{{ feedback.recommendation }}</p>
     </section>
 
     <!-- 역량 슬롯별 상세 -->
     <section v-if="slotSummaryList.length" class="feedback-section">
-      <h3 class="section-title">🔍 역량별 결과</h3>
+      <h3 class="section-title">역량별 결과</h3>
       <div class="slot-cards">
         <div
           v-for="(item, idx) in slotSummaryList"
@@ -58,7 +58,7 @@
               v-for="ev in item.confirmed_evidence"
               :key="ev"
               class="evidence-tag evidence-tag--confirmed"
-            >{{ ev }}</span>
+            >{{ formatLabel(ev) }}</span>
           </div>
           <div v-if="item.missing_evidence?.length" class="slot-card__evidence">
             <span class="evidence-label">미확인:</span>
@@ -66,7 +66,7 @@
               v-for="ev in item.missing_evidence"
               :key="ev"
               class="evidence-tag evidence-tag--missing"
-            >{{ ev }}</span>
+            >{{ formatLabel(ev) }}</span>
           </div>
         </div>
       </div>
@@ -102,7 +102,7 @@ const slotSummaryList = computed(() => {
   if (!summary || typeof summary !== 'object') return [];
   return Object.entries(summary).map(([slot, data]) => ({
     slot,
-    topic: SLOT_LABELS[slot] || data.topic || slot,
+    topic: SLOT_LABELS[slot] || data.topic || slot.replace(/_/g, ' '),
     status: data.final_status || 'UNKNOWN',
     summary: data.summary || '',
     confirmed_evidence: data.confirmed_evidence || [],
@@ -110,12 +110,16 @@ const slotSummaryList = computed(() => {
   }));
 });
 
+function formatLabel(str) {
+  return str.replace(/_/g, ' ');
+}
+
 function statusLabel(status) {
   const map = {
-    CLEAR: '✅ 확인 완료',
-    PARTIAL: '🔶 일부 확인',
-    UNCERTAIN: '❓ 미확인',
-    UNKNOWN: '❓ 미확인',
+    CLEAR: '확인 완료',
+    PARTIAL: '일부 확인',
+    UNCERTAIN: '미확인',
+    UNKNOWN: '미확인',
   };
   return map[status] || status;
 }
@@ -151,16 +155,34 @@ function statusLabel(status) {
 }
 
 .feedback-section {
-  margin-bottom: 28px;
+  margin-bottom: 16px;
+  background: white;
+  border-radius: 12px;
+  padding: 20px 24px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+.feedback-section--strength {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+.feedback-section--improve {
+  background: #fff5f5;
+  border-color: #fca5a5;
 }
 
 .section-title {
-  font-size: 16px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 15px;
   font-weight: 700;
-  color: #374151;
-  margin-bottom: 12px;
-  padding-bottom: 6px;
-  border-bottom: 2px solid #e5e7eb;
+  color: #1f2937;
+  -webkit-text-fill-color: #1f2937;
+  background: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
+  margin-bottom: 14px;
+  padding-left: 10px;
+  border-left: 3px solid #6366f1;
 }
 
 .overall-summary {
@@ -168,8 +190,8 @@ function statusLabel(status) {
   line-height: 1.75;
   color: #374151;
   background: #f9fafb;
-  border-radius: 10px;
-  padding: 16px;
+  border-radius: 8px;
+  padding: 14px;
 }
 
 .recommendation {
