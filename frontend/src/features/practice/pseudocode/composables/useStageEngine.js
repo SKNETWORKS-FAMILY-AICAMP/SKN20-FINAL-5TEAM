@@ -1,0 +1,254 @@
+import { reactive, computed, watch } from 'vue';
+import { useGameStore } from '@/stores/game';
+
+export function useStageEngine() {
+    const gameStore = useGameStore();
+
+    // [수정일: 2026-02-08] 맵에서 선택한 문제를 표시하기 위해 gameStore.selectedQuestIndex 사용
+    const initialStageId = (gameStore.selectedQuestIndex || 0) + 1;
+
+    // --- Game State ---
+    const gameState = reactive({
+        currentStageId: initialStageId,
+        // [2026-02-12] 인트로 단계 제거 및 즉시 진단 시작
+        phase: 'DIAGNOSTIC_1',
+        diagnosticStep: 0, // [2026-02-13] 현재 풀고 있는 진담 문항 인덱스 복구
+        step: 1,
+        playerHP: 100,
+        score: 0,
+        combo: 0,
+
+        // State for Decisions
+        selectedStrategyLabel: "", // Set in Phase 2
+        diagnosticAnswer: "",
+        diagnosticResult: null,
+        isEvaluatingDiagnostic: false,
+        isDiagnosticAnswered: false,   // [2026-02-14] 진단 단계 답변 완료 여부
+        diagnosticAnswerIdx: null,      // [2026-02-14] 진단 단계 선택 인덱스
+        isMcqAnswered: false,       // [2026-02-14] MCQ 답변 완료 여부
+        assignedScenario: null,     // [2026-02-14] 할당된 심화 시나리오 (Drift/Real-time/Scarcity)
+        deepDiveAnswer: "",         // [2026-02-14] 사용자의 시나리오 서술형 답변
+        tailAnswer: "",             // [2026-02-22 Fix] MCQ 꼬리질문 선택 텍스트 (반응성 보장을 위해 초기 선언)
+
+        // Phase 3 State
+        phase3Reasoning: "",
+        phase3Placeholder: "격리, 기준점, 일관성 원칙을 바탕으로 당신만의 데이터 전처리 설계를 서술하세요...\n예: 1. train_test_split으로 데이터를 분리한다.",
+        phase3Score: 0,
+        phase3Feedback: "",
+        phase3EvaluationResult: null,
+        showHint: false,
+
+        // [2026-02-13] 통합 채점 시스템 (3-Stage Scoring)
+        diagnosticScores: [],       // 각 진단 문항 점수 저장
+        iterativeScore: 0,          // 꼬리 질문/심화 퀴즈 성공 여부 (0-100)
+        hasUsedBlueprint: false,    // 청사진(모범답안)을 참고했는지 여부 (페널티 로직용)
+        finalWeightedScore: 0,      // 최종 가중 합산 점수
+
+        // Interactive Messages
+        coduckMessage: "경고! 접근하는 모든 데이터는 적입니다!",
+        feedbackMessage: null,
+
+        // System Logs
+        systemLogs: [
+            { time: "10:42:01", type: "WARN", message: "7번 구역에서 인지 부조화 감지됨." },
+            { time: "10:42:05", type: "INFO", message: "아키텍트의 개입을 대기 중..." },
+            { time: "10:42:09", type: "READY", message: "의사결정 입력 대기 중_" }
+        ]
+    });
+
+    // --- Logging System ---
+    const getTimestamp = () => {
+        const now = new Date();
+        return now.toTimeString().split(' ')[0]; // HH:MM:SS
+    };
+
+    const addSystemLog = (message, type = "INFO") => {
+        if (gameState.systemLogs.length > 5) {
+            gameState.systemLogs.shift();
+        }
+        gameState.systemLogs.push({
+            time: getTimestamp(),
+            type,
+            message
+        });
+    };
+
+    // --- Mission Data ---
+    const currentMission = computed(() => {
+        const problems = gameStore.activeUnit?.problems || [];
+        if (problems.length === 0) return {};
+        // [수정일: 2026-02-24] currentStageId에 해당하는 문제를 DB 기반 state에서 조회
+        const target = problems.find(p => p.id === gameState.currentStageId || (p.questIndex + 1) === gameState.currentStageId);
+        return target ? target.config : problems[0].config;
+    });
+
+    const missionContext = computed(() => {
+        const mission = currentMission.value;
+        return mission.designContext?.currentIncident || "미션 정보를 불러오는 중입니다.";
+    });
+
+    const constraints = computed(() => {
+        const mission = currentMission.value;
+        return mission.designContext?.engineeringRules || [];
+    });
+
+    // Threat Info
+    const enemyThreat = computed(() => {
+        const mission = currentMission.value;
+        return {
+            name: mission.category || "Unknown Anomaly",
+            description: mission.missionObjective || "No Objective",
+            hp: 100
+        };
+    });
+
+    // --- Phase Management ---
+    const setPhase = (newPhase) => {
+        console.log(`[GameEngine] Transitioning to phase: ${newPhase}`);
+        gameState.phase = newPhase;
+        gameState.feedbackMessage = null;
+
+        try {
+            switch (newPhase) {
+                case 'INTRO':
+                    gameState.coduckMessage = "당신의 아키텍처 역량을 증명할 준비가 되었나요?";
+                    addSystemLog("미션 브리핑 프로토콜 활성화", "READY");
+                    break;
+                case 'DIAGNOSTIC_1':
+                    gameState.coduckMessage = "이 선택은 이후 모든 판단에 영향을 줍니다.";
+                    addSystemLog("진단 프로토콜 1단계 개시", "INFO");
+                    break;
+                case 'PSEUDO_WRITE':
+                    gameState.coduckMessage = "어떤 순서로 생각하는지 보여주세요.";
+                    addSystemLog("자연어 처리 에디터 로드됨", "SUCCESS");
+                    break;
+                case 'DEEP_QUIZ':
+                    gameState.coduckMessage = "설명할 수 있다면, 이해한 것입니다.";
+                    addSystemLog("최종 검증 프로세스 시작", "WARN");
+                    break;
+                case 'EVALUATION':
+                    gameState.coduckMessage = "평가가 완료되었습니다.";
+                    addSystemLog("미션 리포트 생성 중...", "INFO");
+                    break;
+            }
+        } catch (e) {
+            console.error("[GameEngine] Error in setPhase:", e);
+            addSystemLog("단계 전환 중 오류 발생", "ERROR");
+        }
+    };
+
+    // --- Game Logic ---
+    const handleDamage = (amount = 15) => {
+        gameState.playerHP -= amount;
+        addSystemLog(`시스템 손상: HP -${amount} (현재: ${gameState.playerHP}%)`, "WARN");
+        if (gameState.playerHP <= 0) {
+            gameState.phase = 'DEFEAT';
+            addSystemLog("CRITICAL: 시스템 무결성 붕괴", "ERROR");
+        }
+    };
+
+    const nextMission = () => {
+        const nextId = gameState.currentStageId + 1;
+        const problems = gameStore.activeUnit?.problems || [];
+        const nextQuest = problems.find(p => p.id === nextId || (p.questIndex + 1) === nextId);
+        if (nextQuest) {
+            gameState.currentStageId = nextId;
+            setPhase('DIAGNOSTIC_1');
+        } else {
+            gameState.phase = 'CAMPAIGN_END';
+        }
+    };
+
+    const restartMission = () => {
+        addSystemLog("시스템 재부팅 시퀀스 초기화...", "WARN");
+        gameState.playerHP = 100;
+        gameState.phase3Reasoning = "";
+        gameState.phase3Feedback = "";
+
+        // [2026-02-14] 판단 및 진행 데이터 완전 초기화
+        gameState.diagnosticStep = 0;
+        gameState.diagnosticScores = [];
+        gameState.diagnosticAnswer = "";
+        gameState.diagnosticResult = null;
+        gameState.isDiagnosticAnswered = false;
+        gameState.diagnosticAnswerIdx = null;
+
+        gameState.isMcqAnswered = false;
+        gameState.assignedScenario = null;
+        gameState.deepDiveAnswer = "";
+        gameState.tailAnswer = ""; // [2026-02-22 Fix] 재시작 시 꼬리질문 답변 초기화
+
+        gameState.phase3EvaluationResult = null;
+        gameState.finalWeightedScore = 0;
+
+        setPhase('DIAGNOSTIC_1');
+    };
+
+    const startGame = () => {
+        gameState.currentStageId = 1;
+        gameState.score = 0;
+        gameState.playerHP = 100;
+        gameState.phase3Reasoning = "";
+        gameState.phase3Feedback = "";
+
+        // [2026-02-14] 전체 데이터 완전 초기화
+        gameState.diagnosticStep = 0;
+        gameState.diagnosticScores = [];
+        gameState.diagnosticAnswer = "";
+        gameState.diagnosticResult = null;
+        gameState.isDiagnosticAnswered = false;
+        gameState.diagnosticAnswerIdx = null;
+
+        gameState.isMcqAnswered = false;
+        gameState.assignedScenario = null;
+        gameState.deepDiveAnswer = "";
+        gameState.tailAnswer = ""; // [2026-02-22 Fix]
+
+        gameState.phase3EvaluationResult = null;
+        gameState.finalWeightedScore = 0;
+        gameState.hasUsedBlueprint = false;
+
+        gameState.systemLogs = [];
+        addSystemLog("시스템 부팅... 초기화 완료.", "READY");
+        setPhase('DIAGNOSTIC_1');
+    };
+
+    // 맵에서 단계 선택
+    const selectStage = (stageId) => {
+        const problems = gameStore.activeUnit?.problems || [];
+        const targetQuest = problems.find(p => p.id === stageId || (p.questIndex + 1) === stageId);
+        if (!targetQuest) return;
+
+        gameState.currentStageId = stageId;
+        gameState.playerHP = 100;
+        gameState.score = 0;
+        gameState.hasUsedBlueprint = false;
+        gameState.systemLogs = [];
+        addSystemLog(`스테이지 ${stageId}: ${targetQuest.title || targetQuest.config.title} 시작`, "INFO");
+        setPhase('DIAGNOSTIC_1');
+    };
+    // [2026-02-18] 미션 변경 시 플레이스홀더 동적 업데이트
+    watch(() => currentMission.value?.id, (id) => {
+        try {
+            if (id && currentMission.value) {
+                gameState.phase3Placeholder = currentMission.value.placeholder || "";
+            }
+        } catch (e) { console.warn("[GameEngine] Watcher error suppressed on unmount:", e); }
+    }, { immediate: true });
+
+    return {
+        gameState,
+        currentMission,
+        missionContext,
+        constraints,
+        enemyThreat,
+
+        addSystemLog,
+        setPhase,
+        handleDamage,
+        nextMission,
+        restartMission,
+        startGame,
+        selectStage
+    };
+}

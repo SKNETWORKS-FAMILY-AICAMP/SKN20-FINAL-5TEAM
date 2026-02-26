@@ -9,6 +9,7 @@
 import json
 import logging
 import openai
+from asgiref.sync import sync_to_async
 from django.conf import settings
 from django.http import StreamingHttpResponse
 from django.shortcuts import get_object_or_404
@@ -17,26 +18,66 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from core.models import UserProfile
-from core.views.coach.coach_prompt import is_off_topic, GUARDRAIL_MESSAGE, INTENT_ANALYSIS_PROMPT, RESPONSE_STRATEGIES
-from core.views.coach.coach_tools import (
+from .coach_prompt import is_off_topic, GUARDRAIL_MESSAGE, INTENT_ANALYSIS_PROMPT, RESPONSE_STRATEGIES
+from .coach_tools import (
     COACH_TOOLS,
     TOOL_DISPATCH,
     TOOL_LABELS,
     validate_and_normalize_args,
     INTENT_TOOL_MAPPING,
+    generate_chart_data_summary,
+    get_chart_details,
 )
 
 logger = logging.getLogger(__name__)
 
 
-class AICoachView(APIView):
-    """ReAct 에이전트 기반 AI 코치
+def _should_show_chart(intent_type, user_message):
+    """
+    Intent와 사용자 메시지 기반으로 차트 표시 필요 여부 판단
 
-    플로우:
-    1. [Guardrail] 명백한 범위 밖 질문 사전 차단
-    2. [Agent Loop] LLM이 필요한 도구를 자율적으로 선택하며 상호작용
-    3. [Tool Caching] 중복 호출 방지
-    4. [SSE Streaming] 실시간 진행 상황 전달
+    규칙:
+    1. 명시적 요청: 차트/시각화/리포트 키워드 → 표시
+       - "보여줘", "차트", "그래프", "시각화", "리포트", "데이터를" 포함 → YES
+    2. 명시적 비표시: 설명/피드백 중심
+       - "분석해", "설명해", "알려" → 텍스트 중심 (NO)
+    3. Intent별 기본값 (명시적 요청 없을 때)
+       - A (데이터 조회): 기본 표시
+       - B (학습 방법): 기본 비표시 (텍스트 중심)
+       - C (동기부여): 기본 표시 (성장 데이터 시각화)
+       - E (문제 풀이): 기본 비표시 (텍스트 중심)
+       - F (개념 설명): 기본 비표시 (텍스트 중심)
+       - G (의사결정): 기본 표시 (비교 표시)
+    """
+    msg_lower = user_message.lower()
+
+    # 명시적 비표시 키워드 (설명/분석 중심 요청)
+    text_only_keywords = {"분석해", "설명해", "알려", "어떻게", "왜", "뭐야"}
+    if any(kw in msg_lower for kw in text_only_keywords):
+        return False
+
+    # 명시적 표시 키워드 (시각화/리포트 요청)
+    chart_keywords = {"차트", "시각화", "그래프", "리포트", "보여줘", "보이", "데이터를"}
+    if any(kw in msg_lower for kw in chart_keywords):
+        return True
+
+    # Intent별 기본값 (명시적 요청 없을 때)
+    intent_defaults = {
+        "A": True,   # 데이터 조회형: 기본으로 차트 표시
+        "B": False,  # 학습 방법형: 텍스트 중심
+        "C": True,   # 동기부여형: 성장 데이터 시각화
+        "D": False,  # 범위 밖: 차트 불필요
+        "E": False,  # 문제 풀이 지원: 텍스트 중심
+        "F": False,  # 개념 설명: 텍스트 중심
+        "G": True,   # 의사결정형: 비교 표시
+    }
+
+    return intent_defaults.get(intent_type, False)
+
+
+class AICoachView(APIView):
+    """ReAct 에이전트 기반 AI 코치 (임시 비활성화됨)
+    [수정일: 2026-02-24] 누락된 모듈 오류로 인해 임시 비활성화 조치
     """
 
     permission_classes = [permissions.IsAuthenticated]
@@ -71,13 +112,15 @@ class AICoachView(APIView):
             )
 
         profile = get_object_or_404(UserProfile, email=request.user.email)
-        client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
 
         def _sse(data):
             return f"data: {json.dumps(data, ensure_ascii=False, default=str)}\n\n"
 
-        def event_stream():
+        # ── async generator: uvicorn(ASGI) 환경에서 sync 블로킹 I/O가
+        #    asyncio 이벤트 루프를 멈춰 SSE 청크가 버퍼에 쌓이는 문제 해결 ──
+        async def event_stream():
             called_tools_cache = {}  # ← 도구 결과 캐싱
+            async_client = openai.AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
             try:
                 # ──────────────────────────────────────
                 # Step 1: Intent Analysis
@@ -89,7 +132,7 @@ class AICoachView(APIView):
                     "message": "질문의 의도를 분석하고 있어요...",
                 })
 
-                intent_response = client.chat.completions.create(
+                intent_response = await async_client.chat.completions.create(
                     model="gpt-4o-mini",
                     messages=[
                         {"role": "system", "content": INTENT_ANALYSIS_PROMPT},
@@ -128,6 +171,9 @@ class AICoachView(APIView):
                     "key_indicators": intent_data.get("key_indicators", []),
                 })
 
+                # ── 차트 데이터 생성 여부 판단 (동적) ──
+                should_show_chart = _should_show_chart(intent_type, user_message)
+
                 # ──────────────────────────────────────
                 # Step 2: Response Strategy + Agent Loop
                 # ──────────────────────────────────────
@@ -152,6 +198,7 @@ class AICoachView(APIView):
                 filtered_tools = [t for t in COACH_TOOLS if t["function"]["name"] in allowed_tools]
 
                 max_iterations = 5
+
                 thinking_messages = [
                     "질문을 분석하고 필요한 데이터를 판단하고 있어요...",
                     "추가 데이터가 필요한지 확인하고 있어요...",
@@ -167,12 +214,11 @@ class AICoachView(APIView):
                         "message": thinking_messages[iteration] if iteration < len(thinking_messages) else "분석 중입니다...",
                     })
 
-                    # ── LLM 호출 (스트리밍) ──
-                    # 의도별로 필터링된 도구만 제공 (자율성은 유지: tool_choice="auto")
+                    # ── LLM 호출 (스트리밍, async) ──
                     tools_to_use = filtered_tools if filtered_tools else openai.NOT_GIVEN
                     tool_choice_param = "auto" if filtered_tools else openai.NOT_GIVEN
 
-                    stream = client.chat.completions.create(
+                    stream = await async_client.chat.completions.create(
                         model="gpt-5-mini",
                         messages=conv,
                         tools=tools_to_use,
@@ -183,9 +229,10 @@ class AICoachView(APIView):
 
                     tool_calls_data = {}
                     is_tool_call = False
+                    buffered_tokens = []  # ← 토큰을 버퍼에 모으기
 
-                    # ── 스트리밍 처리 ──
-                    for chunk in stream:
+                    # ── 스트리밍 처리 (async for) ──
+                    async for chunk in stream:
                         choice = chunk.choices[0] if chunk.choices else None
                         if not choice or not choice.delta:
                             continue
@@ -206,12 +253,34 @@ class AICoachView(APIView):
                                     if tc.function.arguments:
                                         tool_calls_data[idx]["arguments"] += tc.function.arguments
 
-                        # Content tokens 즉시 전송
-                        if delta.content:
+                        # Content tokens 버퍼에 모으기 (Tool 호출이 없을 때만)
+                        if delta.content and not is_tool_call:
+                            buffered_tokens.append(delta.content)
+                        # Tool 호출이 있으면 즉시 전송
+                        elif delta.content and is_tool_call:
                             yield _sse({"type": "token", "token": delta.content})
 
-                    # ── Tool 호출 없으면 최종 답변 ──
+                    # ── Tool 호출 없으면: 차트 먼저, 그 다음 답변 ──
                     if not is_tool_call:
+                        # 1. 차트 데이터를 먼저 생성/전송 (DB 쿼리 → sync_to_async)
+                        if should_show_chart:
+                            try:
+                                chart_summaries = await sync_to_async(generate_chart_data_summary)(
+                                    profile, intent_type, user_message
+                                )
+                                for chart in chart_summaries:
+                                    yield _sse({
+                                        "type": "chart_data",
+                                        "intent_type": intent_type,
+                                        "chart": chart,
+                                    })
+                            except Exception as e:
+                                logger.warning(f"Failed to generate chart data: {e}")
+
+                        # 2. 이제 버퍼된 토큰들을 전송
+                        for token in buffered_tokens:
+                            yield _sse({"type": "token", "token": token})
+
                         yield _sse({"type": "final"})
                         yield "data: [DONE]\n\n"
                         return
@@ -264,7 +333,8 @@ class AICoachView(APIView):
                             else:
                                 try:
                                     fn_args = validate_and_normalize_args(fn_name, fn_args_raw)
-                                    result_data = executor(profile, fn_args)
+                                    # DB 쿼리는 sync_to_async로 감싸서 이벤트 루프 블로킹 방지
+                                    result_data = await sync_to_async(executor)(profile, fn_args)
                                     called_tools_cache[cache_key] = result_data
                                 except ValueError as ve:
                                     logger.warning(f"[인자 검증 실패] {fn_name}: {ve}")
@@ -289,10 +359,26 @@ class AICoachView(APIView):
                         })
 
                 # ── max_iterations 도달 ──
+                if should_show_chart:
+                    try:
+                        chart_summaries = await sync_to_async(generate_chart_data_summary)(
+                            profile, intent_type, user_message
+                        )
+                        for chart in chart_summaries:
+                            yield _sse({
+                                "type": "chart_data",
+                                "intent_type": intent_type,
+                                "chart": chart,
+                            })
+                    except Exception as e:
+                        logger.warning(f"Failed to generate chart data: {e}")
+
                 yield _sse({
                     "type": "token",
                     "token": "분석이 복잡하여 일부만 완료되었습니다. 질문을 더 구체적으로 해주세요.",
                 })
+
+                yield _sse({"type": "final"})
                 yield "data: [DONE]\n\n"
 
             except Exception as e:
@@ -310,3 +396,30 @@ class AICoachView(APIView):
         resp["Cache-Control"] = "no-cache, no-transform"
         resp["X-Accel-Buffering"] = "no"
         return resp
+
+    def get(self, request):
+        """상세 차트 데이터 조회 (캐싱 가능)"""
+        intent_type = request.query_params.get("intent_type", "A")
+        unit_id = request.query_params.get("unit_id", None)
+
+        if intent_type not in ["A", "B", "C", "D", "E", "F", "G"]:
+            return Response(
+                {"error": f"유효하지 않은 intent_type: {intent_type}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        profile = get_object_or_404(UserProfile, email=request.user.email)
+
+        try:
+            details = get_chart_details(profile, intent_type, unit_id)
+            return Response({
+                "intent_type": intent_type,
+                "unit_id": unit_id,
+                "data": details,
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"[Chart Details] Error: {e}", exc_info=True)
+            return Response(
+                {"error": "차트 데이터 조회 중 오류가 발생했습니다."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )

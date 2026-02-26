@@ -1156,7 +1156,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
 import axios from 'axios';
 import { evaluateBugHunt, verifyCodeBehavior, interviewBugHunt, interviewBugHuntStream } from './api/bugHuntApi';
-import BugHuntTutorialOverlay from './composables/BugHuntTutorialOverlay.vue';
+import BugHuntTutorialOverlay from './components/BugHuntTutorialOverlay.vue';
 import { useAuthStore } from '@/stores/auth';
 import './BugHunt.css';
 

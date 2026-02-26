@@ -230,8 +230,53 @@ def _extract_metrics(data, metric_scores, unit_id):
                 metric_scores.setdefault(pillar, []).append(score)
 
 
+def _map_feedback_to_metric(feedback_text, unit_id):
+    """
+    피드백을 가장 적합한 메트릭 하나에 매핑
+    중복을 방지하고 정확도를 높임
+    """
+    feedback_lower = feedback_text.lower()
+
+    if unit_id == "unit01":
+        # Priority order: 가장 구체적인 것부터 체크
+        metric_keywords = {
+            "design": ["설계", "구조", "아키텍처", "design", "flow", "step", "단계"],
+            "edgeCase": ["예외", "엣지", "edge case", "corner case", "경계값", "특수"],
+            "consistency": ["일관성", "누수", "데이터", "consistency", "fit", "transform", "분리"],
+            "abstraction": ["추상화", "모듈", "abstraction", "개념", "개념화"],
+            "implementation": ["구현", "코드", "implementation", "함수", "파라미터", "구체"],
+        }
+    elif unit_id == "unit02":
+        metric_keywords = {
+            "디버깅_정확도": ["버그", "에러", "디버그", "debug", "bug", "step", "trace"],
+            "사고력": ["논리", "사고", "추론", "thinking", "reasoning", "approach"],
+            "코드_안전성": ["안전", "영향", "부작용", "safe", "risk", "side effect"],
+        }
+    elif unit_id == "unit03":
+        metric_keywords = {
+            "security": ["보안", "인증", "암호", "security", "auth", "encryption"],
+            "reliability": ["신뢰", "장애", "복구", "reliability", "failover", "redundancy"],
+            "performance": ["성능", "캐시", "로드", "performance", "cache", "throughput"],
+            "cost": ["비용", "최적", "스케일", "cost", "pricing", "resource"],
+        }
+    else:
+        return None
+
+    # 각 메트릭의 키워드 매치 점수 계산
+    best_metric = None
+    best_score = 0
+
+    for metric, keywords in metric_keywords.items():
+        score = sum(1 for kw in keywords if kw in feedback_lower)
+        if score > best_score:
+            best_score = score
+            best_metric = metric
+
+    return best_metric if best_score > 0 else None
+
+
 def _extract_feedback(data, feedback_bank, unit_id):
-    """submitted_data에서 AI 평가 피드백 추출"""
+    """submitted_data에서 AI 평가 피드백 추출 (중복 방지)"""
     if unit_id == "unit01":
         evaluation = data.get("evaluation", {})
         improvements = evaluation.get("improvements", [])
@@ -239,20 +284,11 @@ def _extract_feedback(data, feedback_bank, unit_id):
             for improvement_text in improvements[:5]:
                 if not improvement_text:
                     continue
-                # 키워드 기반 차원 매핑
-                if any(kw in improvement_text for kw in ["설계", "구조", "아키텍처", "design"]):
-                    feedback_bank.setdefault("design", []).append(improvement_text)
-                elif any(kw in improvement_text for kw in ["일관성", "누수", "데이터", "consistency"]):
-                    feedback_bank.setdefault("consistency", []).append(improvement_text)
-                elif any(kw in improvement_text for kw in ["추상화", "모듈", "abstraction"]):
-                    feedback_bank.setdefault("abstraction", []).append(improvement_text)
-                elif any(kw in improvement_text for kw in ["예외", "엣지", "edge case", "edgeCase"]):
-                    feedback_bank.setdefault("edgeCase", []).append(improvement_text)
-                elif any(kw in improvement_text for kw in ["구현", "코드", "implementation"]):
-                    feedback_bank.setdefault("implementation", []).append(improvement_text)
-                else:
-                    for dim in ["design", "consistency", "abstraction", "edgeCase", "implementation"]:
-                        feedback_bank.setdefault(dim, []).append(improvement_text)
+                metric = _map_feedback_to_metric(improvement_text, unit_id)
+                if metric:
+                    # 이미 같은 피드백이 있는지 확인 (중복 방지)
+                    if improvement_text not in feedback_bank.get(metric, []):
+                        feedback_bank.setdefault(metric, []).append(improvement_text)
 
     elif unit_id == "unit02":
         llm_eval = data.get("llm_evaluation") or {}
@@ -260,17 +296,26 @@ def _extract_feedback(data, feedback_bank, unit_id):
         for step in step_feedbacks[:3]:
             comment = step.get("comment", "")
             if comment:
-                feedback_bank.setdefault("디버깅_정확도", []).append(f"Step {step.get('step_number')}: {comment}")
+                metric = _map_feedback_to_metric(comment, unit_id)
+                if metric:
+                    formatted_comment = f"Step {step.get('step_number')}: {comment}"
+                    if formatted_comment not in feedback_bank.get(metric, []):
+                        feedback_bank.setdefault(metric, []).append(formatted_comment)
+
         thinking_feedback = llm_eval.get("thinking_feedback", "")
         if thinking_feedback:
-            feedback_bank.setdefault("사고력", []).append(thinking_feedback)
+            metric = _map_feedback_to_metric(thinking_feedback, unit_id)
+            if metric:
+                if thinking_feedback not in feedback_bank.get(metric, []):
+                    feedback_bank.setdefault(metric, []).append(thinking_feedback)
 
     elif unit_id == "unit03":
         eval_result = data.get("evaluation_result", {})
         pillar_feedback = eval_result.get("pillarFeedback", {})
         for pillar, feedback_text in pillar_feedback.items():
             if isinstance(feedback_text, str) and feedback_text:
-                feedback_bank.setdefault(pillar, []).append(feedback_text)
+                if feedback_text not in feedback_bank.get(pillar, []):
+                    feedback_bank.setdefault(pillar, []).append(feedback_text)
 
 
 def tool_get_recent_activity(profile, limit=10):
@@ -563,12 +608,333 @@ def validate_and_normalize_args(fn_name, fn_args):
 # 6. Intent-Tool Mapping (의도별 허용 도구)
 # ─────────────────────────────────────────────
 
+# ─────────────────────────────────────────────
+# 7. 차트 데이터 생성 함수 (하이브리드: SSE 요약 + API 상세)
+# ─────────────────────────────────────────────
+
+def _determine_data_type(message):
+    """사용자 메시지에서 원하는 데이터 유형 결정"""
+    msg_lower = message.lower()
+
+    # 메트릭별 (약점 분석)
+    metric_keywords = {"약점", "분석", "능력", "강점", "메트릭", "문제점", "부족"}
+    if any(kw in msg_lower for kw in metric_keywords):
+        return "metric"
+
+    # 시간순 (성장 추이)
+    chrono_keywords = {"최근", "추이", "성장", "향상", "변화", "시간", "진행", "발전"}
+    if any(kw in msg_lower for kw in chrono_keywords):
+        return "chronological"
+
+    # 문제별 (풀이 기록)
+    problem_keywords = {"문제", "풀이", "실패", "도전", "시도"}
+    if any(kw in msg_lower for kw in problem_keywords):
+        return "problem"
+
+    # 기본값: 단위별
+    return "unit"
+
+
+def _generate_metric_chart(profile):
+    """메트릭별 차트 생성 (약점 분석)"""
+    try:
+        # 첫 번째 약점이 있는 유닛 찾기
+        for unit_id in ["unit01", "unit02", "unit03"]:
+            weak_data = tool_get_weak_points(profile, unit_id)
+            all_metrics = weak_data.get("all_metrics", [])
+            if all_metrics:
+                labels = [m["metric"] for m in all_metrics]
+                values = [m["avg_score"] for m in all_metrics]
+
+                return {
+                    "chart_type": "radar",
+                    "title": f"메트릭 분석 ({weak_data.get('unit_id', 'Unit')})",
+                    "data": {
+                        "labels": labels,
+                        "datasets": [{
+                            "label": "현재 점수",
+                            "data": values,
+                            "borderColor": "#4ECDC4",
+                            "backgroundColor": "rgba(78, 205, 196, 0.1)",
+                        }, {
+                            "label": "목표 (70점)",
+                            "data": [70] * len(labels),
+                            "borderColor": "#FF6B6B",
+                            "borderDash": [5, 5],
+                        }],
+                    }
+                }
+    except Exception as e:
+        logger.warning(f"Failed to generate metric chart: {e}")
+
+    return None
+
+
+def _generate_chronological_chart(profile):
+    """시간순 차트 생성 (성장 추이)"""
+    try:
+        activities = tool_get_recent_activity(profile, limit=10)
+        if activities:
+            # 최근 5-10개 풀이의 점수 추이
+            labels = [a["problem_title"][:15] for a in activities[-5:]]
+            values = [a["score"] for a in activities[-5:]]
+
+            return {
+                "chart_type": "line",
+                "title": "최근 풀이 점수 추이",
+                "data": {
+                    "labels": labels,
+                    "datasets": [{
+                        "label": "점수",
+                        "data": values,
+                        "borderColor": "#95E1D3",
+                        "backgroundColor": "rgba(149, 225, 211, 0.1)",
+                        "fill": True,
+                        "tension": 0.4,
+                    }],
+                }
+            }
+    except Exception as e:
+        logger.warning(f"Failed to generate chronological chart: {e}")
+
+    return None
+
+
+def _generate_problem_chart(profile):
+    """문제별 차트 생성 (풀이 기록)"""
+    try:
+        activities = tool_get_recent_activity(profile, limit=15)
+        if activities:
+            labels = [a["problem_title"][:12] for a in activities[-10:]]
+            values = [a["score"] for a in activities[-10:]]
+            colors = [
+                "#FF6B6B" if v < 60 else "#FFA500" if v < 70 else "#4ECDC4" if v < 85 else "#95E1D3"
+                for v in values
+            ]
+
+            return {
+                "chart_type": "bar",
+                "title": "풀이 기록 및 점수",
+                "data": {
+                    "labels": labels,
+                    "datasets": [{
+                        "label": "점수",
+                        "data": values,
+                        "backgroundColor": colors,
+                        "borderColor": colors,
+                        "borderWidth": 1,
+                    }],
+                }
+            }
+    except Exception as e:
+        logger.warning(f"Failed to generate problem chart: {e}")
+
+    return None
+
+
+def _generate_unit_chart(profile):
+    """단위별 차트 생성 (기본값)"""
+    charts = []
+
+    try:
+        scores = tool_get_user_scores(profile)
+        if scores:
+            labels = [s["unit_title"] for s in scores]
+            values = [s["avg_score"] for s in scores]
+            colors = [
+                "#FF6B6B" if v < 60 else "#FFA500" if v < 70 else "#4ECDC4" if v < 85 else "#95E1D3"
+                for v in values
+            ]
+
+            charts.append({
+                "chart_type": "bar",
+                "title": "유닛별 평균 점수",
+                "data": {
+                    "labels": labels,
+                    "datasets": [{
+                        "label": "평균 점수",
+                        "data": values,
+                        "backgroundColor": colors,
+                        "borderColor": colors,
+                        "borderWidth": 1,
+                    }],
+                    "options": {
+                        "max_value": 100,
+                        "show_value": True
+                    }
+                }
+            })
+
+            # 완료율
+            completion_rates = [s["completion_rate"] for s in scores]
+            charts.append({
+                "chart_type": "progress",
+                "title": "유닛별 완료율",
+                "data": {
+                    "units": labels,
+                    "completion_rates": completion_rates,
+                }
+            })
+    except Exception as e:
+        logger.warning(f"Failed to generate unit charts: {e}")
+
+    return charts if charts else None
+
+
+def generate_chart_data_summary(profile, intent_type, user_message=""):
+    """
+    Intent + 사용자 메시지 기반으로 동적 차트 데이터 생성 (SSE로 전달)
+    상세 데이터는 별도 API에서 제공
+    """
+    charts = []
+
+    if intent_type == "A":  # 데이터 조회형
+        # 사용자가 원하는 데이터 유형 결정
+        data_type = _determine_data_type(user_message)
+
+        if data_type == "metric":
+            # 메트릭별 차트
+            chart = _generate_metric_chart(profile)
+            if chart:
+                charts.append(chart)
+        elif data_type == "chronological":
+            # 시간순 차트
+            chart = _generate_chronological_chart(profile)
+            if chart:
+                charts.append(chart)
+        elif data_type == "problem":
+            # 문제별 차트
+            chart = _generate_problem_chart(profile)
+            if chart:
+                charts.append(chart)
+        else:
+            # 기본값: 단위별 차트
+            unit_charts = _generate_unit_chart(profile)
+            if unit_charts:
+                charts.extend(unit_charts)
+
+    elif intent_type == "B":  # 학습 방법형
+        # 메트릭 분석 (약점 개선 방법 제시 위함)
+        chart = _generate_metric_chart(profile)
+        if chart:
+            charts.append(chart)
+
+    elif intent_type == "C":  # 동기부여형
+        # 성장 추이 (동기부여)
+        chart = _generate_chronological_chart(profile)
+        if chart:
+            charts.append(chart)
+
+    elif intent_type == "G":  # 의사결정형
+        # 차트: 성적 비교 테이블
+        scores = tool_get_user_scores(profile)
+        if scores:
+            charts.append({
+                "chart_type": "table",
+                "title": "유닛별 상세 통계",
+                "data": {
+                    "columns": ["유닛", "평균", "최고", "풀이수", "완료율"],
+                    "rows": [
+                        [
+                            s["unit_title"],
+                            f"{s['avg_score']:.1f}",
+                            s["max_score"],
+                            s["solved_count"],
+                            f"{s['completion_rate']:.1f}%"
+                        ]
+                        for s in scores
+                    ]
+                }
+            })
+
+    return charts
+
+
+def get_chart_details(profile, intent_type, unit_id=None):
+    """
+    상세 차트 데이터 (별도 API에서 호출)
+    """
+    details = {}
+
+    if intent_type == "A":
+        # 상세 약점 분석
+        if unit_id:
+            weak_data = tool_get_weak_points(profile, unit_id)
+            details["weak_areas"] = weak_data.get("weak_areas", [])
+            details["all_metrics"] = weak_data.get("all_metrics", [])
+        else:
+            # 모든 유닛의 약점 통합
+            all_weak = {}
+            for uid in ["unit01", "unit02", "unit03"]:
+                weak_data = tool_get_weak_points(profile, uid)
+                all_weak[uid] = weak_data.get("weak_areas", [])
+            details["weak_by_unit"] = all_weak
+
+    elif intent_type == "B":
+        # 학습 가이드 상세
+        if unit_id:
+            guide_data = tool_get_study_guide(profile, unit_id)
+            details["guides"] = guide_data.get("guides", [])
+            details["overall_tip"] = guide_data.get("overall_tip", "")
+        else:
+            # 모든 유닛의 가이드
+            all_guides = {}
+            for uid in ["unit01", "unit02", "unit03"]:
+                guide_data = tool_get_study_guide(profile, uid)
+                all_guides[uid] = {
+                    "guides": guide_data.get("guides", []),
+                    "overall_tip": guide_data.get("overall_tip", "")
+                }
+            details["guides_by_unit"] = all_guides
+
+    elif intent_type == "C":
+        # 최근 활동 상세
+        activities = tool_get_recent_activity(profile, limit=20)
+        details["recent_activities"] = activities
+
+    elif intent_type == "G":
+        # 추천 문제 상세
+        if unit_id:
+            recommendations = tool_recommend_next_problem(profile, unit_id)
+            details["recommendations"] = recommendations
+        else:
+            # 모든 유닛의 추천
+            all_recs = {}
+            for uid in ["unit01", "unit02", "unit03"]:
+                recs = tool_recommend_next_problem(profile, uid)
+                all_recs[uid] = recs
+            details["recommendations_by_unit"] = all_recs
+
+    return details
+
+
 INTENT_TOOL_MAPPING = {
-    "A": {"allowed": ["get_user_scores", "get_weak_points"]},
-    "B": {"allowed": ["get_weak_points", "recommend_next_problem"]},
-    "C": {"allowed": ["get_recent_activity", "get_user_scores"]},
-    "D": {"allowed": []},  # 범위 밖 → 도구 호출 금지
-    "E": {"allowed": ["get_weak_points", "recommend_next_problem"]},
-    "F": {"allowed": ["get_weak_points"]},
-    "G": {"allowed": ["get_user_scores", "get_recent_activity"]},
+    "A": {
+        "allowed": ["get_user_scores", "get_weak_points", "get_recent_activity"],
+        "description": "데이터 조회형 - 성적, 약점 조회"
+    },
+    "B": {
+        "allowed": ["get_weak_points", "get_study_guide", "get_unit_curriculum", "recommend_next_problem"],
+        "description": "학습 방법형 - 학습 경로 및 전략 제시"
+    },
+    "C": {
+        "allowed": ["get_recent_activity", "get_user_scores"],
+        "description": "동기부여형 - 성장 데이터 및 활동 기록"
+    },
+    "D": {
+        "allowed": [],
+        "description": "범위 밖 질문 - 도구 호출 불필요"
+    },
+    "E": {
+        "allowed": ["get_weak_points", "recommend_next_problem"],
+        "description": "문제 풀이 지원형 - 약점 분석 및 다음 문제"
+    },
+    "F": {
+        "allowed": ["get_unit_curriculum", "get_weak_points"],
+        "description": "개념 설명형 - 커리큘럼 및 약점 분석"
+    },
+    "G": {
+        "allowed": ["get_user_scores", "get_recent_activity", "recommend_next_problem"],
+        "description": "의사결정형 - 성적, 활동, 추천 기반 의사결정"
+    },
 }

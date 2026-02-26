@@ -136,12 +136,14 @@ REST_FRAMEWORK = {
 
 # [수정일: 2026-01-22] 로그인 유지 문제 해결을 위한 CORS 및 세션 설정 (Antigravity)
 # credentials 허용 시 ALL_ORIGINS = True 를 사용할 수 없으므로 화이트리스트 방식으로 변경
-CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:5173',
     'http://127.0.0.1:5173',
     'http://localhost:8000',
     'http://127.0.0.1:8000',
+    'http://192.168.45.138:5173',
+    'http://192.168.45.138:8000',
 ]
 CORS_ALLOW_CREDENTIALS = True
 
@@ -151,11 +153,30 @@ CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:8000',
     'http://localhost:5173',
     'http://127.0.0.1:5173',
+    'http://192.168.45.138:5173',
+    'http://192.168.45.138:8000',
 ]
 
+# [수정일: 2026-02-25] localtunnel 지원: TUNNEL_URL 환경변수로 외부 터널 도메인 허용
+TUNNEL_FRONTEND_URL = env('TUNNEL_FRONTEND_URL', default='')
+TUNNEL_BACKEND_URL = env('TUNNEL_BACKEND_URL', default='')
+if TUNNEL_FRONTEND_URL:
+    CORS_ALLOWED_ORIGINS.append(TUNNEL_FRONTEND_URL)
+    CSRF_TRUSTED_ORIGINS.append(TUNNEL_FRONTEND_URL)
+if TUNNEL_BACKEND_URL:
+    CORS_ALLOWED_ORIGINS.append(TUNNEL_BACKEND_URL)
+    CSRF_TRUSTED_ORIGINS.append(TUNNEL_BACKEND_URL)
+
 # 세션 및 CSRF 쿠키 설정
-SESSION_COOKIE_SAMESITE = 'Lax'
-CSRF_COOKIE_SAMESITE = 'Lax'
+# [수정일: 2026-02-25] localtunnel(HTTPS 크로스 도메인) 사용 시 SameSite=None + Secure 필요
+if TUNNEL_FRONTEND_URL or TUNNEL_BACKEND_URL:
+    SESSION_COOKIE_SAMESITE = 'None'
+    CSRF_COOKIE_SAMESITE = 'None'
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+else:
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    CSRF_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_HTTPONLY = True
 
 # AI Service Settings

@@ -32,9 +32,11 @@ export function useRunSocket() {
     function connect(roomId, userName, avatarUrl) {
         if (socket.value) return
 
-        socket.value = io(window.location.origin, {
+        // [수정일: 2026-02-25] 소켓을 백엔드(8000)에 직접 연결 (Vite 프록시 우회)
+        const socketUrl = import.meta.env.VITE_SOCKET_URL || `${window.location.protocol}//${window.location.hostname}:8000`
+        socket.value = io(socketUrl, {
             path: '/socket.io',
-            transports: ['websocket'],
+            transports: ['polling', 'websocket'],
             forceNew: true
         })
 

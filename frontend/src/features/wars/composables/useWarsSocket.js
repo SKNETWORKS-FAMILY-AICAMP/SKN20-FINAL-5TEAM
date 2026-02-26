@@ -15,9 +15,11 @@ export function useWarsSocket() {
         if (socket.value) return;
 
         // 현재 호스트 기반으로 소켓 연결 (ASGI 서버가 8000번 등에서 실행 중이라고 가정)
-        socket.value = io(window.location.origin, {
+        // [수정일: 2026-02-25] 소켓을 백엔드(8000)에 직접 연결 (Vite 프록시 우회)
+        const socketUrl = import.meta.env.VITE_SOCKET_URL || `${window.location.protocol}//${window.location.hostname}:8000`;
+        socket.value = io(socketUrl, {
             path: '/socket.io',
-            transports: ['websocket'],
+            transports: ['polling', 'websocket'],
             forceNew: true
         });
 

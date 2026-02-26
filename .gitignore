@@ -67,5 +67,7 @@ backend/test_llm_scoring.py
 backend/test_validator.py
 
 CLAUDE.md
+frontend/.env.local
+
 
 backend/GFPGANv1.4.pth

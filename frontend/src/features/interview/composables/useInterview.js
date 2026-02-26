@@ -5,7 +5,7 @@
 import { ref, computed } from 'vue';
 import { createSession, submitAnswer, saveVisionAnalysis, generateAvatarVideo } from '../api/interviewApi';
 import { tts } from '../tts';
-import { useVisionAnalysis } from '@/composables/useVisionAnalysis'; // [수정일: 2026-02-23] [vision] 비전 분석 연동
+import { useVisionAnalysis } from './useVisionAnalysis'; // [수정일: 2026-02-23] [vision] 비전 분석 연동
 
 export function useInterview() {
   // ── 상태 ──────────────────────────────────────────────────
