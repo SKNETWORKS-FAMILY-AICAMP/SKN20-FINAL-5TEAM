@@ -18,6 +18,5 @@ urlpatterns = [
     path('api/core/', include('core.views.urls')),
 ]
 
-# [수정일: 2026-02-06] 미디어 파일 서빙 설정 추가 (Antigravity)
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# [수정일: 2026-02-26] 미디어 파일 서빙 설정 (DEBUG 모드 상관없이 서빙 - Nginx 설정이 없는 터널 환경 지원)
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
