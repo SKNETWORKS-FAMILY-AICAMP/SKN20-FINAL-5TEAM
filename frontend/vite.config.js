@@ -17,13 +17,12 @@ export default defineConfig({
     port: 5173,
 
     // [수정: 2026-02-25] 명시적 호스트 허용으로 ngrok 도메인 등록하여 ngrok 에러 방지 및 보안 강화
-    // [추가: 2026-02-26] Cloudflare 터널 접속 허용
+    // [추가: 2026-02-26] AWS 도메인 (aiarcade) 접속 허용
     allowedHosts: [
       'flockier-harlee-ontogenically.ngrok-free.dev',
       'localhost',
       '.ngrok-free.dev',
-      '.trycloudflare.com',
-      'okay-leisure-mitsubishi-registry.trycloudflare.com'
+      'aiarcade.kro.kr'
     ],
 
     // [추가: 2026-02-25] ngrok (https) 환경에서 웹소켓 통신(HMR)을 위한 설정 

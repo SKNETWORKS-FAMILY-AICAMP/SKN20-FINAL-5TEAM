@@ -29,7 +29,6 @@ from .coduck_wars_view import (
     CoduckWarsPressureView,
     CoduckWarsEvaluationView
 )
-from .google_auth import GoogleLoginView
 
 # [수정일: 2026-02-26] 로그 뷰어 관리자 기능 추가
 from .admin_views import (

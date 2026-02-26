@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-# core.views에서 GoogleLoginView를 포함하여 모든 필요한 뷰를 가져옵니다.
+# core.views에서 필요한 뷰를 가져옵니다.
 from core.views import (
     UserProfileViewSet,
     DashboardLogViewSet,
@@ -10,7 +10,6 @@ from core.views import (
     LoginView,
     LogoutView,
     SessionCheckView,
-    GoogleLoginView,  # <--- 구글 로그인을 위해 반드시 추가되어야 함
     AIProxyView,
     BugHuntEvaluationView,
     BugHuntInterviewView,
@@ -48,7 +47,6 @@ from core.views.interview import (
     STTTranscribeView,
     TTSSynthesizeView,
 )
-from .google_auth import GoogleLoginView, GoogleCallbackView
 
 router = DefaultRouter()
 router.register(r'users', UserProfileViewSet, basename='users')
@@ -58,9 +56,6 @@ router.register(r'practices', PracticeViewSet)
 router.register(r'practice-details', PracticeDetailViewSet, basename='practice-details')
 
 urlpatterns = [
-    # 1. 구글 로그인 시작 및 콜백 주소
-    path('auth/login/google/', GoogleLoginView.as_view(), name='google_login'),
-    path('auth/login/google/callback/', GoogleCallbackView.as_view(), name='google_login_callback'),
 
     # 2. 인증 및 사용자 관리 API
     path('user/profile/', UserProfileViewSet.as_view({'get': 'list', 'post': 'create'})),
