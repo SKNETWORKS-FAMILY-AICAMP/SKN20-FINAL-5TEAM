@@ -127,7 +127,7 @@ def health():
 async def generate(
     image: UploadFile = File(...),
     audio: UploadFile = File(...),
-    fps: int = Form(25),
+    fps: int = Form(20),
 ):
     try:
         get_models()
@@ -237,8 +237,8 @@ async def idle(image: UploadFile = File(...)):
             img = cv2.imread(image_path)
             height, width = img.shape[:2]
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            out = cv2.VideoWriter(output_path, fourcc, 25, (width, height))
-            for _ in range(25):
+            out = cv2.VideoWriter(output_path, fourcc, 20, (width, height))
+            for _ in range(20):
                 out.write(img)
             out.release()
 
