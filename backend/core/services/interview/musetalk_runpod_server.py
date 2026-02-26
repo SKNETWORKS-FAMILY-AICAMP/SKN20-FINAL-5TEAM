@@ -167,7 +167,7 @@ async def generate(
             # 배치 추론
             from musetalk.utils.preprocessing import coord_placeholder
             video_num = len(whisper_chunks)
-            batch_size = 8
+            batch_size = 16
             gen = datagen(
                 whisper_chunks=whisper_chunks,
                 vae_encode_latents=input_latent_list_cycle,
