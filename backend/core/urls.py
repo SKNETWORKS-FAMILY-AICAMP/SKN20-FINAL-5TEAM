@@ -23,7 +23,13 @@ from core.views import (
     JobPlannerCompanyAnalyzeView,
     JobPlannerAgentQuestionsView,
     JobPlannerAgentReportView,
-    JobPlannerRecommendView
+    JobPlannerRecommendView,
+    AdminLoginView,
+    AdminLogView,
+    AdminLogSaveView,
+    AdminLogArchiveListView,
+    AdminLogArchiveDetailView,
+    AdminServerStatusView
 )
 from core.views.pseudocode.pseudocode_execution import execute_python_code
 from core.views.pseudocode import pseudocode_evaluation
@@ -107,4 +113,12 @@ urlpatterns = [
     path('job-planner/agent-questions/', JobPlannerAgentQuestionsView.as_view(), name='job_planner_agent_questions'),
     path('job-planner/agent-report/', JobPlannerAgentReportView.as_view(), name='job_planner_agent_report'),
     path('job-planner/recommend/', JobPlannerRecommendView.as_view(), name='job_planner_recommend'),
+    
+    # [수정일: 2026-02-26] 관리자 로그 뷰어 API 추가
+    path('admin/login/', AdminLoginView.as_view(), name='admin_login'),
+    path('admin/logs/', AdminLogView.as_view(), name='admin_logs'),
+    path('admin/logs/save/', AdminLogSaveView.as_view(), name='admin_logs_save'),
+    path('admin/logs/archives/', AdminLogArchiveListView.as_view(), name='admin_logs_archives'),
+    path('admin/logs/archives/<str:filename>/', AdminLogArchiveDetailView.as_view(), name='admin_logs_archive_detail'),
+    path('admin/server-status/', AdminServerStatusView.as_view(), name='admin_server_status'),
 ]
