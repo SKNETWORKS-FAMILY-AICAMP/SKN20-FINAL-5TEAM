@@ -9,7 +9,7 @@ export const useAuthStore = defineStore('auth', {
     state: () => ({
         isLoggedIn: false,
         sessionNickname: '',
-        userProteinShakes: 420, // 초기/더미 값
+        userProteinShakes: 0, // 비로그인 시 기본값
         userAvatarUrl: null,    // [수정일: 2026-02-06] 나노바나나 아바타 URL
         userRank: 'BRONZE',     // [수정일: 2026-02-06] 현재 등급
         user: null              // [수정일: 2026-02-06] 전체 유저 데이터 (프로필 수정용)

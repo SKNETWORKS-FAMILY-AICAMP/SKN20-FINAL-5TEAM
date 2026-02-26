@@ -1210,6 +1210,70 @@
     box-shadow:
         0 40px 100px rgba(0, 0, 0, 0.6),
         inset 0 0 20px rgba(255, 255, 255, 0.02);
+    overflow: hidden;
+}
+
+/* [수정일: 2026-02-26] 비로그인 시 리더보드 블러 잠금 */
+.lb-glass-table-v2.lb-locked .lb-table-head,
+.lb-glass-table-v2.lb-locked .lb-row-v2,
+.lb-glass-table-v2.lb-locked .lb-pagination {
+    filter: blur(8px);
+    user-select: none;
+    pointer-events: none;
+}
+
+.lb-lock-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(12, 14, 20, 0.6);
+    backdrop-filter: blur(2px);
+    border-radius: 40px;
+}
+
+.lb-lock-content {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.lb-lock-icon-wrap {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(99, 102, 241, 0.15);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6366f1;
+    margin-bottom: 8px;
+    box-shadow: 0 0 30px rgba(99, 102, 241, 0.2);
+    animation: lb-lock-pulse 3s ease-in-out infinite;
+}
+
+@keyframes lb-lock-pulse {
+    0%, 100% { box-shadow: 0 0 30px rgba(99, 102, 241, 0.2); }
+    50% { box-shadow: 0 0 50px rgba(99, 102, 241, 0.4); }
+}
+
+.lb-lock-title {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: 0.5px;
+}
+
+.lb-lock-desc {
+    font-size: 0.9rem;
+    color: #64748b;
+    max-width: 300px;
+    line-height: 1.5;
 }
 
 .lb-table-head {
