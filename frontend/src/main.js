@@ -102,7 +102,7 @@ const routes = [
     component: ManagementView
   },
   {
-    path: '/admin/logs',
+    path: '/management/logs',
     name: 'LogViewer',
     component: LogViewer
   },
