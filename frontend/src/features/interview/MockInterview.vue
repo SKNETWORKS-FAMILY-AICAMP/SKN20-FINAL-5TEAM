@@ -49,10 +49,8 @@
         <div class="interviewer-panel">
           <div class="panel-content">
             <div class="iv-avatar-wrap">
-              <!-- 정적 아바타 이미지 (깜빡임 CSS 포함) -->
+              <!-- 정적 아바타 이미지 -->
               <img :src="avatarImageSrc" :class="['iv-avatar-video', { 'idle-pulse': !isStreaming }]" :alt="`면접관-${avatarType}`" />
-              <!-- [Blink] 프리로딩용 숨은 이미지 (첫 깜빡임 끊김 방지) -->
-              <img :src="blinkImageSrc" style="display:none" aria-hidden="true" />
             </div>
 
             <!-- 면접관 자막 오버레이 -->
@@ -132,7 +130,6 @@ const phase = ref('select');
 // 면접 경과 시간
 const elapsedSec = ref(0);
 let timerInterval = null;
-let blinkInterval = null;
 
 function startTimer() {
   elapsedSec.value = 0;
@@ -187,6 +184,7 @@ async function playNextChunk() {
   }
 
   isPlayingChunk = true;
+  isTTSPlaying.value = true; // 오디오 재생 전에 먼저 설정 (AudioRecorder 비활성화)
   queuePlayIndex++;
 
   // TTS 재생 후 완료 시 다음 청크 처리
@@ -197,9 +195,8 @@ async function playNextChunk() {
     playNextChunk();
   };
 
-  // 오디오가 실제 재생 시작될 때 Promise resolve → 그 시점에 자막 동시 시작
-  await startTTS(nextChunk.text);
-  startInterviewerTypewriter(nextChunk.text);
+  // TTS 재생 시작 시점에 타이핑 시작 (음성과 텍스트 동기화)
+  startTTS(nextChunk.text).then(() => startInterviewerTypewriter(nextChunk.text));
 }
 
 // 큐에 새 아이템이 들어오면 재생 시작 (현재 idle인 경우)
@@ -216,41 +213,11 @@ const isTTSPlaying = ref(false);
 let interviewerTimer = null;
 let userTimer = null;
 let lastSpokenText = ''; // 중복 TTS 방지
-const isBlinking = ref(false);
 
 const imageCacheBuster = Date.now(); // 컴포넌트 마운트 시점 고정 (재다운로드 방지)
 
-// 아바타 이미지 경로 (깜빡임 반영 + 캐시 우회)
-const avatarImageSrc = computed(() => {
-  const base = `/media/avatars/interviewer_${avatarType.value}`;
-  return isBlinking.value ? `${base}_blink.png?t=${imageCacheBuster}` : `${base}.png?t=${imageCacheBuster}`;
-});
-
-const blinkImageSrc = computed(() => `/media/avatars/interviewer_${avatarType.value}_blink.png?t=${imageCacheBuster}`);
-
-// 눈 깜빡임 루프
-function startBlinking() {
-  if (blinkInterval) return;
-  const triggerBlink = () => {
-    if (isStreaming.value) return; // 말할 때는 중단
-    isBlinking.value = true;
-    setTimeout(() => { isBlinking.value = false; }, 150);
-  };
-
-  const nextBlink = () => {
-    const delay = 3000 + Math.random() * 4000;
-    blinkInterval = setTimeout(() => {
-      triggerBlink();
-      nextBlink();
-    }, delay);
-  };
-  nextBlink();
-}
-
-function stopBlinking() {
-  clearTimeout(blinkInterval);
-  blinkInterval = null;
-}
+// 아바타 이미지 경로
+const avatarImageSrc = computed(() => `/media/avatars/interviewer_${avatarType.value}.png?t=${imageCacheBuster}`);
 
 // 면접관 타자기 효과 (스페이스가 아닌 문장 단위 누적)
 function startInterviewerTypewriter(newChunk) {
@@ -328,15 +295,6 @@ watch(isStreaming, (val, oldVal) => {
   }
 });
 
-// 페이즈 전환에 따른 깜빡임 제어
-watch(phase, (newPhase) => {
-  if (newPhase === 'interview') {
-    startBlinking();
-  } else {
-    stopBlinking();
-  }
-}, { immediate: true });
-
 // 면접 완료 시 피드백 화면으로 전환
 watch(isFinished, (val) => {
   if (val) {
@@ -345,7 +303,19 @@ watch(isFinished, (val) => {
   }
 });
 
+function cleanupPlayback() {
+  tts.stop();
+  lastSpokenText = '';
+  queuePlayIndex = 0;
+  isPlayingChunk = false;
+  isTTSPlaying.value = false;
+  clearInterval(interviewerTimer);
+  interviewerTimer = null;
+  interviewerTypewriterText.value = '';
+}
+
 async function onStartSession({ jobPostingId, avatarType: selectedAvatarType }) {
+  cleanupPlayback();
   phase.value = 'loading';
   try {
     await startSession(jobPostingId, selectedAvatarType);
@@ -368,6 +338,7 @@ async function onSubmitAnswer(answer) {
 }
 
 function onRestart() {
+  cleanupPlayback();
   resetSession();
   phase.value = 'select';
 }
@@ -375,6 +346,7 @@ function onRestart() {
 function onExit() {
   if (window.confirm('면접을 종료하시겠습니까? 진행 중인 내용은 저장되지 않습니다.')) {
     stopTimer();
+    cleanupPlayback();
     resetSession();
     phase.value = 'select';
   }

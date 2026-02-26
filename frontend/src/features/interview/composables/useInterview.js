@@ -132,12 +132,6 @@ export function useInterview() {
         nextInterviewerMsg.content += token;
         currentChunkText += token;
 
-        // 첫 문장 완성 시 즉시 TTS 큐에 등록, 나머지는 onDone에서 처리
-        if (chunkIndex === 0 && (/[.?!]\s|\n/.test(token) || (/[.?!]$/.test(token) && currentChunkText.length > 20))) {
-          processChunk(currentChunkText.trim());
-          currentChunkText = '';
-        }
-
         // Vue 반응성 트리거
         messages.value = [...messages.value];
       },
