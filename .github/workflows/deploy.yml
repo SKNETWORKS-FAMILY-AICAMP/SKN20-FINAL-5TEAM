@@ -26,8 +26,12 @@ jobs:
             cd frontend      
             npm install
             npm run build
-            # 만들어진 dist 폴더를 최상위 폴더로 넘겨줌
-            cp -r dist/ ../dist/
-            # Nginx에 덮어쓰기
+            
+            # 기존 Nginx HTML 폴더 비우기
             sudo rm -rf /var/www/html/*
-            sudo cp -r /home/ubuntu/SKN20-FINAL-5TEAM/dist/* /var/www/html/
+            
+            # 새로 빌드된 dist 폴더 안의 '내용물만' Nginx 폴더로 직행
+            sudo cp -r dist/* /var/www/html/
+            
+            # Nginx 재시작 (옵션이지만 권장)
+            sudo systemctl restart nginx
