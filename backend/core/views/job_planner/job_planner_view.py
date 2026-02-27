@@ -26,14 +26,37 @@ except ImportError:
     CRAWLER_AVAILABLE = False
 
 def _embed_texts(texts: list):
-    """OpenAI API로 텍스트 임베딩 후 L2 정규화된 numpy 배열 반환 (shape: n x dim)"""
+    """
+    텍스트 리스트를 OpenAI 임베딩 벡터로 변환 후 L2 정규화하여 반환.
+
+    Args:
+        texts (list): 임베딩할 문자열 리스트
+
+    Returns:
+        np.ndarray: shape (n, dim) — L2 정규화된 float32 벡터 행렬.
+                    코사인 유사도를 내적(dot product)으로 계산할 수 있게 단위 벡터로 변환됨.
+    """
     import numpy as np
     import openai as _openai
+
+    # 환경변수에서 OpenAI API 키를 읽어 클라이언트 생성
     client = _openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+
+    # text-embedding-3-small 모델로 배치 임베딩 요청
+    # 여러 텍스트를 한 번의 API 호출로 처리 (비용·속도 효율)
     response = client.embeddings.create(model="text-embedding-3-small", input=texts)
+
+    # API 응답은 순서가 보장되지 않을 수 있으므로 index 기준으로 정렬 후 벡터 추출
     vectors = [item.embedding for item in sorted(response.data, key=lambda x: x.index)]
+
+    # Python list → float32 numpy 배열로 변환 (shape: n x dim)
     arr = np.array(vectors, dtype=np.float32)
+
+    # 각 벡터의 L2 norm(크기) 계산, keepdims=True로 브로드캐스팅 가능하게 유지 (shape: n x 1)
     norms = np.linalg.norm(arr, axis=1, keepdims=True)
+
+    # 각 벡터를 norm으로 나눠 단위 벡터로 정규화
+    # np.maximum(norms, 1e-8): norm이 0인 제로 벡터일 때 division by zero 방지
     return arr / np.maximum(norms, 1e-8)
 
 
