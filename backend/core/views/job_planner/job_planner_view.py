@@ -750,10 +750,19 @@ class JobPlannerAnalyzeView(APIView):
                         req_embeddings_cache = all_embs[len(user_skills_normalized):]
 
                     req_emb = req_embeddings_cache[i:i+1]
+                    # 첫 Stage 3 진입 시 모든 스킬을 한 번에 배치 인코딩
+                    if user_embeddings_cache is None:
+                        all_texts = user_skills_normalized + required_skills_normalized
+                        all_embs = _embed_texts(all_texts)
+                        user_embeddings_cache = all_embs[:len(user_skills_normalized)]
+                        req_embeddings_cache = all_embs[len(user_skills_normalized):]
+
+                    req_emb = req_embeddings_cache[i:i+1]
 
                     for j, user_skill in enumerate(user_skills):
                         if j in matched_indices:
                             continue
+                        user_emb = user_embeddings_cache[j:j+1]
                         user_emb = user_embeddings_cache[j:j+1]
                         # 코사인 유사도 계산 (정규화된 벡터의 내적)
                         similarity = float((user_emb @ req_emb.T)[0][0])
@@ -1383,6 +1392,7 @@ class JobPlannerRecommendView(APIView):
     def post(self, request):
         try:
             if not CRAWLER_AVAILABLE:
+            if not CRAWLER_AVAILABLE:
                 return Response({
                     "error": "필요한 라이브러리가 설치되지 않았습니다."
                 }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -1433,6 +1443,11 @@ class JobPlannerRecommendView(APIView):
                 job_listings, current_job_url, current_job_company, current_job_title
             )
             print(f"🔍 중복 제거 후: {len(filtered_listings)}개 공고")
+
+            # 1.7. 개별 공고 페이지 파싱으로 실제 기술 스킬 보완 (병렬)
+            print(f"🔍 개별 공고 상세 파싱 시작 (5개씩 병렬)...")
+            filtered_listings = self._enrich_jobs_with_detail_skills(filtered_listings)
+            print(f"✅ 상세 파싱 완료")
 
             # 1.7. 개별 공고 페이지 파싱으로 실제 기술 스킬 보완 (병렬)
             print(f"🔍 개별 공고 상세 파싱 시작 (5개씩 병렬)...")
@@ -1698,6 +1713,61 @@ class JobPlannerRecommendView(APIView):
                     enriched.append(futures[future])
         return enriched
 
+    def _fetch_job_detail_skills(self, url):
+        """개별 공고 페이지 전문에서 기술 키워드 추출"""
+        import re
+        if not url:
+            return []
+        try:
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            }
+            response = requests.get(url, headers=headers, timeout=8)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.text, 'html.parser')
+            text = soup.get_text()
+
+            tech_keywords = [
+                'Python', 'Java', 'JavaScript', 'TypeScript', 'C\\+\\+', 'C#', 'Go', 'Kotlin',
+                'Swift', 'Ruby', 'PHP', 'Rust', 'Scala',
+                'Django', 'Flask', 'FastAPI', 'Spring', 'SpringBoot', 'React', 'Vue',
+                'Angular', 'Next\\.js', 'Nuxt', 'Express', 'Node\\.js', 'Nest\\.js',
+                'MySQL', 'PostgreSQL', 'MongoDB', 'Redis', 'Oracle', 'MariaDB',
+                'Elasticsearch', 'DynamoDB',
+                'AWS', 'Azure', 'GCP', 'Docker', 'Kubernetes', 'Jenkins',
+                'Git', 'Linux', 'REST', 'GraphQL', 'gRPC', 'Kafka', 'RabbitMQ',
+            ]
+            found = []
+            for kw in tech_keywords:
+                display = kw.replace('\\+\\+', '++').replace('\\.', '.')
+                if re.search(r'(?<![a-zA-Z])' + kw + r'(?![a-zA-Z])', text, re.IGNORECASE):
+                    found.append(display)
+            return found
+        except Exception:
+            return []
+
+    def _enrich_jobs_with_detail_skills(self, jobs):
+        """개별 공고 페이지를 5개씩 병렬 파싱하여 기술 스킬 보완"""
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        def enrich_one(job):
+            detail_skills = self._fetch_job_detail_skills(job.get('url', ''))
+            if detail_skills:
+                existing_lower = {s.lower() for s in job.get('skills', [])}
+                new_skills = [s for s in detail_skills if s.lower() not in existing_lower]
+                job['skills'] = job.get('skills', []) + new_skills
+            return job
+
+        enriched = []
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = {executor.submit(enrich_one, job): job for job in jobs}
+            for future in as_completed(futures):
+                try:
+                    enriched.append(future.result())
+                except Exception:
+                    enriched.append(futures[future])
+        return enriched
+
 
     def _match_jobs_with_skills(self, job_listings, user_skills, skill_levels, readiness_score):
         """
@@ -1790,13 +1860,21 @@ class JobPlannerRecommendView(APIView):
                         user_embeddings_precomputed = _embed_texts(user_skills_normalized)
                     # 현재 공고 스킬 임베딩
                     job_emb = _embed_texts([job_normalized])
+                    # 사용자 스킬 임베딩: 처음 한 번만 계산 후 재사용
+                    if user_embeddings_precomputed is None:
+                        user_embeddings_precomputed = _embed_texts(user_skills_normalized)
+                    # 현재 공고 스킬 임베딩
+                    job_emb = _embed_texts([job_normalized])
 
                     for j, user_skill in enumerate(user_skills):
                         if j in matched_user_indices:
                             continue
                         user_emb = user_embeddings_precomputed[j:j+1]
+                        user_emb = user_embeddings_precomputed[j:j+1]
                         similarity = float((user_emb @ job_emb.T)[0][0])
 
+                        # threshold 0.70 (recommend용 - analyze보다 완화)
+                        if similarity >= 0.70 and similarity > best_score:
                         # threshold 0.70 (recommend용 - analyze보다 완화)
                         if similarity >= 0.70 and similarity > best_score:
                             best_match = user_skill
@@ -1804,6 +1882,8 @@ class JobPlannerRecommendView(APIView):
                             best_user_idx = j
                             match_type = "similar"
 
+                # 매칭 성공 시 저장 (70% 이상)
+                if best_match and best_score >= 0.70:
                 # 매칭 성공 시 저장 (70% 이상)
                 if best_match and best_score >= 0.70:
                     matched_skills.append({
@@ -1833,6 +1913,7 @@ class JobPlannerRecommendView(APIView):
             print(f"  📊 [{job.get('source', '')}] {job['company_name']} - {job['title'][:30]}...")
             print(f"     매칭: {matched_count}/{len(job_skills)} ({match_rate*100:.1f}%), 평균 유사도: {avg_similarity*100:.1f}%")
 
+            if match_rate >= MIN_MATCH_RATE:
             if match_rate >= MIN_MATCH_RATE:
                 print(f"     ✅ 추천 조건 만족!")
                 recommendations.append({

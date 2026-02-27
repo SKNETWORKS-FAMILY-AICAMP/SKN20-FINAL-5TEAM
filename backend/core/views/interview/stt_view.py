@@ -16,12 +16,14 @@ from core.services.stt.stt_service import process_audio
 
 def _get_user(request):
     """세션에서 UserProfile을 가져온다. 없으면 None."""
-    user_id = request.session.get('user_id') or request.session.get('_auth_user_id')
-    if not user_id:
+    from django.contrib.auth.models import User
+    auth_user_id = request.session.get('_auth_user_id')
+    if not auth_user_id:
         return None
     try:
-        return UserProfile.objects.get(pk=user_id)
-    except UserProfile.DoesNotExist:
+        django_user = User.objects.get(pk=auth_user_id)
+        return UserProfile.objects.get(email=django_user.email)
+    except (User.DoesNotExist, UserProfile.DoesNotExist):
         return None
 
 
