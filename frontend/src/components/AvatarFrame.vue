@@ -18,7 +18,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 
 const props = defineProps({
   src: {
@@ -45,6 +45,11 @@ const props = defineProps({
 
 const isError = ref(false);
 const defaultAvatar = '/image/unit_duck.png';
+
+// src가 변경되면 isError 리셋 (이전 이미지 404 상태가 새 이미지에 영향 주지 않도록)
+watch(() => props.src, () => {
+  isError.value = false;
+});
 
 // [중요] 백엔드 미디어 서버 주소 보정
 const computedSrc = computed(() => {
