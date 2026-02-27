@@ -101,6 +101,29 @@
         </div>
       </transition>
 
+      <!-- [추가 2026-02-27] ChaosAgent 주도 장애 이벤트 팝업 -->
+      <transition name="chaos-fade">
+        <div class="chaos-overlay" v-if="chaosActive">
+          <div class="chaos-box" :class="'severity-' + chaosData?.severity.toLowerCase()">
+            <div class="chaos-header">
+              <span class="chaos-warning">⚠️ SYSTEM INCIDENT DETECTED</span>
+              <div class="chaos-scanner"></div>
+            </div>
+            <div class="chaos-body">
+              <h2 class="chaos-title">{{ chaosData?.title }}</h2>
+              <p class="chaos-desc">{{ chaosData?.description }}</p>
+              <div class="chaos-hint">
+                <span class="ch-lab">ADVICE:</span>
+                <span class="ch-val">{{ chaosData?.hint }}</span>
+              </div>
+            </div>
+            <div class="chaos-footer">
+              <button class="btn-chaos-ack" @click="chaosActive = false">UNDERSTOOD</button>
+            </div>
+          </div>
+        </div>
+      </transition>
+
       <!-- SPLIT: MY CANVAS + OPPONENT CANVAS -->
       <div class="split-view">
         <!-- LEFT: 내 작업 영역 -->
@@ -411,6 +434,10 @@ const activeScan = ref(false)
 const inkStyles = ref([])
 const totalItems = computed(() => Object.values(inventory.value).reduce((a, b) => a + b, 0))
 
+// [추가 2026-02-27] ChaosEvent 상태
+const chaosActive = ref(false)
+const chaosData = ref(null)
+
 const ITEM_TYPES = [
   { id: 'ink', name: 'INK SPLASH', icon: '🖋️', effect: 'ink', key: '1' },
   { id: 'shake', name: 'EARTHQUAKE', icon: '🫨', effect: 'shake', key: '2' },
@@ -519,15 +546,23 @@ onMounted(() => {
   // [Multi-Agent] CoachAgent 힌트 수신 — 소켓 연결 후 등록
   // watch로 소켓 준비 감지 후 리스너 등록
   // [최종수정: 2026-02-26 05:25] ReferenceError 및 TDZ 방지: if-else 패턴으로 로직 분리 (브라우저 캐시 갱신용 주석 추가)
-  const registerCoachHint = (sock) => {
-    if (!sock) return
-    sock.on('coach_hint', (data) => {
-      if (coachTimer) clearTimeout(coachTimer)
-      coachMsg.value = data.message
-      coachTimer = setTimeout(() => { coachMsg.value = '' }, 6000)
-    })
-  }
+// 소켓 핸들러 내부에서 호출할 힌트 등록 함수
+const registerCoachHint = (sock) => {
+  if (!sock) return
+  sock.on('coach_hint', (data) => {
+    if (coachTimer) clearTimeout(coachTimer)
+    coachMsg.value = data.message
+    coachTimer = setTimeout(() => { coachMsg.value = '' }, 6000)
+  })
+}
 
+// ── 소켓 연결 ──
+onMounted(() => { 
+  console.log(`[ArchDraw] Connecting to Room: ${currentRoomId.value} as ${userName.value}`)
+  ds.connect(currentRoomId.value, userName.value)
+  window.addEventListener('keydown', handleGlobalKey)
+
+  // [Multi-Agent] CoachHint 리스너 등록
   if (ds.socket.value) {
     registerCoachHint(ds.socket.value)
   } else {
@@ -537,6 +572,44 @@ onMounted(() => {
         unwatch()
       }
     })
+  }
+
+  // [추가 2026-02-27] onGameStart wire-up
+  ds.onGameStart.value = (data) => {
+    myScore.value = 0; oppScore.value = 0; combo.value = 0; bestCombo.value = 0; round.value = 0;
+  }
+
+  // [추가 2026-02-27] ChaosEvent 핸들러 등록
+  ds.onChaosEvent.value = (data) => {
+    console.log('🔥 [ArchDraw] Chaos Triggered:', data)
+    chaosData.value = data
+    chaosActive.value = true
+    spawnPopText("🚨 CRITICAL SYSTEM INCIDENT!", "#ff2d75")
+    triggerGlitch()
+    // 10초 후 자동 닫힘 (선택 사항)
+    setTimeout(() => { if (chaosActive.value) chaosActive.value = false }, 10000)
+  }
+})
+
+// [추가 2026-02-27] 엔진(Agent) 트리거용 실시간 설계 동기화
+function syncMyDesign() {
+  if (phase.value !== 'play') return
+  ds.emitCanvasSync(currentRoomId.value, userName.value, nodes.value, arrows.value)
+}
+
+function handleCanvasChange() {
+  syncMyDesign()
+}
+
+  // [추가 2026-02-27] ChaosEvent 핸들러 등록
+  ds.onChaosEvent.value = (data) => {
+    console.log('🔥 [ArchDraw] Chaos Triggered:', data)
+    chaosData.value = data
+    chaosActive.value = true
+    spawnPopText("🚨 CRITICAL SYSTEM INCIDENT!", "#ff2d75")
+    triggerGlitch()
+    // 10초 후 자동 닫힘 (선택 사항)
+    setTimeout(() => { if (chaosActive.value) chaosActive.value = false }, 10000)
   }
 })
 onUnmounted(() => { 
@@ -853,6 +926,12 @@ ds.onRoundStart.value = (data) => {
   drawingArrow.value = false;
   drawMode.value = 'move';
   
+  // 노드 선택 해제 로직 등
+  selectedNode.value = null;
+  drawStart.value = null;
+  drawingArrow.value = false;
+  handleCanvasChange();
+  
   clearInterval(timer);
   timer = setInterval(() => {
     if (timeLeft.value > 0 && phase.value === 'play') timeLeft.value--;
@@ -865,12 +944,12 @@ ds.onRoundStart.value = (data) => {
   spawnPopText("ALL ITEMS RECHARGED!", "#ffe600")
 };
 
-// 내 캔버스 변경 시 상대에게 실시간 전송
-watch([nodes, arrows], () => {
+// 캔버스 변경 시 동기화 (watch 대신 명시적 함수 호출)
+function handleCanvasChange() {
   if (phase.value === 'play') {
     ds.emitCanvasSync(currentRoomId.value, userName.value, nodes.value, arrows.value)
   }
-}, { deep: true })
+}
 
 function beginGame() {
   // REMATCH 시 이전 결과 저장
@@ -893,6 +972,7 @@ function goNextRound() {
 
 // ── Canvas interaction (동일) ──
 function onDragStart(e, c) { dragComp = c; e.dataTransfer.effectAllowed = 'copy' }
+// 컴포넌트 추가/삭제 시 동기화 호출
 function onCanvasDrop(e) {
   if (!dragComp || phase.value !== 'play') return
   const r = canvasArea.value.getBoundingClientRect()
@@ -907,12 +987,13 @@ function onCanvasDrop(e) {
       gainRandomItem()
     }
   }
+  handleCanvasChange();
 }
 function onNodeDown(e, n) {
   if (drawMode.value !== 'move' || phase.value !== 'play') return
   const r = canvasArea.value.getBoundingClientRect()
   const ox = e.clientX-r.left-n.x, oy = e.clientY-r.top-n.y
-  const mv = ev => { const r2 = canvasArea.value.getBoundingClientRect(); n.x = Math.max(0,Math.min(r2.width-100,ev.clientX-r2.left-ox)); n.y = Math.max(0,Math.min(r2.height-44,ev.clientY-r2.top-oy)); arrows.value.forEach(a => { if(a.fid===n.id){a.x1=n.x+50;a.y1=n.y+22} if(a.tid===n.id){a.x2=n.x+50;a.y2=n.y+22} }) }
+  const mv = ev => { const r2 = canvasArea.value.getBoundingClientRect(); n.x = Math.max(0,Math.min(r2.width-100,ev.clientX-r2.left-ox)); n.y = Math.max(0,Math.min(r2.height-44,ev.clientY-r2.top-oy)); arrows.value.forEach(a => { if(a.fid===n.id){a.x1=n.x+50;a.y1=n.y+22} if(a.tid===n.id){a.x2=n.x+50;a.y2=n.y+22} }); handleCanvasChange(); }
   const up = () => { window.removeEventListener('mousemove',mv); window.removeEventListener('mouseup',up) }
   window.addEventListener('mousemove',mv); window.addEventListener('mouseup',up)
 }
@@ -932,14 +1013,19 @@ function onNodeClick(n) {
           gainRandomItem()
         }
       }
+      handleCanvasChange();
     }
     drawingArrow.value = false; arrowSource.value = null; selectedNode.value = null 
   }
 }
 function onCanvasClick() { if (drawingArrow.value) { drawingArrow.value = false; arrowSource.value = null; selectedNode.value = null } }
 function onCanvasMouseMove(e) { if (!drawingArrow.value || !canvasArea.value) return; const r = canvasArea.value.getBoundingClientRect(); mousePos.value = {x:e.clientX-r.left,y:e.clientY-r.top} }
-function removeNode(n) { nodes.value = nodes.value.filter(nd=>nd.id!==n.id); arrows.value = arrows.value.filter(a=>a.fid!==n.id&&a.tid!==n.id) }
-function clearCanvas() { nodes.value = []; arrows.value = []; selectedNode.value = null; drawingArrow.value = false }
+function removeNode(n) { 
+  nodes.value = nodes.value.filter(nd=>nd.id!==n.id); 
+  arrows.value = arrows.value.filter(a=>a.fid!==n.id&&a.tid!==n.id);
+  handleCanvasChange();
+}
+function clearCanvas() { nodes.value = []; arrows.value = []; selectedNode.value = null; drawingArrow.value = false; handleCanvasChange(); }
 
 // ── Submit ──
 function submitDraw() {
@@ -1141,13 +1227,127 @@ watch(totalItems, (newVal) => {
   75% { transform: translate(-1px, 2px); filter: hue-rotate(-90deg); }
   100% { transform: translate(0); }
 }
+@keyframes glitchAnim {
+  0% { transform: translate(0); }
+  20% { transform: translate(-2px, 2px); }
+  40% { transform: translate(-2px, -2px); }
+  60% { transform: translate(2px, 2px); }
+  80% { transform: translate(2px, -2px); }
+  100% { transform: translate(0); }
+}
+
+/* [추가 2026-02-27] Chaos Overlay Styles */
+.chaos-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.chaos-box {
+  width: 100%;
+  max-width: 500px;
+  background: #030712;
+  border: 2px solid #ff2d75;
+  box-shadow: 0 0 30px rgba(255, 45, 117, 0.3), inset 0 0 15px rgba(255, 45, 117, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+  animation: chaosPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+@keyframes chaosPop {
+  from { transform: scale(0.8) translateY(20px); opacity: 0; }
+  to { transform: scale(1) translateY(0); opacity: 1; }
+}
+.chaos-header {
+  background: #ff2d75;
+  padding: 10px 15px;
+  color: #fff;
+  font-weight: bold;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px;
+  letter-spacing: 1px;
+  position: relative;
+  overflow: hidden;
+}
+.chaos-scanner {
+  position: absolute;
+  top: 0; left: -100%; width: 50%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  animation: chaosScan 2s infinite;
+}
+@keyframes chaosScan {
+  to { left: 200%; }
+}
+.chaos-body {
+  padding: 25px;
+  text-align: left;
+}
+.chaos-title {
+  color: #fff;
+  font-size: 22px;
+  margin-bottom: 12px;
+  text-shadow: 0 0 10px rgba(255,255,255,0.3);
+}
+.chaos-desc {
+  color: #94a3b8;
+  font-size: 15px;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+.chaos-hint {
+  background: rgba(0, 240, 255, 0.05);
+  border-left: 3px solid #00f0ff;
+  padding: 12px 15px;
+  border-radius: 4px;
+}
+.ch-lab {
+  color: #00f0ff;
+  font-weight: bold;
+  font-size: 11px;
+  margin-right: 8px;
+}
+.ch-val {
+  color: #e2e8f0;
+  font-size: 13px;
+}
+.chaos-footer {
+  padding: 15px 25px 25px;
+  display: flex;
+  justify-content: flex-end;
+}
+.btn-chaos-ack {
+  background: transparent;
+  border: 1px solid #ff2d75;
+  color: #ff2d75;
+  padding: 8px 24px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-chaos-ack:hover {
+  background: #ff2d75;
+  color: #fff;
+}
+.severity-critical { border-color: #ff0000; box-shadow: 0 0 30px rgba(255,0,0,0.4); }
+.severity-critical .chaos-header { background: #ff0000; }
+.severity-high { border-color: #ff2d75; }
+.severity-medium { border-color: #f59e0b; }
+.severity-medium .chaos-header { background: #f59e0b; }
+
+.chaos-fade-enter-active, .chaos-fade-leave-active { transition: opacity 0.3s; }
+.chaos-fade-enter-from, .chaos-fade-leave-to { opacity: 0; }
 
 .hl{font-size:.5rem;font-weight:700;color:#475569;letter-spacing:2px}
 .hv{font-family:'Orbitron',sans-serif;font-size:1.3rem;font-weight:900}
 .dim{color:#334155;font-size:.7rem}
 .tcell{flex:1;align-items:stretch;gap:2px}.ttrack{width:100%;height:5px;background:#0f172a;border-radius:3px;overflow:hidden}.tfill{height:100%;background:linear-gradient(90deg,#00f0ff,#38bdf8);border-radius:3px;transition:width 1s linear}.tcell.danger .tfill{background:linear-gradient(90deg,#ff2d75,#ef4444)}.tnum{font-family:'Orbitron',sans-serif;font-size:.65rem;color:#94a3b8;text-align:center}.tcell.danger .tnum{color:#ff2d75;animation:bla .5s infinite}
 .combo-pill{font-family:'Orbitron',sans-serif;font-size:.75rem;font-weight:700;padding:.15rem .5rem;border:1px solid currentColor;border-radius:.25rem}
-
 /* MISSION */
 .mission{display:flex;align-items:center;gap:.6rem;margin:.4rem 1.2rem;padding:.5rem .8rem;background:rgba(8,12,30,.7);border:1px solid rgba(0,240,255,.08);border-radius:.6rem;font-size:.9rem}
 .m-ico{font-size:1.2rem}.m-txt{display:flex;flex-direction:column;flex:1;gap:.05rem}.m-txt span{font-size:.75rem;color:#64748b}
@@ -1222,15 +1422,15 @@ watch(totalItems, (newVal) => {
 .jh-txt h2 { font-family: 'Orbitron', sans-serif; font-size: 1.4rem; font-weight: 900; letter-spacing: 2px; margin-bottom: .2rem; }
 .jh-txt p { color: #94a3b8; font-size: .85rem; }
 
-.judge-view { display: grid; grid-template-columns: 1fr 60px 1fr; align-items: center; gap: 1rem; }
-.jv-side { display: flex; flex-direction: column; gap: .75rem; transition: all .3s; }
-.jv-tag { font-family: 'Orbitron', sans-serif; font-size: .65rem; font-weight: 700; color: #fff; padding: 4px 12px; border-radius: 4px; display: inline-block; align-self: flex-start; letter-spacing: 1px; }
+.judge-view { display: flex; align-items: stretch; gap: 1.5rem; width: 100%; min-height: 500px; }
+.jv-side { flex: 1; display: flex; flex-direction: column; gap: .75rem; min-width: 0; }
+.jv-tag { font-family: 'Orbitron', sans-serif; font-size: .65rem; font-weight: 700; color: #fff; padding: 4px 12px; border-radius: 4px; display: inline-block; align-self: flex-start; letter-spacing: 1px; flex-shrink: 0; }
 .you-tag { background: #00f0ff; color: #000; box-shadow: 0 0 10px rgba(0,240,255,.3); }
 .opp-tag { background: #ff2d75; color: #fff; box-shadow: 0 0 10px rgba(255,45,117,.3); }
 
-.jv-canvas { position: relative; min-height: 320px; height: auto; background: rgba(8,12,30,.6); border: 2px solid rgba(255,255,255,.05); border-radius: 1rem; overflow: visible; box-shadow: inset 0 0 20px rgba(0,0,0,.4); }
-.canvas-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-.jv-divider { font-family: 'Orbitron', sans-serif; font-size: 1.5rem; font-weight: 900; color: #1e293b; text-align: center; text-shadow: 0 0 10px rgba(255,255,255,.05); }
+.jv-canvas { position: relative; flex: 1; min-height: 450px; background: rgba(8,12,30,.6); border: 2px solid rgba(0,240,255,0.2); border-radius: 1rem; overflow: auto; box-shadow: inset 0 0 20px rgba(0,0,0,.4); padding: 50px; }
+.canvas-svg { position: absolute; inset: 0; width: 2000px; height: 1500px; pointer-events: none; }
+.jv-divider { display: flex; align-items: center; font-family: 'Orbitron', sans-serif; font-size: 1.5rem; font-weight: 900; color: #1e293b; text-shadow: 0 0 10px rgba(255,255,255,.05); flex-shrink: 0; }
 
 .spinner{width:36px;height:36px;border:3px solid #1e293b;border-top-color:#00f0ff;border-radius:50%;animation:spin .8s linear infinite;}@keyframes spin{to{transform:rotate(360deg)}}
 

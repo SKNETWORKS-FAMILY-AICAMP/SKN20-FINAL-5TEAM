@@ -22,7 +22,8 @@ export function useDrawSocket() {
   const onRoundStart = ref(null)
   const onRoundResult = ref(null)
   const onItemEffect = ref(null)
-  const onGameOver = ref(null)     // [추가] 게임 종료 콜백
+  const onChaosEvent = ref(null)   // [추가 2026-02-27] ChaosAgent 주도 장애 이벤트 
+  const onGameOver = ref(null)
 
   function connect(roomId, userName) {
     if (socket.value) return
@@ -104,6 +105,12 @@ export function useDrawSocket() {
       if (onRoundResult.value) onRoundResult.value(data.results)
     })
 
+    // [추가 2026-02-27] ChaosAgent 주도 장애 이벤트 수신
+    socket.value.on('chaos_event', (data) => {
+      console.log('🔥 [ArchDraw] Chaos Event Received:', data)
+      if (onChaosEvent.value) onChaosEvent.value(data)
+    })
+
     // [추가] 5라운드 종료 → 게임 오버
     socket.value.on('draw_game_over', () => {
       if (onGameOver.value) onGameOver.value()
@@ -169,7 +176,7 @@ export function useDrawSocket() {
     socket, connected, roomPlayers, isReady,
     opponentCanvas, opponentName, opponentHasItem,
     roundQuestion, opponentSubmitted, roundResults,
-    onGameStart, onRoundStart, onRoundResult, onItemEffect, onGameOver,
+    onGameStart, onRoundStart, onRoundResult, onItemEffect, onChaosEvent, onGameOver,
     connect, emitStart, emitCanvasSync, emitUseItem,
     emitItemStatus, emitSubmit, emitNextRound, disconnect
   }

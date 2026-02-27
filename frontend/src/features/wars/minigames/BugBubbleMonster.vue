@@ -38,9 +38,17 @@
         </div>
       </div>
       <div class="players-box">
-        <div class="player me">{{ auth.sessionNickname || '나' }}</div>
+        <div class="player me">
+          <!-- [수정일: 2026-02-27] 로비에서도 내 아바타 표시 -->
+          <img :src="auth.userAvatarUrl || '/image/duck_idle.png'" class="lobby-avatar-img" />
+          <span>{{ auth.sessionNickname || '나' }}</span>
+        </div>
         <div class="vs">VS</div>
-        <div class="player opponent">{{ bs.opponentName.value || '상대 대기 중...' }}</div>
+        <div class="player opponent">
+          <!-- [수정일: 2026-02-27] 로비에서도 상대방 아바타 표시 -->
+          <img :src="bs.opponentAvatar.value || '/image/duck_idle.png'" class="lobby-avatar-img" v-if="bs.opponentName.value" />
+          <span>{{ bs.opponentName.value || '상대 대기 중...' }}</span>
+        </div>
       </div>
       <button class="start-btn" :disabled="!bs.isReady.value" @click="startGame">
         {{ bs.isReady.value ? '게임 시작!' : '상대방 대기 중...' }}
@@ -75,7 +83,10 @@
       <!-- 헤더 -->
       <header class="game-header">
         <div class="player-panel me">
-          <div class="avatar"><span>🦆</span></div>
+          <!-- [수정일: 2026-02-27] 내 아바타를 이모지(🦆)에서 실제 이미지로 교체 -->
+          <div class="avatar">
+            <img :src="auth.userAvatarUrl || '/image/duck_idle.png'" class="avatar-img" />
+          </div>
           <div class="info">
             <span class="name">{{ auth.sessionNickname || '나' }}</span>
             <div class="monster-bar">
@@ -101,7 +112,10 @@
               <span class="monster-count">👾 {{ opponentMonsterCount }} / {{ maxMonsters }}</span>
             </div>
           </div>
-          <div class="avatar opp-avatar"><span>🤖</span></div>
+          <!-- [수정일: 2026-02-27] 상대방 아바타를 이모지(🤖)에서 실제 이미지로 교체 -->
+          <div class="avatar opp-avatar">
+             <img :src="bs.opponentAvatar.value || '/image/duck_idle.png'" class="avatar-img" />
+          </div>
         </div>
       </header>
 
@@ -260,7 +274,9 @@ function loadProblems() {
         for (const group of data.progressiveProblems) {
           for (const step of group.steps || []) {
             if (step.fix_mode === 'choice' && step.choices?.length) {
-              steps.push(step)
+              // [수정일: 2026-02-27] 선택지 순서가 항상 정답(1번) 위주로 되어있는 문제 해결을 위한 셔플 추가
+              const shuffledStep = { ...step, choices: shuffleArray([...step.choices]) }
+              steps.push(shuffledStep)
             }
           }
         }
@@ -345,7 +361,16 @@ function getFallbackProblems() {
         { label: 'db_name = config or "default_db"', correct: false },
       ]
     },
-  ]
+  ].map(p => ({ ...p, choices: shuffleArray([...p.choices]) }))
+}
+
+// ── [수정일: 2026-02-27] 배열 순서를 랜덤하게 섞는 유틸리티 (Fisher-Yates Shuffle) ──
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]]
+  }
+  return array
 }
 
 // ── 선택지 클래스 ──
@@ -485,7 +510,8 @@ function startGameLoop() {
 function joinRoom() {
   if (!inputRoomId.value.trim()) return
   currentRoomId.value = inputRoomId.value.trim()
-  bs.connect(currentRoomId.value, auth.sessionNickname || 'Anonymous', null)
+  // [수정일: 2026-02-27] 소켓 연결 시 사용자의 실제 아바타 URL을 전달하도록 수정
+  bs.connect(currentRoomId.value, auth.sessionNickname || 'Anonymous', auth.userAvatarUrl)
 }
 
 function startGame() {
@@ -610,9 +636,19 @@ onUnmounted(() => {
   background: rgba(8,12,30,0.8); padding: 1.5rem 3rem;
   border-radius: 12px; border: 1px solid rgba(0,240,255,0.15);
 }
-.player { font-size: 1.3rem; font-weight: bold; font-family: 'Orbitron', sans-serif; }
+.player { 
+  font-size: 1.3rem; font-weight: bold; font-family: 'Orbitron', sans-serif;
+  display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+}
 .player.me { color: #00f0ff; text-shadow: 0 0 8px #00f0ff; }
 .player.opponent { color: #ff2d75; text-shadow: 0 0 8px #ff2d75; }
+.lobby-avatar-img {
+  width: 80px; height: 80px; border-radius: 50%; border: 3px solid rgba(0,240,255,0.3);
+  object-fit: cover; box-shadow: 0 0 20px rgba(0,240,255,0.2);
+}
+.player.opponent .lobby-avatar-img {
+  border-color: rgba(255,45,117,0.3); box-shadow: 0 0 20px rgba(255,45,117,0.2);
+}
 .vs {
   font-size: 1.5rem; color: #334155;
   font-family: 'Orbitron', sans-serif; font-weight: 900;
@@ -671,10 +707,14 @@ onUnmounted(() => {
 .player-panel { display: flex; align-items: center; gap: 0.75rem; }
 .player-panel.opp { flex-direction: row-reverse; }
 .avatar {
-  font-size: 2rem; background: #0f172a; width: 50px; height: 50px;
+  background: #0f172a; width: 50px; height: 50px;
   border-radius: 50%; border: 2px solid #00f0ff;
   display: flex; align-items: center; justify-content: center;
   box-shadow: 0 0 12px rgba(0,240,255,0.3);
+  overflow: hidden;
+}
+.avatar-img {
+  width: 100%; height: 100%; object-fit: cover;
 }
 .opp-avatar { border-color: #ff2d75; box-shadow: 0 0 12px rgba(255,45,117,0.3); }
 .info { display: flex; flex-direction: column; gap: 4px; }

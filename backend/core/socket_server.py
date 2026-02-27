@@ -7,6 +7,7 @@ from asgiref.sync import sync_to_async
 # [Multi-Agent] 임포트
 from core.services.wars.orchestrator import WarsOrchestrator
 from core.services.wars.state_machine import DrawRoomState, GameState
+from core.utils.architecture_missions import MISSIONS # [추가 2026-02-27] 미션 데이터셋
 
 # 전역 객체 및 상태 관리
 wars_orchestrator = WarsOrchestrator()
@@ -141,28 +142,184 @@ async def draw_join(sid, data):
     if len(room['players']) >= 2:
         room['phase'] = 'ready'
         await sio.emit('draw_ready', {}, room=room_id)
+        # [수정일: 2026-02-27] DrawRoomState 초기화 (Orchestrator 연동용)
+        stripped_id = room_id.strip()
+        if stripped_id not in draw_room_states:
+            draw_room_states[stripped_id] = DrawRoomState(room_id=stripped_id)
+        print(f"🏠 [ArchDraw] Room State Initialized: {stripped_id}")
+
+@sio.event
+async def draw_start(sid, data):
+    """[수정일: 2026-02-27] 캐치마인드 게임 시작 처리"""
+    room_id = data.get('room_id', '').strip()
+    if room_id in draw_rooms:
+        print(f"🚀 [ArchDraw] Game Start in Room: {room_id}")
+        draw_rooms[room_id]['phase'] = 'playing'
+        
+        # [수정일: 2026-02-27] 미션 데이터셋에서 무작위 선택
+        question = random.choice(MISSIONS).copy()
+        question['round'] = 1
+        
+        # Orchestrator 상태 반영
+        room_state = draw_room_states.get(room_id)
+        if room_state:
+            wars_orchestrator.on_round_start(room_state, question['title'], question['required'])
+            print(f"✅ [ArchDraw] Orchestrator Round Started: {room_id} | Mission: {question['title']}")
+        else:
+            print(f"⚠️ [ArchDraw] room_state NOT FOUND for room: {room_id}")
+        
+        await sio.emit('draw_game_start', {}, room=room_id)
+        await sio.emit('draw_round_start', {'question': question}, room=room_id)
+
+@sio.event
+async def draw_submit(sid, data):
+    """[수정일: 2026-02-27] 캐치마인드 설계 제출 처리 및 양측 완료 시 평가 트리거"""
+    room_id = data.get('room_id', '').strip()
+    if room_id not in draw_rooms: 
+        print(f"⚠️ [ArchDraw] draw_submit: Room {room_id} not found in draw_rooms")
+        return
+    
+    room = draw_rooms[room_id]
+    player = next((p for p in room['players'] if p['sid'] == sid), None)
+    if player:
+        player['score'] += data.get('score', 0)
+        player['last_pts'] = data.get('score', 0)
+        player['last_checks'] = data.get('checks', [])
+        player['last_nodes'] = data.get('final_nodes', [])
+        player['last_arrows'] = data.get('final_arrows', [])
+        player['submitted'] = True
+        print(f"📥 [ArchDraw] Player {player['name']} submitted in room {room_id}")
+
+    await sio.emit('draw_player_submitted', {'sid': sid}, room=room_id)
+
+    # 양측 모두 제출 완료 체크
+    if all(p.get('submitted') for p in room['players']) and len(room['players']) == 2:
+        p1, p2 = room['players']
+        print(f"📊 [ArchDraw] Both submitted in room {room_id}. Triggering AI Evaluation.")
+        
+        # EvalAgent를 통한 AI 평가 실행
+        ai_reviews = {}
+        room_state = draw_room_states.get(room_id)
+        if room_state:
+            try:
+                # rubric 데이터는 일단 빈 값으로 (나중에 DB 등에서 확장 가능)
+                rubric = {"required_components": room_state.mission_required}
+                ai_reviews = await wars_orchestrator.on_both_submitted(
+                    room_state, room_state.mission_title, rubric,
+                    {"name": p1['name'], "pts": p1['last_pts'], "checks": p1['last_checks'], "nodes": p1['last_nodes'], "arrows": p1['last_arrows']},
+                    {"name": p2['name'], "pts": p2['last_pts'], "checks": p2['last_checks'], "nodes": p2['last_nodes'], "arrows": p2['last_arrows']}
+                )
+            except Exception as e:
+                print(f"❌ [ArchDraw] AI Evaluation Error: {e}")
+
+        # AI 결과가 없거나 실패한 경우 폴백 메시지 생성 (UI 멈춤 방지)
+        if not ai_reviews:
+            ai_reviews = {
+                "player1": {"my_analysis": "설계의 핵심 뼈대는 갖추었으나 특정 구간의 가용성 설계가 누락되었습니다.", "versus": "전체적인 무결성 면에서 박빙의 결과를 보여주고 있습니다."},
+                "player2": {"my_analysis": "설계의 핵심 뼈대는 갖추었으나 특정 구간의 가용성 설계가 누락되었습니다.", "versus": "전체적인 무결성 면에서 박빙의 결과를 보여주고 있습니다."}
+            }
+            print(f"⚠️ [ArchDraw] Using fallback evaluation for room {room_id}")
+
+        # 결과 전송 - 프론트엔드 .find() 호환 및 데이터 무결성을 위해 리스트 형식으로 변경
+        results = [
+            {
+                "sid": p1['sid'], 
+                "score": p1['score'], 
+                "last_pts": p1.get('last_pts', 0), 
+                "last_checks": p1.get('last_checks', []), 
+                "last_nodes": p1.get('last_nodes', []),
+                "last_arrows": p1.get('last_arrows', []),
+                "ai_review": ai_reviews.get('player1')
+            },
+            {
+                "sid": p2['sid'], 
+                "score": p2['score'], 
+                "last_pts": p2.get('last_pts', 0), 
+                "last_checks": p2.get('last_checks', []), 
+                "last_nodes": p2.get('last_nodes', []),
+                "last_arrows": p2.get('last_arrows', []),
+                "ai_review": ai_reviews.get('player2')
+            }
+        ]
+        await sio.emit('draw_round_result', {'results': results}, room=room_id)
+        print(f"✅ [ArchDraw] Evaluation Results Sent to room: {room_id}")
+
+@sio.event
+async def draw_next_round(sid, data):
+    """[수정일: 2026-02-27] 다음 라운드 전환 처리"""
+    room_id = data.get('room_id', '').strip()
+    if room_id in draw_rooms:
+        room = draw_rooms[room_id]
+        print(f"⏭️ [ArchDraw] Next Round in Room: {room_id}")
+        # 제출 상태 초기화
+        for p in room['players']: p['submitted'] = False
+        
+        # [수정일: 2026-02-27] 새로운 무작위 문제 선택
+        question = random.choice(MISSIONS).copy()
+        question['round'] = data.get('round', 2)
+        
+        room_state = draw_room_states.get(room_id)
+        if room_state:
+            wars_orchestrator.on_round_start(room_state, question['title'], question['required'])
+            
+        await sio.emit('draw_round_start', {'question': question}, room=room_id)
+
+@sio.event
+async def draw_item_status(sid, data):
+    """[수정일: 2026-02-27] 소지 아이템 상태 동기화"""
+    room_id = data.get('room_id')
+    await sio.emit('draw_opponent_item_status', {'sid': sid, 'has_item': data.get('has_item')}, room=room_id, skip_sid=sid)
+
+@sio.event
+async def draw_use_item(sid, data):
+    """[수정일: 2026-02-27] 아이템 사용 효과 전파"""
+    room_id = data.get('room_id')
+    await sio.emit('draw_item_effect', {'sid': sid, 'item_type': data.get('item_type')}, room=room_id, skip_sid=sid)
 
 @sio.event
 async def draw_canvas_sync(sid, data):
-    room_id = data.get('room_id', 'draw-default')
+    room_id = data.get('room_id', 'draw-default').strip()
     await sio.emit('draw_canvas_update', {'sender_sid': sid, 'nodes': data.get('nodes'), 'arrows': data.get('arrows')}, room=room_id, skip_sid=sid)
     room_state = draw_room_states.get(room_id)
     if room_state:
         res = wars_orchestrator.on_canvas_update(room_state, sid, data.get('nodes'), data.get('arrows'))
-        if res.get('coach_hint'): await sio.emit('coach_hint', res['coach_hint'], to=sid)
-        if res.get('chaos_event'): await sio.emit('chaos_event', res['chaos_event'], room=room_id)
+        if res.get('coach_hint'): 
+            print(f"💡 [ArchDraw] Hint Sent to {sid}: {res['coach_hint']['message'][:20]}...")
+            await sio.emit('coach_hint', res['coach_hint'], room=sid)
+        if res.get('chaos_event'): 
+            print(f"🔥 [ArchDraw] Chaos Event in Room: {room_id}")
+            await sio.emit('chaos_event', res['chaos_event'], room=room_id)
 # ---------- LOGIC RUN EVENTS ----------
 @sio.event
 async def run_join(sid, data):
     room_id = data.get('room_id', 'run-default').strip()
     user_name = data.get('user_name', 'Anonymous')
+    
+    if room_id not in run_rooms: 
+        run_rooms[room_id] = {'players': [], 'phase': 'lobby', 'leader_sid': None}
+    
+    room = run_rooms[room_id]
+    
+    # [수정일: 2026-02-27] 2인 제한 로직 추가
+    is_already_in = any(p['sid'] == sid for p in room['players'])
+    if not is_already_in and len(room['players']) >= 2:
+        print(f"⚠️ [LogicRun] Room {room_id} is full (2/2). Rejecting {user_name}")
+        await sio.emit('run_error', {'message': '방이 가득 찼습니다. (최대 2인)'}, to=sid)
+        return
+
     await sio.enter_room(sid, room_id)
     await sio.save_session(sid, {'run_room': room_id, 'run_name': user_name})
-    if room_id not in run_rooms: run_rooms[room_id] = {'players': [], 'phase': 'lobby', 'leader_sid': None}
-    room = run_rooms[room_id]
+    
     if not room['leader_sid']: room['leader_sid'] = sid
-    if not any(p['sid'] == sid for p in room['players']):
-        room['players'].append({'sid': sid, 'name': user_name, 'avatar_url': data.get('avatar_url'), 'phase1_score': 0, 'phase2_score': 0})
+    if not is_already_in:
+        room['players'].append({
+            'sid': sid, 
+            'name': user_name, 
+            'avatar_url': data.get('avatar_url'), 
+            'phase1_score': 0, 
+            'phase2_score': 0
+        })
+    
     await sio.emit('run_lobby', {'players': room['players'], 'leader_sid': room['leader_sid']}, room=room_id)
 
 @sio.event
@@ -172,6 +329,22 @@ async def run_progress(sid, data):
         for p in run_rooms[room_id]['players']:
             if p['sid'] == sid: p['phase1_score'] = data.get('score', 0)
     await sio.emit('run_sync', data, room=room_id, skip_sid=sid)
+
+# [수정일: 2026-02-27] 추가: LogicRun 프론트엔드에서 'START GAME' 클릭 시 전송하는 run_start 이벤트 핸들러 추가 (게임 시작 불가 해결)
+@sio.event
+async def run_start(sid, data):
+    room_id = data.get('room_id')
+    if room_id in run_rooms:
+        run_rooms[room_id]['phase'] = 'playing'
+        quest_idx = random.randint(0, 100)
+        await sio.emit('run_game_start', {'quest_idx': quest_idx}, room=room_id)
+
+# [수정일: 2026-02-27] 추가: LogicRun 게임 종료 시 점수 및 결과 동기화를 위한 이벤트 핸들러 추가
+@sio.event
+async def run_logic_finish(sid, data):
+    room_id = data.get('room_id')
+    if room_id in run_rooms:
+        await sio.emit('run_end', data, room=room_id, skip_sid=sid)
 
 # ---------- BUG-BUBBLE MONSTER (핵심 수정 포함) ----------
 @sio.event

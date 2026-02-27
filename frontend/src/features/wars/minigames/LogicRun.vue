@@ -611,6 +611,11 @@ function requestStart() {
 }
 
 // 소켓 리스너 등록
+rs.onJoinError.value = (msg) => {
+  alert(msg)
+  roomId.value = ''
+}
+
 rs.onGameStart.value = (qIdx) => {
   const roomPlayers = rs.roomPlayers.value
   playerP1.value = roomPlayers[0] || { name: 'P1', avatar_url: '/image/duck_idle.png', sid: '' }
@@ -907,29 +912,32 @@ const currentBlankData = computed(() => {
 const isP1 = computed(() => rs.socket.value?.id === playerP1.value?.sid)
 
 // ← 플레이어별 진행도 (자신)
+// 전체 빈칸 수 캐시 (계산 반복 방지)
+const totalSpeedFillBlanks = computed(() => {
+  if (!speedFillRounds || speedFillRounds.length === 0) return 1
+  return speedFillRounds.reduce((sum, r) => sum + (r.blanksOrder?.length || 1), 0) || 1
+})
+
+// ← 0~80 범위로 제한 (출발선 정렬: 오리 너비 고려)
 const myProgressPct = computed(() => {
+  let raw = 0
   if (currentGamePhase.value === 'speedFill') {
-    if (!speedFillRounds || speedFillRounds.length === 0) return 0
-    let totalBlanks = 0
-    for (let i = 0; i < speedFillRounds.length; i++) {
-        totalBlanks += speedFillRounds[i].blanksOrder?.length || 1
-    }
-    return totalBlanks === 0 ? 0 : (myCorrectBlanks.value / totalBlanks) * 100
+    raw = (myCorrectBlanks.value / totalSpeedFillBlanks.value) * 100
+  } else {
+    raw = totalChecks.value === 0 ? 0 : (myChecksCompleted.value / totalChecks.value) * 100
   }
-  return totalChecks.value === 0 ? 0 : (myChecksCompleted.value / totalChecks.value) * 100
+  return Math.min(80, raw)  // 최대 80%: 오리가 결승선을 넘지 않도록
 })
 
 // ← 플레이어별 진행도 (상대)
 const opponentProgressPct = computed(() => {
+  let raw = 0
   if (currentGamePhase.value === 'speedFill') {
-    if (!speedFillRounds || speedFillRounds.length === 0) return 0
-    let totalBlanks = 0
-    for (let i = 0; i < speedFillRounds.length; i++) {
-        totalBlanks += speedFillRounds[i].blanksOrder?.length || 1
-    }
-    return totalBlanks === 0 ? 0 : (oppCorrectBlanks.value / totalBlanks) * 100
+    raw = (oppCorrectBlanks.value / totalSpeedFillBlanks.value) * 100
+  } else {
+    raw = totalChecks.value === 0 ? 0 : (oppChecksCompleted.value / totalChecks.value) * 100
   }
-  return totalChecks.value === 0 ? 0 : (oppChecksCompleted.value / totalChecks.value) * 100
+  return Math.min(80, raw)
 })
 
 // ← UI 렌더링용 진행도 (isP1 기반 - roomPlayers 타이밍 이슈 없음)
@@ -1426,7 +1434,8 @@ onUnmounted(() => {
 .runner-char {
   position:absolute; bottom:8px; transition:left .5s ease;
   width: 64px; height: 64px; display: flex; align-items: flex-end;
-  justify-content: center; transform: translateX(-50%);
+  justify-content: center;
+  /* translateX(-50%) 제거: left:0% 출발선에서 양쪽 오리가 동일 위치에서 시작 */
 }
 /* ← 수정: 오리가 달리는 방향(오른쪽)을 바라보도록 반전 추가 */
 .main-avatar { width: 56px; height: 56px; object-fit: contain; filter: drop-shadow(0 0 10px rgba(0,240,255,0.3)); transform: scaleX(-1); }
