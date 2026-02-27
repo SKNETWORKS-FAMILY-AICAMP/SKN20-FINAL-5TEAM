@@ -16,13 +16,18 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd ~/SKN20-FINAL-5TEAM
-            git pull origin main
 
-            # 1. 기존 컨테이너 모두 중지 (frontend 볼륨 충돌 방지)
+            # 1. 기존 컨테이너 중지 (Docker가 root 파일 생성하는 것 방지)
             docker compose down
 
-            # 2. 프론트엔드 빌드
+            # 2. Docker가 만든 root 소유 파일 권한 수정 후 최신 코드 가져오기
+            sudo chown -R ubuntu:ubuntu ~/SKN20-FINAL-5TEAM
+            git fetch origin main
+            git reset --hard origin/main
+
+            # 3. 프론트엔드 빌드
             cd frontend
+            rm -rf dist
             npm install
             npm run build
 
@@ -31,11 +36,11 @@ jobs:
               echo "Frontend build failed!" && exit 1
             fi
 
-            # 3. Nginx에 배포
+            # 4. Nginx에 배포
             sudo rm -rf /var/www/html/*
             sudo cp -r dist/* /var/www/html/
             sudo systemctl restart nginx
 
-            # 4. 백엔드만 재시작 (frontend 컨테이너는 프로덕션에서 불필요)
+            # 5. 백엔드만 재시작 (frontend 컨테이너는 프로덕션에서 불필요)
             cd ~/SKN20-FINAL-5TEAM
             docker compose up -d --build backend db
