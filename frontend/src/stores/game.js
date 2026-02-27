@@ -2,6 +2,8 @@ import { defineStore } from 'pinia';
 import axios from 'axios';
 import { aiQuests } from '../features/practice/pseudocode/data/stages.js'; // [수정일: 2026-02-06] 폴더 계층화(data) 반영
 // [수정일: 2026-02-06] 비활성 데이터 임포트 경로 수정 (support -> not_use/support)
+// [수정일: 2026-02-27] progressStore를 진행도 단일 소스로 사용 (localStorage 완전 제거)
+import { useProgressStore } from './progress';
 
 /**
  * [수정일: 2026-01-27]
@@ -10,17 +12,7 @@ import { aiQuests } from '../features/practice/pseudocode/data/stages.js'; // [�
 export const useGameStore = defineStore('game', {
     state: () => ({
         chapters: [],
-        unitProgress: {
-            'Pseudo Practice': [0],
-            'Debug Practice': [0],
-            'System Practice': [0],
-            // [수정일: 2026-01-28] Pseudo Forest 전용 진행도 초기값 추가
-            'Pseudo Forest': [0],
-            // [수정일: 2026-01-29] Pseudo Company 전용 진행도 초기값 추가
-            'Pseudo Company': [0],
-            // [수정일: 2026-01-29] Pseudo Emergency 전용 진행도 초기값 추가
-            'Pseudo Emergency': [0]
-        },
+        // [수정일: 2026-02-27] unitProgress 제거 — progressStore가 단일 소스로 관리
         activeUnit: null,
         activeProblem: null,
         activeChapter: null,
@@ -103,31 +95,7 @@ export const useGameStore = defineStore('game', {
                     };
                 });
 
-                // [2026-02-22] RDS에서 진행도 로드 (localStorage는 폴백용)
-                try {
-                    const progressRes = await axios.get('/api/core/activity/progress/', { withCredentials: true });
-                    progressRes.data.forEach(p => {
-                        const key = p.unit_title;
-                        if (key && p.unlocked_nodes?.length) {
-                            const existing = this.unitProgress[key] || [0];
-                            this.unitProgress[key] = Array.from(new Set([...existing, ...p.unlocked_nodes])).sort((a, b) => a - b);
-                        }
-                    });
-                    // RDS 로드 성공 시 localStorage도 동기화
-                    localStorage.setItem('logic_mirror_progress', JSON.stringify(this.unitProgress));
-                } catch (progressError) {
-                    // RDS 실패 시 localStorage 폴백
-                    console.warn('[GameStore] RDS progress load failed, using localStorage fallback:', progressError);
-                    const savedProgress = localStorage.getItem('logic_mirror_progress');
-                    if (savedProgress) {
-                        const parsed = JSON.parse(savedProgress);
-                        Object.keys(this.unitProgress).forEach(key => {
-                            if (parsed[key]) {
-                                this.unitProgress[key] = Array.from(new Set([...this.unitProgress[key], ...parsed[key]])).sort((a, b) => a - b);
-                            }
-                        });
-                    }
-                }
+                // [수정일: 2026-02-27] 진행도 로딩 제거 — progressStore.fetchAllProgress()가 App.vue onMounted에서 선행 호출됨
 
             } catch (error) {
                 console.error("Failed to fetch practice units from DB:", error);
@@ -157,40 +125,6 @@ export const useGameStore = defineStore('game', {
                         config: q,
                         mode: 'pseudo-practice'
                     }));
-                }
-                else if (this.unit1Mode === 'pseudo-forest') {
-                    // [수정일: 2026-01-28] Pseudo Forest 정규 10단계 데이터 매핑
-                    return forestGameData.map((q, idx) => ({
-                        id: `forest-${q.stageId}`,
-                        title: `${q.character.name}의 의뢰`, // [수정일: 2026-01-28] 맵 표시 이름 변경
-                        questIndex: idx,
-                        displayNum: `F-${idx + 1}`,
-                        difficulty: 'medium',
-                        config: q,
-                        mode: 'pseudo-forest'
-                    }));
-                }
-                else if (this.unit1Mode === 'pseudo-company') {
-                    // [수정일: 2026-01-29] Pseudo Company 기초 데이터 매핑
-                    return [{
-                        id: 'company-1',
-                        title: '기업 로직 분석',
-                        questIndex: 0,
-                        displayNum: 'C-1',
-                        difficulty: 'hard',
-                        mode: 'pseudo-company'
-                    }];
-                }
-                else if (this.unit1Mode === 'pseudo-emergency') {
-                    // [수정일: 2026-01-29] Pseudo Emergency 기초 데이터 매핑
-                    return [{
-                        id: 'emergency-1',
-                        title: '긴급 차단 스위치',
-                        questIndex: 0,
-                        displayNum: 'E-1',
-                        difficulty: 'hard',
-                        mode: 'pseudo-emergency'
-                    }];
                 }
                 /* [수정일: 2026-01-31] 비활성 모드 데이터 매핑 주석 처리
                 else {
@@ -281,48 +215,7 @@ export const useGameStore = defineStore('game', {
                 }));
         },
 
-        unlockNextStage(unitName, index) {
-            // [수정일: 2026-01-28] Unit 1의 경우 현재 활성 모드에 따라 키값 결정
-            let targetKey = unitName;
-            if (this.activeUnit?.name === 'Pseudo Practice') {
-                const modeMap = {
-                    'pseudo-practice': 'Pseudo Practice',
-                    'ai-detective': 'AI Detective',
-                    'pseudo-forest': 'Pseudo Forest',
-                    'pseudo-company': 'Pseudo Company',
-                    'pseudo-emergency': 'Pseudo Emergency'
-                };
-                targetKey = modeMap[this.unit1Mode] || 'Pseudo Practice';
-            }
-            if (this.activeUnit?.name === 'Debug Practice') {
-                targetKey = 'Debug Practice';
-            }
-
-            const progress = this.unitProgress[targetKey];
-            if (progress && !progress.includes(index)) {
-                progress.push(index);
-            }
-            const nextIdx = index + 1;
-            // 유닛별 최대 문제 수에 맞춰 해금 제한 동적 조절
-            const maxCount = targetKey === 'AI Detective'
-                ? 30
-                : (this.activeUnit?.problems?.length || 0);
-            if (progress && nextIdx < maxCount && !progress.includes(nextIdx)) {
-                progress.push(nextIdx);
-            }
-
-            // [2026-01-26] 진행도 로컬 스토리지 저장
-            localStorage.setItem('logic_mirror_progress', JSON.stringify(this.unitProgress));
-
-            // [2026-02-23 수정] RDS에도 진행도 저장 (전용 엔드포인트 사용으로 404 방지)
-            const practice = this.chapters.find(c => c.name === targetKey);
-            if (practice?.id) {
-                axios.post('/api/core/activity/progress/', {
-                    practice_id: practice.id,
-                    unlocked_nodes: progress
-                }, { withCredentials: true }).catch(e => console.warn('[GameStore] RDS progress save failed:', e));
-            }
-        },
+        // [수정일: 2026-02-27] unlockNextStage() 제거 — progressStore.unlockNextStage()로 이전됨
 
         setActiveUnit(unit) {
             this.activeUnit = unit;
@@ -423,35 +316,17 @@ export const useGameStore = defineStore('game', {
     },
 
     getters: {
+        /**
+         * [수정일: 2026-02-27] progressStore를 단일 소스로 사용하여 현재 유닛의 해금 노드 반환
+         */
         currentUnitProgress: (state) => {
+            const progressStore = useProgressStore();
             if (!state.activeUnit) return [0];
 
-            // [수정일: 2026-01-28] Unit 1의 경우 현재 모드에 따라 진행도 키값 분기 처리
-            if (state.activeUnit.name === 'Pseudo Practice') {
-                const modeMap = {
-                    'pseudo-practice': 'Pseudo Practice',
-                    'ai-detective': 'AI Detective',
-                    'pseudo-forest': 'Pseudo Forest',
-                    'pseudo-company': 'Pseudo Company',
-                    'pseudo-emergency': 'Pseudo Emergency'
-                };
-                const modeKey = modeMap[state.unit1Mode] || 'Pseudo Practice';
-                return state.unitProgress[modeKey] || [0];
-            }
+            const practiceId = state.activeUnit.id || state.activeUnit.db_id;
+            const allNodes = progressStore.getUnlockedNodes(practiceId);
 
-            // [수정일: 2026-01-31] 유닛 이름을 정규화하여 진행도 키값 매칭 (대소문자/공백 무시)
-            const rawTitle = state.activeUnit.name || state.activeUnit.title || '';
-            const unitTitle = rawTitle.toLowerCase().replace(/\s+/g, '');
-
-            if (unitTitle.includes('debug')) {
-                return state.unitProgress['Debug Practice'] || [0];
-            }
-
-            if (unitTitle === 'systempractice') {
-                return state.unitProgress['System Practice'] || [0];
-            }
-
-            return state.unitProgress[state.activeUnit.name] || [0];
+            return allNodes.length > 0 ? allNodes : [0];
         }
     }
 });
