@@ -763,7 +763,6 @@ class JobPlannerAnalyzeView(APIView):
                         if j in matched_indices:
                             continue
                         user_emb = user_embeddings_cache[j:j+1]
-                        user_emb = user_embeddings_cache[j:j+1]
                         # 코사인 유사도 계산 (정규화된 벡터의 내적)
                         similarity = float((user_emb @ req_emb.T)[0][0])
 
@@ -1392,7 +1391,6 @@ class JobPlannerRecommendView(APIView):
     def post(self, request):
         try:
             if not CRAWLER_AVAILABLE:
-            if not CRAWLER_AVAILABLE:
                 return Response({
                     "error": "필요한 라이브러리가 설치되지 않았습니다."
                 }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -1870,11 +1868,8 @@ class JobPlannerRecommendView(APIView):
                         if j in matched_user_indices:
                             continue
                         user_emb = user_embeddings_precomputed[j:j+1]
-                        user_emb = user_embeddings_precomputed[j:j+1]
                         similarity = float((user_emb @ job_emb.T)[0][0])
 
-                        # threshold 0.70 (recommend용 - analyze보다 완화)
-                        if similarity >= 0.70 and similarity > best_score:
                         # threshold 0.70 (recommend용 - analyze보다 완화)
                         if similarity >= 0.70 and similarity > best_score:
                             best_match = user_skill
@@ -1882,8 +1877,6 @@ class JobPlannerRecommendView(APIView):
                             best_user_idx = j
                             match_type = "similar"
 
-                # 매칭 성공 시 저장 (70% 이상)
-                if best_match and best_score >= 0.70:
                 # 매칭 성공 시 저장 (70% 이상)
                 if best_match and best_score >= 0.70:
                     matched_skills.append({
@@ -1913,7 +1906,6 @@ class JobPlannerRecommendView(APIView):
             print(f"  📊 [{job.get('source', '')}] {job['company_name']} - {job['title'][:30]}...")
             print(f"     매칭: {matched_count}/{len(job_skills)} ({match_rate*100:.1f}%), 평균 유사도: {avg_similarity*100:.1f}%")
 
-            if match_rate >= MIN_MATCH_RATE:
             if match_rate >= MIN_MATCH_RATE:
                 print(f"     ✅ 추천 조건 만족!")
                 recommendations.append({
