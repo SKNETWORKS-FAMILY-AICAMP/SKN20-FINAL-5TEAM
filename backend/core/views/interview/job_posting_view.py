@@ -17,12 +17,16 @@ from core.models import SavedJobPosting, UserProfile
 
 def _get_user(request):
     """세션에서 UserProfile을 가져온다. 없으면 None."""
-    user_id = request.session.get('user_id') or request.session.get('_auth_user_id')
-    if not user_id:
+    from django.contrib.auth.models import User
+    # Django 세션에서 auth user ID 가져오기
+    auth_user_id = request.session.get('_auth_user_id')
+    if not auth_user_id:
         return None
     try:
-        return UserProfile.objects.get(pk=user_id)
-    except UserProfile.DoesNotExist:
+        # Django User의 email로 UserProfile 조회
+        django_user = User.objects.get(pk=auth_user_id)
+        return UserProfile.objects.get(email=django_user.email)
+    except (User.DoesNotExist, UserProfile.DoesNotExist):
         return None
 
 
