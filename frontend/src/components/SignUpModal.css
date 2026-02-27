@@ -10,3 +10,9 @@
 }
 
 /* Inherits global styles from style.css */
+
+/* [수정일: 2026-02-27] Date Input Calendar Icon Color (흰색으로 변경) */
+.date-input::-webkit-calendar-picker-indicator {
+    filter: invert(1) brightness(100%);
+    cursor: pointer;
+}

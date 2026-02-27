@@ -169,6 +169,7 @@ export default {
       // [수정일: 2026-02-06] 아바타 커스텀 상태
       avatarStyle: 'default duck',
       avatarPreviewUrl: null,
+      avatarFilePath: null,
       isPreviewing: false,
       avatarSeed: Math.floor(Math.random() * 100000),
       // [수정일: 2026-02-07] 오늘 날짜 (미래 날짜 선택 방지용)
@@ -191,6 +192,7 @@ export default {
         // [수정일: 2026-02-06] 아바타 상태 초기화
         this.avatarStyle = 'default duck';
         this.avatarPreviewUrl = null;
+        this.avatarFilePath = null;
         this.avatarSeed = Math.floor(Math.random() * 100000);
         
         this.fetchCommonCodes();
@@ -256,7 +258,13 @@ export default {
           console.warn('AI Avatar Generation Fallback:', response.data.error_msg);
           alert('💡 현재 AI 아바타 생성 서버가 혼잡하여 기본 오리로 대체되었습니다. 나중에 다시 시도해 주세요!');
         }
-        this.avatarPreviewUrl = response.data.url + '?t=' + new Date().getTime();
+        // base64 data URL이 있으면 즉시 표시, 없으면 파일 URL + 캐시 방지
+        if (response.data.image_data_url) {
+          this.avatarPreviewUrl = response.data.image_data_url;
+        } else {
+          this.avatarPreviewUrl = response.data.url + '?t=' + new Date().getTime();
+        }
+        this.avatarFilePath = response.data.url;
       } catch (error) {
         console.error('Failed to preview avatar:', error);
         alert('아바타 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
@@ -294,7 +302,7 @@ export default {
           interests: this.interests || null, // 관심사 추가
           avatar_style: this.avatarStyle,    // [수정일: 2026-02-06] 아바타 스타일 추가
           avatar_seed: this.avatarSeed,      // [수정일: 2026-02-06] 아바타 시드 추가
-          avatar_preview_url: this.avatarPreviewUrl // [수정일: 2026-02-08] 미리보기 URL 추가하여 저장 시 일관성 유지 (Antigravity)
+          avatar_preview_url: this.avatarFilePath // [수정일: 2026-02-08] 미리보기 파일 경로 전송 (S3 업로드용)
         }
       };
 
