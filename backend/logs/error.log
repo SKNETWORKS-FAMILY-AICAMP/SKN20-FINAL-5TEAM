@@ -1,0 +1,86 @@
+WARNING 2026-02-27 12:02:00,149 log Not Found: /media/avatars/preview_785e50ea65fa4c05a2e433ac0a65116e.png
+WARNING 2026-02-27 12:02:00,153 basehttp "GET /media/avatars/preview_785e50ea65fa4c05a2e433ac0a65116e.png HTTP/1.1" 404 3259
+WARNING 2026-02-27 12:02:02,526 log Not Found: /media/avatars/preview_785e50ea65fa4c05a2e433ac0a65116e.png
+WARNING 2026-02-27 12:02:02,527 basehttp "GET /media/avatars/preview_785e50ea65fa4c05a2e433ac0a65116e.png HTTP/1.1" 404 3259
+WARNING 2026-02-27 12:05:14,330 log Not Found: /media/avatars/preview_785e50ea65fa4c05a2e433ac0a65116e.png
+WARNING 2026-02-27 12:05:14,334 basehttp "GET /media/avatars/preview_785e50ea65fa4c05a2e433ac0a65116e.png HTTP/1.1" 404 3259
+WARNING 2026-02-27 12:09:29,874 log Not Found: /media/avatars/preview_785e50ea65fa4c05a2e433ac0a65116e.png
+WARNING 2026-02-27 12:09:29,887 basehttp "GET /media/avatars/preview_785e50ea65fa4c05a2e433ac0a65116e.png HTTP/1.1" 404 3259
+WARNING 2026-02-27 12:12:25,120 log Not Found: /media/avatars/preview_785e50ea65fa4c05a2e433ac0a65116e.png
+WARNING 2026-02-27 12:12:25,121 basehttp "GET /media/avatars/preview_785e50ea65fa4c05a2e433ac0a65116e.png HTTP/1.1" 404 3259
+ERROR 2026-02-27 12:12:27,232 basehttp "POST /api/core/ai-coach/chat/ HTTP/1.1" 500 59
+ERROR 2026-02-27 12:12:28,597 coach_view [AICoachOptimal] Error: Connection error.
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/openai/_base_client.py", line 1604, in request
+    response = await self._client.send(
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/httpx/_client.py", line 1629, in send
+    response = await self._send_handling_auth(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/httpx/_client.py", line 1657, in _send_handling_auth
+    response = await self._send_handling_redirects(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/httpx/_client.py", line 1694, in _send_handling_redirects
+    response = await self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/httpx/_client.py", line 1730, in _send_single_request
+    response = await transport.handle_async_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/httpx/_transports/default.py", line 394, in handle_async_request
+    resp = await self._pool.handle_async_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/httpcore/_async/connection_pool.py", line 256, in handle_async_request
+    raise exc from None
+  File "/usr/local/lib/python3.11/site-packages/httpcore/_async/connection_pool.py", line 236, in handle_async_request
+    response = await connection.handle_async_request(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/httpcore/_async/connection.py", line 101, in handle_async_request
+    raise exc
+  File "/usr/local/lib/python3.11/site-packages/httpcore/_async/connection.py", line 78, in handle_async_request
+    stream = await self._connect(request)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/httpcore/_async/connection.py", line 124, in _connect
+    stream = await self._network_backend.connect_tcp(**kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/httpcore/_backends/auto.py", line 31, in connect_tcp
+    return await self._backend.connect_tcp(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/httpcore/_backends/anyio.py", line 115, in connect_tcp
+    stream: anyio.abc.ByteStream = await anyio.connect_tcp(
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/anyio/_core/_sockets.py", line 215, in connect_tcp
+    gai_res = await getaddrinfo(
+              ^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/anyio/_core/_sockets.py", line 649, in getaddrinfo
+    gai_res = await get_async_backend().getaddrinfo(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2732, in getaddrinfo
+    return await get_running_loop().getaddrinfo(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/asyncio/base_events.py", line 868, in getaddrinfo
+    return await self.run_in_executor(
+                 ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/asyncio/base_events.py", line 830, in run_in_executor
+    executor.submit(func, *args), loop=self)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/concurrent/futures/thread.py", line 167, in submit
+    raise RuntimeError('cannot schedule new futures after shutdown')
+RuntimeError: cannot schedule new futures after shutdown
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/app/core/views/coach/coach_view.py", line 228, in event_stream
+    stream = await async_client.chat.completions.create(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/openai/resources/chat/completions/completions.py", line 2700, in create
+    return await self._post(
+           ^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/openai/_base_client.py", line 1884, in post
+    return await self.request(cast_to, opts, stream=stream, stream_cls=stream_cls)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/openai/_base_client.py", line 1636, in request
+    raise APIConnectionError(request=request) from err
+openai.APIConnectionError: Connection error.
+WARNING 2026-02-27 12:12:45,771 log Not Found: /media/avatars/preview_785e50ea65fa4c05a2e433ac0a65116e.png
+WARNING 2026-02-27 12:12:45,775 basehttp "GET /media/avatars/preview_785e50ea65fa4c05a2e433ac0a65116e.png HTTP/1.1" 404 3259

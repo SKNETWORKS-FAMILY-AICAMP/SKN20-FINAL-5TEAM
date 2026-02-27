@@ -1,8 +1,13 @@
-"""AI Coach 도구 (최적화 버전) - 6개 도구 + 피드백 추출 + 학습 데이터"""
+"""AI Coach 도구 (최적화 버전) - 7개 도구 + 피드백 추출 + 학습 데이터"""
 
 import json
+import logging
+import datetime
 from django.db.models import Avg, Max, Count
+from django.utils import timezone
 from core.models import UserSolvedProblem, Practice, PracticeDetail
+
+logger = logging.getLogger(__name__)
 
 # ─────────────────────────────────────────────
 # 1. Tool 정의 (OpenAI function calling schema)
@@ -103,6 +108,29 @@ COACH_TOOLS = [
                     }
                 },
                 "required": ["unit_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_growth_trend",
+            "description": (
+                "유저의 성장 추이를 분석합니다. "
+                "초기 풀이 5회 vs 최근 풀이 5회의 평균 점수 비교, 주별 점수 추이, "
+                "개선된/개선 필요 메트릭 현황을 반환합니다. "
+                "성장 리포트, 동기부여, '얼마나 늘었어?' 질문에 사용하세요."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "unit_id": {
+                        "type": "string",
+                        "enum": ["unit01", "unit02", "unit03"],
+                        "description": "분석할 유닛 ID (생략하면 전체 유닛 통합)",
+                    }
+                },
+                "required": [],
             },
         },
     },
@@ -543,6 +571,119 @@ def tool_get_study_guide(profile, unit_id):
     }
 
 
+def _compare_metric_trends(early_records, recent_records, unit_id):
+    """초기 vs 최근 풀이의 메트릭 점수 변화량 계산"""
+    early_metrics = {}
+    recent_metrics = {}
+
+    for r in early_records:
+        _extract_metrics(r.submitted_data or {}, early_metrics, unit_id)
+    for r in recent_records:
+        _extract_metrics(r.submitted_data or {}, recent_metrics, unit_id)
+
+    trends = []
+    all_metrics = set(early_metrics.keys()) | set(recent_metrics.keys())
+
+    for metric in all_metrics:
+        early_scores = early_metrics.get(metric, [])
+        recent_scores = recent_metrics.get(metric, [])
+        if not early_scores and not recent_scores:
+            continue
+
+        early_avg = round(sum(early_scores) / len(early_scores), 1) if early_scores else None
+        recent_avg = round(sum(recent_scores) / len(recent_scores), 1) if recent_scores else None
+        delta = round(recent_avg - early_avg, 1) if (early_avg is not None and recent_avg is not None) else None
+
+        if recent_avg is not None and recent_avg >= 70 and early_avg is not None and early_avg < 70:
+            status = "개선 완료"
+        elif delta is not None and delta > 5:
+            status = "향상 중"
+        elif recent_avg is not None and recent_avg < 70:
+            status = "개선 필요"
+        else:
+            status = "유지"
+
+        trends.append({
+            "metric": metric,
+            "early_avg": early_avg,
+            "recent_avg": recent_avg,
+            "delta": delta,
+            "status": status,
+        })
+
+    trends.sort(key=lambda x: x.get("delta") or 0, reverse=True)
+    return trends
+
+
+def tool_get_growth_trend(profile, unit_id=None):
+    """성장 추이 분석: 초기 5회 vs 최근 5회 비교 + 주별 추이 + 메트릭 개선 현황"""
+    qs = UserSolvedProblem.objects.filter(user=profile).select_related(
+        "practice_detail__practice"
+    ).order_by("solved_date")
+
+    if unit_id:
+        qs = qs.filter(practice_detail__practice_id=unit_id)
+
+    all_records = list(qs)
+    total_attempts = len(all_records)
+
+    if total_attempts == 0:
+        return {"message": "풀이 기록이 없습니다.", "total_attempts": 0}
+
+    # 초기 5회 vs 최근 5회
+    sample_size = min(5, total_attempts)
+    early_records = all_records[:sample_size]
+    recent_records = all_records[-sample_size:]
+
+    early_avg = round(sum(r.score for r in early_records) / sample_size, 1)
+    recent_avg = round(sum(r.score for r in recent_records) / sample_size, 1)
+    improvement = round(recent_avg - early_avg, 1)
+
+    # 학습 기간
+    first_date = all_records[0].solved_date
+    last_date = all_records[-1].solved_date
+    study_days = (last_date - first_date).days
+
+    # 주별 평균 (최근 4주)
+    now = timezone.now()
+    weekly_data = []
+    for i in range(3, -1, -1):
+        week_start = now - datetime.timedelta(weeks=i + 1)
+        week_end = now - datetime.timedelta(weeks=i)
+        week_records = [r for r in all_records if week_start <= r.solved_date < week_end]
+        weekly_data.append({
+            "label": "이번 주" if i == 0 else f"{i}주 전",
+            "avg_score": round(sum(r.score for r in week_records) / len(week_records), 1) if week_records else None,
+            "count": len(week_records),
+        })
+
+    if improvement > 5:
+        trend = "향상"
+    elif improvement < -5:
+        trend = "하락"
+    else:
+        trend = "유지"
+
+    result = {
+        "unit_id": unit_id or "전체",
+        "total_attempts": total_attempts,
+        "study_days": study_days,
+        "early_avg": early_avg,
+        "recent_avg": recent_avg,
+        "improvement": improvement,
+        "trend": trend,
+        "weekly_data": weekly_data,
+    }
+
+    # 메트릭 수준 변화 (unit_id가 있고 비교 가능한 데이터가 있을 때)
+    if unit_id and total_attempts >= 2:
+        metric_trends = _compare_metric_trends(early_records, recent_records, unit_id)
+        if metric_trends:
+            result["metric_trends"] = metric_trends
+
+    return result
+
+
 # ─────────────────────────────────────────────
 # 4. Tool 디스패처 및 라벨
 # ─────────────────────────────────────────────
@@ -554,6 +695,7 @@ TOOL_DISPATCH = {
     "recommend_next_problem": lambda profile, args: tool_recommend_next_problem(profile, args.get("unit_id")),
     "get_unit_curriculum": lambda profile, args: tool_get_unit_curriculum(args.get("unit_id")),
     "get_study_guide": lambda profile, args: tool_get_study_guide(profile, args.get("unit_id")),
+    "get_growth_trend": lambda profile, args: tool_get_growth_trend(profile, args.get("unit_id")),
 }
 
 TOOL_LABELS = {
@@ -563,6 +705,7 @@ TOOL_LABELS = {
     "recommend_next_problem": "문제 추천",
     "get_unit_curriculum": "유닛 커리큘럼 조회",
     "get_study_guide": "맞춤 학습 가이드 생성",
+    "get_growth_trend": "성장 추이 분석",
 }
 
 # ─────────────────────────────────────────────
@@ -585,6 +728,9 @@ TOOL_ARG_SCHEMA = {
     },
     "get_study_guide": {
         "unit_id": {"required": True, "allowed": ["unit01", "unit02", "unit03"]},
+    },
+    "get_growth_trend": {
+        "unit_id": {"required": False, "allowed": ["unit01", "unit02", "unit03"]},
     },
 }
 
@@ -732,6 +878,57 @@ def _generate_problem_chart(profile):
     return None
 
 
+def _generate_growth_trend_chart(profile):
+    """주별 성장 추이 라인차트 + 초기 vs 최근 비교 바차트"""
+    try:
+        trend_data = tool_get_growth_trend(profile)
+        if trend_data.get("total_attempts", 0) == 0:
+            return None
+
+        weekly = trend_data.get("weekly_data", [])
+        # 데이터가 있는 주만 사용
+        valid_weeks = [(w["label"], w["avg_score"]) for w in weekly if w["avg_score"] is not None]
+        if not valid_weeks:
+            return None
+
+        labels = [v[0] for v in valid_weeks]
+        values = [v[1] for v in valid_weeks]
+
+        early = trend_data.get("early_avg")
+        recent = trend_data.get("recent_avg")
+        improvement = trend_data.get("improvement", 0)
+        sign = "+" if improvement >= 0 else ""
+
+        return {
+            "chart_type": "line",
+            "title": f"주별 성장 추이 (초기 {early}점 → 최근 {recent}점, {sign}{improvement}점)",
+            "data": {
+                "labels": labels,
+                "datasets": [
+                    {
+                        "label": "주간 평균 점수",
+                        "data": values,
+                        "borderColor": "#95E1D3",
+                        "backgroundColor": "rgba(149, 225, 211, 0.15)",
+                        "fill": True,
+                        "tension": 0.4,
+                        "pointRadius": 5,
+                    },
+                    {
+                        "label": "목표 (70점)",
+                        "data": [70] * len(labels),
+                        "borderColor": "#FF6B6B",
+                        "borderDash": [5, 5],
+                        "pointRadius": 0,
+                    },
+                ],
+            },
+        }
+    except Exception as e:
+        logger.warning(f"Failed to generate growth trend chart: {e}")
+    return None
+
+
 def _generate_unit_chart(profile):
     """단위별 차트 생성 (기본값)"""
     charts = []
@@ -820,10 +1017,14 @@ def generate_chart_data_summary(profile, intent_type, user_message=""):
             charts.append(chart)
 
     elif intent_type == "C":  # 동기부여형
-        # 성장 추이 (동기부여)
-        chart = _generate_chronological_chart(profile)
+        # 성장 추이 — 주별 평균 점수 라인차트
+        chart = _generate_growth_trend_chart(profile)
         if chart:
             charts.append(chart)
+        else:
+            chart = _generate_chronological_chart(profile)
+            if chart:
+                charts.append(chart)
 
     elif intent_type == "G":  # 의사결정형
         # 차트: 성적 비교 테이블
@@ -910,15 +1111,15 @@ def get_chart_details(profile, intent_type, unit_id=None):
 
 INTENT_TOOL_MAPPING = {
     "A": {
-        "allowed": ["get_user_scores", "get_weak_points", "get_recent_activity"],
-        "description": "데이터 조회형 - 성적, 약점 조회"
+        "allowed": ["get_user_scores", "get_weak_points", "get_recent_activity", "get_growth_trend"],
+        "description": "데이터 조회형 - 성적, 약점, 성장 추이 조회"
     },
     "B": {
         "allowed": ["get_weak_points", "get_study_guide", "get_unit_curriculum", "recommend_next_problem"],
         "description": "학습 방법형 - 학습 경로 및 전략 제시"
     },
     "C": {
-        "allowed": ["get_recent_activity", "get_user_scores"],
+        "allowed": ["get_recent_activity", "get_user_scores", "get_growth_trend"],
         "description": "동기부여형 - 성장 데이터 및 활동 기록"
     },
     "D": {
@@ -934,7 +1135,7 @@ INTENT_TOOL_MAPPING = {
         "description": "개념 설명형 - 커리큘럼 및 약점 분석"
     },
     "G": {
-        "allowed": ["get_user_scores", "get_recent_activity", "recommend_next_problem"],
-        "description": "의사결정형 - 성적, 활동, 추천 기반 의사결정"
+        "allowed": ["get_user_scores", "get_recent_activity", "recommend_next_problem", "get_growth_trend"],
+        "description": "의사결정형 - 성적, 활동, 성장 추이 기반 의사결정"
     },
 }

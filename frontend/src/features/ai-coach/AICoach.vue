@@ -231,6 +231,23 @@ function formatResult(result) {
     return `풀이 ${result.total_solved}건 — 약점: ${weakList}`;
   }
 
+  // 성장 추이 결과
+  if (result.early_avg !== undefined && result.recent_avg !== undefined) {
+    const sign = result.improvement >= 0 ? '+' : '';
+    let lines = [
+      `총 ${result.total_attempts}회 풀이 (${result.study_days}일간)`,
+      `초기 평균: ${result.early_avg}점 → 최근 평균: ${result.recent_avg}점 (${sign}${result.improvement}점, ${result.trend})`,
+    ];
+    if (result.metric_trends && result.metric_trends.length > 0) {
+      const metricLines = result.metric_trends.map(m => {
+        const d = m.delta !== null ? `${m.delta >= 0 ? '+' : ''}${m.delta}점` : '데이터 부족';
+        return `  ${m.metric}: ${m.recent_avg}점 [${m.status}] (${d})`;
+      });
+      lines.push('메트릭 변화:\n' + metricLines.join('\n'));
+    }
+    return lines.join('\n');
+  }
+
   return String(result);
 }
 
