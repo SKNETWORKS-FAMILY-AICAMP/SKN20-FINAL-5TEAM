@@ -2753,11 +2753,11 @@ async function completeMission() {
   // 이제 aiEvaluationResult.value가 설정된 상태이므로 llm_evaluation이 포함됨
   await submitToActivity(); // 비동기 대기 추가
 
-  // [버그 수정 - 2026-02-24] 다음 스테이지 해금(Unlock) 로직 복구
+  // [수정일: 2026-02-27] 다음 스테이지 해금 — progressStore.unlockNextStage()로 통합
   try {
     const mId = currentProgressiveMission.value?.id;
     const mIndex = progressiveProblems.value.findIndex(m => m.id === mId);
-    
+
     if (mIndex !== -1) {
       const { useProgressStore } = await import('@/stores/progress');
       const progressStore = useProgressStore();
@@ -2765,14 +2765,7 @@ async function completeMission() {
       const gameStore = useGameStore();
 
       if (gameStore.activeUnit?.id) {
-        // 현재 노드 해금 (재확인)
-        await progressStore.unlockNode(gameStore.activeUnit.id, mIndex);
-        // 다음 노드가 있다면 해금
-        if (mIndex + 1 < progressiveProblems.value.length) {
-          await progressStore.unlockNode(gameStore.activeUnit.id, mIndex + 1);
-        }
-        // UI 상태 실시간 동기화를 위해 전체 진행도 갱신
-        await progressStore.fetchAllProgress();
+        await progressStore.unlockNextStage(gameStore.activeUnit.id, mIndex);
       }
     }
   } catch (err) {
@@ -2780,7 +2773,7 @@ async function completeMission() {
   }
 }
 
-// Activity API에 점수 제출 (Protein Shake 적립)
+// [수정일: 2026-02-27] Activity API 점수 제출 — progressStore.submitScore()로 통합
 async function submitToActivity() {
   try {
     const missionId = currentProgressiveMission.value?.id;
@@ -2791,10 +2784,10 @@ async function submitToActivity() {
     }
     const score = progressiveMissionScore.value;
 
-    await axios.post('/api/core/activity/submit/', {
-      detail_id: detail_id,
-      score: score,
-      submitted_data: {
+    const { useProgressStore } = await import('@/stores/progress');
+    const progressStore = useProgressStore();
+
+    await progressStore.submitScore(detail_id, score, {
         // ============================================================
         // === 기본 정보 ===
         // ============================================================
@@ -2895,7 +2888,6 @@ async function submitToActivity() {
           step_explanations: stepExplanations,                          // 단계별 설명 원본 {1: '...', 2: '...', ...}
           clue_messages: clueMessages.value                             // 단서 메시지 로그 (AI가 제공한 힌트들)
         }
-      }
     });
 
     // auth store 업데이트 (세션 새로고침)

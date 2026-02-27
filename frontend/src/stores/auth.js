@@ -102,6 +102,10 @@ export const useAuthStore = defineStore('auth', {
                 this.userAvatarUrl = null;
                 this.userRank = 'BRONZE';
                 this.user = null;
+
+                // [수정일: 2026-02-27] 이전 사용자의 진행도 데이터 초기화
+                const { useProgressStore } = await import('@/stores/progress');
+                useProgressStore().resetProgress();
             }
         },
 

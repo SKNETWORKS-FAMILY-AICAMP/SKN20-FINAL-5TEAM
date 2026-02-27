@@ -137,19 +137,28 @@ const auth = useAuthStore();
 const game = useGameStore();
 const router = useRouter();
 
-const onLoginSuccess = (user) => {
+const onLoginSuccess = async (user) => {
     auth.setLoginSuccess(user);
     ui.isLoginModalOpen = false;
-    
+
+    // [수정일: 2026-02-27] 로그인 성공 시 새 사용자의 진행도 로드
+    const { useProgressStore } = await import('@/stores/progress');
+    const progressStore = useProgressStore();
+    await progressStore.fetchAllProgress();
+
     // [수정일: 2026-02-16] 로그인 성공 시 사용자 환영 메시지 표시 (Toast 적용)
     const nickname = (user && (user.nickname || user.username)) || auth.sessionNickname || '엔지니어';
     ui.showToast(`${nickname}님, 환영합니다! AI-Arcade 보안 시스템에 접속되었습니다.`, 'success');
 };
 
-const onSignUpSuccess = (nickname) => {
+const onSignUpSuccess = async (nickname) => {
     auth.isLoggedIn = true;
     auth.sessionNickname = nickname;
     ui.isSignUpModalOpen = false;
+
+    // [수정일: 2026-02-27] 회원가입 성공 시 진행도 로드
+    const { useProgressStore } = await import('@/stores/progress');
+    await useProgressStore().fetchAllProgress();
 };
 
 const handleClosePseudoCode = () => {
