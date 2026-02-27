@@ -207,7 +207,7 @@ def _get_default_plan(job_posting, user_weakness: dict) -> dict:
     ]
 
     # 채용공고에 기술 스택이 있으면 technical_depth 추가
-    required_skills = job_posting.required_skills or [] if job_posting else []
+    required_skills = (job_posting.required_skills or []) if job_posting else []
     if required_skills:
         skill = required_skills[0]
         slots.insert(1, {
