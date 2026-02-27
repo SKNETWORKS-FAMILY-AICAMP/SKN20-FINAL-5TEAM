@@ -17,21 +17,22 @@ jobs:
           script: |
             cd ~/SKN20-FINAL-5TEAM
             git pull origin main
-            
-            # 1. 백엔드 재시작
-            docker compose down
-            docker compose up -d --build
-            
-            # 2. 프론트엔드 빌드 부분 
-            cd frontend      
+
+            # 1. 프론트엔드 빌드 (Docker 시작 전에 먼저 수행하여 충돌 방지)
+            cd frontend
             npm install
             npm run build
-            
-            # 기존 Nginx HTML 폴더 비우기
+
+            # 빌드 성공 확인
+            if [ ! -f dist/index.html ]; then
+              echo "Frontend build failed!" && exit 1
+            fi
+
+            # 2. Nginx에 배포
             sudo rm -rf /var/www/html/*
-            
-            # 새로 빌드된 dist 폴더 안의 '내용물만' Nginx 폴더로 직행
             sudo cp -r dist/* /var/www/html/
-            
-            # Nginx 재시작 (옵션이지만 권장)
             sudo systemctl restart nginx
+
+            # 3. 백엔드만 재시작 (frontend 컨테이너 제외)
+            cd ~/SKN20-FINAL-5TEAM
+            docker compose up -d --build backend db
