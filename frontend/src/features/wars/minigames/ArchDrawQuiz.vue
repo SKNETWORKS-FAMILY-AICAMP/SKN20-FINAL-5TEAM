@@ -266,12 +266,21 @@
             </div>
           </div>
 
-          <!-- [수정일: 2026-02-24] AI ARCHITECT REVIEW 섹션 추가 -->
-          <div class="ai-review-board neon-border" v-if="aiReview.my">
-            <div class="ari-header"><span class="ari-label">AI ARCHITECT REVIEW</span></div>
+          <!-- [수정일: 2026-02-27] EvalAgent AI ARCHITECT REVIEW - 폴백 메시지 추가로 항상 표시 -->
+          <div class="ai-review-board neon-border">
+            <div class="ari-header">
+              <span class="ari-label">🤖 EVAL AGENT REVIEW</span>
+              <span v-if="!aiReview.my" class="ari-loading">분석 중...</span>
+            </div>
             <div class="ari-content">
-              <p class="ari-my"><strong>MY ANALYSIS:</strong> {{ aiReview.my }}</p>
-              <p class="ari-comp"><strong>VERSUS:</strong> {{ aiReview.comparison }}</p>
+              <p class="ari-my">
+                <strong>MY ANALYSIS:</strong>
+                {{ aiReview.my || '설계 점수와 체크리스트 기반으로 평가되었습니다. AI 상세 피드백은 최종 리포트에서 확인하세요.' }}
+              </p>
+              <p class="ari-comp" v-if="aiReview.comparison || lastOppPts > 0">
+                <strong>VERSUS:</strong>
+                {{ aiReview.comparison || (lastMyPts > lastOppPts ? '상대보다 더 완성도 높은 아키텍처를 설계했습니다. 👍' : lastMyPts === lastOppPts ? '동점! 두 설계 모두 균등한 완성도를 보입니다.' : '상대의 설계가 더 높은 점수를 획득했습니다. 다음 라운드를 노려보세요!') }}
+              </p>
             </div>
           </div>
           <button @click="goNextRound" class="btn-next">{{ nextLabel }}</button>
@@ -290,6 +299,56 @@
             <div class="go-fs"><span>{{ ds.opponentName.value || 'OPP' }}</span><strong style="color:#ff2d75">{{ oppScore }}</strong></div>
           </div>
           <div class="go-verdict">{{ myScore > oppScore ? '🏆 YOU WIN!' : myScore === oppScore ? '🤝 DRAW' : '💪 DEFEAT' }}</div>
+
+          <!-- [추가 2026-02-27] AI 포트폴리오 글 생성 -->
+          <PortfolioWriter
+            game-type="arch"
+            :mission-title="curQ?.title || ''"
+            :scenario="curQ?.description || ''"
+            :components="myFinalNodes"
+            :arrow-count="myFinalArrows.length"
+            :my-score="myScore"
+            :opponent-score="oppScore"
+            :result-text="myScore > oppScore ? 'WIN' : myScore === oppScore ? 'DRAW' : 'LOSE'"
+            :grade="myScore > oppScore ? 'A' : myScore >= oppScore * 0.8 ? 'B' : 'C'"
+            :ai-review="aiReview.my || ''"
+          />
+
+          <!-- 기존 export -->
+          <div class="go-portfolio">
+            <div class="go-pf-title">🎓 이 설계 경험을 포트폴리오로</div>
+            <div class="go-pf-preview" ref="archPortfolioCard">
+              <div class="gpf-badge">🏗️ ARCH DESIGN</div>
+              <div class="gpf-mission">{{ curQ?.title || '시스템 아키텍처 설계' }}</div>
+              <div class="gpf-desc">{{ curQ?.description || '실무 시나리오 기반 아키텍처 배치 및 연결 설계' }}</div>
+              <div class="gpf-components">
+                <span v-for="n in myFinalNodes.slice(0, 6)" :key="n.id" class="gpf-comp">{{ n.icon }} {{ n.name }}</span>
+                <span v-if="myFinalNodes.length > 6" class="gpf-comp-more">+{{ myFinalNodes.length - 6 }}개</span>
+              </div>
+              <div class="gpf-scores">
+                <div class="gpf-score-row">
+                  <span class="gpf-sl">MY SCORE</span>
+                  <span class="gpf-sv neon-c">{{ myScore }}pt</span>
+                  <span class="gpf-sl">BEST COMBO</span>
+                  <span class="gpf-sv neon-y">{{ bestCombo }}x</span>
+                  <span class="gpf-sl">RESULT</span>
+                  <span class="gpf-sv" :style="{ color: myScore > oppScore ? '#00f0ff' : '#ff2d75' }">{{ myScore > oppScore ? 'WIN' : myScore === oppScore ? 'DRAW' : 'LOSS' }}</span>
+                </div>
+              </div>
+              <div v-if="aiReview.my" class="gpf-ai">
+                <span class="gpf-ai-label">🤖 AI:</span>
+                <span class="gpf-ai-text">{{ aiReview.my.slice(0, 80) }}{{ aiReview.my.length > 80 ? '...' : '' }}</span>
+              </div>
+              <div class="gpf-footer">CoduckWars · ArchDrawQuiz · {{ goTodayStr }}</div>
+            </div>
+            <div class="go-pf-actions">
+              <button class="go-pf-btn cyan" @click="archExportImage">🖼️ 이미지 저장</button>
+              <button class="go-pf-btn purple" @click="archExportText">📋 클립보드 복사</button>
+              <button class="go-pf-btn gray" @click="archDownloadTxt">📄 텍스트 저장</button>
+            </div>
+            <div v-if="archCopyToast" class="go-pf-toast">✅ 클립보드에 복사됐어요!</div>
+          </div>
+
           <div class="go-btns"><button @click="beginGame" class="btn-retry">🔄 REMATCH</button><button @click="exitGame" class="btn-exit">🏠 EXIT</button></div>
         </div>
       </div>
@@ -444,6 +503,19 @@ onMounted(() => {
   ds.connect(currentRoomId.value, userName.value)
   window.addEventListener('keydown', handleGlobalKey)
 
+  // [추가 2026-02-27] onGameStart wire-up: 서버 draw_game_start 신호 수신 시 처리
+  ds.onGameStart.value = (data) => {
+    console.log('[ArchDraw] Game start signal received:', data)
+    // 게임 시작 시 스코어 초기화
+    myScore.value = 0
+    oppScore.value = 0
+    combo.value = 0
+    bestCombo.value = 0
+    round.value = 0
+    // 서버가 바로 draw_round_start를 보내주므로 여기서 phase 변경 불필요
+    // 단, 로비 phase에서 대기 중이라면 서버 round_start가 phase 전환 처리
+  }
+
   // [Multi-Agent] CoachAgent 힌트 수신 — 소켓 연결 후 등록
   // watch로 소켓 준비 감지 후 리스너 등록
   // [최종수정: 2026-02-26 05:25] ReferenceError 및 TDZ 방지: if-else 패턴으로 로직 분리 (브라우저 캐시 갱신용 주석 추가)
@@ -472,6 +544,140 @@ onUnmounted(() => {
   ds.disconnect(currentRoomId.value)
   window.removeEventListener('keydown', handleGlobalKey)
 })
+
+// ========== [추가 2026-02-27] 포트폴리오 export ==========
+const archPortfolioCard = ref(null)
+const archCopyToast = ref(false)
+const goTodayStr = new Date().toISOString().slice(0, 10)
+
+const archBuildText = () => {
+  const mission = curQ.value
+  const components = myFinalNodes.value.map(n => `${n.icon} ${n.name}`).join(', ')
+  const arrows = myFinalArrows.value.length
+  const verdict = myScore.value > oppScore.value ? 'WIN' : myScore.value === oppScore.value ? 'DRAW' : 'LOSS'
+  return [
+    `🎓 [CoduckWars 아키텍처 캐치마인드 포트폴리오]`,
+    ``,
+    `📋 미션: ${mission?.title || '시스템 아키텍처 설계'}`,
+    `💡 시나리오: ${mission?.description || '실무 시나리오 기반 아키텍처 설계'}`,
+    ``,
+    `🛠️ 설계한 컴포넌트 (${myFinalNodes.value.length}개):`,
+    `  ${components}`,
+    `🔗 연결 화살표: ${arrows}개`,
+    ``,
+    `📊 결과`,
+    `  내 점수: ${myScore.value}pt  |  상대 점수: ${oppScore.value}pt`,
+    `  베스트 콤보: ${bestCombo.value}x  |  결과: ${verdict}`,
+    mission?.required ? `  필수 컴포넌트: ${mission.required.join(', ')}` : '',
+    ``,
+    aiReview.value.my ? `🤖 AI 평가: ${aiReview.value.my}` : '',
+    ``,
+    `🔗 Powered by CoduckWars — 시스템 설계 AI 실습 플랫폼`,
+    `📅 ${goTodayStr}`
+  ].filter(l => l !== '').join('\n')
+}
+
+const archExportImage = () => {
+  const card = archPortfolioCard.value
+  if (!card) return
+  const canvas = document.createElement('canvas')
+  const scale = 2
+  const rect = card.getBoundingClientRect()
+  canvas.width = rect.width * scale
+  canvas.height = rect.height * scale
+  const ctx = canvas.getContext('2d')
+  ctx.scale(scale, scale)
+  const W = rect.width, H = rect.height
+
+  // 배경
+  const bg = ctx.createLinearGradient(0, 0, W, H)
+  bg.addColorStop(0, '#030712'); bg.addColorStop(1, '#0f172a')
+  ctx.fillStyle = bg
+  ctx.roundRect(0, 0, W, H, 12); ctx.fill()
+  ctx.strokeStyle = 'rgba(0,240,255,0.4)'; ctx.lineWidth = 1.5
+  ctx.roundRect(0, 0, W, H, 12); ctx.stroke()
+
+  // 배지
+  ctx.fillStyle = 'rgba(0,240,255,0.08)'
+  ctx.roundRect(12, 12, 150, 22, 5); ctx.fill()
+  ctx.fillStyle = '#00f0ff'; ctx.font = 'bold 10px monospace'
+  ctx.fillText('🏗️ ARCH DESIGN', 20, 27)
+
+  // 미션
+  ctx.fillStyle = '#f1f5f9'; ctx.font = 'bold 15px sans-serif'
+  const mission = curQ.value
+  const title = mission?.title || '시스템 아키텍처 설계'
+  ctx.fillText(title.length > 40 ? title.slice(0, 40) + '...' : title, 12, 52)
+
+  // 컴포넌트 칩
+  let cx = 12, cy = 68
+  myFinalNodes.value.slice(0, 8).forEach(n => {
+    const label = `${n.icon} ${n.name}`
+    const tw = ctx.measureText(label).width + 16
+    if (cx + tw > W - 12) { cx = 12; cy += 22 }
+    ctx.fillStyle = 'rgba(0,240,255,0.1)'
+    ctx.roundRect(cx, cy, tw, 18, 4); ctx.fill()
+    ctx.strokeStyle = 'rgba(0,240,255,0.25)'; ctx.lineWidth = 0.8
+    ctx.roundRect(cx, cy, tw, 18, 4); ctx.stroke()
+    ctx.fillStyle = '#e0f2fe'; ctx.font = '10px sans-serif'
+    ctx.fillText(label, cx + 8, cy + 13)
+    cx += tw + 6
+  })
+  cy += 28
+
+  // 점수
+  ctx.fillStyle = '#334155'; ctx.fillRect(12, cy, W - 24, 1); cy += 10
+  ctx.font = '11px monospace'
+  ctx.fillStyle = '#00f0ff'; ctx.fillText(`MY: ${myScore.value}pt`, 12, cy + 10)
+  ctx.fillStyle = '#ff2d75'; ctx.fillText(`OPP: ${oppScore.value}pt`, 100, cy + 10)
+  const verdict = myScore.value > oppScore.value ? '🏆 WIN' : myScore.value === oppScore.value ? '🤝 DRAW' : '💪 LOSS'
+  ctx.fillStyle = myScore.value > oppScore.value ? '#00f0ff' : '#ff2d75'
+  ctx.fillText(verdict, W - 70, cy + 10)
+  cy += 22
+
+  // AI 평가
+  if (aiReview.value.my) {
+    ctx.fillStyle = '#475569'; ctx.font = '9px sans-serif'
+    const ai = '🤖 ' + aiReview.value.my
+    ctx.fillText(ai.length > 70 ? ai.slice(0, 70) + '...' : ai, 12, cy + 10)
+    cy += 16
+  }
+
+  // 푸터
+  ctx.fillStyle = '#1e293b'; ctx.fillRect(0, H - 24, W, 1)
+  ctx.fillStyle = '#334155'; ctx.font = '9px monospace'
+  ctx.fillText('CoduckWars · ArchDrawQuiz', 12, H - 10)
+  ctx.fillText(goTodayStr, W - 70, H - 10)
+
+  const link = document.createElement('a')
+  link.download = `arch_portfolio_${goTodayStr}.png`
+  link.href = canvas.toDataURL('image/png')
+  link.click()
+}
+
+const archExportText = () => {
+  const text = archBuildText()
+  navigator.clipboard.writeText(text).catch(() => {
+    const ta = document.createElement('textarea')
+    ta.value = text; document.body.appendChild(ta); ta.select()
+    document.execCommand('copy'); document.body.removeChild(ta)
+  }).finally?.(() => {})
+  // catch분기 바깥
+  try { navigator.clipboard.writeText(text) } catch {}
+  archCopyToast.value = true
+  setTimeout(() => { archCopyToast.value = false }, 2500)
+}
+
+const archDownloadTxt = () => {
+  const text = archBuildText()
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
+  const link = document.createElement('a')
+  link.download = `arch_portfolio_${goTodayStr}.txt`
+  link.href = URL.createObjectURL(blob)
+  link.click()
+  URL.revokeObjectURL(link.href)
+}
+// =========================================================
 
 function joinCustomRoom() {
   if (!inputRoomId.value.trim()) return
@@ -863,6 +1069,7 @@ watch(totalItems, (newVal) => {
 .ari-content { display: flex; flex-direction: column; gap: 8px; }
 .ari-my, .ari-comp { font-size: 0.85rem; line-height: 1.5; color: #e0f2fe; margin: 0; }
 .ari-my strong, .ari-comp strong { color: #00f0ff; font-family: 'Orbitron', sans-serif; font-size: 0.7rem; margin-right: 8px; }
+.ari-loading { font-size: 0.65rem; color: #64748b; font-style: italic; margin-left: auto; animation: bla 1s infinite; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
 /* LOBBY */
@@ -1060,6 +1267,37 @@ watch(totalItems, (newVal) => {
 .go-fs{display:flex;flex-direction:column;align-items:center}.go-fs span{font-size:.6rem;color:#475569;font-weight:700}.go-fs strong{font-family:'Orbitron',sans-serif;font-size:2.5rem;font-weight:900}
 .go-vs{font-family:'Orbitron',sans-serif;font-size:1rem;color:#ff2d75;font-weight:900}
 .go-verdict{font-family:'Orbitron',sans-serif;font-size:1.5rem;font-weight:900;color:#ffe600;margin:.5rem 0}
+/* 포트폴리오 export 스타일 */
+.go-portfolio { margin: 1rem 0 0.5rem; text-align: left; }
+.go-pf-title { font-family: 'Orbitron', sans-serif; font-size: .65rem; color: #00f0ff; letter-spacing: 2px; margin-bottom: .6rem; text-align: center; }
+.go-pf-preview {
+  background: linear-gradient(135deg, #030712, #0f172a);
+  border: 1px solid rgba(0,240,255,0.25); border-radius: .75rem;
+  padding: 1rem; display: flex; flex-direction: column; gap: .6rem;
+  margin-bottom: .75rem;
+}
+.gpf-badge { font-size: .55rem; font-weight: 700; letter-spacing: 1px; padding: 3px 10px; border-radius: 4px; background: rgba(0,240,255,.08); color: #00f0ff; border: 1px solid rgba(0,240,255,.2); display: inline-block; }
+.gpf-mission { font-size: .85rem; font-weight: 800; color: #f1f5f9; }
+.gpf-desc { font-size: .7rem; color: #64748b; line-height: 1.4; border-left: 2px solid rgba(0,240,255,.2); padding-left: .5rem; }
+.gpf-components { display: flex; flex-wrap: wrap; gap: .3rem; }
+.gpf-comp { font-size: .65rem; padding: 2px 8px; background: rgba(0,240,255,.08); border: 1px solid rgba(0,240,255,.15); border-radius: 4px; color: #e0f2fe; }
+.gpf-comp-more { font-size: .65rem; padding: 2px 8px; color: #475569; }
+.gpf-score-row { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }
+.gpf-sl { font-size: .55rem; color: #475569; font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
+.gpf-sv { font-size: .85rem; font-weight: 700; font-family: 'Orbitron', sans-serif; }
+.gpf-ai { font-size: .65rem; color: #64748b; }
+.gpf-ai-label { color: #00f0ff; font-weight: 700; margin-right: .3rem; }
+.gpf-footer { font-size: .55rem; color: #1e293b; font-family: monospace; padding-top: .5rem; border-top: 1px solid rgba(255,255,255,.04); }
+.go-pf-actions { display: flex; gap: .5rem; margin-bottom: .5rem; flex-wrap: wrap; }
+.go-pf-btn { padding: .45rem 1rem; border-radius: .5rem; font-size: .7rem; font-weight: 700; cursor: pointer; border: none; transition: all .2s; }
+.go-pf-btn.cyan { background: rgba(0,240,255,.1); border: 1px solid rgba(0,240,255,.3); color: #00f0ff; }
+.go-pf-btn.cyan:hover { background: rgba(0,240,255,.18); }
+.go-pf-btn.purple { background: rgba(168,85,247,.1); border: 1px solid rgba(168,85,247,.3); color: #a855f7; }
+.go-pf-btn.purple:hover { background: rgba(168,85,247,.18); }
+.go-pf-btn.gray { background: rgba(100,116,139,.1); border: 1px solid rgba(100,116,139,.3); color: #64748b; }
+.go-pf-btn.gray:hover { background: rgba(100,116,139,.18); }
+.go-pf-toast { font-size: .7rem; color: #22c55e; padding: .3rem .7rem; background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.25); border-radius: .4rem; display: inline-block; }
+
 .go-btns{display:flex;gap:1rem;margin-top:1rem}
 .btn-retry{flex:1;padding:.65rem;font-family:'Orbitron',sans-serif;font-size:.75rem;font-weight:700;background:transparent;border:2px solid #00f0ff;color:#00f0ff;border-radius:.6rem;cursor:pointer}.btn-retry:hover{background:rgba(0,240,255,.1)}
 .btn-exit{flex:1;padding:.65rem;font-family:'Orbitron',sans-serif;font-size:.75rem;font-weight:700;background:transparent;border:1px solid #334155;color:#64748b;border-radius:.6rem;cursor:pointer}

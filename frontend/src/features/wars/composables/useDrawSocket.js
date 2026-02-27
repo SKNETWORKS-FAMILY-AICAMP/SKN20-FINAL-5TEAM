@@ -18,6 +18,7 @@ export function useDrawSocket() {
   const roundResults = ref(null)
 
   // 이벤트 콜백
+  const onGameStart = ref(null)    // [추가 2026-02-27] 게임 시작 콜백 (누락되어 있었음)
   const onRoundStart = ref(null)
   const onRoundResult = ref(null)
   const onItemEffect = ref(null)
@@ -57,6 +58,11 @@ export function useDrawSocket() {
     // 2명 이상 모임 → ready
     socket.value.on('draw_ready', (data) => {
       isReady.value = data?.ready ?? true
+    })
+
+    // [추가 2026-02-27] 게임 시작 신호 수신
+    socket.value.on('draw_game_start', (data) => {
+      if (onGameStart.value) onGameStart.value(data)
     })
 
     // 라운드 시작
@@ -163,7 +169,7 @@ export function useDrawSocket() {
     socket, connected, roomPlayers, isReady,
     opponentCanvas, opponentName, opponentHasItem,
     roundQuestion, opponentSubmitted, roundResults,
-    onRoundStart, onRoundResult, onItemEffect, onGameOver,
+    onGameStart, onRoundStart, onRoundResult, onItemEffect, onGameOver,
     connect, emitStart, emitCanvasSync, emitUseItem,
     emitItemStatus, emitSubmit, emitNextRound, disconnect
   }
