@@ -134,6 +134,18 @@ COACH_TOOLS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_full_growth_report",
+            "description": (
+                "성장 리포트 전용 종합 데이터를 한 번에 수집합니다. "
+                "전체 추이, 유닛별 초기→현재 비교, 메트릭 개선 현황, 추천 문제를 모두 포함합니다. "
+                "'성장 리포트', '전체 학습 현황', '얼마나 성장했어?' 요청에 반드시 이 도구를 사용하세요."
+            ),
+            "parameters": {"type": "object", "properties": {}, "required": []},
+        },
+    },
 ]
 
 # ─────────────────────────────────────────────
@@ -684,6 +696,48 @@ def tool_get_growth_trend(profile, unit_id=None):
     return result
 
 
+def tool_get_full_growth_report(profile):
+    """성장 리포트 전용 종합 데이터 수집 (단일 호출로 모든 리포트 데이터 반환)"""
+    today = timezone.now().strftime("%Y-%m-%d")
+
+    # 1. 전체 성장 추이
+    overall = tool_get_growth_trend(profile)
+
+    # 2. 유닛별 성적 현황
+    unit_scores = tool_get_user_scores(profile)
+
+    # 3. 유닛별 성장 추이 + 메트릭 개선 현황
+    unit_growth = {}
+    metric_status = {}
+    for unit_id in ["unit01", "unit02", "unit03"]:
+        trend = tool_get_growth_trend(profile, unit_id)
+        if trend.get("total_attempts", 0) > 0:
+            unit_growth[unit_id] = {
+                "total_attempts": trend["total_attempts"],
+                "study_days": trend["study_days"],
+                "early_avg": trend["early_avg"],
+                "recent_avg": trend["recent_avg"],
+                "improvement": trend["improvement"],
+                "trend": trend["trend"],
+            }
+            metrics = trend.get("metric_trends", [])
+            if metrics:
+                metric_status[unit_id] = metrics
+
+    # 4. 추천 문제 (3개)
+    recommendations = tool_recommend_next_problem(profile)
+    next_steps = recommendations[:3] if isinstance(recommendations, list) else []
+
+    return {
+        "report_date": today,
+        "overall": overall,
+        "unit_scores": unit_scores,
+        "unit_growth": unit_growth,
+        "metric_status": metric_status,
+        "next_steps": next_steps,
+    }
+
+
 # ─────────────────────────────────────────────
 # 4. Tool 디스패처 및 라벨
 # ─────────────────────────────────────────────
@@ -696,6 +750,7 @@ TOOL_DISPATCH = {
     "get_unit_curriculum": lambda profile, args: tool_get_unit_curriculum(args.get("unit_id")),
     "get_study_guide": lambda profile, args: tool_get_study_guide(profile, args.get("unit_id")),
     "get_growth_trend": lambda profile, args: tool_get_growth_trend(profile, args.get("unit_id")),
+    "get_full_growth_report": lambda profile, args: tool_get_full_growth_report(profile),
 }
 
 TOOL_LABELS = {
@@ -706,6 +761,7 @@ TOOL_LABELS = {
     "get_unit_curriculum": "유닛 커리큘럼 조회",
     "get_study_guide": "맞춤 학습 가이드 생성",
     "get_growth_trend": "성장 추이 분석",
+    "get_full_growth_report": "성장 리포트 종합 데이터 수집",
 }
 
 # ─────────────────────────────────────────────
@@ -732,6 +788,7 @@ TOOL_ARG_SCHEMA = {
     "get_growth_trend": {
         "unit_id": {"required": False, "allowed": ["unit01", "unit02", "unit03"]},
     },
+    "get_full_growth_report": {},
 }
 
 
@@ -1111,7 +1168,7 @@ def get_chart_details(profile, intent_type, unit_id=None):
 
 INTENT_TOOL_MAPPING = {
     "A": {
-        "allowed": ["get_user_scores", "get_weak_points", "get_recent_activity", "get_growth_trend"],
+        "allowed": ["get_user_scores", "get_weak_points", "get_recent_activity", "get_growth_trend", "get_full_growth_report"],
         "description": "데이터 조회형 - 성적, 약점, 성장 추이 조회"
     },
     "B": {
@@ -1119,7 +1176,7 @@ INTENT_TOOL_MAPPING = {
         "description": "학습 방법형 - 학습 경로 및 전략 제시"
     },
     "C": {
-        "allowed": ["get_recent_activity", "get_user_scores", "get_growth_trend"],
+        "allowed": ["get_recent_activity", "get_user_scores", "get_growth_trend", "get_full_growth_report"],
         "description": "동기부여형 - 성장 데이터 및 활동 기록"
     },
     "D": {

@@ -20,7 +20,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from core.models import UserProfile
-from .coach_prompt import is_off_topic, GUARDRAIL_MESSAGE, INTENT_ANALYSIS_PROMPT, RESPONSE_STRATEGIES, EVIDENCE_CITATION_RULE
+from .coach_prompt import is_off_topic, GUARDRAIL_MESSAGE, INTENT_ANALYSIS_PROMPT, RESPONSE_STRATEGIES, EVIDENCE_CITATION_RULE, REPORT_FORMAT_GUIDE
 from .coach_tools import (
     COACH_TOOLS,
     TOOL_DISPATCH,
@@ -193,6 +193,11 @@ class AICoachView(APIView):
                 # D(범위 밖)는 도구 미사용이므로 수치 인용 규칙 제외
                 if intent_type != "D":
                     system_prompt = system_prompt + EVIDENCE_CITATION_RULE
+
+                # 성장 리포트 요청 감지: 리포트 형식 가이드 추가 주입
+                _REPORT_KEYWORDS = {"리포트", "전체 학습 현황", "성장 보고서", "얼마나 성장"}
+                if any(kw in user_message for kw in _REPORT_KEYWORDS):
+                    system_prompt = system_prompt + REPORT_FORMAT_GUIDE
 
                 conv = [
                     {"role": "system", "content": system_prompt},
