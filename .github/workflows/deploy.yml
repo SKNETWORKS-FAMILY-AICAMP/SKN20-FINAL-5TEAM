@@ -39,6 +39,7 @@ jobs:
             # 4. Nginx에 배포
             sudo rm -rf /var/www/html/*
             sudo cp -r dist/* /var/www/html/
+            sudo ln -sfn /home/ubuntu/SKN20-FINAL-5TEAM/backend/media /var/www/html/media
             sudo systemctl restart nginx
 
             # 5. 백엔드만 재시작 (frontend 컨테이너는 프로덕션에서 불필요)
