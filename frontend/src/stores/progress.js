@@ -70,6 +70,13 @@ export const useProgressStore = defineStore('progress', {
             }
         },
 
+        // [수정일: 2026-02-27] 로그아웃 시 이전 사용자 진행도 초기화
+        resetProgress() {
+            this.unitProgresses = [];
+            this.solvedRecords = [];
+            this.error = null;
+        },
+
         // [수정일: 2026-02-27] 현재 노드 + 다음 노드 해금을 통합하는 편의 액션
         // gameStore.unlockNextStage()의 "현재+다음" 해금 로직을 progressStore로 이전
         async unlockNextStage(practiceId, nodeIndex) {
