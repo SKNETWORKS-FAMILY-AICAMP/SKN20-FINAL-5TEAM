@@ -18,7 +18,10 @@ jobs:
             cd ~/SKN20-FINAL-5TEAM
             git pull origin main
 
-            # 1. 프론트엔드 빌드 (Docker 시작 전에 먼저 수행하여 충돌 방지)
+            # 1. 기존 컨테이너 모두 중지 (frontend 볼륨 충돌 방지)
+            docker compose down
+
+            # 2. 프론트엔드 빌드
             cd frontend
             npm install
             npm run build
@@ -28,11 +31,11 @@ jobs:
               echo "Frontend build failed!" && exit 1
             fi
 
-            # 2. Nginx에 배포
+            # 3. Nginx에 배포
             sudo rm -rf /var/www/html/*
             sudo cp -r dist/* /var/www/html/
             sudo systemctl restart nginx
 
-            # 3. 백엔드만 재시작 (frontend 컨테이너 제외)
+            # 4. 백엔드만 재시작 (frontend 컨테이너는 프로덕션에서 불필요)
             cd ~/SKN20-FINAL-5TEAM
             docker compose up -d --build backend db
