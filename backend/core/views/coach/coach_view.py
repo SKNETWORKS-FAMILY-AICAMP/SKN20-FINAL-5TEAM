@@ -20,7 +20,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from core.models import UserProfile
-from .coach_prompt import is_off_topic, GUARDRAIL_MESSAGE, INTENT_ANALYSIS_PROMPT, RESPONSE_STRATEGIES
+from .coach_prompt import is_off_topic, GUARDRAIL_MESSAGE, INTENT_ANALYSIS_PROMPT, RESPONSE_STRATEGIES, EVIDENCE_CITATION_RULE
 from .coach_tools import (
     COACH_TOOLS,
     TOOL_DISPATCH,
@@ -190,6 +190,9 @@ class AICoachView(APIView):
 
                 strategy = RESPONSE_STRATEGIES.get(intent_type, RESPONSE_STRATEGIES["B"])
                 system_prompt = strategy["system_prompt"]
+                # D(범위 밖)는 도구 미사용이므로 수치 인용 규칙 제외
+                if intent_type != "D":
+                    system_prompt = system_prompt + EVIDENCE_CITATION_RULE
 
                 conv = [
                     {"role": "system", "content": system_prompt},
