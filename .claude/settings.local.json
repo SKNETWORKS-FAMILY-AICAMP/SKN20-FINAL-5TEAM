@@ -25,7 +25,9 @@
       "Bash(docker-compose logs:*)",
       "Bash(docker-compose restart:*)",
       "Bash(docker-compose exec backend cat:*)",
-      "Bash(MSYS_NO_PATHCONV=1 docker exec:*)"
+      "Bash(MSYS_NO_PATHCONV=1 docker exec:*)",
+      "Bash(ls \"c:\\\\Users\\\\playdata2\\\\Desktop\\\\SKN20-FINAL-5TEAM\\\\backend\\\\media\\\\avatars\"\" 2>/dev/null || echo \"directory not found or empty \")",
+      "Bash(ls \"c:\\\\Users\\\\playdata2\\\\Desktop\\\\SKN20-FINAL-5TEAM\\\\backend\\\\media\\\\avatars\"\" 2>/dev/null || echo \"directory not found \")"
     ]
   }
 }

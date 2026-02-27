@@ -125,7 +125,7 @@ import SignUpModal from './SignUpModal.vue';
 import ConstructionModal from './ConstructionModal.vue';
 import ProfileSettingsModal from './ProfileSettingsModal.vue';
 import GlobalToast from './GlobalToast.vue'; // [수정일: 2026-02-16] 전역 토스트 추가
-import JobPlannerModal from './JobPlannerModal.vue';
+import JobPlannerModal from '../features/job_planner/components/JobPlannerModal.vue';
 
 /**
  * [수정일: 2026-01-24] 

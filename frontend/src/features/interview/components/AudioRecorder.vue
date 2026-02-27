@@ -112,8 +112,37 @@ function formatTime(sec) {
   return `${m}:${s}`;
 }
 
+// ── 미디어 리소스 강제 해제 (고스트 세션 방지) ────────────
+function releaseResources() {
+  cancelAnimationFrame(animFrameId);
+  animFrameId = null;
+  if (recognition) {
+    const r = recognition;
+    recognition = null;
+    try { r.stop(); } catch (_) {}
+  }
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    try { mediaRecorder.stop(); } catch (_) {}
+  }
+  mediaRecorder = null;
+  audioChunks = [];
+  if (stream) {
+    stream.getTracks().forEach(t => t.stop());
+    stream = null;
+  }
+  if (audioContext) {
+    audioContext.close();
+    audioContext = null;
+    analyser = null;
+  }
+  clearInterval(timerInterval);
+  timerInterval = null;
+  waveHeights.value = Array(14).fill(3);
+}
+
 // ── 녹음 시작 ─────────────────────────────────────────────
 async function startRecording() {
+  releaseResources(); // 기존 세션 완전 정리 후 시작
   errorMsg.value = '';
   finalTranscript.value = '';
   interimTranscript.value = '';
@@ -166,8 +195,10 @@ async function startRecording() {
       // 녹음 중 Web Speech API가 침묵 감지로 끊기면 자동 재시작
       recognition.onend = () => {
         if (state.value === 'recording' && recognition) {
-          // 재시작 전 현재 세션 결과를 sessionBase에 저장
-          sessionBase = finalTranscript.value;
+          // interim 포함해서 저장 (마지막 단어가 isFinal 전에 onend 발생해도 누락 방지)
+          const combined = [finalTranscript.value, interimTranscript.value].filter(Boolean).join(' ').trim();
+          sessionBase = combined;
+          interimTranscript.value = '';
           try { recognition.start(); } catch (_) {}
         }
       };
@@ -290,6 +321,11 @@ function resetToIdle() {
   elapsedSec.value = 0;
   audioChunks = [];
   whisperUsed.value = false;
+
+  // disabled가 이미 false인데 watch가 놓친 경우 직접 시작
+  if (!props.disabled) {
+    startRecording();
+  }
 }
 
 // ── 다시 녹음 (바로 시작) ──────────────────────────────────
@@ -303,21 +339,30 @@ onMounted(() => {
   if (!props.disabled) startRecording();
 });
 
-// ── 질문 완료 시 자동 녹음 시작 (이후 질문) ──────────────
+// ── disabled 변화 감시 ──────────────────────────────────
 watch(
   () => props.disabled,
-  (newVal, oldVal) => {
+  async (newVal, oldVal) => {
+    // TTS/스트리밍 끝나면 자동 녹음 시작
+    // nextTick으로 모든 Vue 반응성 업데이트 완료 후 재확인
+    // (isStreaming→false 와 isTTSPlaying→true가 같은 tick에 발생할 수 있으므로)
     if (oldVal === true && newVal === false && state.value === 'idle') {
-      startRecording();
+      await nextTick();
+      if (!props.disabled && state.value === 'idle') {
+        startRecording();
+      }
+    }
+    // disabled 켜지면 녹음 강제 중지 → idle로 복귀
+    if (newVal === true && state.value === 'recording') {
+      releaseResources();
+      state.value = 'idle';
     }
   }
 );
 
 // ── 정리 ──────────────────────────────────────────────────
 onUnmounted(() => {
-  clearInterval(timerInterval);
-  if (recognition) recognition.stop();
-  if (stream) stream.getTracks().forEach(t => t.stop());
+  releaseResources();
 });
 </script>
 

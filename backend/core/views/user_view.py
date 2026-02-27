@@ -110,6 +110,22 @@ class UserProfileSerializer(serializers.ModelSerializer):
                 if preview_url:
                     if '?' in str(preview_url):
                         preview_url = preview_url.split('?')[0]
+
+                    # 로컬 경로(/media/...)인 경우 S3로 업로드
+                    if preview_url.startswith('/media/'):
+                        local_rel_path = preview_url.lstrip('/')
+                        local_full_path = os.path.join(settings.BASE_DIR, local_rel_path)
+                        if os.path.exists(local_full_path):
+                            try:
+                                from core.utils.nanobanana_utils import upload_to_s3
+                                with open(local_full_path, 'rb') as f:
+                                    s3_url = upload_to_s3(f.read())
+                                    if s3_url:
+                                        print(f"DEBUG: Signup - Promoted local preview to S3: {s3_url}", flush=True)
+                                        preview_url = s3_url
+                            except Exception as e:
+                                print(f"DEBUG: Signup - Failed to upload preview to S3: {e}", flush=True)
+
                     final_image_url = preview_url
                     print(f"DEBUG: Signup - Promoting preview avatar: {final_image_url}", flush=True)
                 else:

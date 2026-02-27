@@ -268,20 +268,24 @@ class AvatarPreviewView(APIView):
         avatar_data = generate_nano_banana_avatar(prompt, seed=seed, save_local=False)
         
         if avatar_data and 'image_data' in avatar_data:
-            # [수정일: 2026-02-10] 미리보기 시에는 로컬에만 저장 (비용/용량 절감)
-            # 확정 시(UserProfileSerializer.update)에만 S3로 업로드됨
             import uuid
+            import base64
+
+            # 로컬 파일 저장 (S3 업로드 시 사용)
             filename = f"preview_{uuid.uuid4().hex}.png"
             media_path = os.path.join('avatars', filename)
             abs_path = os.path.join(settings.MEDIA_ROOT, media_path)
-            
+
             os.makedirs(os.path.dirname(abs_path), exist_ok=True)
             with open(abs_path, 'wb') as f:
                 f.write(avatar_data['image_data'])
-            
-            # 최종 응답 데이터 구성 (로컬 URL 반환)
+
+            # base64 data URL 생성 (프론트엔드 즉시 표시용)
+            image_b64 = base64.b64encode(avatar_data['image_data']).decode('utf-8')
+
             response_data = {
                 'url': f"{settings.MEDIA_URL}{media_path}",
+                'image_data_url': f"data:image/png;base64,{image_b64}",
                 'seed': avatar_data['seed'],
                 'ai_generated': True
             }

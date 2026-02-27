@@ -60,20 +60,33 @@ def generate_plan(job_posting, user_weakness: dict) -> dict:
 
 def _build_plan_prompt(job_posting, user_weakness: dict) -> str:
     """plan_generator LLM 프롬프트 생성"""
-    required_skills = ", ".join(job_posting.required_skills or [])
-    preferred_skills = ", ".join(job_posting.preferred_skills or [])
+    if job_posting:
+        required_skills = ", ".join(job_posting.required_skills or [])
+        preferred_skills = ", ".join(job_posting.preferred_skills or [])
+        company_name = job_posting.company_name
+        position = job_posting.position
+        job_res = job_posting.job_responsibilities[:300] if job_posting.job_responsibilities else ""
+        exp_range = job_posting.experience_range
+    else:
+        required_skills = "없음"
+        preferred_skills = "없음"
+        company_name = "일반 IT/소프트웨어 기업"
+        position = "소프트웨어 엔지니어"
+        job_res = "웹 애플리케이션 개발 및 유지보수"
+        exp_range = "주니어/신입"
+
     weak_topics = ", ".join(user_weakness.get("weak_topics", []))
     strength_topics = ", ".join(user_weakness.get("strength_topics", []))
 
     return f"""다음 채용공고와 지원자 데이터를 바탕으로 면접 계획을 수립하라.
 
 [채용공고]
-- 회사: {job_posting.company_name}
-- 직무: {job_posting.position}
-- 담당 업무: {job_posting.job_responsibilities[:300] if job_posting.job_responsibilities else ""}
+- 회사: {company_name}
+- 직무: {position}
+- 담당 업무: {job_res}
 - 필수 기술: {required_skills}
 - 우대 기술: {preferred_skills}
-- 경력: {job_posting.experience_range}
+- 경력: {exp_range}
 
 [지원자 데이터]
 - 취약 토픽: {weak_topics if weak_topics else "없음"}
@@ -194,7 +207,7 @@ def _get_default_plan(job_posting, user_weakness: dict) -> dict:
     ]
 
     # 채용공고에 기술 스택이 있으면 technical_depth 추가
-    required_skills = job_posting.required_skills or []
+    required_skills = (job_posting.required_skills or []) if job_posting else []
     if required_skills:
         skill = required_skills[0]
         slots.insert(1, {

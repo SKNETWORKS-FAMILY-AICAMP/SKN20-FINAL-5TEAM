@@ -4,24 +4,11 @@ Job Planner Agent - Django REST API
 원본 v3.1 기반 - URL 크롤링 및 이미지 OCR 지원
 """
 import os
-import sys
 import json
 import base64
 import traceback
-from pathlib import Path
 from django.conf import settings
 
-# job-planner-agent 경로를 sys.path에 추가 (collectors import를 위해)
-# Docker 환경: /job-planner-agent, 로컬 환경: ../job-planner-agent
-_project_root = Path(__file__).resolve().parent.parent.parent.parent.parent
-_job_planner_agent_path = _project_root / "job-planner-agent"
-
-# Docker 환경에서는 /job-planner-agent 경로 사용
-if not _job_planner_agent_path.exists():
-    _job_planner_agent_path = Path("/job-planner-agent")
-
-if _job_planner_agent_path.exists() and str(_job_planner_agent_path) not in sys.path:
-    sys.path.insert(0, str(_job_planner_agent_path))
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -30,7 +17,6 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
 # 외부 라이브러리
-# 참고: collectors import는 settings.py에서 job-planner-agent 경로를 sys.path에 추가했기 때문에 가능
 try:
     import requests
     from bs4 import BeautifulSoup
@@ -39,13 +25,16 @@ try:
 except ImportError:
     CRAWLER_AVAILABLE = False
 
-# Sentence Transformers (스킬 매칭용)
-try:
-    from sentence_transformers import SentenceTransformer
-    import torch
-    EMBEDDING_AVAILABLE = True
-except ImportError:
-    EMBEDDING_AVAILABLE = False
+def _embed_texts(texts: list):
+    """OpenAI API로 텍스트 임베딩 후 L2 정규화된 numpy 배열 반환 (shape: n x dim)"""
+    import numpy as np
+    import openai as _openai
+    client = _openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+    response = client.embeddings.create(model="text-embedding-3-small", input=texts)
+    vectors = [item.embedding for item in sorted(response.data, key=lambda x: x.index)]
+    arr = np.array(vectors, dtype=np.float32)
+    norms = np.linalg.norm(arr, axis=1, keepdims=True)
+    return arr / np.maximum(norms, 1e-8)
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -113,7 +102,7 @@ class JobPlannerParseView(APIView):
 
         try:
             # === Collector 시스템으로 텍스트 수집 ===
-            from collectors import CollectorRouter
+            from .collectors import CollectorRouter
 
             router = CollectorRouter()
             text = router.collect_with_fallback(url)
@@ -622,11 +611,6 @@ class JobPlannerAnalyzeView(APIView):
         }
 
     def post(self, request):
-        if not EMBEDDING_AVAILABLE:
-            return Response({
-                "error": "Sentence Transformers가 설치되지 않았습니다."
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
         try:
             # 기본 프로필
             user_skills = request.data.get('user_skills', [])
@@ -688,8 +672,9 @@ class JobPlannerAnalyzeView(APIView):
             # Stage 2: 동의어 매칭 (95% 매칭)
             # Stage 3: 임베딩 유사도 (75%+ 매칭)
 
-            # 임베딩 모델은 Stage 3에서만 사용하므로 필요할 때 초기화 (성능 최적화)
-            embedding_model = None
+            # Stage 3 배치 임베딩 캐시 (루프 시작 전에는 None, 첫 Stage 3 필요 시 일괄 계산)
+            user_embeddings_cache = None
+            req_embeddings_cache = None
 
             for i, req_skill in enumerate(all_required_skills):
                 req_normalized = required_skills_normalized[i]
@@ -734,25 +719,23 @@ class JobPlannerAnalyzeView(APIView):
                 # 의미론적 유사도를 통해 관련 스킬 매칭
                 # 예: "Flask" vs "Django" (둘 다 Python 웹 프레임워크)
                 if not best_match:
-                    # 모델이 없으면 한 번만 초기화 (성능 최적화)
-                    if embedding_model is None:
-                        # 다국어 지원 모델로 한영 혼용 텍스트 처리 가능
-                        embedding_model = SentenceTransformer('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')
+                    # 첫 Stage 3 진입 시 모든 스킬을 한 번에 배치 인코딩
+                    if user_embeddings_cache is None:
+                        all_texts = user_skills_normalized + required_skills_normalized
+                        all_embs = _embed_texts(all_texts)
+                        user_embeddings_cache = all_embs[:len(user_skills_normalized)]
+                        req_embeddings_cache = all_embs[len(user_skills_normalized):]
 
-                    # 필수 스킬 임베딩 (벡터화)
-                    req_emb = embedding_model.encode([req_normalized], normalize_embeddings=True)
+                    req_emb = req_embeddings_cache[i:i+1]
 
                     for j, user_skill in enumerate(user_skills):
                         if j in matched_indices:
                             continue
-                        user_normalized = user_skills_normalized[j]
-                        # 사용자 스킬 임베딩
-                        user_emb = embedding_model.encode([user_normalized], normalize_embeddings=True)
+                        user_emb = user_embeddings_cache[j:j+1]
                         # 코사인 유사도 계산 (정규화된 벡터의 내적)
                         similarity = float((user_emb @ req_emb.T)[0][0])
 
                         # 높은 threshold (0.85) - 정확한 매칭만 허용
-                        # 너무 낮은 유사도는 오매칭 가능성이 높음
                         if similarity >= 0.85 and similarity > best_score:
                             best_match = user_skill
                             best_score = similarity
@@ -1376,7 +1359,7 @@ class JobPlannerRecommendView(APIView):
 
     def post(self, request):
         try:
-            if not CRAWLER_AVAILABLE or not EMBEDDING_AVAILABLE:
+            if not CRAWLER_AVAILABLE:
                 return Response({
                     "error": "필요한 라이브러리가 설치되지 않았습니다."
                 }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -1412,7 +1395,7 @@ class JobPlannerRecommendView(APIView):
 
             # 사람인 크롤링
             print(f"🔍 사람인 크롤링 시작: '{search_keyword}' 검색")
-            saramin_jobs = self._crawl_saramin(search_keyword, limit=30)
+            saramin_jobs = self._crawl_saramin(search_keyword, limit=15)
             job_listings.extend(saramin_jobs)
             print(f"✅ 사람인: {len(saramin_jobs)}개 공고")
 
@@ -1427,6 +1410,11 @@ class JobPlannerRecommendView(APIView):
                 job_listings, current_job_url, current_job_company, current_job_title
             )
             print(f"🔍 중복 제거 후: {len(filtered_listings)}개 공고")
+
+            # 1.7. 개별 공고 페이지 파싱으로 실제 기술 스킬 보완 (병렬)
+            print(f"🔍 개별 공고 상세 파싱 시작 (5개씩 병렬)...")
+            filtered_listings = self._enrich_jobs_with_detail_skills(filtered_listings)
+            print(f"✅ 상세 파싱 완료")
 
             # 2. 스킬 매칭으로 추천 공고 선정
             recommendations = self._match_jobs_with_skills(
@@ -1632,6 +1620,61 @@ class JobPlannerRecommendView(APIView):
 
         return jobs
 
+    def _fetch_job_detail_skills(self, url):
+        """개별 공고 페이지 전문에서 기술 키워드 추출"""
+        import re
+        if not url:
+            return []
+        try:
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            }
+            response = requests.get(url, headers=headers, timeout=8)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.text, 'html.parser')
+            text = soup.get_text()
+
+            tech_keywords = [
+                'Python', 'Java', 'JavaScript', 'TypeScript', 'C\\+\\+', 'C#', 'Go', 'Kotlin',
+                'Swift', 'Ruby', 'PHP', 'Rust', 'Scala',
+                'Django', 'Flask', 'FastAPI', 'Spring', 'SpringBoot', 'React', 'Vue',
+                'Angular', 'Next\\.js', 'Nuxt', 'Express', 'Node\\.js', 'Nest\\.js',
+                'MySQL', 'PostgreSQL', 'MongoDB', 'Redis', 'Oracle', 'MariaDB',
+                'Elasticsearch', 'DynamoDB',
+                'AWS', 'Azure', 'GCP', 'Docker', 'Kubernetes', 'Jenkins',
+                'Git', 'Linux', 'REST', 'GraphQL', 'gRPC', 'Kafka', 'RabbitMQ',
+            ]
+            found = []
+            for kw in tech_keywords:
+                display = kw.replace('\\+\\+', '++').replace('\\.', '.')
+                if re.search(r'(?<![a-zA-Z])' + kw + r'(?![a-zA-Z])', text, re.IGNORECASE):
+                    found.append(display)
+            return found
+        except Exception:
+            return []
+
+    def _enrich_jobs_with_detail_skills(self, jobs):
+        """개별 공고 페이지를 5개씩 병렬 파싱하여 기술 스킬 보완"""
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        def enrich_one(job):
+            detail_skills = self._fetch_job_detail_skills(job.get('url', ''))
+            if detail_skills:
+                existing_lower = {s.lower() for s in job.get('skills', [])}
+                new_skills = [s for s in detail_skills if s.lower() not in existing_lower]
+                job['skills'] = job.get('skills', []) + new_skills
+            return job
+
+        enriched = []
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = {executor.submit(enrich_one, job): job for job in jobs}
+            for future in as_completed(futures):
+                try:
+                    enriched.append(future.result())
+                except Exception:
+                    enriched.append(futures[future])
+        return enriched
+
 
     def _match_jobs_with_skills(self, job_listings, user_skills, skill_levels, readiness_score):
         """
@@ -1655,7 +1698,8 @@ class JobPlannerRecommendView(APIView):
         user_skills_normalized = [self._normalize_skill(s) for s in user_skills]
 
         recommendations = []
-        embedding_model = None  # 필요할 때만 초기화
+        # 사용자 스킬 임베딩을 jobs 루프 전에 한 번만 계산
+        user_embeddings_precomputed = None
 
         for job in job_listings:
             job_skills = job.get('skills', [])
@@ -1718,28 +1762,27 @@ class JobPlannerRecommendView(APIView):
 
                 # 3단계: 임베딩 유사도
                 if not best_match:
-                    # 모델이 없으면 한 번만 초기화
-                    if embedding_model is None:
-                        embedding_model = SentenceTransformer('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')
-
-                    job_emb = embedding_model.encode([job_normalized], normalize_embeddings=True)
+                    # 사용자 스킬 임베딩: 처음 한 번만 계산 후 재사용
+                    if user_embeddings_precomputed is None:
+                        user_embeddings_precomputed = _embed_texts(user_skills_normalized)
+                    # 현재 공고 스킬 임베딩
+                    job_emb = _embed_texts([job_normalized])
 
                     for j, user_skill in enumerate(user_skills):
                         if j in matched_user_indices:
                             continue
-                        user_normalized = user_skills_normalized[j]
-                        user_emb = embedding_model.encode([user_normalized], normalize_embeddings=True)
+                        user_emb = user_embeddings_precomputed[j:j+1]
                         similarity = float((user_emb @ job_emb.T)[0][0])
 
-                        # 높은 threshold (0.85)
-                        if similarity >= 0.85 and similarity > best_score:
+                        # threshold 0.70 (recommend용 - analyze보다 완화)
+                        if similarity >= 0.70 and similarity > best_score:
                             best_match = user_skill
                             best_score = similarity
                             best_user_idx = j
                             match_type = "similar"
 
-                # 매칭 성공 시 저장 (85% 이상)
-                if best_match and best_score >= 0.85:
+                # 매칭 성공 시 저장 (70% 이상)
+                if best_match and best_score >= 0.70:
                     matched_skills.append({
                         "job_skill": job_skill,
                         "user_skill": best_match,
@@ -1767,10 +1810,7 @@ class JobPlannerRecommendView(APIView):
             print(f"  📊 [{job.get('source', '')}] {job['company_name']} - {job['title'][:30]}...")
             print(f"     매칭: {matched_count}/{len(job_skills)} ({match_rate*100:.1f}%), 평균 유사도: {avg_similarity*100:.1f}%")
 
-            if match_rate >= MIN_MATCH_RATE and (
-                match_rate > readiness_score or
-                (match_rate >= readiness_score * 0.9 and match_rate < 0.95)
-            ):
+            if match_rate >= MIN_MATCH_RATE:
                 print(f"     ✅ 추천 조건 만족!")
                 recommendations.append({
                     "source": job.get('source', ''),

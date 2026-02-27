@@ -108,6 +108,7 @@ export default {
       interestsOptions: [],
       avatarStyle: '',
       avatarPreviewUrl: '',
+      avatarFilePath: '',
       isPreviewing: false,
       isSubmitting: false,
       avatarSeed: Math.floor(Math.random() * 100000)
@@ -147,6 +148,7 @@ export default {
         this.nickname = user.nickname || user.user_nickname;
         this.email = user.email;
         this.avatarPreviewUrl = user.active_avatar?.image_url;
+        this.avatarFilePath = user.active_avatar?.image_url;
         this.avatarStyle = user.active_avatar?.prompt || '';
         // [수정일: 2026-02-07] 기존 시드 로드 (Antigravity)
         if (user.active_avatar?.seed) {
@@ -177,7 +179,13 @@ export default {
           console.warn('AI Avatar Generation Fallback:', response.data.error_msg);
           alert('💡 현재 AI 아바타 생성 서버가 혼잡하여 기본 오리로 대체되었습니다. 잠시 후 다시 시도해 주세요!');
         }
-        this.avatarPreviewUrl = response.data.url + '?t=' + new Date().getTime();
+        // base64 data URL이 있으면 즉시 표시, 없으면 파일 URL + 캐시 방지
+        if (response.data.image_data_url) {
+          this.avatarPreviewUrl = response.data.image_data_url;
+        } else {
+          this.avatarPreviewUrl = response.data.url + '?t=' + new Date().getTime();
+        }
+        this.avatarFilePath = response.data.url;
       } catch (error) {
         console.error('Failed to preview avatar:', error);
       } finally {
@@ -195,7 +203,7 @@ export default {
             interests: this.interests,
             avatar_style: this.avatarStyle,
             avatar_seed: this.avatarSeed,
-            avatar_preview_url: this.avatarPreviewUrl // [수정일: 2026-02-07] 미리보기 이미지 확정 채택 (Antigravity)
+            avatar_preview_url: this.avatarFilePath // [수정일: 2026-02-07] 미리보기 파일 경로 전송 (S3 업로드용)
           }
         };
         

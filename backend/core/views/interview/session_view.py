@@ -29,12 +29,14 @@ engine = StateEngine()
 
 def _get_user(request):
     """세션에서 UserProfile을 가져온다. 없으면 None."""
-    user_id = request.session.get('user_id') or request.session.get('_auth_user_id')
-    if not user_id:
+    from django.contrib.auth.models import User
+    auth_user_id = request.session.get('_auth_user_id')
+    if not auth_user_id:
         return None
     try:
-        return UserProfile.objects.get(pk=user_id)
-    except UserProfile.DoesNotExist:
+        django_user = User.objects.get(pk=auth_user_id)
+        return UserProfile.objects.get(email=django_user.email)
+    except (User.DoesNotExist, UserProfile.DoesNotExist):
         return None
 
 
@@ -175,7 +177,6 @@ class InterviewSessionView(APIView):
                 slot_status_after='UNKNOWN',
                 engine_action='',
                 intent=intent,
-                coach_feedback='',
             )
 
             return Response({
@@ -191,6 +192,15 @@ class InterviewSessionView(APIView):
             }, status=status.HTTP_201_CREATED)
 
         except Exception as e:
+            import traceback
+            import os
+            try:
+                base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                with open(os.path.join(base_dir, 'error_traceback.txt'), 'w', encoding='utf-8') as f:
+                    traceback.print_exc(file=f)
+                    f.write(f"\n세션 생성 오류: {e}")
+            except:
+                pass
             print(f'[SessionView] 세션 생성 오류: {e}')
             return Response({'error': '세션 생성 중 오류가 발생했습니다.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -225,7 +235,6 @@ class InterviewSessionDetailView(APIView):
                 'slot': t.slot,
                 'question': t.question,
                 'answer': t.answer,
-                'coach_feedback': t.coach_feedback,
                 'slot_status_after': t.slot_status_after,
             }
             for t in completed_turns
@@ -241,6 +250,7 @@ class InterviewSessionDetailView(APIView):
                     'top_improvements': fb.top_improvements,
                     'recommendation': fb.recommendation,
                     'slot_summary': fb.slot_summary,
+                    'vision_analysis': fb.vision_analysis,
                 }
             except InterviewFeedback.DoesNotExist:
                 serialized['feedback'] = None
@@ -260,3 +270,33 @@ class InterviewSessionDetailView(APIView):
 
         session.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class InterviewVisionView(APIView):
+    """PATCH /api/core/interview/sessions/<pk>/vision/ — 비전 분석 결과 저장"""
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def patch(self, request, pk):
+        user = _get_user(request)
+        if not user:
+            return Response({'error': '로그인이 필요합니다.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        try:
+            session = InterviewSession.objects.get(pk=pk, user=user, status='completed')
+        except InterviewSession.DoesNotExist:
+            return Response({'error': '완료된 세션을 찾을 수 없습니다.'}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            fb = session.feedback
+        except InterviewFeedback.DoesNotExist:
+            return Response({'error': '피드백을 찾을 수 없습니다.'}, status=status.HTTP_404_NOT_FOUND)
+
+        vision_data = request.data.get('vision_analysis')
+        if vision_data is None:
+            return Response({'error': 'vision_analysis 데이터가 없습니다.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        fb.vision_analysis = vision_data
+        fb.save(update_fields=['vision_analysis'])
+        return Response({'ok': True}, status=status.HTTP_200_OK)

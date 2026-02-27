@@ -56,7 +56,10 @@
 
         <!-- 오른쪽: 공고 파싱 -->
         <div class="panel panel--right">
-          <h3 class="panel-title">공고 파싱</h3>
+          <div class="panel-header">
+            <h3 class="panel-title" style="margin: 0;">공고 파싱</h3>
+            <button class="btn-history-inline" @click="$emit('showHistory')">📋 면접 기록</button>
+          </div>
 
           <!-- Step 1: URL 입력 (항상 표시) -->
           <div class="input-panel">
@@ -96,6 +99,24 @@
                 <span v-for="skill in jobData.required_skills.slice(0, 8)" :key="skill" class="skill-tag">{{ skill }}</span>
               </div>
             </div>
+          </div>
+
+          <!-- 정보 충분도 표시 -->
+          <div v-if="dataCompleteness" class="completeness-bar-wrap">
+            <div class="completeness-bar-header">
+              <span>{{ dataCompleteness.level === 'good' ? '✅' : dataCompleteness.level === 'fair' ? '⚠️' : '❌' }} 정보 충분도</span>
+              <span>{{ Math.round(dataCompleteness.rate * 100) }}%</span>
+            </div>
+            <div class="completeness-bar-bg">
+              <div
+                class="completeness-bar-fill"
+                :class="dataCompleteness.level"
+                :style="{ width: (dataCompleteness.rate * 100) + '%' }"
+              ></div>
+            </div>
+            <p v-if="dataCompleteness.missing?.length" class="completeness-missing">
+              부족: {{ dataCompleteness.missing.join(', ') }}
+            </p>
           </div>
 
           <!-- Step 2: URL 분석 후 정보 불충분 시 보완 입력 -->
@@ -163,6 +184,20 @@
       </div>
     </template>
 
+    <!-- 면접관 선택 -->
+    <div class="avatar-select">
+      <button
+        class="avatar-btn"
+        :class="{ 'avatar-btn--active': avatarType === 'woman' }"
+        @click="avatarType = 'woman'"
+      >여성 면접관</button>
+      <button
+        class="avatar-btn"
+        :class="{ 'avatar-btn--active': avatarType === 'man' }"
+        @click="avatarType = 'man'"
+      >남성 면접관</button>
+    </div>
+
     <!-- 시작 버튼 -->
     <button
       class="start-btn"
@@ -179,7 +214,8 @@ import { ref, computed, onMounted } from 'vue';
 import axios from 'axios';
 import { getJobPostings, createJobPosting, deleteJobPosting } from '../api/interviewApi';
 
-const emit = defineEmits(['start']);
+const emit = defineEmits(['start', 'showHistory']);
+const avatarType = ref('woman');
 
 // ── 공통 상태 ──────────────────────────────────────────────
 const postings = ref([]);
@@ -199,11 +235,71 @@ const isParsing = ref(false);
 const currentParsingIndex = ref(0);
 const jobData = ref(null);
 
-// URL 파싱 결과가 불충분한지 판별
+// 잡 플래너와 동일한 7점 척도 정보 충분도 체크
+const dataCompleteness = ref(null);
+
+function checkDataCompleteness() {
+  if (!jobData.value) { dataCompleteness.value = null; return; }
+  const d = jobData.value;
+  let score = 0;
+  const missing = [];
+
+  if (d.company_name && d.company_name !== '알 수 없음' && d.company_name.trim()) score += 1;
+  else missing.push('회사명');
+
+  if (d.position && d.position !== '개발자' && d.position.trim()) score += 1;
+  else missing.push('포지션');
+
+  if (d.required_skills?.length > 0) score += 2;
+  else missing.push('필수 스킬');
+
+  if (d.job_responsibilities?.length > 20) score += 1;
+  else missing.push('주요 업무');
+
+  if (d.required_qualifications && d.required_qualifications !== '정보 없음' && d.required_qualifications.length > 10) score += 1;
+  else missing.push('필수 요건');
+
+  if (d.preferred_qualifications && d.preferred_qualifications !== '정보 없음' && d.preferred_qualifications.length > 10) score += 1;
+
+  const rate = score / 7;
+  const level = rate >= 0.7 ? 'good' : rate >= 0.4 ? 'fair' : 'poor';
+  dataCompleteness.value = { score, rate, level, missing };
+}
+
 const isInsufficient = computed(() => {
-  if (!jobData.value) return true;
-  return !jobData.value.company_name || !jobData.value.position || !jobData.value.required_skills?.length;
+  if (!dataCompleteness.value) return true;
+  return dataCompleteness.value.level !== 'good';
 });
+
+// 잡 플래너와 동일한 스마트 병합
+function mergeJobData(newData) {
+  const isValid = (v) => v && v !== '알 수 없음' && v !== '개발자' && v !== '정보 없음' && String(v).trim();
+  const mergeText = (a, b) => {
+    if (!a || a === '정보 없음') return b || '';
+    if (!b || b === '정보 없음') return a;
+    if (a.includes(b)) return a;
+    if (b.includes(a)) return b;
+    return `${a}\n\n${b}`;
+  };
+
+  if (jobData.value) {
+    jobData.value = {
+      ...jobData.value,
+      company_name: isValid(newData.company_name) ? newData.company_name : jobData.value.company_name,
+      position: isValid(newData.position) ? newData.position : jobData.value.position,
+      required_skills: [...new Set([...(jobData.value.required_skills || []), ...(newData.required_skills || [])])],
+      preferred_skills: [...new Set([...(jobData.value.preferred_skills || []), ...(newData.preferred_skills || [])])],
+      job_responsibilities: mergeText(jobData.value.job_responsibilities, newData.job_responsibilities),
+      required_qualifications: mergeText(jobData.value.required_qualifications, newData.required_qualifications),
+      preferred_qualifications: mergeText(jobData.value.preferred_qualifications, newData.preferred_qualifications),
+      experience_range: isValid(newData.experience_range) ? newData.experience_range : jobData.value.experience_range,
+      deadline: newData.deadline || jobData.value.deadline,
+    };
+  } else {
+    jobData.value = newData;
+  }
+  checkDataCompleteness();
+}
 
 // ── 초기 로드 ──────────────────────────────────────────────
 onMounted(async () => {
@@ -254,7 +350,7 @@ async function parseUrl() {
       type: 'url',
       url: urlInput.value,
     }, { withCredentials: true });
-    jobData.value = response.data;
+    mergeJobData(response.data);
   } catch (error) {
     errorMessage.value = error.response?.data?.error || '공고 파싱 중 오류가 발생했습니다.';
   } finally {
@@ -269,7 +365,6 @@ async function parseSupplement() {
   errorMessage.value = '';
   try {
     if (supplementMethod.value === 'image') {
-      let merged = { ...(jobData.value || {}) };
       for (let i = 0; i < imageFiles.value.length; i++) {
         currentParsingIndex.value = i;
         const imageData = await new Promise((resolve) => {
@@ -281,15 +376,14 @@ async function parseSupplement() {
           type: 'image',
           image: imageData,
         }, { withCredentials: true });
-        merged = { ...merged, ...response.data };
+        mergeJobData(response.data);
       }
-      jobData.value = merged;
     } else {
       const response = await axios.post('/api/core/job-planner/parse/', {
         type: 'text',
         text: textInput.value,
       }, { withCredentials: true });
-      jobData.value = { ...(jobData.value || {}), ...response.data };
+      mergeJobData(response.data);
     }
   } catch (error) {
     errorMessage.value = error.response?.data?.error || '공고 파싱 중 오류가 발생했습니다.';
@@ -331,13 +425,13 @@ async function onStart() {
           experience_range: jobData.value.experience_range || '',
           source: 'url',
         });
-        emit('start', saved.id);
+        emit('start', { jobPostingId: saved.id, avatarType: avatarType.value });
       } else {
-        emit('start', postingId);
+        emit('start', { jobPostingId: postingId, avatarType: avatarType.value });
       }
     } else {
       // 저장된 공고 또는 공고 없이 시작
-      emit('start', selectedId.value);
+      emit('start', { jobPostingId: selectedId.value, avatarType: avatarType.value });
     }
   } catch (err) {
     errorMessage.value = err.response?.data?.error || '시작에 실패했습니다. 다시 시도해주세요.';
@@ -410,6 +504,30 @@ async function onStart() {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.btn-history-inline {
+  padding: 6px 12px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.7);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-history-inline:hover {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: #6366f1;
+  color: #a5b4fc;
 }
 
 .panel-title {
@@ -584,6 +702,42 @@ async function onStart() {
 .btn-parse:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* ── 정보 보완 안내 ─────────────────────────────────────── */
+.completeness-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.completeness-bar-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.completeness-bar-bg {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.completeness-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.4s;
+}
+
+.completeness-bar-fill.good { background: #22c55e; }
+.completeness-bar-fill.fair { background: #f59e0b; }
+.completeness-bar-fill.poor { background: #ef4444; }
+
+.completeness-missing {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  margin: 0;
+}
+
 .supplement-hint {
   font-size: 12px;
   color: #fbbf24;
@@ -668,6 +822,29 @@ async function onStart() {
   border: 1px solid rgba(99, 102, 241, 0.3);
   padding: 2px 8px;
   border-radius: 99px;
+}
+
+/* ── 면접관 선택 ────────────────────────────────────────── */
+.avatar-select {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.avatar-btn {
+  flex: 1;
+  padding: 10px;
+  border: 2px solid #444;
+  border-radius: 8px;
+  background: transparent;
+  color: #ccc;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+.avatar-btn--active {
+  border-color: #6366f1;
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
 }
 
 /* ── 시작 버튼 ─────────────────────────────────────────── */
