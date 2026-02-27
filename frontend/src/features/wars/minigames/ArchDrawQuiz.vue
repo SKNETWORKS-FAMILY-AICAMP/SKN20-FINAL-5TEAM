@@ -209,19 +209,21 @@
             <!-- 내 설계 -->
             <div class="jv-side">
               <div class="jv-tag you-tag">YOUR DESIGN</div>
-              <div class="jv-canvas" ref="myJudgeCanvas" :style="judgeCanvasStyle">
-                <svg class="canvas-svg" :style="{ height: judgeCanvasHeight + 'px' }">
-                  <defs>
-                    <marker id="jah" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
-                      <polygon points="0 0, 10 3.5, 0 7" fill="#00f0ff"/>
-                    </marker>
-                  </defs>
-                  <line v-for="(a,i) in myFinalArrows" :key="'ma'+i"
-                    :x1="a.x1" :y1="a.y1" :x2="a.x2" :y2="a.y2"
-                    stroke="#00f0ff" stroke-width="2" marker-end="url(#jah)"/>
-                </svg>
-                <div v-for="(n,i) in myFinalNodes" :key="'mn'+i" class="cnode" :style="{ left:n.x+'px', top:n.y+'px' }">
-                  <span class="ni">{{ n.icon }}</span><span class="nn">{{ n.name }}</span>
+              <div class="jv-canvas" ref="myJudgeCanvas">
+                <div class="jv-transform-wrapper" :style="myDesignTransform">
+                  <svg class="canvas-svg" style="width:2000px; height:2000px; position:absolute; pointer-events:none;">
+                    <defs>
+                      <marker id="jah" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#00f0ff"/>
+                      </marker>
+                    </defs>
+                    <line v-for="(a,i) in myFinalArrows" :key="'ma'+i"
+                      :x1="a.x1" :y1="a.y1" :x2="a.x2" :y2="a.y2"
+                      stroke="#00f0ff" stroke-width="2" marker-end="url(#jah)"/>
+                  </svg>
+                  <div v-for="(n,i) in myFinalNodes" :key="'mn'+i" class="cnode" :style="{ left:n.x+'px', top:n.y+'px' }">
+                    <span class="ni">{{ n.icon }}</span><span class="nn">{{ n.name }}</span>
+                  </div>
                 </div>
                 <div v-if="!myFinalNodes.length" class="opp-empty" style="color:#475569">배치된 컴포넌트가 없습니다</div>
               </div>
@@ -232,19 +234,21 @@
             <!-- 상대 설계 -->
             <div class="jv-side">
               <div class="jv-tag opp-tag">{{ ds.opponentName.value || 'OPPONENT' }} DESIGN</div>
-              <div class="jv-canvas" :style="judgeCanvasStyle">
-                <svg class="canvas-svg" :style="{ height: judgeCanvasHeight + 'px' }">
-                  <defs>
-                    <marker id="jah2" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
-                      <polygon points="0 0, 10 3.5, 0 7" fill="#ff2d75"/>
-                    </marker>
-                  </defs>
-                  <line v-for="(a,i) in judgeOppArrows" :key="'oa'+i"
-                    :x1="a.x1" :y1="a.y1" :x2="a.x2" :y2="a.y2"
-                    stroke="#ff2d75" stroke-width="2" marker-end="url(#jah2)"/>
-                </svg>
-                <div v-for="(n,i) in judgeOppNodes" :key="'on'+i" class="cnode opp-node" :style="{ left:n.x+'px', top:n.y+'px' }">
-                  <span class="ni">{{ n.icon }}</span><span class="nn">{{ n.name }}</span>
+              <div class="jv-canvas">
+                <div class="jv-transform-wrapper" :style="oppDesignTransform">
+                  <svg class="canvas-svg" style="width:2000px; height:2000px; position:absolute; pointer-events:none;">
+                    <defs>
+                      <marker id="jah2" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#ff2d75"/>
+                      </marker>
+                    </defs>
+                    <line v-for="(a,i) in judgeOppArrows" :key="'oa'+i"
+                      :x1="a.x1" :y1="a.y1" :x2="a.x2" :y2="a.y2"
+                      stroke="#ff2d75" stroke-width="2" marker-end="url(#jah2)"/>
+                  </svg>
+                  <div v-for="(n,i) in judgeOppNodes" :key="'on'+i" class="cnode opp-node" :style="{ left:n.x+'px', top:n.y+'px' }">
+                    <span class="ni">{{ n.icon }}</span><span class="nn">{{ n.name }}</span>
+                  </div>
                 </div>
                 <div v-if="!judgeOppNodes.length" class="opp-empty">상대가 아직 배치하지 않았습니다</div>
               </div>
@@ -468,15 +472,43 @@ const judgeOppNodes = computed(() =>
 const judgeOppArrows = computed(() => 
   oppFinalArrows.value.length ? oppFinalArrows.value : ds.opponentCanvas.value.arrows
 )
-const judgeCanvasHeight = computed(() => {
-  const allNodes = [...myFinalNodes.value, ...judgeOppNodes.value]
-  if (!allNodes.length) return 320
-  const maxY = Math.max(...allNodes.map(n => (n.y || 0) + 60))
-  return Math.max(320, maxY + 40)
-})
-const judgeCanvasStyle = computed(() => ({
-  height: judgeCanvasHeight.value + 'px'
-}))
+// [수정일: 2026-02-27] judging 캔버스: 모든 노드가 한눈에 들어오도록 자동 스케일링 및 중앙 정렬 로직 도입
+const getDesignTransform = (nodesList) => {
+  if (!nodesList || nodesList.length === 0) return { transform: 'scale(1)' }
+  
+  // 1. 바운딩 박스 계산
+  const minX = Math.min(...nodesList.map(n => n.x))
+  const maxX = Math.max(...nodesList.map(n => n.x + 100)) // 노드 너비 약 100px 반영
+  const minY = Math.min(...nodesList.map(n => n.y))
+  const maxY = Math.max(...nodesList.map(n => n.y + 44))  // 노드 높이 약 44px 반영
+  
+  const contentWidth = maxX - minX
+  const contentHeight = maxY - minY
+  
+  // 2. 컨테이너 크기 (CSS와 일치해야 함: 약 450px 높이)
+  const containerWidth = 450 // 대략적인 여유 공간
+  const containerHeight = 400
+  
+  // 3. 스케일 계산 (여유 간격 40px 제외)
+  const scaleX = (containerWidth - 60) / contentWidth
+  const scaleY = (containerHeight - 60) / contentHeight
+  const scale = Math.min(1.2, Math.min(scaleX, scaleY, 1)) // 너무 크게 키우지 않음
+  
+  // 4. 중앙 정합을 위한 이동값
+  const centerX = (containerWidth - contentWidth * scale) / 2
+  const centerY = (containerHeight - contentHeight * scale) / 2
+  const translateX = centerX - minX * scale
+  const translateY = centerY - minY * scale
+  
+  return {
+    transform: `translate(${translateX}px, ${translateY}px) scale(${scale})`,
+    transformOrigin: '0 0',
+    transition: 'all 0.5s ease'
+  }
+}
+
+const myDesignTransform = computed(() => getDesignTransform(myFinalNodes.value))
+const oppDesignTransform = computed(() => getDesignTransform(judgeOppNodes.value))
 const timerDanger = computed(() => timeLeft.value <= 10)
 const nextLabel = computed(() => round.value >= maxRounds ? 'FINAL RESULT' : 'NEXT ▶')
 
@@ -1428,8 +1460,9 @@ watch(totalItems, (newVal) => {
 .you-tag { background: #00f0ff; color: #000; box-shadow: 0 0 10px rgba(0,240,255,.3); }
 .opp-tag { background: #ff2d75; color: #fff; box-shadow: 0 0 10px rgba(255,45,117,.3); }
 
-.jv-canvas { position: relative; flex: 1; min-height: 450px; background: rgba(8,12,30,.6); border: 2px solid rgba(0,240,255,0.2); border-radius: 1rem; overflow: auto; box-shadow: inset 0 0 20px rgba(0,0,0,.4); padding: 50px; }
-.canvas-svg { position: absolute; inset: 0; width: 2000px; height: 1500px; pointer-events: none; }
+.jv-canvas { position: relative; flex: 1; min-height: 450px; background: rgba(8,12,30,.6); border: 2px solid rgba(0,240,255,0.2); border-radius: 1rem; overflow: hidden; box-shadow: inset 0 0 20px rgba(0,0,0,.4); }
+.jv-transform-wrapper { position: absolute; inset: 0; width: 100%; height: 100%; transition: all 0.5s ease; }
+.canvas-svg { position: absolute; inset: 0; pointer-events: none; }
 .jv-divider { display: flex; align-items: center; font-family: 'Orbitron', sans-serif; font-size: 1.5rem; font-weight: 900; color: #1e293b; text-shadow: 0 0 10px rgba(255,255,255,.05); flex-shrink: 0; }
 
 .spinner{width:36px;height:36px;border:3px solid #1e293b;border-top-color:#00f0ff;border-radius:50%;animation:spin .8s linear infinite;}@keyframes spin{to{transform:rotate(360deg)}}
