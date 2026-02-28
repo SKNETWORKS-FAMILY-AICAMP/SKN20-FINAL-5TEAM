@@ -750,14 +750,6 @@ class JobPlannerAnalyzeView(APIView):
                         req_embeddings_cache = all_embs[len(user_skills_normalized):]
 
                     req_emb = req_embeddings_cache[i:i+1]
-                    # 첫 Stage 3 진입 시 모든 스킬을 한 번에 배치 인코딩
-                    if user_embeddings_cache is None:
-                        all_texts = user_skills_normalized + required_skills_normalized
-                        all_embs = _embed_texts(all_texts)
-                        user_embeddings_cache = all_embs[:len(user_skills_normalized)]
-                        req_embeddings_cache = all_embs[len(user_skills_normalized):]
-
-                    req_emb = req_embeddings_cache[i:i+1]
 
                     for j, user_skill in enumerate(user_skills):
                         if j in matched_indices:
@@ -1421,12 +1413,16 @@ class JobPlannerRecommendView(APIView):
             if current_job_url:
                 print(f"🚫 제외할 공고: {current_job_company} - {current_job_title}")
 
-            # 1. 사람인에서 공고 크롤링 (정확도순, 최대 30개)
+            # 1. 사람인에서 공고 수집 (API 키 있으면 API, 없으면 크롤링)
             job_listings = []
 
-            # 사람인 크롤링
-            print(f"🔍 사람인 크롤링 시작: '{search_keyword}' 검색")
-            saramin_jobs = self._crawl_saramin(search_keyword, limit=15)
+            api_key = os.environ.get('SARAMIN_API_KEY', '')
+            if api_key:
+                print(f"🔑 사람인 Open API 사용: '{search_keyword}' 검색")
+                saramin_jobs = self._crawl_saramin_api(search_keyword, limit=110)
+            else:
+                print(f"🔍 사람인 크롤링 사용 (API 키 없음): '{search_keyword}' 검색")
+                saramin_jobs = self._crawl_saramin(search_keyword, limit=15)
             job_listings.extend(saramin_jobs)
             print(f"✅ 사람인: {len(saramin_jobs)}개 공고")
 
@@ -1442,15 +1438,11 @@ class JobPlannerRecommendView(APIView):
             )
             print(f"🔍 중복 제거 후: {len(filtered_listings)}개 공고")
 
-            # 1.7. 개별 공고 페이지 파싱으로 실제 기술 스킬 보완 (병렬)
-            print(f"🔍 개별 공고 상세 파싱 시작 (5개씩 병렬)...")
-            filtered_listings = self._enrich_jobs_with_detail_skills(filtered_listings)
-            print(f"✅ 상세 파싱 완료")
-
-            # 1.7. 개별 공고 페이지 파싱으로 실제 기술 스킬 보완 (병렬)
-            print(f"🔍 개별 공고 상세 파싱 시작 (5개씩 병렬)...")
-            filtered_listings = self._enrich_jobs_with_detail_skills(filtered_listings)
-            print(f"✅ 상세 파싱 완료")
+            # API 방식은 keyword 필드에 스킬이 이미 포함되어 있어 상세 파싱 불필요
+            if not api_key:
+                print(f"🔍 개별 공고 상세 파싱 시작 (5개씩 병렬)...")
+                filtered_listings = self._enrich_jobs_with_detail_skills(filtered_listings)
+                print(f"✅ 상세 파싱 완료")
 
             # 2. 스킬 매칭으로 추천 공고 선정
             recommendations = self._match_jobs_with_skills(
@@ -1460,7 +1452,7 @@ class JobPlannerRecommendView(APIView):
             print(f"✅ 최종 추천: {len(recommendations)}개")
 
             return Response({
-                "recommendations": recommendations[:5],  # 최대 10개
+                "recommendations": recommendations[:5],  # 매칭률 상위 5개
                 "total_found": len(job_listings),
                 "total_recommendations": len(recommendations)
             }, status=status.HTTP_200_OK)
@@ -1576,6 +1568,84 @@ class JobPlannerRecommendView(APIView):
             simplified = simplified[:15].strip()
 
         return simplified.strip() if simplified.strip() else '개발자'
+
+    def _crawl_saramin_api(self, keyword, limit=30):
+        """
+        사람인 Open API로 채용공고 조회
+
+        환경변수 SARAMIN_API_KEY가 설정되어 있을 때 사용합니다.
+        한 번에 최대 110개까지 조회 가능하며, 크롤링보다 빠르고 안정적입니다.
+
+        Args:
+            keyword (str): 검색 키워드
+            limit (int): 최대 수집 공고 수 (기본값: 30, 최대 110)
+
+        Returns:
+            list: 채용공고 리스트
+        """
+        import xml.etree.ElementTree as ET
+
+        api_key = os.environ.get('SARAMIN_API_KEY', '')
+        if not api_key:
+            return []
+
+        jobs = []
+        count = min(limit, 110)  # 사람인 API 한 번에 최대 110개
+
+        params = {
+            'access-key': api_key,
+            'keywords': keyword,
+            'count': count,
+            'start': 0,
+            'sr': 'ac',  # 정확도순
+        }
+
+        try:
+            response = requests.get(
+                'https://oapi.saramin.co.kr/job-search',
+                params=params,
+                timeout=10
+            )
+            response.raise_for_status()
+
+            root = ET.fromstring(response.text)
+
+            for job_elem in root.findall('.//job'):
+                try:
+                    # 마감된 공고 제외 (active=0)
+                    if job_elem.findtext('active', '1') == '0':
+                        continue
+
+                    title = (job_elem.findtext('position/title') or '채용 공고').strip()
+                    company = (job_elem.findtext('company/name') or '알 수 없음').strip()
+                    url = (job_elem.findtext('url') or '').strip()
+                    location = (job_elem.findtext('position/location') or '').strip()
+                    keyword_text = (job_elem.findtext('keyword') or '').strip()
+
+                    # keyword 필드에서 스킬 추출 (쉼표 구분)
+                    skills = [s.strip() for s in keyword_text.split(',') if s.strip()]
+
+                    print(f"  [사람인 API] {company} - 추출된 스킬: {skills if skills else '없음'}")
+
+                    jobs.append({
+                        'source': '사람인',
+                        'company_name': company,
+                        'title': title,
+                        'url': url,
+                        'skills': skills,
+                        'location': location,
+                        'conditions': [],
+                        'description': f"{title} - {company}",
+                    })
+
+                except Exception as e:
+                    print(f"⚠️ 사람인 API 아이템 파싱 실패: {e}")
+                    continue
+
+        except Exception as e:
+            print(f"⚠️ 사람인 API 호출 실패: {e}")
+
+        return jobs
 
     def _crawl_saramin(self, job_position, limit=15):
         """
@@ -1944,6 +2014,13 @@ class JobPlannerRecommendView(APIView):
             return f"현재 수준과 비슷하면서 새로운 기술을 배울 수 있는 기회입니다."
 
 
+JOB_SITE_DOMAINS = [
+    'saramin.co.kr', 'jobkorea.co.kr', 'wanted.co.kr',
+    'linkedin.com', 'jumpit.co.kr', 'programmers.co.kr',
+    'incruit.com', 'rocketpunch.com'
+]
+
+
 @method_decorator(csrf_exempt, name='dispatch')
 class JobPlannerCompanyAnalyzeView(APIView):
     """
@@ -1987,25 +2064,37 @@ class JobPlannerCompanyAnalyzeView(APIView):
 
     def _fetch_from_url(self, url):
         """URL에서 회사 정보 크롤링"""
-        if not CRAWLER_AVAILABLE:
-            raise Exception("크롤링 라이브러리가 설치되지 않았습니다.")
-
         if not url:
             raise Exception("URL이 필요합니다.")
 
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()
 
-        soup = BeautifulSoup(response.text, 'html.parser')
+        # 채용 사이트 → BeautifulSoup 방식
+        if any(domain in url for domain in JOB_SITE_DOMAINS):
+            response = requests.get(url, headers=headers, timeout=10)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.text, 'html.parser')
+            for tag in soup(["script", "style"]):
+                tag.decompose()
+            text = soup.get_text(separator='\n', strip=True)
 
-        # 스크립트와 스타일 제거
-        for script in soup(["script", "style"]):
-            script.decompose()
+            # 결과가 너무 짧으면 trafilatura로 fallback
+            if len(text) < 200:
+                import trafilatura
+                fallback = trafilatura.extract(response.text)
+                if fallback:
+                    return fallback
 
-        text = soup.get_text(separator='\n', strip=True)
+            return text
+
+        # 일반 사이트(회사 홈페이지, 뉴스, 블로그 등) → trafilatura
+        import trafilatura
+        downloaded = trafilatura.fetch_url(url)
+        text = trafilatura.extract(downloaded)
+        if not text:
+            raise Exception("URL에서 텍스트를 추출할 수 없습니다.")
         return text
 
     def _analyze_company_with_llm(self, company_name, company_info):
