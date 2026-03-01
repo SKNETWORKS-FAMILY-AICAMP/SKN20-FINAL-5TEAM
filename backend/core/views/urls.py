@@ -40,7 +40,7 @@ from core.views.pseudocode.pseudocode_execution import execute_python_code
 from core.views.pseudocode import pseudocode_evaluation
 from core.views import youtube_recommendation
 from core.views.architecture.architecture_view import ArchitectureEvaluationView, ArchitectureQuestionGeneratorView
-from core.views.ai_coach.coach_view import AICoachView
+from core.views.ai_coach.coach_view import AICoachView, CoachConversationView, CoachConversationDetailView
 from core.views.interview import (
     InterviewVisionView,
     InterviewJobPostingView, InterviewJobPostingDetailView,
@@ -101,6 +101,8 @@ urlpatterns = [
     # 10. AI Coach Agent API
     path('ai-coach/chat/', AICoachView.as_view(), name='ai_coach_chat'),
     path('ai-coach/chart-details/', AICoachView.as_view(), name='ai_coach_chart_details'),
+    path('ai-coach/conversations/', CoachConversationView.as_view(), name='ai_coach_conversations'),
+    path('ai-coach/conversations/<int:pk>/', CoachConversationDetailView.as_view(), name='ai_coach_conversation_detail'),
 
     # 11. 모의면접 API (STT/TTS 포함)
     path('interview/job-postings/', InterviewJobPostingView.as_view(), name='interview_job_postings'),

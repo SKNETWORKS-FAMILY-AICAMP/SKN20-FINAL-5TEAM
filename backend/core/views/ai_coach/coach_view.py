@@ -19,7 +19,7 @@ from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from core.models import UserProfile
+from core.models import UserProfile, CoachConversation, CoachMessage
 from .coach_prompt import is_off_topic, GUARDRAIL_MESSAGE, INTENT_ANALYSIS_PROMPT, RESPONSE_STRATEGIES
 from .coach_tools import (
     COACH_TOOLS,
@@ -32,6 +32,51 @@ from .coach_tools import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+# ── 대화 히스토리 헬퍼 (sync — async generator 밖에서도 사용) ──
+
+def _get_or_create_conversation(profile, conversation_id, first_message):
+    """conversation_id가 있으면 로드, 없으면 새로 생성. sync 전용."""
+    if conversation_id:
+        conv = CoachConversation.objects.filter(
+            pk=conversation_id, user=profile
+        ).first()
+        if conv:
+            # closed 대화를 이어가는 경우 → 다시 active로 전환
+            if conv.status != 'active':
+                # 기존 active 대화들을 closed로 변경
+                CoachConversation.objects.filter(
+                    user=profile, status='active'
+                ).update(status='closed')
+                conv.status = 'active'
+                conv.save(update_fields=['status'])
+            return conv
+        # pk가 없거나 소유자 불일치 → 새로 생성
+    conv = CoachConversation(
+        user=profile,
+        title=first_message[:100],
+        status='active',
+        create_id=profile.username,
+        update_id=profile.username,
+    )
+    conv.save()
+    return conv
+
+
+def _save_message_sync(conv_id, role, content, username):
+    """메시지 저장 (sync). turn_number 자동 증가."""
+    last = CoachMessage.objects.filter(conversation_id=conv_id).order_by('-turn_number').first()
+    turn = (last.turn_number + 1) if last else 1
+    CoachMessage.objects.create(
+        conversation_id=conv_id,
+        turn_number=turn,
+        role=role,
+        content=content,
+        create_id=username,
+        update_id=username,
+    )
+    return turn
 
 
 def _should_show_chart(intent_type, user_message):
@@ -53,15 +98,15 @@ def _should_show_chart(intent_type, user_message):
     """
     msg_lower = user_message.lower()
 
-    # 명시적 비표시 키워드 (설명/분석 중심 요청)
-    text_only_keywords = {"분석해", "설명해", "알려", "어떻게", "왜", "뭐야"}
-    if any(kw in msg_lower for kw in text_only_keywords):
-        return False
-
-    # 명시적 표시 키워드 (시각화/리포트 요청)
+    # 명시적 표시 키워드를 먼저 체크 (시각화 요청이 우선)
     chart_keywords = {"차트", "시각화", "그래프", "리포트", "보여줘", "보이", "데이터를"}
     if any(kw in msg_lower for kw in chart_keywords):
         return True
+
+    # chart 키워드 없을 때만 text_only 체크
+    text_only_keywords = {"분석해", "설명해", "알려", "어떻게", "왜", "뭐야"}
+    if any(kw in msg_lower for kw in text_only_keywords):
+        return False
 
     # Intent별 기본값 (명시적 요청 없을 때)
     intent_defaults = {
@@ -79,9 +124,10 @@ def _should_show_chart(intent_type, user_message):
 
 @method_decorator(csrf_exempt, name='dispatch')
 class AICoachView(APIView):
-    """ReAct 에이전트 기반 AI 코치 (임시 비활성화됨)
+    """ReAct 에이전트 기반 AI 코치
     [수정일: 2026-02-24] 누락된 모듈 오류로 인해 임시 비활성화 조치
     [수정일: 2026-02-26] CSRF_EXEMPT 추가 - AWS HTTPS 배포 환경 대응
+    [수정일: 2026-03-01] 대화 히스토리 지원 추가 - 최근 5턴 컨텍스트 유지
     """
 
     permission_classes = [permissions.IsAuthenticated]
@@ -94,9 +140,22 @@ class AICoachView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        profile = get_object_or_404(UserProfile, email=request.user.email)
+        username = profile.username
+
+        # ── 대화 세션 해결 (sync — BaseModel.save()가 get_current_user() 사용) ──
+        conversation_id = request.data.get("conversation_id", None)
+        conversation = _get_or_create_conversation(profile, conversation_id, user_message)
+        conv_pk = conversation.pk
+
         # ── Guardrail: 범위 밖 질문 사전 차단 ──
         if is_off_topic(user_message):
+            # guardrail 차단 시에도 user + guardrail 메시지를 DB에 저장
+            _save_message_sync(conv_pk, 'user', user_message, username)
+            _save_message_sync(conv_pk, 'assistant', GUARDRAIL_MESSAGE, username)
+
             def guardrail_stream():
+                yield f"data: {json.dumps({'type': 'conversation_id', 'conversation_id': conv_pk}, ensure_ascii=False)}\n\n"
                 yield f"data: {json.dumps({'type': 'status', 'message': '학습 코칭 범위 밖의 질문이에요', 'variant': 'blocked'}, ensure_ascii=False)}\n\n"
                 yield f"data: {json.dumps({'type': 'token', 'token': GUARDRAIL_MESSAGE}, ensure_ascii=False)}\n\n"
                 yield "data: [DONE]\n\n"
@@ -115,8 +174,6 @@ class AICoachView(APIView):
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
-        profile = get_object_or_404(UserProfile, email=request.user.email)
-
         def _sse(data):
             return f"data: {json.dumps(data, ensure_ascii=False, default=str)}\n\n"
 
@@ -126,6 +183,24 @@ class AICoachView(APIView):
             called_tools_cache = {}  # ← 도구 결과 캐싱
             async_client = openai.AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
             try:
+                # ── SSE 첫 이벤트: conversation_id 전달 ──
+                yield _sse({"type": "conversation_id", "conversation_id": conv_pk})
+
+                # ── user 메시지 DB 저장 ──
+                await sync_to_async(_save_message_sync)(conv_pk, 'user', user_message, username)
+
+                # ── 히스토리 로드 (최근 10개 메시지 = 약 5턴) ──
+                @sync_to_async
+                def load_history():
+                    msgs = list(
+                        CoachMessage.objects.filter(conversation_id=conv_pk)
+                        .order_by('-turn_number')[:10]
+                    )
+                    msgs.reverse()
+                    return [{"role": m.role, "content": m.content} for m in msgs]
+
+                history = await load_history()
+
                 # ──────────────────────────────────────
                 # Step 1: Intent Analysis
                 # ──────────────────────────────────────
@@ -191,10 +266,9 @@ class AICoachView(APIView):
                 strategy = RESPONSE_STRATEGIES.get(intent_type, RESPONSE_STRATEGIES["B"])
                 system_prompt = strategy["system_prompt"]
 
-                conv = [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_message},
-                ]
+                # ── conv 리스트: system + history(최근 5턴) ──
+                # history에 현재 user 메시지가 이미 포함되어 있음 (save 후 load)
+                conv = [{"role": "system", "content": system_prompt}] + history
 
                 # ── Intent별 도구 필터링 ──
                 intent_config = INTENT_TOOL_MAPPING.get(intent_type, {})
@@ -270,7 +344,7 @@ class AICoachView(APIView):
                         if should_show_chart:
                             try:
                                 chart_summaries = await sync_to_async(generate_chart_data_summary)(
-                                    profile, intent_type, user_message
+                                    profile, intent_type, user_message, cache=called_tools_cache
                                 )
                                 for chart in chart_summaries:
                                     yield _sse({
@@ -284,6 +358,15 @@ class AICoachView(APIView):
                         # 2. 이제 버퍼된 토큰들을 전송
                         for token in buffered_tokens:
                             yield _sse({"type": "token", "token": token})
+
+                        # 3. assistant 최종 응답 DB 저장
+                        final_answer = "".join(buffered_tokens)
+                        try:
+                            await sync_to_async(_save_message_sync)(
+                                conv_pk, 'assistant', final_answer, username
+                            )
+                        except Exception as e:
+                            logger.warning(f"Failed to save assistant message: {e}")
 
                         yield _sse({"type": "final"})
                         yield "data: [DONE]\n\n"
@@ -363,10 +446,11 @@ class AICoachView(APIView):
                         })
 
                 # ── max_iterations 도달 ──
+                fallback_msg = "분석이 복잡하여 일부만 완료되었습니다. 질문을 더 구체적으로 해주세요."
                 if should_show_chart:
                     try:
                         chart_summaries = await sync_to_async(generate_chart_data_summary)(
-                            profile, intent_type, user_message
+                            profile, intent_type, user_message, cache=called_tools_cache
                         )
                         for chart in chart_summaries:
                             yield _sse({
@@ -379,8 +463,16 @@ class AICoachView(APIView):
 
                 yield _sse({
                     "type": "token",
-                    "token": "분석이 복잡하여 일부만 완료되었습니다. 질문을 더 구체적으로 해주세요.",
+                    "token": fallback_msg,
                 })
+
+                # max_iterations 도달 시에도 assistant 메시지 저장
+                try:
+                    await sync_to_async(_save_message_sync)(
+                        conv_pk, 'assistant', fallback_msg, username
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to save fallback message: {e}")
 
                 yield _sse({"type": "final"})
                 yield "data: [DONE]\n\n"
@@ -427,3 +519,104 @@ class AICoachView(APIView):
                 {"error": "차트 데이터 조회 중 오류가 발생했습니다."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class CoachConversationView(APIView):
+    """AI Coach 대화 세션 관리
+
+    GET  /api/core/ai-coach/conversations/       → 전체 대화 목록 + active 대화의 메시지
+    POST /api/core/ai-coach/conversations/       → 기존 active 대화를 closed로 변경 (새 대화 시작)
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        profile = get_object_or_404(UserProfile, email=request.user.email)
+
+        # 전체 대화 목록 (최신순, 최근 20개)
+        all_convs = list(
+            CoachConversation.objects.filter(user=profile)
+            .order_by('-create_date')[:20]
+            .values('id', 'title', 'status', 'create_date')
+        )
+
+        # active 대화의 메시지 (페이지 복원용)
+        active_conv = CoachConversation.objects.filter(user=profile, status='active').first()
+        active_data = None
+        if active_conv:
+            msgs = list(
+                CoachMessage.objects.filter(conversation=active_conv)
+                .order_by('turn_number')
+                .values('turn_number', 'role', 'content')
+            )
+            active_data = {
+                "id": active_conv.pk,
+                "title": active_conv.title,
+                "messages": msgs,
+            }
+
+        return Response({
+            "conversations": all_convs,
+            "active_conversation": active_data,
+        }, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        """기존 active 대화를 closed → 새 대화를 위한 초기화"""
+        profile = get_object_or_404(UserProfile, email=request.user.email)
+        updated = CoachConversation.objects.filter(
+            user=profile, status='active'
+        ).update(status='closed')
+        return Response({
+            "closed_count": updated,
+            "message": "새 대화를 시작할 수 있습니다.",
+        }, status=status.HTTP_200_OK)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class CoachConversationDetailView(APIView):
+    """개별 대화 메시지 로드
+
+    GET /api/core/ai-coach/conversations/<id>/ → 해당 대화의 메시지 목록
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, pk):
+        profile = get_object_or_404(UserProfile, email=request.user.email)
+        conv = get_object_or_404(CoachConversation, pk=pk, user=profile)
+        msgs = list(
+            CoachMessage.objects.filter(conversation=conv)
+            .order_by('turn_number')
+            .values('turn_number', 'role', 'content')
+        )
+        return Response({
+            "conversation": {
+                "id": conv.pk,
+                "title": conv.title,
+                "status": conv.status,
+                "messages": msgs,
+            }
+        }, status=status.HTTP_200_OK)
+
+    def patch(self, request, pk):
+        """대화 제목 수정"""
+        profile = get_object_or_404(UserProfile, email=request.user.email)
+        conv = get_object_or_404(CoachConversation, pk=pk, user=profile)
+        title = request.data.get("title", "").strip()
+        if not title:
+            return Response(
+                {"error": "제목을 입력해주세요."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        conv.title = title[:100]
+        conv.save(update_fields=['title'])
+        return Response({"id": conv.pk, "title": conv.title}, status=status.HTTP_200_OK)
+
+    def delete(self, request, pk):
+        """대화 삭제 (메시지 포함)"""
+        profile = get_object_or_404(UserProfile, email=request.user.email)
+        conv = get_object_or_404(CoachConversation, pk=pk, user=profile)
+        conv_id = conv.pk
+        conv.delete()
+        return Response({"id": conv_id, "message": "대화가 삭제되었습니다."}, status=status.HTTP_200_OK)
