@@ -329,7 +329,7 @@ SKN20-FINAL-5TEAM/
 │   ├── core/
 │   │   ├── models/              # Django 모델 (user, practice, interview, activity)
 │   │   ├── views/
-│   │   │   ├── coach/           # AI Coach (3단계 파이프라인)
+│   │   │   ├── ai_coach/        # AI Coach (3단계 파이프라인)
 │   │   │   ├── interview/       # Mock Interview (슬롯 필링)
 │   │   │   ├── job_planner/     # Job Planner (채용공고 파싱/분석)
 │   │   │   ├── architecture/    # System Architecture 평가

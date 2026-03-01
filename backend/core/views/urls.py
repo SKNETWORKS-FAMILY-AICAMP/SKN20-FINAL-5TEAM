@@ -40,7 +40,7 @@ from core.views.pseudocode.pseudocode_execution import execute_python_code
 from core.views.pseudocode import pseudocode_evaluation
 from core.views import youtube_recommendation
 from core.views.architecture.architecture_view import ArchitectureEvaluationView, ArchitectureQuestionGeneratorView
-from core.views.coach.coach_view import AICoachView
+from core.views.ai_coach.coach_view import AICoachView
 from core.views.interview import (
     InterviewVisionView,
     InterviewJobPostingView, InterviewJobPostingDetailView,
