@@ -47,6 +47,7 @@ from core.views.interview import (
     InterviewSessionView, InterviewSessionDetailView, InterviewAnswerView,
     STTTranscribeView,
     TTSSynthesizeView,
+    InterviewQuestionSearchView,    # 2026-03-01 면접 질문 뱅크 검색 API 추가
 )
 
 router = DefaultRouter()
@@ -109,6 +110,8 @@ urlpatterns = [
     path('interview/sessions/<int:pk>/', InterviewSessionDetailView.as_view(), name='interview_session_detail'),
     path('interview/sessions/<int:pk>/answer/', InterviewAnswerView.as_view(), name='interview_answer'),
     path('interview/sessions/<int:pk>/vision/', InterviewVisionView.as_view(), name='interview_vision'),
+    # [2026-03-01] 면접 질문 뱅크 검색 API
+    path('interview/questions/search/', InterviewQuestionSearchView.as_view(), name='interview_question_search'),
     path('stt/transcribe/', STTTranscribeView.as_view(), name='stt_transcribe'),
     path('tts/synthesize/', TTSSynthesizeView.as_view(), name='tts_synthesize'),
 

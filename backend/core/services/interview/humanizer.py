@@ -1,6 +1,13 @@
 """
-humanizer.py — L5 Humanizer (컨텍스트 조립 유틸)
-LLM 없음. L4 Interviewer에 전달할 컨텍스트를 조립하는 유틸 함수다.
+humanizer.py -- L5 Humanizer (컨텍스트 조립 유틸)
+
+수정일: 2026-03-01
+설명: LLM 없음. L4 Interviewer에 전달할 컨텍스트를 조립하는 유틸 함수.
+
+[2026-03-01 변경사항]
+  - bank_questions 필드 추가: interview_plan["bank_questions"]에서
+    현재 슬롯에 해당하는 기출 질문을 추출하여 컨텍스트에 포함.
+    interviewer.py의 _build_interviewer_prompt()에서 기출 질문 프롬프트 생성에 사용.
 """
 
 
@@ -46,6 +53,16 @@ def build_context(session, plan_slot: dict = None) -> dict:
 
     weakness_boost = session.interview_plan.get("weakness_boost", [])
 
+    # [2026-03-01] 현재 슬롯에 해당하는 기출 질문 추출
+    #   interview_plan["bank_questions"]는 session_view.py에서 세션 생성 시 저장됨.
+    #   키: "motivation", "technical", "collaboration", "problem_solving", "growth"
+    #   technical_depth, technical_depth_2 등은 모두 "technical" 키로 통합됨.
+    bank_questions = session.interview_plan.get("bank_questions", {})
+    slot_key = session.current_slot
+    if slot_key.startswith("technical"):
+        slot_key = "technical"
+    current_bank = bank_questions.get(slot_key, [])
+
     return {
         "slot": session.current_slot,
         "topic": plan_slot.get("topic", session.current_slot),
@@ -58,4 +75,5 @@ def build_context(session, plan_slot: dict = None) -> dict:
         "required_qualifications": required_qualifications,
         "preferred_qualifications": preferred_qualifications,
         "weakness_boost": weakness_boost,
+        "bank_questions": current_bank,  # [2026-03-01] 현재 슬롯 기출 질문
     }

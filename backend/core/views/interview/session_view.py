@@ -1,8 +1,15 @@
 """
-session_view.py — 모의면접 세션 CRUD API
-POST /api/core/interview/sessions/           → 새 세션 생성 (첫 질문 포함)
-GET  /api/core/interview/sessions/           → 세션 목록
-GET  /api/core/interview/sessions/<pk>/      → 세션 상세
+session_view.py -- 모의면접 세션 CRUD API
+
+수정일: 2026-03-01
+설명:
+  POST /api/core/interview/sessions/           -> 새 세션 생성 (첫 질문 포함)
+  GET  /api/core/interview/sessions/           -> 세션 목록
+  GET  /api/core/interview/sessions/<pk>/      -> 세션 상세
+
+[2026-03-01 변경사항]
+  - 세션 생성 시 question_bank_service에서 슬롯별 기출 질문을 가져와
+    interview_plan["bank_questions"]에 저장. humanizer -> interviewer로 전달됨.
 """
 import json
 from django.utils import timezone
@@ -23,6 +30,8 @@ from core.services.interview.state_engine import StateEngine
 from core.services.interview.planner import decide_intent
 from core.services.interview.humanizer import build_context
 from core.services.interview.interviewer import generate_question_sync
+# [2026-03-01] 면접 질문 뱅크 서비스 추가
+from core.services.interview.question_bank_service import get_questions_for_session
 
 engine = StateEngine()
 
@@ -116,6 +125,20 @@ class InterviewSessionView(APIView):
             # 2. 면접 계획 생성
             interview_plan = generate_plan(job_posting, user_weakness)
 
+            # 2-1. [2026-03-01] DB에서 슬롯별 기출 질문을 가져와 interview_plan에 저장
+            #      humanizer -> interviewer로 전달되어 기출 기반 면접 진행
+            try:
+                slot_types = [s["slot"] for s in interview_plan.get("slots", [])]
+                company = job_posting.company_name if job_posting else ""
+                job = job_posting.position if job_posting else ""
+                bank_questions = get_questions_for_session(
+                    company=company, job=job, slot_types=slot_types
+                )
+                interview_plan["bank_questions"] = bank_questions
+            except Exception as e:
+                print(f"[SessionView] 기출 질문 로드 실패 (무시): {e}")
+                interview_plan["bank_questions"] = {}
+
             # 3. 세션 생성
             session = InterviewSession.objects.create(
                 user=user,
@@ -192,15 +215,6 @@ class InterviewSessionView(APIView):
             }, status=status.HTTP_201_CREATED)
 
         except Exception as e:
-            import traceback
-            import os
-            try:
-                base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-                with open(os.path.join(base_dir, 'error_traceback.txt'), 'w', encoding='utf-8') as f:
-                    traceback.print_exc(file=f)
-                    f.write(f"\n세션 생성 오류: {e}")
-            except:
-                pass
             import traceback
             import os
             try:

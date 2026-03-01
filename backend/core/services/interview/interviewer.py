@@ -1,7 +1,14 @@
 """
-interviewer.py — L4 Interviewer (대화 생성기 + 말투 보정 통합)
-LLM 1번 호출. intent + humanizer_context → 자연스러운 면접관 질문 생성.
-L4와 L5는 LLM 호출 1번으로 처리한다.
+interviewer.py -- L4 Interviewer (대화 생성기 + 말투 보정 통합)
+
+수정일: 2026-03-01
+설명: LLM 1번 호출. intent + humanizer_context -> 자연스러운 면접관 질문 생성.
+      L4와 L5는 LLM 호출 1번으로 처리한다.
+
+[2026-03-01 변경사항]
+  - _build_interviewer_prompt()에 [실제 면접 기출 질문] 섹션 추가.
+    humanizer_context["bank_questions"]에서 현재 슬롯의 기출 질문을 가져와
+    시스템 프롬프트에 주입. LLM이 실제 면접 데이터를 참고하여 질문을 생성하도록 함.
 """
 import openai
 from django.conf import settings
@@ -72,7 +79,11 @@ def generate_question_sync(intent: str, humanizer_context: dict, previous_answer
 
 
 def _build_interviewer_prompt(intent: str, ctx: dict) -> str:
-    """Interviewer 프롬프트 생성 (L4 + L5 통합)"""
+    """Interviewer 프롬프트 생성 (L4 + L5 통합)
+
+    [2026-03-01] bank_questions가 ctx에 포함되어 있으면
+    [실제 면접 기출 질문] 섹션을 시스템 프롬프트에 추가한다.
+    """
 
     slot = ctx.get("slot", "")
     topic = ctx.get("topic", slot)
@@ -85,6 +96,7 @@ def _build_interviewer_prompt(intent: str, ctx: dict) -> str:
     required_qualifications = ctx.get("required_qualifications", "")
     preferred_qualifications = ctx.get("preferred_qualifications", "")
     weakness_boost = ctx.get("weakness_boost", [])
+    bank_questions = ctx.get("bank_questions", [])  # [2026-03-01] 기출 질문
 
     weakness_info = ""
     if weakness_boost:
@@ -134,6 +146,24 @@ def _build_interviewer_prompt(intent: str, ctx: dict) -> str:
             "- 예: '안녕하세요, 반갑습니다. 팀 프로젝트에서 어떤 역할을 맡아보신 경험이 있으신가요?'"
         )
 
+    # [2026-03-01] 실제 면접 기출 질문 섹션 생성
+    #   humanizer가 interview_plan["bank_questions"]에서 현재 슬롯 질문을 추출하여 전달.
+    #   LLM이 기출 질문을 참고하되, 대화 흐름에 맞게 자연스럽게 변형하도록 지시.
+    bank_guide = ""
+    if bank_questions:
+        q_list = "\n".join(
+            f"  {i+1}. {q['question_text']}"
+            for i, q in enumerate(bank_questions)
+        )
+        bank_guide = (
+            f"\n[실제 면접 기출 질문]\n"
+            f"아래는 이 기업/직무에서 실제로 출제된 면접 질문이다.\n"
+            f"이 질문들을 기반으로 면접을 진행하되, 대화 흐름에 맞게 자연스럽게 변형하라.\n"
+            f"{q_list}\n"
+            f"- 질문을 그대로 읽지 말고, 지원자의 답변과 현재 맥락에 맞게 재구성하라.\n"
+            f"- 기출 질문의 핵심 의도를 유지하면서 자연스러운 면접 대화를 이어가라."
+        )
+
     opening_rule = (
         "1. 짧은 인사 한 문장 후 바로 질문으로 이어가라."
         if is_first_question
@@ -146,7 +176,7 @@ def _build_interviewer_prompt(intent: str, ctx: dict) -> str:
 
     return f"""당신은 자연스러운 한국어 면접관이다.
 지원자의 답변을 듣고 적절한 후속 질문을 한다.
-{company_info}{weakness_info}
+{company_info}{weakness_info}{bank_guide}
 
 [면접 맥락]
 - 현재 평가 주제: {topic}
