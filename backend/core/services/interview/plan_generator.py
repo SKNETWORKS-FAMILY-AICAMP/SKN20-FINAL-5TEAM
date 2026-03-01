@@ -14,17 +14,41 @@ import json
 import openai
 from django.conf import settings
 
+# job_role 코드 → 프롬프트용 라벨 매핑 (common_data.json JOB_ROLE과 동기화)
+JOB_ROLE_LABELS = {
+    "frontend": "프론트엔드 개발자",
+    "backend": "백엔드 개발자",
+    "server": "서버 개발자",
+    "fullstack": "풀스택 개발자",
+    "devops": "DevOps / 시스템 관리자",
+    "ai": "AI / ML 엔지니어",
+    "data_scientist": "데이터 사이언티스트",
+    "mlops": "MLOps 엔지니어",
+    "mobile": "모바일 앱 개발자",
+    "data": "데이터 엔지니어",
+    "security": "보안 엔지니어",
+    "etc": "기타",
+}
 
-def generate_plan(job_posting, user_weakness: dict) -> dict:
+DEFAULT_POSITION = "AI / 소프트웨어 엔지니어"
+
+
+def _resolve_position(user_job_roles: list) -> str:
+    """유저의 job_role 코드 리스트 → 프롬프트용 직무 문자열 변환"""
+    if not user_job_roles:
+        return DEFAULT_POSITION
+    labels = [JOB_ROLE_LABELS.get(r, r) for r in user_job_roles if r != "etc"]
+    return " / ".join(labels) if labels else DEFAULT_POSITION
+
+
+def generate_plan(job_posting, user_weakness: dict, user_job_roles: list = None) -> dict:
     """
     채용공고 + 취약점 + DB 기출 질문 → 면접 슬롯 순서와 각 슬롯의 설정 생성.
 
-    [2026-03-01] question_bank_service에서 기업/직무별 실제 기출 질문을 조회하여
-    LLM 프롬프트에 주입. 실제 면접 데이터에 기반한 현실적인 계획 수립.
-
     Args:
-        job_posting: SavedJobPosting 인스턴스 (None이면 기본 IT기업 설정)
+        job_posting: SavedJobPosting 인스턴스 (None이면 유저 직무 기반 연습 모드)
         user_weakness: {"weak_topics": [...], "weak_categories": [...], "strength_topics": [...]}
+        user_job_roles: 유저 프로필의 job_role 코드 리스트 (예: ["ai", "backend"])
 
     Returns:
         {
@@ -33,16 +57,19 @@ def generate_plan(job_posting, user_weakness: dict) -> dict:
             "weakness_boost": [...]
         }
     """
+    if user_job_roles is None:
+        user_job_roles = []
+
     api_key = getattr(settings, 'OPENAI_API_KEY', '') or ''
     if not api_key:
-        return _get_default_plan(job_posting, user_weakness)
+        return _get_default_plan(job_posting, user_weakness, user_job_roles)
 
     client = openai.OpenAI(api_key=api_key)
 
     # [2026-03-01] DB에서 기업/직무 기출 질문 조회
     real_questions = _fetch_real_questions(job_posting)
 
-    prompt = _build_plan_prompt(job_posting, user_weakness, real_questions)
+    prompt = _build_plan_prompt(job_posting, user_weakness, real_questions, user_job_roles)
 
     try:
         response = client.chat.completions.create(
@@ -70,7 +97,7 @@ def generate_plan(job_posting, user_weakness: dict) -> dict:
 
     except Exception as e:
         print(f"[PlanGenerator] 오류: {e}")
-        return _get_default_plan(job_posting, user_weakness)
+        return _get_default_plan(job_posting, user_weakness, user_job_roles)
 
 
 def _fetch_real_questions(job_posting) -> list:
@@ -91,20 +118,20 @@ def _fetch_real_questions(job_posting) -> list:
         from core.services.interview.question_bank_service import get_questions_for_plan
         company = job_posting.company_name if job_posting else ""
         job = job_posting.position if job_posting else ""
-        return get_questions_for_plan(company=company, job=job)
+        print(f"[PlanGenerator] 기출 질문 조회 중... 기업: '{company}' | 직무: '{job}'")
+        result = get_questions_for_plan(company=company, job=job)
+        if result:
+            print(f"[PlanGenerator] ✅ 플랜용 기출 {len(result)}개 조회됨")
+        else:
+            print(f"[PlanGenerator] ⚠️ 플랜용 기출 질문 없음")
+        return result
     except Exception as e:
         print(f"[PlanGenerator] 기출 질문 조회 실패 (무시): {e}")
         return []
 
 
-def _build_plan_prompt(job_posting, user_weakness: dict, real_questions: list = None) -> str:
-    """plan_generator LLM 프롬프트 생성.
-
-    [2026-03-01 변경사항]
-      - real_questions 파라미터 추가: DB 기출 질문을 [실제 면접 기출 데이터] 섹션으로 주입
-      - 채용공고 파싱 블록 중복 제거 (기존 2회 → 1회로 정리)
-      - 채용공고 섹션 중복 필드 제거
-    """
+def _build_plan_prompt(job_posting, user_weakness: dict, real_questions: list = None, user_job_roles: list = None) -> str:
+    """plan_generator LLM 프롬프트 생성."""
     # 채용공고 정보 파싱 (1회만 실행)
     if job_posting:
         required_skills = ", ".join(job_posting.required_skills or [])
@@ -114,11 +141,12 @@ def _build_plan_prompt(job_posting, user_weakness: dict, real_questions: list = 
         job_res = job_posting.job_responsibilities[:300] if job_posting.job_responsibilities else ""
         exp_range = job_posting.experience_range
     else:
+        resolved_position = _resolve_position(user_job_roles or [])
         required_skills = "없음"
         preferred_skills = "없음"
-        company_name = "일반 IT/소프트웨어 기업"
-        position = "소프트웨어 엔지니어"
-        job_res = "웹 애플리케이션 개발 및 유지보수"
+        company_name = "미지정 (특정 회사명을 만들어내지 마라)"
+        position = resolved_position
+        job_res = f"{resolved_position} 관련 업무 전반"
         exp_range = "주니어/신입"
 
     weak_topics = ", ".join(user_weakness.get("weak_topics", []))
@@ -164,14 +192,19 @@ def _build_plan_prompt(job_posting, user_weakness: dict, real_questions: list = 
 [면접 계획 수립 규칙]
 1. 총 4~6개 슬롯을 선택한다.
 2. 슬롯 유형: motivation, technical_depth, collaboration, problem_solving, growth
-3. technical_depth는 1~2개 선택. 반드시 채용공고의 필수 기술(required_skills) 또는 직무 설명에서 언급된 기술로만 선택한다.
+3. 회사가 "미지정"이면 면접 연습 모드이다. 이 경우:
+   - 절대로 특정 회사명(삼성, LG, 네이버, 한전 등)을 생성하거나 언급하지 마라.
+   - IT/소프트웨어 분야 면접으로 진행하되, 특정 회사를 전제하지 마라.
+   - motivation 슬롯의 topic은 "{position} 커리어 방향성"으로, first_intent는 "해당 분야 관심 계기와 성장 방향 확인"으로 설정하라.
+   - technical_depth는 지원자의 취약/강점 토픽 기반으로만 선택하라. 취약/강점 토픽도 없으면 technical_depth를 제외하라.
+4. 회사가 지정된 경우 technical_depth는 1~2개 선택. 반드시 채용공고의 필수 기술(required_skills) 또는 직무 설명에서 언급된 기술로만 선택한다.
    - 취약 토픽이 채용공고 기술과 관련 없으면 절대 사용하지 않는다.
    - 채용공고에 기술 스택이 명시되어 있으면 그 기술을 우선한다.
    - 채용공고에 기술 스택이 없으면 직무명/담당업무에서 핵심 기술을 추론한다.
    - 실제 면접 기출 데이터가 있으면, 기출에서 자주 등장하는 기술 토픽을 우선한다.
-4. motivation은 반드시 포함하되 첫 번째로 배치
-5. collaboration과 problem_solving 중 1개 이상 포함
-6. technical_depth 슬롯에는 해당 기술에 맞는 required_evidence를 3~4개 동적 생성
+5. motivation은 반드시 포함하되 첫 번째로 배치
+6. collaboration과 problem_solving 중 1개 이상 포함
+7. technical_depth 슬롯에는 해당 기술에 맞는 required_evidence를 3~4개 동적 생성
    - 범용 단어(concept/application/tradeoff) 사용 금지
    - 해당 기술 구체적인 내용으로 키 생성 (한글 허용, 언더스코어로 구분)
    - 예: Python 비동기면 → ["asyncio_개념", "실제_사용_경험", "동기방식과_차이", "한계_인식"]
@@ -247,15 +280,25 @@ def _validate_and_normalize_plan(plan: dict, job_posting, user_weakness: dict) -
     return plan
 
 
-def _get_default_plan(job_posting, user_weakness: dict) -> dict:
+def _get_default_plan(job_posting, user_weakness: dict, user_job_roles: list = None) -> dict:
     """LLM 실패 시 기본 면접 계획"""
-    slots = [
-        {
+    if job_posting:
+        motivation_slot = {
             "slot": "motivation",
             "topic": "지원 동기",
             "max_attempts": 2,
             "first_intent": "지원 이유와 회사 리서치 여부 확인"
-        },
+        }
+    else:
+        resolved = _resolve_position(user_job_roles or [])
+        motivation_slot = {
+            "slot": "motivation",
+            "topic": f"{resolved} 커리어 방향성",
+            "max_attempts": 2,
+            "first_intent": f"{resolved} 분야 관심 계기와 성장 방향 확인"
+        }
+    slots = [
+        motivation_slot,
         {
             "slot": "collaboration",
             "topic": "팀 협업 경험",

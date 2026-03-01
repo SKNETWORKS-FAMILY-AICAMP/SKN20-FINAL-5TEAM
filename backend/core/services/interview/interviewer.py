@@ -108,7 +108,8 @@ def _build_interviewer_prompt(intent: str, ctx: dict) -> str:
         )
 
     company_info = ""
-    if company_name or position:
+    if company_name:
+        # 채용공고가 있는 경우
         job_detail = ""
         if job_responsibilities:
             job_detail += f"\n- 주요 업무: {job_responsibilities}"
@@ -117,6 +118,17 @@ def _build_interviewer_prompt(intent: str, ctx: dict) -> str:
         if preferred_qualifications:
             job_detail += f"\n- 우대 사항: {preferred_qualifications}"
         company_info = f"\n[채용 정보]\n- 회사: {company_name}\n- 직무: {position}{job_detail}"
+    else:
+        # 공고 없이 시작 (면접 연습 모드)
+        position_label = position if position else "AI / 소프트웨어 엔지니어"
+        company_info = (
+            f"\n[면접 연습 모드]\n"
+            f"- 지원자는 특정 채용공고 없이 면접 연습 중이다.\n"
+            f"- 지원자의 관심 직무: {position_label}\n"
+            f"- 절대로 특정 회사명(삼성, LG, 네이버, 한전 등)을 언급하거나 만들어내지 마라.\n"
+            f"- '지원 동기' 질문 시 특정 회사 대신 '{position_label} 분야에 관심을 갖게 된 계기나 커리어 방향'을 물어라.\n"
+            f"- '저희 회사', '당사' 같은 표현도 사용하지 마라."
+        )
 
     transition_guide = ""
     if is_slot_transition and not is_first_question:
