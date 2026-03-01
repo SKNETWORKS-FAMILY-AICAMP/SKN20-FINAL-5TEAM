@@ -25,10 +25,6 @@ from core.views import (
     JobPlannerAgentQuestionsView,
     JobPlannerAgentReportView,
     JobPlannerRecommendView,
-    CoduckWarsAnalyzeCodeView,
-    CoduckWarsStartView,
-    CoduckWarsPressureView,
-    CoduckWarsEvaluationView,
     AdminLoginView,
     AdminLogView,
     AdminLogSaveView,
@@ -92,7 +88,7 @@ urlpatterns = [
     path('pseudocode/execute/', execute_python_code, name='pseudocode_execute'),
     path('pseudo-agent/', PseudocodeAgentView.as_view(), name='pseudo_agent'),
     path('pseudocode/evaluate-5d/', pseudocode_evaluation.evaluate_pseudocode_5d),
-    path('youtube/recommendations', youtube_recommendation.get_youtube_recommendations),
+    path('youtube/recommendations/', youtube_recommendation.get_youtube_recommendations),
 
     # 9. Architecture API
     path('architecture/evaluate/', ArchitectureEvaluationView.as_view(), name='architecture_evaluate'),
@@ -120,12 +116,6 @@ urlpatterns = [
     path('job-planner/agent-report/', JobPlannerAgentReportView.as_view(), name='job_planner_agent_report'),
     path('job-planner/recommend/', JobPlannerRecommendView.as_view(), name='job_planner_recommend'),
 
-    # 13. Coduck Wars API
-    path('wars/analyze-code/', CoduckWarsAnalyzeCodeView.as_view(), name='wars_analyze_code'),
-    path('wars/start/', CoduckWarsStartView.as_view(), name='wars_start'),
-    path('wars/pressure-question/', CoduckWarsPressureView.as_view(), name='wars_pressure_question'),
-    path('wars/evaluate/', CoduckWarsEvaluationView.as_view(), name='wars_evaluate'),
-    
     # [수정일: 2026-02-26] 관리자 로그 뷰어 API 추가
     path('admin/login/', AdminLoginView.as_view(), name='admin_login'),
     path('admin/logs/', AdminLogView.as_view(), name='admin_logs'),

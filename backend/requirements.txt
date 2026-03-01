@@ -30,6 +30,10 @@ playwright>=1.40.0
 google-api-python-client==2.116.0
 
 
+# LangGraph Agent
+langgraph>=0.2.0
+langchain-core>=0.3.0
+
 # Real-time Collaboration (Socket.io)
 python-socketio>=5.11.0
 python-engineio>=4.9.0

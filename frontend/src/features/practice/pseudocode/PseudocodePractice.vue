@@ -819,8 +819,13 @@ async function runComprehensiveEvaluation() {
     finalReport.value = null;
     gameState.feedbackMessage = "시니어 아키텍트가 최종 검토 중입니다...";
 
-    // [2026-02-22 Fix] dimensions 데이터 정합성 로그 및 정규화
-    const rawDimensions = { ...evaluationResult.dimensions } || {};
+    // [2026-03-01 Fix] reactive proxy는 spread 시 비어보일 수 있으므로 JSON 직렬화로 deep copy
+    let rawDimensions = {};
+    try {
+      rawDimensions = JSON.parse(JSON.stringify(evaluationResult.dimensions || {}));
+    } catch(e) {
+      rawDimensions = { ...evaluationResult.dimensions };
+    }
     console.log('[ReportGen] Evaluating with score:', evaluationResult.overall_score, 'and dimensions keys:', Object.keys(rawDimensions));
     
     const normalizedMetrics = _normalizeDimensions(rawDimensions, evaluationResult.overall_score || 0);
@@ -862,10 +867,11 @@ async function runComprehensiveEvaluation() {
       backendFeedback
     );
 
-    // 영상 큐레이션: 백엔드 → 로컬 폴백
-    // [2026-02-23 Fix] 백엔드 필드명(channel, id)을 프론트 템플릿(channelTitle, videoId, thumbnail)으로 정규화
+    // 영상 큐레이션: 백엔드 → reportGenerator 폴백
+    // [수정] recommended_videos 우선, 없으면 reportGenerator 결과 사용
+    let supplementaryVideos = [];
     if (evaluationResult.recommended_videos?.length) {
-      evaluationResult.supplementaryVideos = evaluationResult.recommended_videos.map(v => ({
+      supplementaryVideos = evaluationResult.recommended_videos.map(v => ({
         ...v,
         videoId: v.videoId || v.id,
         channelTitle: v.channelTitle || v.channel || '',
@@ -874,8 +880,16 @@ async function runComprehensiveEvaluation() {
         description: v.description || v.desc || '',
       }));
     } else if (finalReport.value?.recommendedContent?.videos?.length) {
-      evaluationResult.supplementaryVideos = finalReport.value.recommendedContent.videos;
+      supplementaryVideos = finalReport.value.recommendedContent.videos.map(v => ({
+        ...v,
+        videoId: v.videoId || v.id,
+        channelTitle: v.channelTitle || v.channel || '',
+        thumbnail: v.thumbnail || `https://img.youtube.com/vi/${v.videoId || v.id}/mqdefault.jpg`,
+        url: v.url || `https://www.youtube.com/watch?v=${v.videoId || v.id}`,
+        description: v.description || v.desc || '',
+      }));
     }
+    evaluationResult.supplementaryVideos = supplementaryVideos;
 
     showMetrics.value = true;
     await nextTick();
@@ -957,15 +971,15 @@ function _normalizeDimensions(raw, totalScore) {
       };
     }
   } else if (totalScore > 0) {
-    // [2026-02-22 Fix] 데이터가 없는데 점수는 있는 경우 (복구 성공 후 재평가 오염 시)
-    // 점수를 가중치 비율대로 강제 분배하여 차트 0점 현상 방어
+    // [Fix] 데이터가 없는데 점수는 있는 경우: 점수를 가중치 비율대로 강제 분배
     const ratio = totalScore / 100;
     for (const key of Object.keys(DEFAULTS)) {
       const max = DEFAULTS[key].max;
+      const dimScore = Math.round(max * ratio);
       result[key] = {
-        score: Math.round(max * ratio),
+        score: dimScore,
         max: max,
-        percentage: Math.round(totalScore),
+        percentage: Math.round((dimScore / max) * 100),
         comment: '청사진 기반 설계 복구 완료',
         name: DISPLAY_NAMES[key]
       };

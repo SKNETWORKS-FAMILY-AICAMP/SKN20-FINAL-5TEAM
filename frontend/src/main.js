@@ -20,7 +20,7 @@ import AICoach from './features/ai-coach/AICoach.vue'
 import MockInterview from './features/interview/MockInterview.vue'
 // [수정일: 2026-02-27] PressureInterviewRoom.vue 파일 삭제 및 사용 중지에 따른 임포트 제거
 import GrowthReport from './features/wars/GrowthReport.vue'
-import WarLobby from './features/wars/WarLobby.vue'
+// [수정일: 2026-03-01] WarLobby 제거 — 3인 팀 게임 미사용, 고아 파일
 // [수정일: 2026-02-23] Coduck Wars 미니게임 모드 추가
 import WarsModeSelect from './features/wars/WarsModeSelect.vue'
 import ArchDrawQuiz from './features/wars/minigames/ArchDrawQuiz.vue'
@@ -85,11 +85,6 @@ const routes = [
     path: '/practice/coduck-wars/report',
     name: 'GrowthReport',
     component: GrowthReport
-  },
-  {
-    path: '/practice/coduck-wars/lobby',
-    name: 'WarLobby',
-    component: WarLobby
   },
   {
     path: '/management/progress',

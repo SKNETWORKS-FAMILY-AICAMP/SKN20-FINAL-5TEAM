@@ -57,7 +57,9 @@ async def disconnect(sid):
         room['players'] = [p for p in room['players'] if p['sid'] != sid]
         if not room['players']:
             del draw_rooms[draw_room_id]
+            # [수정: draw_room_states 도 함께 정리 — 메모리 누수 방지]
             if draw_room_id in draw_room_states: del draw_room_states[draw_room_id]
+            print(f"🗑️ [ArchDraw] Room {draw_room_id} fully cleaned up (empty)")
         else:
             players_data = [{'name': p['name'], 'sid': p['sid']} for p in room['players']]
             await sio.emit('draw_lobby', {'players': players_data}, room=draw_room_id)
@@ -156,9 +158,17 @@ async def draw_start(sid, data):
         print(f"🚀 [ArchDraw] Game Start in Room: {room_id}")
         draw_rooms[room_id]['phase'] = 'playing'
         
-        # [수정일: 2026-02-27] 미션 데이터셋에서 무작위 선택
+        # [수정일: 2026-03-01] 미션 데이터셋에서 무작위 선택 + 팔레트 서버 생성
         question = random.choice(MISSIONS).copy()
         question['round'] = 1
+        # 팔레트: required 컴포넌트 + 랜덤 extra 4개 (서버에서 결정 → 양측 동일 보장)
+        all_comp_ids = ['client','user','lb','server','cdn','origin','cache','db',
+                        'producer','queue','consumer','api','apigw','writesvc','readsvc',
+                        'writedb','readdb','auth','order','payment','waf','dns']
+        required_ids = question.get('required', [])
+        extra_pool = [c for c in all_comp_ids if c not in required_ids]
+        random.shuffle(extra_pool)
+        question['palette_ids'] = required_ids + extra_pool[:4]
         
         # Orchestrator 상태 반영
         room_state = draw_room_states.get(room_id)
@@ -173,7 +183,7 @@ async def draw_start(sid, data):
 
 @sio.event
 async def draw_submit(sid, data):
-    """[수정일: 2026-02-27] 캐치마인드 설계 제출 처리 및 양측 완료 시 평가 트리거"""
+    """[수정일: 2026-03-01] 점수 서버 검증 추가 — 클라이언트 점수를 신뢰하지 않음"""
     room_id = data.get('room_id', '').strip()
     if room_id not in draw_rooms: 
         print(f"⚠️ [ArchDraw] draw_submit: Room {room_id} not found in draw_rooms")
@@ -182,13 +192,24 @@ async def draw_submit(sid, data):
     room = draw_rooms[room_id]
     player = next((p for p in room['players'] if p['sid'] == sid), None)
     if player:
-        player['score'] += data.get('score', 0)
-        player['last_pts'] = data.get('score', 0)
-        player['last_checks'] = data.get('checks', [])
+        # [수정: 클라이언트 점수 검증] 체크리스트 기반으로 서버가 직접 점수 계산
+        checks = data.get('checks', [])
+        hit = sum(1 for c in checks if c.get('ok'))
+        total = len(checks) if checks else 1
+        ratio = hit / total
+        # 점수 공식: 체크 40점 + 달성보너스 100점 + (남은시간 × 2) + (콤보 × 20)
+        # 단, 클라이언트가 보낸 timeLeft·combo 는 참고값 — 최대치 클램핑으로 어뷰징 방지
+        time_bonus = min(data.get('time_left', 0), 45) * 2  # 최대 90점
+        combo_bonus = min(data.get('combo', 0), 10) * 20    # 최대 200점 (콤보 10x 상한)
+        pts = hit * 40 + (100 if ratio >= 0.8 else 0) + time_bonus + combo_bonus
+        
+        player['score'] += pts
+        player['last_pts'] = pts
+        player['last_checks'] = checks
         player['last_nodes'] = data.get('final_nodes', [])
         player['last_arrows'] = data.get('final_arrows', [])
         player['submitted'] = True
-        print(f"📥 [ArchDraw] Player {player['name']} submitted in room {room_id}")
+        print(f"📥 [ArchDraw] Player {player['name']} submitted | server_pts={pts} (hit={hit}/{total}) in room {room_id}")
 
     await sio.emit('draw_player_submitted', {'sid': sid}, room=room_id)
 
@@ -246,7 +267,7 @@ async def draw_submit(sid, data):
 
 @sio.event
 async def draw_next_round(sid, data):
-    """[수정일: 2026-02-27] 다음 라운드 전환 처리"""
+    """[수정일: 2026-03-01] 다음 라운드 전환 + chaos/coach 상태 초기화"""
     room_id = data.get('room_id', '').strip()
     if room_id in draw_rooms:
         room = draw_rooms[room_id]
@@ -254,11 +275,26 @@ async def draw_next_round(sid, data):
         # 제출 상태 초기화
         for p in room['players']: p['submitted'] = False
         
-        # [수정일: 2026-02-27] 새로운 무작위 문제 선택
+        # [수정: chaos/coach 이력 초기화 — 라운드가 바뀌면 새로 발동 가능해야 함]
+        room_state = draw_room_states.get(room_id)
+        if room_state:
+            room_state.chaos_triggered_at = 0.0
+            room_state.coach_triggered_at = 0.0
+            room_state.hint_history = {}
+            room_state.past_event_ids = []
+            room_state.player_designs = {}
+        
+        # 새로운 무작위 문제 선택 + 팔레트 서버 생성
         question = random.choice(MISSIONS).copy()
         question['round'] = data.get('round', 2)
+        all_comp_ids = ['client','user','lb','server','cdn','origin','cache','db',
+                        'producer','queue','consumer','api','apigw','writesvc','readsvc',
+                        'writedb','readdb','auth','order','payment','waf','dns']
+        required_ids = question.get('required', [])
+        extra_pool = [c for c in all_comp_ids if c not in required_ids]
+        random.shuffle(extra_pool)
+        question['palette_ids'] = required_ids + extra_pool[:4]
         
-        room_state = draw_room_states.get(room_id)
         if room_state:
             wars_orchestrator.on_round_start(room_state, question['title'], question['required'])
             
@@ -282,10 +318,14 @@ async def draw_canvas_sync(sid, data):
     await sio.emit('draw_canvas_update', {'sender_sid': sid, 'nodes': data.get('nodes'), 'arrows': data.get('arrows')}, room=room_id, skip_sid=sid)
     room_state = draw_room_states.get(room_id)
     if room_state:
-        res = wars_orchestrator.on_canvas_update(room_state, sid, data.get('nodes'), data.get('arrows'))
-        if res.get('coach_hint'): 
-            print(f"💡 [ArchDraw] Hint Sent to {sid}: {res['coach_hint']['message'][:20]}...")
-            await sio.emit('coach_hint', res['coach_hint'], room=sid)
+        # [수정일: 2026-03-01] sync_to_async로 감싸서 WebSocket 이벤트 루프 블로킹 방지
+        run_agent = sync_to_async(wars_orchestrator.on_canvas_update)
+        res = await run_agent(room_state, sid, data.get('nodes'), data.get('arrows'))
+        if res.get('coach_hint'):
+            # [수정일: 2026-03-01] _target_sid 사용 — 실제 코칭이 필요한 플레이어에게 전송
+            target_sid = res['coach_hint'].get('_target_sid', sid)
+            print(f"💡 [ArchDraw] Hint Sent to {target_sid[:8]}: {res['coach_hint']['message'][:20]}...")
+            await sio.emit('coach_hint', res['coach_hint'], room=target_sid)
         if res.get('chaos_event'): 
             print(f"🔥 [ArchDraw] Chaos Event in Room: {room_id}")
             await sio.emit('chaos_event', res['chaos_event'], room=room_id)

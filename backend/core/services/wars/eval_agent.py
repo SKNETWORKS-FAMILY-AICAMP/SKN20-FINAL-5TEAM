@@ -1,45 +1,24 @@
 """
-eval_agent.py — EvalAgent
-기존 ArchEvaluator를 에이전트 역할로 분리한 래퍼.
-WarsOrchestrator가 이 에이전트를 호출하여 평가를 수행한다.
+eval_agent.py — EvalAgent (LangGraph 버전)
 
-[기존 방식 — socket_server.py 안에 직접 호출]
-    eval_func = sync_to_async(arch_evaluator.evaluate_comparison)
-    ai_reviews = await eval_func(mission_title, p1_data, p2_data, rubric=rubric_data)
-
-[에이전트 방식 — WarsOrchestrator를 통해 호출]
-    orchestrator = WarsOrchestrator(room_id)
-    results = await orchestrator.run_evaluation(room)
-    # 내부적으로 EvalAgent → ArchEvaluator 호출
-
-역할 분리 이유:
-    socket_server는 네트워크 I/O만 담당
-    평가 로직은 EvalAgent가 캡슐화
-    테스트/교체가 용이한 구조
+기존 단순 LLM 래퍼에서 진짜 Agent로 교체.
+[흐름] evaluate → self_critique → (revise 루프) → finalize
 """
 
 import logging
 from typing import Dict, Any
 
 from asgiref.sync import sync_to_async
-from core.services.arch_evaluator import ArchEvaluator
+from core.services.wars.agents.eval.graph import get_eval_graph
 
 logger = logging.getLogger(__name__)
 
 
 class EvalAgent:
     """
-    ArchDrawQuiz 라운드 평가 에이전트.
-    기존 ArchEvaluator를 래핑하여 에이전트 인터페이스로 제공.
-
-    역할:
-        - 양측 플레이어 설계 데이터를 입력받아 AI 평가 수행
-        - 평가 결과를 표준 포맷으로 반환
-        - 실패 시 폴백 리뷰 자동 반환 (게임 중단 방지)
+    LangGraph 기반 평가 에이전트.
+    evaluate → self_critique → revise(최대 2회) → finalize 루프 실행.
     """
-
-    def __init__(self):
-        self._evaluator = ArchEvaluator()
 
     async def evaluate(
         self,
@@ -48,29 +27,32 @@ class EvalAgent:
         p2_data: Dict[str, Any],
         rubric: Dict[str, Any] = None,
     ) -> Dict[str, Any]:
-        """
-        두 플레이어 설계를 비교 평가한다.
+        logger.info(f"[EvalAgent] 평가 시작: {mission_title}")
 
-        Args:
-            mission_title: 미션 제목
-            p1_data: {name, pts, checks, nodes, arrows}
-            p2_data: {name, pts, checks, nodes, arrows}
-            rubric: DB에서 로드한 평가 기준표
+        initial_state = {
+            "mission_title": mission_title,
+            "p1_data": p1_data,
+            "p2_data": p2_data,
+            "rubric": rubric,
+            "raw_result": None,
+            "critique": None,
+            "needs_revision": False,
+            "retry_count": 0,
+            "revised_result": None,
+            "final_result": None,
+        }
 
-        Returns:
-            {
-                "player1": {"my_analysis": "...", "versus": "..."},
-                "player2": {"my_analysis": "...", "versus": "..."}
-            }
-        """
-        logger.info(f"[EvalAgent] 평가 시작: {mission_title} | {p1_data.get('name')} vs {p2_data.get('name')}")
+        graph = get_eval_graph()
 
-        eval_func = sync_to_async(self._evaluator.evaluate_comparison)
+        # LangGraph는 동기 실행 → sync_to_async로 래핑
+        run_graph = sync_to_async(graph.invoke)
+        final_state = await run_graph(initial_state)
 
-        try:
-            result = await eval_func(mission_title, p1_data, p2_data, rubric=rubric)
-            logger.info(f"[EvalAgent] ✅ 평가 완료: {list(result.keys())}")
-            return result
-        except Exception as e:
-            logger.error(f"[EvalAgent] ❌ 평가 실패: {e} → 폴백 반환")
-            return self._evaluator._fallback_review(p1_data, p2_data)
+        result = final_state.get("final_result")
+        if not result:
+            logger.error("[EvalAgent] final_result 없음")
+            from core.services.arch_evaluator import ArchEvaluator
+            result = ArchEvaluator()._fallback_review(p1_data, p2_data)
+
+        logger.info(f"[EvalAgent] ✅ 평가 완료 (retry={final_state.get('retry_count', 0)})")
+        return result

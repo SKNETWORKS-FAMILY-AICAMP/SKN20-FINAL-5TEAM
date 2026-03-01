@@ -28,10 +28,11 @@ export function useDrawSocket() {
   function connect(roomId, userName) {
     if (socket.value) return
 
-    // [수정일: 2026-02-26] Mixed Content 방지 및 배포 환경(ngrok) 탄력성 강화
+    // [수정일: 2026-03-01] 소켓 URL 결정 로직 수정
+    // 기존: HTTPS이면 "" → io("")가 프론트 도메인으로 연결해서 AWS 배포 시 항상 실패
+    // 수정: VITE_SOCKET_URL이 있으면 무조건 사용, 없을 때만 빈 문자열(로컬 프록시)
     const envSocketUrl = import.meta.env.VITE_SOCKET_URL;
-    // HTTPS(ngrok 등) 환경에서는 반드시 상대 경로를 사용하여 Vite 프록시를 타도록 강제함
-    const socketUrl = (window.location.protocol === 'https:' || !envSocketUrl) ? "" : envSocketUrl;
+    const socketUrl = envSocketUrl || "";
 
     console.log(`[Socket Debug] Protocol: ${window.location.protocol}`);
     console.log(`[Socket Debug] Env Variable VITE_SOCKET_URL: "${envSocketUrl}"`);
@@ -138,14 +139,16 @@ export function useDrawSocket() {
     })
   }
 
-  // 제출
-  function emitSubmit(roomId, score, checks, finalData) {
+  // 제출 — time_left, combo 추가 (서버 점수 검증에 필요)
+  function emitSubmit(roomId, score, checks, finalData, timeLeft = 0, combo = 0) {
     socket.value?.emit('draw_submit', {
       room_id: roomId,
-      score,
+      score,       // 참고용 (서버는 직접 재계산)
       checks,
       final_nodes: finalData?.nodes || [],
-      final_arrows: finalData?.arrows || []
+      final_arrows: finalData?.arrows || [],
+      time_left: timeLeft,
+      combo: combo
     })
   }
 

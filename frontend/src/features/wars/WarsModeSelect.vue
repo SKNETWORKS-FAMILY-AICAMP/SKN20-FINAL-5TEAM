@@ -70,10 +70,10 @@
           <div class="mode-tags">
             <span class="tag">실시간 드로잉</span>
             <span class="tag">AI 힌트</span>
-            <span class="tag">5라운드</span>
+            <span class="tag">단판승부</span>
           </div>
           <div class="mode-meta">
-            <span>⏱ 5분</span>
+            <span>⏱ 45초</span>
             <span>👤 1vs1</span>
             <span>⭐ 초급~중급</span>
           </div>

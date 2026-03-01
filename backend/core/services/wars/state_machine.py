@@ -62,6 +62,12 @@ class DrawRoomState:
     chaos_triggered_at: float = 0.0    # ChaosAgent 마지막 개입 시각
     chaos_event_id: Optional[str] = None  # 진행 중인 장애 이벤트 ID
 
+    # CoachAgent 힌트 이력 {sid: [{message, type, level, _time}, ...]}
+    hint_history: Dict[str, list] = field(default_factory=dict)
+
+    # ChaosAgent 이번 게임에서 발동된 이벤트 ID 이력 (중복 방지용)
+    past_event_ids: list = field(default_factory=list)
+
     def elapsed(self) -> float:
         """현재 상태 진입 후 경과 시간 (초)"""
         return time.time() - self.entered_at

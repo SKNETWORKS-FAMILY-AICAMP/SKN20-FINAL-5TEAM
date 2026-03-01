@@ -536,49 +536,14 @@ const curQ = computed(() => ds.roundQuestion.value)
 const paletteComps = computed(() => {
   if (!curQ.value) return []
   
-  // [수정일: 2026-02-25] 양쪽 플레이어가 동일한 컴포넌트 목록을 갖도록 문제 제목 기반 시드(Seed)를 사용하는 PRNG 적용
-  let seed = 12345;
-  const str = curQ.value.title || 'default';
-  for (let i = 0; i < str.length; i++) {
-    seed = (seed * 31 + str.charCodeAt(i)) % 2147483647;
-  }
-  const seededRandom = () => {
-    seed = (seed * 16807) % 2147483647;
-    return (seed - 1) / 2147483646;
-  };
-
-  const req = allComps.filter(c => curQ.value.required.includes(c.id))
-  // required에 포함되지 않은 나머지 중 무작위 4개를 뽑는데, Math.random() 대신 seededRandom() 사용
-  const extra = allComps.filter(c => !curQ.value.required.includes(c.id))
-                      .sort(() => seededRandom() - 0.5)
-                      .slice(0, 4)
-                      
-  return [...req, ...extra].sort(() => seededRandom() - 0.5)
+  // [수정일: 2026-03-01] 서버가 내려준 palette_ids 우선 사용 — 양측 동일 팔레트 보장
+  // 서버에 palette_ids 없으면(구버전 호환) required만 표시
+  const ids = curQ.value.palette_ids || curQ.value.required || []
+  const result = ids.map(id => allComps.find(c => c.id === id)).filter(Boolean)
+  return result
 })
 
-// ── 소켓 연결 ──
-onMounted(() => { 
-  console.log(`[ArchDraw] Connecting to Room: ${currentRoomId.value} as ${userName.value}`)
-  ds.connect(currentRoomId.value, userName.value)
-  window.addEventListener('keydown', handleGlobalKey)
-
-  // [추가 2026-02-27] onGameStart wire-up: 서버 draw_game_start 신호 수신 시 처리
-  ds.onGameStart.value = (data) => {
-    console.log('[ArchDraw] Game start signal received:', data)
-    // 게임 시작 시 스코어 초기화
-    myScore.value = 0
-    oppScore.value = 0
-    combo.value = 0
-    bestCombo.value = 0
-    round.value = 0
-    // 서버가 바로 draw_round_start를 보내주므로 여기서 phase 변경 불필요
-    // 단, 로비 phase에서 대기 중이라면 서버 round_start가 phase 전환 처리
-  }
-
-  // [Multi-Agent] CoachAgent 힌트 수신 — 소켓 연결 후 등록
-  // watch로 소켓 준비 감지 후 리스너 등록
-  // [최종수정: 2026-02-26 05:25] ReferenceError 및 TDZ 방지: if-else 패턴으로 로직 분리 (브라우저 캐시 갱신용 주석 추가)
-// 소켓 핸들러 내부에서 호출할 힌트 등록 함수
+// ── CoachHint 소켓 리스너 등록 함수
 const registerCoachHint = (sock) => {
   if (!sock) return
   sock.on('coach_hint', (data) => {
@@ -588,42 +553,39 @@ const registerCoachHint = (sock) => {
   })
 }
 
-// ── 소켓 연결 ──
+// ── 소켓 연결 (onMounted 1개로 통합) ──
 onMounted(() => { 
   console.log(`[ArchDraw] Connecting to Room: ${currentRoomId.value} as ${userName.value}`)
   ds.connect(currentRoomId.value, userName.value)
   window.addEventListener('keydown', handleGlobalKey)
 
-  // [Multi-Agent] CoachHint 리스너 등록
+  // CoachHint 리스너 — 소켓 준비 후 등록
   if (ds.socket.value) {
     registerCoachHint(ds.socket.value)
   } else {
     const unwatch = watch(() => ds.socket.value, (sock) => {
-      if (sock) {
-        registerCoachHint(sock)
-        unwatch()
-      }
+      if (sock) { registerCoachHint(sock); unwatch() }
     })
   }
 
-  // [추가 2026-02-27] onGameStart wire-up
+  // 게임 시작 핸들러
   ds.onGameStart.value = (data) => {
-    myScore.value = 0; oppScore.value = 0; combo.value = 0; bestCombo.value = 0; round.value = 0;
+    console.log('[ArchDraw] Game start signal received:', data)
+    myScore.value = 0; oppScore.value = 0; combo.value = 0; bestCombo.value = 0; round.value = 0
   }
 
-  // [추가 2026-02-27] ChaosEvent 핸들러 등록
+  // ChaosEvent 핸들러
   ds.onChaosEvent.value = (data) => {
     console.log('🔥 [ArchDraw] Chaos Triggered:', data)
     chaosData.value = data
     chaosActive.value = true
     spawnPopText("🚨 CRITICAL SYSTEM INCIDENT!", "#ff2d75")
     triggerGlitch()
-    // 10초 후 자동 닫힘 (선택 사항)
     setTimeout(() => { if (chaosActive.value) chaosActive.value = false }, 10000)
   }
 })
 
-// [추가 2026-02-27] 엔진(Agent) 트리거용 실시간 설계 동기화
+// Agent 트리거용 실시간 설계 동기화
 function syncMyDesign() {
   if (phase.value !== 'play') return
   ds.emitCanvasSync(currentRoomId.value, userName.value, nodes.value, arrows.value)
@@ -632,18 +594,6 @@ function syncMyDesign() {
 function handleCanvasChange() {
   syncMyDesign()
 }
-
-  // [추가 2026-02-27] ChaosEvent 핸들러 등록
-  ds.onChaosEvent.value = (data) => {
-    console.log('🔥 [ArchDraw] Chaos Triggered:', data)
-    chaosData.value = data
-    chaosActive.value = true
-    spawnPopText("🚨 CRITICAL SYSTEM INCIDENT!", "#ff2d75")
-    triggerGlitch()
-    // 10초 후 자동 닫힘 (선택 사항)
-    setTimeout(() => { if (chaosActive.value) chaosActive.value = false }, 10000)
-  }
-})
 onUnmounted(() => { 
   clearInterval(timer)
   ds.disconnect(currentRoomId.value)
@@ -976,13 +926,6 @@ ds.onRoundStart.value = (data) => {
   spawnPopText("ALL ITEMS RECHARGED!", "#ffe600")
 };
 
-// 캔버스 변경 시 동기화 (watch 대신 명시적 함수 호출)
-function handleCanvasChange() {
-  if (phase.value === 'play') {
-    ds.emitCanvasSync(currentRoomId.value, userName.value, nodes.value, arrows.value)
-  }
-}
-
 function beginGame() {
   // REMATCH 시 이전 결과 저장
   if (phase.value === 'gameover' && (myScore.value > 0 || oppScore.value > 0)) {
@@ -1124,9 +1067,9 @@ function submitDraw() {
     }
     
     ds.emitSubmit(currentRoomId.value, pts, checks.map(c => ({ label: c.label, ok: c.ok })), {
-      nodes: snapNodes,   // 스냅샷 사용
+      nodes: snapNodes,
       arrows: snapArrows
-    })
+    }, timeLeft.value, combo.value)  // [수정: 서버 점수 검증용 time_left, combo 전달]
   }, 1500)
 }
 
