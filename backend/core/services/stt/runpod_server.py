@@ -47,6 +47,11 @@ import math
 import tempfile
 import os
 
+# [2026-03-02] HuggingFace 모델 캐시를 Network Volume에 저장
+# 첫 Cold Start 시 모델 다운로드 → /runpod-volume/hf_cache/에 저장
+# 이후 Cold Start 시 캐시에서 로딩 → 모델 다운로드 시간(~90초) 절약
+os.environ["HF_HOME"] = "/runpod-volume/hf_cache"
+
 import runpod
 from faster_whisper import WhisperModel
 
