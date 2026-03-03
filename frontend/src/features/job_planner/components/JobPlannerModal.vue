@@ -26,18 +26,11 @@
             2. 내 정보
           </button>
           <button
-            :class="['flow-tab', { active: currentStep === 'agent' }]"
-            @click="currentStep = 'agent'"
-            :disabled="!analysisResult"
-          >
-            3. 추가 질문
-          </button>
-          <button
             :class="['flow-tab', { active: currentStep === 'result' }]"
             @click="currentStep = 'result'"
             :disabled="!analysisResult"
           >
-            4. 최종 결과
+            3. 최종 결과
           </button>
         </div>
 
@@ -492,54 +485,6 @@
               >
                 <span v-if="!isAnalyzing">🚀 매칭 분석 시작</span>
                 <span v-else>⏳ 분석 중...</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Step 2.5: 에이전트 추가 질문 -->
-          <div v-if="currentStep === 'agent'" class="agent-step">
-            <h3 class="step-title">📋 추가 정보가 필요합니다</h3>
-            <p class="step-description">
-              부족한 스킬에 대해 몇 가지 질문에 답변해주세요. 더 정확한 분석을 제공할 수 있습니다.
-            </p>
-
-            <!-- 질문 로딩 중 -->
-            <div v-if="agentQuestions.length === 0" class="loading-questions">
-              <div class="loading-spinner"></div>
-              <p class="loading-text">💭 맞춤형 질문을 생성하고 있습니다...</p>
-            </div>
-
-            <div v-else class="agent-questions-list">
-              <div
-                v-for="(q, idx) in agentQuestions"
-                :key="q.id"
-                class="agent-question-item"
-              >
-                <div class="question-header">
-                  <span class="question-number">Q{{ idx + 1 }}</span>
-                  <span class="question-skill">{{ q.skill }}</span>
-                </div>
-                <div class="question-text">{{ q.question }}</div>
-                <textarea
-                  v-model="agentAnswers[q.id]"
-                  rows="3"
-                  :placeholder="`${q.skill}에 대한 답변을 입력하세요...`"
-                  class="answer-input"
-                ></textarea>
-              </div>
-            </div>
-
-            <div class="agent-actions">
-              <button class="btn-skip" @click="skipAgentQuestions">
-                건너뛰기
-              </button>
-              <button
-                class="btn-generate-report"
-                @click="generateFinalReport(true)"
-                :disabled="isGeneratingReport"
-              >
-                <span v-if="!isGeneratingReport">🚀 최종 보고서 생성</span>
-                <span v-else>⏳ 보고서 생성 중...</span>
               </button>
             </div>
           </div>
@@ -1188,9 +1133,7 @@ export default {
       // Analysis result
       analysisResult: null,
 
-      // Agent Questions & Report
-      agentQuestions: [],
-      agentAnswers: {},
+      // Agent Report
       finalReport: null,
       isGeneratingReport: false,
 
@@ -1563,18 +1506,9 @@ export default {
 
         this.analysisResult = response.data;
 
-        // 부족한 스킬이 있으면 에이전트 질문 페이지로 이동
-        if (this.analysisResult.missing_skills && this.analysisResult.missing_skills.length > 0) {
-          this.currentStep = 'agent';
-
-          this.fetchAgentQuestions();
-          this.fetchRecommendations();
-          this.generateFinalReport();
-        } else {
-          this.currentStep = 'result';
-          this.fetchRecommendations();
-          this.generateFinalReport();
-        }
+        this.currentStep = 'result';
+        this.fetchRecommendations();
+        this.generateFinalReport();
 
       } catch (error) {
         console.error('분석 실패:', error);
@@ -1584,30 +1518,7 @@ export default {
       }
     },
 
-    async fetchAgentQuestions() {
-      try {
-        const response = await axios.post('/api/core/job-planner/agent-questions/', {
-          missing_skills: this.analysisResult.missing_skills,
-          matched_skills: this.analysisResult.matched_skills,
-          user_profile: this.analysisResult.profile_summary
-        });
-
-        this.agentQuestions = response.data.questions || [];
-
-        // 각 질문에 대한 답변 초기화
-        this.agentAnswers = {};
-        this.agentQuestions.forEach(q => {
-          this.agentAnswers[q.id] = '';
-        });
-
-      } catch (error) {
-        console.error('질문 생성 실패:', error);
-        // 질문 생성 실패해도 계속 진행
-        this.agentQuestions = [];
-      }
-    },
-
-    async generateFinalReport(autoNavigate = false) {
+    async generateFinalReport() {
       this.isGeneratingReport = true;
       this.errorMessage = '';
 
@@ -1616,15 +1527,9 @@ export default {
           job_data: this.jobData,
           analysis_result: this.analysisResult,
           company_analysis: this.companyAnalysis,
-          agent_answers: this.agentAnswers
         });
 
         this.finalReport = response.data;
-
-        // autoNavigate가 true일 때만 자동으로 페이지 전환
-        if (autoNavigate) {
-          this.currentStep = 'result';
-        }
 
       } catch (error) {
         console.error('보고서 생성 실패:', error);
@@ -1632,12 +1537,6 @@ export default {
       } finally {
         this.isGeneratingReport = false;
       }
-    },
-
-    skipAgentQuestions() {
-      // 질문 건너뛰고 바로 최종 보고서 생성 (자동 페이지 전환)
-      this.agentAnswers = {};
-      this.generateFinalReport(true);  // autoNavigate = true
     },
 
     async fetchRecommendations() {
@@ -1778,8 +1677,6 @@ export default {
       this.supplementText = '';
       this.isSupplementParsing = false;
       this.analysisResult = null;
-      this.agentQuestions = [];
-      this.agentAnswers = {};
       this.finalReport = null;
       this.recommendations = [];
       this.errorMessage = '';
@@ -1881,8 +1778,6 @@ export default {
 
       // 결과 초기화
       this.analysisResult = null;
-      this.agentQuestions = [];
-      this.agentAnswers = {};
       this.finalReport = null;
       this.recommendations = [];
       this.coverLetterQuestions = '';
@@ -3433,162 +3328,6 @@ export default {
   line-height: 1.8;
   color: #f1f5f9;
   font-weight: 500;
-}
-
-/* Agent Questions Step */
-.agent-step {
-  padding: 0;
-}
-
-.step-description {
-  font-size: 14px;
-  color: #94a3b8;
-  margin: -16px 0 24px 0;
-  line-height: 1.6;
-}
-
-/* 질문 로딩 중 */
-.loading-questions {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
-  gap: 16px;
-}
-
-.loading-spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid rgba(59, 130, 246, 0.2);
-  border-top-color: #3b82f6;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.loading-text {
-  font-size: 15px;
-  color: #94a3b8;
-  font-weight: 500;
-}
-
-.agent-questions-list {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  margin-bottom: 32px;
-}
-
-.agent-question-item {
-  padding: 20px;
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  border-radius: 12px;
-  border-left: 4px solid #60a5fa;
-}
-
-.question-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.question-number {
-  padding: 6px 12px;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  border-radius: 6px;
-  color: white;
-  font-weight: 700;
-  font-size: 13px;
-}
-
-.question-skill {
-  padding: 6px 12px;
-  background: rgba(96, 165, 250, 0.2);
-  border: 1px solid rgba(96, 165, 250, 0.3);
-  border-radius: 6px;
-  color: #60a5fa;
-  font-weight: 600;
-  font-size: 13px;
-}
-
-.question-text {
-  font-size: 15px;
-  color: #f1f5f9;
-  margin-bottom: 12px;
-  line-height: 1.6;
-  font-weight: 500;
-}
-
-.answer-input {
-  width: 100%;
-  padding: 12px 16px;
-  background: rgba(15, 23, 42, 0.8);
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  border-radius: 8px;
-  color: #f1f5f9;
-  font-size: 14px;
-  font-family: inherit;
-  resize: vertical;
-  line-height: 1.6;
-  transition: all 0.2s;
-}
-
-.answer-input:focus {
-  outline: none;
-  border-color: #60a5fa;
-  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
-}
-
-.agent-actions {
-  display: flex;
-  gap: 16px;
-  justify-content: flex-end;
-}
-
-.btn-skip {
-  padding: 14px 32px;
-  background: rgba(100, 116, 139, 0.3);
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  border-radius: 10px;
-  color: #cbd5e1;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.btn-skip:hover {
-  background: rgba(100, 116, 139, 0.5);
-  border-color: #64748b;
-}
-
-.btn-generate-report {
-  padding: 14px 32px;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  border: none;
-  border-radius: 10px;
-  color: white;
-  font-size: 15px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.3s;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
-}
-
-.btn-generate-report:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.5);
-}
-
-.btn-generate-report:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 /* Final Report Styles */
