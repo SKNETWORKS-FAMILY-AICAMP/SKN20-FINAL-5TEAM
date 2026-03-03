@@ -855,28 +855,6 @@
                 </div>
               </div>
 
-              <!-- Interview Questions -->
-              <div class="interview-section">
-                <h4 class="section-subtitle">💬 예상 면접 질문 TOP 5</h4>
-                <div class="interview-questions-list">
-                  <div
-                    v-for="(q, idx) in finalReport.interview_questions"
-                    :key="'iq-' + idx"
-                    class="interview-question-card"
-                  >
-                    <div class="question-number-badge">Q{{ idx + 1 }}</div>
-                    <div class="question-content">
-                      <div class="question-title">{{ q.question }}</div>
-                      <div class="answer-guide">
-                        <strong>답변 가이드:</strong> {{ q.answer_guide }}
-                      </div>
-                      <div v-if="q.tips" class="tips">
-                        <strong>💡 Tip:</strong> {{ q.tips }}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
 
               <!-- Experience Packaging -->
               <div class="packaging-section">
@@ -3429,69 +3407,6 @@ export default {
   line-height: 1.6;
 }
 
-/* Interview Questions */
-.interview-section {
-  margin-bottom: 40px;
-}
-
-.interview-questions-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.interview-question-card {
-  padding: 20px;
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  border-radius: 12px;
-  display: flex;
-  gap: 16px;
-}
-
-.question-number-badge {
-  flex-shrink: 0;
-  width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-  border-radius: 12px;
-  color: white;
-  font-weight: 700;
-  font-size: 16px;
-}
-
-.question-content {
-  flex: 1;
-}
-
-.question-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: #f1f5f9;
-  margin-bottom: 12px;
-}
-
-.answer-guide {
-  font-size: 14px;
-  color: #cbd5e1;
-  line-height: 1.7;
-  margin-bottom: 8px;
-  padding: 12px;
-  background: rgba(139, 92, 246, 0.1);
-  border-radius: 8px;
-}
-
-.tips {
-  font-size: 13px;
-  color: #a78bfa;
-  line-height: 1.6;
-  padding: 8px 12px;
-  background: rgba(167, 139, 250, 0.1);
-  border-radius: 6px;
-}
 
 /* Experience Packaging */
 .packaging-section {

@@ -1005,7 +1005,7 @@ class JobPlannerAgentReportView(APIView):
                     "opportunities": ["성장 가능성이 있습니다"],
                     "threats": ["경쟁이 치열할 수 있습니다"]
                 },
-                "interview_questions": [],
+
                 "experience_packaging": [],
                 "execution_strategy": ""
             }
@@ -1091,11 +1091,7 @@ class JobPlannerAgentReportView(APIView):
    - Opportunities: 기회 2-3개
    - Threats: 위협 요소 1-2개
 
-2. **면접 예상 질문 5개**
-   - 해당 포지션/회사에 특화된 질문
-   - 답변 가이드 포함
-
-3. **경험 포장 가이드**
+2. **경험 포장 가이드**
    - 이력서/포트폴리오에서 강조할 점
    - 프로젝트 경험 어필 방법
    - 부족한 스킬을 보완하는 방법
@@ -1113,14 +1109,6 @@ JSON 형식:
     "opportunities": ["기회1", "기회2", ...],
     "threats": ["위협1", "위협2", ...]
   }},
-  "interview_questions": [
-    {{
-      "question": "질문 내용",
-      "answer_guide": "답변 가이드 (3-5문장)",
-      "tips": "추가 팁"
-    }},
-    ...5개
-  ],
   "experience_packaging": {{
     "resume_highlights": ["이력서에 강조할 점1", "강조할 점2", ...],
     "portfolio_tips": ["포트폴리오 팁1", "팁2", ...],
@@ -1160,7 +1148,7 @@ JSON 형식:
                     "opportunities": [],
                     "threats": []
                 },
-                "interview_questions": [],
+
                 "experience_packaging": {
                     "resume_highlights": [],
                     "portfolio_tips": [],
