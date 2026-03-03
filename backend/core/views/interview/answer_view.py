@@ -116,7 +116,11 @@ def _stream_answer(session, answer: str, old_turn: InterviewTurn):
         old_turn.engine_action = 'finish'
         old_turn.save()
 
-        # 최종 피드백 생성
+        # 면접 종료 인사말 (한 번에 전송)
+        closing_msg = "오늘 면접은 여기까지입니다. 시간 내주셔서 감사합니다. 수고하셨습니다."
+        yield _sse({'type': 'question', 'token': closing_msg})
+
+        # 최종 피드백 생성 (LLM 호출이므로 자연스러운 딜레이 발생)
         try:
             feedback_data = generate_feedback(session)
             InterviewFeedback.objects.create(
@@ -153,6 +157,10 @@ def _stream_answer(session, answer: str, old_turn: InterviewTurn):
             old_turn.engine_action = 'finish'
             old_turn.save()
 
+            # 면접 종료 인사말 (한 번에 전송)
+            closing_msg = "오늘 면접은 여기까지입니다. 시간 내주셔서 감사합니다. 수고하셨습니다."
+            yield _sse({'type': 'question', 'token': closing_msg})
+
             try:
                 feedback_data = generate_feedback(session)
                 InterviewFeedback.objects.create(
@@ -187,9 +195,9 @@ def _stream_answer(session, answer: str, old_turn: InterviewTurn):
     plan_slot = session.get_current_slot_plan()
     ctx = build_context(session, plan_slot)
 
-    # 대화 히스토리 조립 (answer가 있는 턴만, 최근 4턴)
+    # 대화 히스토리 조립 (answer가 있는 턴만, 전체)
     past_turns = session.turns.exclude(answer='').order_by('turn_number').values('question', 'answer')
-    conversation_history = [{"q": t['question'], "a": t['answer']} for t in past_turns][-4:]
+    conversation_history = [{"q": t['question'], "a": t['answer']} for t in past_turns]
 
     # ── Phase 5: L4 Interviewer SSE 스트리밍 ────────────────
     full_question = ''

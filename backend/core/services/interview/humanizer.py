@@ -1,10 +1,38 @@
 """
 humanizer.py -- L5 Humanizer (컨텍스트 조립 유틸)
 
-수정일: 2026-03-01
+수정일: 2026-03-03
 설명: LLM 없음. L4 Interviewer에 전달할 컨텍스트를 조립하는 유틸 함수.
+
+[2026-03-03 변경사항]
+  - _extract_covered_topics() 추가: 대화 히스토리에서 이미 다룬 기술 키워드를 추출.
+    LLM 호출 없이 키워드 사전 매칭 방식. 크로스 슬롯 주제 반복 방지용.
 """
 from core.services.interview.plan_generator import _resolve_position
+
+
+# 기술 키워드 사전 (소문자로 매칭)
+TECH_KEYWORDS = [
+    "python", "java", "javascript", "typescript", "react", "vue", "angular",
+    "node", "django", "flask", "spring", "sql", "mysql", "postgresql",
+    "mongodb", "redis", "docker", "kubernetes", "aws", "gcp", "azure",
+    "git", "ci/cd", "linux", "c++", "c#", "go", "rust", "swift", "kotlin",
+    "tensorflow", "pytorch", "pandas", "numpy", "spark", "hadoop", "kafka",
+    "elasticsearch", "graphql", "rest api", "microservice",
+]
+
+
+def _extract_covered_topics(session) -> list:
+    """이전 대화에서 이미 다룬 기술 키워드를 추출한다. LLM 호출 없음."""
+    past_turns = session.turns.exclude(
+        answer=''
+    ).order_by('turn_number').values_list('question', 'answer')
+
+    all_text = " ".join(
+        f"{q} {a}" for q, a in past_turns
+    ).lower()
+
+    return [kw for kw in TECH_KEYWORDS if kw in all_text]
 
 
 def build_context(session, plan_slot: dict = None) -> dict:
@@ -61,4 +89,5 @@ def build_context(session, plan_slot: dict = None) -> dict:
         "preferred_qualifications": preferred_qualifications,
         "weakness_boost": weakness_boost,
         "bank_questions": current_bank,  # [2026-03-01] 현재 슬롯 기출 질문
+        "covered_topics": _extract_covered_topics(session),  # [2026-03-03] 이미 다룬 기술 키워드
     }
