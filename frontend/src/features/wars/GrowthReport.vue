@@ -173,7 +173,7 @@
           </div>
         </div>
         <div class="pfc-footer">
-          <span class="pfc-source">CoduckWars AI Simulation</span>
+          <span class="pfc-source">Wars AI Simulation</span>
           <span class="pfc-date">{{ todayStr }}</span>
         </div>
       </div>
@@ -214,7 +214,7 @@ import { useGameStore } from '@/stores/game';
 
 Chart.register(...registerables);
 
-// [수정일: 2026-02-23] Coduck Wars Step 3: 성장 보고서 UI 구현
+// [수정일: 2026-03-03] Wars Step 3: 성장 보고서 UI 구현 (CoduckWars -> Wars)
 const router = useRouter();
 const gameStore = useGameStore();
 // [수정일: 2026-02-23] 점수 시스템 연동: liveScores 기반 최종 점수 산정
@@ -319,7 +319,7 @@ const incidentTimeline = computed(() => {
 onMounted(async () => {
   if (!evaluationData.value) {
     // 데이터가 없으면 홈으로 리다이렉트 (실제 운영 시)
-    // router.push('/practice/coduck-wars');
+    // router.push('/practice/wars');
     // return;
   }
 
@@ -378,7 +378,7 @@ const initChart = () => {
 };
 
 const goHome = () => router.push('/');
-const replayMission = () => router.push('/practice/coduck-wars');
+const replayMission = () => router.push('/practice/wars');
 const downloadPdf = () => alert('PDF 생성 기능은 준비 중입니다.');
 
 // ========== [추가 2026-02-27] 포트폴리오 익스포트 ==========
@@ -534,7 +534,7 @@ const downloadPortfolioImage = async () => {
   ctx.fillRect(0, H - 36, W, 1)
   ctx.fillStyle = '#64748b'
   ctx.font = '10px monospace'
-  ctx.fillText('CoduckWars AI Simulation', 16, H - 16)
+  ctx.fillText('Wars AI Simulation', 16, H - 16)
   ctx.fillText(todayStr, W - 80, H - 16)
 
   // PNG 다운로드
@@ -576,7 +576,7 @@ const copyPortfolioText = () => {
   const highlightsText = highlights.map(h => `  ✅ ${h}`).join('\n')
 
   const text = [
-    `🎓 [CoduckWars 실운 AI 시뮬레이션 포트폴리오]`,
+    `🎓 [Wars 실전 AI 시뮬레이션 포트폴리오]`,
     ``,
     `📋 ${title}`,
     `💡 ${scenario}`,
@@ -588,7 +588,7 @@ const copyPortfolioText = () => {
     `🔑 성취 하이라이트`,
     highlightsText,
     ``,
-    `🔗 Powered by CoduckWars — 시스템 설계 AI 실습 플랫폼`,
+    `🔗 Powered by Wars — 시스템 설계 AI 실습 플랫폼`,
     `📅 ${todayStr}`
   ].join('\n')
 

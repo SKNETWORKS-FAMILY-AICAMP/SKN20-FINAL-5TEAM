@@ -406,7 +406,7 @@
                 <span class="lrpf-ai-label">🤖 AI:</span>
                 <span>{{ myLlmEval.feedback.slice(0, 80) }}{{ myLlmEval.feedback.length > 80 ? '...' : '' }}</span>
               </div>
-              <div class="lrpf-footer">CoduckWars · LogicRun · {{ lrTodayStr }}</div>
+              <div class="lrpf-footer">Wars · LogicRun · {{ lrTodayStr }}</div>
             </div>
             <div class="lr-pf-actions">
               <button class="go-pf-btn cyan" @click="lrExportImage">🖼️ 이미지 저장</button>
@@ -418,7 +418,7 @@
 
           <div class="go-btns">
             <button @click="startGame" class="btn-retry">🔄 다시하기</button>
-            <button @click="$router.push('/practice/coduck-wars')" class="btn-exit">🏠 나가기</button>
+            <button @click="$router.push('/practice/wars')" class="btn-exit">🏠 나가기</button>
           </div>
         </div>
       </div>
@@ -471,7 +471,7 @@ const lrBuildText = () => {
   const code = mySubmittedCode.value
   const llm = myLlmEval.value
   return [
-    `🎓 [CoduckWars 로직 런 포트폴리오]`,
+    `🎓 [Wars 로직 런 포트폴리오]`,
     ``,
     `📋 시나리오: ${scenario}`,
     ``,
@@ -490,7 +490,7 @@ const lrBuildText = () => {
       llm.weaknesses?.length ? `  ⚠️ 개선점: ${llm.weaknesses.join(', ')}` : '',
     ].filter(Boolean).join('\n') : '',
     ``,
-    `🔗 Powered by CoduckWars — 실무 의사코드 AI 실습 플랫폼`,
+    `🔗 Powered by Wars — 실무 의사코드 AI 실습 플랫폼`,
     `📅 ${lrTodayStr}`
   ].filter(l => l !== '').join('\n')
 }
@@ -575,7 +575,7 @@ const lrExportImage = () => {
   // 푸터
   ctx.fillStyle = '#1e293b'; ctx.fillRect(0, H - 22, W, 1)
   ctx.fillStyle = '#334155'; ctx.font = '9px monospace'
-  ctx.fillText('CoduckWars · LogicRun', 12, H - 8)
+  ctx.fillText('Wars · LogicRun', 12, H - 8)
   ctx.fillText(lrTodayStr, W - 68, H - 8)
 
   const link = document.createElement('a')

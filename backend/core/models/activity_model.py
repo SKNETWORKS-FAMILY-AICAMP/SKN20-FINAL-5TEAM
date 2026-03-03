@@ -127,7 +127,7 @@ class UserBattleRecord(BaseModel):
     lose_count = models.IntegerField(default=0, help_text="패배 횟수")
 
     class Meta:
-        db_table = 'gym_user_battle_record'
+        db_table = 'gym_wars_battle_record'
         verbose_name = '사용자 배틀 전적'
         verbose_name_plural = '사용자 배틀 전적 목록'
 

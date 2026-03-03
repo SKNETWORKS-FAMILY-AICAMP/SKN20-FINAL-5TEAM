@@ -12,7 +12,7 @@
         />
         <button class="join-btn" @click="joinRoom" :disabled="!inputRoomId.trim()">입장하기</button>
       </div>
-      <button class="back-btn" @click="router.push('/practice/coduck-wars')">뒤로 가기</button>
+      <button class="back-btn" @click="router.push('/practice/wars')">뒤로 가기</button>
     </div>
 
     <!-- 대기실 화면 -->
@@ -75,7 +75,7 @@
           <span class="stat-value">{{ totalBubblesSent }}</span>
         </div>
       </div>
-      <button class="exit-btn" @click="router.push('/practice/coduck-wars')">로비로 돌아가기</button>
+      <button class="exit-btn" @click="router.push('/practice/wars')">로비로 돌아가기</button>
     </div>
 
     <!-- 플레이 화면 -->

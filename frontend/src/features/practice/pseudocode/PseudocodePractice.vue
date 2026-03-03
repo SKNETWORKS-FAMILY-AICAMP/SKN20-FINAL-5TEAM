@@ -3,9 +3,9 @@
 수정 내용: 5대 지표 평가 시스템 완전 통합 및 프리미엄 리포트 UI 적용
 -->
 <template>
-  <div class="coduck-wars-container">
+  <div class="battle-game-container">
     <!-- BACKGROUND WATERMARK -->
-    <div class="bg-watermark">TEAM BATTLE</div>
+    <div class="bg-watermark">BATTLE GAME</div>
     <div class="scan-line"></div>
 
     <!-- HEADER -->

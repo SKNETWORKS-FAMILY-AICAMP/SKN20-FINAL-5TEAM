@@ -53,13 +53,13 @@ export const useGameStore = defineStore('game', {
                     'Pseudo Practice': 'gamepad-2',
                     'Debug Practice': 'bug',
                     'System Practice': 'layers',
-                    'Team Battle': 'swords'
+                    'Battle Game': 'swords'
                 };
                 const imageMap = {
                     'Pseudo Practice': '/image/unit_code.png',
                     'Debug Practice': '/image/unit_debug.png',
                     'System Practice': '/image/unit_system.png',
-                    'Team Battle': '/image/unit_battle.png'
+                    'Battle Game': '/image/unit_battle.png'
                 };
 
                 // [데이터 매핑 로직] DB 필드값을 UI 카드 컴포넌트의 props 형식에 맞게 변환하여 chapters 배열 구성
@@ -237,15 +237,14 @@ export const useGameStore = defineStore('game', {
         },
 
         /**
-         * [수정일: 2026-02-23] Job Planner 분석 결과 저장
-         * - Coduck Wars 섹션에서 '불러오기' 기능을 제공하기 위해 데이터를 저장합니다.
+         * - Wars 섹션에서 '불러오기' 기능을 제공하기 위해 데이터를 저장합니다. (CoduckWars -> Wars)
          */
         setLastParsedJob(jobData) {
             this.lastParsedJob = jobData;
         },
 
         /**
-         * [수정일: 2026-02-23] Coduck Wars 활성 미션 데이터 저장
+         * [수정일: 2026-03-03] Wars 활성 미션 데이터 저장 (CoduckWars -> Wars)
          */
         setWarsMission(mission) {
             this.activeWarsMission = mission;
@@ -257,7 +256,7 @@ export const useGameStore = defineStore('game', {
         },
 
         /**
-         * [수정일: 2026-02-23] Coduck Wars 평가 결과 저장
+         * [수정일: 2026-03-03] Wars 평가 결과 저장 (CoduckWars -> Wars)
          */
         setEvaluation(evaluation, finalDesign) {
             this.lastEvaluation = evaluation;

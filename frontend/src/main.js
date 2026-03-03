@@ -21,7 +21,7 @@ import MockInterview from './features/interview/MockInterview.vue'
 // [수정일: 2026-02-27] PressureInterviewRoom.vue 파일 삭제 및 사용 중지에 따른 임포트 제거
 import GrowthReport from './features/wars/GrowthReport.vue'
 // [수정일: 2026-03-01] WarLobby 제거 — 3인 팀 게임 미사용, 고아 파일
-// [수정일: 2026-02-23] Coduck Wars 미니게임 모드 추가
+// [수정일: 2026-03-03] Wars 미니게임 모드 추가 (CoduckWars -> Wars)
 import WarsModeSelect from './features/wars/WarsModeSelect.vue'
 import ArchDrawQuiz from './features/wars/minigames/ArchDrawQuiz.vue'
 // [수정일: 2026-02-24] SpeedArchBuilder → LogicRun으로 교체
@@ -57,32 +57,32 @@ const routes = [
     component: BugHunt
   },
   {
-    path: '/practice/coduck-wars',
-    name: 'CoduckWars',
+    path: '/practice/wars',
+    name: 'Wars',
     component: WarsModeSelect
   },
   // [삭제: 2026-02-26] 아키텍처 서바이벌(MissionBriefing) 삭제
   // [수정일: 2026-02-23] 미니게임 모드 라우트
   {
-    path: '/practice/coduck-wars/draw-quiz',
+    path: '/practice/wars/draw-quiz',
     name: 'ArchDrawQuiz',
     component: ArchDrawQuiz
   },
   // [수정일: 2026-02-24] speed-build → logic-run 경로 변경, LogicRun 컴포넌트 연결
   {
-    path: '/practice/coduck-wars/logic-run',
+    path: '/practice/wars/logic-run',
     name: 'LogicRun',
     component: LogicRun
   },
   {
-    path: '/practice/coduck-wars/bug-bubble',
+    path: '/practice/wars/bug-bubble',
     name: 'BugBubbleMonster',
     component: BugBubbleMonster
   },
 
   // [수정일: 2026-02-27] 압박 면접 방(PressureInterviewRoom)을 삭제함에 따라 라우터 경로도 함께 정리했습니다.
   {
-    path: '/practice/coduck-wars/report',
+    path: '/practice/wars/report',
     name: 'GrowthReport',
     component: GrowthReport
   },

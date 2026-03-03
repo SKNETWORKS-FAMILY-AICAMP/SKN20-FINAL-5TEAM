@@ -21,8 +21,8 @@
     </header>
 
     <main class="mode-grid">
-      <!-- Mode 1: 로직 런 (2026-02-26 수정 - 순서 변경, 1vs1 설정) -->
-      <div class="mode-card speed" @click="goTo('/practice/coduck-wars/logic-run')">
+      <!-- Mode 1: 로직 런 (2026-03-03 수정 - Wars 경로 통일) -->
+      <div class="mode-card speed" @click="goTo('/practice/wars/logic-run')">
         <div class="card-glow"></div>
         <div class="card-inner">
           <div class="mode-badge hot">NEW</div>
@@ -44,7 +44,7 @@
       </div>
 
       <!-- Mode 2: 1:1 버그 버블 몬스터 (신규) -->
-      <div class="mode-card battle" @click="goTo('/practice/coduck-wars/bug-bubble')">
+      <div class="mode-card battle" @click="goTo('/practice/wars/bug-bubble')">
         <div class="card-glow"></div>
         <div class="card-inner">
           <div class="mode-badge hot">NEW</div>
@@ -65,8 +65,8 @@
         <div class="card-arrow">→</div>
       </div>
 
-      <!-- Mode 3: 아키텍처 드로잉 퀴즈 (2026-02-26 수정 - 순서 변경, 1vs1 설정) -->
-      <div class="mode-card drawing card-solo-last" @click="goTo('/practice/coduck-wars/draw-quiz')">
+      <!-- Mode 3: 아키텍처 드로잉 퀴즈 (2026-03-03 수정 - Wars 경로 통일) -->
+      <div class="mode-card drawing card-solo-last" @click="goTo('/practice/wars/draw-quiz')">
         <div class="card-glow"></div>
         <div class="card-inner">
           <div class="mode-badge hot">NEW</div>

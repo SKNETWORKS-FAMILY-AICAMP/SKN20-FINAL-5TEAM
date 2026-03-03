@@ -3,7 +3,7 @@
   수정일: 2026-01-20
   수정내용: 공지사항 모달 컴포넌트 분리 (App.vue에서 분리됨)
   수정일: 2026-02-26
-  수정내용: Coduck Wars, AI-Coach 등 최신 업데이트 내용을 반영하여 공지 내용 및 UI 텍스트(UPDATE 테마) 변경
+  수정내용: Wars, AI-Coach 등 최신 업데이트 내용을 반영하여 공지 내용 및 UI 텍스트(UPDATE 테마) 변경 (Coduck Wars -> Wars)
 -->
 <template>
   <transition name="fade">
@@ -14,7 +14,7 @@
         <div class="notice-body">
           <p style="line-height: 1.6;">안녕하세요, 시스템 엔지니어 여러분! AI-Arcade에 새로운 훈련 모드와 강력한 기능들이 대거 업데이트 되었습니다.</p>
           <ul class="notice-list">
-            <li><i data-lucide="gamepad-2" class="notice-icon"></i> <strong>Team Battle 미니게임 모드</strong> (로직 런, 아키텍처 배틀 등) 정식 오픈</li>
+            <li><i data-lucide="gamepad-2" class="notice-icon"></i> <strong>Battle Game 미니게임 모드</strong> (로직 런, 아키텍처 배틀 등) 정식 오픈</li>
             <li><i data-lucide="bot" class="notice-icon"></i> <strong>AI-Coach 및 압박 면접 시뮬레이션</strong> 시스템 고도화 (비전 분석 탑재)</li>
             <li><i data-lucide="layers" class="notice-icon"></i> 실전형 <strong>시스템 아키텍처</strong> 및 의사코드 훈련 퀘스트 확장</li>
           </ul>

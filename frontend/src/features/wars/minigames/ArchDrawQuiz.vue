@@ -589,7 +589,12 @@ const registerCoachHint = (sock) => {
 }
 
 // ── 소켓 연결 (onMounted 1개로 통합) ──
-onMounted(() => { 
+onMounted(async () => { 
+  // [추가 2026-03-03] Race Condition 방어: 소켓 접속 전 유저 정보(uid) 확실히 확보
+  if (!auth.isLoggedIn) {
+    await auth.checkSession()
+  }
+
   console.log(`[ArchDraw] Connecting to Room: ${currentRoomId.value} as ${userName.value}`)
   // [수정일: 2026-03-03] DB 연동을 위해 userId 추가 전달
   ds.connect(currentRoomId.value, userName.value, userId.value)
@@ -1047,7 +1052,7 @@ function saveResultAndExit() {
 function exitGame() {
   saveResultAndExit()
   ds.disconnect(currentRoomId.value)
-  router.push('/practice/coduck-wars')
+  router.push('/practice/wars')
 }
 
 // [수정일: 2026-02-24] 내 아이템 상태 실시간 동기화 (총 수량 기준)
