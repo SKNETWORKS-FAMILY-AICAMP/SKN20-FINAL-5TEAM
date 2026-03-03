@@ -726,8 +726,18 @@ const handleResetFlow = () => {
 const completeMission = async () => {
     const stageIdx = (gameState.currentStageId || 1) - 1;
 
-    // 1) GameStore를 통한 해금 (내부적으로 ProgressStore unlockNode도 연동되어 있음)
-    await gameStore.unlockNextStage('Pseudo Practice', stageIdx);
+    // 1) ProgressStore를 통한 해금 (DB 단일 소스)
+    // [수정일: 2026-02-27] gameStore.unlockNextStage → progressStore.unlockNextStage로 이전
+    try {
+        const { useProgressStore } = await import('@/stores/progress');
+        const progressStore = useProgressStore();
+
+        const practiceId = gameStore.activeUnit?.id;
+        await progressStore.unlockNextStage(practiceId, stageIdx);
+    } catch (unlockErr) {
+        console.error('스테이지 해금 실패:', unlockErr);
+    }
+
     if (stageIdx < 9) {
         gameStore.selectedQuestIndex = stageIdx + 1;
     }

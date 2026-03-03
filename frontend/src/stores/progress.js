@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import axios from 'axios';
 
+
 export const useProgressStore = defineStore('progress', {
     state: () => ({
         // 유닛별 전체 진행도 (UserProgress 모델 데이터)
@@ -69,6 +70,23 @@ export const useProgressStore = defineStore('progress', {
             }
         },
 
+        // [수정일: 2026-02-27] 로그아웃 시 이전 사용자 진행도 초기화
+        resetProgress() {
+            this.unitProgresses = [];
+            this.solvedRecords = [];
+            this.error = null;
+        },
+
+        // [수정일: 2026-02-27] 현재 노드 + 다음 노드 해금을 통합하는 편의 액션
+        // gameStore.unlockNextStage()의 "현재+다음" 해금 로직을 progressStore로 이전
+        async unlockNextStage(practiceId, nodeIndex) {
+            if (!practiceId) return;
+            // 현재 노드 해금
+            await this.unlockNode(practiceId, nodeIndex);
+            // 다음 노드 해금
+            await this.unlockNode(practiceId, nodeIndex + 1);
+        },
+
         // 3. 문제(미션) 클리어 및 점수 제출 시
         // BugHunt나 PseudocodePractice에서 클리어 시 호출합니다.
         async submitScore(detailId, score, submittedData = {}) {
@@ -96,6 +114,12 @@ export const useProgressStore = defineStore('progress', {
         getUnlockedNodes: (state) => (practiceId) => {
             const p = state.unitProgresses.find(p => p.unit_id === practiceId);
             return p ? p.unlocked_nodes : [0]; // 기본적으로 0번 노드는 열림
+        },
+
+        // [수정일: 2026-02-27] unit_title 기반으로 해금 노드 목록 반환
+        getUnlockedNodesByTitle: (state) => (unitTitle) => {
+            const p = state.unitProgresses.find(p => p.unit_title === unitTitle);
+            return p ? p.unlocked_nodes : [0];
         },
 
         // 특정 연습상세문제의 최고 점수 반환

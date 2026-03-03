@@ -28,7 +28,7 @@
           </div>
           <div v-if="rs.connected.value && !rs.isReady.value" class="lobby-info">상대방을 기다리는 중...</div>
         </div>
-        <button @click="requestStart" class="btn-start blink-border" :disabled="!rs.isReady.value">▶ START GAME</button>
+        <button @click="requestStart" class="btn-start blink-border" :disabled="!rs.connected.value">▶ START GAME</button>
       </div>
     </div>
 
@@ -367,6 +367,49 @@
             </div>
           </div>
 
+          <!-- [추가 2026-02-27] AI 포트폴리오 글 생성 -->
+          <PortfolioWriter
+            game-type="logic"
+            :scenario="currentDesignScenario"
+            :my-score="myTotalScore"
+            :opponent-score="opponentTotalScore"
+            :result-text="myTotalScore > opponentTotalScore ? 'WIN' : myTotalScore < opponentTotalScore ? 'LOSE' : 'DRAW'"
+            :grade="resultGrade"
+            :pseudocode="mySubmittedCode"
+            :phase1-score="myPhase1Score"
+            :phase2-score="myPhase2Score"
+            :strengths="myLlmEval?.strengths || []"
+            :weaknesses="myLlmEval?.weaknesses || []"
+            :ai-review="myLlmEval?.feedback || ''"
+          />
+
+          <!-- 기존 export -->
+          <div class="lr-portfolio">
+            <div class="lr-pf-title">🎓 내 의사코드 경험을 포트폴리오로</div>
+            <div class="lr-pf-preview" ref="logicPortfolioCard">
+              <div class="lrpf-badge">📝 PSEUDOCODE DESIGN</div>
+              <div class="lrpf-scenario">{{ currentDesignScenario || '실무 위기 시나리오 기반 의사코드 작성' }}</div>
+              <div class="lrpf-code" v-if="mySubmittedCode">{{ mySubmittedCode.slice(0, 200) }}{{ mySubmittedCode.length > 200 ? '\n...' : '' }}</div>
+              <div class="lrpf-scores">
+                <span class="lrpf-sl">P1</span><span class="lrpf-sv neon-c">{{ myPhase1Score }}</span>
+                <span class="lrpf-sl">P2</span><span class="lrpf-sv neon-y">{{ myPhase2Score }}</span>
+                <span class="lrpf-sl">TOTAL</span><span class="lrpf-sv" style="color:#ffe600">{{ myTotalScore }}</span>
+                <span class="lrpf-sl">GRADE</span><span class="lrpf-sv" :style="{ color: resultGrade === 'A' || resultGrade === 'S' ? '#00f0ff' : '#94a3b8' }">{{ resultGrade }}</span>
+              </div>
+              <div v-if="myLlmEval?.feedback" class="lrpf-ai">
+                <span class="lrpf-ai-label">🤖 AI:</span>
+                <span>{{ myLlmEval.feedback.slice(0, 80) }}{{ myLlmEval.feedback.length > 80 ? '...' : '' }}</span>
+              </div>
+              <div class="lrpf-footer">CoduckWars · LogicRun · {{ lrTodayStr }}</div>
+            </div>
+            <div class="lr-pf-actions">
+              <button class="go-pf-btn cyan" @click="lrExportImage">🖼️ 이미지 저장</button>
+              <button class="go-pf-btn purple" @click="lrExportText">📋 클립보드 복사</button>
+              <button class="go-pf-btn gray" @click="lrDownloadTxt">📄 텍스트 저장</button>
+            </div>
+            <div v-if="lrCopyToast" class="go-pf-toast">✅ 클립보드에 복사됐어요!</div>
+          </div>
+
           <div class="go-btns">
             <button @click="startGame" class="btn-retry">🔄 다시하기</button>
             <button @click="$router.push('/practice/coduck-wars')" class="btn-exit">🏠 나가기</button>
@@ -387,11 +430,12 @@
 // 수정내용: 2단계 하이브리드 게임 (Phase1: 빈칸 채우기 + Phase2: 설계 스프린트)
 // 평가방식: 수도코드 평가방식(체크리스트 기반)
 
-import { ref, computed, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { aiQuests } from '@/features/practice/pseudocode/data/stages'
+import { logicQuests } from '../data/logicQuests.js'
 import { addBattleRecord } from '../useBattleRecord.js'
+import PortfolioWriter from '../components/PortfolioWriter.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -403,6 +447,157 @@ const inputRoomId = ref('9999')
 const roomId = ref('')
 
 // 방 입장
+// ========== [추가 2026-02-27] 포트폴리오 export ==========
+const logicPortfolioCard = ref(null)
+const lrCopyToast = ref(false)
+const lrTodayStr = new Date().toISOString().slice(0, 10)
+
+// 내가 제출한 코드 (phase2 waiting 상태에서 저장된것 또는 myEvaluation에서)
+const mySubmittedCode = computed(() => myEvaluation.value?.code || designCode.value || '')
+
+// 내 LLM 평가 (isP1 기반으로 llmEvaluationP1 또는 P2)
+const myLlmEval = computed(() => isP1.value ? llmEvaluationP1.value : llmEvaluationP2.value)
+
+const lrBuildText = () => {
+  const scenario = currentDesignScenario.value || '실무 위기 시나리오 기반 의사코드 작성'
+  const code = mySubmittedCode.value
+  const llm = myLlmEval.value
+  return [
+    `🎓 [CoduckWars 로직 런 포트폴리오]`,
+    ``,
+    `📋 시나리오: ${scenario}`,
+    ``,
+    `📝 내가 작성한 의사코드:`,
+    code ? code.split('\n').map(l => `  ${l}`).join('\n') : '  (작성한 코드 없음)',
+    ``,
+    `📊 결과`,
+    `  Phase1 (빠른 빈칸): ${myPhase1Score.value}pt`,
+    `  Phase2 (설계 스프린트): ${myPhase2Score.value}pt`,
+    `  총점: ${myTotalScore.value}  |  등급: ${resultGrade.value}`,
+    ``,
+    llm ? [
+      `🤖 AI 코드 평가 (${llm.llm_score}/100 · ${llm.grade})`,
+      `  ${llm.feedback}`,
+      llm.strengths?.length ? `  ✨ 강점: ${llm.strengths.join(', ')}` : '',
+      llm.weaknesses?.length ? `  ⚠️ 개선점: ${llm.weaknesses.join(', ')}` : '',
+    ].filter(Boolean).join('\n') : '',
+    ``,
+    `🔗 Powered by CoduckWars — 실무 의사코드 AI 실습 플랫폼`,
+    `📅 ${lrTodayStr}`
+  ].filter(l => l !== '').join('\n')
+}
+
+const lrExportImage = () => {
+  const card = logicPortfolioCard.value
+  if (!card) return
+  const canvas = document.createElement('canvas')
+  const scale = 2
+  const rect = card.getBoundingClientRect()
+  canvas.width = rect.width * scale
+  canvas.height = rect.height * scale
+  const ctx = canvas.getContext('2d')
+  ctx.scale(scale, scale)
+  const W = rect.width, H = rect.height
+
+  // 배경
+  const bg = ctx.createLinearGradient(0, 0, W, H)
+  bg.addColorStop(0, '#030712'); bg.addColorStop(1, '#0a0f1e')
+  ctx.fillStyle = bg; ctx.roundRect(0, 0, W, H, 12); ctx.fill()
+  ctx.strokeStyle = 'rgba(255,230,0,0.3)'; ctx.lineWidth = 1.5
+  ctx.roundRect(0, 0, W, H, 12); ctx.stroke()
+
+  // 배지
+  ctx.fillStyle = 'rgba(255,230,0,0.08)'; ctx.roundRect(12, 12, 175, 22, 5); ctx.fill()
+  ctx.fillStyle = '#ffe600'; ctx.font = 'bold 10px monospace'
+  ctx.fillText('📝 PSEUDOCODE DESIGN', 20, 27)
+
+  // 시나리오
+  ctx.fillStyle = '#94a3b8'; ctx.font = '10px sans-serif'
+  const scenario = currentDesignScenario.value || '실무 시나리오 기반 의사코드'
+  const sl = scenario.length > 55 ? scenario.slice(0, 55) + '...' : scenario
+  ctx.fillText(sl, 12, 48)
+
+  // 코드 블록
+  const code = mySubmittedCode.value
+  if (code) {
+    ctx.fillStyle = '#050a10'; ctx.roundRect(12, 56, W - 24, 100, 6); ctx.fill()
+    ctx.strokeStyle = 'rgba(255,230,0,0.15)'; ctx.lineWidth = 0.8
+    ctx.roundRect(12, 56, W - 24, 100, 6); ctx.stroke()
+    ctx.fillStyle = '#e0f2fe'; ctx.font = '9px monospace'
+    const lines = code.split('\n').slice(0, 8)
+    lines.forEach((line, i) => {
+      const truncated = line.length > 52 ? line.slice(0, 52) + '...' : line
+      ctx.fillText(truncated, 20, 72 + i * 11)
+    })
+    if (code.split('\n').length > 8) {
+      ctx.fillStyle = '#334155'; ctx.fillText('...', 20, 72 + 8 * 11)
+    }
+  }
+
+  let y = code ? 168 : 64
+
+  // 점수 그리기
+  ctx.fillStyle = '#334155'; ctx.fillRect(12, y, W - 24, 1); y += 12
+  ctx.font = '10px monospace'
+  const scores = [
+    { l: 'P1', v: String(myPhase1Score.value), c: '#00f0ff' },
+    { l: 'P2', v: String(myPhase2Score.value), c: '#ffe600' },
+    { l: 'TOTAL', v: String(myTotalScore.value), c: '#ffe600' },
+    { l: 'GRADE', v: resultGrade.value, c: '#00f0ff' }
+  ]
+  let sx = 12
+  scores.forEach(s => {
+    ctx.fillStyle = '#475569'; ctx.font = '8px monospace'; ctx.fillText(s.l, sx, y)
+    ctx.fillStyle = s.c; ctx.font = 'bold 12px monospace'; ctx.fillText(s.v, sx, y + 13)
+    sx += 52
+  })
+  y += 28
+
+  // AI 평가
+  const llm = myLlmEval.value
+  if (llm?.feedback) {
+    ctx.fillStyle = '#334155'; ctx.fillRect(12, y, W - 24, 1); y += 10
+    ctx.fillStyle = '#ffe600'; ctx.font = '8px monospace'
+    ctx.fillText('🤖 AI ' + (llm.llm_score || '') + '/100', 12, y)
+    ctx.fillStyle = '#64748b'; ctx.font = '9px sans-serif'
+    const fb = llm.feedback.length > 65 ? llm.feedback.slice(0, 65) + '...' : llm.feedback
+    ctx.fillText(fb, 12, y + 12); y += 24
+  }
+
+  // 푸터
+  ctx.fillStyle = '#1e293b'; ctx.fillRect(0, H - 22, W, 1)
+  ctx.fillStyle = '#334155'; ctx.font = '9px monospace'
+  ctx.fillText('CoduckWars · LogicRun', 12, H - 8)
+  ctx.fillText(lrTodayStr, W - 68, H - 8)
+
+  const link = document.createElement('a')
+  link.download = `logic_portfolio_${lrTodayStr}.png`
+  link.href = canvas.toDataURL('image/png')
+  link.click()
+}
+
+const lrExportText = () => {
+  const text = lrBuildText()
+  try { navigator.clipboard.writeText(text) } catch {
+    const ta = document.createElement('textarea')
+    ta.value = text; document.body.appendChild(ta); ta.select()
+    document.execCommand('copy'); document.body.removeChild(ta)
+  }
+  lrCopyToast.value = true
+  setTimeout(() => { lrCopyToast.value = false }, 2500)
+}
+
+const lrDownloadTxt = () => {
+  const text = lrBuildText()
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
+  const link = document.createElement('a')
+  link.download = `logic_portfolio_${lrTodayStr}.txt`
+  link.href = URL.createObjectURL(blob)
+  link.click()
+  URL.revokeObjectURL(link.href)
+}
+// =========================================================
+
 function joinRoom() {
   if (!inputRoomId.value.trim()) return
   roomId.value = inputRoomId.value.trim()
@@ -410,12 +605,17 @@ function joinRoom() {
 }
 
 function requestStart() {
-  if (rs.isReady.value) {
+  if (rs.connected.value) {
     rs.emitStart(roomId.value)
   }
 }
 
 // 소켓 리스너 등록
+rs.onJoinError.value = (msg) => {
+  alert(msg)
+  roomId.value = ''
+}
+
 rs.onGameStart.value = (qIdx) => {
   const roomPlayers = rs.roomPlayers.value
   playerP1.value = roomPlayers[0] || { name: 'P1', avatar_url: '/image/duck_idle.png', sid: '' }
@@ -429,14 +629,14 @@ rs.onSync.value = (data) => {
 
   // ← ArchDrawQuiz 패턴: data.sid로 직접 상대 구분 (myIdx 인덱스 의존 제거)
   if (data.sid !== rs.socket.value?.id) {
-    // Phase 1: speedFill
+        // Phase 1: speedFill
     if (data.phase === 'speedFill') {
       oppPhase1Score.value = data.score || 0
 
-      // ← 상대 진행도 동기화 (오리 위치 이동)
-      remoteRound.value = data.round !== undefined ? data.round : remoteRound.value
-      remoteBlankIdx.value = data.blankIdx !== undefined ? data.blankIdx : remoteBlankIdx.value
-      console.log(`📍 Remote progress: Round ${remoteRound.value}, BlankIdx ${remoteBlankIdx.value}`)
+      // ← 상대 진행도 동기화 (오답 시에는 전진 안 함)
+      if (data.correctBlanks !== undefined) {
+        oppCorrectBlanks.value = data.correctBlanks
+      }
     }
     // Phase 2: designSprint
     else if (data.phase === 'designSprint') {
@@ -529,9 +729,9 @@ const currentCombo = ref(0)
 const myChecksCompleted = ref(0)
 const oppChecksCompleted = ref(0)
 
-// ← 추가: 상대 진행도 추적 (동기화용)
-const remoteRound = ref(0)
-const remoteBlankIdx = ref(0)
+// ← 추가: 오리 위치 전진용 (맞춘 개수만)
+const myCorrectBlanks = ref(0)
+const oppCorrectBlanks = ref(0)
 
 // ────── PHASE 2: DESIGN SPRINT ──────────
 const designCode = ref('')
@@ -551,21 +751,37 @@ const opponentEvaluation = ref(null)  // 상대 평가 결과
 const myEvaluation = ref(null)  // 내 평가 결과
 const phase2WaitingTimeout = ref(30)  // 30초 대기
 
+// ────── 라운드 관리 ──────────
+const currentQuest = ref(null)
+
 // ────── 라운드 데이터 동적 생성 ──────────
 function generateSpeedFillRounds() {
-  if (aiQuests.length === 0) {
-    // 폴백: 기본 문제들
-    return getDefaultRounds()
-  }
+  if (!currentQuest.value) return getDefaultRounds()
 
-  // 첫 5개 Quest에서 빈칩 채우기 라운드 생성
-  return aiQuests.slice(0, 5).map((quest, idx) => ({
-    id: idx + 1,
-    context: quest.title,
-    codeBlock: generateCodeBlock(quest),
-    blanks: generateBlanks(quest),
-    blanksOrder: generateBlanksOrder(quest)
-  }))
+  return currentQuest.value.speedRounds.map((roundData) => {
+    const blanksObj = {}
+    const blanksOrderInfo = []
+    
+    roundData.codeLines.forEach((line, lIdx) => {
+      if (line.type === 'blank') {
+        const bId = 'b' + (lIdx + 1)
+        blanksObj[bId] = {
+          answer: line.answer,
+          options: shuffleArray(line.options),
+          hint: '힌트'
+        }
+        blanksOrderInfo.push(bId)
+      }
+    })
+
+    return {
+      id: roundData.round,
+      context: roundData.context,
+      codeBlock: roundData.codeLines,
+      blanks: blanksObj,
+      blanksOrder: blanksOrderInfo
+    }
+  })
 }
 
 function generateCodeBlock(quest) {
@@ -652,18 +868,18 @@ function getDefaultRounds() {
   ]
 }
 
-let speedFillRounds = generateSpeedFillRounds()
+// 상단에서 이미 speedFillRounds 등을 선언해야 하므로 전역 대신 훅핑
+let speedFillRounds = []
 
 // Design Sprint 데이터 (동적 로드 함수)
 function getDesignSprintData() {
-  if (aiQuests.length === 0) return null
+  // [수정일: 2026-02-27] 후반전 데이터를 전반전에 사용한 currentQuest와 동일하게 유지
+  if (!currentQuest.value) return null
 
-  // 랜덤 Quest 선택 (또는 라운드 기반)
-  const selectedQuestIdx = currentRound.value % aiQuests.length
-  const quest = aiQuests[selectedQuestIdx]
+  const quest = currentQuest.value
 
   // 체크리스트 패턴을 정규식으로 변환
-  const checklist = (quest.checklist || []).map(item => ({
+  const checklist = (quest.designSprint.checklist || []).map(item => ({
     id: item.id,
     label: item.label,
     patterns: (item.patterns || []).map(p => {
@@ -675,7 +891,7 @@ function getDesignSprintData() {
   }))
 
   return {
-    scenario: quest.designContext?.description || quest.scenario,
+    scenario: quest.scenario,
     checklist,
     questId: quest.id,
     questTitle: quest.title
@@ -696,19 +912,32 @@ const currentBlankData = computed(() => {
 const isP1 = computed(() => rs.socket.value?.id === playerP1.value?.sid)
 
 // ← 플레이어별 진행도 (자신)
+// 전체 빈칸 수 캐시 (계산 반복 방지)
+const totalSpeedFillBlanks = computed(() => {
+  if (!speedFillRounds || speedFillRounds.length === 0) return 1
+  return speedFillRounds.reduce((sum, r) => sum + (r.blanksOrder?.length || 1), 0) || 1
+})
+
+// ← 0~80 범위로 제한 (출발선 정렬: 오리 너비 고려)
 const myProgressPct = computed(() => {
+  let raw = 0
   if (currentGamePhase.value === 'speedFill') {
-    return ((currentRound.value * 2 + currentBlankIdx.value) / (totalRounds * 2)) * 100
+    raw = (myCorrectBlanks.value / totalSpeedFillBlanks.value) * 100
+  } else {
+    raw = totalChecks.value === 0 ? 0 : (myChecksCompleted.value / totalChecks.value) * 100
   }
-  return (myChecksCompleted.value / totalChecks.value) * 100
+  return Math.min(80, raw)  // 최대 80%: 오리가 결승선을 넘지 않도록
 })
 
 // ← 플레이어별 진행도 (상대)
 const opponentProgressPct = computed(() => {
+  let raw = 0
   if (currentGamePhase.value === 'speedFill') {
-    return ((remoteRound.value * 2 + remoteBlankIdx.value) / (totalRounds * 2)) * 100
+    raw = (oppCorrectBlanks.value / totalSpeedFillBlanks.value) * 100
+  } else {
+    raw = totalChecks.value === 0 ? 0 : (oppChecksCompleted.value / totalChecks.value) * 100
   }
-  return (oppChecksCompleted.value / totalChecks.value) * 100
+  return Math.min(80, raw)
 })
 
 // ← UI 렌더링용 진행도 (isP1 기반 - roomPlayers 타이밍 이슈 없음)
@@ -767,12 +996,23 @@ const resultGrade = computed(() => {
 
 // ─── 게임 시작 ────────────────────────────────────────
 function startGame(fromSocket = false, qIdx = null) {
+  // [수정일: 2026-02-27] 게임 시작 시 전용 퀘스트(테마)를 하나 랜덤으로 고정
+  if (logicQuests && logicQuests.length > 0) {
+    const questIdx = typeof qIdx === 'number' ? qIdx % logicQuests.length 
+                   : (roomId.value ? roomId.value.charCodeAt(0) % logicQuests.length 
+                   : Math.floor(Math.random() * logicQuests.length));
+    currentQuest.value = logicQuests[questIdx]
+  }
+
+  // 퀘스트가 정해지면 라운드 데이터 동기화
+  speedFillRounds = generateSpeedFillRounds()
+
   currentGamePhase.value = 'speedFill'
   currentRound.value = 0
   currentBlankIdx.value = 0
   currentCombo.value = 0
-  remoteRound.value = 0  // ← 추가: 상대 진행도 초기화
-  remoteBlankIdx.value = 0  // ← 추가: 상대 진행도 초기화
+  myCorrectBlanks.value = 0  // ← 맞춘 개수 초기화
+  oppCorrectBlanks.value = 0  // ← 맞춘 개수 초기화
   myPhase1Score.value = 0
   myPhase2Score.value = 0
   oppPhase1Score.value = 0
@@ -799,7 +1039,7 @@ function startGame(fromSocket = false, qIdx = null) {
 
 // ─── PHASE 1: Speed Fill ──────────
 function startPhase1Round() {
-  if (currentRound.value >= totalRounds) {
+  if (currentRound.value >= speedFillRounds.length) {
     startPhase2()
     return
   }
@@ -807,6 +1047,15 @@ function startPhase1Round() {
   currentRoundData.value = speedFillRounds[currentRound.value]
   currentBlankIdx.value = 0
   roundTimeout.value = 15
+
+  // [추가 2026-02-27] 새 라운드(타임아웃 포함)가 시작될 때 상대에게 내 진행도를 즉각 동기화
+  rs.emitProgress(roomId.value, {
+    phase: 'speedFill',
+    correctBlanks: myCorrectBlanks.value,
+    score: myPhase1Score.value,
+    combo: currentCombo.value,
+    sid: rs.socket.value?.id
+  })
 
   startRoundTimeout(15)
   nextTick(() => {
@@ -827,13 +1076,14 @@ function selectBlankAnswer(answer) {
 }
 
 function handleBlankCorrect() {
-  // ← ArchDrawQuiz 패턴: 항상 내 점수(myPhase1Score)만 업데이트 (myIdx 불필요)
+  // ← ArchDrawQuiz 패턴: 항상 내 점수(myPhase1Score)만 업데이트
   const pointsBase = 100
   const comboBonus = currentCombo.value > 0 ? 15 * currentCombo.value : 0
   const points = pointsBase + comboBonus
 
   currentCombo.value++
   myPhase1Score.value += points
+  myCorrectBlanks.value++ // ← 오리 전진!
 
   flashOk.value = true
   setTimeout(() => { flashOk.value = false }, 300)
@@ -851,8 +1101,7 @@ function handleBlankCorrect() {
 
   rs.emitProgress(roomId.value, {
     phase: 'speedFill',
-    round: currentRound.value,
-    blankIdx: currentBlankIdx.value,  // ← 추가: 현재 블랭크 인덱스
+    correctBlanks: myCorrectBlanks.value,
     score: myPhase1Score.value,
     combo: currentCombo.value,
     sid: rs.socket.value?.id
@@ -973,17 +1222,12 @@ function startPhase2WaitingTimeout() {
   phase2WaitingInterval = setInterval(() => {
     phase2WaitingTimeout.value--
 
-    if (phase2WaitingTimeout.value <= 0 || opponentSubmitted.value) {
+    // [수정 2026-02-27] opponentCode 비어있어도 opponentSubmitted=true면 진행 (뽕힌 방지)
+    const shouldFinalize = opponentSubmitted.value || phase2WaitingTimeout.value <= 0
+    if (shouldFinalize) {
       clearInterval(phase2WaitingInterval)
       phase2WaitingInterval = null
-
-      // 양쪽 모두 제출되었거나 타임아웃
-      if (opponentSubmitted.value && opponentCode.value) {
-        finalizePhase2()
-      } else if (phase2WaitingTimeout.value <= 0) {
-        // 타임아웃: 상대 미제출
-        finalizePhase2()
-      }
+      finalizePhase2()
     }
   }, 1000)
 }
@@ -1042,6 +1286,17 @@ function spawnFpop(text, color = '#fbbf24') {
   })
   setTimeout(() => { fpops.value = fpops.value.filter(f => f.id !== id) }, 1200)
 }
+
+// [추가 2026-02-27] opponentSubmitted 변경 즉시 finalize 실행 (interval 타이밍 종속 방지)
+watch(opponentSubmitted, (val) => {
+  if (val && phase2Status.value === 'waiting') {
+    if (phase2WaitingInterval) {
+      clearInterval(phase2WaitingInterval)
+      phase2WaitingInterval = null
+    }
+    finalizePhase2()
+  }
+})
 
 onUnmounted(() => {
   if (roundTimeoutInterval) clearInterval(roundTimeoutInterval)
@@ -1179,9 +1434,11 @@ onUnmounted(() => {
 .runner-char {
   position:absolute; bottom:8px; transition:left .5s ease;
   width: 64px; height: 64px; display: flex; align-items: flex-end;
-  justify-content: center; transform: translateX(-50%);
+  justify-content: center;
+  /* translateX(-50%) 제거: left:0% 출발선에서 양쪽 오리가 동일 위치에서 시작 */
 }
-.main-avatar { width: 56px; height: 56px; object-fit: contain; filter: drop-shadow(0 0 10px rgba(0,240,255,0.3)); }
+/* ← 수정: 오리가 달리는 방향(오른쪽)을 바라보도록 반전 추가 */
+.main-avatar { width: 56px; height: 56px; object-fit: contain; filter: drop-shadow(0 0 10px rgba(0,240,255,0.3)); transform: scaleX(-1); }
 .runner-char.running { animation:runBounce .4s infinite ease-in-out; }
 .runner-char.stumble { animation:stumbleAnim .3s ease; }
 
@@ -1579,6 +1836,29 @@ onUnmounted(() => {
 }
 
 /* ── 트랜지션 ──────────────────────────────── */
+/* ── 포트폴리오 export ── */
+.lr-portfolio { margin: 1rem 0 0.5rem; text-align: left; }
+.lr-pf-title { font-family: 'Orbitron', sans-serif; font-size: .65rem; color: #ffe600; letter-spacing: 2px; margin-bottom: .6rem; text-align: center; }
+.lr-pf-preview { background: linear-gradient(135deg, #030712, #0a0f1e); border: 1px solid rgba(255,230,0,0.25); border-radius: .75rem; padding: 1rem; display: flex; flex-direction: column; gap: .6rem; margin-bottom: .75rem; }
+.lrpf-badge { font-size: .55rem; font-weight: 700; letter-spacing: 1px; padding: 3px 10px; border-radius: 4px; background: rgba(255,230,0,.08); color: #ffe600; border: 1px solid rgba(255,230,0,.2); display: inline-block; }
+.lrpf-scenario { font-size: .75rem; color: #64748b; line-height: 1.4; border-left: 2px solid rgba(255,230,0,.2); padding-left: .5rem; }
+.lrpf-code { background: #050a10; border: 1px solid rgba(255,230,0,.12); border-radius: .4rem; padding: .6rem .75rem; font-family: monospace; font-size: .65rem; color: #e0f2fe; white-space: pre-wrap; word-break: break-all; max-height: 120px; overflow-y: auto; line-height: 1.4; }
+.lrpf-scores { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
+.lrpf-sl { font-size: .5rem; color: #475569; font-family: 'Orbitron', monospace; letter-spacing: 1px; }
+.lrpf-sv { font-size: .8rem; font-weight: 700; font-family: 'Orbitron', monospace; }
+.lrpf-ai { font-size: .65rem; color: #64748b; }
+.lrpf-ai-label { color: #ffe600; font-weight: 700; margin-right: .3rem; }
+.lrpf-footer { font-size: .55rem; color: #1e293b; font-family: monospace; padding-top: .5rem; border-top: 1px solid rgba(255,255,255,.04); }
+.lr-pf-actions { display: flex; gap: .5rem; margin-bottom: .5rem; flex-wrap: wrap; }
+.go-pf-btn { padding: .45rem 1rem; border-radius: .5rem; font-size: .7rem; font-weight: 700; cursor: pointer; transition: all .2s; }
+.go-pf-btn.cyan { background: rgba(0,240,255,.1); border: 1px solid rgba(0,240,255,.3); color: #00f0ff; }
+.go-pf-btn.cyan:hover { background: rgba(0,240,255,.18); }
+.go-pf-btn.purple { background: rgba(168,85,247,.1); border: 1px solid rgba(168,85,247,.3); color: #a855f7; }
+.go-pf-btn.purple:hover { background: rgba(168,85,247,.18); }
+.go-pf-btn.gray { background: rgba(100,116,139,.1); border: 1px solid rgba(100,116,139,.3); color: #64748b; }
+.go-pf-btn.gray:hover { background: rgba(100,116,139,.18); }
+.go-pf-toast { font-size: .7rem; color: #22c55e; padding: .3rem .7rem; background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.25); border-radius: .4rem; display: inline-block; }
+
 .zoom-enter-active, .zoom-leave-active { transition: transform 0.3s ease, opacity 0.3s ease; }
 .zoom-enter-from, .zoom-leave-to { transform: scale(0.9); opacity: 0; }
 

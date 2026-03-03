@@ -113,16 +113,28 @@ class StateMachine:
         """
         if room_state.state != GameState.PLAYING:
             return False
-        if room_state.elapsed() < 30:
+        # [수정일: 2026-02-27] 테스트성 강화를 위해 임계값 단축 (기존 30s -> 10s)
+        if room_state.elapsed() < 10:
             return False
-        if time.time() - room_state.coach_triggered_at < 60:
+        # [수정일: 2026-02-27] 테스트성 강화를 위해 임계값 단축 (기존 60s -> 40s)
+        if time.time() - room_state.coach_triggered_at < 40:
             return False
 
         node_count = room_state.get_node_count(sid)
         required_count = len(room_state.mission_required)
         threshold = max(1, required_count // 2)
 
-        return node_count < threshold
+        # 1. 노드 배치 수가 필수 컴포넌트의 절반 미만인 경우 (기존 조건)
+        if node_count < threshold:
+            return True
+            
+        # 2. [추가 2026-02-27] 헤매는 상태(Inactivity) 감지: 15초간 아무 조작이 없으면 개입
+        inactivity_limit = 15.0
+        if room_state.seconds_since_last_update(sid) > inactivity_limit:
+            print(f"[StateMachine] 🔍 Player {sid} is wandering (inactive for {inactivity_limit}s). Triggering Coach.")
+            return True
+
+        return False
 
     def can_trigger_chaos(self, room_state: DrawRoomState) -> bool:
         """
@@ -133,7 +145,8 @@ class StateMachine:
         """
         if room_state.state != GameState.PLAYING:
             return False
-        if room_state.elapsed() < 60:
+        # [수정일: 2026-02-27] 테스트성 강화를 위해 임계값 단축 (기존 60s -> 25s)
+        if room_state.elapsed() < 25:
             return False
         if room_state.chaos_triggered_at > 0:
             return False  # 이미 이번 라운드에 발동

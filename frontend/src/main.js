@@ -18,7 +18,7 @@ import ManagementView from './features/admin/ManagementView.vue'
 import MyRecordsView from './features/my-records/MyRecordsView.vue'
 import AICoach from './features/ai-coach/AICoach.vue'
 import MockInterview from './features/interview/MockInterview.vue'
-import PressureInterviewRoom from './features/wars/PressureInterviewRoom.vue'
+// [수정일: 2026-02-27] PressureInterviewRoom.vue 파일 삭제 및 사용 중지에 따른 임포트 제거
 import GrowthReport from './features/wars/GrowthReport.vue'
 import WarLobby from './features/wars/WarLobby.vue'
 // [수정일: 2026-02-23] Coduck Wars 미니게임 모드 추가
@@ -56,7 +56,7 @@ const routes = [
     name: 'BugHunt',
     component: BugHunt
   },
-{
+  {
     path: '/practice/coduck-wars',
     name: 'CoduckWars',
     component: WarsModeSelect
@@ -80,11 +80,7 @@ const routes = [
     component: BugBubbleMonster
   },
 
-  {
-    path: '/practice/coduck-wars/battle',
-    name: 'PressureInterviewRoom',
-    component: PressureInterviewRoom
-  },
+  // [수정일: 2026-02-27] 압박 면접 방(PressureInterviewRoom)을 삭제함에 따라 라우터 경로도 함께 정리했습니다.
   {
     path: '/practice/coduck-wars/report',
     name: 'GrowthReport',
@@ -95,7 +91,7 @@ const routes = [
     name: 'WarLobby',
     component: WarLobby
   },
-{
+  {
     path: '/management/progress',
     name: 'Management',
     component: ManagementView

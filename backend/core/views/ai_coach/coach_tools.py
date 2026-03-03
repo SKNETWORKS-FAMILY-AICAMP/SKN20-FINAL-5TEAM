@@ -352,20 +352,25 @@ def tool_recommend_next_problem(profile, unit_id=None):
         ).values_list("practice_detail_id", flat=True)
     )
 
+    # best score를 한 번에 조회 (N+1 → 1 쿼리)
+    best_scores = dict(
+        UserSolvedProblem.objects.filter(
+            user=profile, is_best_score=True
+        ).values_list("practice_detail_id", "score")
+    )
+
     recommendations = []
     for detail in details_qs.select_related("practice").order_by("practice__unit_number", "display_order"):
         if detail.id in mastered_ids:
             continue
-        best = UserSolvedProblem.objects.filter(
-            user=profile, practice_detail=detail, is_best_score=True
-        ).first()
+        best_score = best_scores.get(detail.id)
         recommendations.append({
             "problem_id": detail.id,
             "problem_title": detail.detail_title,
             "unit_id": detail.practice_id,
             "unit_title": detail.practice.title,
-            "current_best_score": best.score if best else None,
-            "status": "재도전 필요" if best else "미풀이",
+            "current_best_score": best_score,
+            "status": "재도전 필요" if best_score is not None else "미풀이",
         })
         if len(recommendations) >= 5:
             break
@@ -635,12 +640,23 @@ def _determine_data_type(message):
     return "unit"
 
 
-def _generate_metric_chart(profile):
+def _cached_call(fn, args, cache):
+    """캐시가 있으면 재사용, 없으면 실행 후 저장"""
+    key = f"{fn.__name__}:{json.dumps(args, sort_keys=True, ensure_ascii=False, default=str)}"
+    if cache is not None and key in cache:
+        return cache[key]
+    result = fn(*args)
+    if cache is not None:
+        cache[key] = result
+    return result
+
+
+def _generate_metric_chart(profile, cache=None):
     """메트릭별 차트 생성 (약점 분석)"""
     try:
         # 첫 번째 약점이 있는 유닛 찾기
         for unit_id in ["unit01", "unit02", "unit03"]:
-            weak_data = tool_get_weak_points(profile, unit_id)
+            weak_data = _cached_call(tool_get_weak_points, (profile, unit_id), cache)
             all_metrics = weak_data.get("all_metrics", [])
             if all_metrics:
                 labels = [m["metric"] for m in all_metrics]
@@ -670,10 +686,10 @@ def _generate_metric_chart(profile):
     return None
 
 
-def _generate_chronological_chart(profile):
+def _generate_chronological_chart(profile, cache=None):
     """시간순 차트 생성 (성장 추이)"""
     try:
-        activities = tool_get_recent_activity(profile, limit=10)
+        activities = _cached_call(tool_get_recent_activity, (profile,), cache)
         if activities:
             # 최근 5-10개 풀이의 점수 추이
             labels = [a["problem_title"][:15] for a in activities[-5:]]
@@ -700,10 +716,10 @@ def _generate_chronological_chart(profile):
     return None
 
 
-def _generate_problem_chart(profile):
+def _generate_problem_chart(profile, cache=None):
     """문제별 차트 생성 (풀이 기록)"""
     try:
-        activities = tool_get_recent_activity(profile, limit=15)
+        activities = _cached_call(tool_get_recent_activity, (profile,), cache)
         if activities:
             labels = [a["problem_title"][:12] for a in activities[-10:]]
             values = [a["score"] for a in activities[-10:]]
@@ -732,12 +748,12 @@ def _generate_problem_chart(profile):
     return None
 
 
-def _generate_unit_chart(profile):
+def _generate_unit_chart(profile, cache=None):
     """단위별 차트 생성 (기본값)"""
     charts = []
 
     try:
-        scores = tool_get_user_scores(profile)
+        scores = _cached_call(tool_get_user_scores, (profile,), cache)
         if scores:
             labels = [s["unit_title"] for s in scores]
             values = [s["avg_score"] for s in scores]
@@ -781,10 +797,10 @@ def _generate_unit_chart(profile):
     return charts if charts else None
 
 
-def generate_chart_data_summary(profile, intent_type, user_message=""):
+def generate_chart_data_summary(profile, intent_type, user_message="", cache=None):
     """
     Intent + 사용자 메시지 기반으로 동적 차트 데이터 생성 (SSE로 전달)
-    상세 데이터는 별도 API에서 제공
+    cache: Agent Loop의 called_tools_cache를 받아 중복 DB 조회 방지
     """
     charts = []
 
@@ -793,41 +809,34 @@ def generate_chart_data_summary(profile, intent_type, user_message=""):
         data_type = _determine_data_type(user_message)
 
         if data_type == "metric":
-            # 메트릭별 차트
-            chart = _generate_metric_chart(profile)
+            chart = _generate_metric_chart(profile, cache)
             if chart:
                 charts.append(chart)
         elif data_type == "chronological":
-            # 시간순 차트
-            chart = _generate_chronological_chart(profile)
+            chart = _generate_chronological_chart(profile, cache)
             if chart:
                 charts.append(chart)
         elif data_type == "problem":
-            # 문제별 차트
-            chart = _generate_problem_chart(profile)
+            chart = _generate_problem_chart(profile, cache)
             if chart:
                 charts.append(chart)
         else:
-            # 기본값: 단위별 차트
-            unit_charts = _generate_unit_chart(profile)
+            unit_charts = _generate_unit_chart(profile, cache)
             if unit_charts:
                 charts.extend(unit_charts)
 
     elif intent_type == "B":  # 학습 방법형
-        # 메트릭 분석 (약점 개선 방법 제시 위함)
-        chart = _generate_metric_chart(profile)
+        chart = _generate_metric_chart(profile, cache)
         if chart:
             charts.append(chart)
 
     elif intent_type == "C":  # 동기부여형
-        # 성장 추이 (동기부여)
-        chart = _generate_chronological_chart(profile)
+        chart = _generate_chronological_chart(profile, cache)
         if chart:
             charts.append(chart)
 
     elif intent_type == "G":  # 의사결정형
-        # 차트: 성적 비교 테이블
-        scores = tool_get_user_scores(profile)
+        scores = _cached_call(tool_get_user_scores, (profile,), cache)
         if scores:
             charts.append({
                 "chart_type": "table",

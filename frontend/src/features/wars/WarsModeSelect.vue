@@ -60,7 +60,7 @@
       </div>
 
       <!-- Mode 3: 아키텍처 드로잉 퀴즈 (2026-02-26 수정 - 순서 변경, 1vs1 설정) -->
-      <div class="mode-card drawing" @click="goTo('/practice/coduck-wars/draw-quiz')">
+      <div class="mode-card drawing card-solo-last" @click="goTo('/practice/coduck-wars/draw-quiz')">
         <div class="card-glow"></div>
         <div class="card-inner">
           <div class="mode-badge hot">NEW</div>
@@ -254,6 +254,22 @@ const goTo = (path) => router.push(path);
   grid-template-columns: repeat(2, 1fr);
   gap: 1.5rem;
   max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* 세 번째 카드가 단독으로 있을 때 양쪽 중앙 정렬 */
+.mode-card:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+  max-width: 520px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* 카드 3개일 때 3번째만 중앙정렬 - 클래스 직접 지정 방식 (보조 규칙의 선택자 문제 방지) */
+.card-solo-last {
+  grid-column: 1 / -1;
+  max-width: 520px;
   margin: 0 auto;
   width: 100%;
 }

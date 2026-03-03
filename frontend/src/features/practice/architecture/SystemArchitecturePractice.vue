@@ -724,13 +724,13 @@ export default {
 
           await this.completeProblem(targetDetailId, score);
 
-          // [2026-02-20 수정] 맵 진행도 해금 - gameStore에 현재 문제 인덱스 전달
-          // [2026-02-24 수정] ProgressStore로 해금 체계 통합된 gameStore 함수 호출 -> 비동기 처리
-          const { useGameStore } = await import('@/stores/game');
+          // [수정일: 2026-02-27] progressStore.unlockNextStage()로 직접 해금 (DB 단일 소스)
+          const { useProgressStore } = await import('@/stores/progress');
+          const progressStore = useProgressStore();
           const gameStore = useGameStore();
-          
-          // [수정일: 2026-02-24] questIndex(1-based)로 변환하여 전달 (0-based 인덱스 + 1)
-          await gameStore.unlockNextStage('System Practice', capturedIndex + 1);
+
+          const practiceId = gameStore.activeUnit?.id;
+          await progressStore.unlockNextStage(practiceId, capturedIndex + 1);
 
           console.log('[SystemArch] unlockNextStage done for questIndex:', capturedIndex + 1);
 

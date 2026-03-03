@@ -29,6 +29,7 @@ export function useRunSocket() {
     const onDesignEvaluation = ref(null)  // ← 추가: LLM 평가 결과
     const onEnd = ref(null)
     const onUserLeft = ref(null)
+    const onJoinError = ref(null)  // ← 추가: 입장 실패 핸들러
 
     function connect(roomId, userName, avatarUrl) {
         if (socket.value) return
@@ -110,6 +111,11 @@ export function useRunSocket() {
             isLeader.value = socket.value.id === data.leader_sid
             if (onUserLeft.value) onUserLeft.value(data.sid)
         })
+
+        // 입장 에러
+        socket.value.on('run_error', (data) => {
+            if (onJoinError.value) onJoinError.value(data.message)
+        })
     }
 
     // 발신 함수들
@@ -154,7 +160,7 @@ export function useRunSocket() {
         socket, connected, roomPlayers, isLeader, isReady, gameStarted,
         remotePlayerPos, remoteAiPos, remoteCurrentSector, remoteCurrentLineIdx,
         remoteLastCorrectLine, remoteCurrentPlayerIdx,
-        onGameStart, onSync, onRelay, onHfSync, onDesignEvaluation, onEnd, onUserLeft,
+        onGameStart, onSync, onRelay, onHfSync, onDesignEvaluation, onEnd, onUserLeft, onJoinError,
         connect, emitStart, emitProgress, emitRelayStart, emitHighFive,
         emitAiSync, emitFinish, emitLogicFinish, disconnect
     }
