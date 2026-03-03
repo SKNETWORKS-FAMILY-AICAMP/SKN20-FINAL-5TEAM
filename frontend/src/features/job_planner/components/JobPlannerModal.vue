@@ -554,6 +554,7 @@
                   <span class="skill-arrow">↔</span>
                   <span class="skill-user">{{ match.user_skill }}</span>
                   <span class="skill-similarity">{{ (match.similarity * 100).toFixed(0) }}%</span>
+                  <span v-if="match.reason" class="skill-reason">· {{ match.reason }}</span>
                 </div>
               </div>
             </div>
@@ -1710,7 +1711,14 @@ export default {
       this.portfolioReview = null;
       try {
         const response = await axios.post('/api/core/job-planner/review-portfolio/', {
-          user_profile: this.analysisResult?.profile_summary || {},
+          user_profile: {
+            ...this.analysisResult?.profile_summary || {},
+            user_skills: this.userSkills,
+            projects: this.parsedProjects,
+            key_achievements: this.parsedKeyAchievements,
+            github_url: this.parsedGithubUrl,
+            portfolio_url: this.parsedPortfolioUrl,
+          },
           job_data: this.jobData,
         });
         this.portfolioReview = response.data;
@@ -2566,6 +2574,12 @@ export default {
 .skill-similarity.weak {
   background: rgba(239, 68, 68, 0.2);
   color: #ef4444;
+}
+
+.skill-reason {
+  font-size: 12px;
+  color: #64748b;
+  margin-left: 4px;
 }
 
 .error-banner {

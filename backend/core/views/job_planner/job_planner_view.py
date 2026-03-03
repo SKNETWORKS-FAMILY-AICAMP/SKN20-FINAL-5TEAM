@@ -687,110 +687,10 @@ class JobPlannerAnalyzeView(APIView):
             user_skills_normalized = [self._normalize_skill(s) for s in user_skills]
             required_skills_normalized = [self._normalize_skill(s) for s in all_required_skills]
 
-            matched_skills = []
-            missing_skills = []
-            matched_indices = set()  # 이미 매칭된 사용자 스킬 인덱스
-
-            # === 3단계 매칭 시스템 ===
-            # 각 필수 스킬에 대해 사용자 스킬 중 가장 적합한 것을 찾습니다.
-            # 단계별로 엄격한 기준부터 적용하여 정확도를 높입니다.
-            # Stage 1: 정확 일치 (100% 매칭)
-            # Stage 2: 동의어 매칭 (95% 매칭)
-            # Stage 3: 임베딩 유사도 (75%+ 매칭)
-
-            # Stage 3 배치 임베딩 캐시 (루프 시작 전에는 None, 첫 Stage 3 필요 시 일괄 계산)
-            user_embeddings_cache = None
-            req_embeddings_cache = None
-
-            for i, req_skill in enumerate(all_required_skills):
-                req_normalized = required_skills_normalized[i]
-                best_match = None
-                best_score = 0.0
-                best_idx = -1
-                match_type = None
-
-                # 1단계: 정확 일치 (정규화 후)
-                # 예: "Python" vs "python", "파이썬" vs "Python" (모두 "python"으로 정규화됨)
-                for j, user_skill in enumerate(user_skills):
-                    if j in matched_indices:
-                        continue  # 이미 다른 스킬과 매칭된 경우 스킵 (1:1 매칭 보장)
-                    user_normalized = user_skills_normalized[j]
-                    if user_normalized == req_normalized:
-                        best_match = user_skill
-                        best_score = 1.0  # 완벽한 매칭
-                        best_idx = j
-                        match_type = "exact"
-                        break
-
-                # 2단계: 동의어 매칭 (정확 일치 실패 시)
-                # 원본 스킬을 정규화했을 때 같은 값으로 변환되는지 확인
-                # 예: "Node.js" vs "Node", "React" vs "ReactJS"
-                if not best_match:
-                    for j, user_skill in enumerate(user_skills):
-                        if j in matched_indices:
-                            continue
-                        # 원본 스킬들이 동의어 사전을 통해 같은 값으로 정규화되는지 체크
-                        user_original_normalized = self._normalize_skill(user_skill)
-                        req_original_normalized = self._normalize_skill(req_skill)
-
-                        # 정규화 전에는 달랐지만, 정규화 후 같아지면 동의어로 간주
-                        if user_original_normalized == req_original_normalized and user_skill.lower() != req_skill.lower():
-                            best_match = user_skill
-                            best_score = 0.95  # 거의 완벽한 매칭
-                            best_idx = j
-                            match_type = "synonym"
-                            break
-
-                # 3단계: 임베딩 유사도 (높은 threshold)
-                # 의미론적 유사도를 통해 관련 스킬 매칭
-                # 예: "Flask" vs "Django" (둘 다 Python 웹 프레임워크)
-                if not best_match:
-                    # 첫 Stage 3 진입 시 모든 스킬을 한 번에 배치 인코딩
-                    if user_embeddings_cache is None:
-                        all_texts = user_skills_normalized + required_skills_normalized
-                        all_embs = _embed_texts(all_texts)
-                        user_embeddings_cache = all_embs[:len(user_skills_normalized)]
-                        req_embeddings_cache = all_embs[len(user_skills_normalized):]
-
-                    req_emb = req_embeddings_cache[i:i+1]
-
-                    for j, user_skill in enumerate(user_skills):
-                        if j in matched_indices:
-                            continue
-                        user_emb = user_embeddings_cache[j:j+1]
-                        # 코사인 유사도 계산 (정규화된 벡터의 내적)
-                        similarity = float((user_emb @ req_emb.T)[0][0])
-
-                        # 높은 threshold (0.85) - 정확한 매칭만 허용
-                        if similarity >= 0.85 and similarity > best_score:
-                            best_match = user_skill
-                            best_score = similarity
-                            best_idx = j
-                            match_type = "similar"
-
-                # 매칭 결과 저장
-                if best_match and best_score >= 0.85:  # 최소 85% 유사도 기준
-                    matched_skills.append({
-                        "required": req_skill,        # 채용공고의 필수 스킬
-                        "user_skill": best_match,     # 매칭된 사용자 스킬
-                        "similarity": round(best_score, 3),  # 유사도 점수 (0.85~1.0)
-                        "match_type": match_type      # 매칭 방식 (exact/synonym/similar)
-                    })
-                    matched_indices.add(best_idx)  # 중복 매칭 방지
-                else:
-                    # 매칭 실패 - missing_skills에 추가
-                    # 가장 가까운 스킬을 참고용으로 저장
-                    closest_user = user_skills[0] if user_skills else "없음"
-                    closest_score = 0.0
-                    if user_skills and best_idx >= 0:
-                        closest_user = user_skills[best_idx] if best_idx < len(user_skills) else user_skills[0]
-                        closest_score = best_score
-
-                    missing_skills.append({
-                        "required": req_skill,
-                        "closest_match": closest_user,
-                        "similarity": round(closest_score, 3)
-                    })
+            # === LLM 기반 스킬 매칭 ===
+            matched_skills, missing_skills = self._match_skills_with_llm(
+                all_required_skills, user_skills
+            )
 
             # === 점수 계산 ===
 
@@ -860,6 +760,80 @@ class JobPlannerAnalyzeView(APIView):
             return Response({
                 "error": f"분석 중 오류 발생: {str(e)}"
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def _match_skills_with_llm(self, required_skills, user_skills):
+        """
+        LLM으로 스킬 매칭 - 관련 스킬도 인식 (예: Django ↔ Flask, CI/CD ↔ GitHub Actions)
+
+        Returns:
+            matched_skills: [{required, user_skill, similarity, reason}]
+            missing_skills: [{required}]
+        """
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            return self._match_skills_fallback(required_skills, user_skills)
+
+        try:
+            client = openai.OpenAI(api_key=api_key)
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{
+                    "role": "user",
+                    "content": f"""IT 채용 전문가로서 채용공고 요구 스킬과 지원자 보유 스킬을 비교하세요.
+
+채용공고 요구 스킬: {json.dumps(required_skills, ensure_ascii=False)}
+지원자 보유 스킬: {json.dumps(user_skills, ensure_ascii=False)}
+
+similarity 기준 — "이 보유 스킬로 요구 스킬 업무를 즉시 수행할 수 있는 정도":
+- 1.0: 완전히 동일한 기술 (Python ↔ Python, JS ↔ JavaScript, API ↔ 에이피아이, Docker ↔ 도커 등 한국어 표기 포함)
+- 0.85~0.99: 표기만 다른 동일 기술 (Node.js ↔ NodeJS, scikit-learn ↔ sklearn)
+- 0.70~0.84: 같은 분야의 유사 기술, 단기 전환 가능 (Django ↔ Flask, React ↔ Vue, MySQL ↔ PostgreSQL)
+- 0.50~0.69: 관련 개념은 보유하나 별도 학습 필요 (CI/CD ↔ GitHub Actions, AWS ↔ Docker)
+- 0.50 미만: 매칭하지 않음 → missing_skills에 추가
+
+규칙:
+- 각 보유 스킬은 하나의 요구 스킬에만 매칭 (1:1)
+
+JSON으로만 반환:
+{{
+  "matched_skills": [{{"required": "요구스킬", "user_skill": "보유스킬", "similarity": 1.0, "reason": "매칭 이유"}}],
+  "missing_skills": [{{"required": "요구스킬"}}]
+}}"""
+                }],
+                response_format={"type": "json_object"},
+                temperature=0
+            )
+
+            data = json.loads(response.choices[0].message.content)
+            matched = data.get("matched_skills", [])
+            missing = data.get("missing_skills", [])
+            print(f"✅ LLM 매칭 완료: {len(matched)}개 매칭, {len(missing)}개 미매칭")
+            return matched, missing
+
+        except Exception as e:
+            print(f"⚠️  LLM 매칭 실패, fallback 사용: {e}")
+            return self._match_skills_fallback(required_skills, user_skills)
+
+    def _match_skills_fallback(self, required_skills, user_skills):
+        """LLM 실패 시 정규화 기반 단순 매칭 (fallback)"""
+        user_normalized = {self._normalize_skill(s): s for s in user_skills}
+        matched, missing = [], []
+        used = set()
+
+        for req in required_skills:
+            req_norm = self._normalize_skill(req)
+            if req_norm in user_normalized and req_norm not in used:
+                matched.append({
+                    "required": req,
+                    "user_skill": user_normalized[req_norm],
+                    "similarity": 1.0,
+                    "reason": "정확히 일치"
+                })
+                used.add(req_norm)
+            else:
+                missing.append({"required": req})
+
+        return matched, missing
 
     def _calculate_exp_fit(self, years, req_range):
         """
