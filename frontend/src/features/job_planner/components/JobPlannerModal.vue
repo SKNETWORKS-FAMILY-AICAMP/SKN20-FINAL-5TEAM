@@ -554,7 +554,6 @@
                   <span class="skill-arrow">↔</span>
                   <span class="skill-user">{{ match.user_skill }}</span>
                   <span class="skill-similarity">{{ (match.similarity * 100).toFixed(0) }}%</span>
-                  <span v-if="match.reason" class="skill-reason">· {{ match.reason }}</span>
                 </div>
               </div>
             </div>

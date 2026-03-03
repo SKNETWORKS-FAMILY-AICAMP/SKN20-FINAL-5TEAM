@@ -784,15 +784,46 @@ class JobPlannerAnalyzeView(APIView):
 채용공고 요구 스킬: {json.dumps(required_skills, ensure_ascii=False)}
 지원자 보유 스킬: {json.dumps(user_skills, ensure_ascii=False)}
 
-similarity 기준 — "이 보유 스킬로 요구 스킬 업무를 즉시 수행할 수 있는 정도":
-- 1.0: 완전히 동일한 기술 (Python ↔ Python, JS ↔ JavaScript, API ↔ 에이피아이, Docker ↔ 도커 등 한국어 표기 포함)
-- 0.85~0.99: 표기만 다른 동일 기술 (Node.js ↔ NodeJS, scikit-learn ↔ sklearn)
-- 0.70~0.84: 같은 분야의 유사 기술, 단기 전환 가능 (Django ↔ Flask, React ↔ Vue, MySQL ↔ PostgreSQL)
-- 0.50~0.69: 관련 개념은 보유하나 별도 학습 필요 (CI/CD ↔ GitHub Actions, AWS ↔ Docker)
-- 0.50 미만: 매칭하지 않음 → missing_skills에 추가
+similarity 기준:
+
+[1.0] 완전히 동일한 기술
+- 대소문자만 다른 경우 반드시 1.0: langchain ↔ LangChain, tensorflow ↔ TensorFlow
+- 한국어·영어 표기 차이: Python ↔ 파이썬, Docker ↔ 도커, API ↔ 에이피아이
+- 전체 이름 ↔ 약어: JavaScript ↔ JS, Kubernetes ↔ K8s
+
+[0.85~0.99] 표기만 다를 뿐 동일한 기술
+- 구분자·축약 차이만 있음: Node.js ↔ NodeJS, scikit-learn ↔ sklearn, TypeScript ↔ TS
+- 버전·세대 표기 차이: Python3 ↔ Python
+
+[0.70~0.84] 동일한 목적·역할로 대체 가능한 기술 (같은 카테고리 내 경쟁 기술)
+- 조건: 같은 문제를 해결하는 기술이어야 함. 단순히 같은 분야에서 쓰인다는 이유만으로는 해당 안 됨
+- Python 웹 프레임워크끼리: Django ↔ Flask ↔ FastAPI
+- JavaScript 프론트엔드 프레임워크끼리: React ↔ Vue ↔ Angular
+- 관계형 DB끼리: MySQL ↔ PostgreSQL ↔ MariaDB
+- NoSQL DB끼리: MongoDB ↔ CouchDB
+- 클라우드 플랫폼끼리: AWS ↔ GCP ↔ Azure
+- ❌ 목적이 다른 기술은 해당 안 됨: Elasticsearch(검색엔진) ↔ Django(웹프레임워크), Redis(캐시) ↔ PostgreSQL(RDBMS)
+
+[0.50~0.69] 같은 언어·생태계 내에서 함께 사용되는 기술 (대체 불가, 연관성 높음)
+- 조건: 직접 대체는 불가하지만 같은 생태계에서 함께 쓰이며 개념적 연관성이 높음
+- Python 데이터사이언스 생태계: pandas ↔ Python, pandas ↔ Scikit-learn, numpy ↔ Python
+- 언어 ↔ 해당 언어 기반 프레임워크: Java ↔ Spring, Python ↔ Django, JavaScript ↔ React
+- 유사 역할 언어끼리: Java ↔ Kotlin (JVM 기반), TypeScript ↔ JavaScript
+
+[0.30~0.49] 간접적으로 연관된 기술 (같은 도메인이지만 역할이 다름)
+- 조건: 같은 도메인(백엔드·ML 등)에 있지만 역할·목적이 다름
+- CI/CD 개념 ↔ 특정 도구: CI/CD ↔ GitHub Actions, 배포 ↔ Jenkins
+- 다른 패러다임의 언어: Python ↔ R
+- 다른 API 스타일: REST API ↔ GraphQL
+
+[0.30 미만] 매칭하지 않음 → missing_skills에 추가
+- 역할·목적·생태계가 모두 다른 기술: Elasticsearch ↔ Django, Redis ↔ React
 
 규칙:
 - 각 보유 스킬은 하나의 요구 스킬에만 매칭 (1:1)
+- 특정 라이브러리가 요구될 때, 지원자의 전체 보유 스킬 목록을 고려해 해당 라이브러리가 속한 언어·생태계를 보유하고 있으면 유사 기술로 판단 (예: pandas 요구 + Python·Scikit-learn 보유 → 0.50 이상)
+- 개별 스킬 쌍만 보지 말고 지원자의 전체 스킬 맥락을 함께 고려할 것
+- 단순히 같은 분야(백엔드, 프론트엔드 등)에서 쓰인다는 이유만으로 0.70 이상을 부여하지 말 것
 
 JSON으로만 반환:
 {{
