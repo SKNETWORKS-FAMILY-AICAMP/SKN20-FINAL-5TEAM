@@ -41,7 +41,6 @@ from core.views import youtube_recommendation
 from core.views.architecture.architecture_view import ArchitectureEvaluationView, ArchitectureQuestionGeneratorView
 from core.views.ai_coach.coach_view import AICoachView, CoachConversationView, CoachConversationDetailView
 from core.views.wars.wars_mission_view import WarsMissionsView
-from core.views.coach.coach_view import AICoachView
 from core.views.interview import (
     InterviewVisionView,
     InterviewJobPostingView, InterviewJobPostingDetailView,
@@ -132,11 +131,6 @@ urlpatterns = [
     path('job-planner/review-portfolio/', JobPlannerReviewPortfolioView.as_view(), name='job_planner_review_portfolio'),
     path('job-planner/generate-cover-letter-by-questions/', JobPlannerCoverLetterByQuestionsView.as_view(), name='job_planner_cover_letter_by_questions'),
 
-    # 13. Coduck Wars API
-    path('wars/analyze-code/', CoduckWarsAnalyzeCodeView.as_view(), name='wars_analyze_code'),
-    path('wars/start/', CoduckWarsStartView.as_view(), name='wars_start'),
-    path('wars/pressure-question/', CoduckWarsPressureView.as_view(), name='wars_pressure_question'),
-    path('wars/evaluate/', CoduckWarsEvaluationView.as_view(), name='wars_evaluate'),
     
 
     # [수정일: 2026-02-26] 관리자 로그 뷰어 API 추가
