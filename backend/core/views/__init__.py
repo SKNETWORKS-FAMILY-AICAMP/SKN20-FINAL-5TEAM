@@ -22,6 +22,10 @@ from .job_planner.job_planner_view import (
     JobPlannerAgentQuestionsView,
     JobPlannerAgentReportView,
     JobPlannerRecommendView,
+    JobPlannerParseResumeView,
+    JobPlannerGenerateCoverLetterView,
+    JobPlannerReviewPortfolioView,
+    JobPlannerCoverLetterByQuestionsView,
 )
 from .coduck_wars_view import (
     CoduckWarsAnalyzeCodeView,
