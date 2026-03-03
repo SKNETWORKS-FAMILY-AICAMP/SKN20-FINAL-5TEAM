@@ -315,12 +315,14 @@ class JobPlannerParseView(APIView):
         try:
             from core.models import SavedJobPosting, UserProfile
 
-            # 세션에서 user_id 추출
-            user_id = request.session.get('user_id') or request.session.get('_auth_user_id')
-            if not user_id:
+            # 세션에서 auth user 추출 → email로 UserProfile 조회
+            from django.contrib.auth.models import User
+            auth_user_id = request.session.get('_auth_user_id')
+            if not auth_user_id:
                 return None
 
-            user = UserProfile.objects.get(pk=user_id)
+            django_user = User.objects.get(pk=auth_user_id)
+            user = UserProfile.objects.get(email=django_user.email)
 
             defaults = {
                 'company_name': parsed_data.get('company_name', ''),
