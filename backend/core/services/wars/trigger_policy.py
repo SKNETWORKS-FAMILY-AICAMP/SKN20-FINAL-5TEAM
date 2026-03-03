@@ -20,12 +20,12 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 # ── 공통 상수 ─────────────────────────────────────────────────────────────────
-_ROUND_START_GRACE     = 20   # 라운드 시작 후 자유 탐색 보장 시간 (초)
-_COACH_COOLDOWN        = 45   # Coach 개입 후 재개입 최소 간격 (초)
-_COACH_INACTIVITY      = 25   # 무조작 시간 기준 (초) — 이 이상이면 헤매는 중
-_COACH_NO_NODE_ELAPSED = 30   # 이 시간이 지나도 노드 1개 이하면 개입
-_COACH_MISSING_ELAPSED = 35   # 이 시간이 지나도 필수 컴포넌트 50% 이상 누락이면 개입
-_CHAOS_MIN_NODES       = 3    # Chaos 발동 최소 배치 노드 수 (양측 합산)
+_ROUND_START_GRACE     = 10   # 라운드 시작 후 자유 탐색 보장 시간 (초) (20 -> 10 하향)
+_COACH_COOLDOWN        = 40   # Coach 개입 후 재개입 최소 간격 (초) (45 -> 40 하향)
+_COACH_INACTIVITY      = 15   # 무조작 시간 기준 (초) (25 -> 15 하향)
+_COACH_NO_NODE_ELAPSED = 20   # 이 시간이 지나도 노드 1개 이하면 개입 (30 -> 20 하향)
+_COACH_MISSING_ELAPSED = 25   # 이 시간이 지나도 필수 컴포넌트 50% 이상 누락이면 개입 (35 -> 25 하향)
+_CHAOS_MIN_NODES       = 2    # Chaos 발동 최소 배치 노드 수 (3 -> 2 하향)
 
 
 def can_trigger_coach(room_state: "DrawRoomState", sid: str) -> bool:
@@ -37,13 +37,13 @@ def can_trigger_coach(room_state: "DrawRoomState", sid: str) -> bool:
 
     조건 (모두 통과해야 함):
       1. PLAYING 상태
-      2. 라운드 시작 후 20초 이상 경과 (초반 자유 탐색 보장)
-      3. 마지막 Coach 개입 후 45초 이상 경과 (도배 방지)
+      2. 라운드 시작 후 10초 이상 경과 (초반 자유 탐색 보장)
+      3. 해당 플레이어 본인의 마지막 Coach 개입 후 40초 이상 경과 (도배 방지)
 
     + 아래 '헤매는 상황' 중 하나 이상 해당:
-      A. 25초 이상 무조작 (멈춰있음)
-      B. 30초 경과했는데 노드가 1개 이하 (아예 안 하는 중)
-      C. 35초 경과했는데 필수 컴포넌트 50% 이상 누락
+      A. 15초 이상 아무 조작 없음 (멈춰있음)
+      B. 20초 지났는데 노드가 1개 이하 (조작 미비)
+      C. 25초 지났는데 필수 컴포넌트 50% 이상 누락
     """
     from core.services.wars.state_machine import GameState
 
@@ -55,7 +55,10 @@ def can_trigger_coach(room_state: "DrawRoomState", sid: str) -> bool:
     if elapsed < _ROUND_START_GRACE:
         return False
 
-    if time.time() - room_state.coach_triggered_at < _COACH_COOLDOWN:
+    # [수정일: 2026-03-03] 플레이어별 개별 쿨다운 적용 (hint_history 참조)
+    history = room_state.hint_history.get(sid, [])
+    last_hint_time = history[-1].get("_time", 0) if history else 0
+    if time.time() - last_hint_time < _COACH_COOLDOWN:
         return False
 
     node_count = room_state.get_node_count(sid)

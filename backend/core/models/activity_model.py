@@ -113,3 +113,23 @@ class UserProgress(BaseModel):
         unique_together = ('user', 'practice')
         verbose_name = '유닛 진행 상태'
         verbose_name_plural = '유닛 진행 상태 목록'
+
+# [수정일: 2026-03-03] 배틀 게임 전적 저장을 위한 모델 추가
+class UserBattleRecord(BaseModel):
+    user = models.OneToOneField(
+        UserProfile,
+        on_delete=models.CASCADE,
+        related_name='battle_record',
+        help_text="전적 소유자"
+    )
+    win_count = models.IntegerField(default=0, help_text="승리 횟수")
+    draw_count = models.IntegerField(default=0, help_text="무승부 횟수")
+    lose_count = models.IntegerField(default=0, help_text="패배 횟수")
+
+    class Meta:
+        db_table = 'gym_user_battle_record'
+        verbose_name = '사용자 배틀 전적'
+        verbose_name_plural = '사용자 배틀 전적 목록'
+
+    def __str__(self):
+        return f"{self.user.username}: {self.win_count}W {self.draw_count}D {self.lose_count}L"

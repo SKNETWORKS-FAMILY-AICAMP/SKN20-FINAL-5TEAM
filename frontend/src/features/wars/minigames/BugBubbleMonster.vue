@@ -510,8 +510,8 @@ function startGameLoop() {
 function joinRoom() {
   if (!inputRoomId.value.trim()) return
   currentRoomId.value = inputRoomId.value.trim()
-  // [수정일: 2026-02-27] 소켓 연결 시 사용자의 실제 아바타 URL을 전달하도록 수정
-  bs.connect(currentRoomId.value, auth.sessionNickname || 'Anonymous', auth.userAvatarUrl)
+  // [수정일: 2026-03-03] 유저 연동 복구: userId 추가 전달
+  bs.connect(currentRoomId.value, auth.sessionNickname || 'Anonymous', auth.userAvatarUrl, auth.user?.id)
 }
 
 function startGame() {

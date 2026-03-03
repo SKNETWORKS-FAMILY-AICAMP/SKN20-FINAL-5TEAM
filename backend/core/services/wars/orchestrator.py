@@ -75,27 +75,29 @@ class WarsOrchestrator:
         sid: str,
         nodes: list,
         arrows: list,
+        is_poll: bool = False,
     ) -> Dict[str, Any]:
         """
-        플레이어 캔버스 변경 시 호출.
-        OrchestratorAgent(LangGraph)가 전체 맥락을 보고 행동을 결정한다.
+        플레이어 캔버스 변경 시 호출 (is_poll=False)
+        또는 백그라운드에서 무조작/장애 여부 체크를 위해 주기적으로 호출 (is_poll=True).
 
-        LangGraph graph.invoke()는 동기 블로킹 함수이므로
-        asyncio.to_thread()로 별도 스레드에서 실행하여
-        Socket.IO 이벤트 루프가 블로킹되지 않도록 보장한다.
-
-        Returns:
-            {"coach_hint": {...} | None, "chaos_event": {...} | None}
+        is_poll=True일 경우 설계 스냅샷 갱신을 건너뛰어 Inactivity 타이머 유효성을 유지한다.
         """
-        # 1. 설계 스냅샷 갱신
-        room_state.update_design(sid, nodes or [], arrows or [])
+        # 1. 설계 스냅샷 갱신 (폴링 시에는 스킵)
+        if not is_poll:
+            room_state.update_design(sid, nodes or [], arrows or [])
 
-        # 2. 쿨다운 체크 — 너무 자주 AI 호출하지 않도록 방지
+        # 2. 쿨다운 체크 — 너무 자주 AI 호출하지 않도록 방지 (플레이어별 분리)
         now = time.time()
-        last_called = getattr(room_state, '_last_agent_call', 0)
-        if now - last_called < self.AGENT_CALL_COOLDOWN:
+        if not hasattr(room_state, '_last_agent_call_per_sid'):
+            room_state._last_agent_call_per_sid = {}
+        
+        last_called = room_state._last_agent_call_per_sid.get(sid, 0)
+        cooldown = self.AGENT_CALL_COOLDOWN if not is_poll else 1.0 # 폴링 시에는 조금 더 유연하게(1s)
+        
+        if now - last_called < cooldown:
             return {"coach_hint": None, "chaos_event": None}
-        room_state._last_agent_call = now
+        room_state._last_agent_call_per_sid[sid] = now
 
         # 3. OrchestratorAgent에 넘길 player_snapshots 빌드
         player_snapshots = {}

@@ -1,6 +1,8 @@
 <template>
-  <div class="arcade-draw" :class="{ 'screen-shake': shaking, 'flash-ok': flashOk, 'flash-fail': flashFail, 'glitch-screen': activeGlitch }">
+  <div class="arcade-draw" :class="{ 'screen-shake': shaking, 'flash-ok': flashOk, 'flash-fail': flashFail, 'glitch-screen': activeGlitch, 'chaos-mode': chaosActive }">
     <div class="crt-lines"></div>
+    <!-- [추가 2026-03-03] 장애 시 긴급 배경 효과 -->
+    <div v-if="chaosActive" class="chaos-vignette"></div>
 
     <!-- [수정일: 2026-02-24] 먹물 효과 레이어 -->
     <div v-if="activeInk" class="ink-overlay">
@@ -105,8 +107,13 @@
       <!-- [Multi-Agent] CoachAgent 힌트 표시 영역 (버튼 힌트 대체) -->
       <transition name="coach-slide">
         <div class="coach-toast" v-if="coachMsg">
-          <span class="coach-icon">🤖</span>
-          <span class="coach-text">{{ coachMsg }}</span>
+          <div class="coach-header">
+            <span class="ch-ico">💡</span>
+            <span class="ch-lbl">COACHING GUIDE</span>
+          </div>
+          <div class="coach-body">
+            <span class="coach-text">{{ coachMsg }}</span>
+          </div>
         </div>
       </transition>
 
@@ -115,19 +122,19 @@
         <div class="chaos-overlay" v-if="chaosActive">
           <div class="chaos-box" :class="'severity-' + chaosData?.severity.toLowerCase()">
             <div class="chaos-header">
-              <span class="chaos-warning">⚠️ SYSTEM INCIDENT DETECTED</span>
+              <span class="chaos-warning">🚨 CHAOS ALERT: SYSTEM UNSTABLE</span>
               <div class="chaos-scanner"></div>
             </div>
             <div class="chaos-body">
               <h2 class="chaos-title">{{ chaosData?.title }}</h2>
               <p class="chaos-desc">{{ chaosData?.description }}</p>
               <div class="chaos-hint">
-                <span class="ch-lab">ADVICE:</span>
+                <span class="ch-lab">RECOVERY GUIDE:</span>
                 <span class="ch-val">{{ chaosData?.hint }}</span>
               </div>
             </div>
             <div class="chaos-footer">
-              <button class="btn-chaos-ack" @click="chaosActive = false">UNDERSTOOD</button>
+              <button class="btn-chaos-ack" @click="acknowledgeChaos">UNDERSTOOD</button>
             </div>
           </div>
         </div>
@@ -283,7 +290,7 @@
           <div class="r-title">{{ resultLabel }}</div>
           <div class="r-compare">
             <div class="rc-side">
-              <span class="rc-tag you-tag">YOU</span>
+              <span class="rc-tag you-tag">{{ userName }} (Player {{ myPlayerNum }})</span>
               <span class="rc-score neon-c">+{{ lastMyPts }}</span>
               <div class="rc-header">YOUR ARCHITECTURE</div>
               <div class="rc-checks">
@@ -292,7 +299,7 @@
             </div>
             <div class="rc-vs">VS</div>
             <div class="rc-side">
-              <span class="rc-tag opp-tag">{{ ds.opponentName.value || 'OPP' }}</span>
+              <span class="rc-tag opp-tag">{{ ds.opponentName.value || 'OPP' }} (Player {{ oppPlayerNum }})</span>
               <span class="rc-score" style="color:#ff2d75">+{{ lastOppPts }}</span>
               <div class="rc-header" style="color:#ff2d75">OPPONENT ARCHITECTURE</div>
               <!-- [수정일: 2026-02-24] 상대방 체크리스트 공개 -->
@@ -302,7 +309,7 @@
             </div>
           </div>
 
-          <!-- [수정일: 2026-02-27] EvalAgent AI ARCHITECT REVIEW - 폴백 메시지 추가로 항상 표시 -->
+          <!-- [수정일: 2026-03-03] 라운드 결과 AI 리뷰 보드 복구 -->
           <div class="ai-review-board neon-border">
             <div class="ari-header">
               <span class="ari-label">🤖 EVAL AGENT REVIEW</span>
@@ -311,14 +318,15 @@
             <div class="ari-content">
               <p class="ari-my">
                 <strong>MY ANALYSIS:</strong>
-                {{ aiReview.my || '설계 점수와 체크리스트 기반으로 평가되었습니다. AI 상세 피드백은 최종 리포트에서 확인하세요.' }}
+                {{ aiReview.my || '분석 데이터를 불러오고 있습니다...' }}
               </p>
-              <p class="ari-comp" v-if="aiReview.comparison || lastOppPts > 0">
+              <p class="ari-comp">
                 <strong>VERSUS:</strong>
-                {{ aiReview.comparison || (lastMyPts > lastOppPts ? '상대보다 더 완성도 높은 아키텍처를 설계했습니다. 👍' : lastMyPts === lastOppPts ? '동점! 두 설계 모두 균등한 완성도를 보입니다.' : '상대의 설계가 더 높은 점수를 획득했습니다. 다음 라운드를 노려보세요!') }}
+                {{ aiReview.comparison || (lastMyPts > lastOppPts ? '상대보다 더 완성도 높은 아키텍처를 설계했습니다. 👍' : lastMyPts === lastOppPts ? '동점! 두 설계 모두 균등한 완성도를 보입니다.' : '상대의 설계가 더 높은 점수를 획득했습니다.') }}
               </p>
             </div>
           </div>
+
           <button @click="goNextRound" class="btn-next">{{ nextLabel }}</button>
         </div>
       </div>
@@ -330,11 +338,47 @@
         <div class="go-box">
           <h1 class="go-title glitch" data-text="GAME OVER">GAME OVER</h1>
           <div class="go-final">
-            <div class="go-fs"><span>YOU</span><strong class="neon-c">{{ myScore }}</strong></div>
+            <div class="go-fs"><span>{{ userName }} (P{{ myPlayerNum }})</span><strong class="neon-c">{{ myScore }}</strong></div>
             <span class="go-vs">VS</span>
-            <div class="go-fs"><span>{{ ds.opponentName.value || 'OPP' }}</span><strong style="color:#ff2d75">{{ oppScore }}</strong></div>
+            <div class="go-fs"><span>{{ ds.opponentName.value || 'OPP' }} (P{{ oppPlayerNum }})</span><strong style="color:#ff2d75">{{ oppScore }}</strong></div>
           </div>
           <div class="go-verdict">{{ myScore > oppScore ? '🏆 YOU WIN!' : myScore === oppScore ? '🤝 DRAW' : '💪 DEFEAT' }}</div>
+
+          <!-- [추가: 2026-03-03] 최종 아키텍처 비교 섹션 복구 -->
+          <div class="r-compare go-compare">
+            <div class="rc-side">
+              <span class="rc-tag you-tag" style="font-size: 0.8em; padding: 2px 8px;">{{ userName }} (P{{ myPlayerNum }})</span>
+              <div class="rc-header" style="font-size: 0.9em; margin-top: 5px;">YOUR ARCHITECTURE</div>
+              <div class="rc-checks">
+                <div v-for="(c,i) in checkItems" :key="'gcheck'+i" class="chk" :class="c.ok?'chk-ok':'chk-miss'" style="font-size: 0.85em;">{{ c.ok?'✅':'❌' }} {{ c.label }}</div>
+              </div>
+            </div>
+            <div class="rc-vs" style="font-size: 1.2em; opacity: 0.5;">VS</div>
+            <div class="rc-side">
+              <span class="rc-tag opp-tag" style="font-size: 0.8em; padding: 2px 8px;">{{ ds.opponentName.value || 'OPP' }} (P{{ oppPlayerNum }})</span>
+              <div class="rc-header" style="color:#ff2d75; font-size: 0.9em; margin-top: 5px;">OPPONENT ARCHITECTURE</div>
+              <div class="rc-checks">
+                <div v-for="(c,i) in oppCheckItems" :key="'gopp'+i" class="chk" :class="c.ok?'chk-ok-opp':'chk-miss'" style="font-size: 0.85em;">{{ c.ok?'✅':'❌' }} {{ c.label }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- [수정일: 2026-03-03] 게임오버 화면 AI 리뷰 보드 복구 (VERSUS 추가) -->
+          <div class="ai-review-board neon-border">
+            <div class="ari-header">
+              <span class="ari-label">🤖 FINAL ARCHITECT REVIEW</span>
+            </div>
+            <div class="ari-content">
+              <p class="ari-my">
+                <strong>MY ANALYSIS:</strong>
+                {{ aiReview.my || '최종 분석 리퍼트를 준비 중입니다.' }}
+              </p>
+              <p class="ari-comp">
+                <strong>VERSUS:</strong>
+                {{ aiReview.comparison || '포트폴리오에서 전체 라운드에 대한 상세 비교 및 분석 내용을 확인하실 수 있습니다.' }}
+              </p>
+            </div>
+          </div>
 
           <!-- [추가 2026-02-27] AI 포트폴리오 글 생성 -->
           <PortfolioWriter
@@ -351,43 +395,7 @@
             :ai-review="aiReview.my || ''"
           />
 
-          <!-- 기존 export -->
-          <div class="go-portfolio">
-            <div class="go-pf-title">🎓 이 설계 경험을 포트폴리오로</div>
-            <div class="go-pf-preview" ref="archPortfolioCard">
-              <div class="gpf-badge">🏗️ ARCH DESIGN</div>
-              <div class="gpf-mission">{{ curQ?.title || '시스템 아키텍처 설계' }}</div>
-              <div class="gpf-scenario" v-if="curQ?.scenario">{{ curQ.scenario }}</div>
-              <div class="gpf-missions" v-if="curQ?.missions?.length">
-                <div v-for="(m, i) in curQ.missions.slice(0,2)" :key="i" class="gpf-mission-item">✅ {{ m }}</div>
-              </div>
-              <div class="gpf-components">
-                <span v-for="n in myFinalNodes.slice(0, 6)" :key="n.id" class="gpf-comp">{{ n.icon }} {{ n.name }}</span>
-                <span v-if="myFinalNodes.length > 6" class="gpf-comp-more">+{{ myFinalNodes.length - 6 }}개</span>
-              </div>
-              <div class="gpf-scores">
-                <div class="gpf-score-row">
-                  <span class="gpf-sl">MY SCORE</span>
-                  <span class="gpf-sv neon-c">{{ myScore }}pt</span>
-                  <span class="gpf-sl">BEST COMBO</span>
-                  <span class="gpf-sv neon-y">{{ bestCombo }}x</span>
-                  <span class="gpf-sl">RESULT</span>
-                  <span class="gpf-sv" :style="{ color: myScore > oppScore ? '#00f0ff' : '#ff2d75' }">{{ myScore > oppScore ? 'WIN' : myScore === oppScore ? 'DRAW' : 'LOSS' }}</span>
-                </div>
-              </div>
-              <div v-if="aiReview.my" class="gpf-ai">
-                <span class="gpf-ai-label">🤖 AI:</span>
-                <span class="gpf-ai-text">{{ aiReview.my.slice(0, 80) }}{{ aiReview.my.length > 80 ? '...' : '' }}</span>
-              </div>
-              <div class="gpf-footer">CoduckWars · ArchDrawQuiz · {{ goTodayStr }}</div>
-            </div>
-            <div class="go-pf-actions">
-              <button class="go-pf-btn cyan" @click="archExportImage">🖼️ 이미지 저장</button>
-              <button class="go-pf-btn purple" @click="archExportText">📋 클립보드 복사</button>
-              <button class="go-pf-btn gray" @click="archDownloadTxt">📄 텍스트 저장</button>
-            </div>
-            <div v-if="archCopyToast" class="go-pf-toast">✅ 클립보드에 복사됐어요!</div>
-          </div>
+
 
           <div class="go-btns"><button @click="beginGame" class="btn-retry">🔄 REMATCH</button><button @click="exitGame" class="btn-exit">🏠 EXIT</button></div>
         </div>
@@ -403,17 +411,21 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { useDrawSocket } from '../composables/useDrawSocket'
 import { useGameStore } from '@/stores/game'
+import { useAuthStore } from '@/stores/auth' // [추가: 2026-03-03] 유저 연동 복구
+import { useDrawSocket } from '../composables/useDrawSocket'
 import { addBattleRecord } from '../useBattleRecord.js'
 
 const router = useRouter()
 const ds = useDrawSocket()
 const gameStore = useGameStore()
+const auth = useAuthStore() // [추가: 2026-03-03]
 const initialRoomId = gameStore.activeWarsMission?.id ? `draw-${gameStore.activeWarsMission.id}` : 'draw-default'
 const currentRoomId = ref(initialRoomId)
 const inputRoomId = ref(initialRoomId)
-const userName = ref('Player_' + Math.floor(Math.random() * 1000))
+// [수정일: 2026-03-03] 실제 유저 정보 연동
+const userName = computed(() => auth.sessionNickname || 'Anonymous')
+const userId = computed(() => auth.user?.id)
 
 const phase = ref('lobby')
 const round = ref(0)
@@ -533,6 +545,16 @@ const resultClass = computed(() => {
 const resultEmoji = computed(() => { if (lastMyPts.value > lastOppPts.value) return '🎉'; if (lastMyPts.value === lastOppPts.value) return '🤝'; return '😤' })
 const resultLabel = computed(() => { if (lastMyPts.value > lastOppPts.value) return 'YOU WIN THIS ROUND!'; if (lastMyPts.value === lastOppPts.value) return 'DRAW'; return 'OPPONENT WINS' })
 
+// [수정일: 2026-03-03] 플레이어 번호(P1, P2) 판별 로직
+// roomPlayers에서 본인의 sid 위치를 찾아 1을 더함
+const myPlayerIndex = computed(() => {
+  const players = ds.roomPlayers.value
+  const idx = players.findIndex(p => p.sid === ds.socket.value?.id)
+  return idx === -1 ? 0 : idx
+})
+const myPlayerNum = computed(() => myPlayerIndex.value + 1)
+const oppPlayerNum = computed(() => myPlayerNum.value === 1 ? 2 : 1)
+
 // [수정일: 2026-02-24] 로컬 미션 데이터 제거 (서버/AI 주도로 변경)
 const allComps = [
   {id:'client',name:'Client',icon:'👤'},{id:'user',name:'User',icon:'👤'},{id:'lb',name:'LB',icon:'⚖️'},
@@ -569,7 +591,8 @@ const registerCoachHint = (sock) => {
 // ── 소켓 연결 (onMounted 1개로 통합) ──
 onMounted(() => { 
   console.log(`[ArchDraw] Connecting to Room: ${currentRoomId.value} as ${userName.value}`)
-  ds.connect(currentRoomId.value, userName.value)
+  // [수정일: 2026-03-03] DB 연동을 위해 userId 추가 전달
+  ds.connect(currentRoomId.value, userName.value, userId.value)
   window.addEventListener('keydown', handleGlobalKey)
 
   // CoachHint 리스너 — 소켓 준비 후 등록
@@ -587,15 +610,42 @@ onMounted(() => {
     myScore.value = 0; oppScore.value = 0; combo.value = 0; bestCombo.value = 0; round.value = 0
   }
 
-  // ChaosEvent 핸들러
-  ds.onChaosEvent.value = (data) => {
-    console.log('🔥 [ArchDraw] Chaos Triggered:', data)
+// [수정일: 2026-03-03] Chaos 장애 확인 및 서버 보고
+function acknowledgeChaos() {
+  if (!chaosActive.value) return
+  chaosActive.value = false
+  ds.emitChaosComplete(currentRoomId.value)
+}
+
+// ChaosEvent 핸들러
+ds.onChaosEvent.value = (data) => {
+  console.log('🔥 [ArchDraw] Chaos Triggered:', data)
+  if (data && data.event_id) {
     chaosData.value = data
     chaosActive.value = true
     spawnPopText("🚨 CRITICAL SYSTEM INCIDENT!", "#ff2d75")
     triggerGlitch()
-    setTimeout(() => { if (chaosActive.value) chaosActive.value = false }, 10000)
+    // 10초 후 자동 확인 (서버에도 보고하여 상태 복구)
+    setTimeout(() => { if (chaosActive.value) acknowledgeChaos() }, 10000)
   }
+}
+
+// [추가 2026-03-03] CoachAgent 힌트 수신
+ds.onCoachHint.value = (data) => {
+  console.log('💡 [ArchDraw] Coach Hint Received:', data)
+  if (data && data.message) {
+    coachMsg.value = data.message
+    // 8초 후 힌트 메시지 숨김
+    setTimeout(() => {
+      if (coachMsg.value === data.message) coachMsg.value = ''
+    }, 8000)
+  }
+}
+
+// [추가 2026-03-03] 타인이 먼저 확인했을 경우를 대비한 복구 동기화
+ds.onChaosRecovered.value = () => {
+  if (chaosActive.value) chaosActive.value = false
+}
 })
 
 // Agent 트리거용 실시간 설계 동기화 (디바운스 적용)
@@ -618,138 +668,6 @@ onUnmounted(() => {
   window.removeEventListener('keydown', handleGlobalKey)
 })
 
-// ========== [추가 2026-02-27] 포트폴리오 export ==========
-const archPortfolioCard = ref(null)
-const archCopyToast = ref(false)
-const goTodayStr = new Date().toISOString().slice(0, 10)
-
-const archBuildText = () => {
-  const mission = curQ.value
-  const components = myFinalNodes.value.map(n => `${n.icon} ${n.name}`).join(', ')
-  const arrows = myFinalArrows.value.length
-  const verdict = myScore.value > oppScore.value ? 'WIN' : myScore.value === oppScore.value ? 'DRAW' : 'LOSS'
-  return [
-    `🎓 [CoduckWars 아키텍처 캐치마인드 포트폴리오]`,
-    ``,
-    `📋 미션: ${mission?.title || '시스템 아키텍처 설계'}`,
-    `💡 시나리오: ${mission?.description || '실무 시나리오 기반 아키텍처 설계'}`,
-    ``,
-    `🛠️ 설계한 컴포넌트 (${myFinalNodes.value.length}개):`,
-    `  ${components}`,
-    `🔗 연결 화살표: ${arrows}개`,
-    ``,
-    `📊 결과`,
-    `  내 점수: ${myScore.value}pt  |  상대 점수: ${oppScore.value}pt`,
-    `  베스트 콤보: ${bestCombo.value}x  |  결과: ${verdict}`,
-    mission?.required ? `  필수 컴포넌트: ${mission.required.join(', ')}` : '',
-    ``,
-    aiReview.value.my ? `🤖 AI 평가: ${aiReview.value.my}` : '',
-    ``,
-    `🔗 Powered by CoduckWars — 시스템 설계 AI 실습 플랫폼`,
-    `📅 ${goTodayStr}`
-  ].filter(l => l !== '').join('\n')
-}
-
-const archExportImage = () => {
-  const card = archPortfolioCard.value
-  if (!card) return
-  const canvas = document.createElement('canvas')
-  const scale = 2
-  const rect = card.getBoundingClientRect()
-  canvas.width = rect.width * scale
-  canvas.height = rect.height * scale
-  const ctx = canvas.getContext('2d')
-  ctx.scale(scale, scale)
-  const W = rect.width, H = rect.height
-
-  // 배경
-  const bg = ctx.createLinearGradient(0, 0, W, H)
-  bg.addColorStop(0, '#030712'); bg.addColorStop(1, '#0f172a')
-  ctx.fillStyle = bg
-  ctx.roundRect(0, 0, W, H, 12); ctx.fill()
-  ctx.strokeStyle = 'rgba(0,240,255,0.4)'; ctx.lineWidth = 1.5
-  ctx.roundRect(0, 0, W, H, 12); ctx.stroke()
-
-  // 배지
-  ctx.fillStyle = 'rgba(0,240,255,0.08)'
-  ctx.roundRect(12, 12, 150, 22, 5); ctx.fill()
-  ctx.fillStyle = '#00f0ff'; ctx.font = 'bold 10px monospace'
-  ctx.fillText('🏗️ ARCH DESIGN', 20, 27)
-
-  // 미션
-  ctx.fillStyle = '#f1f5f9'; ctx.font = 'bold 15px sans-serif'
-  const mission = curQ.value
-  const title = mission?.title || '시스템 아키텍처 설계'
-  ctx.fillText(title.length > 40 ? title.slice(0, 40) + '...' : title, 12, 52)
-
-  // 컴포넌트 칩
-  let cx = 12, cy = 68
-  myFinalNodes.value.slice(0, 8).forEach(n => {
-    const label = `${n.icon} ${n.name}`
-    const tw = ctx.measureText(label).width + 16
-    if (cx + tw > W - 12) { cx = 12; cy += 22 }
-    ctx.fillStyle = 'rgba(0,240,255,0.1)'
-    ctx.roundRect(cx, cy, tw, 18, 4); ctx.fill()
-    ctx.strokeStyle = 'rgba(0,240,255,0.25)'; ctx.lineWidth = 0.8
-    ctx.roundRect(cx, cy, tw, 18, 4); ctx.stroke()
-    ctx.fillStyle = '#e0f2fe'; ctx.font = '10px sans-serif'
-    ctx.fillText(label, cx + 8, cy + 13)
-    cx += tw + 6
-  })
-  cy += 28
-
-  // 점수
-  ctx.fillStyle = '#334155'; ctx.fillRect(12, cy, W - 24, 1); cy += 10
-  ctx.font = '11px monospace'
-  ctx.fillStyle = '#00f0ff'; ctx.fillText(`MY: ${myScore.value}pt`, 12, cy + 10)
-  ctx.fillStyle = '#ff2d75'; ctx.fillText(`OPP: ${oppScore.value}pt`, 100, cy + 10)
-  const verdict = myScore.value > oppScore.value ? '🏆 WIN' : myScore.value === oppScore.value ? '🤝 DRAW' : '💪 LOSS'
-  ctx.fillStyle = myScore.value > oppScore.value ? '#00f0ff' : '#ff2d75'
-  ctx.fillText(verdict, W - 70, cy + 10)
-  cy += 22
-
-  // AI 평가
-  if (aiReview.value.my) {
-    ctx.fillStyle = '#475569'; ctx.font = '9px sans-serif'
-    const ai = '🤖 ' + aiReview.value.my
-    ctx.fillText(ai.length > 70 ? ai.slice(0, 70) + '...' : ai, 12, cy + 10)
-    cy += 16
-  }
-
-  // 푸터
-  ctx.fillStyle = '#1e293b'; ctx.fillRect(0, H - 24, W, 1)
-  ctx.fillStyle = '#334155'; ctx.font = '9px monospace'
-  ctx.fillText('CoduckWars · ArchDrawQuiz', 12, H - 10)
-  ctx.fillText(goTodayStr, W - 70, H - 10)
-
-  const link = document.createElement('a')
-  link.download = `arch_portfolio_${goTodayStr}.png`
-  link.href = canvas.toDataURL('image/png')
-  link.click()
-}
-
-const archExportText = () => {
-  const text = archBuildText()
-  navigator.clipboard.writeText(text).catch(() => {
-    const ta = document.createElement('textarea')
-    ta.value = text; document.body.appendChild(ta); ta.select()
-    document.execCommand('copy'); document.body.removeChild(ta)
-  }).finally?.(() => {})
-  // catch분기 바깥
-  try { navigator.clipboard.writeText(text) } catch {}
-  archCopyToast.value = true
-  setTimeout(() => { archCopyToast.value = false }, 2500)
-}
-
-const archDownloadTxt = () => {
-  const text = archBuildText()
-  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
-  const link = document.createElement('a')
-  link.download = `arch_portfolio_${goTodayStr}.txt`
-  link.href = URL.createObjectURL(blob)
-  link.click()
-  URL.revokeObjectURL(link.href)
-}
 // =========================================================
 
 function joinCustomRoom() {
@@ -1037,11 +955,13 @@ function submitDraw() {
     // [수정일: 2026-02-25] 백엔드에서 온 미션의 DB rubric_functional 활용
     let checks = []
     if (curQ.value && curQ.value.rubric && curQ.value.rubric.required_components) {
-      checks = curQ.value.rubric.required_components.map(compId => {
-        const compName = allComps.find(c => c.id === compId)?.name || compId
+      checks = curQ.value.rubric.required_components.map(item => {
+        // [수정일: 2026-03-03] 백엔드에서 온 {id, label} 구조 활용
+        const label = item.label || item.id || 'Component'
+        const cid = item.id || item
         return {
-          label: `${compName} 배치`,
-          ok: nodes.value.some(n => n.compId === compId)
+          label: `${label} 배치`,
+          ok: snapNodes.some(n => n.compId === cid)
         }
       })
     } else if (curQ.value && curQ.value.required) {
@@ -1049,7 +969,7 @@ function submitDraw() {
         const compName = allComps.find(c => c.id === compId)?.name || compId
         return {
           label: `${compName} 배치`,
-          ok: snapNodes.some(n => n.compId === compId)  // nodes.value 대신 스냅샷 사용
+          ok: snapNodes.some(n => n.compId === compId)
         }
       })
     }
@@ -1148,7 +1068,7 @@ watch(totalItems, (newVal) => {
 .neon-border{border:1px solid #00f0ff;box-shadow:0 0 15px rgba(0,240,255,0.2)}
 
 /* [수정일: 2026-02-24] AI REVIEW BOARD 스타일 */
-.ai-review-board { margin-top: 20px; background: rgba(0, 240, 255, 0.05); border-radius: 12px; padding: 15px; text-align: left; animation: fadeIn 0.5s ease-out; }
+.ai-review-board { margin: 20px auto 0; max-width: 520px; background: rgba(0, 240, 255, 0.05); border-radius: 12px; padding: 15px; text-align: left; animation: fadeIn 0.5s ease-out; }
 .ari-header { display: flex; align-items: center; margin-bottom: 10px; border-bottom: 1px solid rgba(0, 240, 255, 0.2); padding-bottom: 5px; }
 .ari-label { font-family: 'Orbitron', sans-serif; font-size: 0.75rem; font-weight: 900; color: #00f0ff; letter-spacing: 2px; }
 .ari-content { display: flex; flex-direction: column; gap: 8px; }
@@ -1333,9 +1253,11 @@ watch(totalItems, (newVal) => {
   background: #ff2d75;
   color: #fff;
 }
-.severity-critical { border-color: #ff0000; box-shadow: 0 0 30px rgba(255,0,0,0.4); }
-.severity-critical .chaos-header { background: #ff0000; }
-.severity-high { border-color: #ff2d75; }
+.severity-critical { border-color: #ff0000; box-shadow: 0 0 40px rgba(255,0,0,0.5); }
+.severity-critical .chaos-header { background: #ff0000; animation: chaosCriticalPulse 1s infinite; }
+@keyframes chaosCriticalPulse { 0%, 100% { opacity: 0.8; } 50% { opacity: 1; } }
+.severity-high { border-color: #ff4d00; }
+.severity-high .chaos-header { background: #ff4d00; }
 .severity-medium { border-color: #f59e0b; }
 .severity-medium .chaos-header { background: #f59e0b; }
 
@@ -1357,15 +1279,50 @@ watch(totalItems, (newVal) => {
 .m-missions{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:.15rem}
 .m-missions li{font-size:.72rem;color:#94a3b8;padding-left:.6rem;position:relative;line-height:1.4}
 .m-missions li::before{content:'✅';position:absolute;left:0;font-size:.6rem;top:.05rem}
-/* [Multi-Agent] CoachAgent 힌트 토스트 */
-.coach-toast{display:flex;align-items:center;gap:.5rem;margin:.2rem 1.2rem 0;padding:.4rem .8rem;background:rgba(0,240,255,.06);border:1px solid rgba(0,240,255,.2);border-radius:.4rem;font-size:.78rem;color:#a5f3fc;animation:coachPulse 4s ease-in-out infinite}
-.coach-icon{font-size:.9rem;flex-shrink:0}
-.coach-text{line-height:1.4}
+/* [Multi-Agent] CoachAgent 힌트 토스트 - 가시성 및 테마 차별화 (2026-03-03) */
+.coach-toast {
+  display: flex;
+  flex-direction: column;
+  margin: 0.2rem 1.2rem 0;
+  background: rgba(8, 12, 30, 0.9);
+  border: 1px solid rgba(57, 255, 20, 0.3);
+  border-left: 5px solid #39ff14;
+  border-radius: 0.5rem;
+  box-shadow: 0 5px 20px rgba(0, 255, 0, 0.15);
+  overflow: hidden;
+  animation: coachSlideIn 0.4s ease-out;
+  z-index: 100;
+}
+.coach-header {
+  background: rgba(57, 255, 20, 0.1);
+  padding: 4px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid rgba(57, 255, 20, 0.1);
+}
+.ch-ico { font-size: 0.9rem; }
+.ch-lbl {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 900;
+  color: #39ff14;
+  letter-spacing: 1px;
+}
+.coach-body {
+  padding: 8px 12px;
+  color: #e0f2fe;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+@keyframes coachSlideIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 .coach-slide-enter-active{transition:all .35s ease-out}
 .coach-slide-leave-active{transition:all .3s ease-in}
 .coach-slide-enter-from{opacity:0;transform:translateY(-6px)}
 .coach-slide-leave-to{opacity:0;transform:translateY(-6px)}
-@keyframes coachPulse{0%,100%{border-color:rgba(0,240,255,.2);box-shadow:none}50%{border-color:rgba(0,240,255,.5);box-shadow:0 0 10px rgba(0,240,255,.1)}}
 
 /* SPLIT VIEW */
 .split-view{display:grid;grid-template-columns:1fr 30px 1fr;gap:0;padding:0 1.2rem;height:calc(100vh - 210px);min-height:0}
@@ -1393,7 +1350,24 @@ watch(totalItems, (newVal) => {
 
 /* CANVAS */
 .canvas-wrap,.opp-canvas{position:relative;flex:1;background:rgba(8,12,30,.4);border:2px dashed rgba(0,240,255,.12);border-radius:.75rem;overflow:hidden;min-height:0}
-.opp-canvas{border-color:rgba(255,45,117,.12)}
+.opp-canvas{border-color:rgba(255,45,117,.12);  box-shadow: 0 0 100px rgba(255,10,10,0.1) inset;
+}
+
+/* [추가 2026-03-03] 장애 상황용 비네트 효과 */
+.chaos-vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 90;
+  background: radial-gradient(circle, transparent 40%, rgba(255, 0, 0, 0.15) 100%);
+  animation: chaosPulseVignette 2s infinite;
+}
+@keyframes chaosPulseVignette {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+.intro-screen{position:absolute;inset:0;background:#050814;display:flex;align-items:center;justify-content:center;z-index:1000}
 .canvas-hint,.opp-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#1e293b;font-size:.85rem;pointer-events:none}
 .arrow-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .aline{stroke:#00f0ff;stroke-width:2;opacity:.7}.aline.drawing{stroke-dasharray:6 4;opacity:.5}
@@ -1468,43 +1442,16 @@ watch(totalItems, (newVal) => {
 .btn-next:hover{background:rgba(0,240,255,.08);transform:translateY(-2px)}
 
 /* GAME OVER */
-.go-box{text-align:center}.go-title{font-size:2.5rem;font-weight:900;color:#00f0ff;letter-spacing:4px;margin-bottom:.75rem}
+.go-box { text-align: center; max-width: 600px; width: 95%; margin: 0 auto; }
+.go-title { font-size: 2.5rem; font-weight: 900; color: #00f0ff; letter-spacing: 4px; margin-bottom: .75rem; }
 .go-final{display:flex;align-items:center;justify-content:center;gap:1.5rem;margin:1rem 0}
 .go-fs{display:flex;flex-direction:column;align-items:center}.go-fs span{font-size:.6rem;color:#475569;font-weight:700}.go-fs strong{font-family:'Orbitron',sans-serif;font-size:2.5rem;font-weight:900}
 .go-vs{font-family:'Orbitron',sans-serif;font-size:1rem;color:#ff2d75;font-weight:900}
 .go-verdict{font-family:'Orbitron',sans-serif;font-size:1.5rem;font-weight:900;color:#ffe600;margin:.5rem 0}
-/* 포트폴리오 export 스타일 */
-.go-portfolio { margin: 1rem 0 0.5rem; text-align: left; }
-.go-pf-title { font-family: 'Orbitron', sans-serif; font-size: .65rem; color: #00f0ff; letter-spacing: 2px; margin-bottom: .6rem; text-align: center; }
-.go-pf-preview {
-  background: linear-gradient(135deg, #030712, #0f172a);
-  border: 1px solid rgba(0,240,255,0.25); border-radius: .75rem;
-  padding: 1rem; display: flex; flex-direction: column; gap: .6rem;
-  margin-bottom: .75rem;
-}
-.gpf-badge { font-size: .55rem; font-weight: 700; letter-spacing: 1px; padding: 3px 10px; border-radius: 4px; background: rgba(0,240,255,.08); color: #00f0ff; border: 1px solid rgba(0,240,255,.2); display: inline-block; }
-.gpf-mission { font-size: .85rem; font-weight: 800; color: #f1f5f9; }
-.gpf-scenario { font-size: .7rem; color: #64748b; line-height: 1.5; border-left: 2px solid rgba(0,240,255,.2); padding-left: .5rem; }
-.gpf-missions { display: flex; flex-direction: column; gap: .15rem; }
-.gpf-mission-item { font-size: .65rem; color: #94a3b8; line-height: 1.4; }
-.gpf-components { display: flex; flex-wrap: wrap; gap: .3rem; }
-.gpf-comp { font-size: .65rem; padding: 2px 8px; background: rgba(0,240,255,.08); border: 1px solid rgba(0,240,255,.15); border-radius: 4px; color: #e0f2fe; }
-.gpf-comp-more { font-size: .65rem; padding: 2px 8px; color: #475569; }
-.gpf-score-row { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }
-.gpf-sl { font-size: .55rem; color: #475569; font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
-.gpf-sv { font-size: .85rem; font-weight: 700; font-family: 'Orbitron', sans-serif; }
-.gpf-ai { font-size: .65rem; color: #64748b; }
-.gpf-ai-label { color: #00f0ff; font-weight: 700; margin-right: .3rem; }
-.gpf-footer { font-size: .55rem; color: #1e293b; font-family: monospace; padding-top: .5rem; border-top: 1px solid rgba(255,255,255,.04); }
-.go-pf-actions { display: flex; gap: .5rem; margin-bottom: .5rem; flex-wrap: wrap; }
-.go-pf-btn { padding: .45rem 1rem; border-radius: .5rem; font-size: .7rem; font-weight: 700; cursor: pointer; border: none; transition: all .2s; }
-.go-pf-btn.cyan { background: rgba(0,240,255,.1); border: 1px solid rgba(0,240,255,.3); color: #00f0ff; }
-.go-pf-btn.cyan:hover { background: rgba(0,240,255,.18); }
-.go-pf-btn.purple { background: rgba(168,85,247,.1); border: 1px solid rgba(168,85,247,.3); color: #a855f7; }
-.go-pf-btn.purple:hover { background: rgba(168,85,247,.18); }
-.go-pf-btn.gray { background: rgba(100,116,139,.1); border: 1px solid rgba(100,116,139,.3); color: #64748b; }
-.go-pf-btn.gray:hover { background: rgba(100,116,139,.18); }
-.go-pf-toast { font-size: .7rem; color: #22c55e; padding: .3rem .7rem; background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.25); border-radius: .4rem; display: inline-block; }
+
+/* 추가 2026-03-03: 게임오버 화면 아키텍처 비교창 */
+.go-compare{margin:15px auto;max-width:520px;background:rgba(15,23,42,.6);padding:15px;border-radius:1rem;border:1px solid rgba(0,240,255,.2)}
+
 
 .go-btns{display:flex;gap:1rem;margin-top:1rem}
 .btn-retry{flex:1;padding:.65rem;font-family:'Orbitron',sans-serif;font-size:.75rem;font-weight:700;background:transparent;border:2px solid #00f0ff;color:#00f0ff;border-radius:.6rem;cursor:pointer}.btn-retry:hover{background:rgba(0,240,255,.1)}

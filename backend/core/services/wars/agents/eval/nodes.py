@@ -192,8 +192,8 @@ def revise(state: EvalAgentState) -> EvalAgentState:
     p1_nodes = [_node_label(n) for n in state["p1_data"].get("nodes", [])]
     p2_nodes = [_node_label(n) for n in state["p2_data"].get("nodes", [])]
 
-    prompt = f"""당신은 아키텍처 평가 전문가입니다.
-아래 평가를 검수관의 지적사항에 따라 수정하십시오.
+    prompt = f"""당신은 아키텍처 평가를 정교하게 다듬는 전문가입니다.
+아래 평가를 검수관의 지적사항에 따라 수정하되, 설계의 '연결성과 흐름'에 대한 상세한 설명을 반드시 보존하거나 강화하십시오.
 
 [실제 설계 데이터]
 {p1_name} 배치 컴포넌트: {', '.join(p1_nodes) or '없음'}
@@ -206,19 +206,20 @@ def revise(state: EvalAgentState) -> EvalAgentState:
 {state.get('critique', '')}
 
 [수정 지침]
-- 실제 배치된 컴포넌트 이름을 분석에 반드시 포함
-- 양측 평가 분량을 균형 있게 조정
-- versus는 설계 차이를 구체적으로 서술
+- **서사적 깊이 유지**: "무엇이 배치되었다"는 단순 나열을 피하고, "A가 B와 연결되어 C를 목표로 한다"는 인과관계를 서술하십시오.
+- **실제 명칭 사용**: 실제 배치된 컴포넌트 이름을 언급하며 분석의 신뢰도를 높이십시오.
+- **양측 균형**: 한쪽 평가가 너무 짧아지지 않도록 분량을 맞추십시오.
+- **Versus 강화**: 두 설계의 결정적 차이(가용성 중심 vs 성능 중심 등)를 명확히 대조하십시오.
 
 [출력 형식 — JSON만]
 {{
   "player1": {{
-    "my_analysis": "수정된 분석",
-    "versus": "수정된 비교"
+    "my_analysis": "수정 및 강화된 상세 분석 (3~4문장)",
+    "versus": "수정 및 강화된 구체적 비교 (2~3문장)"
   }},
   "player2": {{
-    "my_analysis": "수정된 분석",
-    "versus": "수정된 비교"
+    "my_analysis": "수정 및 강화된 상세 분석 (3~4문장)",
+    "versus": "수정 및 강화된 구체적 비교 (2~3문장)"
   }}
 }}"""
 

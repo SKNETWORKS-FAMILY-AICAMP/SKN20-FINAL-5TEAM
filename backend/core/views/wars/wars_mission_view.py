@@ -99,6 +99,15 @@ def _transform_to_wars_mission(detail) -> dict:
                 'reason': flow.get('reason', ''),
             })
 
+    # required_components: 채점용 ID와 표시용 Label 쌍
+    required_components_detailed = []
+    for name in required_component_names:
+        comp_id = _component_name_to_id(name)
+        required_components_detailed.append({
+            'id': comp_id,
+            'label': name
+        })
+
     # engineering_spec → context 문자열
     engineering_spec = data.get('engineering_spec', {})
     if isinstance(engineering_spec, dict):
@@ -116,6 +125,7 @@ def _transform_to_wars_mission(detail) -> dict:
         'missions': missions,
         'required': required_ids,
         'rubric': {
+            'required_components': required_components_detailed,
             'required_flows': required_flows,
         },
     }

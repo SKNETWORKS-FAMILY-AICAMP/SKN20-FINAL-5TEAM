@@ -22,10 +22,12 @@ export function useDrawSocket() {
   const onRoundStart = ref(null)
   const onRoundResult = ref(null)
   const onItemEffect = ref(null)
+  const onCoachHint = ref(null)    // [추가 2026-03-03] CoachAgent 힌트 수신
   const onChaosEvent = ref(null)   // [추가 2026-02-27] ChaosAgent 주도 장애 이벤트 
+  const onChaosRecovered = ref(null) // [추가 2026-03-03] 장애 복구 알림
   const onGameOver = ref(null)
 
-  function connect(roomId, userName) {
+  function connect(roomId, userName, userId) {
     if (socket.value) return
 
     // [수정일: 2026-03-01] 소켓 URL 결정 로직 수정
@@ -47,7 +49,8 @@ export function useDrawSocket() {
 
     socket.value.on('connect', () => {
       connected.value = true
-      socket.value.emit('draw_join', { room_id: roomId, user_name: userName })
+      // [수정일: 2026-03-03] DB 연동을 위해 user_id 포함하여 전송
+      socket.value.emit('draw_join', { room_id: roomId, user_name: userName, user_id: userId })
     })
 
     socket.value.on('disconnect', () => { connected.value = false })
@@ -106,10 +109,21 @@ export function useDrawSocket() {
       if (onRoundResult.value) onRoundResult.value(data.results)
     })
 
+    // [추가 2026-03-03] CoachAgent 힌트 수신
+    socket.value.on('coach_hint', (data) => {
+      console.log('💡 [ArchDraw] Coach Hint Received:', data)
+      if (onCoachHint.value) onCoachHint.value(data)
+    })
+
     // [추가 2026-02-27] ChaosAgent 주도 장애 이벤트 수신
     socket.value.on('chaos_event', (data) => {
       console.log('🔥 [ArchDraw] Chaos Event Received:', data)
       if (onChaosEvent.value) onChaosEvent.value(data)
+    })
+
+    // [추가 2026-03-03] 장애 복구 알림 수신
+    socket.value.on('draw_chaos_recovered', (data) => {
+      if (onChaosRecovered.value) onChaosRecovered.value(data)
     })
 
     // [추가] 5라운드 종료 → 게임 오버
@@ -167,6 +181,11 @@ export function useDrawSocket() {
     socket.value?.emit('draw_next_round', { room_id: roomId, question })
   }
 
+  // [추가 2026-03-03] Chaos 장애 확인
+  function emitChaosComplete(roomId) {
+    socket.value?.emit('draw_chaos_complete', { room_id: roomId })
+  }
+
   function disconnect(roomId) {
     socket.value?.emit('draw_leave', { room_id: roomId })
     socket.value?.disconnect()
@@ -179,8 +198,8 @@ export function useDrawSocket() {
     socket, connected, roomPlayers, isReady,
     opponentCanvas, opponentName, opponentHasItem,
     roundQuestion, opponentSubmitted, roundResults,
-    onGameStart, onRoundStart, onRoundResult, onItemEffect, onChaosEvent, onGameOver,
+    onGameStart, onRoundStart, onRoundResult, onItemEffect, onCoachHint, onChaosEvent, onChaosRecovered, onGameOver,
     connect, emitStart, emitCanvasSync, emitUseItem,
-    emitItemStatus, emitSubmit, emitNextRound, disconnect
+    emitItemStatus, emitSubmit, emitNextRound, emitChaosComplete, disconnect
   }
 }

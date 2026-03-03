@@ -41,6 +41,7 @@ from core.views import youtube_recommendation
 from core.views.architecture.architecture_view import ArchitectureEvaluationView, ArchitectureQuestionGeneratorView
 from core.views.ai_coach.coach_view import AICoachView, CoachConversationView, CoachConversationDetailView
 from core.views.wars.wars_mission_view import WarsMissionsView
+from core.views.wars.wars_record_view import UserBattleRecordView
 from core.views.interview import (
     InterviewVisionView,
     InterviewJobPostingView, InterviewJobPostingDetailView,
@@ -101,6 +102,7 @@ urlpatterns = [
 
     # 9-1. Wars 미션 API (unit03 DB → Wars 포맷)
     path('wars/missions/', WarsMissionsView.as_view(), name='wars_missions'),
+    path('wars/record/', UserBattleRecordView.as_view(), name='wars_record'),
 
     # 10. AI Coach Agent API
     path('ai-coach/chat/', AICoachView.as_view(), name='ai_coach_chat'),
