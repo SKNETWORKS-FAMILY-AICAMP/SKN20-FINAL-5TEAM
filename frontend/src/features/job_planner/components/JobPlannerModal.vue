@@ -513,7 +513,7 @@
                   {{ (analysisResult.experience_fit * 100).toFixed(1) }}%
                 </div>
               </div>
-              <div v-if="analysisResult.proficiency_score" class="score-card">
+              <div v-if="analysisResult.proficiency_score != null" class="score-card">
                 <div class="score-label">숙련도</div>
                 <div class="score-value" :class="getScoreClass(analysisResult.proficiency_score)">
                   {{ (analysisResult.proficiency_score * 100).toFixed(1) }}%
@@ -645,6 +645,14 @@
                   </a>
                 </div>
               </div>
+            </div>
+
+            <!-- No Recommendations -->
+            <div v-if="recommendationsSearched && recommendations.length === 0 && !isLoadingRecommendations" class="recommendations-section">
+              <h3 class="recommendations-title">💡 추천 채용공고</h3>
+              <p class="recommendations-subtitle" style="color: #888;">
+                현재 스킬과 매칭되는 유사한 공고를 찾지 못했습니다.
+              </p>
             </div>
 
             <!-- Loading Recommendations -->
@@ -1007,6 +1015,12 @@
                     <li v-for="(item, idx) in portfolioReview.missing" :key="'pm-' + idx">{{ item }}</li>
                   </ul>
                 </div>
+                <div class="review-section" v-if="portfolioReview.portfolio_structure?.length">
+                  <div class="review-section-title">📋 포트폴리오 구성 가이드</div>
+                  <ol class="review-list priority">
+                    <li v-for="(item, idx) in portfolioReview.portfolio_structure" :key="'pst-' + idx">{{ item }}</li>
+                  </ol>
+                </div>
                 <div class="review-section" v-if="portfolioReview.priority_actions?.length">
                   <div class="review-section-title">🚀 우선 실행 액션</div>
                   <ol class="review-list priority">
@@ -1118,6 +1132,7 @@ export default {
       // Recommendations
       recommendations: [],
       isLoadingRecommendations: false,
+      recommendationsSearched: false,
 
       // Cover Letter & Portfolio Review
       coverLetterQuestions: '',
@@ -1471,10 +1486,14 @@ export default {
           career_goals: this.careerGoals,
           available_prep_days: this.availablePrepDays,
 
+          // 이력서 경력 사항
+          work_experience: this.parsedWorkExperience || [],
+
           // 채용공고 정보
           required_skills: this.jobData.required_skills,
           preferred_skills: this.jobData.preferred_skills,
           experience_range: this.jobData.experience_range,
+          position: this.jobData.position || '',
 
           // 필수/우대 요건 전체 텍스트 (추가 역량 추출용)
           required_qualifications: this.jobData.required_qualifications || '',
@@ -1540,15 +1559,20 @@ export default {
           // 현재 분석 중인 공고 정보 (중복 제거용)
           current_job_url: this.urlInput || '',
           current_job_company: this.jobData?.company_name || '',
-          current_job_title: this.jobData?.position || ''
+          current_job_title: this.jobData?.position || '',
+          // 사용자 프로필 (LLM 2차 평가용)
+          work_experience: this.parsedWorkExperience || [],
+          projects: this.parsedProjects || [],
+          key_achievements: this.parsedKeyAchievements || [],
         });
 
         this.recommendations = response.data.recommendations || [];
+        this.recommendationsSearched = true;
 
       } catch (error) {
         console.error('추천 공고 로드 실패:', error);
-        // 실패해도 에러 메시지 표시하지 않음 (선택 기능)
         this.recommendations = [];
+        this.recommendationsSearched = true;
       } finally {
         this.isLoadingRecommendations = false;
       }
@@ -1657,6 +1681,7 @@ export default {
       this.analysisResult = null;
       this.finalReport = null;
       this.recommendations = [];
+      this.recommendationsSearched = false;
       this.errorMessage = '';
       this.currentStep = 'input';
     },
@@ -1691,6 +1716,7 @@ export default {
           user_profile: {
             ...this.analysisResult?.profile_summary || {},
             user_skills: this.userSkills,
+            work_experience: this.parsedWorkExperience || [],
             projects: this.parsedProjects,
             key_achievements: this.parsedKeyAchievements,
             github_url: this.parsedGithubUrl,
@@ -1765,6 +1791,7 @@ export default {
       this.analysisResult = null;
       this.finalReport = null;
       this.recommendations = [];
+      this.recommendationsSearched = false;
       this.coverLetterQuestions = '';
       this.generatedCoverLetter = null;
       this.portfolioReview = null;
@@ -2446,13 +2473,13 @@ export default {
 
 .score-overview {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
   margin-bottom: 32px;
 }
 
 .score-card {
-  padding: 24px;
+  padding: 16px 12px;
   background: rgba(15, 23, 42, 0.6);
   border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 12px;
@@ -2460,14 +2487,14 @@ export default {
 }
 
 .score-label {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: #94a3b8;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .score-value {
-  font-size: 32px;
+  font-size: 24px;
   font-weight: 700;
 }
 
