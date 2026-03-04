@@ -144,7 +144,12 @@ function formatTime(sec) {
   const s = String(sec % 60).padStart(2, '0');
   return `${m}:${s}`;
 }
-onUnmounted(stopTimer);
+onUnmounted(() => {
+  stopTimer();
+  // 면접 완료 전환 타이머 정리
+  if (finishTimer) clearInterval(finishTimer);
+  if (finishSafetyTimer) clearTimeout(finishSafetyTimer);
+});
 
 const {
   sessionId,
@@ -295,15 +300,55 @@ watch(isStreaming, (val, oldVal) => {
   }
 });
 
-// 면접 완료 시 피드백 화면으로 전환 (인사말 표시를 위해 3초 딜레이)
+// ── 면접 완료 시 피드백 화면 전환 ──────────────────────────
+// [2026-03-04 변경] 고정 3초 딜레이 → TTS 인사말 재생 완료 후 전환
+//
+// 흐름:
+//   1. isFinished=true → 타이머 정지, 전환 대기 시작
+//   2. 인사말이 TTS 큐에 등록되어 재생됨 (playNextChunk → tts.speak)
+//   3. TTS 재생 완료 후 1.5초 여유를 두고 피드백 화면으로 전환
+//   4. 안전장치: TTS가 10초 내에 끝나지 않으면 강제 전환 (TTS 오류 대비)
+let finishTimer = null;
+let finishSafetyTimer = null;
+
 watch(isFinished, (val) => {
   if (val) {
     stopTimer();
-    setTimeout(() => {
-      phase.value = 'feedback';
-    }, 3000);
+
+    // 안전장치: 최대 10초 후 강제 전환 (TTS 오류/무한 대기 방지)
+    finishSafetyTimer = setTimeout(() => {
+      if (phase.value !== 'feedback') {
+        phase.value = 'feedback';
+      }
+    }, 10000);
+
+    // TTS 큐가 비워지는 시점을 감시하여 전환
+    waitForTTSComplete();
   }
 });
+
+/**
+ * TTS 재생이 완전히 끝날 때까지 대기한 뒤 피드백 화면으로 전환한다.
+ * - tts.isEmpty: 큐가 비어있고 현재 재생 중인 오디오도 없는 상태
+ * - 100ms 간격으로 폴링하여 TTS 완료를 감지
+ * - 완료 후 1.5초 여유를 두어 인사말을 읽을 시간 확보
+ */
+function waitForTTSComplete() {
+  finishTimer = setInterval(() => {
+    // TTS 큐가 완전히 비어있고, 재생 중인 청크도 없을 때
+    if (tts.isEmpty && !isPlayingChunk) {
+      clearInterval(finishTimer);
+      clearTimeout(finishSafetyTimer);
+      finishTimer = null;
+      finishSafetyTimer = null;
+
+      // 인사말을 읽을 수 있도록 1.5초 여유 후 전환
+      setTimeout(() => {
+        phase.value = 'feedback';
+      }, 1500);
+    }
+  }, 100);
+}
 
 function cleanupPlayback() {
   tts.stop();

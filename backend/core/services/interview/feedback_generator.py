@@ -101,7 +101,12 @@ def _build_slot_summary(slot_states: dict, interview_plan: dict) -> dict:
 
 
 def _build_feedback_prompt(slot_summary: dict, session) -> str:
-    """feedback_generator LLM 프롬프트 생성"""
+    """feedback_generator LLM 프롬프트 생성
+
+    [2026-03-04 변경사항]
+      - 실제 면접 대화 내용을 프롬프트에 포함하여
+        LLM이 지원자의 구체적인 답변을 참조한 피드백을 생성하도록 개선.
+    """
     job_posting = session.job_posting
     company_info = ""
     if job_posting:
@@ -119,6 +124,9 @@ def _build_feedback_prompt(slot_summary: dict, session) -> str:
 
     slots_str = "\n".join(slot_details)
 
+    # [2026-03-04] 실제 면접 대화 내용 추출
+    conversation_section = _build_conversation_section(session)
+
     return f"""다음 면접 결과를 바탕으로 정성적 피드백을 생성하라.
 
 [채용 정보]
@@ -126,28 +134,57 @@ def _build_feedback_prompt(slot_summary: dict, session) -> str:
 
 [역량 슬롯별 결과]
 {slots_str}
+{conversation_section}
 
 [피드백 작성 규칙]
 1. 점수, 합격/불합격 판정 절대 금지
-2. "잘 하셨습니다/부족합니다" 같은 질적 판단 금지
-3. 확인된 evidence 기반으로 구체적으로 서술
-4. UNCERTAIN 슬롯은 "충분히 확인되지 않았다"고 표현
-5. top_strengths: 증거가 충분히 확인된 강점 (구체적 서술, 2-3개)
-6. top_improvements: 증거가 부족했던 부분 (개선 방향 포함, 2-3개)
-7. 한국어 존댓말 사용
+2. evidence 판정 결과를 기준으로 피드백하되, 실제 대화 내용은 구체적 서술을 위한 참고로 사용하라.
+3. 지원자가 실제로 언급한 기술, 프로젝트, 경험을 구체적으로 인용하여 피드백하라.
+4. 답변이 질문의 의도와 무관하거나, 구체적 사례 없이 추상적으로만 답한 경우 명확하게 지적하라.
+   예: "팀워크 강화 방법으로 '커피를 샀다'고만 답변하셨는데, 구체적인 협업 전략이나 갈등 해결 경험이 확인되지 않았습니다."
+5. 강점(top_strengths)은 실제로 구체적인 경험·기술·사례가 확인된 경우에만 작성하라. 내용이 부족하면 강점 대신 "확인된 강점 없음"으로 표기하라.
+6. UNCERTAIN 슬롯은 "충분히 확인되지 않았다"고 표현
+7. top_improvements: 증거가 부족했던 부분 (개선 방향 포함, 2-3개)
+8. 한국어 존댓말 사용. 단, 부드럽게 감싸기보다 사실 기반으로 직접적인 피드백을 제공하라.
 
 [출력 형식]
 {{
     "slot_summary": {{
         "slotName": {{
-            "summary": "이 역량에 대한 1-2문장 정성적 서술"
+            "summary": "이 역량에 대한 1-2문장 정성적 서술 (지원자의 실제 답변 내용 참조)"
         }}
     }},
     "overall_summary": "전반적인 면접 총평 (3-4문장)",
-    "top_strengths": ["강점 1 - 근거 포함", "강점 2 - 근거 포함"],
+    "top_strengths": ["강점 1 - 실제 답변 근거 포함", "강점 2 - 실제 답변 근거 포함"],
     "top_improvements": ["개선 방향 1", "개선 방향 2"],
     "recommendation": "이 포지션 준비를 위한 학습 추천 방향 (1-2문장)"
 }}"""
+
+
+def _build_conversation_section(session) -> str:
+    """실제 면접 대화 내용을 슬롯별로 정리하여 프롬프트 섹션으로 반환한다.
+
+    [2026-03-04 신규]
+    """
+    turns = session.turns.exclude(
+        answer=''
+    ).order_by('turn_number').values('slot', 'question', 'answer')
+
+    slot_conversations = {}
+    for turn in turns:
+        slot_conversations.setdefault(turn['slot'], []).append(
+            f"  Q: {turn['question']}\n  A: {turn['answer']}"
+        )
+
+    if not slot_conversations:
+        return ""
+
+    lines = ["\n[실제 면접 대화 내용]"]
+    for slot_name, convs in slot_conversations.items():
+        lines.append(f"\n({slot_name})")
+        lines.extend(convs)
+
+    return "\n".join(lines)
 
 
 def _build_fallback_feedback(slot_summary: dict) -> dict:
