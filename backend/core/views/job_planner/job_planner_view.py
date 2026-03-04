@@ -1203,12 +1203,10 @@ class JobPlannerAgentReportView(APIView):
             job_data = request.data.get('job_data', {})
             analysis_result = request.data.get('analysis_result', {})
             company_analysis = request.data.get('company_analysis', {})
-            agent_answers = request.data.get('agent_answers', {})  # 에이전트 질문 답변
-
             # LLM으로 종합 보고서 생성
             available_prep_days = analysis_result.get('profile_summary', {}).get('available_prep_days')
             report = self._generate_report_with_llm(
-                job_data, analysis_result, company_analysis, agent_answers, available_prep_days
+                job_data, analysis_result, company_analysis, available_prep_days
             )
 
             return Response(report, status=status.HTTP_200_OK)
@@ -1220,17 +1218,17 @@ class JobPlannerAgentReportView(APIView):
                 "error": f"보고서 생성 중 오류 발생: {str(e)}"
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def _generate_report_with_llm(self, job_data, analysis_result, company_analysis, agent_answers, available_prep_days=None):
+    def _generate_report_with_llm(self, job_data, analysis_result, company_analysis, available_prep_days=None):
         """LLM으로 최종 종합 보고서 생성"""
         api_key = os.getenv('OPENAI_API_KEY')
         if not api_key:
             return {
                 "error": "OPENAI_API_KEY가 설정되지 않았습니다.",
                 "swot": {
-                    "strengths": ["스킬 매칭률이 높습니다"],
-                    "weaknesses": ["일부 스킬이 부족합니다"],
-                    "opportunities": ["성장 가능성이 있습니다"],
-                    "threats": ["경쟁이 치열할 수 있습니다"]
+                    "strengths": [{"point": "스킬 매칭률이 높습니다", "evidence": "분석 데이터 없음"}],
+                    "weaknesses": [{"point": "일부 스킬이 부족합니다", "evidence": "분석 데이터 없음"}],
+                    "opportunities": [{"point": "성장 가능성이 있습니다", "evidence": "분석 데이터 없음"}],
+                    "threats": [{"point": "경쟁이 치열할 수 있습니다", "evidence": "분석 데이터 없음"}]
                 },
 
                 "experience_packaging": [],
@@ -1290,9 +1288,6 @@ class JobPlannerAgentReportView(APIView):
 사용자 프로필:
 {json.dumps(analysis_result.get('profile_summary', {}), ensure_ascii=False)}
 
-에이전트 질문 답변:
-{json.dumps(agent_answers, ensure_ascii=False)}
-
 기업 분석:
 {json.dumps(company_analysis, ensure_ascii=False) if company_analysis else '정보 없음'}
 """
@@ -1313,10 +1308,10 @@ class JobPlannerAgentReportView(APIView):
 위 정보를 바탕으로 다음 내용을 포함한 종합 보고서를 JSON 형식으로 작성하세요:
 
 1. **SWOT 분석**
-   - Strengths: 강점 3-5개 (구체적으로)
-   - Weaknesses: 약점 2-4개 (보완 방법 포함)
-   - Opportunities: 기회 2-3개
-   - Threats: 위협 요소 1-2개
+   - Strengths: 강점 3-5개 (구체적으로, 각 항목마다 공고 또는 사용자 서류의 어떤 내용을 근거로 판단했는지 반드시 명시)
+   - Weaknesses: 약점 2-4개 (보완 방법 포함, 각 항목마다 공고 요구사항 또는 사용자 프로필의 어떤 부분에서 도출했는지 근거 명시)
+   - Opportunities: 기회 2-3개 (각 항목마다 근거 명시)
+   - Threats: 위협 요소 1-2개 (각 항목마다 근거 명시)
 
 2. **경험 포장 가이드**
    - 이력서/포트폴리오에서 강조할 점
@@ -1331,10 +1326,10 @@ class JobPlannerAgentReportView(APIView):
 JSON 형식:
 {{
   "swot": {{
-    "strengths": ["강점1", "강점2", ...],
-    "weaknesses": ["약점1 (보완: ...)", "약점2 (보완: ...)", ...],
-    "opportunities": ["기회1", "기회2", ...],
-    "threats": ["위협1", "위협2", ...]
+    "strengths": [{{"point": "강점 내용", "evidence": "근거 (예: 공고에서 요구하는 Python을 사용자가 보유)"}}, ...],
+    "weaknesses": [{{"point": "약점 내용 (보완: ...)", "evidence": "근거 (예: 공고에서 요구하는 Kubernetes 경험이 프로필에 없음)"}}, ...],
+    "opportunities": [{{"point": "기회 내용", "evidence": "근거"}}, ...],
+    "threats": [{{"point": "위협 내용", "evidence": "근거"}}, ...]
   }},
   "experience_packaging": {{
     "resume_highlights": ["이력서에 강조할 점1", "강조할 점2", ...],
@@ -1370,7 +1365,7 @@ JSON 형식:
             return {
                 "error": f"보고서 생성 실패: {str(e)}",
                 "swot": {
-                    "strengths": ["분석 정보가 부족합니다"],
+                    "strengths": [{"point": "분석 정보가 부족합니다", "evidence": "분석 데이터 없음"}],
                     "weaknesses": [],
                     "opportunities": [],
                     "threats": []
@@ -1593,6 +1588,29 @@ class JobPlannerRecommendView(APIView):
 
     def _filter_duplicate_jobs(self, job_listings, current_url, current_company, current_title):
         """사용자가 이미 분석한 공고를 제외"""
+        import re
+
+        def normalize(text):
+            """비교를 위해 텍스트 정규화: 소문자, 특수문자/공백 제거"""
+            if not text:
+                return ''
+            return re.sub(r'[^a-z0-9가-힣]', '', text.lower().strip())
+
+        def extract_keywords(title):
+            """제목에서 핵심 키워드 추출"""
+            if not title:
+                return set()
+            # 괄호 내용 제거, 특수문자로 분리
+            cleaned = re.sub(r'[(\[（【].*?[)\]）】]', ' ', title)
+            words = re.split(r'[\s/·,|_\-]+', cleaned)
+            # 1글자 이하 제거, 의미없는 단어 제거
+            stopwords = {'채용', '모집', '신입', '경력', '정규직', '계약직', '급구', '상시', '및', '외', '등'}
+            return {w.lower().strip() for w in words if len(w.strip()) > 1 and w.strip() not in stopwords}
+
+        curr_company_norm = normalize(current_company)
+        curr_title_norm = normalize(current_title)
+        curr_keywords = extract_keywords(current_title)
+
         filtered = []
 
         for job in job_listings:
@@ -1601,18 +1619,30 @@ class JobPlannerRecommendView(APIView):
                 print(f"  ❌ URL 중복 제외: {job['title']}")
                 continue
 
-            # 회사명 + 제목이 매우 유사하면 제외
-            if current_company and current_title:
-                job_company = job.get('company_name', '').lower().strip()
-                job_title = job.get('title', '').lower().strip()
-                curr_company = current_company.lower().strip()
-                curr_title = current_title.lower().strip()
+            job_company_norm = normalize(job.get('company_name', ''))
+            job_title_norm = normalize(job.get('title', ''))
 
-                # 회사명과 제목이 모두 포함되어 있으면 중복으로 간주
-                if (curr_company in job_company or job_company in curr_company) and \
-                   (curr_title in job_title or job_title in curr_title):
-                    print(f"  ❌ 제목 중복 제외: {job['company_name']} - {job['title']}")
-                    continue
+            # 회사명이 유사한지 확인
+            company_match = False
+            if curr_company_norm and job_company_norm:
+                company_match = (curr_company_norm in job_company_norm or job_company_norm in curr_company_norm)
+
+            if company_match:
+                # 1) 정규화된 제목이 서로 포함되면 제외
+                if curr_title_norm and job_title_norm:
+                    if curr_title_norm in job_title_norm or job_title_norm in curr_title_norm:
+                        print(f"  ❌ 제목 중복 제외: {job['company_name']} - {job['title']}")
+                        continue
+
+                # 2) 제목 키워드 겹침이 60% 이상이면 제외 (같은 공고가 다른 표현으로 올라온 경우)
+                if curr_keywords:
+                    job_keywords = extract_keywords(job.get('title', ''))
+                    if job_keywords:
+                        overlap = curr_keywords & job_keywords
+                        overlap_ratio = len(overlap) / min(len(curr_keywords), len(job_keywords))
+                        if overlap_ratio >= 0.8:
+                            print(f"  ❌ 키워드 중복 제외 ({overlap_ratio:.0%}): {job['company_name']} - {job['title']}")
+                            continue
 
             filtered.append(job)
 
@@ -2030,7 +2060,7 @@ class JobPlannerRecommendView(APIView):
 3. 프로젝트 관련성 (수행한 프로젝트가 공고 업무에 도움이 되는지)
 
 반드시 아래 JSON 형식으로만 응답하세요:
-{{"score": 0~100 정수, "reason": "적합하다고 추천한 이유를 구체적인 근거를 기반으로 작성"}}"""
+{{"requirements_summary": "이 공고가 원하는 인재상/주요 요구사항을 2-3문장으로 요약 (공고 내용 기반)", "score": 0~100 정수, "reason": "이 지원자에게 적합한 이유를 구체적 근거 기반으로 2-3문장으로 작성"}}"""
 
             try:
                 response = llm_client.chat.completions.create(
@@ -2038,11 +2068,12 @@ class JobPlannerRecommendView(APIView):
                     messages=[{"role": "user", "content": prompt}],
                     response_format={"type": "json_object"},
                     temperature=0,
-                    max_tokens=150,
+                    max_tokens=600,
                 )
                 result = json.loads(response.choices[0].message.content)
                 candidate['llm_score'] = result.get('score', 0)
                 candidate['reason'] = result.get('reason', candidate.get('reason', ''))
+                candidate['requirements_summary'] = result.get('requirements_summary', '')
                 print(f"  🤖 {candidate['company_name']} | LLM 적합도: {candidate['llm_score']}점")
             except Exception as e:
                 print(f"  ⚠️ LLM 평가 실패 ({candidate['company_name']}): {e}")
@@ -2680,94 +2711,30 @@ JSON 형식:
 
 
 @method_decorator(csrf_exempt, name='dispatch')
-class JobPlannerGenerateCoverLetterView(APIView):
-    """채용공고 맞춤 자기소개서 초안 생성 API"""
-    authentication_classes = []
-    permission_classes = [AllowAny]
-
-    def post(self, request):
-        user_profile = request.data.get('user_profile', {})
-        job_data = request.data.get('job_data', {})
-        company_analysis = request.data.get('company_analysis', {})
-
-        api_key = os.getenv('OPENAI_API_KEY')
-        if not api_key:
-            return Response({"error": "OPENAI_API_KEY가 설정되지 않았습니다."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        try:
-            client = openai.OpenAI(api_key=api_key)
-
-            company_info = ""
-            if company_analysis:
-                company_info = f"""
-기업 분석:
-- 기업 문화: {company_analysis.get('culture', {}).get('summary', '')}
-- 추천 이유: {company_analysis.get('recommendation', '')}
-"""
-
-            response = client.chat.completions.create(
-                model="gpt-4o",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": """당신은 전문 취업 컨설턴트입니다.
-지원자의 실제 경험과 역량을 바탕으로, 채용공고에 최적화된 자기소개서 초안을 작성합니다.
-- 지원자가 직접 쓴 것처럼 1인칭으로 작성
-- 거짓 정보 없이 제공된 정보만 활용, 없는 내용은 [직접 작성] 표시
-- 채용공고의 핵심 키워드를 자연스럽게 포함
-- 한국어로 작성"""
-                    },
-                    {
-                        "role": "user",
-                        "content": f"""아래 정보를 바탕으로 자기소개서 초안을 작성해주세요.
-
-채용공고:
-- 회사: {job_data.get('company_name', '')}
-- 포지션: {job_data.get('position', '')}
-- 주요 업무: {job_data.get('job_responsibilities', '')}
-- 필수 요건: {job_data.get('required_qualifications', '')}
-- 우대 조건: {job_data.get('preferred_qualifications', '')}
-{company_info}
-지원자 프로필:
-- 이름: {user_profile.get('name', '')}
-- 현재 직무: {user_profile.get('current_role', '')}
-- 경력: {user_profile.get('experience_years', 0)}년
-- 보유 스킬: {', '.join(user_profile.get('user_skills', []))}
-- 학력: {user_profile.get('education', '')}
-- 강점: {', '.join(user_profile.get('strengths', []))}
-- 커리어 목표: {user_profile.get('career_goals', '')}
-- 주요 프로젝트: {json.dumps(user_profile.get('projects', []), ensure_ascii=False)}
-- 핵심 성과: {', '.join(user_profile.get('key_achievements', []))}
-- 팀 협업 경험: {user_profile.get('teamwork_experience', '')}
-- 성장 스토리: {user_profile.get('growth_story', '')}
-
-다음 구조로 작성하세요:
-1. 지원동기 (이 회사/포지션을 선택한 이유, 커리어 목표와의 연결)
-2. 핵심 역량 (보유 스킬과 경험을 공고 요건에 맞게)
-3. 주요 경험/프로젝트 (구체적 성과 포함)
-4. 입사 후 포부
-
-[직접 작성]이 필요한 부분은 해당 자리에 표시해주세요."""
-                    }
-                ],
-                temperature=0.7
-            )
-
-            return Response({
-                "cover_letter": response.choices[0].message.content
-            }, status=status.HTTP_200_OK)
-
-        except Exception as e:
-            print(f"❌ 자기소개서 생성 에러: {e}")
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
 @method_decorator(csrf_exempt, name='dispatch')
 class JobPlannerReviewPortfolioView(APIView):
     """채용공고 기준 포트폴리오 개선점 분석 API"""
     authentication_classes = []
     permission_classes = [AllowAny]
 
+    def _extract_portfolio_text(self, request):
+        """포트폴리오 PDF에서 텍스트 추출"""
+        import pdfplumber, io
+
+        pdf_data = request.data.get('portfolio_pdf')
+        if not pdf_data:
+            return ''
+        try:
+            raw = pdf_data.split(',')[-1]
+            pdf_bytes = base64.b64decode(raw)
+            with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+                text = "\n".join(page.extract_text() or "" for page in pdf.pages)
+            print(f"📄 포트폴리오 텍스트 추출: {len(text)}자")
+            return text.strip()
+        except Exception as e:
+            print(f"⚠️ 포트폴리오 텍스트 추출 실패: {e}")
+            return ''
+
     def post(self, request):
         user_profile = request.data.get('user_profile', {})
         job_data = request.data.get('job_data', {})
@@ -2778,6 +2745,9 @@ class JobPlannerReviewPortfolioView(APIView):
 
         try:
             client = openai.OpenAI(api_key=api_key)
+
+            # 포트폴리오 PDF 원문 텍스트 추출
+            portfolio_text = self._extract_portfolio_text(request)
 
             # 지원자 경력/프로젝트 정보 구성
             work_exp = user_profile.get('work_experience', [])
@@ -2795,18 +2765,25 @@ class JobPlannerReviewPortfolioView(APIView):
             achievements = user_profile.get('key_achievements', [])
             achievements_text = '\n'.join(f"  - {a}" for a in achievements) if achievements else '  정보 없음'
 
+            # 포트폴리오 원문 섹션 구성
+            portfolio_section = ""
+            if portfolio_text:
+                truncated = portfolio_text[:5000] if len(portfolio_text) > 5000 else portfolio_text
+                portfolio_section = f"\n\n=== 포트폴리오 원문 내용 ===\n{truncated}"
+
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
                     {
                         "role": "system",
                         "content": """당신은 IT 취업 포트폴리오 전문 컨설턴트입니다.
-채용공고의 구체적인 요구사항과 지원자의 실제 경험을 1:1로 대조하여 분석합니다.
-뻔한 조언이 아닌, 이 공고와 이 지원자에게만 해당되는 맞춤 피드백을 제공합니다."""
+채용공고의 구체적인 요구사항과 지원자의 포트폴리오를 1:1로 대조하여 분석합니다.
+포트폴리오 원문이 제공된 경우 반드시 원문 내용을 꼼꼼히 읽고 분석에 반영하세요.
+뻔한 조언이 아닌, 이 공고와 이 지원자의 포트폴리오에만 해당되는 맞춤 피드백을 제공합니다."""
                     },
                     {
                         "role": "user",
-                        "content": f"""아래 채용공고와 지원자 정보를 1:1 대조 분석하여 포트폴리오 작성 가이드를 제공하세요.
+                        "content": f"""아래 채용공고와 지원자의 포트폴리오를 1:1 대조 분석하여 포트폴리오 개선 가이드를 제공하세요.
 
 === 채용공고 ===
 회사: {job_data.get('company_name', '')}
@@ -2820,7 +2797,7 @@ class JobPlannerReviewPortfolioView(APIView):
 우대 사항:
 {job_data.get('preferred_qualifications', '정보 없음')}
 
-=== 지원자 정보 ===
+=== 지원자 정보 (구조화) ===
 보유 스킬: {', '.join(user_profile.get('user_skills', []))}
 경력:
 {work_exp_text}
@@ -2829,12 +2806,13 @@ class JobPlannerReviewPortfolioView(APIView):
 핵심 성과:
 {achievements_text}
 GitHub: {user_profile.get('github_url', '없음')}
-포트폴리오 사이트: {user_profile.get('portfolio_url', '없음')}
+포트폴리오 사이트: {user_profile.get('portfolio_url', '없음')}{portfolio_section}
 
 === 분석 기준 ===
-1. 공고의 각 요구사항(업무, 필수요건, 우대사항)을 지원자 경험과 구체적으로 대조
-2. 지원자의 프로젝트/경력 중 이 공고에 어필할 수 있는 포인트 발굴
-3. 포트폴리오에 어떤 내용을 어떻게 작성해야 하는지 실행 가능한 가이드 제공
+1. 포트폴리오 원문이 있으면 원문의 구체적 내용(서술 방식, 사용된 표현, 프로젝트 상세 내용, 구성 순서)을 기반으로 분석
+2. 공고의 각 요구사항(업무, 필수요건, 우대사항)을 포트폴리오 내용과 구체적으로 대조
+3. 포트폴리오에서 이 공고에 어필할 수 있는 포인트와 부족한 포인트 발굴
+4. 포트폴리오에 어떤 내용을 어떻게 수정/보완해야 하는지 실행 가능한 가이드 제공
 
 JSON으로 반환하세요:
 {{
@@ -2872,125 +2850,3 @@ JSON으로 반환하세요:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-@method_decorator(csrf_exempt, name='dispatch')
-class JobPlannerCoverLetterByQuestionsView(APIView):
-    """기업 자기소개서 문항별 맞춤 답변 생성 API"""
-    authentication_classes = []
-    permission_classes = [AllowAny]
-
-    def post(self, request):
-        user_profile = request.data.get('user_profile', {})
-        job_data = request.data.get('job_data', {})
-        company_analysis = request.data.get('company_analysis', {})
-        questions = request.data.get('questions', [])
-
-        if not questions:
-            return Response({"error": "questions 항목이 비어 있습니다."}, status=status.HTTP_400_BAD_REQUEST)
-
-        api_key = os.getenv('OPENAI_API_KEY')
-        if not api_key:
-            return Response({"error": "OPENAI_API_KEY가 설정되지 않았습니다."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        try:
-            client = openai.OpenAI(api_key=api_key)
-
-            # 기업 분석 정보 조합
-            company_info_parts = []
-            if company_analysis:
-                ov = company_analysis.get('overview', {})
-                if ov.get('description'):
-                    company_info_parts.append(f"- 기업 개요: {ov['description']}")
-                if ov.get('vision'):
-                    company_info_parts.append(f"- 비전: {ov['vision']}")
-                culture = company_analysis.get('culture', {})
-                if culture.get('summary'):
-                    company_info_parts.append(f"- 기업 문화: {culture['summary']}")
-                if culture.get('core_values'):
-                    company_info_parts.append(f"- 핵심 가치: {', '.join(culture['core_values'])}")
-                ts = company_analysis.get('tech_stack', {})
-                langs = ts.get('languages', [])
-                fws = ts.get('frameworks', [])
-                if langs or fws:
-                    company_info_parts.append(f"- 주요 기술: {', '.join(langs + fws)}")
-                growth = company_analysis.get('growth', {})
-                if growth.get('growth_potential'):
-                    company_info_parts.append(f"- 성장 가능성: {growth['growth_potential']}")
-                if company_analysis.get('recommendation'):
-                    company_info_parts.append(f"- 기업 평가: {company_analysis['recommendation']}")
-            company_info = "\n".join(company_info_parts)
-
-            profile_text = f"""[지원자 정보]
-- 이름: {user_profile.get('name', '')}
-- 현재 직무: {user_profile.get('current_role', '')}
-- 경력: {user_profile.get('experience_years', 0)}년
-- 보유 스킬: {', '.join(user_profile.get('user_skills', []))}
-- 학력: {user_profile.get('education', '')}
-- 강점: {', '.join(user_profile.get('strengths', []))}
-- 커리어 목표: {user_profile.get('career_goals', '')}
-- 주요 프로젝트: {json.dumps(user_profile.get('projects', []), ensure_ascii=False)}
-- 핵심 성과: {', '.join(user_profile.get('key_achievements', []))}
-- 팀 협업 경험: {user_profile.get('teamwork_experience', '')}
-- 성장 스토리: {user_profile.get('growth_story', '')}
-- 교육 이수: {json.dumps(user_profile.get('training', []), ensure_ascii=False)}"""
-
-            job_text = f"""[채용공고]
-- 회사: {job_data.get('company_name', '')}
-- 포지션: {job_data.get('position', '')}
-- 주요 업무: {job_data.get('job_responsibilities', '')}
-- 필수 요건: {job_data.get('required_qualifications', '')}
-- 우대 조건: {job_data.get('preferred_qualifications', '')}
-
-[기업 분석]
-{company_info if company_info else '(기업 분석 정보 없음)'}"""
-
-            answers = []
-            for q in questions:
-                response = client.chat.completions.create(
-                    model="gpt-4o",
-                    messages=[
-                        {
-                            "role": "system",
-                            "content": """당신은 전문 취업 컨설턴트입니다.
-자기소개서 항목에 답변하기 전 반드시 아래 순서로 분석한 뒤 작성하세요.
-
-[분석 1] 이 회사가 이 문항에서 원하는 것
-- 기업 인재상·핵심가치·문화에서 이 회사가 중시하는 특성 추출
-- 주요 업무·필수요건·우대조건에서 실제로 필요한 역량 파악
-- "이 회사가 이 문항을 통해 확인하고 싶은 것"을 하나의 문장으로 정의
-
-[분석 2] 지원자 정보에서 매칭 포인트 발굴
-- 분석 1의 니즈와 지원자 경험·스킬·프로젝트·성과를 대조
-- 가장 강하게 매칭되는 항목을 우선순위 순서로 선별
-- 간접 연결 가능한 경험도 포함 (사실 기반에 한함)
-
-[답변 작성 원칙]
-- 매칭 포인트를 중심 축으로 구성, 회사의 키워드·가치관이 자연스럽게 녹아들도록 작성
-- 선별한 경험·성과는 구체적 수치·상황·결과와 함께 제시
-- 1인칭, 거짓 정보 없음, 없는 내용은 [직접 작성] 표시
-- 분량 제한 명시 시 반드시 준수
-- 최종 출력: 완성된 답변 텍스트만 출력 (분석 과정 출력 금지)"""
-                        },
-                        {
-                            "role": "user",
-                            "content": f"""{job_text}
-
-{profile_text}
-
----
-자기소개서 항목: "{q}"
-
-이 회사의 인재상·문화·업무 요건을 분석하고, 지원자 정보에서 가장 잘 매칭되는 경험과 강점을 찾아 해당 항목에 최적화된 답변을 작성하세요."""
-                        }
-                    ],
-                    temperature=0.7
-                )
-                answers.append({
-                    "question": q,
-                    "answer": response.choices[0].message.content.strip()
-                })
-
-            return Response({"answers": answers}, status=status.HTTP_200_OK)
-
-        except Exception as e:
-            print(f"❌ 문항별 자기소개서 에러: {e}")
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

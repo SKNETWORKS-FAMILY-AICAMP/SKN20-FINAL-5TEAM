@@ -25,9 +25,7 @@ from core.views import (
     JobPlannerAgentReportView,
     JobPlannerRecommendView,
     JobPlannerParseResumeView,
-    JobPlannerGenerateCoverLetterView,
     JobPlannerReviewPortfolioView,
-    JobPlannerCoverLetterByQuestionsView,
     AdminLoginView,
     AdminLogView,
     AdminLogSaveView,
@@ -129,9 +127,7 @@ urlpatterns = [
     path('job-planner/agent-report/', JobPlannerAgentReportView.as_view(), name='job_planner_agent_report'),
     path('job-planner/recommend/', JobPlannerRecommendView.as_view(), name='job_planner_recommend'),
     path('job-planner/parse-resume/', JobPlannerParseResumeView.as_view(), name='job_planner_parse_resume'),
-    path('job-planner/generate-cover-letter/', JobPlannerGenerateCoverLetterView.as_view(), name='job_planner_generate_cover_letter'),
     path('job-planner/review-portfolio/', JobPlannerReviewPortfolioView.as_view(), name='job_planner_review_portfolio'),
-    path('job-planner/generate-cover-letter-by-questions/', JobPlannerCoverLetterByQuestionsView.as_view(), name='job_planner_cover_letter_by_questions'),
 
     
 
