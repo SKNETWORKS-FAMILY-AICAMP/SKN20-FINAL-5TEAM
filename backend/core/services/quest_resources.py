@@ -146,13 +146,13 @@ QUEST_VIDEOS = {
             {'id': 'fSytzGwwBVw', 'title': 'What is Data Leakage? (StatQuest)', 'channel': 'StatQuest'},
         ],
         'implementation': [
-            {'id': 'rmEa9_8GKQY', 'title': 'Sklearn Pipeline으로 Data Leakage 방지 (Krish Naik)', 'channel': 'Krish Naik'},
+            {'id': 'GX5giNNEpgY', 'title': 'Sklearn Pipeline Tutorial (Krish Naik)', 'channel': 'Krish Naik'},
         ],
         'abstraction': [
             {'id': 'gJo0uNL-5Lw', 'title': 'K-Fold Cross Validation (StatQuest)', 'channel': 'StatQuest'},
         ],
         'edgeCase': [
-            {'id': 'Gmq7mXv6M-c', 'title': 'Saving & Loading ML Models — Pickle & Joblib (NeuralNine)', 'channel': 'NeuralNine'},
+            {'id': 'Ki4s8mWZ4ME', 'title': 'Saving & Loading ML Models — Pickle & Joblib (NeuralNine)', 'channel': 'NeuralNine'},
         ],
         'default': [
             {'id': 'fSytzGwwBVw', 'title': 'What is Data Leakage?', 'channel': 'StatQuest'},
@@ -200,18 +200,18 @@ QUEST_VIDEOS = {
             {'id': 'geZDkTfGT-I', 'title': 'Imbalanced Data 처리 전략 설계 (StatQuest)', 'channel': 'StatQuest'},
         ],
         'edgeCase': [
-            {'id': 'pDw_JHHvj-0', 'title': 'Class Weights & Cost-Sensitive Learning (Krish Naik)', 'channel': 'Krish Naik'},
+            {'id': 'FE-AiGF_HFk', 'title': 'Class Weights & Cost-Sensitive Learning (Krish Naik)', 'channel': 'Krish Naik'},
         ],
         'abstraction': [
             {'id': 'gJo0uNL-5Lw', 'title': 'StratifiedKFold & 계층화 분할 (StatQuest)', 'channel': 'StatQuest'},
         ],
         'implementation': [
-            {'id': 'U3X98xZ4_no', 'title': 'SMOTE 완전 구현 (imbalanced-learn)', 'channel': 'imbalanced-learn'},
+            {'id': 'adBBIaNFSmw', 'title': 'SMOTE Oversampling Python Tutorial (Krish Naik)', 'channel': 'Krish Naik'},
         ],
         'default': [
             {'id': 'geZDkTfGT-I', 'title': 'Handling Imbalanced Data', 'channel': 'StatQuest'},
             {'id': '4jRBRDbJemM', 'title': 'ROC AUC', 'channel': 'StatQuest'},
-            {'id': 'U3X98xZ4_no', 'title': 'SMOTE', 'channel': 'imbalanced-learn'},
+            {'id': 'adBBIaNFSmw', 'title': 'SMOTE', 'channel': 'Krish Naik'},
         ],
     },
 
@@ -230,15 +230,15 @@ QUEST_VIDEOS = {
             {'id': 'A88rDEf-pfk', 'title': 'StandardScaler fit/transform 분리 (StatQuest)', 'channel': 'StatQuest'},
         ],
         'abstraction': [
-            {'id': 'viZrOnJclY0', 'title': 'Polynomial Features & 상호작용 특성 (StatQuest)', 'channel': 'StatQuest'},
+            {'id': 'Hk7RaHvJ0RE', 'title': 'Polynomial Features & 상호작용 특성 (StatQuest)', 'channel': 'StatQuest'},
         ],
         'edgeCase': [
-            {'id': 'FgakZw6K1QQ', 'title': 'Curse of Dimensionality & PCA (StatQuest)', 'channel': 'StatQuest'},
+            {'id': 'FgakZw6K1QQ', 'title': 'PCA Step-by-Step (StatQuest)', 'channel': 'StatQuest'},
         ],
         'default': [
             {'id': 'md8IrSMPi6o', 'title': 'Feature Engineering', 'channel': 'Kaggle'},
             {'id': '68ABAU_V8qI', 'title': 'Feature Selection', 'channel': 'StatQuest'},
-            {'id': 'FgakZw6K1QQ', 'title': 'Curse of Dimensionality', 'channel': 'StatQuest'},
+            {'id': 'FgakZw6K1QQ', 'title': 'PCA Step-by-Step', 'channel': 'StatQuest'},
         ],
     },
 
@@ -257,15 +257,15 @@ QUEST_VIDEOS = {
             {'id': 'HdlDYng7g58', 'title': 'GridSearchCV 완전 구현 (sklearn)', 'channel': 'StatQuest'},
         ],
         'abstraction': [
-            {'id': 'Np8h_U9PmFw', 'title': '파라미터 상호작용 & Warm-start (W&B)', 'channel': 'W&B'},
+            {'id': 'WhnkT0lbiqw', 'title': 'Hyperparameter Tuning with Optuna (Krish Naik)', 'channel': 'Krish Naik'},
         ],
         'edgeCase': [
-            {'id': 'Np8h_U9PmFw', 'title': 'Bayesian Optimization & Optuna — 효율적 탐색 (W&B)', 'channel': 'W&B'},
+            {'id': 'WhnkT0lbiqw', 'title': 'Bayesian Optimization & Optuna — 효율적 탐색 (Krish Naik)', 'channel': 'Krish Naik'},
         ],
         'default': [
             {'id': 'HdlDYng7g58', 'title': 'Hyperparameter Tuning', 'channel': 'StatQuest'},
             {'id': 'gJo0uNL-5Lw', 'title': 'K-Fold Cross Validation', 'channel': 'StatQuest'},
-            {'id': 'Np8h_U9PmFw', 'title': 'Bayesian Optimization', 'channel': 'W&B'},
+            {'id': 'WhnkT0lbiqw', 'title': 'Bayesian Optimization', 'channel': 'Krish Naik'},
         ],
     },
 
@@ -281,18 +281,18 @@ QUEST_VIDEOS = {
             {'id': 'B-c8tIgchu0', 'title': 'SHAP Summary Plot — 일관된 해석 기준 (StatQuest)', 'channel': 'StatQuest'},
         ],
         'design': [
-            {'id': 'GfGpXMBjOBg', 'title': 'Counterfactual Explanation & Actionable AI (Google)', 'channel': 'Google'},
+            {'id': 'HdlDYng7g58', 'title': 'Model Interpretability & Explainability (StatQuest)', 'channel': 'StatQuest'},
         ],
         'implementation': [
-            {'id': 'C80SQe16Rao', 'title': 'LIME 구현 — 개별 예측 설명 (Towards Data Science)', 'channel': 'Towards Data Science'},
+            {'id': 'IBWHDySoXB0', 'title': 'LIME Explanation Python Tutorial (Krish Naik)', 'channel': 'Krish Naik'},
         ],
         'edgeCase': [
-            {'id': 'GfGpXMBjOBg', 'title': 'AI Fairness & Proxy Bias 감지 (Google Developers)', 'channel': 'Google'},
+            {'id': 'B-c8tIgchu0', 'title': 'SHAP Values 완전 이해 (StatQuest)', 'channel': 'StatQuest'},
         ],
         'default': [
             {'id': 'B-c8tIgchu0', 'title': 'SHAP Values', 'channel': 'StatQuest'},
-            {'id': 'C80SQe16Rao', 'title': 'LIME', 'channel': 'Towards Data Science'},
-            {'id': 'GfGpXMBjOBg', 'title': 'AI Fairness', 'channel': 'Google'},
+            {'id': 'IBWHDySoXB0', 'title': 'LIME', 'channel': 'Krish Naik'},
+            {'id': 'HdlDYng7g58', 'title': 'Feature Importance', 'channel': 'StatQuest'},
         ],
     },
 }
@@ -534,30 +534,26 @@ def generate_fallback_deep_dive(quest_id: str) -> dict:
 # ============================================================================
 
 def get_recommended_videos_legacy(
-    quest_id: str, 
-    dimensions: dict, 
+    quest_id: str,
+    dimensions: dict,
     max_count: int = 3,
     quest_title: str = ""
 ) -> list:
     """
-    [2026-02-23 업그레이드] 
-    1. 정적 큐레이션 데이터(QUEST_VIDEOS) 매핑
-    2. 데이터 부족 시 YouTube Search API를 통한 실시간 검색 폴백 수행
+    [2026-03-04 개편] 하드코딩 제거 - LLM 실시간 검색 전용
+    - 취약 차원(70점 미만) → 기초/튜토리얼 영상
+    - 강한 차원(70점 이상) → 퀘스트 주제 심화 영상
     """
     try:
-        # quest_id 정규화: 'unit01_02' 같은 형태는 숫자 부분만 추출
+        from core.utils.youtube_helper import generate_llm_search_queries, search_youtube_multi_query
+
+        # quest_id 정규화
         if isinstance(quest_id, str):
-            # '언더스코어' 형태 (e.g., 'unit01_02' -> '2', 'unit01_04' -> '4')
             if '_' in quest_id:
                 parts = quest_id.split('_')
                 last_nums = re.findall(r'\d+', parts[-1])
-                if last_nums:
-                    n = int(last_nums[-1])
-                    quest_id_normalized = str(n) if 1 <= n <= 6 else '1'
-                else:
-                    quest_id_normalized = '1'
+                quest_id_normalized = str(int(last_nums[-1])) if last_nums and 1 <= int(last_nums[-1]) <= 6 else '1'
             else:
-                # 순수 숫자 (e.g., '2', '3')
                 nums = re.findall(r'\d+', quest_id)
                 quest_id_normalized = '1'
                 for n_str in nums:
@@ -568,114 +564,59 @@ def get_recommended_videos_legacy(
         else:
             n = int(quest_id) if quest_id else 1
             quest_id_normalized = str(n) if 1 <= n <= 6 else '1'
-        
-        quest_videos = get_quest_videos(quest_id_normalized)
-        quest_int = int(quest_id_normalized)
+
+        # 차원 점수 정렬 (낮은 순)
         priority = get_dimension_priority(quest_id_normalized)
-        
-        # 취약 차원 정렬
         dim_ratios = []
         for dim in priority:
             d = dimensions.get(dim, {})
             pct = d.get('percentage', 100) if isinstance(d, dict) else 100
             dim_ratios.append((dim, pct))
         dim_ratios.sort(key=lambda x: x[1])
-        
-        # [수정일: 2026-02-23] 유튜브 큐레이션 동적화: 하이브리드 방식 (정적 1개 + 동적 2개)
-        candidates = []
-        used_ids = set()
-        
-        # 1. 정적 큐레이션 데이터에서 가장 취약한 차원의 영상을 1개만 무작위로 선택
-        import random
-        for dim, _ in dim_ratios:
-            videos = quest_videos.get(dim, [])
-            if videos and isinstance(videos, list):
-                # 셔플하여 '하드코딩된 느낌' 방지
-                random_video = random.choice(videos)
-                candidates.append({**random_video, '_dim': dim, '_source': 'curated'})
-                used_ids.add(random_video['id'])
-                break # 1개만 뽑고 종료
-        
-        # 2. 부족한 부분은 LLM이 생성한 검색어로 YouTube 실시간 검색
-        from core.utils.youtube_helper import generate_llm_search_queries, search_youtube_multi_query
 
-        needed = max_count - len(candidates)
-        if needed > 0:
-            # 취약 지표 상위 2개 추출
+        # 취약/강한 차원 분리
+        weak_dims = [d for d, pct in dim_ratios if pct < 70][:2]
+        strong_dims = [d for d, pct in dim_ratios if pct >= 70][:1]
+        if not weak_dims:
             weak_dims = [d for d, _ in dim_ratios[:2]]
 
-            # LLM으로 검색어 3개 생성
-            llm_queries = generate_llm_search_queries(
-                quest_title=quest_title or f"Quest {quest_id_normalized}",
-                weak_dimensions=weak_dims,
-            )
-            logger.info(f"[QuestResources] LLM 생성 쿼리: {llm_queries}")
+        dim_scores = {d: pct for d, pct in dim_ratios}
 
-            # 멀티 쿼리로 YouTube 검색
-            live_videos = search_youtube_multi_query(llm_queries, max_per_query=2)
+        # LLM으로 검색어 생성
+        llm_queries = generate_llm_search_queries(
+            quest_title=quest_title or f"Quest {quest_id_normalized}",
+            weak_dimensions=weak_dims,
+            strong_dimensions=strong_dims,
+            dimension_scores=dim_scores,
+        )
+        logger.info(f"[QuestResources] LLM 생성 쿼리: {llm_queries}")
 
-            for lv in live_videos:
-                if len(candidates) >= max_count:
-                    break
-                vid_id = lv.get('videoId') or lv.get('id')
-                if vid_id and vid_id not in used_ids:
-                    candidates.append({
-                        **lv,
-                        '_dim': f"live_{weak_dims[0] if weak_dims else 'default'}",
-                        '_source': 'llm_live',
-                    })
-                    used_ids.add(vid_id)
+        # YouTube 실시간 검색
+        live_videos = search_youtube_multi_query(llm_queries, max_per_query=2)
+        logger.info(f"[QuestResources] YouTube 검색 결과: {len(live_videos)}개")
 
-        # 3. 그래도 부족하면 마지막으로 default 정적 데이터로 보완 (셔플 적용)
-        if len(candidates) < max_count:
-            default_videos = list(quest_videos.get('default', []))
-            random.shuffle(default_videos)
-            for video in default_videos:
-                if len(candidates) >= max_count:
-                    break
-                if video['id'] not in used_ids:
-                    candidates.append({**video, '_dim': 'default', '_source': 'fallback'})
-                    used_ids.add(video['id'])
-        
-        # [수정 2026-03-04] filter_valid_videos는 API 실패 시 전체를 날려버리는 문제가 있어
-        # 실패해도 원본 candidates를 유지하도록 방어 처리
-        try:
-            from core.utils.youtube_helper import filter_valid_videos
-            filtered = filter_valid_videos(candidates)
-            # 필터 결과가 너무 적으면(0개) 원본 유지
-            valid_candidates = filtered if len(filtered) > 0 else candidates
-        except Exception as fe:
-            logger.warning(f"[get_recommended_videos_legacy] filter_valid_videos 실패, 원본 사용: {fe}")
-            valid_candidates = candidates
-
-        # 필터 후 부족한 경우 default로 보완
-        if len(valid_candidates) < max_count:
-            default_videos = list(quest_videos.get('default', []))
-            random.shuffle(default_videos)
-            existing_ids = {v.get('id') or v.get('videoId') for v in valid_candidates}
-            for video in default_videos:
-                if len(valid_candidates) >= max_count:
-                    break
-                vid = video.get('id') or video.get('videoId')
-                if vid and vid not in existing_ids:
-                    valid_candidates.append({**video, '_dim': 'default', '_source': 'fallback_recheck'})
-                    existing_ids.add(vid)
-
-        # [수정 2026-03-04] 프론트 일관성: videoId/thumbnail/url/channelTitle 필드 보장
+        # 결과 정리
         result_videos = []
-        for v in valid_candidates[:max_count]:
+        used_ids = set()
+        for v in live_videos:
+            if len(result_videos) >= max_count:
+                break
             vid_id = v.get('videoId') or v.get('id', '')
+            if not vid_id or vid_id in used_ids:
+                continue
+            used_ids.add(vid_id)
             result_videos.append({
                 'videoId':      vid_id,
                 'id':           vid_id,
                 'title':        v.get('title', ''),
                 'channelTitle': v.get('channelTitle') or v.get('channel', ''),
-                'thumbnail':    v.get('thumbnail') or (f'https://img.youtube.com/vi/{vid_id}/mqdefault.jpg' if vid_id else ''),
-                'url':          v.get('url') or (f'https://www.youtube.com/watch?v={vid_id}' if vid_id else '#'),
+                'thumbnail':    v.get('thumbnail') or f'https://img.youtube.com/vi/{vid_id}/mqdefault.jpg',
+                'url':          v.get('url') or f'https://www.youtube.com/watch?v={vid_id}',
                 'description':  v.get('description') or v.get('desc', ''),
             })
 
         return result_videos
+
     except Exception as e:
         logger.error(f"[get_recommended_videos_legacy] Error: {e}")
         return []
