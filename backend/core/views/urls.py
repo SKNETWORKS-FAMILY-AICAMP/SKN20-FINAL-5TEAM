@@ -44,12 +44,15 @@ from core.views.pseudocode import pseudocode_evaluation
 from core.views import youtube_recommendation
 from core.views.architecture.architecture_view import ArchitectureEvaluationView, ArchitectureQuestionGeneratorView
 from core.views.ai_coach.coach_view import AICoachView, CoachConversationView, CoachConversationDetailView
+from core.views.wars.wars_mission_view import WarsMissionsView
+from core.views.wars.wars_record_view import UserBattleRecordView
 from core.views.interview import (
     InterviewVisionView,
     InterviewJobPostingView, InterviewJobPostingDetailView,
     InterviewSessionView, InterviewSessionDetailView, InterviewAnswerView,
     STTTranscribeView,
     TTSSynthesizeView,
+    InterviewQuestionSearchView,    # 2026-03-01 면접 질문 뱅크 검색 API 추가
     InterviewQuestionSearchView,    # 2026-03-01 면접 질문 뱅크 검색 API 추가
 )
 
@@ -96,11 +99,15 @@ urlpatterns = [
     path('pseudocode/execute/', execute_python_code, name='pseudocode_execute'),
     path('pseudo-agent/', PseudocodeAgentView.as_view(), name='pseudo_agent'),
     path('pseudocode/evaluate-5d/', pseudocode_evaluation.evaluate_pseudocode_5d),
-    path('youtube/recommendations', youtube_recommendation.get_youtube_recommendations),
+    path('youtube/recommendations/', youtube_recommendation.get_youtube_recommendations),
 
     # 9. Architecture API
     path('architecture/evaluate/', ArchitectureEvaluationView.as_view(), name='architecture_evaluate'),
     path('architecture/generate-questions/', ArchitectureQuestionGeneratorView.as_view(), name='architecture_generate_questions'),
+
+    # 9-1. Wars 미션 API (unit03 DB → Wars 포맷)
+    path('wars/missions/', WarsMissionsView.as_view(), name='wars_missions'),
+    path('wars/record/', UserBattleRecordView.as_view(), name='wars_record'),
 
     # 10. AI Coach Agent API
     path('ai-coach/chat/', AICoachView.as_view(), name='ai_coach_chat'),
@@ -117,6 +124,8 @@ urlpatterns = [
     path('interview/sessions/<int:pk>/vision/', InterviewVisionView.as_view(), name='interview_vision'),
     # [2026-03-01] 면접 질문 뱅크 검색 API
     path('interview/questions/search/', InterviewQuestionSearchView.as_view(), name='interview_question_search'),
+    # [2026-03-01] 면접 질문 뱅크 검색 API
+    path('interview/questions/search/', InterviewQuestionSearchView.as_view(), name='interview_question_search'),
     path('stt/transcribe/', STTTranscribeView.as_view(), name='stt_transcribe'),
     path('tts/synthesize/', TTSSynthesizeView.as_view(), name='tts_synthesize'),
 
@@ -130,13 +139,13 @@ urlpatterns = [
     path('job-planner/generate-cover-letter/', JobPlannerGenerateCoverLetterView.as_view(), name='job_planner_generate_cover_letter'),
     path('job-planner/review-portfolio/', JobPlannerReviewPortfolioView.as_view(), name='job_planner_review_portfolio'),
     path('job-planner/generate-cover-letter-by-questions/', JobPlannerCoverLetterByQuestionsView.as_view(), name='job_planner_cover_letter_by_questions'),
+    path('job-planner/parse-resume/', JobPlannerParseResumeView.as_view(), name='job_planner_parse_resume'),
+    path('job-planner/generate-cover-letter/', JobPlannerGenerateCoverLetterView.as_view(), name='job_planner_generate_cover_letter'),
+    path('job-planner/review-portfolio/', JobPlannerReviewPortfolioView.as_view(), name='job_planner_review_portfolio'),
+    path('job-planner/generate-cover-letter-by-questions/', JobPlannerCoverLetterByQuestionsView.as_view(), name='job_planner_cover_letter_by_questions'),
 
-    # 13. Coduck Wars API
-    path('wars/analyze-code/', CoduckWarsAnalyzeCodeView.as_view(), name='wars_analyze_code'),
-    path('wars/start/', CoduckWarsStartView.as_view(), name='wars_start'),
-    path('wars/pressure-question/', CoduckWarsPressureView.as_view(), name='wars_pressure_question'),
-    path('wars/evaluate/', CoduckWarsEvaluationView.as_view(), name='wars_evaluate'),
     
+
     # [수정일: 2026-02-26] 관리자 로그 뷰어 API 추가
     path('admin/login/', AdminLoginView.as_view(), name='admin_login'),
     path('admin/logs/', AdminLogView.as_view(), name='admin_logs'),

@@ -295,11 +295,13 @@ watch(isStreaming, (val, oldVal) => {
   }
 });
 
-// 면접 완료 시 피드백 화면으로 전환
+// 면접 완료 시 피드백 화면으로 전환 (인사말 표시를 위해 3초 딜레이)
 watch(isFinished, (val) => {
   if (val) {
     stopTimer();
-    phase.value = 'feedback';
+    setTimeout(() => {
+      phase.value = 'feedback';
+    }, 3000);
   }
 });
 

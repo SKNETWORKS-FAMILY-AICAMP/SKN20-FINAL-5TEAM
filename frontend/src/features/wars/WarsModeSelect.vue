@@ -8,15 +8,21 @@
 
     <header class="mode-header">
       <div class="logo-area">
-        <span class="logo-icon">🗡️</span>
+        <span class="logo-icon">⚔️</span>
         <h1 class="logo-text">BATTLE GAME</h1>
       </div>
       <p class="tagline">아키텍처 능력을 증명하라. 당신의 전장을 선택하세요.</p>
+      
+      <!-- [추가: 2026-03-03] 나가기 버튼 -->
+      <button class="exit-btn" @click="goTo('/dashboard')">
+        <span class="exit-icon">🚪</span>
+        <span class="exit-text">EXIT</span>
+      </button>
     </header>
 
     <main class="mode-grid">
-      <!-- Mode 1: 로직 런 (2026-02-26 수정 - 순서 변경, 1vs1 설정) -->
-      <div class="mode-card speed" @click="goTo('/practice/coduck-wars/logic-run')">
+      <!-- Mode 1: 로직 런 (2026-03-03 수정 - Wars 경로 통일) -->
+      <div class="mode-card speed" @click="goTo('/practice/wars/logic-run')">
         <div class="card-glow"></div>
         <div class="card-inner">
           <div class="mode-badge hot">NEW</div>
@@ -38,7 +44,7 @@
       </div>
 
       <!-- Mode 2: 1:1 버그 버블 몬스터 (신규) -->
-      <div class="mode-card battle" @click="goTo('/practice/coduck-wars/bug-bubble')">
+      <div class="mode-card battle" @click="goTo('/practice/wars/bug-bubble')">
         <div class="card-glow"></div>
         <div class="card-inner">
           <div class="mode-badge hot">NEW</div>
@@ -59,8 +65,8 @@
         <div class="card-arrow">→</div>
       </div>
 
-      <!-- Mode 3: 아키텍처 드로잉 퀴즈 (2026-02-26 수정 - 순서 변경, 1vs1 설정) -->
-      <div class="mode-card drawing card-solo-last" @click="goTo('/practice/coduck-wars/draw-quiz')">
+      <!-- Mode 3: 아키텍처 드로잉 퀴즈 (2026-03-03 수정 - Wars 경로 통일) -->
+      <div class="mode-card drawing card-solo-last" @click="goTo('/practice/wars/draw-quiz')">
         <div class="card-glow"></div>
         <div class="card-inner">
           <div class="mode-badge hot">NEW</div>
@@ -70,10 +76,10 @@
           <div class="mode-tags">
             <span class="tag">실시간 드로잉</span>
             <span class="tag">AI 힌트</span>
-            <span class="tag">5라운드</span>
+            <span class="tag">단판승부</span>
           </div>
           <div class="mode-meta">
-            <span>⏱ 5분</span>
+            <span>⏱ 45초</span>
             <span>👤 1vs1</span>
             <span>⭐ 초급~중급</span>
           </div>
@@ -131,11 +137,16 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { loadBattleRecords, clearBattleRecords } from './useBattleRecord.js';
+import { useAuthStore } from '@/stores/auth'; // [추가]
 
 const router = useRouter();
+const auth = useAuthStore(); // [추가]
 
 const rawRecords = ref([])
-onMounted(() => { rawRecords.value = loadBattleRecords() })
+onMounted(async () => { 
+  // [수정일: 2026-03-03] 비동기로 서버에서 전적 로드
+  rawRecords.value = await loadBattleRecords(auth.sessionNickname) 
+})
 
 // 승률 기준 내림차순 정렬
 const records = computed(() =>
@@ -245,6 +256,38 @@ const goTo = (path) => router.push(path);
   font-size: 1rem;
   letter-spacing: 0.5px;
 }
+
+/* [추가: 2026-03-03] 나가기 버튼 스타일 */
+.exit-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  color: #94a3b8;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 20;
+}
+
+.exit-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #f87171;
+  transform: translateX(-5px);
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.1);
+}
+
+.exit-icon { font-size: 1rem; }
 
 /* Mode Grid */
 .mode-grid {

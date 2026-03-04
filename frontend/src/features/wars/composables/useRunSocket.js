@@ -31,7 +31,7 @@ export function useRunSocket() {
     const onUserLeft = ref(null)
     const onJoinError = ref(null)  // ← 추가: 입장 실패 핸들러
 
-    function connect(roomId, userName, avatarUrl) {
+    function connect(roomId, userName, avatarUrl, userId) {
         if (socket.value) return
 
         // [수정일: 2026-02-26] Mixed Content 방지 및 배포 환경(ngrok) 탄력성 강화
@@ -52,7 +52,8 @@ export function useRunSocket() {
 
         socket.value.on('connect', () => {
             connected.value = true
-            socket.value.emit('run_join', { room_id: roomId, user_name: userName, avatar_url: avatarUrl })
+            // [수정일: 2026-03-03] DB 연동을 위해 user_id 포함
+            socket.value.emit('run_join', { room_id: roomId, user_name: userName, avatar_url: avatarUrl, user_id: userId })
         })
 
         socket.value.on('disconnect', () => { connected.value = false })

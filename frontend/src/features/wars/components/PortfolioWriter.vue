@@ -22,8 +22,8 @@
         <!-- Step 1: 형식 선택 -->
         <div v-if="!generated && !loading" class="pw-intro">
           <p class="pw-intro-desc">
-            이 경험을 바탕으로 <strong>LinkedIn 포스팅</strong>,
-            <strong>포트폴리오 설명</strong>, <strong>이력서 한 줄</strong>을
+            이 경험을 바탕으로 <strong>LinkedIn 포스팅</strong>과
+            <strong>포트폴리오 설명</strong>을
             AI가 직접 써드려요.
           </p>
           <div class="pw-format-select">
@@ -108,6 +108,7 @@ const props = defineProps({
   grade:         { type: String,  default: '' },
   aiReview:      { type: String,  default: '' },
   // Arch 전용
+  missions:      { type: Array,   default: () => [] },
   components:    { type: Array,   default: () => [] },
   arrowCount:    { type: Number,  default: 0 },
   // Logic 전용
@@ -131,10 +132,9 @@ const regenLoading = ref('')
 const formats = [
   { id: 'linkedin',  icon: '💼', label: 'LinkedIn',     desc: '200~300자 감성 포스팅 + 해시태그' },
   { id: 'portfolio', icon: '📂', label: '포트폴리오',   desc: '기술 중심 프로젝트 설명 3~5문장' },
-  { id: 'resume',    icon: '📄', label: '이력서',       desc: '이력서용 bullet point 1~2줄' },
 ]
 
-const selectedFormats = ref(['linkedin', 'portfolio', 'resume'])
+const selectedFormats = ref(['linkedin', 'portfolio'])
 const resultTabs = computed(() => formats.filter(f => selectedFormats.value.includes(f.id)))
 
 function toggleFormat(id) {
@@ -147,135 +147,110 @@ function toggleFormat(id) {
   }
 }
 
-// ─── 게임 데이터 → 컨텍스트 텍스트 ─────────────────────
-function buildContext() {
+// ─── 템플릿 기반 포트폴리오 생성 (AI 없음) ──────────────
+function buildPortfolio(formatId) {
+  const comps = props.components.map(c => (typeof c === 'string' ? c : `${c.icon || ''} ${c.name}`).trim()).join(', ')
+  const compCount = props.components.length
+  const result = props.resultText === 'WIN' ? '승리' : props.resultText === 'DRAW' ? '무승부' : '도전'
+  const aiOneLine = props.aiReview ? props.aiReview.split('.')[0].trim() + '.' : ''
+
   if (props.gameType === 'arch') {
-    const comps = props.components.map(c => (typeof c === 'string' ? c : c.name)).join(', ')
-    return `
-[게임] CoduckWars - 아키텍처 캐치마인드 (실시간 1vs1 시스템 설계 배틀)
-[미션] ${props.missionTitle || props.scenario}
-[시나리오] ${props.scenario}
-[설계한 컴포넌트 ${props.components.length}개] ${comps}
-[연결 화살표] ${props.arrowCount}개
-[점수] 내 ${props.myScore}pt vs 상대 ${props.opponentScore}pt
-[결과] ${props.resultText} | 등급 ${props.grade}
-${props.aiReview ? '[AI 평가] ' + props.aiReview : ''}`.trim()
-  } else {
-    return `
-[게임] CoduckWars - 로직 런 (실시간 1vs1 의사코드 설계 배틀)
-[시나리오] ${props.scenario}
-[내가 작성한 의사코드]
-${props.pseudocode ? props.pseudocode.slice(0, 400) : '(없음)'}
-[점수] Phase1 ${props.phase1Score}pt + Phase2 ${props.phase2Score}pt = 총 ${props.myScore}pt
-[등급] ${props.grade}
-${props.strengths.length  ? '[강점] '   + props.strengths.join(', ')  : ''}
-${props.weaknesses.length ? '[개선점] ' + props.weaknesses.join(', ') : ''}
-${props.aiReview ? '[AI 피드백] ' + props.aiReview : ''}`.trim()
-  }
-}
+    const missions = props.missions && props.missions.length
+      ? props.missions.map(m => `- ${m}`).join('\n')
+      : '- 제한 시간 내 아키텍처 설계'
 
-// ─── 포맷별 프롬프트 ─────────────────────────────────────
-function getPrompt(formatId) {
-  const ctx = buildContext()
-  const gameName = props.gameType === 'arch' ? '아키텍처 캐치마인드' : '로직 런'
+    if (formatId === 'linkedin') {
+      return [
+        `🏗️ [${props.missionTitle}] 시스템 아키텍처를 설계했습니다.`,
+        ``,
+        `📌 과제 상황`,
+        props.scenario || '실무 시나리오 기반 아키텍처 설계',
+        ``,
+        `🔧 해결 방향`,
+        missions,
+        ``,
+        `⚙️ 설계한 구조`,
+        comps ? `${comps}를 배치하고 ${props.arrowCount}개의 흐름으로 연결했습니다.` : '컴포넌트를 배치하고 흐름을 연결했습니다.',
+        aiOneLine ? `\n💬 ${aiOneLine}` : '',
+        ``,
+        `#시스템설계 #아키텍처 #백엔드 #문제해결`,
+      ].filter(l => l !== null).join('\n').trim()
+    }
 
-  const base = `당신은 실무 경험을 바탕으로 IT 개발자의 이력서와 포트폴리오 작성을 돕는 전문 커리어 코치입니다.
-아래의 데이터는 지원자가 "제한 시간 내 압박 상황에서 시스템 시나리오를 분석하고 최적의 아키텍처/논리(의사코드)를 설계하는 훈련 과정"을 거친 기록입니다.
-
-${ctx}
-
-`
-
-  const instructions = {
-    linkedin: base + `이 경험을 바탕으로 LinkedIn에 올릴 한국어 포스팅을 작성해주세요.
-
-요구사항:
-- 200~300자 내외
-- "CoduckWars", "미니게임", "1620pt", "등급", "배틀" 같은 게임 용어나 수치는 절대 사용 금지.
-- 대신 "실시간 시스템 아키텍처 설계 훈련", "제한 시간 내 비즈니스 로직(의사코드) 구조화 챌린지" 등의 전문적인 용어로 포장할 것.
-- 어떤 시나리오(문제)가 주어졌고, 이를 해결하기 위해 어떤 논리적 사고 과정을 거쳤는지를 중심으로 작성.
-- 기술 내용은 비개발자도 맥락을 이해할 수 있게 쉽게 풀어서 설명.
-- 이모지 3~5개 적절히 사용.
-- 마지막에 해시태그 4~5개 (#개발 #아키텍처설계 #문제해결 #백엔드 등).`,
-
-    portfolio: base + `이 경험을 포트폴리오 "활동 / 경험" 섹션 설명으로 작성해주세요.
-
-요구사항:
-- [핵심 경험]: "실시간 시스템 시나리오 기반 아키텍처/논리 설계 훈련"으로 명시.
-- [문제 해결 과정]: 주어진 시나리오를 분석하여 어떻게 구조화/의사코드를 작성했는지 2문장.
-- [습득 역량]: 코드 리뷰나 실시간 압박 수비(답변) 과정에서 배운 확장성/성능/보안 관련 역량 1~2문장.
-- 총 4~6문장, 전문적이고 진지한 어조의 한국어.
-- "게임", "합격", "점수", "등급" 절대 언급 금지.`,
-
-    resume: base + `이 경험을 이력서의 활동 항목에 들어갈 bullet point로 작성해주세요.
-
-요구사항:
-- 정확히 1~2개의 bullet point만 작성 (• 기호 사용).
-- "• [해결한 문제/시나리오]를 분석하여 [설계한 기술/컴포넌트/흐름]을 기반으로 시스템 아키텍처/비즈니스 로직을 설계함" 형식 유지.
-- "게임", "점수", "등급", "pt" 절대 사용 금지!
-- 50자 이내로 매우 간결하고 임팩트 있게.
-- 전문적인 개발자 이력서에 들어갈 수 있는 진지한 한국어.
-예시: • 대규모 트래픽 시나리오를 분석하고 로드밸런서와 읽기/쓰기 분리 DB 구조를 반영한 시스템 아키텍처 도출`,
+    if (formatId === 'portfolio') {
+      return [
+        `📂 ${props.missionTitle} — 시스템 아키텍처 설계`,
+        ``,
+        `[상황]`,
+        props.scenario || '실무 시나리오 기반 아키텍처 설계 과제.',
+        ``,
+        `[해결 과제]`,
+        missions,
+        ``,
+        `[설계한 구조]`,
+        comps
+          ? `${comps}(${compCount}개 컴포넌트)를 배치하고 ${props.arrowCount}개의 데이터 흐름으로 연결.`
+          : `${compCount}개 컴포넌트를 배치하고 ${props.arrowCount}개의 데이터 흐름으로 연결.`,
+        aiOneLine ? `\n[검토 결과]\n${aiOneLine}` : '',
+      ].filter(l => l !== null).join('\n').trim()
+    }
   }
 
-  return instructions[formatId]
+  // Logic Run 포맷
+  if (formatId === 'linkedin') {
+    return [
+      `💻 [${props.missionTitle || '알고리즘 설계'}] 비즈니스 로직을 구조화했습니다.`,
+      ``,
+      `📌 과제 상황`,
+      props.scenario || '실무 시나리오 기반 의사코드 설계',
+      ``,
+      `🔧 접근 방식`,
+      props.aiReview || '단계별 흐름을 분석하고 예외 처리까지 고려한 로직을 설계했습니다.',
+      ``,
+      `#알고리즘 #문제해결 #백엔드 #개발`,
+    ].join('\n').trim()
+  }
+
+  return [
+    `📂 ${props.missionTitle || '비즈니스 로직 설계'}`,
+    ``,
+    `[상황]`,
+    props.scenario || '실무 시나리오 기반 의사코드 설계 과제.',
+    ``,
+    `[설계 내용]`,
+    props.pseudocode ? props.pseudocode.slice(0, 300) : '단계별 처리 흐름을 설계하고 예외 상황을 처리했습니다.',
+    aiOneLine ? `\n[검토 결과]\n${aiOneLine}` : '',
+  ].filter(l => l !== null).join('\n').trim()
 }
 
-// ─── API 호출 ─────────────────────────────────────────────
-async function callAI(formatId) {
-  // [수정일: 2026-02-27] 백엔드 URL 패턴 불일치 (404 에러) 해결을 위해 /api/core/ai-proxy/ 로 엔드포인트 수정
-  const res = await fetch('/api/core/ai-proxy/', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      max_tokens: 700,
-      temperature: 0.88,
-      messages: [
-        { role: 'system', content: getPrompt(formatId) },
-        { role: 'user',   content: '위 데이터를 바탕으로 요청한 형식의 글을 작성해주세요.' }
-      ]
-    })
-  })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  const data = await res.json()
-  if (data.error) throw new Error(data.error)
-  return data.content
-}
-
-// ─── 전체 생성 ───────────────────────────────────────────
+// ─── 전체 생성 (동기, AI 없음) ──────────────────────────
 async function generate() {
   loading.value  = true
   error.value    = ''
   results.value  = {}
 
+  // 살짝 딜레이 줘서 로딩 UX 유지
+  await new Promise(r => setTimeout(r, 400))
+
   try {
-    await Promise.all(
-      selectedFormats.value.map(async fmtId => {
-        const text = await callAI(fmtId)
-        results.value[fmtId] = text
-      })
-    )
+    selectedFormats.value.forEach(fmtId => {
+      results.value[fmtId] = buildPortfolio(fmtId)
+    })
     generated.value = true
     activeTab.value = selectedFormats.value[0]
   } catch (e) {
-    error.value = 'AI 글 생성에 실패했어요. 잠시 후 다시 시도해주세요.'
+    error.value = '포트폴리오 생성에 실패했어요.'
   } finally {
     loading.value = false
   }
 }
 
-// ─── 개별 재생성 ─────────────────────────────────────────
+// ─── 개별 재생성 (동기라서 즉시 반영) ──────────────────────
 async function regenOne(formatId) {
   regenLoading.value = formatId
-  results.value[formatId] = '✍️ 다시 쓰는 중...'
-  try {
-    results.value[formatId] = await callAI(formatId)
-  } catch {
-    results.value[formatId] = '⚠️ 재생성 실패. 다시 시도해주세요.'
-  } finally {
-    regenLoading.value = ''
-  }
+  await new Promise(r => setTimeout(r, 200))
+  results.value[formatId] = buildPortfolio(formatId)
+  regenLoading.value = ''
 }
 
 // ─── 복사 ────────────────────────────────────────────────

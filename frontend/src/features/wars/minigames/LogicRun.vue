@@ -28,7 +28,13 @@
           </div>
           <div v-if="rs.connected.value && !rs.isReady.value" class="lobby-info">상대방을 기다리는 중...</div>
         </div>
-        <button @click="requestStart" class="btn-start blink-border" :disabled="!rs.connected.value">▶ START GAME</button>
+        <button 
+          @click="requestStart" 
+          class="btn-start blink-border" 
+          :disabled="!rs.connected.value || rs.roomPlayers.value.length < 2 || isStarting"
+        >
+          {{ isStarting ? '⌛ STARTING...' : '▶ START GAME' }}
+        </button>
       </div>
     </div>
 
@@ -400,7 +406,7 @@
                 <span class="lrpf-ai-label">🤖 AI:</span>
                 <span>{{ myLlmEval.feedback.slice(0, 80) }}{{ myLlmEval.feedback.length > 80 ? '...' : '' }}</span>
               </div>
-              <div class="lrpf-footer">CoduckWars · LogicRun · {{ lrTodayStr }}</div>
+              <div class="lrpf-footer">Wars · LogicRun · {{ lrTodayStr }}</div>
             </div>
             <div class="lr-pf-actions">
               <button class="go-pf-btn cyan" @click="lrExportImage">🖼️ 이미지 저장</button>
@@ -412,7 +418,7 @@
 
           <div class="go-btns">
             <button @click="startGame" class="btn-retry">🔄 다시하기</button>
-            <button @click="$router.push('/practice/coduck-wars')" class="btn-exit">🏠 나가기</button>
+            <button @click="$router.push('/practice/wars')" class="btn-exit">🏠 나가기</button>
           </div>
         </div>
       </div>
@@ -446,6 +452,8 @@ const rs = useRunSocket()
 const inputRoomId = ref('9999')
 const roomId = ref('')
 
+const isStarting = ref(false)
+
 // 방 입장
 // ========== [추가 2026-02-27] 포트폴리오 export ==========
 const logicPortfolioCard = ref(null)
@@ -463,7 +471,7 @@ const lrBuildText = () => {
   const code = mySubmittedCode.value
   const llm = myLlmEval.value
   return [
-    `🎓 [CoduckWars 로직 런 포트폴리오]`,
+    `🎓 [Wars 로직 런 포트폴리오]`,
     ``,
     `📋 시나리오: ${scenario}`,
     ``,
@@ -482,7 +490,7 @@ const lrBuildText = () => {
       llm.weaknesses?.length ? `  ⚠️ 개선점: ${llm.weaknesses.join(', ')}` : '',
     ].filter(Boolean).join('\n') : '',
     ``,
-    `🔗 Powered by CoduckWars — 실무 의사코드 AI 실습 플랫폼`,
+    `🔗 Powered by Wars — 실무 의사코드 AI 실습 플랫폼`,
     `📅 ${lrTodayStr}`
   ].filter(l => l !== '').join('\n')
 }
@@ -567,7 +575,7 @@ const lrExportImage = () => {
   // 푸터
   ctx.fillStyle = '#1e293b'; ctx.fillRect(0, H - 22, W, 1)
   ctx.fillStyle = '#334155'; ctx.font = '9px monospace'
-  ctx.fillText('CoduckWars · LogicRun', 12, H - 8)
+  ctx.fillText('Wars · LogicRun', 12, H - 8)
   ctx.fillText(lrTodayStr, W - 68, H - 8)
 
   const link = document.createElement('a')
@@ -601,12 +609,16 @@ const lrDownloadTxt = () => {
 function joinRoom() {
   if (!inputRoomId.value.trim()) return
   roomId.value = inputRoomId.value.trim()
-  rs.connect(roomId.value, auth.sessionNickname, auth.userAvatarUrl)
+  // [수정일: 2026-03-03] 유저 연동 복구: userId 추가 전달
+  rs.connect(roomId.value, auth.sessionNickname, auth.userAvatarUrl, auth.user?.id)
 }
 
 function requestStart() {
-  if (rs.connected.value) {
+  if (rs.connected.value && rs.roomPlayers.value.length >= 2 && !isStarting.value) {
+    isStarting.value = true
     rs.emitStart(roomId.value)
+    // 5초간 응답 없으면 다시 시도 가능하게 초기화 (안전장치)
+    setTimeout(() => { if (phase.value === 'intro') isStarting.value = false }, 5000)
   }
 }
 
@@ -1034,6 +1046,7 @@ function startGame(fromSocket = false, qIdx = null) {
   phase2WaitingTimeout.value = 30
 
   phase.value = 'play'
+  isStarting.value = false // [수정일: 2026-03-03] 시작 완료 시점 초기화
   startPhase1Round()
 }
 

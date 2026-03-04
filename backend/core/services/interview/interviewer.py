@@ -9,6 +9,16 @@ interviewer.py -- L4 Interviewer (대화 생성기 + 말투 보정 통합)
   - _build_interviewer_prompt()에 [실제 면접 기출 질문] 섹션 추가.
     humanizer_context["bank_questions"]에서 현재 슬롯의 기출 질문을 가져와
     시스템 프롬프트에 주입. LLM이 실제 면접 데이터를 참고하여 질문을 생성하도록 함.
+interviewer.py -- L4 Interviewer (대화 생성기 + 말투 보정 통합)
+
+수정일: 2026-03-01
+설명: LLM 1번 호출. intent + humanizer_context -> 자연스러운 면접관 질문 생성.
+      L4와 L5는 LLM 호출 1번으로 처리한다.
+
+[2026-03-01 변경사항]
+  - _build_interviewer_prompt()에 [실제 면접 기출 질문] 섹션 추가.
+    humanizer_context["bank_questions"]에서 현재 슬롯의 기출 질문을 가져와
+    시스템 프롬프트에 주입. LLM이 실제 면접 데이터를 참고하여 질문을 생성하도록 함.
 """
 import openai
 from django.conf import settings
@@ -35,10 +45,14 @@ def generate_question(intent: str, humanizer_context: dict, previous_answer: str
     client = openai.OpenAI(api_key=api_key)
     prompt = _build_interviewer_prompt(intent, humanizer_context)
 
+    # 디버그: covered_topics 확인
+    ct = humanizer_context.get("covered_topics", [])
+    print(f"[Interviewer] covered_topics={ct}")
+
     messages = [{"role": "system", "content": prompt}]
 
-    # 이전 대화 히스토리 주입 (최근 4턴)
-    for turn in (conversation_history or [])[-4:]:
+    # 이전 대화 히스토리 전체 주입 (토픽 중복 방지를 위해 전체 맥락 전달)
+    for turn in (conversation_history or []):
         messages.append({"role": "assistant", "content": turn["q"]})
         messages.append({"role": "user", "content": turn["a"]})
 
@@ -84,6 +98,11 @@ def _build_interviewer_prompt(intent: str, ctx: dict) -> str:
     [2026-03-01] bank_questions가 ctx에 포함되어 있으면
     [실제 면접 기출 질문] 섹션을 시스템 프롬프트에 추가한다.
     """
+    """Interviewer 프롬프트 생성 (L4 + L5 통합)
+
+    [2026-03-01] bank_questions가 ctx에 포함되어 있으면
+    [실제 면접 기출 질문] 섹션을 시스템 프롬프트에 추가한다.
+    """
 
     slot = ctx.get("slot", "")
     topic = ctx.get("topic", slot)
@@ -97,6 +116,7 @@ def _build_interviewer_prompt(intent: str, ctx: dict) -> str:
     preferred_qualifications = ctx.get("preferred_qualifications", "")
     weakness_boost = ctx.get("weakness_boost", [])
     bank_questions = ctx.get("bank_questions", [])  # [2026-03-01] 기출 질문
+    covered_topics = ctx.get("covered_topics", [])  # [2026-03-03] 이미 다룬 기술 키워드
 
     weakness_info = ""
     if weakness_boost:
@@ -104,10 +124,13 @@ def _build_interviewer_prompt(intent: str, ctx: dict) -> str:
         weakness_info = (
             f"\n[지원자 취약 영역]\n"
             f"- 분석된 취약 영역: {weakness_list}\n"
-            f"- 현재 주제와 관련이 있다면, 이 영역에 대한 구체적인 경험이나 이해를 확인하는 방향으로 질문하라."
+            f"- 현재 주제와 관련이 있다면, 이 영역에 대한 구체적인 경험이나 이해를 확인하는 방향으로 질문하라.\n"
+            f"- 단, 이전 대화에서 이미 해당 기술을 다뤘다면 같은 질문을 반복하지 말고 다른 각도에서 질문하라."
         )
 
     company_info = ""
+    if company_name:
+        # 채용공고가 있는 경우
     if company_name:
         # 채용공고가 있는 경우
         job_detail = ""
@@ -129,14 +152,25 @@ def _build_interviewer_prompt(intent: str, ctx: dict) -> str:
             f"- '지원 동기' 질문 시 특정 회사 대신 '{position_label} 분야에 관심을 갖게 된 계기나 커리어 방향'을 물어라.\n"
             f"- '저희 회사', '당사' 같은 표현도 사용하지 마라."
         )
+    else:
+        # 공고 없이 시작 (면접 연습 모드)
+        position_label = position if position else "AI / 소프트웨어 엔지니어"
+        company_info = (
+            f"\n[면접 연습 모드]\n"
+            f"- 지원자는 특정 채용공고 없이 면접 연습 중이다.\n"
+            f"- 지원자의 관심 직무: {position_label}\n"
+            f"- 절대로 특정 회사명(삼성, LG, 네이버, 한전 등)을 언급하거나 만들어내지 마라.\n"
+            f"- '지원 동기' 질문 시 특정 회사 대신 '{position_label} 분야에 관심을 갖게 된 계기나 커리어 방향'을 물어라.\n"
+            f"- '저희 회사', '당사' 같은 표현도 사용하지 마라."
+        )
 
     transition_guide = ""
     if is_slot_transition and not is_first_question:
         transition_guide = (
             "\n[슬롯 전환 규칙]\n"
             "- 이전 주제에서 자연스럽게 전환하는 브릿지 문장을 먼저 작성하라.\n"
-            "- 예: '말씀 잘 들었습니다. 이번에는 다른 경험에 대해 여쭤보겠습니다.'\n"
-            "- 예: '그 경험이 잘 이해됐습니다. 이제는 기술적인 부분으로 넘어가볼까요?'"
+            "- 예: '이번에는 다른 경험에 대해 여쭤보겠습니다.'\n"
+            "- 예: '이제는 기술적인 부분으로 넘어가볼까요?'"
         )
 
     repeat_guide = ""
@@ -173,8 +207,23 @@ def _build_interviewer_prompt(intent: str, ctx: dict) -> str:
             f"이 질문들을 기반으로 면접을 진행하되, 대화 흐름에 맞게 자연스럽게 변형하라.\n"
             f"{q_list}\n"
             f"- 질문을 그대로 읽지 말고, 지원자의 답변과 현재 맥락에 맞게 재구성하라.\n"
-            f"- 기출 질문의 핵심 의도를 유지하면서 자연스러운 면접 대화를 이어가라."
+            f"- 기출 질문의 핵심 의도를 유지하면서 자연스러운 면접 대화를 이어가라.\n"
+            f"- 같은 주제에서 후속 질문(2회 이상)일 때는 기출 질문보다 지원자의 직전 답변을 깊이 파고드는 것을 우선하라."
         )
+
+    # [2026-03-03] 이미 다룬 기술 키워드 섹션
+    covered_guide = ""
+    covered_ban = ""
+    if covered_topics:
+        topics_str = ", ".join(covered_topics)
+        covered_guide = (
+            f"\n[이미 다룬 주제]\n"
+            f"- 이전 대화에서 다음 기술/주제를 이미 다뤘다: {topics_str}\n"
+            f"- 슬롯 전환 시 위 주제와 다른 경험·기술을 물어라.\n"
+            f"- 같은 슬롯 내 후속 질문에서는 위 주제를 다른 각도로 파고들 수 있다."
+        )
+        if is_slot_transition:
+            covered_ban = f"\n- 슬롯이 전환됐으므로 다음 기술/주제로 질문하지 마라: {topics_str}"
 
     opening_rule = (
         "1. 짧은 인사 한 문장 후 바로 질문으로 이어가라."
@@ -188,7 +237,7 @@ def _build_interviewer_prompt(intent: str, ctx: dict) -> str:
 
     return f"""당신은 자연스러운 한국어 면접관이다.
 지원자의 답변을 듣고 적절한 후속 질문을 한다.
-{company_info}{weakness_info}{bank_guide}
+{company_info}{weakness_info}{bank_guide}{covered_guide}
 
 [면접 맥락]
 - 현재 평가 주제: {topic}
@@ -208,10 +257,15 @@ def _build_interviewer_prompt(intent: str, ctx: dict) -> str:
 5. 직설적 표현을 부드럽게 완화하라.
 6. 전체 응답은 2-4문장 이내로 간결하게 작성하라.
 7. 한국어로만 답하라.
-8. 채용공고의 주요 업무와 자격요건을 참고하여, 해당 직무에서 실제로 필요한 역량을 확인하는 방향으로 질문하라.
-   예: 공고에 "Python 백엔드 API 개발"이 있으면 → API 설계나 성능 경험을 연결지어 질문
-9. 후속 질문은 '질문 의도'에 집중하되, 지원자가 언급한 구체적인 사례나 키워드를 자연스럽게 연결해 질문하라.
+8. 채용공고의 주요 업무와 자격요건은 질문 방향의 참고로만 사용하라.
+   단, 지원자가 직접 언급하지 않은 경력·기술·경험을 '~하셨는데', '~있으시다고 하셨는데'처럼 이미 말한 것으로 전제하지 마라.
+   예: 공고에 "Python 5년"이 있어도 지원자가 Python을 언급하지 않았으면 → "혹시 Python을 사용해본 경험이 있으신가요?" (O)
+   예: "Python 경험이 5년 이상 있으시다고 하셨는데" (X - 말한 적 없음)
+9. 동일 슬롯 내 후속 질문은 '질문 의도'에 집중하되, 지원자가 직전 답변에서 언급한 구체적인 사례나 키워드를 자연스럽게 연결해 질문하라.
    예: 지원자가 "배포 중 장애"를 언급했고 의도가 "결과 변화 확인"이라면 → "그 장애가 결국 어떻게 해결됐나요?"
+   단, 슬롯이 전환된 경우에는 직전 답변을 자연스럽게 인정하되, 같은 기술·프로젝트 주제로 질문하지 말고 Rule 10을 따르라.
+10. 새 평가 주제로 전환 시, 이전 대화에서 이미 다룬 프로젝트·기술과 다른 경험을 물어라.
+    예: 이전에 Python 프로젝트를 다뤘으면 → 다른 프로젝트나 기술 경험을 유도하라.
 
 [절대 금지]
 - "흥미롭네요/흥미롭습니다/흥미로운 경험이네요" 같은 내용 없는 감탄 금지

@@ -17,12 +17,19 @@ LLM 없음. 순수 Python 규칙으로만 동작.
     PLAYING   → JUDGING   : 양측 모두 제출 완료
     JUDGING   → FINISHED  : EvalAgent 평가 완료
     FINISHED  → WAITING   : 다음 라운드 시작
+
+[에이전트 개입 조건]
+    can_trigger_coach / can_trigger_chaos 는 trigger_policy.py 로 이전.
+    StateMachine은 순수하게 "상태 전환만" 담당한다.
 """
 
 import time
+import logging
 from enum import Enum
 from dataclasses import dataclass, field
 from typing import Optional, Dict, Any
+
+logger = logging.getLogger(__name__)
 
 
 class GameState(str, Enum):
@@ -40,6 +47,15 @@ VALID_TRANSITIONS = {
     GameState.IN_BASKET: [GameState.PLAYING, GameState.JUDGING],
     GameState.JUDGING:   [GameState.FINISHED],
     GameState.FINISHED:  [GameState.WAITING],
+}
+
+# [수정일: 2026-03-02] entered_at을 리셋하는 전환 목록
+# WAITING → PLAYING 만 라운드 시작 기준 시간을 리셋한다.
+# 그 외 전환(PLAYING → IN_BASKET → PLAYING 등)에서는 elapsed()가 계속 누적되어야
+# trigger_policy의 시간 조건(_ROUND_START_GRACE 등)이 올바르게 동작한다.
+_RESET_ELAPSED_TRANSITIONS = {
+    (GameState.WAITING, GameState.PLAYING),   # 라운드 시작
+    (GameState.FINISHED, GameState.WAITING),  # 다음 라운드 대기
 }
 
 
@@ -61,6 +77,12 @@ class DrawRoomState:
     coach_triggered_at: float = 0.0    # CoachAgent 마지막 개입 시각
     chaos_triggered_at: float = 0.0    # ChaosAgent 마지막 개입 시각
     chaos_event_id: Optional[str] = None  # 진행 중인 장애 이벤트 ID
+
+    # CoachAgent 힌트 이력 {sid: [{message, type, level, _time}, ...]}
+    hint_history: Dict[str, list] = field(default_factory=dict)
+
+    # ChaosAgent 이번 게임에서 발동된 이벤트 ID 이력 (중복 방지용)
+    past_event_ids: list = field(default_factory=list)
 
     def elapsed(self) -> float:
         """현재 상태 진입 후 경과 시간 (초)"""
@@ -84,7 +106,13 @@ class DrawRoomState:
 
 
 class StateMachine:
-    """Wars 게임 상태 머신 — 전환 유효성 검증 및 상태 변경 담당"""
+    """
+    Wars 게임 상태 머신 — 전환 유효성 검증 및 상태 변경 담당.
+
+    에이전트 개입 조건(can_trigger_coach / can_trigger_chaos)은
+    trigger_policy.py 로 이전되었다.
+    이 클래스는 순수하게 상태 전환만 책임진다.
+    """
 
     def transition(self, room_state: DrawRoomState, new_state: GameState) -> bool:
         """
@@ -92,63 +120,21 @@ class StateMachine:
         """
         valid = VALID_TRANSITIONS.get(room_state.state, [])
         if new_state not in valid:
-            print(
+            logger.warning(
                 f"[StateMachine] ❌ 무효 전환: {room_state.state} → {new_state} "
                 f"(room: {room_state.room_id})"
             )
             return False
 
-        print(f"[StateMachine] ✅ 상태 전환: {room_state.state} → {new_state} (room: {room_state.room_id})")
+        logger.info(
+        f"[StateMachine] ✅ 상태 전환: {room_state.state} → {new_state} "
+        f"(room: {room_state.room_id})"
+        )
+        prev_state = room_state.state
         room_state.state = new_state
-        room_state.entered_at = time.time()
-        return True
-
-    def can_trigger_coach(self, room_state: DrawRoomState, sid: str) -> bool:
-        """
-        CoachAgent 개입 조건:
-        - PLAYING 상태
-        - 라운드 시작 후 30초 이상 경과
-        - 마지막 CoachAgent 개입 후 60초 이상 경과 (도배 방지)
-        - 노드 배치 수가 필수 컴포넌트의 절반 미만
-        """
-        if room_state.state != GameState.PLAYING:
-            return False
-        # [수정일: 2026-02-27] 테스트성 강화를 위해 임계값 단축 (기존 30s -> 10s)
-        if room_state.elapsed() < 10:
-            return False
-        # [수정일: 2026-02-27] 테스트성 강화를 위해 임계값 단축 (기존 60s -> 40s)
-        if time.time() - room_state.coach_triggered_at < 40:
-            return False
-
-        node_count = room_state.get_node_count(sid)
-        required_count = len(room_state.mission_required)
-        threshold = max(1, required_count // 2)
-
-        # 1. 노드 배치 수가 필수 컴포넌트의 절반 미만인 경우 (기존 조건)
-        if node_count < threshold:
-            return True
-            
-        # 2. [추가 2026-02-27] 헤매는 상태(Inactivity) 감지: 15초간 아무 조작이 없으면 개입
-        inactivity_limit = 15.0
-        if room_state.seconds_since_last_update(sid) > inactivity_limit:
-            print(f"[StateMachine] 🔍 Player {sid} is wandering (inactive for {inactivity_limit}s). Triggering Coach.")
-            return True
-
-        return False
-
-    def can_trigger_chaos(self, room_state: DrawRoomState) -> bool:
-        """
-        ChaosAgent 개입 조건:
-        - PLAYING 상태
-        - 라운드 시작 후 60초 이상 경과 (설계 시간 충분히 준 후)
-        - 이전 장애 이벤트 없음 (라운드당 1회 제한)
-        """
-        if room_state.state != GameState.PLAYING:
-            return False
-        # [수정일: 2026-02-27] 테스트성 강화를 위해 임계값 단축 (기존 60s -> 25s)
-        if room_state.elapsed() < 25:
-            return False
-        if room_state.chaos_triggered_at > 0:
-            return False  # 이미 이번 라운드에 발동
-
+        # [수정일: 2026-03-02] 라운드 시작 전환일 때만 entered_at 리셋
+        # IN_BASKET → PLAYING 복군 등에서는 elapsed()가 유지되어 trigger_policy 시간 조건이 올바르게 동작함
+        if (prev_state, new_state) in _RESET_ELAPSED_TRANSITIONS:
+            room_state.entered_at = time.time()
+            logger.debug(f"[StateMachine] entered_at 리셋: {prev_state} → {new_state}")
         return True

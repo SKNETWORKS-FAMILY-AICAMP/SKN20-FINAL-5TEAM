@@ -6,7 +6,7 @@ from .user_model import UserProfile, UserDetail
 from .dashboard_model import DashboardLog
 from .common_model import Common
 from .practice_model import Practice, PracticeDetail
-from .activity_model import UserAvatar, UserActivity, UserSolvedProblem, UserProgress
+from .activity_model import UserAvatar, UserActivity, UserSolvedProblem, UserProgress, UserBattleRecord
 from .interview_model import SavedJobPosting, InterviewSession, InterviewTurn, InterviewFeedback
 from .coach_model import CoachConversation, CoachMessage
 # 2026-02-28 모의면접 기업 실제 면접 문제 데이타 저장 모델 추가

@@ -124,7 +124,7 @@
       />
 
       <!-- ✅ NEW: EXIT 컨펌 모달 -->
-      <ExitConfirmModal
+      <PracticeExitConfirmModal
         :is-active="showExitModal"
         @confirm="confirmExit"
         @cancel="cancelExit"
@@ -159,8 +159,8 @@ import CaseFilePanel from './components/CaseFilePanel.vue';
 import TutorialOverlay from './components/TutorialOverlay.vue';
 // ✅ NEW: 검증 피드백 컴포넌트
 import ValidationFeedback from './components/ValidationFeedback.vue';
-// ✅ NEW: EXIT 컨펌 모달
-import ExitConfirmModal from './components/ExitConfirmModal.vue';
+// ✅ NEW: EXIT 컨펌 모달 (공통 컴포넌트 직접 사용)
+import PracticeExitConfirmModal from '../components/PracticeExitConfirmModal.vue';
 
 // Composables
 import { useToast } from './composables/useToast';
@@ -187,7 +187,7 @@ export default {
     CaseFilePanel,
     TutorialOverlay,
     ValidationFeedback,
-    ExitConfirmModal
+    PracticeExitConfirmModal
   },
   data() {
     return {

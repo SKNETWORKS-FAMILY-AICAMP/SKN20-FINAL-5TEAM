@@ -1,62 +1,24 @@
 """
-coach_agent.py — CoachAgent
-플레이어의 설계 정체를 감지하고 맥락에 맞는 힌트를 생성한다.
+coach_agent.py — CoachAgent (LangGraph 버전)
 
-[기존 방식 — 없음]
-    정체 감지 로직 자체가 없었음.
-
-[에이전트 방식]
-    state = draw_room_states[room_id]
-    hint = CoachAgent().generate(state, sid)   # 플레이어별 맥락 힌트
-    await sio.emit('coach_hint', hint, to=sid) # 본인에게만 전송
-
-LLM 없음. 순수 룰 기반으로 동작 (인터뷰의 coach.py 패턴 동일하게 적용).
-미션 required 컴포넌트 대비 누락된 컴포넌트를 분석하여 힌트 생성.
+기존 if/else 룰 기반에서 진짜 Agent로 교체.
+[흐름] analyze_situation → decide_strategy → generate_hint(or skip)
+힌트 이력(hint_history)을 받아 단계적 코칭 전략을 동적으로 결정한다.
 """
 
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, List
+
+from core.services.wars.agents.coach.graph import get_coach_graph
 
 logger = logging.getLogger(__name__)
-
-# 컴포넌트별 역할 설명 (힌트 메시지 생성용)
-COMPONENT_HINTS = {
-    "client":   "사용자 단말(Client)이 없으면 트래픽 진입점이 불명확합니다.",
-    "lb":       "로드밸런서(LB)는 트래픽을 여러 서버에 분산시켜 단일 장애점을 제거합니다.",
-    "server":   "실제 비즈니스 로직을 처리할 서버(WAS/EC2)를 배치해야 합니다.",
-    "cdn":      "정적 리소스를 CDN으로 분산하면 응답 속도와 서버 부하를 크게 개선할 수 있습니다.",
-    "cache":    "Redis 같은 캐시 레이어를 추가하면 DB 부하를 줄이고 응답 속도를 높일 수 있습니다.",
-    "db":       "데이터를 영속적으로 저장할 DB가 없으면 설계가 완성되지 않습니다.",
-    "readdb":   "읽기 전용 복제본(Read Replica)을 추가하면 조회 성능을 수평 확장할 수 있습니다.",
-    "writedb":  "쓰기 전용 마스터 DB를 분리하면 읽기/쓰기 부하를 독립적으로 관리할 수 있습니다.",
-    "api":      "API Gateway는 인증, 라우팅, 속도 제한을 중앙에서 처리하는 진입점입니다.",
-    "auth":     "인증(Auth) 서비스가 없으면 보안 취약점이 발생할 수 있습니다.",
-    "queue":    "메시지 큐(Queue)는 비동기 처리로 서비스 간 결합도를 낮춥니다.",
-    "waf":      "WAF는 DDoS, SQL Injection 등 외부 공격으로부터 시스템을 보호합니다.",
-    "dns":      "DNS 설정이 없으면 외부 트래픽 유입 경로가 불명확합니다.",
-    "origin":   "On-Premise 원본 서버(Origin)와의 연결을 설계에 포함해야 합니다.",
-    "payment":  "결제(Payment) 서비스는 트랜잭션 원자성과 보안을 별도로 설계해야 합니다.",
-    "order":    "주문(Order) 서비스는 재고 시스템과의 정합성을 고려해야 합니다.",
-}
-
-# 노드 수 기반 단계별 일반 힌트
-GENERAL_HINTS = [
-    "아직 아무것도 배치하지 않으셨네요. 사용자(Client)부터 시작해보는 건 어떨까요?",
-    "트래픽이 어디서 들어와서 어디로 가는지 흐름을 먼저 그려보세요.",
-    "필수 컴포넌트를 모두 배치한 뒤, 화살표로 데이터 흐름을 연결해보세요.",
-    "배치만으로는 부족합니다. 컴포넌트 간 연결(화살표)이 설계의 핵심입니다.",
-]
 
 
 class CoachAgent:
     """
-    플레이어 설계 현황을 분석하여 맥락에 맞는 힌트를 생성하는 에이전트.
-    LLM 없음 — 인터뷰 coach.py와 동일한 순수 룰 기반 패턴.
-
-    역할:
-        - StateMachine이 can_trigger_coach() 조건 검사
-        - CoachAgent가 누락 컴포넌트 분석 → 힌트 메시지 생성
-        - socket_server가 해당 플레이어에게만 emit
+    LangGraph 기반 코칭 에이전트.
+    상황 분석 → 전략 결정 → 힌트 생성 루프 실행.
+    hint_history를 받아 이전 힌트를 고려한 단계적 코칭을 수행한다.
     """
 
     def generate(
@@ -65,67 +27,42 @@ class CoachAgent:
         deployed_nodes: list,
         arrow_count: int = 0,
         node_count: int = 0,
+        hint_history: List[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
-        플레이어 설계 현황을 분석하여 힌트를 생성한다.
-
         Args:
-            mission_required: 이번 미션의 필수 컴포넌트 ID 목록 (예: ["lb", "server", "db"])
-            deployed_nodes: 플레이어가 현재 배치한 컴포넌트 ID 목록
-            arrow_count: 현재 연결된 화살표 수
-            node_count: 현재 배치된 노드 수 (deployed_nodes와 일치)
+            mission_required : 이번 미션의 필수 컴포넌트 ID 목록
+            deployed_nodes   : 플레이어가 현재 배치한 컴포넌트 ID 목록
+            arrow_count      : 현재 화살표 수
+            node_count       : 현재 배치 노드 수
+            hint_history     : 이전 힌트 목록 [{message, type, level}, ...]
 
         Returns:
-            {
-                "message": "힌트 메시지",
-                "missing_components": ["누락된 컴포넌트 목록"],
-                "type": "missing_component" | "no_arrows" | "general"
-            }
+            {message, missing_components, type, level}
         """
-        deployed_set = set(deployed_nodes)
-        required_set = set(mission_required)
-        missing = list(required_set - deployed_set)
-
-        # 케이스 1: 아직 아무것도 배치 안 함
-        if node_count == 0:
-            return {
-                "message": GENERAL_HINTS[0],
-                "missing_components": list(required_set),
-                "type": "general",
-            }
-
-        # 케이스 2: 필수 컴포넌트 누락 → 가장 중요한 누락 컴포넌트 1개 힌트
-        if missing:
-            # 우선순위: required 순서 기준 첫 번째 누락
-            priority_missing = missing[0]
-            for req in mission_required:
-                if req in missing:
-                    priority_missing = req
-                    break
-
-            hint_msg = COMPONENT_HINTS.get(
-                priority_missing,
-                f"'{priority_missing}' 컴포넌트를 설계에 추가해보세요."
-            )
-
-            return {
-                "message": f"💡 {hint_msg}",
-                "missing_components": missing,
-                "type": "missing_component",
-            }
-
-        # 케이스 3: 필수 컴포넌트는 다 있는데 화살표가 없음
-        if arrow_count == 0 and node_count >= 2:
-            return {
-                "message": "💡 컴포넌트를 모두 배치했네요! 이제 데이터 흐름(화살표)을 연결해보세요.",
-                "missing_components": [],
-                "type": "no_arrows",
-            }
-
-        # 케이스 4: 모두 완료 → 힌트 불필요
-        logger.info("[CoachAgent] 모든 필수 컴포넌트 배치 완료, 힌트 불필요")
-        return {
-            "message": "",
-            "missing_components": [],
-            "type": "complete",
+        initial_state = {
+            "mission_required": mission_required,
+            "deployed_nodes": deployed_nodes,
+            "arrow_count": arrow_count,
+            "node_count": node_count,
+            "hint_history": hint_history or [],
+            "situation": None,
+            "strategy": None,
+            "hint": None,
+            "done": False,
         }
+
+        graph = get_coach_graph()
+        final_state = graph.invoke(initial_state)
+
+        hint = final_state.get("hint") or {
+            "message": "", "missing_components": [], "type": "complete", "level": 0
+        }
+
+        logger.info(
+            f"[CoachAgent] ✅ 힌트 생성 완료: "
+            f"situation={final_state.get('situation')}, "
+            f"strategy={final_state.get('strategy')}, "
+            f"type={hint.get('type')}, level={hint.get('level')}"
+        )
+        return hint

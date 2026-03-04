@@ -66,46 +66,47 @@ class ArchEvaluator:
         rubric_str = ""
         if rubric:
             rubric_str = f"""
-[DB 평가 기준표 (Rubric)]
-- 필수 컴포넌트: {', '.join(rubric.get('required_components', []))}
+[실제 채점 기준 (Rubric)]
+- 필수 포함 요소: {', '.join(rubric.get('required_components', []))}
 - 필수 데이터 흐름: {json.dumps(rubric.get('required_flows', []), ensure_ascii=False)}
-- 주요 평가 축(비중/이유): {json.dumps(rubric.get('axis_weights', {}), ensure_ascii=False)}
-
-위 평가 기준을 반드시 반영하여 두 플레이어의 설계를 평가하십시오.
 """
 
-        return f"""당신은 'Arch Draw' 미니게임의 수석 아키텍트 해설 위원입니다.
-두 플레이어가 제출한 시스템 아키텍처 설계 결과를 비교하여 고품질의 정성적 비평을 제공하십시오.
+        return f"""당신은 세계 최고의 IT 아키텍처 해설가입니다. 
+두 플레이어의 아키텍처 설계를 분석하여, 단순히 '무엇이 있다'를 넘어 '어떻게 연결되어 어떤 시너지를 내는지'를 아주 상세하고 전문적으로 비평해야 합니다.
+
 {rubric_str}
-[분석 지침]
-1. 하드코딩된 느낌을 버리고, 각 플레이어가 배치한 컴포넌트 간의 관계를 전문적으로 해석하십시오.
-2. '나의 분석(Analysis)': 플레이어 본인의 설계에서 돋보이는 점(예: 가용성 확보, 보안 강화)과 아쉬운 점을 짚어주십시오.
-3. '비교(Versus)': 상대방과 대조하여 "당신은 X에 집중했으나 상대는 Y에 더 치중했습니다"와 같은 전략적 차이점을 설명하십시오.
-4. 전문 용어(LB, DB Replication, WAF, MSA 등)를 적절히 섞어 신뢰감을 주십시오.
-5. 응답은 각 플레이어별로 다르게 제공되어야 하므로, JSON 구조 내에 player1용과 player2용 출력을 분리하십시오.
+
+[비평 가이드라인]
+1. **서사적 분석**: "A와 B를 C로 연결하여 데이터 병목을 해결하려는 의도가 돋보입니다"와 같이 흐름 중심의 서술을 하십시오.
+2. **구체적 명시**: 반드시 배치된 컴포넌트의 실명을 언급하며, 화살표(Flow)가 가진 아키텍처적 의미를 해석하십시오.
+3. **나의 분석(Analysis)**: 본인 설계의 최대 장점과 치명적인 약점을 '설계의 연결성' 관점에서 짚어주십시오.
+4. **비교(Versus)**: 상대방과의 결정적 차이를 "상대는 안정적인 정석 배치를 선택한 반면, 당신은 성능 위주의 파격적인 구조를 시도했습니다"와 같이 대조하십시오.
+5. **전문성**: 가용성, 확장성, 보안성, 응답성 등의 키워드를 설계 데이터와 연결하여 설명하십시오.
 
 [출력 형식]
 {{
   "player1": {{
-    "my_analysis": "본인의 설계에 대한 전문적 비평",
-    "versus": "상대방과 대조되는 설계 차별점 브리핑"
+    "my_analysis": "서사적이고 구체적인 본인 설계 비평 (3~4문장)",
+    "versus": "상대와의 구체적인 설계 차이 브리핑 (2~3문장)"
   }},
   "player2": {{
-    "my_analysis": "본인의 설계에 대한 전문적 비평",
-    "versus": "상대방과 대조되는 설계 차별점 브리핑"
+    "my_analysis": "서사적이고 구체적인 본인 설계 비평 (3~4문장)",
+    "versus": "상대와의 구체적인 설계 차이 브리핑 (2~3문장)"
   }}
 }}"""
 
     def _build_user_prompt(self, title: str, p1: Dict, p2: Dict) -> str:
-        def format_checks(checks):
-            ok = [c['label'] for c in checks if c.get('ok')]
-            miss = [c['label'] for c in checks if not c.get('ok')]
-            return f"성공: {', '.join(ok) if ok else '없음'}\\n실패: {', '.join(miss) if miss else '없음'}"
-
         def format_canvas(nodes, arrows):
+            # ID to Name mapping for better LLM context
+            name_map = {n.get('id'): n.get('name', 'Unknown') for n in nodes}
             node_names = [n.get('name', 'Unknown') for n in nodes]
-            arrow_descs = [f"{a.get('fc', '?')} -> {a.get('tc', '?')}" for a in arrows]
-            return f"배치된 노드: {', '.join(node_names) if node_names else '없음'}\\n연결된 화살표: {', '.join(arrow_descs) if arrow_descs else '없음'}"
+            arrow_descs = []
+            for a in arrows:
+                f_name = name_map.get(a.get('fid')) or a.get('fc', '?')
+                t_name = name_map.get(a.get('tid')) or a.get('tc', '?')
+                arrow_descs.append(f"{f_name} -> {t_name}")
+            
+            return f"- 배치 컴포넌트: {', '.join(node_names) if node_names else '없음'}\n- 데이터 흐름(연결): {', '.join(arrow_descs) if arrow_descs else '없음'}"
 
         return f"""[미션: {title}]
 

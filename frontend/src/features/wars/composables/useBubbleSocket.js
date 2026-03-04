@@ -17,7 +17,7 @@ export function useBubbleSocket() {
     const onReceiveFever = ref(null)
     const onGameEnd = ref(null)
 
-    function connect(roomId, userName, userAvatar) {
+    function connect(roomId, userName, userAvatar, userId) {
         if (socket.value) return
 
         // [수정일: 2026-02-26] Mixed Content 방지 및 배포 환경(ngrok) 탄력성 강화
@@ -38,7 +38,8 @@ export function useBubbleSocket() {
 
         socket.value.on('connect', () => {
             connected.value = true
-            socket.value.emit('bubble_join', { room_id: roomId, user_name: userName, user_avatar: userAvatar })
+            // [수정일: 2026-03-03] DB 연동을 위해 user_id 포함
+            socket.value.emit('bubble_join', { room_id: roomId, user_name: userName, user_avatar: userAvatar, user_id: userId })
         })
 
         socket.value.on('disconnect', () => {

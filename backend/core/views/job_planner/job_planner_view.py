@@ -36,24 +36,48 @@ def _embed_texts(texts: list):
         np.ndarray: shape (n, dim) — L2 정규화된 float32 벡터 행렬.
                     코사인 유사도를 내적(dot product)으로 계산할 수 있게 단위 벡터로 변환됨.
     """
+    """
+    텍스트 리스트를 OpenAI 임베딩 벡터로 변환 후 L2 정규화하여 반환.
+
+    Args:
+        texts (list): 임베딩할 문자열 리스트
+
+    Returns:
+        np.ndarray: shape (n, dim) — L2 정규화된 float32 벡터 행렬.
+                    코사인 유사도를 내적(dot product)으로 계산할 수 있게 단위 벡터로 변환됨.
+    """
     import numpy as np
     import openai as _openai
+
+    # 환경변수에서 OpenAI API 키를 읽어 클라이언트 생성
 
     # 환경변수에서 OpenAI API 키를 읽어 클라이언트 생성
     client = _openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
     # text-embedding-3-small 모델로 배치 임베딩 요청
     # 여러 텍스트를 한 번의 API 호출로 처리 (비용·속도 효율)
+
+    # text-embedding-3-small 모델로 배치 임베딩 요청
+    # 여러 텍스트를 한 번의 API 호출로 처리 (비용·속도 효율)
     response = client.embeddings.create(model="text-embedding-3-small", input=texts)
+
+    # API 응답은 순서가 보장되지 않을 수 있으므로 index 기준으로 정렬 후 벡터 추출
 
     # API 응답은 순서가 보장되지 않을 수 있으므로 index 기준으로 정렬 후 벡터 추출
     vectors = [item.embedding for item in sorted(response.data, key=lambda x: x.index)]
 
     # Python list → float32 numpy 배열로 변환 (shape: n x dim)
+
+    # Python list → float32 numpy 배열로 변환 (shape: n x dim)
     arr = np.array(vectors, dtype=np.float32)
 
     # 각 벡터의 L2 norm(크기) 계산, keepdims=True로 브로드캐스팅 가능하게 유지 (shape: n x 1)
+
+    # 각 벡터의 L2 norm(크기) 계산, keepdims=True로 브로드캐스팅 가능하게 유지 (shape: n x 1)
     norms = np.linalg.norm(arr, axis=1, keepdims=True)
+
+    # 각 벡터를 norm으로 나눠 단위 벡터로 정규화
+    # np.maximum(norms, 1e-8): norm이 0인 제로 벡터일 때 division by zero 방지
 
     # 각 벡터를 norm으로 나눠 단위 벡터로 정규화
     # np.maximum(norms, 1e-8): norm이 0인 제로 벡터일 때 division by zero 방지
@@ -323,8 +347,14 @@ class JobPlannerParseView(APIView):
             from django.contrib.auth.models import User
             auth_user_id = request.session.get('_auth_user_id')
             if not auth_user_id:
+            # 세션에서 auth user 추출 → email로 UserProfile 조회
+            from django.contrib.auth.models import User
+            auth_user_id = request.session.get('_auth_user_id')
+            if not auth_user_id:
                 return None
 
+            django_user = User.objects.get(pk=auth_user_id)
+            user = UserProfile.objects.get(email=django_user.email)
             django_user = User.objects.get(pk=auth_user_id)
             user = UserProfile.objects.get(email=django_user.email)
 
@@ -1499,6 +1529,7 @@ class JobPlannerRecommendView(APIView):
             # 1차: 스킬 매칭으로 후보 선별 (검색 결과 스킬 태그만으로 빠르게 필터)
             recommendations = self._match_jobs_with_skills(
                 filtered_listings, user_skills, skill_levels, readiness_score, current_job_text
+                filtered_listings, user_skills, skill_levels, readiness_score, current_job_text
             )
 
             # 매칭률 40% 이상, 상위 15개 후보
@@ -1757,7 +1788,17 @@ class JobPlannerRecommendView(APIView):
 
                         skills_elem = item.select('.job_sector a')
                         skills = [s.get_text(strip=True) for s in skills_elem]
+                        title_elem = item.select_one('.job_tit a')
+                        if not title_elem:
+                            continue
+                        title = title_elem.get_text(strip=True)
+                        job_url = 'https://www.saramin.co.kr' + title_elem['href'] if title_elem.get('href') else ''
 
+                        skills_elem = item.select('.job_sector a')
+                        skills = [s.get_text(strip=True) for s in skills_elem]
+
+                        conditions = item.select('.job_condition span')
+                        conditions_text = [c.get_text(strip=True) for c in conditions]
                         conditions = item.select('.job_condition span')
                         conditions_text = [c.get_text(strip=True) for c in conditions]
 
@@ -1889,6 +1930,7 @@ class JobPlannerRecommendView(APIView):
         return enriched
 
 
+    def _match_jobs_with_skills(self, job_listings, user_skills, skill_levels, readiness_score, current_job_text=''):
     def _match_jobs_with_skills(self, job_listings, user_skills, skill_levels, readiness_score, current_job_text=''):
         """
         SKILL_SYNONYMS 기반 스킬 매칭.
@@ -2086,6 +2128,31 @@ class JobPlannerCompanyAnalyzeView(APIView):
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
+
+        # 채용 사이트 → BeautifulSoup 방식
+        if any(domain in url for domain in JOB_SITE_DOMAINS):
+            response = requests.get(url, headers=headers, timeout=10)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.text, 'html.parser')
+            for tag in soup(["script", "style"]):
+                tag.decompose()
+            text = soup.get_text(separator='\n', strip=True)
+
+            # 결과가 너무 짧으면 trafilatura로 fallback
+            if len(text) < 200:
+                import trafilatura
+                fallback = trafilatura.extract(response.text)
+                if fallback:
+                    return fallback
+
+            return text
+
+        # 일반 사이트(회사 홈페이지, 뉴스, 블로그 등) → trafilatura
+        import trafilatura
+        downloaded = trafilatura.fetch_url(url)
+        text = trafilatura.extract(downloaded)
+        if not text:
+            raise Exception("URL에서 텍스트를 추출할 수 없습니다.")
 
         # 채용 사이트 → BeautifulSoup 방식
         if any(domain in url for domain in JOB_SITE_DOMAINS):
