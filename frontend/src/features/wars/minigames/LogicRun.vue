@@ -44,6 +44,9 @@
               <template v-if="rs.roomPlayers.value[0]">
                 <img :src="rs.roomPlayers.value[0].avatar_url || '/image/duck_idle.png'" class="lobby-avatar" />
                 <div class="lobby-name p1">{{ rs.roomPlayers.value[0].name }}</div>
+                <div class="lobby-diff neon-text" style="font-size: 0.75rem; margin-top: 4px; color: #a8b2c1;">
+                  {{ rs.roomPlayers.value[0].difficulty || '선택 안 됨' }}
+                </div>
               </template>
               <div v-else class="lobby-slot-empty">P1 대기중...</div>
             </div>
@@ -54,6 +57,9 @@
               <template v-if="rs.roomPlayers.value[1]">
                 <img :src="rs.roomPlayers.value[1].avatar_url || '/image/duck_idle.png'" class="lobby-avatar" />
                 <div class="lobby-name p2">{{ rs.roomPlayers.value[1].name }}</div>
+                <div class="lobby-diff neon-text" style="font-size: 0.75rem; margin-top: 4px; color: #a8b2c1;">
+                  {{ rs.roomPlayers.value[1].difficulty || '선택 안 됨' }}
+                </div>
               </template>
               <div v-else class="lobby-slot-empty">
                 <div class="hourglass">⏳</div>
@@ -89,21 +95,9 @@
           <span class="hud-lbl">P1 SCORE</span>
           <span class="hud-val neon-c">{{ scoreP1 }}pt</span>
         </div>
-        <div class="hud-cell timer-cell" :class="{ danger: roundTimeout <= 5 }">
-          <div class="timer-bar-track">
-            <div class="timer-bar-fill" :style="{ width: roundTimeoutPct + '%' }" :class="{ danger: roundTimeout <= 5 }"></div>
-          </div>
-          <span class="timer-num">{{ roundTimeout }}s</span>
-        </div>
         <div class="hud-cell">
           <span class="hud-lbl">R{{ currentRound + 1 }}/{{ totalRounds }}</span>
           <span class="hud-badge">SPEED FILL</span>
-        </div>
-        <div class="hud-cell timer-cell" :class="{ danger: roundTimeout <= 5 }">
-          <div class="timer-bar-track">
-            <div class="timer-bar-fill" :style="{ width: roundTimeoutPct + '%' }" :class="{ danger: roundTimeout <= 5 }"></div>
-          </div>
-          <span class="timer-num">{{ roundTimeout }}s</span>
         </div>
         <div class="hud-cell">
           <span class="hud-lbl">P2 SCORE</span>
@@ -120,10 +114,11 @@
             <!-- 상단: 상대 레인 -->
             <div class="lane opponent-lane" :class="isP1 ? 'p2-lane' : 'p1-lane'">
               <div class="lane-label">👥 상대</div>
-              <div class="runner-char" :style="{ left: opponentProgressPct + '%' }">
+              <div class="runner-char" :style="{ left: opponentProgressPct + '%' }" :class="{ running: true }">
                 <!-- ← [수정: 2026-03-04] 접속한 닉네임 표기 추가 -->
                 <div class="runner-name opponent-name">{{ opponentName }}</div>
                 <img :src="(isP1 ? playerP2?.avatarUrl : playerP1?.avatarUrl) || '/image/duck_idle.png'" class="main-avatar" />
+                <div class="dust-effect"></div>
               </div>
             </div>
 
@@ -153,47 +148,36 @@
 
         <!-- 우측: 빈칸 채우기 패널 -->
         <div class="game-right">
-          <!-- 코드 블록 -->
-          <div class="code-block-panel neon-border">
+          <!-- 4지선다형 객관식 문제 패널 -->
+          <div class="code-block-panel neon-border aice-quiz-panel">
             <div class="editor-header">
               <div class="editor-tabs">
-                <div class="tab active">pseudocode.ps</div>
+                <div class="tab active">AICE 실전 퀴즈</div>
               </div>
-              <div class="editor-meta">BLANK FILL</div>
+              <div class="editor-meta">MULTIPLE CHOICE</div>
             </div>
 
-            <div class="code-display">
-              <div v-for="(line, idx) in currentRoundData?.codeBlock" :key="idx" class="code-line-display">
-                <span v-if="line.type === 'fixed'" class="code-text">{{ line.text }}</span>
-                <!-- [수정 2026-03-04] ________를 제거하고 앞 텍스트 + 빈칸 표시 -->
-                <template v-else>
-                  <span class="code-text">{{ line.text.replace(/_{4,}/, '').trimEnd() }}</span>
-                  <span class="code-blank-box">　　　</span>
-                </template>
-              </div>
+            <!-- 문제 텍스트 (AICE 문제) -->
+            <div class="quiz-question-display">
+              <h3 class="question-text">{{ currentRoundData?.context }}</h3>
             </div>
 
-            <!-- 빈칸 정보 & 힌트 -->
-            <div v-if="currentBlankData" class="blank-info">
-              <div class="hint-bubble">
-                <span class="hb-ico">💡</span> {{ currentBlankData.hint }}
-              </div>
-              <div class="option-buttons">
+            <!-- 보기 (4지선다) -->
+            <div class="quiz-options-area">
+              <div class="option-buttons-grid">
                 <button
-                  v-for="opt in currentBlankData.options"
-                  :key="opt"
-                  @click="selectBlankAnswer(opt)"
-                  class="btn-option"
-                  :disabled="roundTimeout <= 0"
+                  v-for="(opt, oIdx) in (currentRoundData?.options || [])"
+                  :key="oIdx"
+                  @click="selectOptionAnswer(oIdx)"
+                  class="btn-option quiz-btn"
                 >
-                  <!-- [수정 2026-03-04] 빈 문자열({}, [] 등) 방어: 김표로 대체 -->
-                  {{ (opt === '' || opt === null || opt === undefined) ? '(empty)' : opt }}
+                  <span class="opt-num">{{ oIdx + 1 }}</span>. {{ opt }}
                 </button>
               </div>
             </div>
 
             <div class="editor-footer">
-              <div class="ef-left">UTF-8 | Pseudocode</div>
+              <div class="ef-left">AICE 실전 대비</div>
               <div class="ef-right">
                 <span class="combo-display" v-if="currentCombo > 0">🔥 x{{ currentCombo }}</span>
               </div>
@@ -671,16 +655,34 @@ function joinRoom() {
   if (!inputRoomId.value.trim()) return
   roomId.value = inputRoomId.value.trim()
   // [수정일: 2026-03-03] 유저 연동 복구: userId 추가 전달
-  // [수정일: 2026-03-04] AICE 난이도 추가 전달 또는 방 이름에 난이도 접두어 
-  const fullRoomId = `${selectedDifficulty.value}_${roomId.value}`
-  rs.connect(fullRoomId, auth.sessionNickname, auth.userAvatarUrl, auth.user?.id)
+  // [수정일: 2026-03-04] 같은 방에 입장하되 난이도는 별도 데이터로 전달하여 동기화
+  rs.connect(roomId.value, auth.sessionNickname, auth.userAvatarUrl, auth.user?.id, selectedDifficulty.value)
 }
+
+// [2026-03-04] 로비에서 내 난이도를 변경했을 때 상대방에게 실시간 알림
+watch(selectedDifficulty, (newVal) => {
+  if (rs.connected.value && phase.value === 'intro') {
+    rs.emitDifficultyChange(roomId.value, newVal)
+  }
+})
 
 function requestStart() {
   if (!rs.connected.value) return
 
-  if (rs.roomPlayers.value.length < 2) {
+  const players = rs.roomPlayers.value
+  if (players.length < 2) {
     errorMsg.value = '상대방이 입장해야 게임을 시작할 수 있습니다.'
+    setTimeout(() => { errorMsg.value = '' }, 2500)
+    shaking.value = true
+    setTimeout(() => { shaking.value = false }, 400)
+    return
+  }
+
+  // [2026-03-04] 등급 일치 여부 확인
+  const p1Diff = players[0]?.difficulty
+  const p2Diff = players[1]?.difficulty
+  if (p1Diff !== p2Diff) {
+    errorMsg.value = '상대방과 같은 등급을 선택해야 시작할 수 있습니다.'
     setTimeout(() => { errorMsg.value = '' }, 2500)
     shaking.value = true
     setTimeout(() => { shaking.value = false }, 400)
@@ -689,8 +691,8 @@ function requestStart() {
 
   if (!isStarting.value) {
     isStarting.value = true
-    const fullRoomId = `${selectedDifficulty.value}_${roomId.value}`
-    rs.emitStart(fullRoomId)
+    // 방 번호 그대로 시작 알림
+    rs.emitStart(roomId.value)
     // 5초간 응답 없으면 다시 시도 가능하게 초기화 (안전장치)
     setTimeout(() => { if (phase.value === 'intro') isStarting.value = false }, 5000)
   }
@@ -854,30 +856,15 @@ const currentQuest = ref(null)
 
 // ────── 라운드 데이터 동적 생성 ──────────
 function generateSpeedFillRounds() {
-  if (!currentQuest.value) return getDefaultRounds()
+  if (!currentQuest.value) return []
 
   return currentQuest.value.speedRounds.map((roundData) => {
-    const blanksObj = {}
-    const blanksOrderInfo = []
-    
-    roundData.codeLines.forEach((line, lIdx) => {
-      if (line.type === 'blank') {
-        const bId = 'b' + (lIdx + 1)
-        blanksObj[bId] = {
-          answer: line.answer,
-          options: shuffleArray(line.options),
-          hint: '힌트'
-        }
-        blanksOrderInfo.push(bId)
-      }
-    })
-
     return {
       id: roundData.round,
-      context: roundData.context,
-      codeBlock: roundData.codeLines,
-      blanks: blanksObj,
-      blanksOrder: blanksOrderInfo
+      context: roundData.context, // 문제 텍스트
+      options: roundData.options,
+      answerIdx: roundData.answerIdx,
+      explanation: roundData.explanation
     }
   })
 }
@@ -1010,10 +997,10 @@ const currentBlankData = computed(() => {
 const isP1 = computed(() => rs.socket.value?.id === playerP1.value?.sid)
 
 // ← 플레이어별 진행도 (자신)
-// 전체 빈칸 수 캐시 (계산 반복 방지)
+// 전체 빈칸 수 캐시 (이제는 객관식 1문제당 1개 진행이므로 라운드 수와 같음)
 const totalSpeedFillBlanks = computed(() => {
   if (!speedFillRounds || speedFillRounds.length === 0) return 1
-  return speedFillRounds.reduce((sum, r) => sum + (r.blanksOrder?.length || 1), 0) || 1
+  return speedFillRounds.length || 1
 })
 
 // ← 0~80 범위로 제한 (출발선 정렬: 오리 너비 고려)
@@ -1044,7 +1031,7 @@ const p2ProgressPct = computed(() => isP1.value ? opponentProgressPct.value : my
 
 // 타임아웃 바 계산
 const roundTimeoutPct = computed(() => {
-  const maxTime = currentGamePhase.value === 'speedFill' ? 15 : 90
+  const maxTime = currentGamePhase.value === 'speedFill' ? 60 : 90
   return (roundTimeout.value / maxTime) * 100
 })
 
@@ -1149,7 +1136,8 @@ function startPhase1Round() {
 
   currentRoundData.value = speedFillRounds[currentRound.value]
   currentBlankIdx.value = 0
-  roundTimeout.value = 15
+  // [2026-03-04] AICE 객관식 문제에는 시간 제한 ❌
+  roundTimeout.value = 999 
 
   // [추가 2026-02-27] 새 라운드(타임아웃 포함)가 시작될 때 상대에게 내 진행도를 즉각 동기화
   rs.emitProgress(roomId.value, {
@@ -1160,16 +1148,15 @@ function startPhase1Round() {
     sid: rs.socket.value?.id
   })
 
-  startRoundTimeout(15)
   nextTick(() => {
     // 첫 빈칸이 포커스 준비
   })
 }
 
-function selectBlankAnswer(answer) {
-  if (roundTimeout.value <= 0 || !currentBlankData.value) return
+function selectOptionAnswer(oIdx) {
+  if (!currentRoundData.value) return
 
-  const correct = answer === currentBlankData.value.answer
+  const correct = oIdx === currentRoundData.value.answerIdx
 
   if (correct) {
     handleBlankCorrect()
@@ -1192,15 +1179,9 @@ function handleBlankCorrect() {
   setTimeout(() => { flashOk.value = false }, 300)
   spawnFpop('+' + points, '#34d399')
 
-  // 다음 빈칸으로
-  currentBlankIdx.value++
-  const blanksOrder = currentRoundData.value.blanksOrder
-
-  if (currentBlankIdx.value >= blanksOrder.length) {
-    // 라운드 완료, 다음 라운드
-    currentRound.value++
-    startPhase1Round()
-  }
+  // 객관식 1개 = 라운드 완료, 다음 라운드로
+  currentRound.value++
+  startPhase1Round()
 
   rs.emitProgress(roomId.value, {
     phase: 'speedFill',

@@ -507,6 +507,7 @@ async def run_join(sid, data):
     room_id = data.get('room_id', 'run-default').strip()
     user_name = data.get('user_name', 'Anonymous')
     user_id = data.get('user_id')
+    difficulty = data.get('difficulty', '') # [2026-03-04] 난이도 동기화
     
     if room_id not in run_rooms: 
         run_rooms[room_id] = {'players': [], 'phase': 'lobby', 'leader_sid': None}
@@ -531,11 +532,31 @@ async def run_join(sid, data):
             'name': user_name, 
             'user_id': user_id, 
             'avatar_url': data.get('avatar_url'), 
+            'difficulty': difficulty,  # [2026-03-04] 프론트엔드로 로비 정보 전송
             'phase1_score': 0, 
             'phase2_score': 0
         })
+    else:
+        # 이미 입장한 유저가 재연결시 난이도 갱신
+        for p in room['players']:
+            if p['sid'] == sid:
+                p['difficulty'] = difficulty
+                break
     
     await sio.emit('run_lobby', {'players': room['players'], 'leader_sid': room['leader_sid']}, room=room_id)
+
+# [2026-03-04] 로비에서 난이도 실시간 변경 동기화
+@sio.event
+async def run_change_difficulty(sid, data):
+    room_id = data.get('room_id')
+    new_difficulty = data.get('difficulty')
+    if room_id in run_rooms:
+        room = run_rooms[room_id]
+        for p in room['players']:
+            if p['sid'] == sid:
+                p['difficulty'] = new_difficulty
+                break
+        await sio.emit('run_difficulty_changed', {'sid': sid, 'difficulty': new_difficulty}, room=room_id)
 
 @sio.event
 async def run_progress(sid, data):
@@ -565,17 +586,28 @@ async def run_start(sid, data):
         print(f"🚀 [LogicRun] Game officially starting in room: {room_id}")
         room['phase'] = 'playing'
         
-        # [수정일: 2026-03-04] AI 문제 동적 생성
-        await sio.emit('run_gen_progress', {'step': 1, 'msg': '문제 주제 선정 중...'}, room=room_id)
+        # [수정일: 2026-03-04] AI 문제 대신 AICE 문제은행 기반 출제
+        await sio.emit('run_gen_progress', {'step': 1, 'msg': 'AICE 실전 문제 세팅 중...'}, room=room_id)
         try:
-            quests = await generate_logic_quests(count=3)
-            await sio.emit('run_gen_progress', {'step': 2, 'msg': f'{len(quests)}개 퀘스트 생성 완료!'}, room=room_id)
-            quest_idx = 0  # AI 생성 퀘스트는 항상 첫 번째 사용
+            # 방에 있는 플레이어의 난이도를 사용 (둘이 동일하다고 검증됨)
+            room_difficulty = room['players'][0].get('difficulty', 'Associate')
+            
+            # 여기서부터 새 파일 불러오기 방식을 적용
+            from core.services.wars.aice_question_generator import generate_aice_quests, _get_fallback_quest
+            quests = await generate_aice_quests(difficulty=room_difficulty, count=1)
+            
+            await sio.emit('run_gen_progress', {'step': 2, 'msg': f'AICE {room_difficulty} 문제 출제 완료!'}, room=room_id)
+            quest_idx = 0  
             await sio.emit('run_game_start', {'quest_idx': quest_idx, 'quests': quests}, room=room_id)
         except Exception as e:
-            print(f"⚠️ [LogicRun] AI quest generation failed: {e}, using fallback")
-            quest_idx = random.randint(0, 100)
-            await sio.emit('run_game_start', {'quest_idx': quest_idx}, room=room_id)
+            print(f"⚠️ [LogicRun] AICE quest generation failed: {e}, using fallback")
+            try:
+                from core.services.wars.aice_question_generator import _get_fallback_quest
+                quests = [_get_fallback_quest()]
+            except ImportError:
+                quests = []
+            
+            await sio.emit('run_game_start', {'quest_idx': 0, 'quests': quests}, room=room_id)
 
 # [수정일: 2026-02-27] 추가: LogicRun 게임 종료 시 점수 및 결과 동기화를 위한 이벤트 핸들러 추가
 @sio.event

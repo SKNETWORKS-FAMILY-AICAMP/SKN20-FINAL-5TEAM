@@ -1868,3 +1868,93 @@
 .obstacle-pop-leave-to {
     opacity: 0;
 }
+
+/* [2026-03-04] AICE 4지선다형 객관식 UI 용 스타일 */
+.aice-quiz-panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+.quiz-question-display {
+    padding: 2rem;
+    background: rgba(10, 15, 30, 0.4);
+    border-bottom: 1px solid rgba(0, 240, 255, 0.1);
+    min-height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.question-text {
+    font-size: 1.25rem;
+    color: #e2e8f0;
+    line-height: 1.6;
+    text-align: center;
+    word-break: keep-all;
+    font-weight: 500;
+}
+
+.quiz-options-area {
+    padding: 2rem;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.option-buttons-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    width: 100%;
+}
+
+.quiz-btn {
+    text-align: left;
+    padding: 1.25rem 1.5rem;
+    border-radius: 0.75rem;
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    color: #cbd5e1;
+    font-size: 1.05rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    word-break: break-all;
+    line-height: 1.4;
+    display: flex;
+    align-items: flex-start;
+}
+
+.quiz-btn:hover:not(:disabled) {
+    background: rgba(0, 240, 255, 0.1);
+    border-color: rgba(0, 240, 255, 0.4);
+    color: #00f0ff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.quiz-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.opt-num {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    line-height: 22px;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    margin-right: 12px;
+    font-size: 0.85rem;
+    font-family: 'Orbitron', sans-serif;
+    color: #94a3b8;
+    flex-shrink: 0;
+}
+
+.quiz-btn:hover .opt-num {
+    background: rgba(0, 240, 255, 0.2);
+    color: #00f0ff;
+}

@@ -31,8 +31,9 @@ export function useRunSocket() {
     const onEnd = ref(null)
     const onUserLeft = ref(null)
     const onJoinError = ref(null)  // ← 추가: 입장 실패 핸들러
+    const onDifficultyChanged = ref(null) // ← 추가: 난이도 변경 핸들러
 
-    function connect(roomId, userName, avatarUrl, userId) {
+    function connect(roomId, userName, avatarUrl, userId, difficulty) {
         if (socket.value) return
 
         // [수정일: 2026-02-26] Mixed Content 방지 및 배포 환경(ngrok) 탄력성 강화
@@ -54,7 +55,7 @@ export function useRunSocket() {
         socket.value.on('connect', () => {
             connected.value = true
             // [수정일: 2026-03-03] DB 연동을 위해 user_id 포함
-            socket.value.emit('run_join', { room_id: roomId, user_name: userName, avatar_url: avatarUrl, user_id: userId })
+            socket.value.emit('run_join', { room_id: roomId, user_name: userName, avatar_url: avatarUrl, user_id: userId, difficulty })
         })
 
         socket.value.on('disconnect', () => { connected.value = false })
@@ -64,6 +65,16 @@ export function useRunSocket() {
             roomPlayers.value = data.players || []
             isLeader.value = socket.value.id === data.leader_sid
             isReady.value = roomPlayers.value.length >= 2
+        })
+
+        // 난이도 변경 수신
+        socket.value.on('run_difficulty_changed', (data) => {
+            const playerIndex = roomPlayers.value.findIndex(p => p.sid === data.sid)
+            if (playerIndex !== -1) {
+                roomPlayers.value[playerIndex].difficulty = data.difficulty
+                roomPlayers.value = [...roomPlayers.value] // Vue 강제 반응성 트리거
+            }
+            if (onDifficultyChanged.value) onDifficultyChanged.value(data)
         })
 
         // 준비 완료
@@ -155,6 +166,11 @@ export function useRunSocket() {
         socket.value?.emit('run_logic_finish', { room_id: roomId, ...resultData })
     }
 
+    // LogicRun 전용: 선택한 난이도를 실시간으로 서버에 전송
+    function emitDifficultyChange(roomId, difficulty) {
+        socket.value?.emit('run_change_difficulty', { room_id: roomId, difficulty })
+    }
+
     function disconnect(roomId) {
         socket.value?.emit('run_leave', { room_id: roomId })
         socket.value?.disconnect()
@@ -167,8 +183,8 @@ export function useRunSocket() {
         socket, connected, roomPlayers, isLeader, isReady, gameStarted,
         remotePlayerPos, remoteAiPos, remoteCurrentSector, remoteCurrentLineIdx,
         remoteLastCorrectLine, remoteCurrentPlayerIdx,
-        onGameStart, onGenProgress, onSync, onRelay, onHfSync, onDesignEvaluation, onEnd, onUserLeft, onJoinError,
+        onGameStart, onGenProgress, onSync, onRelay, onHfSync, onDesignEvaluation, onEnd, onUserLeft, onJoinError, onDifficultyChanged,
         connect, emitStart, emitProgress, emitRelayStart, emitHighFive,
-        emitAiSync, emitFinish, emitLogicFinish, disconnect
+        emitAiSync, emitFinish, emitLogicFinish, emitDifficultyChange, disconnect
     }
 }
