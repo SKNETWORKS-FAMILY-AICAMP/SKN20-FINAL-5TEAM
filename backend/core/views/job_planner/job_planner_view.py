@@ -2030,7 +2030,7 @@ class JobPlannerRecommendView(APIView):
 3. 프로젝트 관련성 (수행한 프로젝트가 공고 업무에 도움이 되는지)
 
 반드시 아래 JSON 형식으로만 응답하세요:
-{{"score": 0~100 정수, "reason": "한 문장 추천 이유"}}"""
+{{"score": 0~100 정수, "reason": "적합하다고 추천한 이유를 구체적인 근거를 기반으로 작성"}}"""
 
             try:
                 response = llm_client.chat.completions.create(

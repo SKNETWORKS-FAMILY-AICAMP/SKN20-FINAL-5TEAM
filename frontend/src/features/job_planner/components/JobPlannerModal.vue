@@ -31,7 +31,6 @@
             :disabled="!analysisResult"
           >
             3. 최종 결과
-            3. 최종 결과
           </button>
         </div>
 
@@ -238,31 +237,10 @@
                 </div>
               </div>
 
-              <!-- 기업분석 상태 표시 -->
-              <div v-if="isAnalyzingCompany || companyAnalysis" class="company-analysis-section">
-                <div v-if="isAnalyzingCompany" class="company-analyzing-msg">
-                  ⏳ 기업 분석 중...
-                </div>
-                <div v-if="companyAnalysis" class="company-analysis-preview">
-                  <div class="preview-badge">✅ 기업분석 완료</div>
-                  <div class="preview-score">
-                    종합 점수: {{ (companyAnalysis.overall_score?.total_score * 100).toFixed(0) }}점
-                  </div>
-                </div>
-              </div>
-
               <div class="job-preview-actions">
                 <button class="btn-reset-job" @click="resetJobData">
                   🔄 공고 초기화
                 </button>
-              </div>
-            </div>
-
-            <div class="step-next-row">
-              <button class="btn-next" @click="currentStep = 'profile'">
-                <span v-if="isParsing">⏳ 분석 중... 내 정보 먼저 입력 →</span>
-                <span v-else>다음: 내 정보 입력 →</span>
-              </button>
               </div>
             </div>
 
@@ -279,6 +257,25 @@
             <h3 class="step-title">내 정보를 입력하세요</h3>
             <div v-if="isParsing" class="parsing-background-notice">
               ⏳ 채용공고 분석이 백그라운드에서 진행 중입니다. 완료되면 자동으로 반영됩니다.
+            </div>
+
+            <!-- 정보 부족 팝업 -->
+            <div v-if="showInsufficientPopup" class="insufficient-popup-overlay" @click.self="showInsufficientPopup = false">
+              <div class="insufficient-popup">
+                <div class="insufficient-popup-icon">⚠️</div>
+                <div class="insufficient-popup-title">공고 정보가 부족합니다</div>
+                <div class="insufficient-popup-body">
+                  <p>분석 결과 다음 정보가 부족합니다:</p>
+                  <div class="insufficient-popup-fields">
+                    <span v-for="field in missingFields" :key="field" class="missing-field-tag">{{ field }}</span>
+                  </div>
+                  <p class="insufficient-popup-hint">공고 입력 화면으로 돌아가서 이미지나 텍스트를 추가해 주세요.</p>
+                </div>
+                <div class="insufficient-popup-actions">
+                  <button class="btn-go-back" @click="showInsufficientPopup = false; currentStep = 'input'">공고 입력으로 돌아가기</button>
+                  <button class="btn-dismiss" @click="showInsufficientPopup = false">이대로 진행</button>
+                </div>
+              </div>
             </div>
 
             <div class="profile-form">
@@ -478,25 +475,6 @@
                 </div>
                 <div class="form-row">
                   <div class="form-group">
-                    <label>교육 이수 내역</label>
-                    <div class="training-list">
-                      <div v-for="(item, idx) in training" :key="idx" class="training-item">
-                        <span class="training-name">{{ item.name }}</span>
-                        <span v-if="item.institution" class="training-meta">{{ item.institution }}</span>
-                        <span v-if="item.period" class="training-meta">{{ item.period }}</span>
-                        <button class="training-delete-btn" @click="removeTraining(idx)">×</button>
-                      </div>
-                    </div>
-                    <div class="training-add-row">
-                      <input v-model="newTrainingName" type="text" placeholder="교육명 (예: SKN AI 부트캠프)" @keyup.enter="addTraining" />
-                      <input v-model="newTrainingInstitution" type="text" placeholder="기관 (선택)" />
-                      <input v-model="newTrainingPeriod" type="text" placeholder="기간 (선택)" />
-                      <button class="skill-add-btn" @click="addTraining">+ 추가</button>
-                    </div>
-                  </div>
-                </div>
-                <div class="form-row">
-                  <div class="form-group">
                     <label>커리어 목표</label>
                     <textarea
                       v-model="careerGoals"
@@ -632,10 +610,10 @@
                       <div class="rec-company">{{ rec.company_name }}</div>
                     </div>
                     <div class="rec-match">
-                      <div class="rec-match-rate" :class="getScoreClass(rec.match_rate)">
-                        {{ (rec.match_rate * 100).toFixed(0) }}%
+                      <div class="rec-match-rate" :class="getScoreClass((rec.llm_score || rec.match_rate * 100) / 100)">
+                        {{ rec.llm_score != null ? rec.llm_score : (rec.match_rate * 100).toFixed(0) }}%
                       </div>
-                      <div class="rec-match-label">매칭률</div>
+                      <div class="rec-match-label">종합 적합도</div>
                     </div>
                   </div>
 
@@ -649,8 +627,8 @@
                       <span class="rec-value">{{ rec.source }}</span>
                     </div>
                     <div class="rec-info-row">
-                      <span class="rec-label">✅ 매칭:</span>
-                      <span class="rec-value">{{ rec.matched_count }} / {{ rec.total_skills }}개 스킬</span>
+                      <span class="rec-label">✅ 스킬:</span>
+                      <span class="rec-value">{{ rec.matched_count }} / {{ rec.total_skills }}개 매칭 ({{ (rec.match_rate * 100).toFixed(0) }}%)</span>
                     </div>
                   </div>
 
@@ -697,7 +675,6 @@
             </div>
 
             <!-- Loading Recommendations -->
-            <div v-if="isLoadingRecommendations" class="loading-recommendations">
             <div v-if="isLoadingRecommendations" class="loading-recommendations">
               <div class="loading-spinner"></div>
               <p v-if="isLoadingRecommendations">
@@ -786,15 +763,6 @@
                   </div>
                   <p v-if="companyAnalysis.tech_stack.culture">{{ companyAnalysis.tech_stack.culture }}</p>
                   <p v-if="companyAnalysis.tech_stack.tech_blog" class="tech-blog-info">
-                    📝 기술 블로그:
-                    <a
-                      v-if="companyAnalysis.tech_stack.tech_blog.startsWith('http')"
-                      :href="companyAnalysis.tech_stack.tech_blog"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="tech-blog-link"
-                    >{{ companyAnalysis.tech_stack.tech_blog }}</a>
-                    <span v-else>{{ companyAnalysis.tech_stack.tech_blog }}</span>
                     📝 기술 블로그:
                     <a
                       v-if="companyAnalysis.tech_stack.tech_blog.startsWith('http')"
@@ -1124,6 +1092,7 @@ export default {
       supplementImagePreviews: [],
       supplementText: '',
       isSupplementParsing: false,
+      showInsufficientPopup: false,
 
       // 서류 업로드
       resumePdf: null,
@@ -1435,9 +1404,9 @@ export default {
           if (this.companyUrl) {
             this.analyzeCompany(this.companyUrl);
           }
-          // 기업 URL이 있으면 기업분석 백그라운드 실행
-          if (this.companyUrl) {
-            this.analyzeCompany(this.companyUrl);
+          // 분석 완료 후 정보 부족 + 내 정보 탭에 있으면 팝업
+          if (this.needsMoreInfo && this.currentStep !== 'input') {
+            this.showInsufficientPopup = true;
           }
         }
       }
@@ -1857,6 +1826,7 @@ export default {
       this.supplementImagePreviews = [];
       this.supplementText = '';
       this.isSupplementParsing = false;
+      this.showInsufficientPopup = false;
       this.analysisResult = null;
       this.finalReport = null;
       this.recommendations = [];
@@ -2323,6 +2293,112 @@ export default {
   border-radius: 8px;
   color: #fbbf24;
   font-size: 14px;
+}
+
+/* 정보 부족 팝업 */
+.insufficient-popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.insufficient-popup {
+  background: #1e293b;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  border-radius: 16px;
+  padding: 28px 32px;
+  max-width: 420px;
+  width: 90%;
+  text-align: center;
+}
+
+.insufficient-popup-icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+}
+
+.insufficient-popup-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fbbf24;
+  margin-bottom: 16px;
+}
+
+.insufficient-popup-body {
+  color: #d1d5db;
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.insufficient-popup-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin: 12px 0;
+}
+
+.missing-field-tag {
+  padding: 4px 12px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 20px;
+  color: #f87171;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.insufficient-popup-hint {
+  color: #9ca3af;
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.insufficient-popup-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.btn-go-back {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  border: none;
+  border-radius: 8px;
+  color: #000;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-go-back:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.btn-dismiss {
+  padding: 10px 20px;
+  background: transparent;
+  border: 1px solid #4b5563;
+  border-radius: 8px;
+  color: #9ca3af;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-dismiss:hover {
+  border-color: #6b7280;
+  color: #d1d5db;
 }
 
 .btn-reset-job {
@@ -4403,62 +4479,75 @@ export default {
 /* 포트폴리오 분석 결과 */
 .portfolio-review-result {
   margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .review-section {
-  margin-bottom: 16px;
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 16px;
 }
 
 .review-section-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
-  color: #a78bfa;
-  margin-bottom: 8px;
+  color: #e2e8f0;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .review-list {
-  padding-left: 20px;
+  padding-left: 18px;
   margin: 0;
 }
 
 .review-list li {
   font-size: 13px;
-  color: #cbd5e1;
-  margin-bottom: 4px;
-  line-height: 1.5;
+  color: #94a3b8;
+  margin-bottom: 6px;
+  line-height: 1.6;
 }
 
 .review-list.missing li {
-  color: #fca5a5;
+  color: #94a3b8;
 }
 
 .review-list.priority li {
-  color: #86efac;
+  color: #94a3b8;
+}
+
+.review-list.priority li::marker {
+  color: #60a5fa;
 }
 
 .improvement-card {
-  background: rgba(15, 23, 42, 0.5);
-  border: 1px solid rgba(139, 92, 246, 0.15);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 8px;
+  padding: 14px;
+  margin-bottom: 10px;
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.6;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .imp-target {
-  font-weight: 700;
-  color: #c4b5fd;
-  margin-bottom: 4px;
+  font-weight: 600;
+  color: #e2e8f0;
 }
 
 .imp-issue {
-  color: #fbbf24;
-  margin-bottom: 4px;
+  color: #94a3b8;
 }
 
 .imp-suggestion {
-  color: #86efac;
+  color: #60a5fa;
 }
 
 /* AI 지원 도구 섹션 */
@@ -4580,63 +4669,4 @@ export default {
 }
 
 /* 포트폴리오 분석 결과 */
-.portfolio-review-result {
-  margin-top: 20px;
-}
-
-.review-section {
-  margin-bottom: 16px;
-}
-
-.review-section-title {
-  font-size: 13px;
-  font-weight: 700;
-  color: #a78bfa;
-  margin-bottom: 8px;
-}
-
-.review-list {
-  padding-left: 20px;
-  margin: 0;
-}
-
-.review-list li {
-  font-size: 13px;
-  color: #cbd5e1;
-  margin-bottom: 4px;
-  line-height: 1.5;
-}
-
-.review-list.missing li {
-  color: #fca5a5;
-}
-
-.review-list.priority li {
-  color: #86efac;
-}
-
-.improvement-card {
-  background: rgba(15, 23, 42, 0.5);
-  border: 1px solid rgba(139, 92, 246, 0.15);
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 8px;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.imp-target {
-  font-weight: 700;
-  color: #c4b5fd;
-  margin-bottom: 4px;
-}
-
-.imp-issue {
-  color: #fbbf24;
-  margin-bottom: 4px;
-}
-
-.imp-suggestion {
-  color: #86efac;
-}
 </style>
