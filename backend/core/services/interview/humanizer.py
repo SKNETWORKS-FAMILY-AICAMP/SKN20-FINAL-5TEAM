@@ -63,10 +63,6 @@ def build_context(session, plan_slot: dict = None) -> dict:
         # 공고 없이 시작: 유저 프로필의 job_role 기반 직무 설정
         user_job_roles = session.interview_plan.get("user_job_roles", [])
         position = _resolve_position(user_job_roles)
-    else:
-        # 공고 없이 시작: 유저 프로필의 job_role 기반 직무 설정
-        user_job_roles = session.interview_plan.get("user_job_roles", [])
-        position = _resolve_position(user_job_roles)
 
     weakness_boost = session.interview_plan.get("weakness_boost", [])
 

@@ -347,14 +347,8 @@ class JobPlannerParseView(APIView):
             from django.contrib.auth.models import User
             auth_user_id = request.session.get('_auth_user_id')
             if not auth_user_id:
-            # 세션에서 auth user 추출 → email로 UserProfile 조회
-            from django.contrib.auth.models import User
-            auth_user_id = request.session.get('_auth_user_id')
-            if not auth_user_id:
                 return None
 
-            django_user = User.objects.get(pk=auth_user_id)
-            user = UserProfile.objects.get(email=django_user.email)
             django_user = User.objects.get(pk=auth_user_id)
             user = UserProfile.objects.get(email=django_user.email)
 
@@ -1529,7 +1523,6 @@ class JobPlannerRecommendView(APIView):
             # 1차: 스킬 매칭으로 후보 선별 (검색 결과 스킬 태그만으로 빠르게 필터)
             recommendations = self._match_jobs_with_skills(
                 filtered_listings, user_skills, skill_levels, readiness_score, current_job_text
-                filtered_listings, user_skills, skill_levels, readiness_score, current_job_text
             )
 
             # 매칭률 40% 이상, 상위 15개 후보
@@ -1930,7 +1923,6 @@ class JobPlannerRecommendView(APIView):
         return enriched
 
 
-    def _match_jobs_with_skills(self, job_listings, user_skills, skill_levels, readiness_score, current_job_text=''):
     def _match_jobs_with_skills(self, job_listings, user_skills, skill_levels, readiness_score, current_job_text=''):
         """
         SKILL_SYNONYMS 기반 스킬 매칭.

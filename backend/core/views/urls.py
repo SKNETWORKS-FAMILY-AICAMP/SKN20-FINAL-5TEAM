@@ -28,10 +28,6 @@ from core.views import (
     JobPlannerGenerateCoverLetterView,
     JobPlannerReviewPortfolioView,
     JobPlannerCoverLetterByQuestionsView,
-    CoduckWarsAnalyzeCodeView,
-    CoduckWarsStartView,
-    CoduckWarsPressureView,
-    CoduckWarsEvaluationView,
     AdminLoginView,
     AdminLogView,
     AdminLogSaveView,
@@ -52,7 +48,6 @@ from core.views.interview import (
     InterviewSessionView, InterviewSessionDetailView, InterviewAnswerView,
     STTTranscribeView,
     TTSSynthesizeView,
-    InterviewQuestionSearchView,    # 2026-03-01 면접 질문 뱅크 검색 API 추가
     InterviewQuestionSearchView,    # 2026-03-01 면접 질문 뱅크 검색 API 추가
 )
 
@@ -124,8 +119,6 @@ urlpatterns = [
     path('interview/sessions/<int:pk>/vision/', InterviewVisionView.as_view(), name='interview_vision'),
     # [2026-03-01] 면접 질문 뱅크 검색 API
     path('interview/questions/search/', InterviewQuestionSearchView.as_view(), name='interview_question_search'),
-    # [2026-03-01] 면접 질문 뱅크 검색 API
-    path('interview/questions/search/', InterviewQuestionSearchView.as_view(), name='interview_question_search'),
     path('stt/transcribe/', STTTranscribeView.as_view(), name='stt_transcribe'),
     path('tts/synthesize/', TTSSynthesizeView.as_view(), name='tts_synthesize'),
 
@@ -135,10 +128,6 @@ urlpatterns = [
     path('job-planner/company-analyze/', JobPlannerCompanyAnalyzeView.as_view(), name='job_planner_company_analyze'),
     path('job-planner/agent-report/', JobPlannerAgentReportView.as_view(), name='job_planner_agent_report'),
     path('job-planner/recommend/', JobPlannerRecommendView.as_view(), name='job_planner_recommend'),
-    path('job-planner/parse-resume/', JobPlannerParseResumeView.as_view(), name='job_planner_parse_resume'),
-    path('job-planner/generate-cover-letter/', JobPlannerGenerateCoverLetterView.as_view(), name='job_planner_generate_cover_letter'),
-    path('job-planner/review-portfolio/', JobPlannerReviewPortfolioView.as_view(), name='job_planner_review_portfolio'),
-    path('job-planner/generate-cover-letter-by-questions/', JobPlannerCoverLetterByQuestionsView.as_view(), name='job_planner_cover_letter_by_questions'),
     path('job-planner/parse-resume/', JobPlannerParseResumeView.as_view(), name='job_planner_parse_resume'),
     path('job-planner/generate-cover-letter/', JobPlannerGenerateCoverLetterView.as_view(), name='job_planner_generate_cover_letter'),
     path('job-planner/review-portfolio/', JobPlannerReviewPortfolioView.as_view(), name='job_planner_review_portfolio'),
