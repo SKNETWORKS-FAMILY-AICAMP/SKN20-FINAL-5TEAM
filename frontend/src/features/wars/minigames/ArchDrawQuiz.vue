@@ -467,6 +467,19 @@ const totalItems = computed(() => Object.values(inventory.value).reduce((a, b) =
 const chaosActive = ref(false)
 const chaosData = ref(null)
 
+// [수정 2026-03-04] acknowledgeChaos — setup 최상위로 이동
+// 기존 onMounted 내부 정의 시 template에서 가시성 없어 UNDERSTOOD 버튼 동작 안
+// 함 문제 해결
+function acknowledgeChaos() {
+  if (!chaosActive.value) return
+  chaosActive.value = false
+  ds.emitChaosComplete(currentRoomId.value)
+}
+
+// [수정 2026-03-04] submitDraw 이중 실행 방지 flag
+// 타이머 만료 + 수동 SUBMIT 동시 제출 방지
+let submitLocked = false
+
 const ITEM_TYPES = [
   { id: 'ink', name: 'INK SPLASH', icon: '🖋️', effect: 'ink', key: '1' },
   { id: 'shake', name: 'EARTHQUAKE', icon: '🫨', effect: 'shake', key: '2' },
@@ -615,14 +628,8 @@ onMounted(async () => {
     myScore.value = 0; oppScore.value = 0; combo.value = 0; bestCombo.value = 0; round.value = 0
   }
 
-// [수정일: 2026-03-03] Chaos 장애 확인 및 서버 보고
-function acknowledgeChaos() {
-  if (!chaosActive.value) return
-  chaosActive.value = false
-  ds.emitChaosComplete(currentRoomId.value)
-}
-
 // ChaosEvent 핸들러
+// [수정 2026-03-04] acknowledgeChaos는 setup 최상위에 정의됨 (template 가시성 확보)
 ds.onChaosEvent.value = (data) => {
   console.log('🔥 [ArchDraw] Chaos Triggered:', data)
   if (data && data.event_id) {
@@ -759,10 +766,18 @@ function useItemById(itemId) {
     setTimeout(() => activeScan.value = false, 4000)
   } 
   else if (itemId === 'swap') {
+    // [수정 2026-03-04] 시각 효과만 — 제출 데이터(snapNodes)는 원본 유지
+    const originalNodes = JSON.parse(JSON.stringify(nodes.value))
+    const originalArrows = JSON.parse(JSON.stringify(arrows.value))
     nodes.value = [...ds.opponentCanvas.value.nodes]
     arrows.value = [...ds.opponentCanvas.value.arrows]
     ds.emitUseItem(currentRoomId.value, 'swap')
-    spawnPopText("ARCHITECTURE SWAPPED!", "#ff2d75")
+    spawnPopText('ARCHITECTURE SWAPPED!', '#ff2d75')
+    // 3초 후 원복 — submitDraw()의 snapNodes는 이미 찍혔으므로 제출에 영향 없음
+    setTimeout(() => {
+      nodes.value = originalNodes
+      arrows.value = originalArrows
+    }, 3000)
   }
   else {
     ds.emitUseItem(currentRoomId.value, itemId)
@@ -787,10 +802,11 @@ function spawnPopText(txt, color) {
 // [수정일: 2026-02-24] 라운드 결과 수신 및 심사(Judging) 단계 진입
 ds.onRoundResult.value = (results) => {
   if (!results) return
-  // [버그수정] round.value === 0이면 beginGame()이 호출됐지만 새 라운드가 아직 시작 안 된 상태
-  // → AI 평가 지연으로 인한 이전 게임 결과가 뒤늦게 도착한 것이므로 무시
-  if (round.value === 0) {
-    console.warn('[ArchDraw] Stale round result ignored (new game starting)')
+  // [수정 2026-03-04] round === 0 조건 → phase 기반으로 변경
+  // 네트워크 지연으로 onRoundResult가 onRoundStart보다 먼저 도착해도
+  // phase가 play/judging이면 정상 처리해야 함
+  if (phase.value === 'lobby') {
+    console.warn('[ArchDraw] Stale round result ignored (still in lobby)')
     return
   }
   const me = results.find(r => r.sid === ds.socket.value?.id)
@@ -858,6 +874,8 @@ ds.onRoundStart.value = (data) => {
   selectedNode.value = null;
   drawingArrow.value = false;
   drawMode.value = 'move';
+  // [수정 2026-03-04] 라운드 시작 시 submitLocked 초기화
+  submitLocked = false;
   
   // 노드 선택 해제 로직 등
   selectedNode.value = null;
@@ -967,6 +985,9 @@ function clearCanvas() { nodes.value = []; arrows.value = []; selectedNode.value
 
 // ── Submit ──
 function submitDraw() {
+  // [수정 2026-03-04] 이중 실행 방지 — 타이머 만료 + 수동 SUBMIT 동시 제출 차단
+  if (submitLocked) return
+  submitLocked = true
   clearInterval(timer); 
   
   // [버그수정] 제출 직전 데이터 스냅샷 → phase 변경 전에 저장해야 watch가 덮어쓰지 않음
@@ -1064,12 +1085,17 @@ watch(totalItems, (newVal) => {
   ds.emitItemStatus(currentRoomId.value, newVal > 0)
 })
 
-// [추가 2026-03-03] 상대방 중도 퇴장 시 무한 대기 방지 (진행 불가 버그 수정)
+// [수정 2026-03-04] 상대방 중도 퇴장 시 phase별 처리 세분화
 watch(() => ds.roomPlayers.value, (players) => {
-  if (players && players.length < 2 && (phase.value === 'play' || phase.value === 'judging')) {
-    alert("상대방이 게임에서 퇴장했습니다. 대기열로 돌아갑니다.");
-    exitGame();
+  if (!players || players.length >= 2) return
+  if (phase.value === 'play' || phase.value === 'judging') {
+    alert('상대방이 게임에서 퇴장했습니다. 대기열로 돌아갑니다.')
+    exitGame()
+  } else if (phase.value === 'result') {
+    // result 화면에서 상대가 나가면 게임오버 처리 (무한 로딩 화면 방지)
+    phase.value = 'gameover'
   }
+  // lobby, gameover 는 자연스럽게 대기 상태로 남김
 }, { deep: true })
 </script>
 

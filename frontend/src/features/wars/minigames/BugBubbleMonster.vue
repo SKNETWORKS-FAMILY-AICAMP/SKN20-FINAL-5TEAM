@@ -246,6 +246,12 @@ let alertTimer = null
 let flyBubbleId = 0
 let combPopId = 0
 let animFrameId = null
+// [수정] 게임오버 이중 emit 방지 flag
+let gameOverEmitted = false
+// [수정] FEVER 쿨다운 관리
+let lastFeverTime = 0
+// [수정] 문제 순서 배열 (셔플 기반 순환)
+const problemOrder = ref([])
 
 const allProblems = ref([])
 const currentProblemIndex = ref(0)
@@ -253,7 +259,11 @@ const answerState = ref('idle')
 const showHint = ref(false)
 const selectedChoiceIdx = ref(-1)
 
-const currentProblem = computed(() => allProblems.value[currentProblemIndex.value] || null)
+// [수정] 셔플 순서 기반으로 현재 문제 결정
+const currentProblem = computed(() => {
+  if (!allProblems.value.length || !problemOrder.value.length) return null
+  return allProblems.value[problemOrder.value[currentProblemIndex.value]] || null
+})
 const buggyCodeLines = computed(() => {
   if (!currentProblem.value?.buggy_code) return []
   return currentProblem.value.buggy_code.split('\n')
@@ -302,6 +312,23 @@ function shuffleArray(arr) {
   return arr
 }
 
+// [수정] 문제 순서 셔플 빌드 — 한 바퀴 돌면 재셔플
+function buildProblemOrder() {
+  problemOrder.value = [...Array(allProblems.value.length).keys()]
+  for (let i = problemOrder.value.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [problemOrder.value[i], problemOrder.value[j]] = [problemOrder.value[j], problemOrder.value[i]]
+  }
+}
+
+// [수정] 게임오버 단일 진입점 — 이중 emit 방지
+function triggerGameOver() {
+  if (gameOverEmitted) return
+  gameOverEmitted = true
+  gamePhase.value = 'gameover-pending'
+  bs.emitGameOver(currentRoomId.value)
+}
+
 function joinRoom() {
   if (!inputRoomId.value.trim()) return
   currentRoomId.value = inputRoomId.value.trim()
@@ -348,7 +375,10 @@ function selectChoice(idx) {
     spawnComboPopup()
     if (activeMonsters.value.length > 0) activeMonsters.value.pop()
     launchBubble()
-    if (combo.value >= 3 && combo.value % 3 === 0) {
+    // [수정] FEVER: 5콤보 배수 + 20초 쿨다운으로 밸런스 조정
+    const now = Date.now()
+    if (combo.value >= 5 && combo.value % 5 === 0 && now - lastFeverTime >= 20000) {
+      lastFeverTime = now
       setTimeout(() => {
         bs.emitFeverAttack(currentRoomId.value, 3)
         spawnComboPopup('🔥 FEVER! +3')
@@ -399,10 +429,9 @@ function spawnIncomingBubble(monsterCount) {
         size: 1.5 + Math.random() * 0.8
       })
     }
-    // 게임오버 판정
+    // [수정] 게임오버 단일 진입점으로 위임
     if (activeMonsters.value.length >= maxMonsters && gamePhase.value === 'playing') {
-      gamePhase.value = 'gameover-pending'
-      bs.emitGameOver(currentRoomId.value)
+      triggerGameOver()
     }
     // 0.6초 후 버블 제거
     setTimeout(() => {
@@ -417,9 +446,14 @@ function showAlert(msg) {
   alertTimer = setTimeout(() => { incomingAlert.value = '' }, 1500)
 }
 
+// [수정] 셔플 순환 — 한 바퀴 완료 시 재셔플
 function nextProblem() {
   if (allProblems.value.length === 0) return
-  currentProblemIndex.value = (currentProblemIndex.value + 1) % allProblems.value.length
+  currentProblemIndex.value++
+  if (currentProblemIndex.value >= problemOrder.value.length) {
+    buildProblemOrder()
+    currentProblemIndex.value = 0
+  }
 }
 
 function launchBubble() {
@@ -446,9 +480,9 @@ function spawnMonsters(count) {
       size: 1.5 + Math.random() * 0.8
     })
   }
+  // [수정] 게임오버 단일 진입점으로 위임
   if (activeMonsters.value.length >= maxMonsters && gamePhase.value === 'playing') {
-    gamePhase.value = 'gameover-pending'  // 즉시 입력 차단
-    bs.emitGameOver(currentRoomId.value)
+    triggerGameOver()
   }
 }
 
@@ -468,13 +502,26 @@ function startGameLoop() {
 }
 
 function resetAndRestart() {
+  // [수정] flag 및 상태 전체 초기화
+  gameOverEmitted = false
+  lastFeverTime = 0
   gamePhase.value = 'lobby'
   bs.gameOver.value = false
   bs.isPlaying.value = false
   activeMonsters.value = []
+  incomingBubbles.value = []
+  flyingBubbles.value = []
+  comboPops.value = []
   opponentMonsterCount.value = 0
   combo.value = 0; bestCombo.value = 0; totalSolved.value = 0; totalBubblesSent.value = 0
-  currentProblemIndex.value = 0; answerState.value = 'idle'
+  currentProblemIndex.value = 0; answerState.value = 'idle'; showHint.value = false
+  // [수정] REMATCH 시 서버에 재입장 신호 전송
+  bs.socket.value?.emit('bubble_join', {
+    room_id: currentRoomId.value,
+    user_name: auth.sessionNickname || 'Anonymous',
+    user_avatar: auth.userAvatarUrl,
+    user_id: auth.user?.id
+  })
 }
 
 onMounted(() => {
@@ -493,6 +540,9 @@ onMounted(() => {
       allProblems.value = getFallbackProblems()
       addGenLog('폴백 문제 로드 완료', 'fallback.json')
     }
+    // [수정] 문제 로드 후 셔플 순서 초기화
+    buildProblemOrder()
+    currentProblemIndex.value = 0
     genPct.value = 100
     genMsg.value = '버그 배치 완료 — 전투 시작!'
 
@@ -731,8 +781,9 @@ onUnmounted(() => {
 .ib-pop .ib-shell { animation: ib-burst-shell .6s ease-out forwards }
 .ib-pop .ib-inner { animation: ib-burst-monster .6s ease-out forwards }
 .ib-pop::after { content:''; position:absolute; top:50%; left:50%; width:200px; height:200px; transform:translate(-50%,-50%); border-radius:50%; background:radial-gradient(circle, rgba(255,45,117,.5) 0%, rgba(255,45,117,0) 70%); animation: ib-shockwave .6s ease-out forwards; pointer-events:none }
+/* [수정] right → left로 통일 (크로스브라우저 위치 충돌 해결) */
 @keyframes ib-fly {
-  0% { right:-80px; top:var(--start-y); opacity:0; transform:scale(.5) }
+  0% { left:calc(100vw + 80px); top:var(--start-y); opacity:0; transform:scale(.5) }
   20% { opacity:1; transform:scale(1.1) }
   100% { left:var(--target-x); top:var(--target-y); opacity:1; transform:scale(1) }
 }
