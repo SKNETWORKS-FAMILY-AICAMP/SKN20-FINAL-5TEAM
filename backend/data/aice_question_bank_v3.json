@@ -1,0 +1,2722 @@
+{
+  "meta": {
+    "version": "3.0",
+    "created": "2026-03-04",
+    "source": "AICE 공식 샘플문항 + 합격후기 분석 기반",
+    "description": "Basic + Associate + Professional 3개 등급 통합 문제 풀",
+    "counts": {
+      "total": 90,
+      "Basic": 30,
+      "Associate": 30,
+      "Professional": 30
+    }
+  },
+  "Basic": [
+    {
+      "id": "B01",
+      "cat": "AI개념",
+      "diff": "easy",
+      "q": "AI(인공지능), 머신러닝, 딥러닝의 포함 관계로 올바른 것은?",
+      "opts": [
+        "딥러닝 ⊃ 머신러닝 ⊃ AI",
+        "AI ⊃ 머신러닝 ⊃ 딥러닝",
+        "머신러닝 ⊃ AI ⊃ 딥러닝",
+        "세 개념은 모두 동일"
+      ],
+      "ans": 1,
+      "exp": "AI가 가장 넓은 개념이고, 그 안에 머신러닝, 그 안에 딥러닝이 포함되는 계층 구조입니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B02",
+      "cat": "AI개념",
+      "diff": "easy",
+      "q": "지도학습(Supervised Learning)의 특징으로 옳은 것은?",
+      "opts": [
+        "레이블(정답) 없이 패턴만 학습한다",
+        "입력 데이터와 정답(레이블) 쌍으로 학습한다",
+        "보상 신호를 기반으로 학습한다",
+        "사전 학습된 모델만 사용한다"
+      ],
+      "ans": 1,
+      "exp": "지도학습은 (입력, 정답) 쌍으로 학습하며, 분류와 회귀 모두 포함합니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B03",
+      "cat": "AI개념",
+      "diff": "easy",
+      "q": "AICE Basic에서 사용하는 노코딩 AutoML 도구는?",
+      "opts": [
+        "AIDU ez",
+        "Jupyter Notebook",
+        "Google Colab",
+        "VS Code"
+      ],
+      "ans": 0,
+      "exp": "AIDU ez는 KT가 개발한 노코딩 AutoML 도구로 AICE Basic 시험에서 사용합니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B04",
+      "cat": "AI개념",
+      "diff": "easy",
+      "q": "분류(Classification) 문제의 예로 올바른 것은?",
+      "opts": [
+        "내일 기온 예측",
+        "영화 평점 예측",
+        "호러 장르 선호 여부 예측(예/아니오)",
+        "주택 매매 가격 예측"
+      ],
+      "ans": 2,
+      "exp": "분류는 '예/아니오', '스팸/정상'처럼 범주를 예측하며, 연속 수치 예측은 회귀입니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B05",
+      "cat": "AI개념",
+      "diff": "medium",
+      "q": "과적합(Overfitting) 현상을 설명하는 것으로 옳은 것은?",
+      "opts": [
+        "훈련/검증 정확도가 모두 낮다",
+        "훈련 정확도는 높고 검증 정확도는 낮다",
+        "훈련/검증 정확도가 모두 높다",
+        "검증 정확도만 높다"
+      ],
+      "ans": 1,
+      "exp": "과적합: 훈련 데이터에 지나치게 최적화되어 새로운 데이터(검증)에 성능이 떨어집니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B06",
+      "cat": "AI개념",
+      "diff": "medium",
+      "q": "비지도학습(Unsupervised Learning)에서 주로 사용하는 기법은?",
+      "opts": [
+        "의사결정나무",
+        "클러스터링(Clustering)",
+        "선형 회귀",
+        "서포트 벡터 머신"
+      ],
+      "ans": 1,
+      "exp": "비지도학습은 정답 없이 데이터 구조를 파악하며, 클러스터링(군집화)이 대표적입니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B07",
+      "cat": "데이터분석",
+      "diff": "easy",
+      "q": "AIDU ez에서 '기초 정보 분석' 화면에서 확인할 수 없는 것은?",
+      "opts": [
+        "변수별 결측치 수",
+        "변수 유형(수치형/범주형)",
+        "변수별 기술통계량",
+        "모델 학습 결과 정확도"
+      ],
+      "ans": 3,
+      "exp": "모델 학습 결과는 'AI 모델링' 단계에서 확인합니다. 기초 정보 분석에서는 데이터 기본 특성을 봅니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B08",
+      "cat": "데이터분석",
+      "diff": "easy",
+      "q": "범주형(object) 변수와 수치형(numeric) 변수를 구별하는 기준으로 옳은 것은?",
+      "opts": [
+        "값이 숫자이면 무조건 수치형",
+        "그룹/카테고리로 나눌 수 있으면 범주형",
+        "결측치가 있으면 범주형",
+        "값의 개수가 많으면 수치형"
+      ],
+      "ans": 1,
+      "exp": "'성별(남/여)', '지역', '직업'처럼 그룹으로 구분되는 변수는 범주형, 키·몸무게처럼 측정값은 수치형입니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B09",
+      "cat": "데이터분석",
+      "diff": "medium",
+      "q": "기술통계량 중 데이터의 흩어진 정도(산포도)를 나타내는 것은?",
+      "opts": [
+        "평균(Mean)",
+        "중앙값(Median)",
+        "표준편차(Standard Deviation)",
+        "최빈값(Mode)"
+      ],
+      "ans": 2,
+      "exp": "표준편차는 데이터가 평균에서 얼마나 퍼져있는지를 나타내는 산포도 지표입니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B10",
+      "cat": "데이터분석",
+      "diff": "medium",
+      "q": "두 변수 간의 선형 관계 강도를 나타내는 지표는?",
+      "opts": [
+        "표준편차",
+        "상관계수(Correlation Coefficient)",
+        "평균",
+        "분산"
+      ],
+      "ans": 1,
+      "exp": "상관계수는 -1~+1 사이 값으로, +1에 가까울수록 강한 양의 상관관계를 의미합니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B11",
+      "cat": "데이터분석",
+      "diff": "medium",
+      "q": "AIDU ez에서 히트맵(Heatmap)으로 주로 확인하는 것은?",
+      "opts": [
+        "결측치 분포",
+        "변수 간 상관관계",
+        "이상치 위치",
+        "클래스 불균형"
+      ],
+      "ans": 1,
+      "exp": "히트맵은 변수 간 상관계수를 색상으로 표현해 상관관계를 한눈에 파악할 수 있게 합니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B12",
+      "cat": "데이터분석",
+      "diff": "hard",
+      "q": "총 콘텐츠 구매 건수(total_buy_ol)의 기술통계량이 평균=2.2, 중위수=1.0, 표준편차=3.13, Q3=3.0일 때, 가장 큰 값을 가지는 통계량은?",
+      "opts": [
+        "평균(2.2)",
+        "중위수(1.0)",
+        "표준편차(3.13)",
+        "제3분위수(3.0)"
+      ],
+      "ans": 2,
+      "exp": "3.13 > 3.0 > 2.2 > 1.0 순으로 표준편차가 가장 큽니다. 기술통계량 수치를 직접 비교해야 합니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B13",
+      "cat": "데이터전처리",
+      "diff": "easy",
+      "q": "결측치(Missing Value) 처리 방법 중 수치형 변수에 가장 일반적으로 사용하는 대체값은?",
+      "opts": [
+        "최댓값",
+        "중앙값 또는 평균값",
+        "0으로 대체",
+        "문자열 'None'"
+      ],
+      "ans": 1,
+      "exp": "수치형 결측치는 중앙값(이상치 영향 적음) 또는 평균값으로 대체하는 것이 일반적입니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B14",
+      "cat": "데이터전처리",
+      "diff": "easy",
+      "q": "범주형 변수의 결측치를 처리할 때 주로 사용하는 대체 방법은?",
+      "opts": [
+        "평균값으로 대체",
+        "0으로 대체",
+        "최빈값(Most Frequent)으로 대체",
+        "결측치가 있는 행 전체 삭제"
+      ],
+      "ans": 2,
+      "exp": "범주형 변수는 가장 많이 등장하는 값(최빈값)으로 결측치를 대체하는 것이 일반적입니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B15",
+      "cat": "데이터전처리",
+      "diff": "medium",
+      "q": "AIDU ez에서 데이터 가공 후 반드시 해야 하는 작업은?",
+      "opts": [
+        "모델 재학습",
+        "저장 버튼 클릭",
+        "데이터 삭제",
+        "결과 출력"
+      ],
+      "ans": 1,
+      "exp": "AIDU ez에서는 데이터 가공(전처리) 후 반드시 '저장' 버튼을 눌러야 변경사항이 적용됩니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B16",
+      "cat": "데이터전처리",
+      "diff": "medium",
+      "q": "히스토그램(Histogram)으로 주로 확인하는 것은?",
+      "opts": [
+        "두 변수의 관계",
+        "단일 변수의 분포(빈도)",
+        "변수 간 상관관계",
+        "이상치 범위"
+      ],
+      "ans": 1,
+      "exp": "히스토그램은 하나의 변수에 대해 구간별 빈도(분포)를 막대로 나타낸 그래프입니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B17",
+      "cat": "AI모델링",
+      "diff": "easy",
+      "q": "AIDU ez에서 머신러닝 모델 선택 시 기존 선택된 모델을 해제해야 하는 이유는?",
+      "opts": [
+        "모델이 충돌하기 때문",
+        "원하는 모델만 단독으로 학습·비교하기 위해",
+        "시스템 오류 방지를 위해",
+        "학습 속도 향상을 위해"
+      ],
+      "ans": 1,
+      "exp": "기존 선택 모델을 해제하지 않으면 여러 모델이 동시 실행되어 원하는 비교를 할 수 없습니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B18",
+      "cat": "AI모델링",
+      "diff": "easy",
+      "q": "분류 문제에서 모델 성능 평가 지표로 올바른 것은?",
+      "opts": [
+        "MSE (Mean Squared Error)",
+        "RMSE (Root Mean Squared Error)",
+        "Accuracy (정확도)",
+        "MAE (Mean Absolute Error)"
+      ],
+      "ans": 2,
+      "exp": "분류 성능 지표: Accuracy, F1-Score, Precision, Recall. 회귀 지표: MSE, RMSE, MAE.",
+      "level": "Basic"
+    },
+    {
+      "id": "B19",
+      "cat": "AI모델링",
+      "diff": "medium",
+      "q": "회귀 문제에서 R² 값이 0.99에 가까울수록 의미하는 것은?",
+      "opts": [
+        "모델이 데이터를 거의 설명하지 못함",
+        "과적합이 발생함",
+        "모델이 데이터를 약 99% 설명함 (좋은 성능)",
+        "오류가 99% 발생함"
+      ],
+      "ans": 2,
+      "exp": "R²(결정계수)는 0~1 범위로, 1에 가까울수록 모델이 데이터 분산을 잘 설명합니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B20",
+      "cat": "AI모델링",
+      "diff": "medium",
+      "q": "Random Forest가 Decision Tree보다 일반적으로 성능이 좋은 이유는?",
+      "opts": [
+        "더 깊은 트리를 만들기 때문",
+        "여러 트리를 앙상블해 과적합을 줄이기 때문",
+        "데이터를 더 많이 사용하기 때문",
+        "빠른 학습 속도 때문"
+      ],
+      "ans": 1,
+      "exp": "Random Forest는 많은 Decision Tree를 앙상블(배깅)하여 개별 트리의 과적합을 완화합니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B21",
+      "cat": "AI모델링",
+      "diff": "hard",
+      "q": "AIDU ez에서 종속 변수(output)를 지정할 때 '분류(Classification)'를 선택해야 하는 경우는?",
+      "opts": [
+        "총 구매금액 예측",
+        "평균 시청 시간 예측",
+        "호러 장르 선호 여부(label_horror) 예측",
+        "고객 나이 예측"
+      ],
+      "ans": 2,
+      "exp": "종속 변수가 범주형(object)이면 분류, 수치형(numeric)이면 회귀를 선택합니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B22",
+      "cat": "AI활용",
+      "diff": "easy",
+      "q": "AIDU ez '변수 영향도' 탭에서 확인할 수 있는 것은?",
+      "opts": [
+        "결측치 현황",
+        "변수가 모델 예측에 미치는 영향 순위",
+        "데이터 행 수",
+        "상관계수"
+      ],
+      "ans": 1,
+      "exp": "변수 영향도(Feature Importance)는 각 변수가 예측 결과에 얼마나 중요한지 순위를 보여줍니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B23",
+      "cat": "AI활용",
+      "diff": "medium",
+      "q": "딥러닝 모델 학습 시 Epoch 수를 늘리면 발생할 수 있는 위험은?",
+      "opts": [
+        "학습 속도 저하",
+        "과적합(Overfitting) 발생 가능성 증가",
+        "정확도가 무조건 향상",
+        "결측치 증가"
+      ],
+      "ans": 1,
+      "exp": "Epoch을 너무 크게 설정하면 훈련 데이터에 과적합될 수 있어 적절한 값 선택이 중요합니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B24",
+      "cat": "AI활용",
+      "diff": "medium",
+      "q": "혼동 행렬(Confusion Matrix)에서 TP(True Positive)의 의미는?",
+      "opts": [
+        "실제 음성을 양성으로 잘못 예측",
+        "실제 양성을 음성으로 잘못 예측",
+        "실제 양성을 양성으로 올바르게 예측",
+        "실제 음성을 음성으로 올바르게 예측"
+      ],
+      "ans": 2,
+      "exp": "TP: 실제 양성(P)이고 예측도 양성(P)인 올바른 예측 케이스입니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B25",
+      "cat": "AI활용",
+      "diff": "hard",
+      "q": "멜로 구매금액(romc_amount) 0~100 구간 고객 중 성별(sex)='F'인 수를 찾는 방법으로 옳은 것은?",
+      "opts": [
+        "히트맵에서 확인",
+        "히스토그램에서 hue=sex, x=romc_amount 설정 후 해당 구간 값 확인",
+        "기술통계량에서 확인",
+        "결측치 현황에서 확인"
+      ],
+      "ans": 1,
+      "exp": "AIDU ez 히스토그램에서 x축을 romc_amount, hue(범주)를 sex로 설정하면 성별 분포를 구간별로 확인할 수 있습니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B26",
+      "cat": "AI활용",
+      "diff": "medium",
+      "q": "AICE Basic 시험에서 최종 결과 제출 방법은?",
+      "opts": [
+        "Ctrl+S로 저장",
+        "'최종 제출 및 종료' 버튼 클릭",
+        "창을 닫으면 자동 제출",
+        "이메일로 전송"
+      ],
+      "ans": 1,
+      "exp": "반드시 '최종 제출 및 종료' 버튼을 클릭해야 답안이 최종 제출됩니다. 임시저장과 다릅니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B27",
+      "cat": "데이터분석",
+      "diff": "hard",
+      "q": "total_amount와 가장 큰 양의 상관관계를 갖는 변수를 찾는 방법으로 옳은 것은?",
+      "opts": [
+        "히스토그램에서 확인",
+        "히트맵(상관관계)에서 total_amount 행/열의 양수 값 중 최대값 확인",
+        "기술통계량에서 확인",
+        "결측치 현황에서 확인"
+      ],
+      "ans": 1,
+      "exp": "히트맵에서 total_amount와 다른 변수들 간의 상관계수를 확인하고, 양수 중 가장 큰 값의 변수를 선택합니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B28",
+      "cat": "AI개념",
+      "diff": "hard",
+      "q": "Recall(재현율) 공식으로 올바른 것은?",
+      "opts": [
+        "TP / (TP + FP)",
+        "TP / (TP + FN)",
+        "TN / (TN + FP)",
+        "(TP + TN) / 전체"
+      ],
+      "ans": 1,
+      "exp": "Recall = TP/(TP+FN). 실제 양성 중 올바르게 예측한 비율. 암 진단처럼 놓치면 안 될 때 중요합니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B29",
+      "cat": "데이터전처리",
+      "diff": "hard",
+      "q": "AIDU ez에서 범주형 변수를 sparse 인코딩으로 변환해야 하는 이유는?",
+      "opts": [
+        "데이터 용량을 늘리기 위해",
+        "딥러닝 모델이 문자열을 처리할 수 없어 수치로 변환하기 위해",
+        "결측치를 제거하기 위해",
+        "이상치를 탐지하기 위해"
+      ],
+      "ans": 1,
+      "exp": "딥러닝 모델은 수치 데이터만 처리하므로 범주형(문자열) 변수를 수치(0/1)로 변환해야 합니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B30",
+      "cat": "AI모델링",
+      "diff": "hard",
+      "q": "AIDU ez에서 3개 머신러닝 모델(DT, RF, LR) 비교 시 분류 문제에서 선택 기준으로 옳은 것은?",
+      "opts": [
+        "MSE가 가장 작은 모델",
+        "Accuracy가 가장 높은 모델",
+        "R²가 가장 큰 모델",
+        "Loss가 가장 큰 모델"
+      ],
+      "ans": 1,
+      "exp": "분류 문제는 Accuracy(정확도)가 높을수록 좋습니다. 회귀는 MSE/RMSE가 작은 모델, R²가 큰 모델을 선택합니다.",
+      "level": "Basic"
+    }
+  ],
+  "Associate": [
+    {
+      "id": "A01",
+      "cat": "EDA",
+      "diff": "easy",
+      "q": "pandas로 JSON 파일을 읽어 df_a에 저장하는 코드로 옳은 것은?",
+      "opts": [
+        "df_a = pd.read_csv('A0007IT.json')",
+        "df_a = pd.read_json('A0007IT.json')",
+        "df_a = pd.open_json('A0007IT.json')",
+        "df_a = pd.load_json('A0007IT.json')"
+      ],
+      "ans": 1,
+      "exp": "JSON 파일 로드: pd.read_json(), CSV: pd.read_csv(), Excel: pd.read_excel().",
+      "level": "Associate"
+    },
+    {
+      "id": "A02",
+      "cat": "EDA",
+      "diff": "medium",
+      "q": "df_a(JSON)와 df_b(CSV)를 'RID' 기준 inner join하는 코드로 옳은 것은?",
+      "opts": [
+        "pd.concat([df_a, df_b], on='RID')",
+        "pd.merge(df_a, df_b, how='inner', on='RID')",
+        "df_a.join(df_b, on='RID')",
+        "pd.merge(df_a, df_b, how='outer', on='RID')"
+      ],
+      "ans": 1,
+      "exp": "pd.merge(left, right, how='inner', on='키컬럼')으로 inner join. 'inner'는 공통 키만 결합합니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A03",
+      "cat": "EDA",
+      "diff": "medium",
+      "q": "seaborn으로 'Address1' 컬럼의 countplot을 그리는 코드로 옳은 것은?",
+      "opts": [
+        "sns.countplot(df['Address1'])",
+        "sns.countplot(data=df, x='Address1')",
+        "sns.barplot(data=df, x='Address1')",
+        "sns.histplot(data=df, x='Address1')"
+      ],
+      "ans": 1,
+      "exp": "sns.countplot(data=df, x='컬럼명')으로 범주형 변수의 빈도를 막대 그래프로 시각화합니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A04",
+      "cat": "EDA",
+      "diff": "medium",
+      "q": "countplot에서 'Address1' 값이 '-'인 행이 몇 개인지 확인하고 제거하는 코드로 옳은 것은?",
+      "opts": [
+        "df.drop(df['Address1'] == '-')",
+        "df = df[df['Address1'] != '-']",
+        "df.remove(df['Address1'] == '-')",
+        "df = df.dropna(subset=['Address1'])"
+      ],
+      "ans": 1,
+      "exp": "Boolean 인덱싱으로 != 조건을 사용해 '-'가 아닌 행만 선택합니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A05",
+      "cat": "EDA",
+      "diff": "medium",
+      "q": "jointplot에서 발견한 Speed_Per_Hour >= 300 이상치를 제거하는 코드로 옳은 것은?",
+      "opts": [
+        "df_temp = df.drop(df['Speed_Per_Hour'] >= 300)",
+        "df_temp = df[df['Speed_Per_Hour'] < 300]",
+        "df_temp = df.remove(df['Speed_Per_Hour'] >= 300)",
+        "df_temp = df[df['Speed_Per_Hour'] != 300]"
+      ],
+      "ans": 1,
+      "exp": "< 300 Boolean 인덱싱으로 300 미만 행만 선택합니다. 이상치 행은 제외됩니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A06",
+      "cat": "EDA",
+      "diff": "easy",
+      "q": "Time_Driving(x축)과 Speed_Per_Hour(y축)의 jointplot을 그리는 코드로 옳은 것은?",
+      "opts": [
+        "sns.jointplot(data=df, x='Speed_Per_Hour', y='Time_Driving')",
+        "sns.jointplot(data=df, x='Time_Driving', y='Speed_Per_Hour')",
+        "sns.scatterplot(data=df, x='Time_Driving', y='Speed_Per_Hour')",
+        "sns.pairplot(data=df, x='Time_Driving', y='Speed_Per_Hour')"
+      ],
+      "ans": 1,
+      "exp": "sns.jointplot(data=df, x='X축컬럼', y='Y축컬럼')으로 두 변수의 분포와 관계를 동시에 시각화합니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A07",
+      "cat": "EDA",
+      "diff": "easy",
+      "q": "데이터프레임 df의 결측치 현황을 컬럼별로 확인하는 코드로 옳은 것은?",
+      "opts": [
+        "df.null().count()",
+        "df.isna().sum()",
+        "df.missing().sum()",
+        "df.isnull().count()"
+      ],
+      "ans": 1,
+      "exp": "df.isna().sum() 또는 df.isnull().sum()으로 컬럼별 결측치 개수를 확인합니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A08",
+      "cat": "전처리",
+      "diff": "easy",
+      "q": "결측치가 있는 행을 모두 삭제해 df_na에 저장하는 코드로 옳은 것은?",
+      "opts": [
+        "df_na = df_temp.dropna(axis=1)",
+        "df_na = df_temp.dropna(axis=0)",
+        "df_na = df_temp.fillna(0)",
+        "df_na = df_temp.drop(None)"
+      ],
+      "ans": 1,
+      "exp": "dropna(axis=0)은 결측치 있는 행(row)을 삭제, dropna(axis=1)은 컬럼 삭제입니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A09",
+      "cat": "전처리",
+      "diff": "easy",
+      "q": "'Time_Departure', 'Time_Arrival' 두 컬럼을 삭제하는 코드로 옳은 것은?",
+      "opts": [
+        "df.drop('Time_Departure', 'Time_Arrival', axis=1)",
+        "df_del = df_na.drop(['Time_Departure', 'Time_Arrival'], axis=1)",
+        "df.remove(['Time_Departure', 'Time_Arrival'])",
+        "df.drop(columns='Time_Departure', 'Time_Arrival')"
+      ],
+      "ans": 1,
+      "exp": "여러 컬럼 삭제 시 리스트로 전달, axis=1(컬럼 방향). inplace=True 또는 변수에 재할당합니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A10",
+      "cat": "전처리",
+      "diff": "medium",
+      "q": "object 타입 컬럼만 선택해 cols에 저장하는 코드로 옳은 것은?",
+      "opts": [
+        "cols = df_del.select('object')",
+        "cols = df_del.select_dtypes('object').columns",
+        "cols = df_del.dtypes == 'object'",
+        "cols = df_del.filter(dtype='object')"
+      ],
+      "ans": 1,
+      "exp": "df.select_dtypes('object').columns로 문자열(object) 타입의 컬럼명 목록을 얻습니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A11",
+      "cat": "전처리",
+      "diff": "medium",
+      "q": "object 컬럼에만 pd.get_dummies() 원-핫 인코딩을 적용하는 코드로 옳은 것은?",
+      "opts": [
+        "pd.get_dummies(df_del)",
+        "cols=df_del.select_dtypes('object').columns\ndf_preset=pd.get_dummies(data=df_del, columns=cols)",
+        "df_del.encode('onehot')",
+        "OneHotEncoder().fit_transform(df_del)"
+      ],
+      "ans": 1,
+      "exp": "columns 파라미터에 인코딩할 컬럼 목록을 전달합니다. 전체 df에 적용하면 수치형도 변환됩니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A12",
+      "cat": "전처리",
+      "diff": "medium",
+      "q": "80:20으로 분리하고 random_state=42로 설정하는 코드로 옳은 것은?",
+      "opts": [
+        "train_test_split(X, y, train_size=0.2, random_state=42)",
+        "X_train,X_valid,y_train,y_valid = train_test_split(X,y,test_size=0.2,random_state=42)",
+        "train_test_split(X, y, split=0.8, seed=42)",
+        "train_test_split(X, y, validation=0.2, random_state=42)"
+      ],
+      "ans": 1,
+      "exp": "test_size=0.2 → 검증 20%, 훈련 80%. 반환 순서: X_train, X_valid, y_train, y_valid.",
+      "level": "Associate"
+    },
+    {
+      "id": "A13",
+      "cat": "전처리",
+      "diff": "medium",
+      "q": "MinMaxScaler를 훈련 데이터에 fit_transform, 검증 데이터에 transform하는 이유로 옳은 것은?",
+      "opts": [
+        "transform이 fit_transform보다 빠르기 때문",
+        "훈련 데이터의 min/max 기준을 검증에 동일 적용해 데이터 누수를 방지하기 때문",
+        "검증 데이터는 스케일링이 필요 없기 때문",
+        "fit_transform은 검증 데이터에 사용 불가하기 때문"
+      ],
+      "ans": 1,
+      "exp": "fit()은 훈련 데이터로만! 검증에 fit()을 별도 적용하면 기준이 달라져 데이터 누수가 발생합니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A14",
+      "cat": "전처리",
+      "diff": "hard",
+      "q": "LabelEncoder와 pd.get_dummies(원-핫 인코딩)의 차이로 올바른 것은?",
+      "opts": [
+        "LabelEncoder는 수치형에만 사용 가능",
+        "LabelEncoder는 순서 있는 정수(0,1,2...)로, get_dummies는 이진 컬럼 다수로 변환",
+        "두 방법의 결과가 동일함",
+        "get_dummies는 sklearn에서 제공"
+      ],
+      "ans": 1,
+      "exp": "LabelEncoder: [개,고양이,새]→[0,1,2]. get_dummies: 각 카테고리마다 0/1 컬럼 생성. 순서가 없는 범주에는 원-핫이 적합합니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A15",
+      "cat": "머신러닝",
+      "diff": "medium",
+      "q": "DecisionTreeRegressor(max_depth=5, min_samples_split=3, random_state=120)으로 생성하고 dt에 저장하는 코드로 옳은 것은?",
+      "opts": [
+        "dt = DecisionTreeRegressor(depth=5, split=3, seed=120)",
+        "dt = DecisionTreeRegressor(max_depth=5, min_samples_split=3, random_state=120)",
+        "dt = DecisionTreeRegressor(max_depth=5, min_split=3, random_state=120)",
+        "dt = DecisionTreeClassifier(max_depth=5, min_samples_split=3, random_state=120)"
+      ],
+      "ans": 1,
+      "exp": "회귀엔 Regressor, 분류엔 Classifier. 파라미터명: max_depth, min_samples_split, random_state.",
+      "level": "Associate"
+    },
+    {
+      "id": "A16",
+      "cat": "머신러닝",
+      "diff": "easy",
+      "q": "DecisionTreeRegressor와 DecisionTreeClassifier의 차이로 옳은 것은?",
+      "opts": [
+        "Regressor는 범주 예측, Classifier는 수치 예측",
+        "Regressor는 연속 수치 예측, Classifier는 범주(클래스) 예측",
+        "둘의 역할이 동일함",
+        "Classifier만 sklearn에서 제공"
+      ],
+      "ans": 1,
+      "exp": "타겟이 연속값(Time_Driving 등)이면 Regressor, 클래스(스팸/정상)이면 Classifier를 선택합니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A17",
+      "cat": "머신러닝",
+      "diff": "medium",
+      "q": "rf.fit(X_valid, y_valid) 코드의 문제점은?",
+      "opts": [
+        "RandomForest import 경로 오류",
+        "fit()에 검증 데이터가 아닌 훈련 데이터(X_train, y_train)를 써야 함",
+        "random_state 파라미터 사용 불가",
+        "코드에 문제 없음"
+      ],
+      "ans": 1,
+      "exp": "model.fit()은 반드시 훈련 데이터로만 학습해야 합니다. 검증 데이터로 fit하면 데이터 누수입니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A18",
+      "cat": "머신러닝",
+      "diff": "hard",
+      "q": "dt_mae=108.67, rf_mae=66.48일 때 성능이 더 좋은 모델과 그 이유로 옳은 것은?",
+      "opts": [
+        "dt — MAE가 클수록 성능이 좋음",
+        "rf — MAE(평균 절대 오차)가 작을수록 예측 오차가 작아 성능이 좋음",
+        "두 모델 성능이 동일함",
+        "MAE만으로는 비교 불가"
+      ],
+      "ans": 1,
+      "exp": "MAE는 작을수록 좋습니다. rf_mae(66.48) < dt_mae(108.67)이므로 randomforest가 더 좋습니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A19",
+      "cat": "딥러닝",
+      "diff": "medium",
+      "q": "Sequential 첫 번째 레이어에 반드시 지정해야 하는 파라미터는?",
+      "opts": [
+        "activation='relu'",
+        "input_shape=(X_train.shape[1],)",
+        "units=128",
+        "Dropout(0.2)"
+      ],
+      "ans": 1,
+      "exp": "Sequential 첫 레이어는 input_shape로 입력 차원을 지정해야 합니다. 미지정 시 오류가 발생합니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A20",
+      "cat": "딥러닝",
+      "diff": "medium",
+      "q": "회귀 딥러닝 모델의 compile 설정으로 옳은 것은?",
+      "opts": [
+        "model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])",
+        "model.compile(optimizer='adam', loss='mse', metrics='mse')",
+        "model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])",
+        "model.compile(optimizer='sgd', loss='mse', metrics=['mae'])"
+      ],
+      "ans": 1,
+      "exp": "회귀: loss='mse'. 이진분류: loss='binary_crossentropy'. 다중분류: loss='categorical_crossentropy'.",
+      "level": "Associate"
+    },
+    {
+      "id": "A21",
+      "cat": "딥러닝",
+      "diff": "medium",
+      "q": "Dropout(0.2)을 Sequential 모델에 추가하는 코드로 옳은 것은?",
+      "opts": [
+        "model.add(Dropout(rate=0.2))",
+        "model.add(Dropout(0.2))",
+        "model.add(Dense(0.2, dropout=True))",
+        "model.dropout(0.2)"
+      ],
+      "ans": 1,
+      "exp": "model.add(Dropout(0.2))로 추가. 0.2는 20% 뉴런을 무작위로 비활성화해 과적합을 방지합니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A22",
+      "cat": "딥러닝",
+      "diff": "medium",
+      "q": "EarlyStopping을 val_loss 기준으로 patience=5 설정하는 코드로 옳은 것은?",
+      "opts": [
+        "EarlyStopping(monitor='loss', patience=5)",
+        "EarlyStopping(monitor='val_loss', patience=5)",
+        "EarlyStopping(stop='val_loss', wait=5)",
+        "EarlyStopping('val_loss', 5)"
+      ],
+      "ans": 1,
+      "exp": "monitor='val_loss'로 검증 손실 기준 설정. patience=5는 5 epoch 동안 개선 없으면 조기 종료합니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A23",
+      "cat": "딥러닝",
+      "diff": "hard",
+      "q": "ModelCheckpoint로 val_loss 기준 최적 모델만 저장하는 코드로 옳은 것은?",
+      "opts": [
+        "ModelCheckpoint('best.h5', monitor='val_loss', save_best_only=False)",
+        "ModelCheckpoint('best.h5', monitor='val_loss', save_best_only=True)",
+        "ModelSave('best.h5', monitor='val_loss')",
+        "ModelCheckpoint(save_path='best.h5', best_only=True)"
+      ],
+      "ans": 1,
+      "exp": "save_best_only=True로 성능이 가장 좋은 epoch의 모델만 저장합니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A24",
+      "cat": "딥러닝",
+      "diff": "medium",
+      "q": "model.fit()에 검증 데이터를 전달하는 파라미터명으로 옳은 것은?",
+      "opts": [
+        "validation=(X_valid, y_valid)",
+        "validation_data=(X_valid, y_valid)",
+        "val_data=(X_valid, y_valid)",
+        "test_data=(X_valid, y_valid)"
+      ],
+      "ans": 1,
+      "exp": "validation_data=(X_valid, y_valid) 형태로 튜플 전달. 이를 통해 매 epoch 검증 성능을 추적합니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A25",
+      "cat": "딥러닝",
+      "diff": "medium",
+      "q": "이진 분류 딥러닝 출력층 설정으로 옳은 것은?",
+      "opts": [
+        "Dense(1, activation='relu')",
+        "Dense(1, activation='sigmoid')",
+        "Dense(2, activation='softmax')",
+        "Dense(1, activation='linear')"
+      ],
+      "ans": 1,
+      "exp": "이진 분류: Dense(1, sigmoid). 다중 분류: Dense(클래스수, softmax). 회귀: Dense(1, linear 또는 없음).",
+      "level": "Associate"
+    },
+    {
+      "id": "A26",
+      "cat": "모델평가",
+      "diff": "easy",
+      "q": "mean_absolute_error(y_valid, y_pred_dt) 코드에서 인자 순서로 옳은 것은?",
+      "opts": [
+        "(예측값, 실제값) 순서",
+        "(실제값, 예측값) 순서이며 순서가 중요하지 않음",
+        "(실제값 y_true, 예측값 y_pred) 순서가 맞음",
+        "순서는 무관하며 결과가 동일"
+      ],
+      "ans": 2,
+      "exp": "sklearn의 metrics 함수는 모두 (y_true, y_pred) 순서입니다. 순서를 바꿔도 MAE는 동일하지만 관례상 y_true 먼저입니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A27",
+      "cat": "모델평가",
+      "diff": "medium",
+      "q": "훈련 history에서 mse와 val_mse 그래프를 그리는 코드로 옳은 것은?",
+      "opts": [
+        "plt.plot(history['mse'])",
+        "plt.plot(history.history['mse'])\nplt.plot(history.history['val_mse'])",
+        "plt.plot(history.mse)\nplt.plot(history.val_mse)",
+        "sns.lineplot(data=history)"
+      ],
+      "ans": 1,
+      "exp": "model.fit() 반환 history 객체는 history.history 딕셔너리에 epoch별 지표가 저장됩니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A28",
+      "cat": "모델평가",
+      "diff": "medium",
+      "q": "Confusion Matrix를 annot 포함 heatmap으로 그리는 코드로 옳은 것은?",
+      "opts": [
+        "sns.heatmap(confusion_matrix(y_valid, y_pred))",
+        "sns.heatmap(confusion_matrix(y_valid, y_pred), annot=True)",
+        "plt.heatmap(confusion_matrix(y_valid, y_pred))",
+        "sns.confusionmap(y_valid, y_pred, annot=True)"
+      ],
+      "ans": 1,
+      "exp": "annot=True로 각 셀에 수치를 표시합니다. fmt='d'를 추가하면 정수 형식으로 표시됩니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A29",
+      "cat": "모델평가",
+      "diff": "hard",
+      "q": "train loss↓, val_loss↑ 현상의 원인과 해결책으로 옳은 것은?",
+      "opts": [
+        "과소적합 — 모델 복잡도 증가",
+        "과적합 — EarlyStopping, Dropout 추가 또는 데이터 증강",
+        "정상 학습 — 조치 불필요",
+        "학습률 문제 — optimizer 변경"
+      ],
+      "ans": 1,
+      "exp": "훈련 손실↓ 검증 손실↑은 과적합 신호. EarlyStopping, Dropout, 정규화, 데이터 증강으로 해결합니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A30",
+      "cat": "전처리",
+      "diff": "hard",
+      "q": "올바른 전처리 파이프라인 순서로 옳은 것은?",
+      "opts": [
+        "결측치→이상치→인코딩→스케일링→데이터분리",
+        "이상치→결측치→데이터분리→인코딩→스케일링",
+        "데이터분리→결측치→이상치→인코딩→스케일링은 순서 무관",
+        "인코딩→결측치→이상치→스케일링→데이터분리"
+      ],
+      "ans": 1,
+      "exp": "스케일링은 반드시 데이터 분리(train_test_split) 후에 수행해야 데이터 누수를 방지할 수 있습니다.",
+      "level": "Associate"
+    }
+  ],
+  "Professional": [
+    {
+      "id": "P01",
+      "cat": "Tabular",
+      "diff": "medium",
+      "q": "Professional 시험에서 평가지표가 MSE/RMSE로 제시되었을 때 선택해야 하는 모델 유형은?",
+      "opts": [
+        "분류(Classification) 모델",
+        "회귀(Regression) 모델",
+        "클러스터링 모델",
+        "강화학습 모델"
+      ],
+      "ans": 1,
+      "exp": "MSE/RMSE는 회귀 지표, Accuracy/F1-Score는 분류 지표입니다. 평가지표로 모델 유형을 결정합니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P02",
+      "cat": "Tabular",
+      "diff": "medium",
+      "q": "GridSearchCV를 사용하는 목적으로 옳은 것은?",
+      "opts": [
+        "데이터 시각화",
+        "하이퍼파라미터 조합을 교차검증으로 자동 탐색해 최적값 도출",
+        "데이터 전처리 자동화",
+        "모델 배포 자동화"
+      ],
+      "ans": 1,
+      "exp": "GridSearchCV: 지정한 파라미터 그리드의 모든 조합을 교차검증으로 평가해 최적 파라미터를 찾습니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P03",
+      "cat": "Tabular",
+      "diff": "hard",
+      "q": "GridSearchCV에서 best_params_와 best_score_로 옳은 것은?",
+      "opts": [
+        "best_params_: 최고 점수, best_score_: 최적 파라미터",
+        "best_params_: 최적 파라미터 딕셔너리, best_score_: 교차검증 최고 점수",
+        "둘 다 동일한 정보",
+        "best_score_는 훈련 데이터 점수"
+      ],
+      "ans": 1,
+      "exp": "gs.best_params_: 최적 파라미터 dict. gs.best_score_: 해당 파라미터의 교차검증 평균 점수.",
+      "level": "Professional"
+    },
+    {
+      "id": "P04",
+      "cat": "Tabular",
+      "diff": "hard",
+      "q": "StratifiedKFold를 사용해야 하는 상황으로 옳은 것은?",
+      "opts": [
+        "회귀 문제의 교차검증",
+        "클래스 불균형이 있는 분류 문제의 교차검증",
+        "시계열 데이터의 교차검증",
+        "모든 교차검증에 기본 사용"
+      ],
+      "ans": 1,
+      "exp": "StratifiedKFold는 각 fold에서 클래스 비율을 원본과 동일하게 유지합니다. 불균형 분류 문제에 필수입니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P05",
+      "cat": "Tabular",
+      "diff": "medium",
+      "q": "pipeline을 사용하는 주요 이점으로 옳은 것은?",
+      "opts": [
+        "코드 실행 속도 향상",
+        "전처리~모델 학습을 하나의 객체로 묶어 데이터 누수 방지 및 코드 간결화",
+        "GPU 메모리 절약",
+        "자동 하이퍼파라미터 탐색"
+      ],
+      "ans": 1,
+      "exp": "Pipeline은 전처리(scaler, encoder)와 모델을 하나로 묶어 fit/predict 시 자동으로 순서대로 실행하며 누수를 방지합니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P06",
+      "cat": "Tabular",
+      "diff": "hard",
+      "q": "XGBoost에서 과적합 방지를 위한 주요 파라미터 조합으로 옳은 것은?",
+      "opts": [
+        "n_estimators만 조정",
+        "learning_rate·max_depth·subsample·reg_lambda 복합 조정",
+        "batch_size와 epochs만 조정",
+        "dropout_rate만 조정"
+      ],
+      "ans": 1,
+      "exp": "XGBoost 정규화: learning_rate(학습률 낮춤), max_depth(트리 깊이 제한), subsample(샘플 비율), reg_lambda(L2 정규화).",
+      "level": "Professional"
+    },
+    {
+      "id": "P07",
+      "cat": "Text",
+      "diff": "medium",
+      "q": "텍스트 전처리 단계 순서로 옳은 것은?",
+      "opts": [
+        "정규화→토큰화→불용어제거",
+        "토큰화→불용어제거(정제)→정규화",
+        "불용어제거→정규화→토큰화",
+        "순서 무관"
+      ],
+      "ans": 1,
+      "exp": "텍스트 전처리: 토큰화(단어 분리)→정제(불용어·특수문자 제거)→정규화(어간 추출/표제어).",
+      "level": "Professional"
+    },
+    {
+      "id": "P08",
+      "cat": "Text",
+      "diff": "medium",
+      "q": "텍스트 데이터를 문서-단어 행렬로 변환하는 sklearn 클래스로 옳은 것은?",
+      "opts": [
+        "LabelEncoder()",
+        "TfidfVectorizer() 또는 CountVectorizer()",
+        "MinMaxScaler()",
+        "PCA()"
+      ],
+      "ans": 1,
+      "exp": "CountVectorizer: 단어 빈도 행렬. TfidfVectorizer: TF-IDF 가중치 행렬. 텍스트 분류 전처리에 사용합니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P09",
+      "cat": "Text",
+      "diff": "hard",
+      "q": "텍스트 분류에서 Naive Bayes 모델을 사용하는 이유로 옳은 것은?",
+      "opts": [
+        "항상 가장 높은 정확도",
+        "텍스트(고차원 희소 행렬)에서 빠르고 효과적이며 소규모 데이터에 강함",
+        "이미지 분류에 특화",
+        "비지도학습으로 레이블 불필요"
+      ],
+      "ans": 1,
+      "exp": "Naive Bayes는 단어 빈도 기반의 확률 모델로 텍스트 고차원 희소 행렬에서 효율적으로 작동합니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P10",
+      "cat": "Text",
+      "diff": "hard",
+      "q": "한국어 텍스트 전처리가 영어보다 어려운 주요 이유로 옳은 것은?",
+      "opts": [
+        "한국어 텍스트가 더 길기 때문",
+        "교착어 특성으로 형태소 분석이 필요하고 공백으로 단어 구분이 불완전하기 때문",
+        "한국어 데이터가 적기 때문",
+        "인코딩 형식이 다르기 때문"
+      ],
+      "ans": 1,
+      "exp": "한국어는 교착어로 '먹다/먹어/먹었다' 등 형태소 변화가 복잡합니다. KoNLPy 등 형태소 분석기가 필요합니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P11",
+      "cat": "Text",
+      "diff": "medium",
+      "q": "F1-Score를 사용해야 하는 상황으로 옳은 것은?",
+      "opts": [
+        "클래스가 완전히 균형 잡힌 경우",
+        "클래스 불균형 데이터에서 Precision과 Recall을 모두 고려할 때",
+        "회귀 문제의 성능 평가",
+        "다중 분류 문제에서 항상 사용"
+      ],
+      "ans": 1,
+      "exp": "F1 = 2 × (Precision × Recall) / (Precision + Recall). 불균형 데이터에서 Accuracy 대신 사용합니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P12",
+      "cat": "Image",
+      "diff": "medium",
+      "q": "이미지 데이터를 CNN에 입력하기 전 전처리 단계로 옳은 것은?",
+      "opts": [
+        "토큰화→벡터화",
+        "resize(크기 통일)→정규화(0~1 범위)→배열 변환",
+        "MinMaxScaler 적용→원-핫 인코딩",
+        "get_dummies 적용"
+      ],
+      "ans": 1,
+      "exp": "이미지: resize(고정 크기)→픽셀값 정규화(/255.0)→numpy 배열 변환→채널 차원 추가.",
+      "level": "Professional"
+    },
+    {
+      "id": "P13",
+      "cat": "Image",
+      "diff": "hard",
+      "q": "CNN(Convolutional Neural Network)에서 Conv2D 레이어의 역할로 옳은 것은?",
+      "opts": [
+        "이미지를 1차원으로 펼침",
+        "필터(커널)로 이미지의 지역적 특징(엣지, 패턴)을 추출",
+        "클래스별 확률 계산",
+        "채널 수를 줄임"
+      ],
+      "ans": 1,
+      "exp": "Conv2D: 학습 가능한 필터로 이미지를 슬라이딩하며 특징 맵(feature map)을 생성합니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P14",
+      "cat": "Image",
+      "diff": "medium",
+      "q": "MaxPooling2D를 사용하는 이유로 옳은 것은?",
+      "opts": [
+        "채널 수를 늘리기 위해",
+        "특성 맵 크기를 줄여 계산량 감소 및 위치 불변성 향상",
+        "활성화 함수를 적용하기 위해",
+        "가중치를 정규화하기 위해"
+      ],
+      "ans": 1,
+      "exp": "MaxPooling: 지정 영역의 최댓값 선택으로 특성 맵을 축소합니다. 계산량 감소 + 약간의 위치 불변성을 얻습니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P15",
+      "cat": "Image",
+      "diff": "hard",
+      "q": "CNN 모델에서 Flatten() 레이어가 필요한 이유로 옳은 것은?",
+      "opts": [
+        "이미지를 더 선명하게 만들기 위해",
+        "3D 특성 맵을 1D 벡터로 변환해 Dense 레이어에 연결하기 위해",
+        "채널 수를 조정하기 위해",
+        "배치 정규화를 수행하기 위해"
+      ],
+      "ans": 1,
+      "exp": "Conv2D/Pooling 후 [batch, H, W, C] 형태의 3D 텐서를 [batch, H*W*C] 1D로 펼쳐 FC(Dense) 레이어에 연결합니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P16",
+      "cat": "Image",
+      "diff": "hard",
+      "q": "Data Augmentation(데이터 증강)을 사용하는 주요 이유로 옳은 것은?",
+      "opts": [
+        "학습 속도 향상",
+        "훈련 데이터 부족 시 회전/반전/크롭 등으로 가상 데이터를 생성해 과적합 방지",
+        "모델 구조 단순화",
+        "GPU 메모리 절약"
+      ],
+      "ans": 1,
+      "exp": "Data Augmentation: 원본 이미지를 변형(flip, rotate, crop, zoom)해 훈련 데이터를 늘리고 과적합을 방지합니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P17",
+      "cat": "최적화",
+      "diff": "hard",
+      "q": "Batch Normalization을 추가하는 일반적인 순서로 옳은 것은?",
+      "opts": [
+        "Dense → Activation → BatchNorm → Dropout",
+        "Dense → BatchNorm → Activation → Dropout",
+        "BatchNorm → Dense → Activation → Dropout",
+        "Dense → Dropout → BatchNorm → Activation"
+      ],
+      "ans": 1,
+      "exp": "일반적으로 Dense → BatchNormalization → Activation(ReLU) → Dropout 순서로 배치합니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P18",
+      "cat": "최적화",
+      "diff": "hard",
+      "q": "Learning Rate Scheduling을 사용하는 이유로 옳은 것은?",
+      "opts": [
+        "배치 크기를 자동 조정하기 위해",
+        "초기엔 큰 학습률로 빠른 수렴, 후반엔 작은 학습률로 정밀한 최적점 탐색",
+        "모델 저장 간격 자동 조절",
+        "GPU 메모리 절약"
+      ],
+      "ans": 1,
+      "exp": "ReduceLROnPlateau: 성능 개선 없을 때 자동 학습률 감소. CosineAnnealing: 주기적으로 학습률 변화.",
+      "level": "Professional"
+    },
+    {
+      "id": "P19",
+      "cat": "최적화",
+      "diff": "hard",
+      "q": "Transfer Learning(전이학습)에서 Feature Extraction 방식이란?",
+      "opts": [
+        "사전학습 모델의 모든 가중치를 재학습",
+        "사전학습 모델의 합성곱 레이어는 고정(freeze)하고 마지막 분류 레이어만 학습",
+        "처음부터 모델을 학습",
+        "데이터만 전이"
+      ],
+      "ans": 1,
+      "exp": "Feature Extraction: ImageNet으로 사전학습된 VGG/ResNet의 합성곱 레이어를 고정하고 분류기만 새로 학습합니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P20",
+      "cat": "최적화",
+      "diff": "hard",
+      "q": "Fine-tuning과 Feature Extraction의 차이로 옳은 것은?",
+      "opts": [
+        "Fine-tuning은 모든 레이어를 고정, Feature Extraction은 전체 재학습",
+        "Fine-tuning은 일부 레이어의 동결을 해제해 낮은 학습률로 전체 재조정, Feature Extraction은 분류기만 학습",
+        "둘의 방법이 동일함",
+        "Fine-tuning은 데이터 증강 기법"
+      ],
+      "ans": 1,
+      "exp": "Fine-tuning: 사전학습 가중치에서 시작해 낮은 학습률로 전체 또는 일부 레이어를 재조정합니다. 더 많은 데이터 필요.",
+      "level": "Professional"
+    },
+    {
+      "id": "P21",
+      "cat": "특성공학",
+      "diff": "hard",
+      "q": "PolynomialFeatures(degree=2)를 적용하는 이유로 옳은 것은?",
+      "opts": [
+        "선형 변환만 수행",
+        "x1², x2², x1*x2 등 2차 특성을 생성해 비선형 패턴을 선형 모델로 캡처",
+        "데이터 정규화",
+        "차원을 항상 축소"
+      ],
+      "ans": 1,
+      "exp": "degree=2이면 원래 특성 [x1, x2]에서 [x1², x2², x1*x2, x1, x2, 1] 등 2차 조합 특성을 생성합니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P22",
+      "cat": "특성공학",
+      "diff": "hard",
+      "q": "PCA(주성분 분석)를 올바르게 적용하는 순서로 옳은 것은?",
+      "opts": [
+        "fit_transform(X_test) → transform(X_train)",
+        "fit(X_train) → transform(X_train) → transform(X_test)로 순서 적용",
+        "fit_transform(X 전체 데이터)",
+        "transform(X_train) → fit(X_test)"
+      ],
+      "ans": 1,
+      "exp": "PCA도 스케일러와 동일하게 훈련 데이터로만 fit하고, 훈련/검증/테스트 모두에 transform 적용합니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P23",
+      "cat": "특성공학",
+      "diff": "hard",
+      "q": "SMOTE 오버샘플링 기법에 대한 설명으로 옳은 것은?",
+      "opts": [
+        "다수 클래스를 줄이는 언더샘플링 기법",
+        "소수 클래스의 K-NN 이웃 사이를 보간해 합성 샘플을 생성하는 오버샘플링",
+        "모든 클래스를 무작위로 같은 수로 샘플링",
+        "가중치를 부여해 손실함수를 조정하는 기법"
+      ],
+      "ans": 1,
+      "exp": "SMOTE(Synthetic Minority Oversampling Technique): 소수 클래스 샘플의 K-최근접 이웃 사이에 새로운 합성 샘플을 생성합니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P24",
+      "cat": "Tabular",
+      "diff": "hard",
+      "q": "SHAP(SHapley Additive exPlanations)의 용도로 옳은 것은?",
+      "opts": [
+        "모델 학습 속도 향상",
+        "블랙박스 모델의 개별 예측에 대해 각 특성의 기여도를 게임이론으로 설명",
+        "데이터 전처리 자동화",
+        "앙상블 모델 구성"
+      ],
+      "ans": 1,
+      "exp": "SHAP: '이 예측에서 age 특성이 +0.3 기여, income이 -0.1 기여' 처럼 개별 예측 설명이 가능합니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P25",
+      "cat": "최적화",
+      "diff": "hard",
+      "q": "StackingClassifier에서 final_estimator의 역할로 옳은 것은?",
+      "opts": [
+        "base 모델 중 최고 성능 모델 선택",
+        "base 모델들의 예측값을 입력 특성으로 받아 최종 예측을 수행하는 메타 모델",
+        "모든 base 모델 예측을 단순 평균",
+        "순차적 부스팅 수행"
+      ],
+      "ans": 1,
+      "exp": "Stacking: base 모델(RF, XGB 등)의 예측값을 새 특성으로 삼아 meta-learner(LogisticRegression 등)가 최종 학습합니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P26",
+      "cat": "최적화",
+      "diff": "hard",
+      "q": "Optuna를 사용하는 목적으로 옳은 것은?",
+      "opts": [
+        "데이터 시각화 자동화",
+        "TPE(Tree-structured Parzen Estimator) 등으로 하이퍼파라미터를 지능적으로 자동 탐색",
+        "모델 배포 파이프라인 구성",
+        "데이터 전처리 자동화"
+      ],
+      "ans": 1,
+      "exp": "Optuna: GridSearch보다 효율적으로 하이퍼파라미터를 탐색합니다. 베이지안 최적화(TPE) 기반.",
+      "level": "Professional"
+    },
+    {
+      "id": "P27",
+      "cat": "Image",
+      "diff": "hard",
+      "q": "YOLOv5 등 Object Detection 모델의 출력으로 옳은 것은?",
+      "opts": [
+        "이미지 클래스만 반환",
+        "각 객체의 바운딩 박스 좌표 + 클래스 레이블 + 신뢰도 점수",
+        "이미지 픽셀 분류",
+        "텍스트 설명"
+      ],
+      "ans": 1,
+      "exp": "Object Detection: 이미지 내 다수 객체를 탐지하며 각각의 위치(bbox), 클래스, 신뢰도(confidence)를 반환합니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P28",
+      "cat": "Text",
+      "diff": "hard",
+      "q": "Transformer의 Self-Attention이 RNN보다 유리한 점으로 옳은 것은?",
+      "opts": [
+        "파라미터 수가 더 적음",
+        "병렬 처리 가능 + 긴 문장에서도 장거리 의존성을 직접 학습 가능",
+        "항상 더 높은 정확도 달성",
+        "메모리 사용량이 적음"
+      ],
+      "ans": 1,
+      "exp": "RNN은 순차 처리로 병렬화 불가하고 장거리 의존성이 약합니다. Transformer는 모든 위치 쌍 관계를 동시에 계산합니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P29",
+      "cat": "최적화",
+      "diff": "hard",
+      "q": "Professional 시험에서 '목표 성능 달성'이 핵심인 이유로 옳은 것은?",
+      "opts": [
+        "문제가 주관식이기 때문",
+        "문항당 목표 달성률에 따라 차등 점수가 부여되기 때문",
+        "코드 스타일을 평가하기 때문",
+        "시간이 제한되어 있기 때문"
+      ],
+      "ans": 1,
+      "exp": "Professional은 단순 코드 작성이 아닌 지정된 평가지표에서 목표 성능을 달성해야 점수를 받습니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P30",
+      "cat": "Tabular",
+      "diff": "hard",
+      "q": "회귀 모델 성능 개선 시 시도할 수 있는 방법들로 옳은 것은?",
+      "opts": [
+        "배치 크기만 조정",
+        "특성 선택/생성, 하이퍼파라미터 튜닝(GridSearchCV), 앙상블, 정규화 복합 시도",
+        "데이터 삭제만 수행",
+        "학습 epoch만 증가"
+      ],
+      "ans": 1,
+      "exp": "Professional 수준: Feature Engineering → 하이퍼파라미터 튜닝(GridSearch/Optuna) → 앙상블(Stacking/Blending) → 정규화 복합 적용.",
+      "level": "Professional"
+    }
+  ],
+  "ALL": [
+    {
+      "id": "B01",
+      "cat": "AI개념",
+      "diff": "easy",
+      "q": "AI(인공지능), 머신러닝, 딥러닝의 포함 관계로 올바른 것은?",
+      "opts": [
+        "딥러닝 ⊃ 머신러닝 ⊃ AI",
+        "AI ⊃ 머신러닝 ⊃ 딥러닝",
+        "머신러닝 ⊃ AI ⊃ 딥러닝",
+        "세 개념은 모두 동일"
+      ],
+      "ans": 1,
+      "exp": "AI가 가장 넓은 개념이고, 그 안에 머신러닝, 그 안에 딥러닝이 포함되는 계층 구조입니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B02",
+      "cat": "AI개념",
+      "diff": "easy",
+      "q": "지도학습(Supervised Learning)의 특징으로 옳은 것은?",
+      "opts": [
+        "레이블(정답) 없이 패턴만 학습한다",
+        "입력 데이터와 정답(레이블) 쌍으로 학습한다",
+        "보상 신호를 기반으로 학습한다",
+        "사전 학습된 모델만 사용한다"
+      ],
+      "ans": 1,
+      "exp": "지도학습은 (입력, 정답) 쌍으로 학습하며, 분류와 회귀 모두 포함합니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B03",
+      "cat": "AI개념",
+      "diff": "easy",
+      "q": "AICE Basic에서 사용하는 노코딩 AutoML 도구는?",
+      "opts": [
+        "AIDU ez",
+        "Jupyter Notebook",
+        "Google Colab",
+        "VS Code"
+      ],
+      "ans": 0,
+      "exp": "AIDU ez는 KT가 개발한 노코딩 AutoML 도구로 AICE Basic 시험에서 사용합니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B04",
+      "cat": "AI개념",
+      "diff": "easy",
+      "q": "분류(Classification) 문제의 예로 올바른 것은?",
+      "opts": [
+        "내일 기온 예측",
+        "영화 평점 예측",
+        "호러 장르 선호 여부 예측(예/아니오)",
+        "주택 매매 가격 예측"
+      ],
+      "ans": 2,
+      "exp": "분류는 '예/아니오', '스팸/정상'처럼 범주를 예측하며, 연속 수치 예측은 회귀입니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B05",
+      "cat": "AI개념",
+      "diff": "medium",
+      "q": "과적합(Overfitting) 현상을 설명하는 것으로 옳은 것은?",
+      "opts": [
+        "훈련/검증 정확도가 모두 낮다",
+        "훈련 정확도는 높고 검증 정확도는 낮다",
+        "훈련/검증 정확도가 모두 높다",
+        "검증 정확도만 높다"
+      ],
+      "ans": 1,
+      "exp": "과적합: 훈련 데이터에 지나치게 최적화되어 새로운 데이터(검증)에 성능이 떨어집니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B06",
+      "cat": "AI개념",
+      "diff": "medium",
+      "q": "비지도학습(Unsupervised Learning)에서 주로 사용하는 기법은?",
+      "opts": [
+        "의사결정나무",
+        "클러스터링(Clustering)",
+        "선형 회귀",
+        "서포트 벡터 머신"
+      ],
+      "ans": 1,
+      "exp": "비지도학습은 정답 없이 데이터 구조를 파악하며, 클러스터링(군집화)이 대표적입니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B07",
+      "cat": "데이터분석",
+      "diff": "easy",
+      "q": "AIDU ez에서 '기초 정보 분석' 화면에서 확인할 수 없는 것은?",
+      "opts": [
+        "변수별 결측치 수",
+        "변수 유형(수치형/범주형)",
+        "변수별 기술통계량",
+        "모델 학습 결과 정확도"
+      ],
+      "ans": 3,
+      "exp": "모델 학습 결과는 'AI 모델링' 단계에서 확인합니다. 기초 정보 분석에서는 데이터 기본 특성을 봅니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B08",
+      "cat": "데이터분석",
+      "diff": "easy",
+      "q": "범주형(object) 변수와 수치형(numeric) 변수를 구별하는 기준으로 옳은 것은?",
+      "opts": [
+        "값이 숫자이면 무조건 수치형",
+        "그룹/카테고리로 나눌 수 있으면 범주형",
+        "결측치가 있으면 범주형",
+        "값의 개수가 많으면 수치형"
+      ],
+      "ans": 1,
+      "exp": "'성별(남/여)', '지역', '직업'처럼 그룹으로 구분되는 변수는 범주형, 키·몸무게처럼 측정값은 수치형입니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B09",
+      "cat": "데이터분석",
+      "diff": "medium",
+      "q": "기술통계량 중 데이터의 흩어진 정도(산포도)를 나타내는 것은?",
+      "opts": [
+        "평균(Mean)",
+        "중앙값(Median)",
+        "표준편차(Standard Deviation)",
+        "최빈값(Mode)"
+      ],
+      "ans": 2,
+      "exp": "표준편차는 데이터가 평균에서 얼마나 퍼져있는지를 나타내는 산포도 지표입니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B10",
+      "cat": "데이터분석",
+      "diff": "medium",
+      "q": "두 변수 간의 선형 관계 강도를 나타내는 지표는?",
+      "opts": [
+        "표준편차",
+        "상관계수(Correlation Coefficient)",
+        "평균",
+        "분산"
+      ],
+      "ans": 1,
+      "exp": "상관계수는 -1~+1 사이 값으로, +1에 가까울수록 강한 양의 상관관계를 의미합니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B11",
+      "cat": "데이터분석",
+      "diff": "medium",
+      "q": "AIDU ez에서 히트맵(Heatmap)으로 주로 확인하는 것은?",
+      "opts": [
+        "결측치 분포",
+        "변수 간 상관관계",
+        "이상치 위치",
+        "클래스 불균형"
+      ],
+      "ans": 1,
+      "exp": "히트맵은 변수 간 상관계수를 색상으로 표현해 상관관계를 한눈에 파악할 수 있게 합니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B12",
+      "cat": "데이터분석",
+      "diff": "hard",
+      "q": "총 콘텐츠 구매 건수(total_buy_ol)의 기술통계량이 평균=2.2, 중위수=1.0, 표준편차=3.13, Q3=3.0일 때, 가장 큰 값을 가지는 통계량은?",
+      "opts": [
+        "평균(2.2)",
+        "중위수(1.0)",
+        "표준편차(3.13)",
+        "제3분위수(3.0)"
+      ],
+      "ans": 2,
+      "exp": "3.13 > 3.0 > 2.2 > 1.0 순으로 표준편차가 가장 큽니다. 기술통계량 수치를 직접 비교해야 합니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B13",
+      "cat": "데이터전처리",
+      "diff": "easy",
+      "q": "결측치(Missing Value) 처리 방법 중 수치형 변수에 가장 일반적으로 사용하는 대체값은?",
+      "opts": [
+        "최댓값",
+        "중앙값 또는 평균값",
+        "0으로 대체",
+        "문자열 'None'"
+      ],
+      "ans": 1,
+      "exp": "수치형 결측치는 중앙값(이상치 영향 적음) 또는 평균값으로 대체하는 것이 일반적입니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B14",
+      "cat": "데이터전처리",
+      "diff": "easy",
+      "q": "범주형 변수의 결측치를 처리할 때 주로 사용하는 대체 방법은?",
+      "opts": [
+        "평균값으로 대체",
+        "0으로 대체",
+        "최빈값(Most Frequent)으로 대체",
+        "결측치가 있는 행 전체 삭제"
+      ],
+      "ans": 2,
+      "exp": "범주형 변수는 가장 많이 등장하는 값(최빈값)으로 결측치를 대체하는 것이 일반적입니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B15",
+      "cat": "데이터전처리",
+      "diff": "medium",
+      "q": "AIDU ez에서 데이터 가공 후 반드시 해야 하는 작업은?",
+      "opts": [
+        "모델 재학습",
+        "저장 버튼 클릭",
+        "데이터 삭제",
+        "결과 출력"
+      ],
+      "ans": 1,
+      "exp": "AIDU ez에서는 데이터 가공(전처리) 후 반드시 '저장' 버튼을 눌러야 변경사항이 적용됩니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B16",
+      "cat": "데이터전처리",
+      "diff": "medium",
+      "q": "히스토그램(Histogram)으로 주로 확인하는 것은?",
+      "opts": [
+        "두 변수의 관계",
+        "단일 변수의 분포(빈도)",
+        "변수 간 상관관계",
+        "이상치 범위"
+      ],
+      "ans": 1,
+      "exp": "히스토그램은 하나의 변수에 대해 구간별 빈도(분포)를 막대로 나타낸 그래프입니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B17",
+      "cat": "AI모델링",
+      "diff": "easy",
+      "q": "AIDU ez에서 머신러닝 모델 선택 시 기존 선택된 모델을 해제해야 하는 이유는?",
+      "opts": [
+        "모델이 충돌하기 때문",
+        "원하는 모델만 단독으로 학습·비교하기 위해",
+        "시스템 오류 방지를 위해",
+        "학습 속도 향상을 위해"
+      ],
+      "ans": 1,
+      "exp": "기존 선택 모델을 해제하지 않으면 여러 모델이 동시 실행되어 원하는 비교를 할 수 없습니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B18",
+      "cat": "AI모델링",
+      "diff": "easy",
+      "q": "분류 문제에서 모델 성능 평가 지표로 올바른 것은?",
+      "opts": [
+        "MSE (Mean Squared Error)",
+        "RMSE (Root Mean Squared Error)",
+        "Accuracy (정확도)",
+        "MAE (Mean Absolute Error)"
+      ],
+      "ans": 2,
+      "exp": "분류 성능 지표: Accuracy, F1-Score, Precision, Recall. 회귀 지표: MSE, RMSE, MAE.",
+      "level": "Basic"
+    },
+    {
+      "id": "B19",
+      "cat": "AI모델링",
+      "diff": "medium",
+      "q": "회귀 문제에서 R² 값이 0.99에 가까울수록 의미하는 것은?",
+      "opts": [
+        "모델이 데이터를 거의 설명하지 못함",
+        "과적합이 발생함",
+        "모델이 데이터를 약 99% 설명함 (좋은 성능)",
+        "오류가 99% 발생함"
+      ],
+      "ans": 2,
+      "exp": "R²(결정계수)는 0~1 범위로, 1에 가까울수록 모델이 데이터 분산을 잘 설명합니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B20",
+      "cat": "AI모델링",
+      "diff": "medium",
+      "q": "Random Forest가 Decision Tree보다 일반적으로 성능이 좋은 이유는?",
+      "opts": [
+        "더 깊은 트리를 만들기 때문",
+        "여러 트리를 앙상블해 과적합을 줄이기 때문",
+        "데이터를 더 많이 사용하기 때문",
+        "빠른 학습 속도 때문"
+      ],
+      "ans": 1,
+      "exp": "Random Forest는 많은 Decision Tree를 앙상블(배깅)하여 개별 트리의 과적합을 완화합니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B21",
+      "cat": "AI모델링",
+      "diff": "hard",
+      "q": "AIDU ez에서 종속 변수(output)를 지정할 때 '분류(Classification)'를 선택해야 하는 경우는?",
+      "opts": [
+        "총 구매금액 예측",
+        "평균 시청 시간 예측",
+        "호러 장르 선호 여부(label_horror) 예측",
+        "고객 나이 예측"
+      ],
+      "ans": 2,
+      "exp": "종속 변수가 범주형(object)이면 분류, 수치형(numeric)이면 회귀를 선택합니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B22",
+      "cat": "AI활용",
+      "diff": "easy",
+      "q": "AIDU ez '변수 영향도' 탭에서 확인할 수 있는 것은?",
+      "opts": [
+        "결측치 현황",
+        "변수가 모델 예측에 미치는 영향 순위",
+        "데이터 행 수",
+        "상관계수"
+      ],
+      "ans": 1,
+      "exp": "변수 영향도(Feature Importance)는 각 변수가 예측 결과에 얼마나 중요한지 순위를 보여줍니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B23",
+      "cat": "AI활용",
+      "diff": "medium",
+      "q": "딥러닝 모델 학습 시 Epoch 수를 늘리면 발생할 수 있는 위험은?",
+      "opts": [
+        "학습 속도 저하",
+        "과적합(Overfitting) 발생 가능성 증가",
+        "정확도가 무조건 향상",
+        "결측치 증가"
+      ],
+      "ans": 1,
+      "exp": "Epoch을 너무 크게 설정하면 훈련 데이터에 과적합될 수 있어 적절한 값 선택이 중요합니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B24",
+      "cat": "AI활용",
+      "diff": "medium",
+      "q": "혼동 행렬(Confusion Matrix)에서 TP(True Positive)의 의미는?",
+      "opts": [
+        "실제 음성을 양성으로 잘못 예측",
+        "실제 양성을 음성으로 잘못 예측",
+        "실제 양성을 양성으로 올바르게 예측",
+        "실제 음성을 음성으로 올바르게 예측"
+      ],
+      "ans": 2,
+      "exp": "TP: 실제 양성(P)이고 예측도 양성(P)인 올바른 예측 케이스입니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B25",
+      "cat": "AI활용",
+      "diff": "hard",
+      "q": "멜로 구매금액(romc_amount) 0~100 구간 고객 중 성별(sex)='F'인 수를 찾는 방법으로 옳은 것은?",
+      "opts": [
+        "히트맵에서 확인",
+        "히스토그램에서 hue=sex, x=romc_amount 설정 후 해당 구간 값 확인",
+        "기술통계량에서 확인",
+        "결측치 현황에서 확인"
+      ],
+      "ans": 1,
+      "exp": "AIDU ez 히스토그램에서 x축을 romc_amount, hue(범주)를 sex로 설정하면 성별 분포를 구간별로 확인할 수 있습니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B26",
+      "cat": "AI활용",
+      "diff": "medium",
+      "q": "AICE Basic 시험에서 최종 결과 제출 방법은?",
+      "opts": [
+        "Ctrl+S로 저장",
+        "'최종 제출 및 종료' 버튼 클릭",
+        "창을 닫으면 자동 제출",
+        "이메일로 전송"
+      ],
+      "ans": 1,
+      "exp": "반드시 '최종 제출 및 종료' 버튼을 클릭해야 답안이 최종 제출됩니다. 임시저장과 다릅니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B27",
+      "cat": "데이터분석",
+      "diff": "hard",
+      "q": "total_amount와 가장 큰 양의 상관관계를 갖는 변수를 찾는 방법으로 옳은 것은?",
+      "opts": [
+        "히스토그램에서 확인",
+        "히트맵(상관관계)에서 total_amount 행/열의 양수 값 중 최대값 확인",
+        "기술통계량에서 확인",
+        "결측치 현황에서 확인"
+      ],
+      "ans": 1,
+      "exp": "히트맵에서 total_amount와 다른 변수들 간의 상관계수를 확인하고, 양수 중 가장 큰 값의 변수를 선택합니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B28",
+      "cat": "AI개념",
+      "diff": "hard",
+      "q": "Recall(재현율) 공식으로 올바른 것은?",
+      "opts": [
+        "TP / (TP + FP)",
+        "TP / (TP + FN)",
+        "TN / (TN + FP)",
+        "(TP + TN) / 전체"
+      ],
+      "ans": 1,
+      "exp": "Recall = TP/(TP+FN). 실제 양성 중 올바르게 예측한 비율. 암 진단처럼 놓치면 안 될 때 중요합니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B29",
+      "cat": "데이터전처리",
+      "diff": "hard",
+      "q": "AIDU ez에서 범주형 변수를 sparse 인코딩으로 변환해야 하는 이유는?",
+      "opts": [
+        "데이터 용량을 늘리기 위해",
+        "딥러닝 모델이 문자열을 처리할 수 없어 수치로 변환하기 위해",
+        "결측치를 제거하기 위해",
+        "이상치를 탐지하기 위해"
+      ],
+      "ans": 1,
+      "exp": "딥러닝 모델은 수치 데이터만 처리하므로 범주형(문자열) 변수를 수치(0/1)로 변환해야 합니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "B30",
+      "cat": "AI모델링",
+      "diff": "hard",
+      "q": "AIDU ez에서 3개 머신러닝 모델(DT, RF, LR) 비교 시 분류 문제에서 선택 기준으로 옳은 것은?",
+      "opts": [
+        "MSE가 가장 작은 모델",
+        "Accuracy가 가장 높은 모델",
+        "R²가 가장 큰 모델",
+        "Loss가 가장 큰 모델"
+      ],
+      "ans": 1,
+      "exp": "분류 문제는 Accuracy(정확도)가 높을수록 좋습니다. 회귀는 MSE/RMSE가 작은 모델, R²가 큰 모델을 선택합니다.",
+      "level": "Basic"
+    },
+    {
+      "id": "A01",
+      "cat": "EDA",
+      "diff": "easy",
+      "q": "pandas로 JSON 파일을 읽어 df_a에 저장하는 코드로 옳은 것은?",
+      "opts": [
+        "df_a = pd.read_csv('A0007IT.json')",
+        "df_a = pd.read_json('A0007IT.json')",
+        "df_a = pd.open_json('A0007IT.json')",
+        "df_a = pd.load_json('A0007IT.json')"
+      ],
+      "ans": 1,
+      "exp": "JSON 파일 로드: pd.read_json(), CSV: pd.read_csv(), Excel: pd.read_excel().",
+      "level": "Associate"
+    },
+    {
+      "id": "A02",
+      "cat": "EDA",
+      "diff": "medium",
+      "q": "df_a(JSON)와 df_b(CSV)를 'RID' 기준 inner join하는 코드로 옳은 것은?",
+      "opts": [
+        "pd.concat([df_a, df_b], on='RID')",
+        "pd.merge(df_a, df_b, how='inner', on='RID')",
+        "df_a.join(df_b, on='RID')",
+        "pd.merge(df_a, df_b, how='outer', on='RID')"
+      ],
+      "ans": 1,
+      "exp": "pd.merge(left, right, how='inner', on='키컬럼')으로 inner join. 'inner'는 공통 키만 결합합니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A03",
+      "cat": "EDA",
+      "diff": "medium",
+      "q": "seaborn으로 'Address1' 컬럼의 countplot을 그리는 코드로 옳은 것은?",
+      "opts": [
+        "sns.countplot(df['Address1'])",
+        "sns.countplot(data=df, x='Address1')",
+        "sns.barplot(data=df, x='Address1')",
+        "sns.histplot(data=df, x='Address1')"
+      ],
+      "ans": 1,
+      "exp": "sns.countplot(data=df, x='컬럼명')으로 범주형 변수의 빈도를 막대 그래프로 시각화합니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A04",
+      "cat": "EDA",
+      "diff": "medium",
+      "q": "countplot에서 'Address1' 값이 '-'인 행이 몇 개인지 확인하고 제거하는 코드로 옳은 것은?",
+      "opts": [
+        "df.drop(df['Address1'] == '-')",
+        "df = df[df['Address1'] != '-']",
+        "df.remove(df['Address1'] == '-')",
+        "df = df.dropna(subset=['Address1'])"
+      ],
+      "ans": 1,
+      "exp": "Boolean 인덱싱으로 != 조건을 사용해 '-'가 아닌 행만 선택합니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A05",
+      "cat": "EDA",
+      "diff": "medium",
+      "q": "jointplot에서 발견한 Speed_Per_Hour >= 300 이상치를 제거하는 코드로 옳은 것은?",
+      "opts": [
+        "df_temp = df.drop(df['Speed_Per_Hour'] >= 300)",
+        "df_temp = df[df['Speed_Per_Hour'] < 300]",
+        "df_temp = df.remove(df['Speed_Per_Hour'] >= 300)",
+        "df_temp = df[df['Speed_Per_Hour'] != 300]"
+      ],
+      "ans": 1,
+      "exp": "< 300 Boolean 인덱싱으로 300 미만 행만 선택합니다. 이상치 행은 제외됩니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A06",
+      "cat": "EDA",
+      "diff": "easy",
+      "q": "Time_Driving(x축)과 Speed_Per_Hour(y축)의 jointplot을 그리는 코드로 옳은 것은?",
+      "opts": [
+        "sns.jointplot(data=df, x='Speed_Per_Hour', y='Time_Driving')",
+        "sns.jointplot(data=df, x='Time_Driving', y='Speed_Per_Hour')",
+        "sns.scatterplot(data=df, x='Time_Driving', y='Speed_Per_Hour')",
+        "sns.pairplot(data=df, x='Time_Driving', y='Speed_Per_Hour')"
+      ],
+      "ans": 1,
+      "exp": "sns.jointplot(data=df, x='X축컬럼', y='Y축컬럼')으로 두 변수의 분포와 관계를 동시에 시각화합니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A07",
+      "cat": "EDA",
+      "diff": "easy",
+      "q": "데이터프레임 df의 결측치 현황을 컬럼별로 확인하는 코드로 옳은 것은?",
+      "opts": [
+        "df.null().count()",
+        "df.isna().sum()",
+        "df.missing().sum()",
+        "df.isnull().count()"
+      ],
+      "ans": 1,
+      "exp": "df.isna().sum() 또는 df.isnull().sum()으로 컬럼별 결측치 개수를 확인합니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A08",
+      "cat": "전처리",
+      "diff": "easy",
+      "q": "결측치가 있는 행을 모두 삭제해 df_na에 저장하는 코드로 옳은 것은?",
+      "opts": [
+        "df_na = df_temp.dropna(axis=1)",
+        "df_na = df_temp.dropna(axis=0)",
+        "df_na = df_temp.fillna(0)",
+        "df_na = df_temp.drop(None)"
+      ],
+      "ans": 1,
+      "exp": "dropna(axis=0)은 결측치 있는 행(row)을 삭제, dropna(axis=1)은 컬럼 삭제입니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A09",
+      "cat": "전처리",
+      "diff": "easy",
+      "q": "'Time_Departure', 'Time_Arrival' 두 컬럼을 삭제하는 코드로 옳은 것은?",
+      "opts": [
+        "df.drop('Time_Departure', 'Time_Arrival', axis=1)",
+        "df_del = df_na.drop(['Time_Departure', 'Time_Arrival'], axis=1)",
+        "df.remove(['Time_Departure', 'Time_Arrival'])",
+        "df.drop(columns='Time_Departure', 'Time_Arrival')"
+      ],
+      "ans": 1,
+      "exp": "여러 컬럼 삭제 시 리스트로 전달, axis=1(컬럼 방향). inplace=True 또는 변수에 재할당합니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A10",
+      "cat": "전처리",
+      "diff": "medium",
+      "q": "object 타입 컬럼만 선택해 cols에 저장하는 코드로 옳은 것은?",
+      "opts": [
+        "cols = df_del.select('object')",
+        "cols = df_del.select_dtypes('object').columns",
+        "cols = df_del.dtypes == 'object'",
+        "cols = df_del.filter(dtype='object')"
+      ],
+      "ans": 1,
+      "exp": "df.select_dtypes('object').columns로 문자열(object) 타입의 컬럼명 목록을 얻습니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A11",
+      "cat": "전처리",
+      "diff": "medium",
+      "q": "object 컬럼에만 pd.get_dummies() 원-핫 인코딩을 적용하는 코드로 옳은 것은?",
+      "opts": [
+        "pd.get_dummies(df_del)",
+        "cols=df_del.select_dtypes('object').columns\ndf_preset=pd.get_dummies(data=df_del, columns=cols)",
+        "df_del.encode('onehot')",
+        "OneHotEncoder().fit_transform(df_del)"
+      ],
+      "ans": 1,
+      "exp": "columns 파라미터에 인코딩할 컬럼 목록을 전달합니다. 전체 df에 적용하면 수치형도 변환됩니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A12",
+      "cat": "전처리",
+      "diff": "medium",
+      "q": "80:20으로 분리하고 random_state=42로 설정하는 코드로 옳은 것은?",
+      "opts": [
+        "train_test_split(X, y, train_size=0.2, random_state=42)",
+        "X_train,X_valid,y_train,y_valid = train_test_split(X,y,test_size=0.2,random_state=42)",
+        "train_test_split(X, y, split=0.8, seed=42)",
+        "train_test_split(X, y, validation=0.2, random_state=42)"
+      ],
+      "ans": 1,
+      "exp": "test_size=0.2 → 검증 20%, 훈련 80%. 반환 순서: X_train, X_valid, y_train, y_valid.",
+      "level": "Associate"
+    },
+    {
+      "id": "A13",
+      "cat": "전처리",
+      "diff": "medium",
+      "q": "MinMaxScaler를 훈련 데이터에 fit_transform, 검증 데이터에 transform하는 이유로 옳은 것은?",
+      "opts": [
+        "transform이 fit_transform보다 빠르기 때문",
+        "훈련 데이터의 min/max 기준을 검증에 동일 적용해 데이터 누수를 방지하기 때문",
+        "검증 데이터는 스케일링이 필요 없기 때문",
+        "fit_transform은 검증 데이터에 사용 불가하기 때문"
+      ],
+      "ans": 1,
+      "exp": "fit()은 훈련 데이터로만! 검증에 fit()을 별도 적용하면 기준이 달라져 데이터 누수가 발생합니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A14",
+      "cat": "전처리",
+      "diff": "hard",
+      "q": "LabelEncoder와 pd.get_dummies(원-핫 인코딩)의 차이로 올바른 것은?",
+      "opts": [
+        "LabelEncoder는 수치형에만 사용 가능",
+        "LabelEncoder는 순서 있는 정수(0,1,2...)로, get_dummies는 이진 컬럼 다수로 변환",
+        "두 방법의 결과가 동일함",
+        "get_dummies는 sklearn에서 제공"
+      ],
+      "ans": 1,
+      "exp": "LabelEncoder: [개,고양이,새]→[0,1,2]. get_dummies: 각 카테고리마다 0/1 컬럼 생성. 순서가 없는 범주에는 원-핫이 적합합니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A15",
+      "cat": "머신러닝",
+      "diff": "medium",
+      "q": "DecisionTreeRegressor(max_depth=5, min_samples_split=3, random_state=120)으로 생성하고 dt에 저장하는 코드로 옳은 것은?",
+      "opts": [
+        "dt = DecisionTreeRegressor(depth=5, split=3, seed=120)",
+        "dt = DecisionTreeRegressor(max_depth=5, min_samples_split=3, random_state=120)",
+        "dt = DecisionTreeRegressor(max_depth=5, min_split=3, random_state=120)",
+        "dt = DecisionTreeClassifier(max_depth=5, min_samples_split=3, random_state=120)"
+      ],
+      "ans": 1,
+      "exp": "회귀엔 Regressor, 분류엔 Classifier. 파라미터명: max_depth, min_samples_split, random_state.",
+      "level": "Associate"
+    },
+    {
+      "id": "A16",
+      "cat": "머신러닝",
+      "diff": "easy",
+      "q": "DecisionTreeRegressor와 DecisionTreeClassifier의 차이로 옳은 것은?",
+      "opts": [
+        "Regressor는 범주 예측, Classifier는 수치 예측",
+        "Regressor는 연속 수치 예측, Classifier는 범주(클래스) 예측",
+        "둘의 역할이 동일함",
+        "Classifier만 sklearn에서 제공"
+      ],
+      "ans": 1,
+      "exp": "타겟이 연속값(Time_Driving 등)이면 Regressor, 클래스(스팸/정상)이면 Classifier를 선택합니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A17",
+      "cat": "머신러닝",
+      "diff": "medium",
+      "q": "rf.fit(X_valid, y_valid) 코드의 문제점은?",
+      "opts": [
+        "RandomForest import 경로 오류",
+        "fit()에 검증 데이터가 아닌 훈련 데이터(X_train, y_train)를 써야 함",
+        "random_state 파라미터 사용 불가",
+        "코드에 문제 없음"
+      ],
+      "ans": 1,
+      "exp": "model.fit()은 반드시 훈련 데이터로만 학습해야 합니다. 검증 데이터로 fit하면 데이터 누수입니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A18",
+      "cat": "머신러닝",
+      "diff": "hard",
+      "q": "dt_mae=108.67, rf_mae=66.48일 때 성능이 더 좋은 모델과 그 이유로 옳은 것은?",
+      "opts": [
+        "dt — MAE가 클수록 성능이 좋음",
+        "rf — MAE(평균 절대 오차)가 작을수록 예측 오차가 작아 성능이 좋음",
+        "두 모델 성능이 동일함",
+        "MAE만으로는 비교 불가"
+      ],
+      "ans": 1,
+      "exp": "MAE는 작을수록 좋습니다. rf_mae(66.48) < dt_mae(108.67)이므로 randomforest가 더 좋습니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A19",
+      "cat": "딥러닝",
+      "diff": "medium",
+      "q": "Sequential 첫 번째 레이어에 반드시 지정해야 하는 파라미터는?",
+      "opts": [
+        "activation='relu'",
+        "input_shape=(X_train.shape[1],)",
+        "units=128",
+        "Dropout(0.2)"
+      ],
+      "ans": 1,
+      "exp": "Sequential 첫 레이어는 input_shape로 입력 차원을 지정해야 합니다. 미지정 시 오류가 발생합니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A20",
+      "cat": "딥러닝",
+      "diff": "medium",
+      "q": "회귀 딥러닝 모델의 compile 설정으로 옳은 것은?",
+      "opts": [
+        "model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])",
+        "model.compile(optimizer='adam', loss='mse', metrics='mse')",
+        "model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])",
+        "model.compile(optimizer='sgd', loss='mse', metrics=['mae'])"
+      ],
+      "ans": 1,
+      "exp": "회귀: loss='mse'. 이진분류: loss='binary_crossentropy'. 다중분류: loss='categorical_crossentropy'.",
+      "level": "Associate"
+    },
+    {
+      "id": "A21",
+      "cat": "딥러닝",
+      "diff": "medium",
+      "q": "Dropout(0.2)을 Sequential 모델에 추가하는 코드로 옳은 것은?",
+      "opts": [
+        "model.add(Dropout(rate=0.2))",
+        "model.add(Dropout(0.2))",
+        "model.add(Dense(0.2, dropout=True))",
+        "model.dropout(0.2)"
+      ],
+      "ans": 1,
+      "exp": "model.add(Dropout(0.2))로 추가. 0.2는 20% 뉴런을 무작위로 비활성화해 과적합을 방지합니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A22",
+      "cat": "딥러닝",
+      "diff": "medium",
+      "q": "EarlyStopping을 val_loss 기준으로 patience=5 설정하는 코드로 옳은 것은?",
+      "opts": [
+        "EarlyStopping(monitor='loss', patience=5)",
+        "EarlyStopping(monitor='val_loss', patience=5)",
+        "EarlyStopping(stop='val_loss', wait=5)",
+        "EarlyStopping('val_loss', 5)"
+      ],
+      "ans": 1,
+      "exp": "monitor='val_loss'로 검증 손실 기준 설정. patience=5는 5 epoch 동안 개선 없으면 조기 종료합니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A23",
+      "cat": "딥러닝",
+      "diff": "hard",
+      "q": "ModelCheckpoint로 val_loss 기준 최적 모델만 저장하는 코드로 옳은 것은?",
+      "opts": [
+        "ModelCheckpoint('best.h5', monitor='val_loss', save_best_only=False)",
+        "ModelCheckpoint('best.h5', monitor='val_loss', save_best_only=True)",
+        "ModelSave('best.h5', monitor='val_loss')",
+        "ModelCheckpoint(save_path='best.h5', best_only=True)"
+      ],
+      "ans": 1,
+      "exp": "save_best_only=True로 성능이 가장 좋은 epoch의 모델만 저장합니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A24",
+      "cat": "딥러닝",
+      "diff": "medium",
+      "q": "model.fit()에 검증 데이터를 전달하는 파라미터명으로 옳은 것은?",
+      "opts": [
+        "validation=(X_valid, y_valid)",
+        "validation_data=(X_valid, y_valid)",
+        "val_data=(X_valid, y_valid)",
+        "test_data=(X_valid, y_valid)"
+      ],
+      "ans": 1,
+      "exp": "validation_data=(X_valid, y_valid) 형태로 튜플 전달. 이를 통해 매 epoch 검증 성능을 추적합니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A25",
+      "cat": "딥러닝",
+      "diff": "medium",
+      "q": "이진 분류 딥러닝 출력층 설정으로 옳은 것은?",
+      "opts": [
+        "Dense(1, activation='relu')",
+        "Dense(1, activation='sigmoid')",
+        "Dense(2, activation='softmax')",
+        "Dense(1, activation='linear')"
+      ],
+      "ans": 1,
+      "exp": "이진 분류: Dense(1, sigmoid). 다중 분류: Dense(클래스수, softmax). 회귀: Dense(1, linear 또는 없음).",
+      "level": "Associate"
+    },
+    {
+      "id": "A26",
+      "cat": "모델평가",
+      "diff": "easy",
+      "q": "mean_absolute_error(y_valid, y_pred_dt) 코드에서 인자 순서로 옳은 것은?",
+      "opts": [
+        "(예측값, 실제값) 순서",
+        "(실제값, 예측값) 순서이며 순서가 중요하지 않음",
+        "(실제값 y_true, 예측값 y_pred) 순서가 맞음",
+        "순서는 무관하며 결과가 동일"
+      ],
+      "ans": 2,
+      "exp": "sklearn의 metrics 함수는 모두 (y_true, y_pred) 순서입니다. 순서를 바꿔도 MAE는 동일하지만 관례상 y_true 먼저입니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A27",
+      "cat": "모델평가",
+      "diff": "medium",
+      "q": "훈련 history에서 mse와 val_mse 그래프를 그리는 코드로 옳은 것은?",
+      "opts": [
+        "plt.plot(history['mse'])",
+        "plt.plot(history.history['mse'])\nplt.plot(history.history['val_mse'])",
+        "plt.plot(history.mse)\nplt.plot(history.val_mse)",
+        "sns.lineplot(data=history)"
+      ],
+      "ans": 1,
+      "exp": "model.fit() 반환 history 객체는 history.history 딕셔너리에 epoch별 지표가 저장됩니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A28",
+      "cat": "모델평가",
+      "diff": "medium",
+      "q": "Confusion Matrix를 annot 포함 heatmap으로 그리는 코드로 옳은 것은?",
+      "opts": [
+        "sns.heatmap(confusion_matrix(y_valid, y_pred))",
+        "sns.heatmap(confusion_matrix(y_valid, y_pred), annot=True)",
+        "plt.heatmap(confusion_matrix(y_valid, y_pred))",
+        "sns.confusionmap(y_valid, y_pred, annot=True)"
+      ],
+      "ans": 1,
+      "exp": "annot=True로 각 셀에 수치를 표시합니다. fmt='d'를 추가하면 정수 형식으로 표시됩니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A29",
+      "cat": "모델평가",
+      "diff": "hard",
+      "q": "train loss↓, val_loss↑ 현상의 원인과 해결책으로 옳은 것은?",
+      "opts": [
+        "과소적합 — 모델 복잡도 증가",
+        "과적합 — EarlyStopping, Dropout 추가 또는 데이터 증강",
+        "정상 학습 — 조치 불필요",
+        "학습률 문제 — optimizer 변경"
+      ],
+      "ans": 1,
+      "exp": "훈련 손실↓ 검증 손실↑은 과적합 신호. EarlyStopping, Dropout, 정규화, 데이터 증강으로 해결합니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "A30",
+      "cat": "전처리",
+      "diff": "hard",
+      "q": "올바른 전처리 파이프라인 순서로 옳은 것은?",
+      "opts": [
+        "결측치→이상치→인코딩→스케일링→데이터분리",
+        "이상치→결측치→데이터분리→인코딩→스케일링",
+        "데이터분리→결측치→이상치→인코딩→스케일링은 순서 무관",
+        "인코딩→결측치→이상치→스케일링→데이터분리"
+      ],
+      "ans": 1,
+      "exp": "스케일링은 반드시 데이터 분리(train_test_split) 후에 수행해야 데이터 누수를 방지할 수 있습니다.",
+      "level": "Associate"
+    },
+    {
+      "id": "P01",
+      "cat": "Tabular",
+      "diff": "medium",
+      "q": "Professional 시험에서 평가지표가 MSE/RMSE로 제시되었을 때 선택해야 하는 모델 유형은?",
+      "opts": [
+        "분류(Classification) 모델",
+        "회귀(Regression) 모델",
+        "클러스터링 모델",
+        "강화학습 모델"
+      ],
+      "ans": 1,
+      "exp": "MSE/RMSE는 회귀 지표, Accuracy/F1-Score는 분류 지표입니다. 평가지표로 모델 유형을 결정합니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P02",
+      "cat": "Tabular",
+      "diff": "medium",
+      "q": "GridSearchCV를 사용하는 목적으로 옳은 것은?",
+      "opts": [
+        "데이터 시각화",
+        "하이퍼파라미터 조합을 교차검증으로 자동 탐색해 최적값 도출",
+        "데이터 전처리 자동화",
+        "모델 배포 자동화"
+      ],
+      "ans": 1,
+      "exp": "GridSearchCV: 지정한 파라미터 그리드의 모든 조합을 교차검증으로 평가해 최적 파라미터를 찾습니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P03",
+      "cat": "Tabular",
+      "diff": "hard",
+      "q": "GridSearchCV에서 best_params_와 best_score_로 옳은 것은?",
+      "opts": [
+        "best_params_: 최고 점수, best_score_: 최적 파라미터",
+        "best_params_: 최적 파라미터 딕셔너리, best_score_: 교차검증 최고 점수",
+        "둘 다 동일한 정보",
+        "best_score_는 훈련 데이터 점수"
+      ],
+      "ans": 1,
+      "exp": "gs.best_params_: 최적 파라미터 dict. gs.best_score_: 해당 파라미터의 교차검증 평균 점수.",
+      "level": "Professional"
+    },
+    {
+      "id": "P04",
+      "cat": "Tabular",
+      "diff": "hard",
+      "q": "StratifiedKFold를 사용해야 하는 상황으로 옳은 것은?",
+      "opts": [
+        "회귀 문제의 교차검증",
+        "클래스 불균형이 있는 분류 문제의 교차검증",
+        "시계열 데이터의 교차검증",
+        "모든 교차검증에 기본 사용"
+      ],
+      "ans": 1,
+      "exp": "StratifiedKFold는 각 fold에서 클래스 비율을 원본과 동일하게 유지합니다. 불균형 분류 문제에 필수입니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P05",
+      "cat": "Tabular",
+      "diff": "medium",
+      "q": "pipeline을 사용하는 주요 이점으로 옳은 것은?",
+      "opts": [
+        "코드 실행 속도 향상",
+        "전처리~모델 학습을 하나의 객체로 묶어 데이터 누수 방지 및 코드 간결화",
+        "GPU 메모리 절약",
+        "자동 하이퍼파라미터 탐색"
+      ],
+      "ans": 1,
+      "exp": "Pipeline은 전처리(scaler, encoder)와 모델을 하나로 묶어 fit/predict 시 자동으로 순서대로 실행하며 누수를 방지합니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P06",
+      "cat": "Tabular",
+      "diff": "hard",
+      "q": "XGBoost에서 과적합 방지를 위한 주요 파라미터 조합으로 옳은 것은?",
+      "opts": [
+        "n_estimators만 조정",
+        "learning_rate·max_depth·subsample·reg_lambda 복합 조정",
+        "batch_size와 epochs만 조정",
+        "dropout_rate만 조정"
+      ],
+      "ans": 1,
+      "exp": "XGBoost 정규화: learning_rate(학습률 낮춤), max_depth(트리 깊이 제한), subsample(샘플 비율), reg_lambda(L2 정규화).",
+      "level": "Professional"
+    },
+    {
+      "id": "P07",
+      "cat": "Text",
+      "diff": "medium",
+      "q": "텍스트 전처리 단계 순서로 옳은 것은?",
+      "opts": [
+        "정규화→토큰화→불용어제거",
+        "토큰화→불용어제거(정제)→정규화",
+        "불용어제거→정규화→토큰화",
+        "순서 무관"
+      ],
+      "ans": 1,
+      "exp": "텍스트 전처리: 토큰화(단어 분리)→정제(불용어·특수문자 제거)→정규화(어간 추출/표제어).",
+      "level": "Professional"
+    },
+    {
+      "id": "P08",
+      "cat": "Text",
+      "diff": "medium",
+      "q": "텍스트 데이터를 문서-단어 행렬로 변환하는 sklearn 클래스로 옳은 것은?",
+      "opts": [
+        "LabelEncoder()",
+        "TfidfVectorizer() 또는 CountVectorizer()",
+        "MinMaxScaler()",
+        "PCA()"
+      ],
+      "ans": 1,
+      "exp": "CountVectorizer: 단어 빈도 행렬. TfidfVectorizer: TF-IDF 가중치 행렬. 텍스트 분류 전처리에 사용합니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P09",
+      "cat": "Text",
+      "diff": "hard",
+      "q": "텍스트 분류에서 Naive Bayes 모델을 사용하는 이유로 옳은 것은?",
+      "opts": [
+        "항상 가장 높은 정확도",
+        "텍스트(고차원 희소 행렬)에서 빠르고 효과적이며 소규모 데이터에 강함",
+        "이미지 분류에 특화",
+        "비지도학습으로 레이블 불필요"
+      ],
+      "ans": 1,
+      "exp": "Naive Bayes는 단어 빈도 기반의 확률 모델로 텍스트 고차원 희소 행렬에서 효율적으로 작동합니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P10",
+      "cat": "Text",
+      "diff": "hard",
+      "q": "한국어 텍스트 전처리가 영어보다 어려운 주요 이유로 옳은 것은?",
+      "opts": [
+        "한국어 텍스트가 더 길기 때문",
+        "교착어 특성으로 형태소 분석이 필요하고 공백으로 단어 구분이 불완전하기 때문",
+        "한국어 데이터가 적기 때문",
+        "인코딩 형식이 다르기 때문"
+      ],
+      "ans": 1,
+      "exp": "한국어는 교착어로 '먹다/먹어/먹었다' 등 형태소 변화가 복잡합니다. KoNLPy 등 형태소 분석기가 필요합니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P11",
+      "cat": "Text",
+      "diff": "medium",
+      "q": "F1-Score를 사용해야 하는 상황으로 옳은 것은?",
+      "opts": [
+        "클래스가 완전히 균형 잡힌 경우",
+        "클래스 불균형 데이터에서 Precision과 Recall을 모두 고려할 때",
+        "회귀 문제의 성능 평가",
+        "다중 분류 문제에서 항상 사용"
+      ],
+      "ans": 1,
+      "exp": "F1 = 2 × (Precision × Recall) / (Precision + Recall). 불균형 데이터에서 Accuracy 대신 사용합니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P12",
+      "cat": "Image",
+      "diff": "medium",
+      "q": "이미지 데이터를 CNN에 입력하기 전 전처리 단계로 옳은 것은?",
+      "opts": [
+        "토큰화→벡터화",
+        "resize(크기 통일)→정규화(0~1 범위)→배열 변환",
+        "MinMaxScaler 적용→원-핫 인코딩",
+        "get_dummies 적용"
+      ],
+      "ans": 1,
+      "exp": "이미지: resize(고정 크기)→픽셀값 정규화(/255.0)→numpy 배열 변환→채널 차원 추가.",
+      "level": "Professional"
+    },
+    {
+      "id": "P13",
+      "cat": "Image",
+      "diff": "hard",
+      "q": "CNN(Convolutional Neural Network)에서 Conv2D 레이어의 역할로 옳은 것은?",
+      "opts": [
+        "이미지를 1차원으로 펼침",
+        "필터(커널)로 이미지의 지역적 특징(엣지, 패턴)을 추출",
+        "클래스별 확률 계산",
+        "채널 수를 줄임"
+      ],
+      "ans": 1,
+      "exp": "Conv2D: 학습 가능한 필터로 이미지를 슬라이딩하며 특징 맵(feature map)을 생성합니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P14",
+      "cat": "Image",
+      "diff": "medium",
+      "q": "MaxPooling2D를 사용하는 이유로 옳은 것은?",
+      "opts": [
+        "채널 수를 늘리기 위해",
+        "특성 맵 크기를 줄여 계산량 감소 및 위치 불변성 향상",
+        "활성화 함수를 적용하기 위해",
+        "가중치를 정규화하기 위해"
+      ],
+      "ans": 1,
+      "exp": "MaxPooling: 지정 영역의 최댓값 선택으로 특성 맵을 축소합니다. 계산량 감소 + 약간의 위치 불변성을 얻습니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P15",
+      "cat": "Image",
+      "diff": "hard",
+      "q": "CNN 모델에서 Flatten() 레이어가 필요한 이유로 옳은 것은?",
+      "opts": [
+        "이미지를 더 선명하게 만들기 위해",
+        "3D 특성 맵을 1D 벡터로 변환해 Dense 레이어에 연결하기 위해",
+        "채널 수를 조정하기 위해",
+        "배치 정규화를 수행하기 위해"
+      ],
+      "ans": 1,
+      "exp": "Conv2D/Pooling 후 [batch, H, W, C] 형태의 3D 텐서를 [batch, H*W*C] 1D로 펼쳐 FC(Dense) 레이어에 연결합니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P16",
+      "cat": "Image",
+      "diff": "hard",
+      "q": "Data Augmentation(데이터 증강)을 사용하는 주요 이유로 옳은 것은?",
+      "opts": [
+        "학습 속도 향상",
+        "훈련 데이터 부족 시 회전/반전/크롭 등으로 가상 데이터를 생성해 과적합 방지",
+        "모델 구조 단순화",
+        "GPU 메모리 절약"
+      ],
+      "ans": 1,
+      "exp": "Data Augmentation: 원본 이미지를 변형(flip, rotate, crop, zoom)해 훈련 데이터를 늘리고 과적합을 방지합니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P17",
+      "cat": "최적화",
+      "diff": "hard",
+      "q": "Batch Normalization을 추가하는 일반적인 순서로 옳은 것은?",
+      "opts": [
+        "Dense → Activation → BatchNorm → Dropout",
+        "Dense → BatchNorm → Activation → Dropout",
+        "BatchNorm → Dense → Activation → Dropout",
+        "Dense → Dropout → BatchNorm → Activation"
+      ],
+      "ans": 1,
+      "exp": "일반적으로 Dense → BatchNormalization → Activation(ReLU) → Dropout 순서로 배치합니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P18",
+      "cat": "최적화",
+      "diff": "hard",
+      "q": "Learning Rate Scheduling을 사용하는 이유로 옳은 것은?",
+      "opts": [
+        "배치 크기를 자동 조정하기 위해",
+        "초기엔 큰 학습률로 빠른 수렴, 후반엔 작은 학습률로 정밀한 최적점 탐색",
+        "모델 저장 간격 자동 조절",
+        "GPU 메모리 절약"
+      ],
+      "ans": 1,
+      "exp": "ReduceLROnPlateau: 성능 개선 없을 때 자동 학습률 감소. CosineAnnealing: 주기적으로 학습률 변화.",
+      "level": "Professional"
+    },
+    {
+      "id": "P19",
+      "cat": "최적화",
+      "diff": "hard",
+      "q": "Transfer Learning(전이학습)에서 Feature Extraction 방식이란?",
+      "opts": [
+        "사전학습 모델의 모든 가중치를 재학습",
+        "사전학습 모델의 합성곱 레이어는 고정(freeze)하고 마지막 분류 레이어만 학습",
+        "처음부터 모델을 학습",
+        "데이터만 전이"
+      ],
+      "ans": 1,
+      "exp": "Feature Extraction: ImageNet으로 사전학습된 VGG/ResNet의 합성곱 레이어를 고정하고 분류기만 새로 학습합니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P20",
+      "cat": "최적화",
+      "diff": "hard",
+      "q": "Fine-tuning과 Feature Extraction의 차이로 옳은 것은?",
+      "opts": [
+        "Fine-tuning은 모든 레이어를 고정, Feature Extraction은 전체 재학습",
+        "Fine-tuning은 일부 레이어의 동결을 해제해 낮은 학습률로 전체 재조정, Feature Extraction은 분류기만 학습",
+        "둘의 방법이 동일함",
+        "Fine-tuning은 데이터 증강 기법"
+      ],
+      "ans": 1,
+      "exp": "Fine-tuning: 사전학습 가중치에서 시작해 낮은 학습률로 전체 또는 일부 레이어를 재조정합니다. 더 많은 데이터 필요.",
+      "level": "Professional"
+    },
+    {
+      "id": "P21",
+      "cat": "특성공학",
+      "diff": "hard",
+      "q": "PolynomialFeatures(degree=2)를 적용하는 이유로 옳은 것은?",
+      "opts": [
+        "선형 변환만 수행",
+        "x1², x2², x1*x2 등 2차 특성을 생성해 비선형 패턴을 선형 모델로 캡처",
+        "데이터 정규화",
+        "차원을 항상 축소"
+      ],
+      "ans": 1,
+      "exp": "degree=2이면 원래 특성 [x1, x2]에서 [x1², x2², x1*x2, x1, x2, 1] 등 2차 조합 특성을 생성합니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P22",
+      "cat": "특성공학",
+      "diff": "hard",
+      "q": "PCA(주성분 분석)를 올바르게 적용하는 순서로 옳은 것은?",
+      "opts": [
+        "fit_transform(X_test) → transform(X_train)",
+        "fit(X_train) → transform(X_train) → transform(X_test)로 순서 적용",
+        "fit_transform(X 전체 데이터)",
+        "transform(X_train) → fit(X_test)"
+      ],
+      "ans": 1,
+      "exp": "PCA도 스케일러와 동일하게 훈련 데이터로만 fit하고, 훈련/검증/테스트 모두에 transform 적용합니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P23",
+      "cat": "특성공학",
+      "diff": "hard",
+      "q": "SMOTE 오버샘플링 기법에 대한 설명으로 옳은 것은?",
+      "opts": [
+        "다수 클래스를 줄이는 언더샘플링 기법",
+        "소수 클래스의 K-NN 이웃 사이를 보간해 합성 샘플을 생성하는 오버샘플링",
+        "모든 클래스를 무작위로 같은 수로 샘플링",
+        "가중치를 부여해 손실함수를 조정하는 기법"
+      ],
+      "ans": 1,
+      "exp": "SMOTE(Synthetic Minority Oversampling Technique): 소수 클래스 샘플의 K-최근접 이웃 사이에 새로운 합성 샘플을 생성합니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P24",
+      "cat": "Tabular",
+      "diff": "hard",
+      "q": "SHAP(SHapley Additive exPlanations)의 용도로 옳은 것은?",
+      "opts": [
+        "모델 학습 속도 향상",
+        "블랙박스 모델의 개별 예측에 대해 각 특성의 기여도를 게임이론으로 설명",
+        "데이터 전처리 자동화",
+        "앙상블 모델 구성"
+      ],
+      "ans": 1,
+      "exp": "SHAP: '이 예측에서 age 특성이 +0.3 기여, income이 -0.1 기여' 처럼 개별 예측 설명이 가능합니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P25",
+      "cat": "최적화",
+      "diff": "hard",
+      "q": "StackingClassifier에서 final_estimator의 역할로 옳은 것은?",
+      "opts": [
+        "base 모델 중 최고 성능 모델 선택",
+        "base 모델들의 예측값을 입력 특성으로 받아 최종 예측을 수행하는 메타 모델",
+        "모든 base 모델 예측을 단순 평균",
+        "순차적 부스팅 수행"
+      ],
+      "ans": 1,
+      "exp": "Stacking: base 모델(RF, XGB 등)의 예측값을 새 특성으로 삼아 meta-learner(LogisticRegression 등)가 최종 학습합니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P26",
+      "cat": "최적화",
+      "diff": "hard",
+      "q": "Optuna를 사용하는 목적으로 옳은 것은?",
+      "opts": [
+        "데이터 시각화 자동화",
+        "TPE(Tree-structured Parzen Estimator) 등으로 하이퍼파라미터를 지능적으로 자동 탐색",
+        "모델 배포 파이프라인 구성",
+        "데이터 전처리 자동화"
+      ],
+      "ans": 1,
+      "exp": "Optuna: GridSearch보다 효율적으로 하이퍼파라미터를 탐색합니다. 베이지안 최적화(TPE) 기반.",
+      "level": "Professional"
+    },
+    {
+      "id": "P27",
+      "cat": "Image",
+      "diff": "hard",
+      "q": "YOLOv5 등 Object Detection 모델의 출력으로 옳은 것은?",
+      "opts": [
+        "이미지 클래스만 반환",
+        "각 객체의 바운딩 박스 좌표 + 클래스 레이블 + 신뢰도 점수",
+        "이미지 픽셀 분류",
+        "텍스트 설명"
+      ],
+      "ans": 1,
+      "exp": "Object Detection: 이미지 내 다수 객체를 탐지하며 각각의 위치(bbox), 클래스, 신뢰도(confidence)를 반환합니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P28",
+      "cat": "Text",
+      "diff": "hard",
+      "q": "Transformer의 Self-Attention이 RNN보다 유리한 점으로 옳은 것은?",
+      "opts": [
+        "파라미터 수가 더 적음",
+        "병렬 처리 가능 + 긴 문장에서도 장거리 의존성을 직접 학습 가능",
+        "항상 더 높은 정확도 달성",
+        "메모리 사용량이 적음"
+      ],
+      "ans": 1,
+      "exp": "RNN은 순차 처리로 병렬화 불가하고 장거리 의존성이 약합니다. Transformer는 모든 위치 쌍 관계를 동시에 계산합니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P29",
+      "cat": "최적화",
+      "diff": "hard",
+      "q": "Professional 시험에서 '목표 성능 달성'이 핵심인 이유로 옳은 것은?",
+      "opts": [
+        "문제가 주관식이기 때문",
+        "문항당 목표 달성률에 따라 차등 점수가 부여되기 때문",
+        "코드 스타일을 평가하기 때문",
+        "시간이 제한되어 있기 때문"
+      ],
+      "ans": 1,
+      "exp": "Professional은 단순 코드 작성이 아닌 지정된 평가지표에서 목표 성능을 달성해야 점수를 받습니다.",
+      "level": "Professional"
+    },
+    {
+      "id": "P30",
+      "cat": "Tabular",
+      "diff": "hard",
+      "q": "회귀 모델 성능 개선 시 시도할 수 있는 방법들로 옳은 것은?",
+      "opts": [
+        "배치 크기만 조정",
+        "특성 선택/생성, 하이퍼파라미터 튜닝(GridSearchCV), 앙상블, 정규화 복합 시도",
+        "데이터 삭제만 수행",
+        "학습 epoch만 증가"
+      ],
+      "ans": 1,
+      "exp": "Professional 수준: Feature Engineering → 하이퍼파라미터 튜닝(GridSearch/Optuna) → 앙상블(Stacking/Blending) → 정규화 복합 적용.",
+      "level": "Professional"
+    }
+  ]
+}

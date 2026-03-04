@@ -36,48 +36,24 @@ def _embed_texts(texts: list):
         np.ndarray: shape (n, dim) — L2 정규화된 float32 벡터 행렬.
                     코사인 유사도를 내적(dot product)으로 계산할 수 있게 단위 벡터로 변환됨.
     """
-    """
-    텍스트 리스트를 OpenAI 임베딩 벡터로 변환 후 L2 정규화하여 반환.
-
-    Args:
-        texts (list): 임베딩할 문자열 리스트
-
-    Returns:
-        np.ndarray: shape (n, dim) — L2 정규화된 float32 벡터 행렬.
-                    코사인 유사도를 내적(dot product)으로 계산할 수 있게 단위 벡터로 변환됨.
-    """
     import numpy as np
     import openai as _openai
-
-    # 환경변수에서 OpenAI API 키를 읽어 클라이언트 생성
 
     # 환경변수에서 OpenAI API 키를 읽어 클라이언트 생성
     client = _openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
     # text-embedding-3-small 모델로 배치 임베딩 요청
     # 여러 텍스트를 한 번의 API 호출로 처리 (비용·속도 효율)
-
-    # text-embedding-3-small 모델로 배치 임베딩 요청
-    # 여러 텍스트를 한 번의 API 호출로 처리 (비용·속도 효율)
     response = client.embeddings.create(model="text-embedding-3-small", input=texts)
-
-    # API 응답은 순서가 보장되지 않을 수 있으므로 index 기준으로 정렬 후 벡터 추출
 
     # API 응답은 순서가 보장되지 않을 수 있으므로 index 기준으로 정렬 후 벡터 추출
     vectors = [item.embedding for item in sorted(response.data, key=lambda x: x.index)]
 
-    # Python list → float32 numpy 배열로 변환 (shape: n x dim)
-
-    # Python list → float32 numpy 배열로 변환 (shape: n x dim)
+    # Python list -> float32 numpy 배열로 변환 (shape: n x dim)
     arr = np.array(vectors, dtype=np.float32)
 
     # 각 벡터의 L2 norm(크기) 계산, keepdims=True로 브로드캐스팅 가능하게 유지 (shape: n x 1)
-
-    # 각 벡터의 L2 norm(크기) 계산, keepdims=True로 브로드캐스팅 가능하게 유지 (shape: n x 1)
     norms = np.linalg.norm(arr, axis=1, keepdims=True)
-
-    # 각 벡터를 norm으로 나눠 단위 벡터로 정규화
-    # np.maximum(norms, 1e-8): norm이 0인 제로 벡터일 때 division by zero 방지
 
     # 각 벡터를 norm으로 나눠 단위 벡터로 정규화
     # np.maximum(norms, 1e-8): norm이 0인 제로 벡터일 때 division by zero 방지
@@ -125,10 +101,10 @@ class JobPlannerParseView(APIView):
 
         Collector 시스템 단계별 설명:
         - Phase 1: StaticCollector (requests + BeautifulSoup)
-          → 정적 HTML 페이지 크롤링 (서버에서 완성된 HTML을 반환하는 사이트)
+          -> 정적 HTML 페이지 크롤링 (서버에서 완성된 HTML을 반환하는 사이트)
         - Phase 2+: BrowserCollector, ApiCollector 추가 예정
-          → BrowserCollector: JavaScript로 렌더링되는 SPA 사이트 크롤링 (Selenium/Playwright)
-          → ApiCollector: 채용 사이트 공식 API를 통한 데이터 수집
+          -> BrowserCollector: JavaScript로 렌더링되는 SPA 사이트 크롤링 (Selenium/Playwright)
+          -> ApiCollector: 채용 사이트 공식 API를 통한 데이터 수집
 
         Args:
             request: URL이 포함된 HTTP 요청 객체
@@ -216,11 +192,11 @@ class JobPlannerParseView(APIView):
 
 ### 언어
 - Python, Java, JavaScript, TypeScript, C++, C#, Go, Kotlin, Swift, Ruby, PHP, Rust, Scala 등
-- 한글: 파이썬, 자바, 자바스크립트, 타입스크립트 → 영문으로 변환
+- 한글: 파이썬, 자바, 자바스크립트, 타입스크립트 -> 영문으로 변환
 
 ### 프레임워크/라이브러리
 - Django, Flask, FastAPI, Spring, SpringBoot, React, Vue, Angular, Next.js, Node.js, Express 등
-- 한글: 장고, 플라스크, 스프링, 리액트, 뷰 → 영문으로 변환
+- 한글: 장고, 플라스크, 스프링, 리액트, 뷰 -> 영문으로 변환
 
 ### 데이터베이스
 - MySQL, PostgreSQL, MongoDB, Redis, Oracle, MariaDB, Elasticsearch 등
@@ -235,17 +211,17 @@ class JobPlannerParseView(APIView):
 - Git, GitHub, GitLab, Jira, Figma, Postman 등
 
 ## 추출 규칙:
-1. **문장에서도 기술 추출**: "Python과 Django를 활용한 백엔드 개발" → ["Python", "Django"]
-2. **리스트 형태도 추출**: "• Python\n• Django\n• PostgreSQL" → ["Python", "Django", "PostgreSQL"]
-3. **쉼표 구분도 추출**: "Python, Django, React 경험자" → ["Python", "Django", "React"]
-4. **한글을 영문으로**: "파이썬" → "Python", "장고" → "Django"
-5. **버전 제거**: "Python 3.x" → "Python", "Django 4.0" → "Django"
+1. **문장에서도 기술 추출**: "Python과 Django를 활용한 백엔드 개발" -> ["Python", "Django"]
+2. **리스트 형태도 추출**: "• Python\n• Django\n• PostgreSQL" -> ["Python", "Django", "PostgreSQL"]
+3. **쉼표 구분도 추출**: "Python, Django, React 경험자" -> ["Python", "Django", "React"]
+4. **한글을 영문으로**: "파이썬" -> "Python", "장고" -> "Django"
+5. **버전 제거**: "Python 3.x" -> "Python", "Django 4.0" -> "Django"
 6. **기술이 아닌 것 제외**: "팀워크", "성실성", "커뮤니케이션", "책임감" 등은 제외
 7. **최소 3개 이상** 추출 (있다면 최대한 많이)
 
 ## position 추출 규칙:
 - 이미지에 직무명/포지션이 명시되어 있으면 그대로 사용 (예: "백엔드 개발자", "AI 엔지니어")
-- 명시되어 있지 않으면 업무내용과 요구 기술을 바탕으로 적절한 직무명을 추론 (예: Python/Django 백엔드 → "백엔드 개발자", React/Vue 프론트 → "프론트엔드 개발자", ML/DL 관련 → "AI 엔지니어")
+- 명시되어 있지 않으면 업무내용과 요구 기술을 바탕으로 적절한 직무명을 추론 (예: Python/Django 백엔드 -> "백엔드 개발자", React/Vue 프론트 -> "프론트엔드 개발자", ML/DL 관련 -> "AI 엔지니어")
 
 ## JSON 형식:
 {
@@ -279,8 +255,8 @@ class JobPlannerParseView(APIView):
                         ]
                     }
                 ],
-                max_tokens=3000,  # 2000 → 3000 (더 많은 정보 추출)
-                temperature=0.2   # 0.3 → 0.2 (더 정확한 추출)
+                max_tokens=3000,  # 2000 -> 3000 (더 많은 정보 추출)
+                temperature=0.2   # 0.3 -> 0.2 (더 정확한 추출)
             )
 
             content = response.choices[0].message.content
@@ -335,7 +311,7 @@ class JobPlannerParseView(APIView):
         """
         파싱된 채용공고를 SavedJobPosting에 저장한다.
         세션에 user_id가 없으면 저장하지 않는다.
-        동일 사용자 + 동일 URL → update_or_create (중복 저장 방지)
+        동일 사용자 + 동일 URL -> update_or_create (중복 저장 방지)
 
         Returns:
             저장된 SavedJobPosting의 id (실패 시 None)
@@ -343,7 +319,7 @@ class JobPlannerParseView(APIView):
         try:
             from core.models import SavedJobPosting, UserProfile
 
-            # 세션에서 auth user 추출 → email로 UserProfile 조회
+            # 세션에서 auth user 추출 -> email로 UserProfile 조회
             from django.contrib.auth.models import User
             auth_user_id = request.session.get('_auth_user_id')
             if not auth_user_id:
@@ -443,7 +419,7 @@ class JobPlannerParseView(APIView):
 - required_qualifications: string (필수 요건 원문)
 - preferred_qualifications: string (우대 조건 원문)
 - required_skills: array of strings (필수 요건에서 언급된 기술/도구명만 추출. 예: "React", "Python", "Docker")
-- preferred_skills: array of strings (우대 조건에서 언급된 기술/도구명만 추출. 문장 속에 포함된 기술명도 반드시 추출. 예: "Typescript 기반 프로젝트 경험" → "Typescript")
+- preferred_skills: array of strings (우대 조건에서 언급된 기술/도구명만 추출. 문장 속에 포함된 기술명도 반드시 추출. 예: "Typescript 기반 프로젝트 경험" -> "Typescript")
 - experience_range: string
 - deadline: null"""
                     }
@@ -504,7 +480,7 @@ class JobPlannerAnalyzeView(APIView):
 
     주요 기능:
     1. LLM 기반 스킬 매칭 (동일 기술·대체 가능 기술·생태계 연관 기술 판단)
-    2. 한영 스킬 정규화 (예: "파이썬" → "python")
+    2. 한영 스킬 정규화 (예: "파이썬" -> "python")
     3. 준비도 점수 계산 (매칭률 + 경력 적합도 + 숙련도)
     4. 맞춤형 인사이트 생성
     """
@@ -513,7 +489,7 @@ class JobPlannerAnalyzeView(APIView):
 
     # 한영 스킬 동의어 사전
     # 다양한 표기를 통일된 형태로 정규화하기 위한 매핑 테이블
-    # 예: "파이썬", "Python", "python" → 모두 "python"으로 통일
+    # 예: "파이썬", "Python", "python" -> 모두 "python"으로 통일
     # 참고: 'python': 'python' 같은 중복은 불필요 (_normalize_skill에서 자동 처리)
     SKILL_SYNONYMS = {
         # 프로그래밍 언어
@@ -629,7 +605,7 @@ class JobPlannerAnalyzeView(APIView):
         스킬명을 정규화 (한글->영어, 소문자 변환)
 
         동의어 사전을 사용하여 다양한 표기를 통일된 형태로 변환합니다.
-        예: "파이썬" → "python", "장고" → "django", "JS" → "javascript"
+        예: "파이썬" -> "python", "장고" -> "django", "JS" -> "javascript"
 
         Args:
             skill (str): 원본 스킬명
@@ -771,7 +747,7 @@ class JobPlannerAnalyzeView(APIView):
             if not all_required_skills:
                 all_required_skills = extracted_skills['required'] if extracted_skills['required'] else ['개발 역량']
 
-            print(f"📊 필수 스킬: {len(required_skills)}개 → {len(all_required_skills)}개 (텍스트 분석 추가)")
+            print(f"📊 필수 스킬: {len(required_skills)}개 -> {len(all_required_skills)}개 (텍스트 분석 추가)")
 
             # 스킬 정규화 (한영 통일) — fallback 매칭 및 향후 활용을 위해 유지
             user_skills_normalized = [self._normalize_skill(s) for s in user_skills]
@@ -803,7 +779,7 @@ class JobPlannerAnalyzeView(APIView):
                     user_skill = m["user_skill"]
                     level = skill_levels.get(user_skill, 3)  # 기본값 3 (중급)
                     level_sum += level
-                # 평균 숙련도를 0.0-1.0 범위로 정규화 (1-5 레벨 → 0.2-1.0)
+                # 평균 숙련도를 0.0-1.0 범위로 정규화 (1-5 레벨 -> 0.2-1.0)
                 proficiency_score = round(level_sum / len(matched_skills) / 5.0, 3) if matched_skills else 0.0
 
             # 준비도 점수 개선 (더 직관적인 계산)
@@ -866,7 +842,7 @@ class JobPlannerAnalyzeView(APIView):
             0.70~0.84  : 같은 목적으로 대체 가능한 경쟁 기술 (Django ↔ Flask)
             0.50~0.69  : 같은 생태계 내 연관 기술 (pandas ↔ Python)
             0.30~0.49  : 간접 연관 (같은 도메인, 역할 다름)
-            0.30 미만  : 매칭 안 함 → missing_skills
+            0.30 미만  : 매칭 안 함 -> missing_skills
 
         LLM 호출 실패 시 _match_skills_fallback()으로 대체됩니다.
 
@@ -921,12 +897,12 @@ similarity 기준:
 - 다른 패러다임의 언어: Python ↔ R
 - 다른 API 스타일: REST API ↔ GraphQL
 
-[0.30 미만] 매칭하지 않음 → missing_skills에 추가
+[0.30 미만] 매칭하지 않음 -> missing_skills에 추가
 - 역할·목적·생태계가 모두 다른 기술: Elasticsearch ↔ Django, Redis ↔ React
 
 규칙:
 - 각 보유 스킬은 하나의 요구 스킬에만 매칭 (1:1)
-- 특정 라이브러리가 요구될 때, 지원자의 전체 보유 스킬 목록을 고려해 해당 라이브러리가 속한 언어·생태계를 보유하고 있으면 유사 기술로 판단 (예: pandas 요구 + Python·Scikit-learn 보유 → 0.50 이상)
+- 특정 라이브러리가 요구될 때, 지원자의 전체 보유 스킬 목록을 고려해 해당 라이브러리가 속한 언어·생태계를 보유하고 있으면 유사 기술로 판단 (예: pandas 요구 + Python·Scikit-learn 보유 -> 0.50 이상)
 - 개별 스킬 쌍만 보지 말고 지원자의 전체 스킬 맥락을 함께 고려할 것
 - 단순히 같은 분야(백엔드, 프론트엔드 등)에서 쓰인다는 이유만으로 0.70 이상을 부여하지 말 것
 
@@ -1030,7 +1006,7 @@ JSON으로만 반환:
     def _parse_period_years(self, period_str):
         """
         경력 기간 문자열에서 연수를 추출.
-        "2년 3개월" → 2.25, "2022.01 - 2024.06" → 2.42, "3년" → 3.0
+        "2년 3개월" -> 2.25, "2022.01 - 2024.06" -> 2.42, "3년" -> 3.0
         """
         import re
         if not period_str:
@@ -1081,7 +1057,7 @@ JSON으로만 반환:
 
         years = relevant_years if relevant_years is not None else total_years
 
-        # 정규식으로 숫자 추출 (예: "3-5년" → [3, 5], "신입" → [])
+        # 정규식으로 숫자 추출 (예: "3-5년" -> [3, 5], "신입" -> [])
         nums = re.findall(r'\d+', req_range)
         if not nums:
             # 숫자 정보가 없으면 중간 점수 반환
@@ -1099,7 +1075,7 @@ JSON으로만 반환:
             return max(0.0, years / lo)
         else:
             # 경력 초과: 약간의 감점 (경력이 너무 많으면 오버스펙)
-            # 예: 8년 경력, 5년 요구 → 1.0 - (8-5)*0.05 = 0.85
+            # 예: 8년 경력, 5년 요구 -> 1.0 - (8-5)*0.05 = 0.85
             return max(0.7, 1.0 - (years - hi) * 0.05)
 
     def _generate_insights(self, name, current_role, education, certifications,
@@ -1554,7 +1530,7 @@ class JobPlannerRecommendView(APIView):
                     if job['url'] not in seen_urls:
                         seen_urls.add(job['url'])
                         job_listings.append(job)
-                print(f"  → {len(saramin_jobs)}개 수집 (누적 {len(job_listings)}개)")
+                print(f"  -> {len(saramin_jobs)}개 수집 (누적 {len(job_listings)}개)")
 
             print(f"✅ 사람인 총: {len(job_listings)}개 공고")
 
@@ -1578,7 +1554,7 @@ class JobPlannerRecommendView(APIView):
                 filtered_listings, user_skills, skill_levels, readiness_score, current_job_text
             )
 
-            # 1차: 스킬 태그 30% 이상만 통과 → 상위 15개 후보 선별
+            # 1차: 스킬 태그 30% 이상만 통과 -> 상위 15개 후보 선별
             recommendations = [r for r in recommendations if r['match_rate'] >= 0.30]
             recommendations.sort(key=lambda x: x['match_rate'], reverse=True)
             candidates = recommendations[:15]
@@ -1591,7 +1567,7 @@ class JobPlannerRecommendView(APIView):
                     "message": "매칭되는 유사한 공고를 찾지 못했습니다."
                 }, status=status.HTTP_200_OK)
 
-            # 2차: 후보만 상세 크롤링 (전체가 아닌 후보만 → 빠름)
+            # 2차: 후보만 상세 크롤링 (전체가 아닌 후보만 -> 빠름)
             print(f"🔍 후보 {len(candidates)}개 상세 파싱 시작...")
             candidate_jobs = [{'url': c['url'], 'skills': c['skills'], 'company_name': c['company_name'],
                                'title': c['title'], 'source': c['source'], 'location': c['location']}
@@ -1777,10 +1753,10 @@ class JobPlannerRecommendView(APIView):
         직무명을 검색에 적합한 간단한 키워드로 정제합니다.
 
         예시:
-        - "AI리서치엔지니어-LLM포스트트레이닝" → "AI 엔지니어"
-        - "(주)헥토 AI개발" → "AI개발"
-        - "백엔드 개발자 (Python/Django)" → "백엔드 개발자"
-        - "데이터 분석가 [신입/경력]" → "데이터 분석가"
+        - "AI리서치엔지니어-LLM포스트트레이닝" -> "AI 엔지니어"
+        - "(주)헥토 AI개발" -> "AI개발"
+        - "백엔드 개발자 (Python/Django)" -> "백엔드 개발자"
+        - "데이터 분석가 [신입/경력]" -> "데이터 분석가"
 
         Args:
             job_position (str): 원본 직무명
@@ -2138,6 +2114,7 @@ class JobPlannerRecommendView(APIView):
                 candidate['llm_score'] = result.get('score', 0)
                 candidate['reason'] = result.get('reason', candidate.get('reason', ''))
                 candidate['requirements_summary'] = result.get('requirements_summary', '')
+                candidate['requirements_summary'] = result.get('requirements_summary', '')
                 print(f"  🤖 {candidate['company_name']} | LLM 적합도: {candidate['llm_score']}점")
             except Exception as e:
                 print(f"  ⚠️ LLM 평가 실패 ({candidate['company_name']}): {e}")
@@ -2221,7 +2198,7 @@ class JobPlannerCompanyAnalyzeView(APIView):
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
 
-        # 채용 사이트 → BeautifulSoup 방식
+        # 채용 사이트 -> BeautifulSoup 방식
         if any(domain in url for domain in JOB_SITE_DOMAINS):
             response = requests.get(url, headers=headers, timeout=10)
             response.raise_for_status()
@@ -2239,7 +2216,7 @@ class JobPlannerCompanyAnalyzeView(APIView):
 
             return text
 
-        # 일반 사이트(회사 홈페이지, 뉴스, 블로그 등) → trafilatura
+        # 일반 사이트(회사 홈페이지, 뉴스, 블로그 등) -> trafilatura
         import trafilatura
         downloaded = trafilatura.fetch_url(url)
         text = trafilatura.extract(downloaded)
@@ -2294,8 +2271,8 @@ class JobPlannerCompanyAnalyzeView(APIView):
             use_web_search = not company_info or len(company_info.strip()) < 200
 
             if use_web_search:
-                # 크롤링 정보 부족 → Responses API + web_search로 실시간 검색
-                print(f"🔍 크롤링 정보 부족 ({len(company_info.strip()) if company_info else 0}자) → 웹서치 사용")
+                # 크롤링 정보 부족 -> Responses API + web_search로 실시간 검색
+                print(f"🔍 크롤링 정보 부족 ({len(company_info.strip()) if company_info else 0}자) -> 웹서치 사용")
                 response = client.responses.create(
                     model="gpt-4o-mini",
                     tools=[{"type": "web_search_preview"}],
@@ -2310,7 +2287,7 @@ class JobPlannerCompanyAnalyzeView(APIView):
                 )
                 content = response.output_text
             else:
-                # 크롤링 정보 충분 → 기존 Chat Completions 방식
+                # 크롤링 정보 충분 -> 기존 Chat Completions 방식
                 response = client.chat.completions.create(
                     model="gpt-4o-mini",
                     messages=[
@@ -2370,9 +2347,9 @@ class JobPlannerParseResumeView(APIView):
     이력서/자기소개서/포트폴리오 PDF 파싱 API
 
     세 종류의 서류를 병렬로 분석하여 사용자 프로필을 자동 추출합니다.
-    - 자기소개서: pdfplumber 텍스트 추출 → GPT 텍스트 분석
-    - 이력서: PDF→이미지 변환 → Vision API (표 형식 대응)
-    - 포트폴리오: PDF→이미지 변환 → Vision API
+    - 자기소개서: pdfplumber 텍스트 추출 -> GPT 텍스트 분석
+    - 이력서: PDF->이미지 변환 -> Vision API (표 형식 대응)
+    - 포트폴리오: PDF->이미지 변환 -> Vision API
     세 작업을 ThreadPoolExecutor로 병렬 실행 후 LLM으로 결과 병합.
     """
     authentication_classes = []
@@ -2484,7 +2461,7 @@ class JobPlannerParseResumeView(APIView):
         return text.strip()
 
     def _parse_resume(self, pdf_base64, api_key):
-        """이력서: 텍스트 추출 우선 → 부족하면 Vision API fallback"""
+        """이력서: 텍스트 추출 우선 -> 부족하면 Vision API fallback"""
         RESUME_PROMPT = """이력서에서 추출 가능한 모든 정보를 JSON으로 추출하세요.
 없는 정보는 null 또는 빈 배열로 반환하세요.
 학력은 "학교명-학과(전공)" 형식으로 작성하세요.
@@ -2512,8 +2489,8 @@ JSON 형식:
         text = self._extract_pdf_text(pdf_base64)
 
         if len(text) >= 100:
-            # 텍스트 충분 → gpt-4o-mini로 빠르게 처리
-            print("📄 이력서: 텍스트 추출 성공 → gpt-4o-mini 사용")
+            # 텍스트 충분 -> gpt-4o-mini로 빠르게 처리
+            print("📄 이력서: 텍스트 추출 성공 -> gpt-4o-mini 사용")
             client = openai.OpenAI(api_key=api_key)
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
@@ -2526,8 +2503,8 @@ JSON 형식:
             )
             return json.loads(response.choices[0].message.content)
         else:
-            # 텍스트 부족 (스캔본/이미지 PDF) → Vision API fallback
-            print("🖼️ 이력서: 텍스트 부족 → Vision API fallback")
+            # 텍스트 부족 (스캔본/이미지 PDF) -> Vision API fallback
+            print("🖼️ 이력서: 텍스트 부족 -> Vision API fallback")
             images = self._pdf_to_images(pdf_base64)
             if not images:
                 return {}

@@ -1098,7 +1098,6 @@ export default {
       analysisResult: null,
 
       // Agent Report
-      // Agent Report
       finalReport: null,
       isGeneratingReport: false,
 
@@ -3958,6 +3957,19 @@ export default {
   border-left: 2px solid #475569;
 }
 
+.swot-point {
+  display: block;
+}
+
+.swot-evidence {
+  display: block;
+  font-size: 0.85em;
+  color: #94a3b8;
+  margin-top: 2px;
+  padding-left: 4px;
+  border-left: 2px solid #475569;
+}
+
 
 /* Experience Packaging */
 .packaging-section {
@@ -4247,6 +4259,28 @@ export default {
 
 .rec-value {
   color: #cbd5e1;
+}
+
+.rec-job-summary {
+  padding: 14px;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+
+.rec-job-summary-header {
+  font-size: 13px;
+  font-weight: 700;
+  color: #a5b4fc;
+  margin-bottom: 8px;
+}
+
+.rec-job-summary-text {
+  color: #cbd5e1;
+  font-size: 13.5px;
+  line-height: 1.7;
+  margin: 0;
 }
 
 .rec-job-summary {

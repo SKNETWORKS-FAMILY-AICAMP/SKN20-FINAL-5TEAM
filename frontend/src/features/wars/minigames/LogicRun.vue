@@ -11,36 +11,73 @@
     <!-- ===== INTRO ===== -->
     <div v-if="phase === 'intro'" class="intro-screen">
       <div class="intro-box">
-        <div class="intro-badge">1 vs 1 HYBRID MODE</div>
+        <div class="intro-badge">AICE 자격증 대비 모드</div>
         <h1 class="intro-title glitch" data-text="LOGIC RUN">LOGIC RUN</h1>
-        <p class="intro-sub">2단계 의사코드 경쟁: 속도전 + 설계전!</p>
+        <p class="intro-sub">목표 등급을 선택하고 실전문제를 풀어보세요!</p>
         <div class="intro-rules">
-          <div class="rule-item">⚡ Phase 1: 빈칸 채우기 (5라운드, 15초/라운드)</div>
-          <div class="rule-item">🎨 Phase 2: 설계 스프린트 (핵심 의사코드 작성, 90초)</div>
-          <div class="rule-item">🏆 총점으로 승리 (Phase1 60% + Phase2 40%)</div>
-          <div class="rule-item">📊 수도코드 평가방식: 체크리스트 기반 채점</div>
+          <div class="rule-item">Phase 1: 스피드 퀴즈 (5라운드, 15초/라운드)</div>
+          <div class="rule-item">Phase 2: 주관식 서술 (핵심 의사코드 작성, 90초)</div>
+          <div class="rule-item">총점으로 등급 예측 (Phase1 40% + Phase2 60%)</div>
+          <div class="rule-item">AI 평가방식: AICE 채점 기준 기반 1:1 피드백 제공</div>
         </div>
         <div class="team-select">
-          <p class="team-label">방 관리 (1대1 경쟁)</p>
+          <p class="team-label">AICE 자격증 등급 선택</p>
+          <div class="difficulty-select neon-border">
+            <button
+              v-for="diff in difficultyOptions"
+              :key="diff.id"
+              class="btn-diff"
+              :class="{ active: selectedDifficulty === diff.id }"
+              @click="selectedDifficulty = diff.id"
+            >
+              {{ diff.label }}
+            </button>
+          </div>
+          
+          <p class="team-label" style="margin-top: 1rem;">방 관리 (1대1 경쟁)</p>
           <div class="room-input-group">
             <input v-model="inputRoomId" placeholder="방 번호 입력..." class="room-input" @keyup.enter="joinRoom" />
             <button @click="joinRoom" class="btn-join">입장/변경</button>
           </div>
-          <div v-if="roomId" class="current-room-info">
-            접속 중인 방: <span class="neon-c">{{ roomId }}</span>
-            <div class="room-players">
-              선수: <span v-for="p in rs.roomPlayers.value" :key="p.sid" class="p-tag">{{ p.name }} </span>
+          <div v-if="roomId" class="battle-lobby-info">
+            <div class="battle-lobby-card">
+              <template v-if="rs.roomPlayers.value[0]">
+                <img :src="rs.roomPlayers.value[0].avatar_url || '/image/duck_idle.png'" class="lobby-avatar" />
+                <div class="lobby-name p1">{{ rs.roomPlayers.value[0].name }}</div>
+              </template>
+              <div v-else class="lobby-slot-empty">P1 대기중...</div>
+            </div>
+
+            <div class="battle-vs">VS</div>
+
+            <div class="battle-lobby-card">
+              <template v-if="rs.roomPlayers.value[1]">
+                <img :src="rs.roomPlayers.value[1].avatar_url || '/image/duck_idle.png'" class="lobby-avatar" />
+                <div class="lobby-name p2">{{ rs.roomPlayers.value[1].name }}</div>
+              </template>
+              <div v-else class="lobby-slot-empty">
+                <div class="hourglass">⏳</div>
+                대기 중...
+              </div>
             </div>
           </div>
-          <div v-if="rs.connected.value && !rs.isReady.value" class="lobby-info">상대방을 기다리는 중...</div>
         </div>
-        <button 
+        
+        <!-- [추가] AI 문제 생성 중 표시 -->
+        <div v-if="isStarting && !rs.gameStarted.value" class="ai-generating-box">
+          <div class="spinner-small"></div>
+          <div class="gen-msg neon-c">{{ genProgressMsg || 'AI 문제 생성 중...' }}</div>
+        </div>
+        <button v-else
           @click="requestStart" 
           class="btn-start blink-border" 
-          :disabled="!rs.connected.value || rs.roomPlayers.value.length < 2 || isStarting"
+          :disabled="!rs.connected.value || rs.roomPlayers.value.length < 2 && false"
         >
-          {{ isStarting ? '⌛ STARTING...' : '▶ START GAME' }}
+          ▶ START GAME
         </button>
+
+        <!-- [추가] 에러 메시지(토스트) 표시 -->
+        <div v-if="errorMsg" class="error-toast">{{ errorMsg }}</div>
       </div>
     </div>
 
@@ -84,6 +121,8 @@
             <div class="lane opponent-lane" :class="isP1 ? 'p2-lane' : 'p1-lane'">
               <div class="lane-label">👥 상대</div>
               <div class="runner-char" :style="{ left: opponentProgressPct + '%' }">
+                <!-- ← [수정: 2026-03-04] 접속한 닉네임 표기 추가 -->
+                <div class="runner-name opponent-name">{{ opponentName }}</div>
                 <img :src="(isP1 ? playerP2?.avatarUrl : playerP1?.avatarUrl) || '/image/duck_idle.png'" class="main-avatar" />
               </div>
             </div>
@@ -91,6 +130,8 @@
             <!-- 하단: 내 레인 -->
             <div class="lane my-lane" :class="isP1 ? 'p1-lane' : 'p2-lane'">
               <div class="runner-char" :style="{ left: myProgressPct + '%' }" :class="{ running: true, stumble: stumbling }">
+                <!-- ← [수정: 2026-03-04] 접속한 닉네임 표기 추가 -->
+                <div class="runner-name my-name">{{ myName }}</div>
                 <img :src="(isP1 ? playerP1?.avatarUrl : playerP2?.avatarUrl) || '/image/duck_idle.png'" class="main-avatar" />
                 <div class="dust-effect"></div>
               </div>
@@ -457,6 +498,14 @@ import PortfolioWriter from '../components/PortfolioWriter.vue'
 const router = useRouter()
 const auth = useAuthStore()
 
+// AICE 난이도 선택 추가
+const selectedDifficulty = ref('Associate')
+const difficultyOptions = [
+  { id: 'Basic', label: 'Basic' },
+  { id: 'Associate', label: 'Associate' },
+  { id: 'Professional', label: 'Professional' }
+]
+
 // ─── 멀티플레이어 소켓 ───────────────────────────────
 import { useRunSocket } from '../composables/useRunSocket'
 const rs = useRunSocket()
@@ -617,17 +666,31 @@ const lrDownloadTxt = () => {
 }
 // =========================================================
 
+// 방 입장
 function joinRoom() {
   if (!inputRoomId.value.trim()) return
   roomId.value = inputRoomId.value.trim()
   // [수정일: 2026-03-03] 유저 연동 복구: userId 추가 전달
-  rs.connect(roomId.value, auth.sessionNickname, auth.userAvatarUrl, auth.user?.id)
+  // [수정일: 2026-03-04] AICE 난이도 추가 전달 또는 방 이름에 난이도 접두어 
+  const fullRoomId = `${selectedDifficulty.value}_${roomId.value}`
+  rs.connect(fullRoomId, auth.sessionNickname, auth.userAvatarUrl, auth.user?.id)
 }
 
 function requestStart() {
-  if (rs.connected.value && rs.roomPlayers.value.length >= 2 && !isStarting.value) {
+  if (!rs.connected.value) return
+
+  if (rs.roomPlayers.value.length < 2) {
+    errorMsg.value = '상대방이 입장해야 게임을 시작할 수 있습니다.'
+    setTimeout(() => { errorMsg.value = '' }, 2500)
+    shaking.value = true
+    setTimeout(() => { shaking.value = false }, 400)
+    return
+  }
+
+  if (!isStarting.value) {
     isStarting.value = true
-    rs.emitStart(roomId.value)
+    const fullRoomId = `${selectedDifficulty.value}_${roomId.value}`
+    rs.emitStart(fullRoomId)
     // 5초간 응답 없으면 다시 시도 가능하게 초기화 (안전장치)
     setTimeout(() => { if (phase.value === 'intro') isStarting.value = false }, 5000)
   }
@@ -734,6 +797,7 @@ const shaking = ref(false)
 const flashOk = ref(false)
 const flashFail = ref(false)
 const stumbling = ref(false)
+const genProgressMsg = ref('')
 
 // 플레이어 정보
 const playerP1 = ref(null)
@@ -1364,598 +1428,5 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;600;700&family=Space+Grotesk:wght@400;600&display=swap');
-
-/* ── 기본 ─────────────────────────────────── */
-.logic-run {
-  min-height: 100vh;
-  background: #03070f;
-  color: #e0f2fe;
-  font-family: 'Rajdhani', sans-serif;
-  position: relative;
-  overflow: hidden;
-}
-.crt-lines {
-  pointer-events: none;
-  position: fixed; inset: 0; z-index: 9999;
-  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,240,255,0.01) 2px, rgba(0,240,255,0.01) 4px);
-}
-.shake { animation: shake .3s ease; }
-.flash-ok::after { content:''; position:fixed; inset:0; background:rgba(57,255,20,.1); z-index:9000; pointer-events:none; animation:flashOut .3s forwards; }
-.flash-fail::after { content:''; position:fixed; inset:0; background:rgba(255,45,117,.1); z-index:9000; pointer-events:none; animation:flashOut .3s forwards; }
-@keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
-@keyframes flashOut { from{opacity:1} to{opacity:0} }
-.glitch { position:relative; font-family:'Orbitron',sans-serif; }
-.glitch::before,.glitch::after { content:attr(data-text); position:absolute; top:0; left:0; width:100%; height:100%; }
-.glitch::before { color:#ff2d75; clip-path:inset(0 0 65% 0); animation:g1 2s infinite linear alternate-reverse; }
-.glitch::after  { color:#39ff14; clip-path:inset(65% 0 0 0);  animation:g2 2s infinite linear alternate-reverse; }
-@keyframes g1 { 50%{transform:translate(-3px,2px)} }
-@keyframes g2 { 50%{transform:translate(3px,-2px)} }
-.neon-c { color:#00f0ff; text-shadow:0 0 8px #00f0ff; }
-.neon-y { color:#ffe600; text-shadow:0 0 8px rgba(255,230,0,.5); }
-
-/* ── INTRO ────────────────────────────────── */
-.intro-screen { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:2rem; }
-.intro-box {
-  text-align:center; max-width:580px; width:100%;
-  background:rgba(8,12,30,.9); border:2px solid #00f0ff;
-  border-radius:1.5rem; padding:3rem 2.5rem;
-  box-shadow:0 0 60px rgba(0,240,255,.12);
-}
-.intro-badge { display:inline-block; font-size:.6rem; letter-spacing:3px; font-weight:700; padding:4px 14px; background:rgba(0,240,255,.08); border:1px solid rgba(0,240,255,.25); border-radius:4px; color:#00f0ff; margin-bottom:1.5rem; }
-.intro-title { font-size:3rem; font-weight:900; color:#00f0ff; letter-spacing:6px; text-shadow:0 0 30px #00f0ff; margin-bottom:.5rem; }
-.intro-sub { color:#64748b; letter-spacing:1px; margin-bottom:1.5rem; font-size:.95rem; }
-.intro-rules { text-align:left; margin-bottom:1.5rem; }
-.rule-item { font-size:.85rem; color:#94a3b8; padding:.3rem 0; border-bottom:1px solid rgba(255,255,255,.04); }
-.team-select { margin-bottom:1.5rem; }
-.team-label { font-size:.7rem; font-weight:700; color:#475569; letter-spacing:2px; margin-bottom:.6rem; }
-.room-input-group { display: flex; gap: 8px; justify-content: center; margin-bottom: 12px; }
-.room-input { background: rgba(0, 0, 0, 0.4); border: 1px solid #1e293b; color: #fff; padding: 8px 12px; border-radius: 6px; font-family: 'Orbitron', sans-serif; font-size: 0.9rem; width: 140px; text-align: center; outline: none; }
-.room-input:focus { border-color: #00f0ff; box-shadow: 0 0 10px rgba(0, 240, 255, 0.2); }
-.btn-join { background: rgba(0, 240, 255, 0.1); border: 1px solid rgba(0, 240, 255, 0.3); color: #00f0ff; padding: 8px 16px; border-radius: 6px; font-family: 'Orbitron', sans-serif; font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: all 0.2s; }
-.btn-join:hover { background: #00f0ff; color: #030712; }
-.current-room-info { font-size: 0.8rem; color: #64748b; margin-top: 8px; }
-.room-players { margin-top: 6px; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
-.p-tag { font-size: 0.7rem; background: rgba(0, 240, 255, 0.05); border: 1px solid rgba(0, 240, 255, 0.1); padding: 2px 8px; border-radius: 4px; color: #38bdf8; }
-.lobby-info { font-size: 0.8rem; color: #ffe600; margin-top: 10px; animation: blinkB 2s infinite; }
-
-.btn-start { margin-top:1rem; padding:.9rem 3rem; font-family:'Orbitron',sans-serif; font-size:1rem; font-weight:900; background:transparent; border:2px solid #ffe600; color:#ffe600; border-radius:.75rem; cursor:pointer; letter-spacing:3px; transition:all .2s; }
-.btn-start:hover { background:rgba(255,230,0,.08); box-shadow:0 0 30px rgba(255,230,0,.3); transform:scale(1.04); }
-.blink-border { animation:blinkB 1.5s infinite; }
-@keyframes blinkB { 50%{border-color:rgba(255,230,0,.3)} }
-
-/* ── HUD ──────────────────────────────────── */
-.hud {
-  display:flex; align-items:center; gap:1rem;
-  padding:.6rem 1.5rem; margin:.75rem 1rem 0;
-  background:rgba(8,12,30,.85); border:1px solid rgba(0,240,255,.1);
-  border-radius:1rem;
-}
-.hud-cell { display:flex; flex-direction:column; align-items:center; }
-.hud-cell.flex-grow { flex:1; }
-.hud-lbl { font-size:.5rem; font-weight:700; color:#475569; letter-spacing:2px; }
-.hud-val { font-family:'Orbitron',sans-serif; font-size:1.1rem; font-weight:900; }
-.hud-badge { font-family:'Orbitron',sans-serif; font-size:.6rem; color:#ffe600; }
-.timer-cell { flex:1; }
-.timer-bar-track { width:100%; height:8px; background:#0f172a; border-radius:4px; overflow:hidden; border:1px solid rgba(0,240,255,.1); }
-.timer-bar-fill { height:100%; background:linear-gradient(90deg,#00f0ff,#38bdf8); border-radius:4px; transition:width 1s linear; }
-.timer-bar-fill.danger { background:linear-gradient(90deg,#ff2d75,#ef4444); }
-.timer-cell.danger .timer-bar-fill { background:linear-gradient(90deg,#ff2d75,#ef4444); }
-.timer-num { font-family:'Orbitron',sans-serif; font-size:.75rem; color:#94a3b8; margin-top:2px; }
-.timer-cell.danger .timer-num { color:#ff2d75; animation:blinkA .5s infinite; }
-@keyframes blinkA { 50%{opacity:.3} }
-
-/* ── GAME AREA ────────────────────────────── */
-.game-screen { display:flex; flex-direction:column; height:calc(100vh - 80px); }
-.game-area { display:grid; gap:1rem; padding:1rem; flex:1; min-height:0; overflow:hidden; }
-.game-area.phase1-layout { grid-template-columns:1fr 380px; }
-.game-area.phase2-layout { grid-template-columns:1fr 1fr; }
-
-/* 좌측 */
-.game-left { display:flex; flex-direction:column; gap:.75rem; }
-.line-info { display:flex; align-items:center; gap:.5rem; padding:.5rem 1rem; background:rgba(8,12,30,.6); border:1px solid rgba(0,240,255,.1); border-radius:.5rem; }
-.line-badge { font-family:'Orbitron',sans-serif; font-size:.7rem; font-weight:700; color:#00f0ff; }
-.hint-text { font-size:.8rem; color:#64748b; flex:1; }
-.context-text { font-size:.8rem; color:#94a3b8; flex:1; }
-
-/* 달리기 스테이지 */
-.runner-stage.dual-track {
-  flex:1; position:relative; background:rgba(8,12,30,.8);
-  border:1.5px solid rgba(0,240,255,.1); border-radius:1rem;
-  overflow:hidden; min-height:220px; display: flex; flex-direction: column;
-}
-.lane {
-  flex: 1; position: relative; display: flex; align-items: flex-end;
-  padding-bottom: 8px; border-bottom: 1px dashed rgba(255,255,255,0.05);
-  background: linear-gradient(0deg, rgba(255,255,255,0.02) 0%, transparent 100%);
-}
-.lane:last-child { border-bottom: none; }
-
-/* ← 추가: 각 플레이어 입장 반영 */
-.lane.my-lane {
-  background: linear-gradient(0deg, rgba(0,240,255,0.05) 0%, transparent 100%);
-  border-left: 2px solid rgba(0,240,255,0.3);
-}
-.lane.opponent-lane {
-  background: linear-gradient(0deg, rgba(255,100,100,0.05) 0%, transparent 100%);
-  border-left: 2px solid rgba(255,100,100,0.3);
-}
-
-.lane-label {
-  position: absolute; top: 10px; left: 15px; font-family: 'Orbitron', sans-serif;
-  font-size: 0.6rem; font-weight: 700; color: rgba(255,255,255,0.2);
-  letter-spacing: 2px; pointer-events: none;
-}
-.p1-lane { background: rgba(0,240,255,0.03); }
-.p2-lane { background: rgba(255,45,117,0.03); }
-
-.runner-char {
-  position:absolute; bottom:8px; transition:left .5s ease;
-  width: 64px; height: 64px; display: flex; align-items: flex-end;
-  justify-content: center;
-  /* translateX(-50%) 제거: left:0% 출발선에서 양쪽 오리가 동일 위치에서 시작 */
-}
-/* ← 수정: 오리가 달리는 방향(오른쪽)을 바라보도록 반전 추가 */
-.main-avatar { width: 56px; height: 56px; object-fit: contain; filter: drop-shadow(0 0 10px rgba(0,240,255,0.3)); transform: scaleX(-1); }
-.runner-char.running { animation:runBounce .4s infinite ease-in-out; }
-.runner-char.stumble { animation:stumbleAnim .3s ease; }
-
-.finish-line {
-  position: absolute; right: 20px; top: 0; bottom: 0; width: 40px;
-  background: repeating-linear-gradient(45deg, #eee 0, #eee 5px, #222 5px, #222 10px);
-  opacity: 0.15; display: flex; align-items: center; justify-content: center;
-}
-.finish-icon { font-size: 1.5rem; transform: rotate(-10deg); filter: grayscale(1); }
-
-.dust-effect {
-  position: absolute; bottom: 0; left: 0;
-  width: 12px; height: 8px; background: rgba(255,255,255,0.3);
-  border-radius: 50%; filter: blur(2px);
-  animation: dustAnim 0.4s infinite;
-}
-@keyframes dustAnim {
-  0% { transform: scale(1) translateX(0); opacity: 0.6; }
-  100% { transform: scale(3) translateX(-40px); opacity: 0; }
-}
-
-@keyframes runBounce {
-  0%,100%{transform:translateY(0) rotate(5deg) scaleX(1)}
-  50%{transform:translateY(-10px) rotate(-5deg) scaleX(1.05)}
-}
-@keyframes stumbleAnim { 0%,100%{transform:rotate(0)} 50%{transform:rotate(-20deg)} }
-
-/* 우측 */
-.game-right { display:flex; flex-direction:column; gap:.75rem; overflow-y:auto; }
-
-/* IDE 에디터 */
-.editor-panel { background:rgba(8,12,30,.8); border:1px solid rgba(0,240,255,.15); border-radius:.75rem; overflow:hidden; display:flex; flex-direction:column; height:100%; }
-.editor-header { background:#0a0f1e; padding:.75rem; border-bottom:1px solid #1e293b; display:flex; align-items:center; justify-content:space-between; }
-.editor-tabs { display:flex; gap:.5rem; }
-.tab { font-size:.65rem; color:#64748b; padding:.4rem .75rem; border-bottom:2px solid transparent; cursor:pointer; }
-.tab.active { color:#00f0ff; border-bottom-color:#00f0ff; }
-.editor-meta { font-size:.6rem; color:#475569; }
-.editor-body { flex:1; background:#0f1419; overflow-y:auto; padding:.75rem; font-family:'Courier New',monospace; }
-.code-line { margin-bottom:.5rem; }
-.code-line.active-line { }
-.hint-bubble { display:flex; align-items:center; gap:.4rem; background:rgba(59,182,254,.1); border:1px solid rgba(59,182,254,.3); border-radius:.4rem; padding:.4rem .6rem; margin-bottom:.4rem; font-size:.75rem; color:#93c5fd; }
-.hb-ico { font-size:.9rem; }
-.input-row { display:flex; align-items:center; gap:.4rem; }
-.input-cursor { color:#00f0ff; font-weight:700; }
-.editor-input { flex:1; background:transparent; border:none; color:#e0f2fe; font-family:'Courier New',monospace; font-size:.85rem; outline:none; }
-.editor-footer { background:#161b22; padding:.6rem .75rem; border-top:1px solid #30363d; display:flex; justify-content:space-between; align-items:center; font-size:.65rem; color:#8b949e; }
-.ef-left { }
-.ef-right { display:flex; align-items:center; gap:.75rem; }
-.err-msg { color:#f85149; font-weight:700; }
-.btn-ide-submit { background:#238636; color:#fff; border:none; padding:4px 16px; border-radius:4px; font-family:'Orbitron',sans-serif; font-size:.65rem; font-weight:900; cursor:pointer; transition:all .2s; }
-.btn-ide-submit:hover:not(:disabled) { background:#2ea043; }
-.btn-ide-submit:disabled { background:#21262d; color:#484f58; cursor:not-allowed; }
-
-.neon-border { border:1px solid rgba(0,240,255,.15) !important; }
-
-/* ── PHASE 1: SPEED FILL ────────────────────────── */
-.code-block-panel { background:rgba(8,12,30,.8); border:1px solid rgba(0,240,255,.15); border-radius:.75rem; overflow:hidden; display:flex; flex-direction:column; height:100%; }
-.code-display { flex:1; background:#0f1419; overflow-y:auto; padding:1rem; font-family:'Courier New',monospace; font-size:.9rem; line-height:1.6; }
-.code-line-display { margin-bottom:.4rem; }
-.code-text { color:#e0f2fe; }
-.code-blank { color:#fbbf24; background:rgba(251,191,36,.1); padding:0.2rem 0.4rem; border-radius:0.2rem; border-bottom:2px dashed #fbbf24; }
-.code-blank-box { display:inline-block; min-width:80px; border-bottom:2px dashed #fbbf24; background:rgba(251,191,36,.08); color:#fbbf24; padding:0 0.4rem; border-radius:0.2rem; margin-left:4px; vertical-align:middle; }
-
-.blank-info { padding:1rem; background:rgba(8,12,30,.9); border-top:1px solid rgba(0,240,255,.1); }
-.option-buttons { display:grid; grid-template-columns:1fr 1fr; gap:.5rem; margin-top:.5rem; }
-.btn-option { background:rgba(0,240,255,.05); border:1px solid rgba(0,240,255,.3); color:#00f0ff; padding:.6rem .8rem; border-radius:.4rem; font-family:'Orbitron',sans-serif; font-size:.75rem; font-weight:700; cursor:pointer; transition:all .2s; }
-.btn-option:hover:not(:disabled) { background:rgba(0,240,255,.2); }
-.btn-option:disabled { opacity:.5; cursor:not-allowed; }
-.combo-display { font-family:'Orbitron',sans-serif; font-size:.8rem; color:#fbbf24; font-weight:900; }
-
-/* ── PHASE 2: DESIGN SPRINT ────────────────────────── */
-.phase2-left { display:flex; flex-direction:column; gap:1rem; }
-.phase2-right { display:flex; flex-direction:column; gap:.75rem; overflow-y:auto; }
-
-.scenario-box { background:rgba(8,12,30,.8); border:1px solid rgba(0,240,255,.15); border-radius:.75rem; padding:1.2rem; }
-.scenario-header { font-size:.8rem; font-weight:700; color:#00f0ff; margin-bottom:.5rem; letter-spacing:1px; }
-.scenario-text { font-size:.9rem; color:#cbd5e1; line-height:1.6; }
-
-.checklist-panel { background:rgba(8,12,30,.8); border:1px solid rgba(0,240,255,.15); border-radius:.75rem; padding:1rem; flex:1; overflow-y:auto; }
-.checklist-header { font-size:.8rem; font-weight:700; color:#34d399; margin-bottom:.75rem; letter-spacing:1px; }
-.checklist-items { display:flex; flex-direction:column; gap:.5rem; }
-.check-item { display:flex; align-items:center; gap:.5rem; padding:.4rem; background:rgba(255,255,255,.02); border-radius:.4rem; transition:all .2s; }
-.check-item.checked { background:rgba(52,211,153,.08); }
-.check-box { font-size:1rem; min-width:1.5rem; }
-.check-label { font-size:.8rem; color:#94a3b8; flex:1; }
-.check-item.checked .check-label { color:#34d399; font-weight:600; }
-
-.design-textarea { width:100%; height:100%; padding:1rem; background:#0f1419; border:none; color:#e0f2fe; font-family:'Courier New',monospace; font-size:.85rem; line-height:1.6; outline:none; resize:none; }
-.design-textarea::placeholder { color:#64748b; }
-
-.score-breakdown { display:flex; flex-direction:column; gap:.2rem; margin-top:.3rem; }
-.score-part { font-size:.7rem; color:#94a3b8; }
-.score-total { font-family:'Orbitron',sans-serif; font-size:1.3rem; font-weight:900; margin-top:.3rem; }
-
-/* ── 평가 완료 로딩 ────────────────────────────── */
-.game-area-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  min-height: 400px;
-}
-
-.loading-spinner-box {
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2rem;
-}
-
-.spinner {
-  width: 80px;
-  height: 80px;
-  border: 4px solid rgba(0, 240, 255, 0.2);
-  border-top: 4px solid #00f0ff;
-  border-right: 4px solid #fbbf24;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  box-shadow: 0 0 30px rgba(0, 240, 255, 0.3);
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.loading-text {
-  font-size: 1.1rem;
-  color: #00f0ff;
-  font-weight: 600;
-  letter-spacing: 1px;
-}
-
-.loading-subtext {
-  font-size: 0.85rem;
-  color: #64b5f6;
-  opacity: 0.8;
-  animation: pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
-}
-
-/* ── RESULT ────────────────────────────────── */
-.overlay { position:fixed; inset:0; background:rgba(0,0,0,.85); display:flex; align-items:center; justify-content:center; z-index:8000; }
-.result-box {
-  text-align:center; max-width:520px; width:90%;
-  background:rgba(8,12,30,.95); border:2px solid #00f0ff;
-  border-radius:1.5rem; padding:3rem 2.5rem;
-  box-shadow:0 0 60px rgba(0,240,255,.2);
-}
-/* ← 수정: 각 플레이어 입장 반영 */
-.result-box.res-my-win { border-color:#38bdf8; }
-.result-box.res-opponent-win { border-color:#ff2d75; }
-.result-box.res-draw { border-color:#ffe600; }
-
-.r-icon { font-size:3.5rem; margin-bottom:1rem; }
-.r-title { font-size:2rem; font-weight:900; color:#00f0ff; margin-bottom:1.5rem; letter-spacing:2px; }
-.r-scores {
-  display:flex; align-items:center; justify-content:center; gap:1.5rem;
-  margin-bottom:1.5rem;
-}
-.score-item {
-  display:flex; flex-direction:column; align-items:center; gap:.4rem;
-  padding: 1rem; border-radius: 0.5rem; background: rgba(0, 0, 0, 0.3);
-}
-
-/* ← 수정: 각 플레이어 입장 반영 */
-.score-item.my-score { border-left: 4px solid #38bdf8; }
-.score-item.opponent-score { border-left: 4px solid #ff2d75; }
-.score-item.p1 { }
-.score-item.p2 { }
-
-.p-name { font-size: 1rem; font-weight: bold; color: #00f0ff; }
-.score-item.opponent-score .p-name { color: #ffaa00; }
-.p-score { font-family:'Orbitron',sans-serif; font-size:2rem; font-weight:900; color:#38bdf8; }
-.score-item.p2 .p-score { color:#ff2d75; }
-
-.score-breakdown { text-align: center; }
-.score-part { font-size: 0.9rem; color: #b0b0b0; margin: 0.2rem 0; }
-.score-total { font-size: 1.3rem; font-weight: bold; color: #00ff00; margin-top: 0.5rem; }
-.vs { font-size:1.2rem; color:#475569; font-weight:700; }
-.r-detail { font-size:.85rem; color:#94a3b8; margin-bottom:1.5rem; }
-
-.go-btns { display:flex; gap:1rem; justify-content:center; }
-.btn-retry { padding:.75rem 2rem; background:transparent; border:2px solid #00f0ff; color:#00f0ff; border-radius:.5rem; font-family:'Orbitron',sans-serif; font-weight:700; cursor:pointer; transition:all .2s; }
-.btn-retry:hover { background:rgba(0,240,255,.1); }
-.btn-exit { padding:.75rem 2rem; background:transparent; border:2px solid #64748b; color:#64748b; border-radius:.5rem; font-family:'Orbitron',sans-serif; font-weight:700; cursor:pointer; transition:all .2s; }
-.btn-exit:hover { color:#94a3b8; border-color:#94a3b8; }
-
-/* ── FLOAT POP ─────────────────────────────── */
-.fpop-layer { position:fixed; inset:0; pointer-events:none; z-index:7000; }
-.fpop-item { position:absolute; font-family:'Orbitron',sans-serif; font-size:1rem; font-weight:700; animation:popUp 1.2s ease-out forwards; }
-@keyframes popUp {
-  0% { transform:translateY(0) scale(1); opacity:1; }
-  100% { transform:translateY(-60px) scale(0.8); opacity:0; }
-}
-
-/* ── Phase 2 대기 상태 스타일 ─────────────────────────────── */
-.waiting-hud {
-  background: rgba(8, 12, 30, 0.95);
-  border: 1px solid rgba(255, 230, 0, 0.2);
-  box-shadow: 0 0 20px rgba(255, 230, 0, 0.1);
-}
-
-.waiting-box {
-  background: rgba(8, 12, 30, 0.9);
-  border: 1px solid rgba(0, 240, 255, 0.2);
-}
-
-.code-preview-container {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.code-preview {
-  background: #0f1419;
-  border: 1px solid rgba(0, 240, 255, 0.1);
-  border-radius: 0.5rem;
-  padding: 1rem;
-  font-family: 'Courier New', monospace;
-  font-size: 0.8rem;
-  color: #e0f2fe;
-  max-height: 200px;
-  overflow-y: auto;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  line-height: 1.4;
-}
-
-.eval-summary {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.eval-item {
-  font-size: 0.85rem;
-  color: #34d399;
-  padding: 0.5rem;
-  background: rgba(52, 211, 153, 0.05);
-  border-left: 2px solid #34d399;
-  border-radius: 0.25rem;
-}
-
-.opponent-box {
-  background: rgba(8, 12, 30, 0.9);
-  border: 1px solid rgba(255, 45, 117, 0.2);
-}
-
-.waiting-panel {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: rgba(8, 12, 30, 0.8);
-  border: 1px dashed rgba(255, 230, 0, 0.3);
-  border-radius: 0.75rem;
-  padding: 3rem;
-  height: 100%;
-  min-height: 300px;
-}
-
-.wait-icon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-  animation: waitingPulse 1.5s ease-in-out infinite;
-}
-
-.wait-text {
-  font-size: 1rem;
-  color: #ffe600;
-  margin-bottom: 1rem;
-  text-align: center;
-}
-
-.wait-timer {
-  font-size: 0.85rem;
-  color: #64748b;
-  text-align: center;
-}
-
-@keyframes waitingPulse {
-  0%, 100% { opacity: 0.6; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.1); }
-}
-
-/* ── LLM 평가 섹션 ──────────────────────────────── */
-.llm-section {
-  margin-top: 2rem;
-  padding: 1.5rem;
-  background: linear-gradient(135deg, rgba(100, 200, 255, 0.1), rgba(150, 100, 255, 0.1));
-  border: 2px solid #64c8ff;
-  border-radius: 8px;
-  font-size: 0.9rem;
-}
-
-.llm-header {
-  font-weight: bold;
-  font-size: 1rem;
-  color: #64c8ff;
-  margin-bottom: 1rem;
-  text-align: center;
-}
-
-.llm-item {
-  background: rgba(0, 0, 0, 0.3);
-  padding: 1rem;
-  margin-bottom: 1rem;
-  border-radius: 6px;
-  border-left: 4px solid;
-}
-
-.llm-item.p1-eval {
-  border-left-color: #00d4ff;
-}
-
-.llm-item.p2-eval {
-  border-left-color: #ffaa00;
-}
-
-.eval-player {
-  font-weight: bold;
-  color: #fff;
-  margin-bottom: 0.5rem;
-}
-
-.eval-score {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 0.8rem;
-  align-items: center;
-}
-
-.score-badge {
-  background: rgba(100, 200, 255, 0.2);
-  color: #64c8ff;
-  padding: 0.4rem 0.8rem;
-  border-radius: 4px;
-  font-weight: bold;
-  font-size: 0.95rem;
-}
-
-.grade-badge {
-  padding: 0.4rem 0.8rem;
-  border-radius: 4px;
-  font-weight: bold;
-  font-size: 0.85rem;
-}
-
-.grade-badge.grade-A {
-  background: rgba(0, 255, 0, 0.2);
-  color: #00ff00;
-}
-
-.grade-badge.grade-B {
-  background: rgba(100, 200, 255, 0.2);
-  color: #64c8ff;
-}
-
-.grade-badge.grade-C {
-  background: rgba(255, 200, 0, 0.2);
-  color: #ffc800;
-}
-
-.grade-badge.grade-D {
-  background: rgba(255, 100, 100, 0.2);
-  color: #ff6464;
-}
-
-.grade-badge.grade-F {
-  background: rgba(255, 0, 0, 0.2);
-  color: #ff0000;
-}
-
-.eval-feedback {
-  color: #e0e0e0;
-  margin-bottom: 0.8rem;
-  line-height: 1.4;
-  font-style: italic;
-}
-
-.eval-details {
-  margin-top: 0.6rem;
-}
-
-.detail-row {
-  color: #b0b0b0;
-  margin-bottom: 0.4rem;
-  font-size: 0.85rem;
-}
-
-/* ── 트랜지션 ──────────────────────────────── */
-/* ── 포트폴리오 export ── */
-.lr-portfolio { margin: 1rem 0 0.5rem; text-align: left; }
-.lr-pf-title { font-family: 'Orbitron', sans-serif; font-size: .65rem; color: #ffe600; letter-spacing: 2px; margin-bottom: .6rem; text-align: center; }
-.lr-pf-preview { background: linear-gradient(135deg, #030712, #0a0f1e); border: 1px solid rgba(255,230,0,0.25); border-radius: .75rem; padding: 1rem; display: flex; flex-direction: column; gap: .6rem; margin-bottom: .75rem; }
-.lrpf-badge { font-size: .55rem; font-weight: 700; letter-spacing: 1px; padding: 3px 10px; border-radius: 4px; background: rgba(255,230,0,.08); color: #ffe600; border: 1px solid rgba(255,230,0,.2); display: inline-block; }
-.lrpf-scenario { font-size: .75rem; color: #64748b; line-height: 1.4; border-left: 2px solid rgba(255,230,0,.2); padding-left: .5rem; }
-.lrpf-code { background: #050a10; border: 1px solid rgba(255,230,0,.12); border-radius: .4rem; padding: .6rem .75rem; font-family: monospace; font-size: .65rem; color: #e0f2fe; white-space: pre-wrap; word-break: break-all; max-height: 120px; overflow-y: auto; line-height: 1.4; }
-.lrpf-scores { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
-.lrpf-sl { font-size: .5rem; color: #475569; font-family: 'Orbitron', monospace; letter-spacing: 1px; }
-.lrpf-sv { font-size: .8rem; font-weight: 700; font-family: 'Orbitron', monospace; }
-.lrpf-ai { font-size: .65rem; color: #64748b; }
-.lrpf-ai-label { color: #ffe600; font-weight: 700; margin-right: .3rem; }
-.lrpf-footer { font-size: .55rem; color: #1e293b; font-family: monospace; padding-top: .5rem; border-top: 1px solid rgba(255,255,255,.04); }
-.lr-pf-actions { display: flex; gap: .5rem; margin-bottom: .5rem; flex-wrap: wrap; }
-.go-pf-btn { padding: .45rem 1rem; border-radius: .5rem; font-size: .7rem; font-weight: 700; cursor: pointer; transition: all .2s; }
-.go-pf-btn.cyan { background: rgba(0,240,255,.1); border: 1px solid rgba(0,240,255,.3); color: #00f0ff; }
-.go-pf-btn.cyan:hover { background: rgba(0,240,255,.18); }
-.go-pf-btn.purple { background: rgba(168,85,247,.1); border: 1px solid rgba(168,85,247,.3); color: #a855f7; }
-.go-pf-btn.purple:hover { background: rgba(168,85,247,.18); }
-.go-pf-btn.gray { background: rgba(100,116,139,.1); border: 1px solid rgba(100,116,139,.3); color: #64748b; }
-.go-pf-btn.gray:hover { background: rgba(100,116,139,.18); }
-.go-pf-toast { font-size: .7rem; color: #22c55e; padding: .3rem .7rem; background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.25); border-radius: .4rem; display: inline-block; }
-
-.zoom-enter-active, .zoom-leave-active { transition: transform 0.3s ease, opacity 0.3s ease; }
-.zoom-enter-from, .zoom-leave-to { transform: scale(0.9); opacity: 0; }
-
-.fpop-enter-active { transition: all 0.3s ease; }
-.fpop-leave-active { transition: all 0.2s ease; }
-.fpop-enter-from { opacity: 0; transform: translateY(20px); }
-.fpop-leave-to { opacity: 0; transform: translateY(-30px); }
-
-/* [2026-03-04] 바나나 장애물 시각효과 */
-.obstacle-overlay {
-  position: fixed; inset: 0; z-index: 9500;
-  display: flex; align-items: center; justify-content: center;
-  pointer-events: none;
-}
-.obstacle-emoji {
-  font-size: 120px;
-  animation: bananaFall 1s ease-out forwards;
-  filter: drop-shadow(0 0 30px rgba(255,200,0,.6));
-}
-@keyframes bananaFall {
-  0% { transform: translateY(-200px) rotate(0deg) scale(0.3); opacity: 0; }
-  30% { transform: translateY(0) rotate(30deg) scale(1.2); opacity: 1; }
-  50% { transform: translateY(20px) rotate(-15deg) scale(1); opacity: 1; }
-  100% { transform: translateY(100px) rotate(45deg) scale(0.5); opacity: 0; }
-}
-.banana-slip {
-  animation: slipShake 0.6s ease-in-out;
-}
-@keyframes slipShake {
-  0%, 100% { transform: rotate(0deg); }
-  15% { transform: rotate(-8deg) translateX(-10px); }
-  30% { transform: rotate(6deg) translateX(8px); }
-  45% { transform: rotate(-4deg) translateX(-5px); }
-  60% { transform: rotate(3deg) translateX(3px); }
-  75% { transform: rotate(-1deg); }
-}
-.obstacle-pop-enter-active { transition: all 0.2s ease; }
-.obstacle-pop-leave-active { transition: all 0.5s ease; }
-.obstacle-pop-enter-from { opacity: 0; transform: scale(0); }
-.obstacle-pop-leave-to { opacity: 0; }
+@import './LogicRun.css';
 </style>

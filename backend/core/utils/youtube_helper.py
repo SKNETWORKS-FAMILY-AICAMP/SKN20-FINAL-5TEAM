@@ -20,18 +20,28 @@ logger = logging.getLogger(__name__)
 # LLM 기반 검색어 생성
 # ============================================================================
 
-def generate_llm_search_queries(quest_title: str, weak_dimensions: list, pseudocode: str = "") -> list:
+def generate_llm_search_queries(
+    quest_title: str,
+    weak_dimensions: list,
+    strong_dimensions: list = None,
+    dimension_scores: dict = None,
+    pseudocode: str = ""
+) -> list:
     """
-    LLM(GPT)에게 취약 지표 + 퀘스트 맥락을 주고
-    YouTube 검색어 3개를 생성하게 합니다.
+    LLM(GPT)에게 취약/강한 지표 + 퀘스트 맥락을 주고 YouTube 검색어 3개를 생성합니다.
+
+    - 점수 낮은 차원 → 기초/개념 보완 영상 검색어
+    - 점수 높은 차원 → 퀘스트 주제 심화 영상 검색어
 
     Args:
-        quest_title: 퀘스트 제목 (예: "데이터 누수 방어 시스템 설계")
-        weak_dimensions: 취약한 차원 리스트 (예: ["consistency", "edgeCase"])
-        pseudocode: 사용자가 작성한 의사코드 (맥락 보강용, 선택)
+        quest_title: 퀘스트 제목
+        weak_dimensions: 점수 낮은 차원 리스트
+        strong_dimensions: 점수 높은 차원 리스트 (선택)
+        dimension_scores: 차원별 점수 dict (예: {'consistency': 45, 'design': 92})
+        pseudocode: 사용자 의사코드 (맥락 보강용, 선택)
 
     Returns:
-        검색어 리스트 (예: ["Data Leakage sklearn pipeline tutorial", ...])
+        검색어 리스트 3개
     """
     try:
         import openai
@@ -49,24 +59,45 @@ def generate_llm_search_queries(quest_title: str, weak_dimensions: list, pseudoc
             'edgeCase':       '예외처리 (결측치, 이상치, 데이터 드리프트)',
             'implementation': '구현력 (sklearn, pandas 실무 코드)',
         }
-        weak_labels = [dim_labels.get(d, d) for d in weak_dimensions[:2]]  # 상위 2개만
+
+        # 취약 차원 설명 (점수 포함)
+        weak_labels = []
+        for d in weak_dimensions[:2]:
+            score = dimension_scores.get(d, '?') if dimension_scores else '?'
+            weak_labels.append(f"{dim_labels.get(d, d)} ({score}점)")
+
+        # 강한 차원 설명 (점수 포함)
+        strong_labels = []
+        if strong_dimensions:
+            for d in strong_dimensions[:1]:  # 심화는 1개만
+                score = dimension_scores.get(d, '?') if dimension_scores else '?'
+                strong_labels.append(f"{dim_labels.get(d, d)} ({score}점)")
 
         pseudo_snippet = pseudocode[:300] if pseudocode else "(미제공)"
 
+        strong_section = ""
+        if strong_labels:
+            strong_section = f"""[잘하는 지표 - 심화 영상 필요]: {', '.join(strong_labels)}
+→ 이 차원은 기초가 잡혔으니, 퀘스트 주제({quest_title})의 고급/실무/production 수준 영상 검색어 1개 포함"""
+
         prompt = f"""당신은 ML 교육 전문가입니다.
-학생이 아래 퀘스트에서 취약한 부분을 보완할 수 있는 YouTube 검색어 3개를 생성하세요.
+학생의 퀘스트 결과를 분석하여 맞춤형 YouTube 검색어 3개를 생성하세요.
 
 [퀘스트]: {quest_title}
-[취약 지표]: {', '.join(weak_labels) if weak_labels else '전반적인 ML 개념'}
+[취약 지표 - 기초 보완 필요]: {', '.join(weak_labels) if weak_labels else '전반적인 ML 개념'}
+→ 이 차원들은 개념/튜토리얼 수준의 영상 검색어 2개 포함
+{strong_section}
 [학생 의사코드 요약]: {pseudo_snippet}
 
 규칙:
-- 각 검색어는 실제 YouTube에서 좋은 교육 영상이 나올 법한 영어 또는 한국어 키워드
-- 너무 추상적이지 않게, 구체적인 라이브러리/기법 이름 포함
+- 총 3개의 검색어 생성
+- 취약 차원: "beginner", "tutorial", "explained", "step by step" 등 기초 키워드 포함
+- 강한 차원: "advanced", "production", "real-world", "best practices" 등 심화 키워드 포함
+- 실제 YouTube에서 좋은 교육 영상이 나올 법한 구체적인 라이브러리/기법 이름 포함
 - JSON 배열만 반환 (다른 텍스트 금지)
 
 예시 출력:
-["Data Leakage sklearn pipeline tutorial", "fit transform train test split python", "StandardScaler cross validation explained"]
+["Data Leakage sklearn pipeline tutorial explained", "fit transform train test split beginner python", "sklearn pipeline advanced production best practices"]
 """
 
         response = client.chat.completions.create(
