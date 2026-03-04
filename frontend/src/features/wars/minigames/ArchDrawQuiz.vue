@@ -683,7 +683,7 @@ function joinCustomRoom() {
   // 기존 방 퇴장 후 새 방 입장
   ds.disconnect(currentRoomId.value)
   currentRoomId.value = newRoomId
-  ds.connect(newRoomId, userName.value)
+  ds.connect(newRoomId, userName.value, userId.value)
   
   spawnPopText(`ROOM ${newRoomId} 입장!`, '#00f0ff')
 }
@@ -800,8 +800,13 @@ ds.onRoundResult.value = (results) => {
     myScore.value = me.score 
     lastMyPts.value = me.last_pts || 0
     checkItems.value = me.last_checks || []
-    // [버그수정] myFinalNodes/Arrows는 submitDraw()에서 이미 고정됨 → 여기서 덮어쓰지 않음
-    // (서버 결과가 오기 전에 이미 judging 화면이 노출되므로 로컬 스냅샷이 더 신뢰성 높음)
+    
+    // [P0 버그수정 2026-03-04] myFinalNodes가 비어있으면 현재 캔버스에서 강제 스냅샷
+    // submitDraw()가 호출되기 전에 타이머 만료로 result가 먼저 올 수 있음
+    if (!myFinalNodes.value.length && nodes.value.length) {
+      myFinalNodes.value = JSON.parse(JSON.stringify(nodes.value))
+      myFinalArrows.value = JSON.parse(JSON.stringify(arrows.value))
+    }
     
     // AI 리뷰 데이터 매칭 (서버에서 같이 보낸 경우)
     if (me.ai_review) {
@@ -826,7 +831,6 @@ ds.onRoundResult.value = (results) => {
   }
   
   // [버그수정] onRoundResult는 항상 judging 중에 도착 — phase 변경 없이 바로 result 타이머만 설정
-  // (phase를 다시 judging으로 바꾸면 Vue가 컠포넌트 재렌더링해서 myFinalNodes가 순간 빈 배열로 보임)
   if (phase.value !== 'judging' && phase.value !== 'result') {
     phase.value = 'judging'
   }

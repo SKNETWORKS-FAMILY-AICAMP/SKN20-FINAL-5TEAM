@@ -1,4 +1,4 @@
-﻿import { ref, onUnmounted } from 'vue'
+import { ref, onUnmounted } from 'vue'
 import { io } from 'socket.io-client'
 
 export function useBubbleSocket() {
@@ -15,22 +15,17 @@ export function useBubbleSocket() {
     const onGameStart = ref(null)
     const onReceiveMonster = ref(null)
     const onReceiveFever = ref(null)
+    const onMonsterSync = ref(null)
+    const onGenProgress = ref(null)    // [2026-03-04] AI 문제 생성 진행상황
     const onGameEnd = ref(null)
 
     function connect(roomId, userName, userAvatar, userId) {
         if (socket.value) return
 
-        // [수정일: 2026-02-26] Mixed Content 방지 및 배포 환경(ngrok) 탄력성 강화
         const envSocketUrl = import.meta.env.VITE_SOCKET_URL;
-        // HTTPS(ngrok 등) 환경에서는 반드시 상대 경로를 사용하여 Vite 프록시를 타도록 강제함
         const socketUrl = (window.location.protocol === 'https:' || !envSocketUrl) ? "" : envSocketUrl;
 
-        console.log(`[Socket Debug] Protocol: ${window.location.protocol}`);
-        console.log(`[Socket Debug] Env Variable VITE_SOCKET_URL: "${envSocketUrl}"`);
-        console.log(`[Socket Debug] Final Connection URL: "${socketUrl || window.location.origin}"`);
-
         socket.value = io(socketUrl, {
-            // [수정일: 2026-02-26] AWS ALB 및 Nginx의 /socket.io/ 라우팅 누락 문제 해결을 위해 /api/socket.io 로 경로 변경
             path: '/api/socket.io',
             transports: ['polling', 'websocket'],
             forceNew: true
@@ -38,7 +33,6 @@ export function useBubbleSocket() {
 
         socket.value.on('connect', () => {
             connected.value = true
-            // [수정일: 2026-03-03] DB 연동을 위해 user_id 포함
             socket.value.emit('bubble_join', { room_id: roomId, user_name: userName, user_avatar: userAvatar, user_id: userId })
         })
 
@@ -56,9 +50,14 @@ export function useBubbleSocket() {
             }
         })
 
-        socket.value.on('bubble_game_start', () => {
+        // [2026-03-04] AI 문제 생성 진행상황 수신
+        socket.value.on('bubble_gen_progress', (data) => {
+            if (onGenProgress.value) onGenProgress.value(data)
+        })
+
+        socket.value.on('bubble_game_start', (data) => {
             isPlaying.value = true
-            if (onGameStart.value) onGameStart.value()
+            if (onGameStart.value) onGameStart.value(data)
         })
 
         socket.value.on('bubble_receive_monster', (data) => {
@@ -69,10 +68,13 @@ export function useBubbleSocket() {
             if (onReceiveFever.value) onReceiveFever.value(data)
         })
 
+        socket.value.on('bubble_monster_sync', (data) => {
+            if (onMonsterSync.value) onMonsterSync.value(data)
+        })
+
         socket.value.on('bubble_end', (data) => {
             isPlaying.value = false
             gameOver.value = true
-            // data.loser_sid -> winner calculation
             const isWinner = data.loser_sid !== socket.value.id
             if (onGameEnd.value) onGameEnd.value({ isWinner })
         })
@@ -80,7 +82,6 @@ export function useBubbleSocket() {
         socket.value.on('bubble_player_left', (data) => {
             roomPlayers.value = roomPlayers.value.filter(p => p.sid !== data.sid)
             if (isPlaying.value) {
-                // Opponent left mid-game, you win
                 isPlaying.value = false
                 gameOver.value = true
                 if (onGameEnd.value) onGameEnd.value({ isWinner: true })
@@ -104,6 +105,10 @@ export function useBubbleSocket() {
         socket.value?.emit('bubble_game_over', { room_id: roomId })
     }
 
+    function emitMonsterUpdate(roomId, count) {
+        socket.value?.emit('bubble_monster_update', { room_id: roomId, count })
+    }
+
     function disconnect() {
         if (socket.value) {
             socket.value.disconnect()
@@ -117,23 +122,10 @@ export function useBubbleSocket() {
     })
 
     return {
-        socket,
-        connected,
-        roomPlayers,
-        opponentName,
-        opponentAvatar,
-        isReady,
-        isPlaying,
-        gameOver,
-        connect,
-        disconnect,
-        emitStart,
-        emitSendMonster,
-        emitFeverAttack,
-        emitGameOver,
-        onGameStart,
-        onReceiveMonster,
-        onReceiveFever,
-        onGameEnd
+        socket, connected, roomPlayers, opponentName, opponentAvatar,
+        isReady, isPlaying, gameOver,
+        connect, disconnect,
+        emitStart, emitSendMonster, emitFeverAttack, emitGameOver, emitMonsterUpdate,
+        onGameStart, onReceiveMonster, onReceiveFever, onMonsterSync, onGenProgress, onGameEnd
     }
 }

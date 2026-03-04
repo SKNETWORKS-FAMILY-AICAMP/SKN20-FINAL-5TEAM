@@ -6,6 +6,7 @@ from core.services.pseudocode_evaluator import PseudocodeEvaluator, EvaluationRe
 # [Multi-Agent] 임포트
 from core.services.wars.orchestrator import WarsOrchestrator
 from core.services.wars.state_machine import DrawRoomState, GameState
+from core.services.wars.bug_problem_generator import generate_bug_problems
 # [수정일: 2026-03-03] architecture_missions.py 하드코딩 제거 → DB(unit03) 동적 로드
 # 모듈 임포트 시점에 DB 쿼리하면 Django 초기화 전이라 실패 → 런타임에 lazy 로드
 from core.views.wars.wars_mission_view import _transform_to_wars_mission
@@ -572,14 +573,28 @@ async def run_logic_finish(sid, data):
     if room_id in run_rooms:
         await sio.emit('run_end', data, room=room_id, skip_sid=sid)
         
-        # [수정일: 2026-03-03] DB 전적 저장
-        # data 구조: { result: 'win'|'lose'|'draw', ... }
-        # 이 이벤트는 각 플레이어가 자신을 기준으로 보냄 (LogicRun.vue:1101)
+        # [수정일: 2026-03-04] DB 전적 저장 — 점수 기반 서버 판정
+        # 프론트가 보내는 result='complete'이므로 서버에서 직접 승패 계산
+        room = run_rooms[room_id]
+        my_score = data.get('totalScore', 0)
         session = await sio.get_session(sid)
         user_id = session.get('user_id')
-        res = data.get('result', '').lower()
-        if user_id and res in ['win', 'lose', 'draw']:
-            await update_battle_record(user_id, res)
+        
+        # 상대 점수 찾기
+        opp = next((p for p in room['players'] if p['sid'] != sid), None)
+        if user_id and opp:
+            opp_score = opp.get('total_score', 0)
+            if my_score > opp_score:
+                await update_battle_record(user_id, 'win')
+            elif my_score < opp_score:
+                await update_battle_record(user_id, 'lose')
+            else:
+                await update_battle_record(user_id, 'draw')
+        
+        # 내 점수 서버에 기록 (상대가 finish할 때 비교용)
+        player = next((p for p in room['players'] if p['sid'] == sid), None)
+        if player:
+            player['total_score'] = my_score
 
 # ---------- BUG-BUBBLE MONSTER (핵심 수정 포함) ----------
 @sio.event
@@ -613,11 +628,69 @@ async def bubble_start(sid, data):
     room_id = data.get('room_id')
     if room_id in bubble_rooms:
         bubble_rooms[room_id]['is_playing'] = True
-        await sio.emit('bubble_game_start', {}, room=room_id)
+
+        # [2026-03-04] AI 문제 동적 생성 + 진행상황 실시간 전송
+        print(f"🧠 [BugBubble] AI 문제 생성 시작 (room: {room_id})")
+        await sio.emit('bubble_gen_progress', {
+            'step': 1, 'pct': 10, 'msg': '버그 카테고리 분석 중...', 'file': 'categories.json'
+        }, room=room_id)
+
+        try:
+            await sio.emit('bubble_gen_progress', {
+                'step': 2, 'pct': 30, 'msg': 'AI가 버그 코드 생성 중...', 'file': 'bug_factory.py'
+            }, room=room_id)
+
+            problems = await generate_bug_problems(count=10, difficulty=1)
+
+            await sio.emit('bubble_gen_progress', {
+                'step': 3, 'pct': 75, 'msg': f'{len(problems)}개 문제 검증 중...', 'file': 'validator.py'
+            }, room=room_id)
+
+            await asyncio.sleep(0.5)
+
+            await sio.emit('bubble_gen_progress', {
+                'step': 4, 'pct': 95, 'msg': '선택지 셔플 완료 — 버그 배치 준비!', 'file': 'deploy_bugs.sh'
+            }, room=room_id)
+
+            print(f"✅ [BugBubble] {len(problems)}개 문제 생성 완료")
+        except Exception as e:
+            print(f"⚠️ [BugBubble] 문제 생성 실패, 폴백 사용: {e}")
+            problems = []
+            await sio.emit('bubble_gen_progress', {
+                'step': 4, 'pct': 95, 'msg': '폴백 문제 로드 중...', 'file': 'fallback.json'
+            }, room=room_id)
+
+        await sio.emit('bubble_game_start', {'problems': problems}, room=room_id)
 
 @sio.event
 async def bubble_send_monster(sid, data):
-    await sio.emit('bubble_receive_monster', {'sender_sid': sid, 'monster_type': data.get('monster_type')}, room=data.get('room_id'), skip_sid=sid)
+    room_id = data.get('room_id')
+    await sio.emit('bubble_receive_monster', {'sender_sid': sid, 'monster_type': data.get('monster_type')}, room=room_id, skip_sid=sid)
+    # [2026-03-04] 서버 기준 몬스터 카운트 동기화 브로드캐스트
+    if room_id in bubble_rooms:
+        counts = {}
+        for p in bubble_rooms[room_id]['players']:
+            counts[p['sid']] = p.get('monster_count', 0)
+        await sio.emit('bubble_monster_sync', {'counts': counts}, room=room_id)
+
+@sio.event
+async def bubble_monster_update(sid, data):
+    """[2026-03-04] 클라이언트가 자신의 몬스터 수를 서버에 보고"""
+    room_id = data.get('room_id')
+    count = data.get('count', 0)
+    if room_id in bubble_rooms:
+        player = next((p for p in bubble_rooms[room_id]['players'] if p['sid'] == sid), None)
+        if player:
+            player['monster_count'] = count
+        counts = {p['sid']: p.get('monster_count', 0) for p in bubble_rooms[room_id]['players']}
+        await sio.emit('bubble_monster_sync', {'counts': counts}, room=room_id)
+
+@sio.event
+async def bubble_fever_attack(sid, data):
+    """[2026-03-04] 콤보 피버 공격 (3x 몬스터)"""
+    room_id = data.get('room_id')
+    count = data.get('count', 3)
+    await sio.emit('bubble_receive_fever', {'sender_sid': sid, 'count': count}, room=room_id, skip_sid=sid)
 
 @sio.event
 async def bubble_game_over(sid, data):

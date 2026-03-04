@@ -28,11 +28,11 @@
           <div class="mode-badge hot">NEW</div>
           <div class="mode-icon">🏃</div>
           <h2 class="mode-title">로직 런</h2>
-          <p class="mode-desc">AI 추격자를 피해 팀원과 릴레이로 의사코드를 작성하며 논리의 성을 향해 질주하라!</p>
+          <p class="mode-desc">빈칸 채우기 스피드전 + 설계 드로잉 대결! 더 빠르고 정확한 엔지니어가 승리한다.</p>
           <div class="mode-tags">
-            <span class="tag">릴레이 코딩</span>
-            <span class="tag">AI 추격</span>
-            <span class="tag">팀 협동</span>
+            <span class="tag">스피드 코딩</span>
+            <span class="tag">설계 대결</span>
+            <span class="tag">1vs1</span>
           </div>
           <div class="mode-meta">
             <span>⏱ 10분</span>
@@ -72,11 +72,11 @@
           <div class="mode-badge hot">NEW</div>
           <div class="mode-icon">🎨</div>
           <h2 class="mode-title">아키텍처 캐치마인드</h2>
-          <p class="mode-desc">AI가 다이어그램을 하나씩 그린다. 완성되기 전에 어떤 아키텍처 패턴인지 맞춰라!</p>
+          <p class="mode-desc">제시된 아키텍처를 직접 드래그&드롭으로 설계하라! AI가 실시간으로 평가하는 1vs1 드로잉 배틀.</p>
           <div class="mode-tags">
-            <span class="tag">실시간 드로잉</span>
-            <span class="tag">AI 힌트</span>
-            <span class="tag">단판승부</span>
+            <span class="tag">아키텍처 설계</span>
+            <span class="tag">AI 평가</span>
+            <span class="tag">1vs1 배틀</span>
           </div>
           <div class="mode-meta">
             <span>⏱ 45초</span>
