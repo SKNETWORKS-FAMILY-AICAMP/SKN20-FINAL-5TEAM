@@ -133,3 +133,30 @@ class UserBattleRecord(BaseModel):
 
     def __str__(self):
         return f"{self.user.username}: {self.win_count}W {self.draw_count}D {self.lose_count}L"
+
+
+# [수정일: 2026-03-04] Wars 미니게임 점수 기록 모델 (명예의 전당 연동용)
+# - PracticeDetail 의존성 없이 Wars 전용 점수를 저장
+# - game_type별 최고 점수를 합산하여 UserActivity.total_points에 반영
+class UserWarsScore(BaseModel):
+    user = models.ForeignKey(
+        UserProfile,
+        on_delete=models.CASCADE,
+        related_name='wars_scores',
+        help_text="점수 소유자"
+    )
+    game_type = models.CharField(
+        max_length=30,
+        help_text="미니게임 종류 (logic_run, code_typing 등)"
+    )
+    score = models.IntegerField(default=0, help_text="획득 점수 (0-100)")
+    submitted_data = models.JSONField(null=True, blank=True, help_text="게임 결과 상세 (난이도, 페이즈별 점수, 등급 등)")
+    is_perfect = models.BooleanField(default=False, help_text="만점 여부")
+
+    class Meta:
+        db_table = 'gym_wars_score'
+        verbose_name = 'Wars 게임 점수'
+        verbose_name_plural = 'Wars 게임 점수 목록'
+
+    def __str__(self):
+        return f"{self.user.username}: {self.game_type} {self.score}pts"

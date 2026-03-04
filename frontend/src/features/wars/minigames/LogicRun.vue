@@ -15,9 +15,9 @@
         <h1 class="intro-title glitch" data-text="LOGIC RUN">LOGIC RUN</h1>
         <p class="intro-sub">목표 등급을 선택하고 실전문제를 풀어보세요!</p>
         <div class="intro-rules">
-          <div class="rule-item">Phase 1: 스피드 퀴즈 (5라운드, 15초/라운드)</div>
-          <div class="rule-item">Phase 2: 주관식 서술 (핵심 의사코드 작성, 90초)</div>
-          <div class="rule-item">총점으로 등급 예측 (Phase1 40% + Phase2 60%)</div>
+          <div class="rule-item">Phase 1: 스피드 퀴즈 (5라운드, 40점 만점 / 오답 감점)</div>
+          <div class="rule-item">Phase 2: 의사코드 설계 (90초, 60점 만점)</div>
+          <div class="rule-item">100점 만점 등급제 (S: 90+ / A: 75+ / B: 60+ / C: 40+)</div>
           <div class="rule-item">AI 평가방식: AICE 채점 기준 기반 1:1 피드백 제공</div>
         </div>
         <div class="team-select">
@@ -93,7 +93,7 @@
       <div class="hud">
         <div class="hud-cell">
           <span class="hud-lbl">P1 SCORE</span>
-          <span class="hud-val neon-c">{{ scoreP1 }}pt</span>
+          <span class="hud-val neon-c">{{ scoreP1 }}점</span>
         </div>
         <div class="hud-cell">
           <span class="hud-lbl">R{{ currentRound + 1 }}/{{ totalRounds }}</span>
@@ -101,7 +101,7 @@
         </div>
         <div class="hud-cell">
           <span class="hud-lbl">P2 SCORE</span>
-          <span class="hud-val neon-y">{{ scoreP2 }}pt</span>
+          <span class="hud-val neon-y">{{ scoreP2 }}점</span>
         </div>
       </div>
 
@@ -477,6 +477,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { logicQuests } from '../data/logicQuests.js'
 import { addBattleRecord } from '../useBattleRecord.js'
+import axios from 'axios'
 import PortfolioWriter from '../components/PortfolioWriter.vue'
 
 const router = useRouter()
@@ -523,9 +524,9 @@ const lrBuildText = () => {
     code ? code.split('\n').map(l => `  ${l}`).join('\n') : '  (작성한 코드 없음)',
     ``,
     `📊 결과`,
-    `  Phase1 (빠른 빈칸): ${myPhase1Score.value}pt`,
-    `  Phase2 (설계 스프린트): ${myPhase2Score.value}pt`,
-    `  총점: ${myTotalScore.value}  |  등급: ${resultGrade.value}`,
+    `  Phase1 (스피드 퀴즈): ${myPhase1Score.value}점 / 40점`,
+    `  Phase2 (설계 스프린트): ${myPhase2Score.value}점 / 60점`,
+    `  총점: ${myTotalScore.value}점 / 100점  |  등급: ${resultGrade.value}`,
     ``,
     llm ? [
       `🤖 AI 코드 평가 (${llm.llm_score}/100 · ${llm.grade})`,
@@ -1067,30 +1068,34 @@ const resultTitle = computed(() => {
 })
 
 const resultDetail = computed(() => {
-  return `나 ${myTotalScore.value}pt vs 상대 ${opponentTotalScore.value}pt`
+  return `나 ${myTotalScore.value}점 vs 상대 ${opponentTotalScore.value}점`
 })
 
+// [2026-03-04] 100점 만점 등급 기준
 const resultGrade = computed(() => {
   const myScore = myTotalScore.value
-  if (myScore >= 2000) return 'S'
-  if (myScore >= 1500) return 'A'
-  if (myScore >= 1000) return 'B'
-  if (myScore >= 500) return 'C'
+  if (myScore >= 90) return 'S'
+  if (myScore >= 75) return 'A'
+  if (myScore >= 60) return 'B'
+  if (myScore >= 40) return 'C'
   return 'F'
 })
 
 // ─── 게임 시작 ────────────────────────────────────────
 function startGame(fromSocket = false, qIdx = null) {
-  // [수정일: 2026-03-04] AI 생성 퀘스트 우선, 없으면 로컬 폴백
+  // [수정일: 2026-03-04] AI 생성 퀘스트 우선, 없으면 로컬 폴백 (난이도 필터링)
   if (serverQuests.value && serverQuests.value.length > 0) {
     const questIdx = typeof qIdx === 'number' ? qIdx % serverQuests.value.length : 0
     currentQuest.value = serverQuests.value[questIdx]
     console.log('[LogicRun] Using AI-generated quest:', currentQuest.value.title)
   } else if (logicQuests && logicQuests.length > 0) {
-    const questIdx = typeof qIdx === 'number' ? qIdx % logicQuests.length 
-                   : (roomId.value ? roomId.value.charCodeAt(0) % logicQuests.length 
-                   : Math.floor(Math.random() * logicQuests.length));
-    currentQuest.value = logicQuests[questIdx]
+    // 선택한 AICE 등급에 맞는 문제만 필터링
+    const filtered = logicQuests.filter(q => q.difficulty === selectedDifficulty.value)
+    const pool = filtered.length > 0 ? filtered : logicQuests
+    const questIdx = typeof qIdx === 'number' ? qIdx % pool.length
+                   : Math.floor(Math.random() * pool.length)
+    currentQuest.value = pool[questIdx]
+    console.log(`[LogicRun] Using local quest (${selectedDifficulty.value}):`, currentQuest.value.title)
   }
 
   // 퀘스트가 정해지면 라운드 데이터 동기화
@@ -1166,18 +1171,18 @@ function selectOptionAnswer(oIdx) {
 }
 
 function handleBlankCorrect() {
-  // ← ArchDrawQuiz 패턴: 항상 내 점수(myPhase1Score)만 업데이트
-  const pointsBase = 100
-  const comboBonus = currentCombo.value > 0 ? 15 * currentCombo.value : 0
-  const points = pointsBase + comboBonus
+  // [2026-03-04] 100점 만점 체계: Phase1 = 40점 만점, 정답 +8점
+  const points = 8
 
   currentCombo.value++
-  myPhase1Score.value += points
+  myPhase1Score.value = Math.min(40, myPhase1Score.value + points)
   myCorrectBlanks.value++ // ← 오리 전진!
 
   flashOk.value = true
   setTimeout(() => { flashOk.value = false }, 300)
-  spawnFpop('+' + points, '#34d399')
+  // 인게임 표시는 큰 숫자로 유지 (쾌감)
+  const displayPoints = 100 + (currentCombo.value > 1 ? 15 * (currentCombo.value - 1) : 0)
+  spawnFpop('+' + displayPoints, '#34d399')
 
   // 객관식 1개 = 라운드 완료, 다음 라운드로
   currentRound.value++
@@ -1205,14 +1210,17 @@ const OBSTACLE_POOL = [
 ]
 
 function handleBlankWrong() {
+  // [2026-03-04] 100점 만점 체계: 오답 -2점 (최저 0점)
+  const penalty = 2
+  myPhase1Score.value = Math.max(0, myPhase1Score.value - penalty)
   currentCombo.value = 0
-  
+
   // 바나나 장애물 연출
   const obstacle = OBSTACLE_POOL[Math.floor(Math.random() * OBSTACLE_POOL.length)]
   bananaEmoji.value = obstacle.emoji
   bananaSlip.value = true
   errorMsg.value = obstacle.text
-  
+
   setTimeout(() => { errorMsg.value = '' }, 1200)
   setTimeout(() => { bananaSlip.value = false }, 1000)
 
@@ -1223,7 +1231,7 @@ function handleBlankWrong() {
     flashFail.value = false
   }, 400)
 
-  spawnFpop(`${obstacle.emoji} 오답!`, '#ef4444')
+  spawnFpop(`${obstacle.emoji} -${penalty}점!`, '#ef4444')
 }
 
 // ─── PHASE 2: Design Sprint ──────────
@@ -1282,12 +1290,17 @@ function evaluateDesign() {
 
   completedChecks.value = checkedItems
 
-  // 점수 계산
+  // [2026-03-04] 100점 만점 체계: Phase2 = 60점 만점
+  // 체크리스트: (통과 수 / 전체) × 45점
+  // 시간 보너스: (남은 초 / 90) × 10점
+  // 완료 보너스: 전부 통과 시 +5점
   const checkCount = checkedItems.length
-  const basePoints = checkCount * 100
-  const completionBonus = checkedItems.length === totalChecks.value ? 200 : 0
-  const timeBonus = Math.max(0, roundTimeout.value) * 3
-  const totalPoints = basePoints + completionBonus + timeBonus
+  const checkScore = totalChecks.value > 0
+    ? Math.round((checkCount / totalChecks.value) * 45)
+    : 0
+  const timeBonus = Math.round((Math.max(0, roundTimeout.value) / 90) * 10)
+  const completionBonus = checkCount === totalChecks.value ? 5 : 0
+  const totalPoints = Math.min(60, checkScore + timeBonus + completionBonus)
 
   myPhase2Score.value = totalPoints
   myChecksCompleted.value = checkCount
@@ -1378,6 +1391,21 @@ function endGame(result) {
   else addBattleRecord(name, 'draw')
 
   rs.emitLogicFinish(roomId.value, { totalScore: myTotal, result })
+
+  // [2026-03-04] 명예의 전당 연동: Wars 점수 제출
+  if (auth.isLoggedIn) {
+    axios.post('/api/core/wars/submit-score/', {
+      game_type: 'logic_run',
+      score: myTotal,
+      submitted_data: {
+        difficulty: selectedDifficulty.value,
+        phase1_score: myPhase1Score.value,
+        phase2_score: myPhase2Score.value,
+        grade: resultGrade.value,
+        quest_title: currentQuest.value?.title || '',
+      }
+    }).catch(err => console.warn('[Wars] Score submit failed:', err.message))
+  }
 }
 
 // ─── 유틸 ─────────────────────────────────────────────
