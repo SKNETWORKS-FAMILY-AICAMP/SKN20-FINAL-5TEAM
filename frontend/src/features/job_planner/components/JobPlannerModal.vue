@@ -280,61 +280,13 @@
             <div v-if="isParsing" class="parsing-background-notice">
               ⏳ 채용공고 분석이 백그라운드에서 진행 중입니다. 완료되면 자동으로 반영됩니다.
             </div>
-            <div v-if="isParsing" class="parsing-background-notice">
-              ⏳ 채용공고 분석이 백그라운드에서 진행 중입니다. 완료되면 자동으로 반영됩니다.
-            </div>
 
             <div class="profile-form">
               <!-- 서류 업로드 섹션 -->
               <div class="form-section document-upload-section">
                 <h4 class="form-section-title">📄 서류 업로드 <span class="optional">(선택)</span></h4>
                 <p class="input-hint">이력서, 자기소개서, 포트폴리오를 업로드하면 아래 정보를 자동으로 채워드립니다</p>
-              <!-- 서류 업로드 섹션 -->
-              <div class="form-section document-upload-section">
-                <h4 class="form-section-title">📄 서류 업로드 <span class="optional">(선택)</span></h4>
-                <p class="input-hint">이력서, 자기소개서, 포트폴리오를 업로드하면 아래 정보를 자동으로 채워드립니다</p>
 
-                <div class="document-upload-grid">
-                  <div class="upload-item">
-                    <span class="upload-label">이력서</span>
-                    <div class="upload-row">
-                      <label class="upload-btn" :class="{ uploaded: resumePdf }">
-                        {{ resumeFileName || '+ PDF 업로드' }}
-                        <input type="file" accept=".pdf" @change="handlePdfUpload($event, 'resume')" hidden>
-                      </label>
-                      <button v-if="resumePdf" class="upload-clear-btn" @click="clearPdf('resume')" title="삭제">×</button>
-                    </div>
-                  </div>
-                  <div class="upload-item">
-                    <span class="upload-label">경력기술서</span>
-                    <div class="upload-row">
-                      <label class="upload-btn" :class="{ uploaded: careerDescPdf }">
-                        {{ careerDescFileName || '+ PDF 업로드' }}
-                        <input type="file" accept=".pdf" @change="handlePdfUpload($event, 'career_description')" hidden>
-                      </label>
-                      <button v-if="careerDescPdf" class="upload-clear-btn" @click="clearPdf('career_description')" title="삭제">×</button>
-                    </div>
-                  </div>
-                  <div class="upload-item">
-                    <span class="upload-label">자기소개서</span>
-                    <div class="upload-row">
-                      <label class="upload-btn" :class="{ uploaded: coverLetterPdf }">
-                        {{ coverLetterFileName || '+ PDF 업로드' }}
-                        <input type="file" accept=".pdf" @change="handlePdfUpload($event, 'cover_letter')" hidden>
-                      </label>
-                      <button v-if="coverLetterPdf" class="upload-clear-btn" @click="clearPdf('cover_letter')" title="삭제">×</button>
-                    </div>
-                  </div>
-                  <div class="upload-item">
-                    <span class="upload-label">포트폴리오</span>
-                    <div class="upload-row">
-                      <label class="upload-btn" :class="{ uploaded: portfolioPdf }">
-                        {{ portfolioFileName || '+ PDF 업로드' }}
-                        <input type="file" accept=".pdf" @change="handlePdfUpload($event, 'portfolio')" hidden>
-                      </label>
-                      <button v-if="portfolioPdf" class="upload-clear-btn" @click="clearPdf('portfolio')" title="삭제">×</button>
-                    </div>
-                  </div>
                 <div class="document-upload-grid">
                   <div class="upload-item">
                     <span class="upload-label">이력서</span>
@@ -383,19 +335,11 @@
                   class="btn-parse-resume"
                   @click="parseResumeDocuments"
                   :disabled="isParsingDocuments"
-                  v-if="resumePdf || coverLetterPdf || portfolioPdf"
-                  class="btn-parse-resume"
-                  @click="parseResumeDocuments"
-                  :disabled="isParsingDocuments"
                 >
-                  <span v-if="!isParsingDocuments">✨ 서류 분석하여 자동 입력</span>
-                  <span v-else>⏳ 분석 중... (병렬 처리 중)</span>
                   <span v-if="!isParsingDocuments">✨ 서류 분석하여 자동 입력</span>
                   <span v-else>⏳ 분석 중... (병렬 처리 중)</span>
                 </button>
 
-                <div v-if="documentParseSuccess" class="parse-success-msg">
-                  ✅ 분석 완료! 아래 내용을 확인하고 수정하세요.
                 <div v-if="documentParseSuccess" class="parse-success-msg">
                   ✅ 분석 완료! 아래 내용을 확인하고 수정하세요.
                 </div>
@@ -473,18 +417,7 @@
                       {{ getLevelLabel(skillLevels[skill] || 3) }}
                     </div>
                     <button class="skill-delete-btn" @click="removeSkill(skill)" title="삭제">×</button>
-                    <button class="skill-delete-btn" @click="removeSkill(skill)" title="삭제">×</button>
                   </div>
-                  <div class="skill-add-row">
-                    <input
-                      v-model="newSkillInput"
-                      type="text"
-                      placeholder="스킬 추가 (예: TypeScript)"
-                      @keyup.enter="addSkill"
-                    />
-                    <button class="skill-add-btn" @click="addSkill">+ 추가</button>
-                  </div>
-                  <p v-if="userSkills.length > 0" class="level-guide">
                   <div class="skill-add-row">
                     <input
                       v-model="newSkillInput"
@@ -1762,7 +1695,6 @@ export default {
     },
 
     async generateFinalReport() {
-    async generateFinalReport() {
       this.isGeneratingReport = true;
       this.errorMessage = '';
 
@@ -1803,10 +1735,6 @@ export default {
           current_required_skills: this.jobData?.required_skills || [],
           current_required_qualifications: this.jobData?.required_qualifications || '',
           current_job_responsibilities: this.jobData?.job_responsibilities || '',
-          // 원래 공고 정보 (유사도 기준 + 검색 키워드)
-          current_required_skills: this.jobData?.required_skills || [],
-          current_required_qualifications: this.jobData?.required_qualifications || '',
-          current_job_responsibilities: this.jobData?.job_responsibilities || '',
           // 현재 분석 중인 공고 정보 (중복 제거용)
           current_job_url: this.urlInput || '',
           current_job_company: this.jobData?.company_name || '',
@@ -1830,18 +1758,13 @@ export default {
     },
 
     async analyzeCompany(url) {
-    async analyzeCompany(url) {
       this.isAnalyzingCompany = true;
 
       try {
         const response = await axios.post('/api/core/job-planner/company-analyze/', {
           type: 'url',
           url: url,
-        const response = await axios.post('/api/core/job-planner/company-analyze/', {
-          type: 'url',
-          url: url,
           company_name: this.jobData?.company_name || '회사'
-        });
         });
         this.companyAnalysis = response.data;
 
@@ -1864,38 +1787,6 @@ export default {
           this.skillLevels[skill] = 3;
         }
       });
-    },
-
-    removeSkill(skill) {
-      this.userSkills = this.userSkills.filter(s => s !== skill);
-      this.userSkillsInput = this.userSkills.join(', ');
-      delete this.skillLevels[skill];
-    },
-
-    addSkill() {
-      const skill = this.newSkillInput.trim();
-      if (!skill || this.userSkills.includes(skill)) return;
-      this.userSkills.push(skill);
-      this.skillLevels[skill] = 3;
-      this.userSkillsInput = this.userSkills.join(', ');
-      this.newSkillInput = '';
-    },
-
-    addTraining() {
-      const name = this.newTrainingName.trim();
-      if (!name) return;
-      this.training.push({
-        name,
-        institution: this.newTrainingInstitution.trim() || null,
-        period: this.newTrainingPeriod.trim() || null,
-      });
-      this.newTrainingName = '';
-      this.newTrainingInstitution = '';
-      this.newTrainingPeriod = '';
-    },
-
-    removeTraining(idx) {
-      this.training.splice(idx, 1);
     },
 
     removeSkill(skill) {
@@ -2416,22 +2307,6 @@ export default {
   margin-top: 16px;
 }
 
-.step-next-row {
-  margin-top: 16px;
-}
-
-.step-next-row .btn-next {
-  width: 100%;
-}
-
-.parsing-background-notice {
-  margin-bottom: 16px;
-  padding: 12px 16px;
-  background: rgba(251, 191, 36, 0.1);
-  border: 1px solid rgba(251, 191, 36, 0.3);
-  border-radius: 8px;
-  color: #fbbf24;
-  font-size: 14px;
 .step-next-row {
   margin-top: 16px;
 }
