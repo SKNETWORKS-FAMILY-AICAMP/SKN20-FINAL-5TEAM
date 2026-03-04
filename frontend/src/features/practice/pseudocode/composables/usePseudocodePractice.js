@@ -322,6 +322,7 @@ export function usePseudocodePractice() {
                 gameState.phase3Reasoning,
                 tailAnswer,
                 deepAnswer,
+                false,  // [수정 2026-03-04] evaluate-5d는 DB 저장 안 함, MISSION COMPLETE에서만 저장
             );
 
             // 네트워크 에러 / LLM 장애로 null 반환 시
@@ -533,11 +534,13 @@ export function usePseudocodePractice() {
 
             const tailAnswer = gameState.tailAnswer || '';
 
+            // [수정 2026-03-04] Deep Dive 재평가는 DB 저장 X (isFinalSubmission=false)
             const result = await evaluate(
                 currentMission.value,
                 gameState.phase3Reasoning,
                 tailAnswer,
                 userAnswer,
+                false,
             );
 
             if (!result) {

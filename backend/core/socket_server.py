@@ -7,6 +7,7 @@ from core.services.pseudocode_evaluator import PseudocodeEvaluator, EvaluationRe
 from core.services.wars.orchestrator import WarsOrchestrator
 from core.services.wars.state_machine import DrawRoomState, GameState
 from core.services.wars.bug_problem_generator import generate_bug_problems
+from core.services.wars.logic_problem_generator import generate_logic_quests
 # [수정일: 2026-03-03] architecture_missions.py 하드코딩 제거 → DB(unit03) 동적 로드
 # 모듈 임포트 시점에 DB 쿼리하면 Django 초기화 전이라 실패 → 런타임에 lazy 로드
 from core.views.wars.wars_mission_view import _transform_to_wars_mission
@@ -562,9 +563,18 @@ async def run_start(sid, data):
 
         print(f"🚀 [LogicRun] Game officially starting in room: {room_id}")
         room['phase'] = 'playing'
-        # 퀘스트 인덱스를 랜덤으로 생성하여 양측 공유
-        quest_idx = random.randint(0, 100)
-        await sio.emit('run_game_start', {'quest_idx': quest_idx}, room=room_id)
+        
+        # [수정일: 2026-03-04] AI 문제 동적 생성
+        await sio.emit('run_gen_progress', {'step': 1, 'msg': '문제 주제 선정 중...'}, room=room_id)
+        try:
+            quests = await generate_logic_quests(count=3)
+            await sio.emit('run_gen_progress', {'step': 2, 'msg': f'{len(quests)}개 퀘스트 생성 완료!'}, room=room_id)
+            quest_idx = 0  # AI 생성 퀘스트는 항상 첫 번째 사용
+            await sio.emit('run_game_start', {'quest_idx': quest_idx, 'quests': quests}, room=room_id)
+        except Exception as e:
+            print(f"⚠️ [LogicRun] AI quest generation failed: {e}, using fallback")
+            quest_idx = random.randint(0, 100)
+            await sio.emit('run_game_start', {'quest_idx': quest_idx}, room=room_id)
 
 # [수정일: 2026-02-27] 추가: LogicRun 게임 종료 시 점수 및 결과 동기화를 위한 이벤트 핸들러 추가
 @sio.event

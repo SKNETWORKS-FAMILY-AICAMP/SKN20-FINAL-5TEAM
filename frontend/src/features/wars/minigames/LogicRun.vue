@@ -1,5 +1,11 @@
 <template>
-  <div class="logic-run" :class="{ 'shake': shaking, 'flash-ok': flashOk, 'flash-fail': flashFail }">
+  <div class="logic-run" :class="{ 'shake': shaking, 'flash-ok': flashOk, 'flash-fail': flashFail, 'banana-slip': bananaSlip }">
+    <!-- [2026-03-04] 오답 장애물 이모지 오버레이 -->
+    <transition name="obstacle-pop">
+      <div v-if="bananaSlip" class="obstacle-overlay">
+        <span class="obstacle-emoji">{{ bananaEmoji }}</span>
+      </div>
+    </transition>
     <div class="crt-lines"></div>
 
     <!-- ===== INTRO ===== -->
@@ -628,10 +634,21 @@ rs.onJoinError.value = (msg) => {
   roomId.value = ''
 }
 
-rs.onGameStart.value = (qIdx) => {
+// [2026-03-04] AI 생성 퀘스트 저장소
+const serverQuests = ref(null)
+
+rs.onGenProgress.value = (data) => {
+  console.log(`[LogicRun] AI 문제 생성: ${data.msg}`)
+}
+
+rs.onGameStart.value = (qIdx, quests) => {
   const roomPlayers = rs.roomPlayers.value
   playerP1.value = roomPlayers[0] || { name: 'P1', avatar_url: '/image/duck_idle.png', sid: '' }
   playerP2.value = roomPlayers[1] || { name: 'P2', avatar_url: '/image/duck_idle.png', sid: '' }
+  // AI 생성 퀘스트가 있으면 사용
+  if (quests && quests.length > 0) {
+    serverQuests.value = quests
+  }
   startGame(true, qIdx)
 }
 
@@ -1008,8 +1025,12 @@ const resultGrade = computed(() => {
 
 // ─── 게임 시작 ────────────────────────────────────────
 function startGame(fromSocket = false, qIdx = null) {
-  // [수정일: 2026-02-27] 게임 시작 시 전용 퀘스트(테마)를 하나 랜덤으로 고정
-  if (logicQuests && logicQuests.length > 0) {
+  // [수정일: 2026-03-04] AI 생성 퀘스트 우선, 없으면 로컬 폴백
+  if (serverQuests.value && serverQuests.value.length > 0) {
+    const questIdx = typeof qIdx === 'number' ? qIdx % serverQuests.value.length : 0
+    currentQuest.value = serverQuests.value[questIdx]
+    console.log('[LogicRun] Using AI-generated quest:', currentQuest.value.title)
+  } else if (logicQuests && logicQuests.length > 0) {
     const questIdx = typeof qIdx === 'number' ? qIdx % logicQuests.length 
                    : (roomId.value ? roomId.value.charCodeAt(0) % logicQuests.length 
                    : Math.floor(Math.random() * logicQuests.length));
@@ -1121,19 +1142,38 @@ function handleBlankCorrect() {
   })
 }
 
+// [2026-03-04] 바나나 장애물 상태
+const bananaSlip = ref(false)
+const bananaEmoji = ref('')
+
+const OBSTACLE_POOL = [
+  { emoji: '🍌', text: '바나나 미끔러짐!' },
+  { emoji: '🪨', text: '돌에 걸려 넘어짐!' },
+  { emoji: '💥', text: '장애물에 충돌!' },
+  { emoji: '🌪️', text: '회오리에 휘말림!' },
+  { emoji: '⚡', text: '감전! 잠시 멈춤!' },
+]
+
 function handleBlankWrong() {
   currentCombo.value = 0
-  errorMsg.value = '틀렸습니다!'
-  setTimeout(() => { errorMsg.value = '' }, 800)
+  
+  // 바나나 장애물 연출
+  const obstacle = OBSTACLE_POOL[Math.floor(Math.random() * OBSTACLE_POOL.length)]
+  bananaEmoji.value = obstacle.emoji
+  bananaSlip.value = true
+  errorMsg.value = obstacle.text
+  
+  setTimeout(() => { errorMsg.value = '' }, 1200)
+  setTimeout(() => { bananaSlip.value = false }, 1000)
 
   shaking.value = true
   flashFail.value = true
   setTimeout(() => {
     shaking.value = false
     flashFail.value = false
-  }, 300)
+  }, 400)
 
-  spawnFpop('오답 ✗', '#ef4444')
+  spawnFpop(`${obstacle.emoji} 오답!`, '#ef4444')
 }
 
 // ─── PHASE 2: Design Sprint ──────────
@@ -1879,4 +1919,37 @@ onUnmounted(() => {
 .fpop-leave-active { transition: all 0.2s ease; }
 .fpop-enter-from { opacity: 0; transform: translateY(20px); }
 .fpop-leave-to { opacity: 0; transform: translateY(-30px); }
+
+/* [2026-03-04] 바나나 장애물 시각효과 */
+.obstacle-overlay {
+  position: fixed; inset: 0; z-index: 9500;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+.obstacle-emoji {
+  font-size: 120px;
+  animation: bananaFall 1s ease-out forwards;
+  filter: drop-shadow(0 0 30px rgba(255,200,0,.6));
+}
+@keyframes bananaFall {
+  0% { transform: translateY(-200px) rotate(0deg) scale(0.3); opacity: 0; }
+  30% { transform: translateY(0) rotate(30deg) scale(1.2); opacity: 1; }
+  50% { transform: translateY(20px) rotate(-15deg) scale(1); opacity: 1; }
+  100% { transform: translateY(100px) rotate(45deg) scale(0.5); opacity: 0; }
+}
+.banana-slip {
+  animation: slipShake 0.6s ease-in-out;
+}
+@keyframes slipShake {
+  0%, 100% { transform: rotate(0deg); }
+  15% { transform: rotate(-8deg) translateX(-10px); }
+  30% { transform: rotate(6deg) translateX(8px); }
+  45% { transform: rotate(-4deg) translateX(-5px); }
+  60% { transform: rotate(3deg) translateX(3px); }
+  75% { transform: rotate(-1deg); }
+}
+.obstacle-pop-enter-active { transition: all 0.2s ease; }
+.obstacle-pop-leave-active { transition: all 0.5s ease; }
+.obstacle-pop-enter-from { opacity: 0; transform: scale(0); }
+.obstacle-pop-leave-to { opacity: 0; }
 </style>

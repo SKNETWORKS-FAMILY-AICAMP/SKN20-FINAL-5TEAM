@@ -235,14 +235,27 @@ class UserSolvedProblemView(APIView):
         from core.models import UserProfile
         profile = get_object_or_404(UserProfile, email=user.email)
         
-        # [2026-02-24 수정] UserSolvedProblem 필드명 오타 수정 (updated_at -> update_date)
-        solved_problems = UserSolvedProblem.objects.filter(user=profile).select_related('practice_detail').order_by('-update_date')
-        
+        # [수정 2026-03-04] 문제별 최고점 1개만 반환 (중복 제출 시 중복 표시 방지)
+        # UserSolvedProblem은 제출할 때마다 create()로 쌓이므로, practice_detail별 최고점 레코드만 조회
+        from django.db.models import Max
+        best_ids = (
+            UserSolvedProblem.objects
+            .filter(user=profile)
+            .values('practice_detail')
+            .annotate(max_score=Max('score'))
+        )
+        # 각 문제별 최고점과 일치하는 레코드 중 가장 최신 1개씩 추출
+        seen = set()
         data = []
-        for sp in solved_problems:
+        all_records = UserSolvedProblem.objects.filter(user=profile).select_related('practice_detail').order_by('-score', '-update_date')
+        for sp in all_records:
+            detail_id = sp.practice_detail.id
+            if detail_id in seen:
+                continue
+            seen.add(detail_id)
             data.append({
                 'id': sp.id,
-                'practice_detail': sp.practice_detail.id,
+                'practice_detail': detail_id,
                 'score': sp.score,
                 'submitted_data': sp.submitted_data,
                 'is_perfect': sp.is_perfect,

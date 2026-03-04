@@ -30,9 +30,9 @@
           <h2 class="mode-title">로직 런</h2>
           <p class="mode-desc">빈칸 채우기 스피드전 + 설계 드로잉 대결! 더 빠르고 정확한 엔지니어가 승리한다.</p>
           <div class="mode-tags">
-            <span class="tag">스피드 코딩</span>
-            <span class="tag">설계 대결</span>
-            <span class="tag">1vs1</span>
+            <span class="tag">빈칸 채우기</span>
+            <span class="tag">스피드</span>
+            <span class="tag">의사코드</span>
           </div>
           <div class="mode-meta">
             <span>⏱ 10분</span>
@@ -52,9 +52,9 @@
           <h2 class="mode-title">버그버블 몬스터</h2>
           <p class="mode-desc">문제를 풀고 버그를 가둬 상대에게 날려라! 보글보글 1:1 디펜스 승부.</p>
           <div class="mode-tags">
-            <span class="tag">1:1 대전</span>
-            <span class="tag">실시간 어택</span>
-            <span class="tag">디펜스</span>
+            <span class="tag">디버깅</span>
+            <span class="tag">몬스터 어택</span>
+            <span class="tag">서바이벌</span>
           </div>
           <div class="mode-meta">
             <span>⏱ 무제한</span>
@@ -74,9 +74,9 @@
           <h2 class="mode-title">아키텍처 캐치마인드</h2>
           <p class="mode-desc">제시된 아키텍처를 직접 드래그&드롭으로 설계하라! AI가 실시간으로 평가하는 1vs1 드로잉 배틀.</p>
           <div class="mode-tags">
-            <span class="tag">아키텍처 설계</span>
-            <span class="tag">AI 평가</span>
-            <span class="tag">1vs1 배틀</span>
+            <span class="tag">시스템 설계</span>
+            <span class="tag">드로잉</span>
+            <span class="tag">AI 리뷰</span>
           </div>
           <div class="mode-meta">
             <span>⏱ 45초</span>

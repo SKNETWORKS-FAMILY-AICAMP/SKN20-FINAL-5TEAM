@@ -23,6 +23,7 @@ export function useRunSocket() {
 
     // 이벤트 콜백
     const onGameStart = ref(null)
+    const onGenProgress = ref(null)  // [2026-03-04] AI 문제 생성 진행상황
     const onSync = ref(null)
     const onRelay = ref(null)
     const onHfSync = ref(null)
@@ -70,10 +71,15 @@ export function useRunSocket() {
             isReady.value = data.ready
         })
 
+        // [2026-03-04] AI 문제 생성 진행
+        socket.value.on('run_gen_progress', (data) => {
+            if (onGenProgress.value) onGenProgress.value(data)
+        })
+
         // 게임 시작
         socket.value.on('run_game_start', (data) => {
             gameStarted.value = true
-            if (onGameStart.value) onGameStart.value(data?.quest_idx ?? 0)
+            if (onGameStart.value) onGameStart.value(data?.quest_idx ?? 0, data?.quests ?? null)
         })
 
         // 진행도 동기화
@@ -161,7 +167,7 @@ export function useRunSocket() {
         socket, connected, roomPlayers, isLeader, isReady, gameStarted,
         remotePlayerPos, remoteAiPos, remoteCurrentSector, remoteCurrentLineIdx,
         remoteLastCorrectLine, remoteCurrentPlayerIdx,
-        onGameStart, onSync, onRelay, onHfSync, onDesignEvaluation, onEnd, onUserLeft, onJoinError,
+        onGameStart, onGenProgress, onSync, onRelay, onHfSync, onDesignEvaluation, onEnd, onUserLeft, onJoinError,
         connect, emitStart, emitProgress, emitRelayStart, emitHighFive,
         emitAiSync, emitFinish, emitLogicFinish, disconnect
     }

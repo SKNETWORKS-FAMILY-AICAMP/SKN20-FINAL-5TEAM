@@ -29,15 +29,17 @@ import axios from 'axios';
  *
  * 평가 대상 아님: 객관식 진단 2문제 (게임 점수에만 반영)
  */
-export async function requestEvaluation(questId, questTitle, pseudocode, tailAnswer = '', deepAnswer = '') {
+// [수정 2026-03-04] is_final_submission: Deep Dive 재평가 시 False → DB 중복 저장 방지
+export async function requestEvaluation(questId, questTitle, pseudocode, tailAnswer = '', deepAnswer = '', isFinalSubmission = true) {
     return axios.post(
         '/api/core/pseudocode/evaluate-5d/',
         {
-            quest_id:    questId,
-            quest_title: questTitle,
+            quest_id:            questId,
+            quest_title:         questTitle,
             pseudocode,
-            tail_answer:  tailAnswer  || '',
-            deep_answer:  deepAnswer  || '',
+            tail_answer:         tailAnswer  || '',
+            deep_answer:         deepAnswer  || '',
+            is_final_submission: isFinalSubmission,
         },
         { timeout: 45000 },
     );
