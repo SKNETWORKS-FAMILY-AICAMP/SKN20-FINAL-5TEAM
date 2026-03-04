@@ -1295,6 +1295,11 @@ async function sendMessage() {
 }
 
 .answer-text {
+  padding: 0.8rem 1.2rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  border-top-left-radius: 2px;
   font-size: 0.95rem;
   line-height: 1.7;
   color: var(--text);
