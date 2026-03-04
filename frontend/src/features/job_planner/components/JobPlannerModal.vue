@@ -33,6 +33,12 @@
           >
             3. 최종 결과
           </button>
+          <button
+            :class="['flow-tab', { active: currentStep === 'history' }]"
+            @click="currentStep = 'history'"
+          >
+            분석 기록
+          </button>
         </div>
 
         <!-- Content Area -->
@@ -227,11 +233,11 @@
               <div v-if="companyAnalysis" class="company-analysis-results">
                 <h3 class="analysis-title">🏢 기업 분석 결과</h3>
 
-                <div class="analysis-section">
+                <div class="analysis-section" v-if="companyAnalysis.overview && (companyAnalysis.overview.description || companyAnalysis.overview.industry || companyAnalysis.overview.size || companyAnalysis.overview.founded_year || companyAnalysis.overview.vision)">
                   <h4 class="section-subtitle">📋 회사 개요</h4>
                   <div class="analysis-content">
-                    <p>{{ companyAnalysis.overview.description }}</p>
-                    <div class="info-grid">
+                    <p v-if="companyAnalysis.overview.description">{{ companyAnalysis.overview.description }}</p>
+                    <div class="info-grid" v-if="companyAnalysis.overview.industry || companyAnalysis.overview.size || companyAnalysis.overview.founded_year">
                       <div class="info-item" v-if="companyAnalysis.overview.industry">
                         <span class="info-label">산업:</span>
                         <span class="info-value">{{ companyAnalysis.overview.industry }}</span>
@@ -251,7 +257,7 @@
                   </div>
                 </div>
 
-                <div class="analysis-section">
+                <div class="analysis-section" v-if="companyAnalysis.tech_stack && (companyAnalysis.tech_stack.languages?.length || companyAnalysis.tech_stack.frameworks?.length || companyAnalysis.tech_stack.tools?.length || companyAnalysis.tech_stack.culture || companyAnalysis.tech_stack.tech_blog)">
                   <h4 class="section-subtitle">💻 기술 스택 및 개발 문화</h4>
                   <div class="analysis-content">
                     <div class="tech-tags" v-if="companyAnalysis.tech_stack.languages?.length">
@@ -287,35 +293,23 @@
                   </div>
                 </div>
 
-                <div class="analysis-section">
+                <div class="analysis-section" v-if="companyAnalysis.growth && (companyAnalysis.growth.funding || companyAnalysis.growth.market_position)">
                   <h4 class="section-subtitle">📈 성장성 및 안정성</h4>
                   <div class="analysis-content">
                     <div class="growth-grid">
-                      <div class="growth-item">
+                      <div class="growth-item" v-if="companyAnalysis.growth.funding">
                         <span class="growth-label">투자:</span>
-                        <span class="growth-value">{{ companyAnalysis.growth.funding || '정보 없음' }}</span>
+                        <span class="growth-value">{{ companyAnalysis.growth.funding }}</span>
                       </div>
-                      <div class="growth-item">
+                      <div class="growth-item" v-if="companyAnalysis.growth.market_position">
                         <span class="growth-label">시장 위치:</span>
-                        <span class="growth-value">{{ companyAnalysis.growth.market_position || '정보 없음' }}</span>
-                      </div>
-                      <div class="growth-item">
-                        <span class="growth-label">성장 가능성:</span>
-                        <span :class="['growth-badge', companyAnalysis.growth.growth_potential]">
-                          {{ companyAnalysis.growth.growth_potential }}
-                        </span>
-                      </div>
-                      <div class="growth-item">
-                        <span class="growth-label">안정성:</span>
-                        <span :class="['growth-badge', companyAnalysis.growth.stability]">
-                          {{ companyAnalysis.growth.stability }}
-                        </span>
+                        <span class="growth-value">{{ companyAnalysis.growth.market_position }}</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div class="analysis-section">
+                <div class="analysis-section" v-if="companyAnalysis.welfare && (companyAnalysis.welfare.salary_level || companyAnalysis.welfare.benefits?.length || companyAnalysis.welfare.work_life_balance || companyAnalysis.welfare.remote_work)">
                   <h4 class="section-subtitle">🎁 복지 및 근무환경</h4>
                   <div class="analysis-content">
                     <div class="welfare-item" v-if="companyAnalysis.welfare.salary_level">
@@ -338,7 +332,7 @@
                   </div>
                 </div>
 
-                <div class="analysis-section recommendation-section">
+                <div class="analysis-section recommendation-section" v-if="companyAnalysis.recommendation">
                   <h4 class="section-subtitle">💡 종합 평가</h4>
                   <div class="recommendation-content">
                     {{ companyAnalysis.recommendation }}
@@ -356,6 +350,7 @@
             <button
               v-if="!(jobData && !isParsing && !isAnalyzingCompany)"
               class="btn-parse"
+              style="margin-top: 12px;"
               @click="parseJobPosting"
               :disabled="!urlInput || isParsing || isAnalyzingCompany"
             >
@@ -382,7 +377,10 @@
               <!-- 서류 업로드 섹션 -->
               <div class="form-section document-upload-section">
                 <h4 class="form-section-title">📄 서류 업로드 <span class="optional">(선택)</span></h4>
-                <p class="input-hint">이력서, 자기소개서, 포트폴리오를 업로드하면 아래 정보를 자동으로 채워드립니다</p>
+                <div v-if="profileLoadedFromStorage" class="storage-loaded-notice">
+                  이전에 분석한 서류 정보가 자동으로 불러와졌습니다. 새 서류를 업로드하면 다시 분석됩니다.
+                </div>
+                <p v-else class="input-hint">이력서, 자기소개서, 포트폴리오를 업로드하면 아래 정보를 자동으로 채워드립니다</p>
 
                 <div class="document-upload-grid">
                   <div class="upload-item">
@@ -428,13 +426,14 @@
                 </div>
 
                 <button
-                  v-if="resumePdf || coverLetterPdf || portfolioPdf"
+                  v-if="resumePdf || coverLetterPdf || portfolioPdf || careerDescPdf"
                   class="btn-parse-resume"
                   @click="parseResumeDocuments"
                   :disabled="isParsingDocuments"
                 >
-                  <span v-if="!isParsingDocuments">✨ 서류 분석하여 자동 입력</span>
-                  <span v-else>⏳ 분석 중... (병렬 처리 중)</span>
+                  <span v-if="!isParsingDocuments && !documentParseSuccess">✨ 서류 분석하여 자동 입력</span>
+                  <span v-else-if="!isParsingDocuments && documentParseSuccess">🔄 서류 다시 분석하기</span>
+                  <span v-else>⏳ 분석 중...</span>
                 </button>
 
                 <div v-if="documentParseSuccess" class="parse-success-msg">
@@ -611,6 +610,9 @@
           <!-- Step 3: 분석 결과 -->
           <div v-if="currentStep === 'result' && analysisResult" class="result-step">
             <h3 class="step-title">분석 결과</h3>
+            <div v-if="resultLoadedFromStorage" class="storage-loaded-notice">
+              이전 분석 결과를 불러왔습니다. 새로 분석하려면 "새로운 공고 분석하기"를 눌러주세요.
+            </div>
 
             <!-- Score Overview -->
             <div class="score-overview">
@@ -695,12 +697,12 @@
             <div v-if="recommendations.length > 0" class="recommendations-section">
               <h3 class="recommendations-title">💡 추천 채용공고</h3>
               <p class="recommendations-subtitle">
-                현재 스킬과 더 잘 맞는 공고들을 찾았습니다 ({{ recommendations.length }}개)
+                현재 스킬과 더 잘 맞는 공고들을 찾았습니다 (총 {{ recommendations.length }}개)
               </p>
 
               <div class="recommendations-list">
                 <div
-                  v-for="(rec, idx) in recommendations"
+                  v-for="(rec, idx) in pagedRecommendations"
                   :key="'rec-' + idx"
                   class="recommendation-card"
                 >
@@ -769,6 +771,27 @@
                   </a>
                 </div>
               </div>
+
+              <!-- Pagination -->
+              <div v-if="recommendationTotalPages > 1" class="rec-pagination">
+                <button
+                  class="rec-page-btn"
+                  :disabled="recommendationPage <= 1"
+                  @click="recommendationPage--"
+                >
+                  ← 이전
+                </button>
+                <span class="rec-page-info">
+                  {{ recommendationPage }} / {{ recommendationTotalPages }}
+                </span>
+                <button
+                  class="rec-page-btn"
+                  :disabled="recommendationPage >= recommendationTotalPages"
+                  @click="recommendationPage++"
+                >
+                  다음 →
+                </button>
+              </div>
             </div>
 
             <!-- No Recommendations -->
@@ -783,7 +806,7 @@
             <div v-if="isLoadingRecommendations" class="loading-recommendations">
               <div class="loading-spinner"></div>
               <p v-if="isLoadingRecommendations">
-                추천 공고를 찾고 있습니다... (사람인, 잡코리아 검색 중)
+                추천 공고를 찾고 있습니다...
               </p>
               <p v-else>
                 추천 공고를 준비 중입니다...
@@ -870,7 +893,7 @@
               </div>
 
               <!-- 포트폴리오 분석 결과 (서류 업로드한 경우만) -->
-              <div v-if="portfolioPdf && (isReviewingPortfolio || portfolioReview)" class="action-tools-section" style="margin-top: 24px;">
+              <div v-if="portfolioParsed && (isReviewingPortfolio || portfolioReview)" class="action-tools-section" style="margin-top: 24px;">
                 <h4 class="section-subtitle">📊 포트폴리오 분석 결과</h4>
                 <div v-if="isReviewingPortfolio" class="parsing-background-notice">
                   ⏳ 포트폴리오 분석 중...
@@ -966,9 +989,20 @@
               </div>
             </div>
 
-            <button class="btn-restart" @click="resetAll">
-              🔄 새로운 공고 분석하기
-            </button>
+            <div class="result-actions">
+              <button v-if="!savedRecordId" class="btn-save-analysis" @click="saveToLocal">
+                저장
+              </button>
+              <span v-else class="save-success">저장 완료</span>
+              <button class="btn-restart" @click="resetAll">
+                🔄 새로운 공고 분석하기
+              </button>
+            </div>
+          </div>
+
+          <!-- Step 4: 분석 기록 -->
+          <div v-if="currentStep === 'history'" class="history-step">
+            <JobPlannerHistory ref="historyComp" />
           </div>
 
           <!-- Error Display -->
@@ -984,9 +1018,11 @@
 <script>
 import axios from 'axios';
 import { useGameStore } from '@/stores/game';
+import JobPlannerHistory from './JobPlannerHistory.vue';
 
 export default {
   name: 'JobPlannerModal',
+  components: { JobPlannerHistory },
   props: {
     isOpen: Boolean
   },
@@ -1035,31 +1071,6 @@ export default {
       parsedTeamworkExperience: null,
       parsedGrowthStory: null,
 
-      // 서류 업로드
-      resumePdf: null,
-      coverLetterPdf: null,
-      portfolioPdf: null,
-      careerDescPdf: null,
-      resumeFileName: '',
-      coverLetterFileName: '',
-      portfolioFileName: '',
-      careerDescFileName: '',
-      isParsingDocuments: false,
-      documentParseSuccess: false,
-      // 서류 파싱 추가 데이터
-      parsedEmail: null,
-      parsedPhone: null,
-      parsedLanguages: [],
-      parsedAwards: [],
-      parsedStrengths: [],
-      parsedWorkExperience: [],
-      parsedKeyAchievements: [],
-      parsedProjects: [],
-      parsedGithubUrl: null,
-      parsedPortfolioUrl: null,
-      parsedTeamworkExperience: null,
-      parsedGrowthStory: null,
-
       // User data
       name: '',
       currentRole: '',
@@ -1068,14 +1079,9 @@ export default {
       userSkillsInput: '',
       skillLevels: {},  // {"Python": 4, "Django": 3}
       newSkillInput: '',
-      newSkillInput: '',
       education: '',
       certifications: [],
       certificationsInput: '',
-      training: [],
-      newTrainingName: '',
-      newTrainingInstitution: '',
-      newTrainingPeriod: '',
       training: [],
       newTrainingName: '',
       newTrainingInstitution: '',
@@ -1100,19 +1106,49 @@ export default {
       recommendations: [],
       isLoadingRecommendations: false,
       recommendationsSearched: false,
+      recommendationPage: 1,
+      recommendationPageSize: 5,
 
       // Portfolio Review
       portfolioReview: null,
       isReviewingPortfolio: false,
+      portfolioParsed: null,
 
       // Status
       isParsing: false,
       isAnalyzing: false,
-      errorMessage: ''
+      errorMessage: '',
+
+      // Save
+      savedRecordId: null,
+
+      // localStorage 로드 상태
+      profileLoadedFromStorage: false,
+      resultLoadedFromStorage: false
     };
+  },
+  watch: {
+    isOpen(newVal) {
+      if (newVal) {
+        const loaded = this.loadProfileFromStorage();
+        if (loaded) {
+          this.profileLoadedFromStorage = true;
+        }
+      }
+    }
+  },
+  computed: {
+    pagedRecommendations() {
+      const start = (this.recommendationPage - 1) * this.recommendationPageSize;
+      return this.recommendations.slice(start, start + this.recommendationPageSize);
+    },
+    recommendationTotalPages() {
+      return Math.ceil(this.recommendations.length / this.recommendationPageSize);
+    },
   },
   methods: {
     closeModal() {
+      this.saveResultToStorage();
       this.$emit('close');
     },
 
@@ -1127,6 +1163,8 @@ export default {
       const file = event.target.files[0];
       if (!file) return;
 
+      this.documentParseSuccess = false;
+
       const reader = new FileReader();
       reader.onload = (e) => {
         if (type === 'resume') {
@@ -1146,93 +1184,47 @@ export default {
       reader.readAsDataURL(file);
     },
 
-    async parseResumeDocuments() {
-      this.isParsingDocuments = true;
-      this.documentParseSuccess = false;
-      this.errorMessage = '';
-
-      try {
-        const payload = {};
-        if (this.resumePdf) payload.resume = this.resumePdf;
-        if (this.coverLetterPdf) payload.cover_letter = this.coverLetterPdf;
-        if (this.portfolioPdf) payload.portfolio = this.portfolioPdf;
-        if (this.careerDescPdf) payload.career_description = this.careerDescPdf;
-
-        const response = await axios.post('/api/core/job-planner/parse-resume/', payload);
-        const data = response.data;
-
-        // 기본 폼 자동 채우기
-        if (data.name) this.name = data.name;
-        if (data.current_role) this.currentRole = data.current_role;
-        if (data.education) this.education = data.education;
-        if (data.certifications?.length) {
-          this.certifications = data.certifications;
-          this.certificationsInput = data.certifications.join(', ');
-        }
-        if (data.training?.length) {
-          this.training = data.training;
-        }
-        if (data.career_goals) this.careerGoals = data.career_goals;
-        if (data.experience_years) this.experienceYears = data.experience_years;
-        if (data.user_skills?.length) {
-          this.userSkills = data.user_skills;
-          this.userSkillsInput = data.user_skills.join(', ');
-        }
-        if (data.skill_levels && Object.keys(data.skill_levels).length) {
-          this.skillLevels = data.skill_levels;
-        }
-
-        // 추가 데이터 저장
-        this.parsedEmail = data.email || null;
-        this.parsedPhone = data.phone || null;
-        this.parsedLanguages = data.languages || [];
-        this.parsedAwards = data.awards || [];
-        this.parsedStrengths = data.strengths || [];
-        this.parsedWorkExperience = data.work_experience || [];
-        this.parsedKeyAchievements = data.key_achievements || [];
-        this.parsedProjects = data.projects || [];
-        this.parsedGithubUrl = data.github_url || null;
-        this.parsedPortfolioUrl = data.portfolio_url || null;
-        this.parsedTeamworkExperience = data.teamwork_experience || null;
-        this.parsedGrowthStory = data.growth_story || null;
-
-        this.documentParseSuccess = true;
-      } catch (error) {
-        console.error('서류 분석 실패:', error);
-        this.errorMessage = error.response?.data?.error || '서류 분석 중 오류가 발생했습니다.';
-      } finally {
-        this.isParsingDocuments = false;
+    applyProfileData(data) {
+      // 기본 폼 자동 채우기
+      if (data.name) this.name = data.name;
+      if (data.current_role || data.currentRole) this.currentRole = data.current_role || data.currentRole;
+      if (data.education) this.education = data.education;
+      if (data.certifications?.length) {
+        this.certifications = data.certifications;
+        this.certificationsInput = data.certifications.join(', ');
       }
-    },
+      if (data.training?.length) {
+        this.training = data.training;
+      }
+      if (data.career_goals || data.careerGoals) this.careerGoals = data.career_goals || data.careerGoals;
+      if (data.experience_years != null || data.experienceYears != null) {
+        this.experienceYears = data.experience_years ?? data.experienceYears;
+      }
+      if (data.user_skills?.length || data.userSkills?.length) {
+        this.userSkills = data.user_skills || data.userSkills;
+        this.userSkillsInput = this.userSkills.join(', ');
+      }
+      if (data.skill_levels && Object.keys(data.skill_levels).length) {
+        this.skillLevels = data.skill_levels;
+      } else if (data.skillLevels && Object.keys(data.skillLevels).length) {
+        this.skillLevels = data.skillLevels;
+      }
 
-    clearPdf(type) {
-      if (type === 'resume') { this.resumePdf = null; this.resumeFileName = ''; }
-      else if (type === 'cover_letter') { this.coverLetterPdf = null; this.coverLetterFileName = ''; }
-      else if (type === 'portfolio') { this.portfolioPdf = null; this.portfolioFileName = ''; }
-      else if (type === 'career_description') { this.careerDescPdf = null; this.careerDescFileName = ''; }
-    },
+      // 추가 데이터 (새 값이 없으면 기존 값 유지)
+      this.parsedEmail = data.email || data.parsedEmail || this.parsedEmail;
+      this.parsedPhone = data.phone || data.parsedPhone || this.parsedPhone;
+      this.parsedLanguages = data.languages?.length ? data.languages : (data.parsedLanguages?.length ? data.parsedLanguages : this.parsedLanguages);
+      this.parsedAwards = data.awards?.length ? data.awards : (data.parsedAwards?.length ? data.parsedAwards : this.parsedAwards);
+      this.parsedStrengths = data.strengths?.length ? data.strengths : (data.parsedStrengths?.length ? data.parsedStrengths : this.parsedStrengths);
+      this.parsedWorkExperience = data.work_experience?.length ? data.work_experience : (data.parsedWorkExperience?.length ? data.parsedWorkExperience : this.parsedWorkExperience);
+      this.parsedKeyAchievements = data.key_achievements?.length ? data.key_achievements : (data.parsedKeyAchievements?.length ? data.parsedKeyAchievements : this.parsedKeyAchievements);
+      this.parsedProjects = data.projects?.length ? data.projects : (data.parsedProjects?.length ? data.parsedProjects : this.parsedProjects);
 
-    handlePdfUpload(event, type) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        if (type === 'resume') {
-          this.resumePdf = e.target.result;
-          this.resumeFileName = file.name;
-        } else if (type === 'cover_letter') {
-          this.coverLetterPdf = e.target.result;
-          this.coverLetterFileName = file.name;
-        } else if (type === 'portfolio') {
-          this.portfolioPdf = e.target.result;
-          this.portfolioFileName = file.name;
-        } else if (type === 'career_description') {
-          this.careerDescPdf = e.target.result;
-          this.careerDescFileName = file.name;
-        }
-      };
-      reader.readAsDataURL(file);
+      this.parsedGithubUrl = data.github_url || data.parsedGithubUrl || this.parsedGithubUrl;
+      this.parsedPortfolioUrl = data.portfolio_url || data.parsedPortfolioUrl || this.parsedPortfolioUrl;
+      this.parsedTeamworkExperience = data.teamwork_experience || data.parsedTeamworkExperience || this.parsedTeamworkExperience;
+      this.parsedGrowthStory = data.growth_story || data.parsedGrowthStory || this.parsedGrowthStory;
+      this.portfolioParsed = data._portfolio_parsed || data.portfolioParsed || this.portfolioParsed;
     },
 
     async parseResumeDocuments() {
@@ -1247,45 +1239,27 @@ export default {
         if (this.portfolioPdf) payload.portfolio = this.portfolioPdf;
         if (this.careerDescPdf) payload.career_description = this.careerDescPdf;
 
+        // 업로드하지 않은 서류의 이전 파싱 결과를 함께 전송 (부분 업데이트)
+        const storedDocResults = this.loadDocResultsFromStorage();
+        if (storedDocResults) {
+          const existingDocResults = {};
+          if (!this.resumePdf && storedDocResults.resume) existingDocResults.resume = storedDocResults.resume;
+          if (!this.coverLetterPdf && storedDocResults.cover_letter) existingDocResults.cover_letter = storedDocResults.cover_letter;
+          if (!this.portfolioPdf && storedDocResults.portfolio) existingDocResults.portfolio = storedDocResults.portfolio;
+          if (!this.careerDescPdf && storedDocResults.career_description) existingDocResults.career_description = storedDocResults.career_description;
+          if (Object.keys(existingDocResults).length) {
+            payload.existing_doc_results = existingDocResults;
+          }
+        }
+
         const response = await axios.post('/api/core/job-planner/parse-resume/', payload);
-        const data = response.data;
-
-        // 기본 폼 자동 채우기
-        if (data.name) this.name = data.name;
-        if (data.current_role) this.currentRole = data.current_role;
-        if (data.education) this.education = data.education;
-        if (data.certifications?.length) {
-          this.certifications = data.certifications;
-          this.certificationsInput = data.certifications.join(', ');
-        }
-        if (data.training?.length) {
-          this.training = data.training;
-        }
-        if (data.career_goals) this.careerGoals = data.career_goals;
-        if (data.experience_years) this.experienceYears = data.experience_years;
-        if (data.user_skills?.length) {
-          this.userSkills = data.user_skills;
-          this.userSkillsInput = data.user_skills.join(', ');
-        }
-        if (data.skill_levels && Object.keys(data.skill_levels).length) {
-          this.skillLevels = data.skill_levels;
-        }
-
-        // 추가 데이터 저장
-        this.parsedEmail = data.email || null;
-        this.parsedPhone = data.phone || null;
-        this.parsedLanguages = data.languages || [];
-        this.parsedAwards = data.awards || [];
-        this.parsedStrengths = data.strengths || [];
-        this.parsedWorkExperience = data.work_experience || [];
-        this.parsedKeyAchievements = data.key_achievements || [];
-        this.parsedProjects = data.projects || [];
-        this.parsedGithubUrl = data.github_url || null;
-        this.parsedPortfolioUrl = data.portfolio_url || null;
-        this.parsedTeamworkExperience = data.teamwork_experience || null;
-        this.parsedGrowthStory = data.growth_story || null;
-
+        this.applyProfileData(response.data);
         this.documentParseSuccess = true;
+        // 개별 서류 파싱 결과 저장
+        if (response.data._doc_results) {
+          this.saveDocResultsToStorage(response.data._doc_results);
+        }
+        this.saveProfileToStorage();
       } catch (error) {
         console.error('서류 분석 실패:', error);
         this.errorMessage = error.response?.data?.error || '서류 분석 중 오류가 발생했습니다.';
@@ -1561,7 +1535,7 @@ export default {
         this.currentStep = 'result';
         this.fetchRecommendations();
         this.generateFinalReport();
-        if (this.portfolioPdf) {
+        if (this.portfolioParsed) {
           this.reviewPortfolio();
         }
 
@@ -1582,6 +1556,20 @@ export default {
           job_data: this.jobData,
           analysis_result: this.analysisResult,
           company_analysis: this.companyAnalysis,
+          user_profile: {
+            user_skills: this.userSkills,
+            skill_levels: this.skillLevels,
+            work_experience: this.parsedWorkExperience || [],
+            projects: this.parsedProjects || [],
+            key_achievements: this.parsedKeyAchievements || [],
+            strengths: this.parsedStrengths || [],
+            awards: this.parsedAwards || [],
+            languages: this.parsedLanguages || [],
+            teamwork_experience: this.parsedTeamworkExperience,
+            growth_story: this.parsedGrowthStory,
+            github_url: this.parsedGithubUrl,
+            portfolio_url: this.parsedPortfolioUrl,
+          },
         });
 
         this.finalReport = response.data;
@@ -1625,11 +1613,13 @@ export default {
         });
 
         this.recommendations = response.data.recommendations || [];
+        this.recommendationPage = 1;
         this.recommendationsSearched = true;
 
       } catch (error) {
         console.error('추천 공고 로드 실패:', error);
         this.recommendations = [];
+        this.recommendationPage = 1;
         this.recommendationsSearched = true;
       } finally {
         this.isLoadingRecommendations = false;
@@ -1726,6 +1716,7 @@ export default {
     },
 
     resetJobData() {
+      this.saveResultToStorage();
       this.urlInput = '';
       this.jobData = null;
       this.dataCompleteness = null;
@@ -1739,8 +1730,13 @@ export default {
       this.analysisResult = null;
       this.finalReport = null;
       this.recommendations = [];
+      this.recommendationPage = 1;
       this.recommendationsSearched = false;
       this.errorMessage = '';
+      this.companyUrl = '';
+      this.companyAnalysis = null;
+      this.isAnalyzingCompany = false;
+      this.savedRecordId = null;
       this.currentStep = 'input';
     },
 
@@ -1749,18 +1745,9 @@ export default {
       this.portfolioReview = null;
       try {
         const payload = {
-          user_profile: {
-            ...this.analysisResult?.profile_summary || {},
-            user_skills: this.userSkills,
-            work_experience: this.parsedWorkExperience || [],
-            projects: this.parsedProjects,
-            key_achievements: this.parsedKeyAchievements,
-            github_url: this.parsedGithubUrl,
-            portfolio_url: this.parsedPortfolioUrl,
-          },
           job_data: this.jobData,
+          portfolio_parsed: this.portfolioParsed,
         };
-        if (this.portfolioPdf) payload.portfolio_pdf = this.portfolioPdf;
         const response = await axios.post('/api/core/job-planner/review-portfolio/', payload);
         this.portfolioReview = response.data;
       } catch (error) {
@@ -1771,6 +1758,7 @@ export default {
     },
 
     resetAll() {
+      this.saveResultToStorage();
       this.currentStep = 'input';
       this.urlInput = '';
       this.jobData = null;
@@ -1854,10 +1842,162 @@ export default {
       this.analysisResult = null;
       this.finalReport = null;
       this.recommendations = [];
+      this.recommendationPage = 1;
       this.recommendationsSearched = false;
       this.portfolioReview = null;
       this.isReviewingPortfolio = false;
       this.errorMessage = '';
+      this.savedRecordId = null;
+      this.resultLoadedFromStorage = false;
+
+      // 프로필은 localStorage에서 재로드 (서류 재파싱 불필요)
+      this.profileLoadedFromStorage = false;
+      const loaded = this.loadProfileFromStorage();
+      if (loaded) this.profileLoadedFromStorage = true;
+    },
+
+    // === 분석 기록 localStorage 저장 ===
+
+    saveToLocal() {
+      try {
+        const record = {
+          id: Date.now(),
+          company_name: this.jobData?.company_name || '',
+          position: this.jobData?.position || '',
+          readiness_score: this.analysisResult?.readiness_score || 0,
+          saved_at: new Date().toISOString(),
+          job_data: this.jobData,
+          analysis_result: this.analysisResult,
+          agent_report: this.finalReport || null,
+          recommendations: this.recommendations?.length ? this.recommendations : null,
+          portfolio_review: this.portfolioReview || null,
+          company_analysis: this.companyAnalysis || null,
+        };
+        const history = JSON.parse(localStorage.getItem('job_planner_history') || '[]');
+        history.push(record);
+        localStorage.setItem('job_planner_history', JSON.stringify(history));
+        this.savedRecordId = record.id;
+        // 기록 탭이 열려있으면 새로고침
+        if (this.$refs.historyComp) {
+          this.$refs.historyComp.loadRecords();
+        }
+      } catch (e) {
+        console.error('분석 결과 저장 실패:', e);
+        this.errorMessage = '분석 결과 저장에 실패했습니다.';
+      }
+    },
+
+    // === localStorage 저장/로드 ===
+
+    saveProfileToStorage() {
+      try {
+        const profile = {
+          name: this.name,
+          currentRole: this.currentRole,
+          education: this.education,
+          certifications: this.certifications,
+          training: this.training,
+          careerGoals: this.careerGoals,
+          experienceYears: this.experienceYears,
+          userSkills: this.userSkills,
+          skillLevels: this.skillLevels,
+          parsedEmail: this.parsedEmail,
+          parsedPhone: this.parsedPhone,
+          parsedLanguages: this.parsedLanguages,
+          parsedAwards: this.parsedAwards,
+          parsedStrengths: this.parsedStrengths,
+          parsedWorkExperience: this.parsedWorkExperience,
+          parsedKeyAchievements: this.parsedKeyAchievements,
+          parsedProjects: this.parsedProjects,
+          parsedGithubUrl: this.parsedGithubUrl,
+          parsedPortfolioUrl: this.parsedPortfolioUrl,
+          parsedTeamworkExperience: this.parsedTeamworkExperience,
+          parsedGrowthStory: this.parsedGrowthStory,
+          portfolioParsed: this.portfolioParsed,
+          savedAt: new Date().toISOString()
+        };
+        localStorage.setItem('jobPlanner_profile', JSON.stringify(profile));
+      } catch (e) {
+        console.error('프로필 저장 실패:', e);
+      }
+    },
+
+    loadProfileFromStorage() {
+      try {
+        const raw = localStorage.getItem('jobPlanner_profile');
+        if (!raw) return false;
+        const profile = JSON.parse(raw);
+        this.applyProfileData(profile);
+        this.documentParseSuccess = true;
+        return true;
+      } catch (e) {
+        console.error('프로필 로드 실패:', e);
+        return false;
+      }
+    },
+
+    saveDocResultsToStorage(docResults) {
+      try {
+        localStorage.setItem('jobPlanner_docResults', JSON.stringify(docResults));
+      } catch (e) {
+        console.error('서류별 파싱 결과 저장 실패:', e);
+      }
+    },
+
+    loadDocResultsFromStorage() {
+      try {
+        const raw = localStorage.getItem('jobPlanner_docResults');
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) {
+        console.error('서류별 파싱 결과 로드 실패:', e);
+        return null;
+      }
+    },
+
+    getResultStorageKey() {
+      if (!this.urlInput) return null;
+      return 'jobPlanner_result_' + this.urlInput;
+    },
+
+    saveResultToStorage() {
+      try {
+        const key = this.getResultStorageKey();
+        if (!key || !this.analysisResult) return;
+        const result = {
+          jobData: this.jobData,
+          analysisResult: this.analysisResult,
+          finalReport: this.finalReport,
+          recommendations: this.recommendations,
+          portfolioReview: this.portfolioReview,
+          companyAnalysis: this.companyAnalysis,
+          savedAt: new Date().toISOString()
+        };
+        localStorage.setItem(key, JSON.stringify(result));
+      } catch (e) {
+        console.error('분석 결과 저장 실패:', e);
+      }
+    },
+
+    loadResultFromStorage() {
+      try {
+        const key = this.getResultStorageKey();
+        if (!key) return false;
+        const raw = localStorage.getItem(key);
+        if (!raw) return false;
+        const result = JSON.parse(raw);
+        this.jobData = result.jobData;
+        this.analysisResult = result.analysisResult;
+        this.finalReport = result.finalReport || null;
+        this.recommendations = result.recommendations || [];
+        this.recommendationsSearched = (result.recommendations?.length > 0);
+        this.portfolioReview = result.portfolioReview || null;
+        this.companyAnalysis = result.companyAnalysis || null;
+        this.currentStep = 'result';
+        return true;
+      } catch (e) {
+        console.error('분석 결과 로드 실패:', e);
+        return false;
+      }
     }
   }
 };
@@ -2222,6 +2362,37 @@ export default {
 .btn-restart:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(59, 130, 246, 0.5);
+}
+
+.result-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.btn-save-analysis {
+  padding: 14px 28px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border: none;
+  border-radius: 10px;
+  color: white;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.btn-save-analysis:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.5);
+}
+
+.save-success {
+  color: #4ade80;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .btn-parse:disabled,
@@ -2793,6 +2964,16 @@ export default {
   border: 1px solid rgba(34, 197, 94, 0.3);
   border-radius: 8px;
   color: #86efac;
+  font-size: 13px;
+}
+
+.storage-loaded-notice {
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 8px;
+  color: #a5b4fc;
   font-size: 13px;
 }
 
@@ -4163,6 +4344,40 @@ export default {
 .rec-link:hover {
   background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
   transform: translateX(4px);
+}
+
+.rec-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.rec-page-btn {
+  padding: 8px 16px;
+  background: rgba(59, 130, 246, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  border-radius: 8px;
+  color: #60a5fa;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.rec-page-btn:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.35);
+}
+
+.rec-page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.rec-page-info {
+  color: #cbd5e1;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .loading-recommendations {

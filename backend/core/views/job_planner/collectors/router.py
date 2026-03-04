@@ -108,9 +108,8 @@ class CollectorRouter:
             print(f"[INFO] 사람인 URL 감지 -> SaraminCollector 우선 시도")
             collectors.append(("Saramin", self.saramin_collector))
         elif 'jobkorea.co.kr' in url_lower:
-            # 잡코리아는 SSR이므로 빠른 StaticCollector 먼저 시도, 실패 시 Playwright fallback
-            print(f"[INFO] 잡코리아 URL 감지 -> StaticCollector 먼저 시도 (SSR), 실패 시 JobkoreaCollector")
-            collectors.append(("Static", self.static_collector))
+            # 잡코리아는 메인+iframe 구조이므로 JobkoreaCollector 우선 (iframe 상세 내용 포함)
+            print(f"[INFO] 잡코리아 URL 감지 -> JobkoreaCollector 우선 시도 (iframe 상세 포함)")
             collectors.append(("Jobkorea", self.jobkorea_collector))
         elif 'wanted.co.kr' in url_lower:
             is_spa = True

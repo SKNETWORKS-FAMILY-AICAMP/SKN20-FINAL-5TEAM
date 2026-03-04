@@ -434,16 +434,16 @@ class JobPlannerParseView(APIView):
                         "role": "user",
                         "content": f"""다음 채용공고 텍스트에서 정보를 추출하세요.
 
-{text[:5000]}
+{text[:15000]}
 
 위 텍스트를 바탕으로 아래 JSON 키를 채우세요. 텍스트에 없는 정보는 "" 또는 []로 두세요:
 - company_name: string
 - position: string (직무명이 명시되어 있으면 그대로, 없으면 업무내용/요구기술로 추론. 예: "백엔드 개발자", "AI 엔지니어")
 - job_responsibilities: string
-- required_qualifications: string
-- preferred_qualifications: string
-- required_skills: array of strings
-- preferred_skills: array of strings
+- required_qualifications: string (필수 요건 원문)
+- preferred_qualifications: string (우대 조건 원문)
+- required_skills: array of strings (필수 요건에서 언급된 기술/도구명만 추출. 예: "React", "Python", "Docker")
+- preferred_skills: array of strings (우대 조건에서 언급된 기술/도구명만 추출. 문장 속에 포함된 기술명도 반드시 추출. 예: "Typescript 기반 프로젝트 경험" → "Typescript")
 - experience_range: string
 - deadline: null"""
                     }
@@ -1203,10 +1203,11 @@ class JobPlannerAgentReportView(APIView):
             job_data = request.data.get('job_data', {})
             analysis_result = request.data.get('analysis_result', {})
             company_analysis = request.data.get('company_analysis', {})
+            user_profile = request.data.get('user_profile', {})
             # LLM으로 종합 보고서 생성
             available_prep_days = analysis_result.get('profile_summary', {}).get('available_prep_days')
             report = self._generate_report_with_llm(
-                job_data, analysis_result, company_analysis, available_prep_days
+                job_data, analysis_result, company_analysis, available_prep_days, user_profile
             )
 
             return Response(report, status=status.HTTP_200_OK)
@@ -1218,7 +1219,7 @@ class JobPlannerAgentReportView(APIView):
                 "error": f"보고서 생성 중 오류 발생: {str(e)}"
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def _generate_report_with_llm(self, job_data, analysis_result, company_analysis, available_prep_days=None):
+    def _generate_report_with_llm(self, job_data, analysis_result, company_analysis, available_prep_days=None, user_profile=None):
         """LLM으로 최종 종합 보고서 생성"""
         api_key = os.getenv('OPENAI_API_KEY')
         if not api_key:
@@ -1271,22 +1272,79 @@ class JobPlannerAgentReportView(APIView):
                 mid_term_label = "중기 (1개월)"
                 prep_days_info = ""
 
+            # 사용자 프로필 상세 정보 구성
+            profile = user_profile or {}
+            profile_summary = analysis_result.get('profile_summary', {})
+
+            work_exp = profile.get('work_experience', [])
+            work_exp_text = '\n'.join(
+                f"  - {e.get('company', '')} | {e.get('role', '')} ({e.get('period', '')}): {e.get('description', '')}"
+                for e in work_exp
+            ) if work_exp else '  없음'
+
+            projects = profile.get('projects', [])
+            projects_text = '\n'.join(
+                f"  - {p}" if isinstance(p, str) else f"  - {p.get('name', '')}: {p.get('description', '')} [기술: {', '.join(p.get('skills', []))}] [성과: {', '.join(p.get('achievements', []))}]"
+                for p in projects
+            ) if projects else '  없음'
+
+            achievements = profile.get('key_achievements', [])
+            achievements_text = '\n'.join(f"  - {a}" for a in achievements) if achievements else '  없음'
+
+            strengths = profile.get('strengths', [])
+            strengths_text = ', '.join(strengths) if strengths else '없음'
+
+            awards = profile.get('awards', [])
+            awards_text = ', '.join(awards) if awards else '없음'
+
+            languages = profile.get('languages', [])
+            languages_text = ', '.join(
+                f"{l.get('language', '')}({l.get('level', '')})" if isinstance(l, dict) else str(l)
+                for l in languages
+            ) if languages else '없음'
+
             # 컨텍스트 구성
             context = f"""
 채용공고:
 - 회사: {job_data.get('company_name', '미정')}
 - 포지션: {job_data.get('position', '개발자')}
+- 주요 업무: {job_data.get('job_responsibilities', '정보 없음')}
+- 필수 요건: {job_data.get('required_qualifications', '정보 없음')}
 - 필수 스킬: {', '.join(job_data.get('required_skills', []))}
 - 우대 스킬: {', '.join(job_data.get('preferred_skills', []))}
+- 우대 사항: {job_data.get('preferred_qualifications', '정보 없음')}
 
 분석 결과:
 - 준비도: {analysis_result.get('readiness_score', 0)}
 - 스킬 갭: {analysis_result.get('skill_gap_score', 0)}
-- 매칭된 스킬: {len(analysis_result.get('matched_skills', []))}개
-- 부족한 스킬: {len(analysis_result.get('missing_skills', []))}개{prep_days_info}
+- 매칭된 스킬: {json.dumps(analysis_result.get('matched_skills', []), ensure_ascii=False)}
+- 부족한 스킬: {json.dumps(analysis_result.get('missing_skills', []), ensure_ascii=False)}{prep_days_info}
 
-사용자 프로필:
-{json.dumps(analysis_result.get('profile_summary', {}), ensure_ascii=False)}
+사용자 프로필 (서류 기반):
+- 이름: {profile_summary.get('name', '미정')}
+- 현재 직무: {profile_summary.get('current_role', '없음')}
+- 학력: {profile_summary.get('education', '없음')}
+- 자격증: {', '.join(profile_summary.get('certifications', [])) or '없음'}
+- 교육 이수: {json.dumps(profile_summary.get('training', []), ensure_ascii=False) or '없음'}
+- 커리어 목표: {profile_summary.get('career_goals', '없음')}
+- 보유 스킬: {', '.join(profile.get('user_skills', []))}
+- 스킬 숙련도: {json.dumps(profile.get('skill_levels', {}), ensure_ascii=False)}
+- 강점: {strengths_text}
+- 수상 경력: {awards_text}
+- 외국어: {languages_text}
+- 팀워크 경험: {profile.get('teamwork_experience', '없음') or '없음'}
+- 성장 스토리: {profile.get('growth_story', '없음') or '없음'}
+- GitHub: {profile.get('github_url', '없음') or '없음'}
+- 포트폴리오: {profile.get('portfolio_url', '없음') or '없음'}
+
+경력 사항:
+{work_exp_text}
+
+프로젝트:
+{projects_text}
+
+핵심 성과:
+{achievements_text}
 
 기업 분석:
 {json.dumps(company_analysis, ensure_ascii=False) if company_analysis else '정보 없음'}
@@ -1520,15 +1578,17 @@ class JobPlannerRecommendView(APIView):
                 filtered_listings, user_skills, skill_levels, readiness_score, current_job_text
             )
 
-            # 매칭률 40% 이상, 상위 15개 후보
-            candidates = [r for r in recommendations if r['match_rate'] >= 0.40][:15]
-            print(f"📋 1차 스킬 필터: {len(candidates)}개 후보 (40% 이상)")
+            # 1차: 스킬 태그 30% 이상만 통과 → 상위 15개 후보 선별
+            recommendations = [r for r in recommendations if r['match_rate'] >= 0.30]
+            recommendations.sort(key=lambda x: x['match_rate'], reverse=True)
+            candidates = recommendations[:15]
+            print(f"📋 1차 스킬 필터 (30%↑): {len(candidates)}개 후보")
 
             if not candidates:
                 print(f"⚠️ 유사한 공고를 찾지 못했습니다.")
                 return Response({
                     "recommendations": [],
-                    "message": "현재 스킬과 40% 이상 매칭되는 유사한 공고를 찾지 못했습니다."
+                    "message": "매칭되는 유사한 공고를 찾지 못했습니다."
                 }, status=status.HTTP_200_OK)
 
             # 2차: 후보만 상세 크롤링 (전체가 아닌 후보만 → 빠름)
@@ -1570,13 +1630,27 @@ class JobPlannerRecommendView(APIView):
                 print(f"✅ LLM 평가 완료")
 
             # detail_text는 응답에서 제외 (프론트에 불필요)
+            # LLM 점수가 있으면 그대로 match_rate로 사용 (스킬+경력+프로젝트 종합 평가)
             for c in candidates:
                 c.pop('detail_text', None)
+                if 'llm_score' in c:
+                    c['match_rate'] = round(c['llm_score'] / 100.0, 3)
+
+            # 최종: LLM 종합 매칭률 50% 이상만 반환
+            final = [c for c in candidates if c['match_rate'] >= 0.50]
+            final.sort(key=lambda x: x['match_rate'], reverse=True)
+            print(f"📋 최종 결과: {len(final)}개 (50% 이상)")
+
+            if not final:
+                return Response({
+                    "recommendations": [],
+                    "message": "현재 스킬과 매칭되는 유사한 공고를 찾지 못했습니다."
+                }, status=status.HTTP_200_OK)
 
             return Response({
-                "recommendations": candidates[:5],
+                "recommendations": final,
                 "total_found": len(job_listings),
-                "total_recommendations": len(recommendations)
+                "total_recommendations": len(final)
             }, status=status.HTTP_200_OK)
 
         except Exception as e:
@@ -1811,17 +1885,7 @@ class JobPlannerRecommendView(APIView):
 
                         skills_elem = item.select('.job_sector a')
                         skills = [s.get_text(strip=True) for s in skills_elem]
-                        title_elem = item.select_one('.job_tit a')
-                        if not title_elem:
-                            continue
-                        title = title_elem.get_text(strip=True)
-                        job_url = 'https://www.saramin.co.kr' + title_elem['href'] if title_elem.get('href') else ''
 
-                        skills_elem = item.select('.job_sector a')
-                        skills = [s.get_text(strip=True) for s in skills_elem]
-
-                        conditions = item.select('.job_condition span')
-                        conditions_text = [c.get_text(strip=True) for c in conditions]
                         conditions = item.select('.job_condition span')
                         conditions_text = [c.get_text(strip=True) for c in conditions]
 
@@ -2214,9 +2278,7 @@ class JobPlannerCompanyAnalyzeView(APIView):
   }},
   "growth": {{
     "funding": "투자 유치 현황",
-    "market_position": "시장 위치 및 경쟁력",
-    "growth_potential": "성장 가능성 평가 (상/중/하)",
-    "stability": "안정성 평가 (상/중/하)"
+    "market_position": "시장 위치 및 경쟁력"
   }},
   "welfare": {{
     "salary_level": "연봉 수준 (평균 또는 범위)",
@@ -2296,7 +2358,7 @@ JSON 형식으로 반환:
                 "company_name": company_name,
                 "overview": {"description": "정보 부족", "vision": "", "industry": "", "founded_year": None, "size": ""},
                 "tech_stack": {"languages": [], "frameworks": [], "tools": [], "culture": "", "tech_blog": ""},
-                "growth": {"funding": "", "market_position": "", "growth_potential": "중", "stability": "중"},
+                "growth": {"funding": "", "market_position": ""},
                 "welfare": {"salary_level": "", "benefits": [], "work_life_balance": "", "remote_work": ""},
                 "recommendation": "정보가 부족하여 분석할 수 없습니다."
             }
@@ -2323,6 +2385,10 @@ class JobPlannerParseResumeView(APIView):
         cover_letter_pdf = request.data.get('cover_letter')
         portfolio_pdf = request.data.get('portfolio')
         career_desc_pdf = request.data.get('career_description')
+        # 이전에 파싱된 다른 서류의 개별 결과 (부분 업데이트 시 사용)
+        existing_doc_results = request.data.get('existing_doc_results', {})
+        if isinstance(existing_doc_results, str):
+            existing_doc_results = json.loads(existing_doc_results)
 
         if not any([resume_pdf, cover_letter_pdf, portfolio_pdf, career_desc_pdf]):
             return Response(
@@ -2367,7 +2433,16 @@ class JobPlannerParseResumeView(APIView):
                         print(f"⚠️ {key} 파싱 실패: {e}")
                         results[key] = {}
 
-            merged = self._merge_results(results, api_key)
+            # 기존 서류 결과 + 새로 파싱한 결과 합치기 (새 결과가 우선)
+            all_results = {**existing_doc_results, **results}
+
+            merged = self._merge_results(all_results, api_key)
+            # 개별 서류 파싱 결과를 반환 (프론트에서 부분 업데이트 시 재사용)
+            merged['_doc_results'] = all_results
+            # 포트폴리오 개별 파싱 결과를 별도로 포함 (리뷰 시 재파싱 방지)
+            portfolio_result = all_results.get('portfolio')
+            if portfolio_result:
+                merged['_portfolio_parsed'] = portfolio_result
             return Response(merged, status=status.HTTP_200_OK)
 
         except Exception as e:
@@ -2713,31 +2788,19 @@ JSON 형식:
 @method_decorator(csrf_exempt, name='dispatch')
 @method_decorator(csrf_exempt, name='dispatch')
 class JobPlannerReviewPortfolioView(APIView):
-    """채용공고 기준 포트폴리오 개선점 분석 API"""
+    """채용공고 기준 포트폴리오 개선점 분석 API (파싱된 데이터 기반)"""
     authentication_classes = []
     permission_classes = [AllowAny]
 
-    def _extract_portfolio_text(self, request):
-        """포트폴리오 PDF에서 텍스트 추출"""
-        import pdfplumber, io
-
-        pdf_data = request.data.get('portfolio_pdf')
-        if not pdf_data:
-            return ''
-        try:
-            raw = pdf_data.split(',')[-1]
-            pdf_bytes = base64.b64decode(raw)
-            with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
-                text = "\n".join(page.extract_text() or "" for page in pdf.pages)
-            print(f"📄 포트폴리오 텍스트 추출: {len(text)}자")
-            return text.strip()
-        except Exception as e:
-            print(f"⚠️ 포트폴리오 텍스트 추출 실패: {e}")
-            return ''
-
     def post(self, request):
-        user_profile = request.data.get('user_profile', {})
         job_data = request.data.get('job_data', {})
+        portfolio_parsed = request.data.get('portfolio_parsed', {})
+
+        if not portfolio_parsed:
+            return Response(
+                {"error": "포트폴리오 파싱 데이터가 없습니다. 서류 분석을 먼저 진행해주세요."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         api_key = os.getenv('OPENAI_API_KEY')
         if not api_key:
@@ -2746,30 +2809,8 @@ class JobPlannerReviewPortfolioView(APIView):
         try:
             client = openai.OpenAI(api_key=api_key)
 
-            # 포트폴리오 PDF 원문 텍스트 추출
-            portfolio_text = self._extract_portfolio_text(request)
-
-            # 지원자 경력/프로젝트 정보 구성
-            work_exp = user_profile.get('work_experience', [])
-            work_exp_text = '\n'.join(
-                f"  - {e.get('company', '')} | {e.get('role', '')} ({e.get('period', '')}): {e.get('description', '')}"
-                for e in work_exp
-            ) if work_exp else '  정보 없음'
-
-            projects = user_profile.get('projects', [])
-            projects_text = '\n'.join(
-                f"  - {p}" if isinstance(p, str) else f"  - {p.get('name', '')}: {p.get('description', '')}"
-                for p in projects
-            ) if projects else '  정보 없음'
-
-            achievements = user_profile.get('key_achievements', [])
-            achievements_text = '\n'.join(f"  - {a}" for a in achievements) if achievements else '  정보 없음'
-
-            # 포트폴리오 원문 섹션 구성
-            portfolio_section = ""
-            if portfolio_text:
-                truncated = portfolio_text[:5000] if len(portfolio_text) > 5000 else portfolio_text
-                portfolio_section = f"\n\n=== 포트폴리오 원문 내용 ===\n{truncated}"
+            # 파싱된 포트폴리오 데이터를 텍스트로 구성
+            portfolio_content = json.dumps(portfolio_parsed, ensure_ascii=False, indent=2)
 
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
@@ -2777,13 +2818,13 @@ class JobPlannerReviewPortfolioView(APIView):
                     {
                         "role": "system",
                         "content": """당신은 IT 취업 포트폴리오 전문 컨설턴트입니다.
-채용공고의 구체적인 요구사항과 지원자의 포트폴리오를 1:1로 대조하여 분석합니다.
-포트폴리오 원문이 제공된 경우 반드시 원문 내용을 꼼꼼히 읽고 분석에 반영하세요.
-뻔한 조언이 아닌, 이 공고와 이 지원자의 포트폴리오에만 해당되는 맞춤 피드백을 제공합니다."""
+채용공고의 구체적인 요구사항과 지원자의 포트폴리오 내용을 1:1로 대조하여 분석합니다.
+포트폴리오에서 추출된 프로젝트, 기술스택, 성과 등을 꼼꼼히 분석하세요.
+뻔한 조언이 아닌, 이 공고와 이 포트폴리오에만 해당되는 맞춤 피드백을 제공합니다."""
                     },
                     {
                         "role": "user",
-                        "content": f"""아래 채용공고와 지원자의 포트폴리오를 1:1 대조 분석하여 포트폴리오 개선 가이드를 제공하세요.
+                        "content": f"""아래 채용공고와 포트폴리오 분석 내용을 1:1 대조 분석하여 포트폴리오 개선 가이드를 제공하세요.
 
 === 채용공고 ===
 회사: {job_data.get('company_name', '')}
@@ -2797,19 +2838,11 @@ class JobPlannerReviewPortfolioView(APIView):
 우대 사항:
 {job_data.get('preferred_qualifications', '정보 없음')}
 
-=== 지원자 정보 (구조화) ===
-보유 스킬: {', '.join(user_profile.get('user_skills', []))}
-경력:
-{work_exp_text}
-프로젝트:
-{projects_text}
-핵심 성과:
-{achievements_text}
-GitHub: {user_profile.get('github_url', '없음')}
-포트폴리오 사이트: {user_profile.get('portfolio_url', '없음')}{portfolio_section}
+=== 포트폴리오 분석 내용 ===
+{portfolio_content}
 
 === 분석 기준 ===
-1. 포트폴리오 원문이 있으면 원문의 구체적 내용(서술 방식, 사용된 표현, 프로젝트 상세 내용, 구성 순서)을 기반으로 분석
+1. 포트폴리오의 프로젝트, 기술스택, 성과 등 구체적 내용을 기반으로 분석
 2. 공고의 각 요구사항(업무, 필수요건, 우대사항)을 포트폴리오 내용과 구체적으로 대조
 3. 포트폴리오에서 이 공고에 어필할 수 있는 포인트와 부족한 포인트 발굴
 4. 포트폴리오에 어떤 내용을 어떻게 수정/보완해야 하는지 실행 가능한 가이드 제공
@@ -2817,17 +2850,17 @@ GitHub: {user_profile.get('github_url', '없음')}
 JSON으로 반환하세요:
 {{
   "strengths": [
-    "공고의 어떤 요구사항에 대해, 지원자의 어떤 경험이 강점인지 구체적으로 (최소 3개)"
+    "공고의 어떤 요구사항에 대해, 포트폴리오의 어떤 내용이 강점인지 구체적으로 (최소 3개)"
   ],
   "improvements": [
     {{
-      "target": "개선 대상 (지원자의 특정 프로젝트명 또는 경력)",
+      "target": "개선 대상 (포트폴리오의 특정 프로젝트명 또는 섹션)",
       "issue": "이 공고 기준으로 부족한 점",
       "suggestion": "포트폴리오에 어떻게 보완하여 작성할지 구체적 방법 (예: 어떤 내용을 추가하고, 어떤 키워드를 포함하고, 어떤 구조로 정리할지)"
     }}
   ],
   "missing": [
-    "공고에서 요구하지만 지원자에게 없는 경험/스킬과, 이를 포트폴리오에서 대체할 수 있는 방법"
+    "공고에서 요구하지만 포트폴리오에 없는 경험/스킬과, 이를 포트폴리오에서 보완할 수 있는 방법"
   ],
   "portfolio_structure": [
     "이 공고에 맞는 포트폴리오 구성 순서와 각 섹션에 담을 핵심 내용 (예: '1. 프로젝트A를 메인으로 배치 - OO 업무 경험 강조')"
