@@ -91,6 +91,10 @@ def evaluate_pseudocode_5d(request):
     pseudocode = request.data.get('pseudocode', '').strip()
     tail_answer = request.data.get('tail_answer', '').strip()
     deep_answer = request.data.get('deep_answer', '').strip()
+    # [수정 2026-03-04] DB 저장은 MISSION COMPLETE 버튼(activity/submit/) 에서만 1회 수행
+    # evaluate-5d는 점수 계산 + 피드백만 담당, DB 저장 안 함
+    # (프론트에서 명시적으로 True를 보내지 않는 한 저장하지 않음)
+    is_final_submission = request.data.get('is_final_submission', False)
 
     if not pseudocode:
         return Response(
@@ -113,24 +117,27 @@ def evaluate_pseudocode_5d(request):
         result = evaluator.evaluate(eval_request)
         llm = result.llm_result
 
-        # DB 자동 기록
-        try:
-            profile = UserProfile.objects.get(email=request.user.email)
-            normalized_id = normalize_quest_id(quest_id)
-            str_quest_id = str(quest_id)
-            target_detail_id = (
-                str_quest_id
-                if (str_quest_id.startswith('unit') and '_' in str_quest_id)
-                else f"unit01_{normalized_id.zfill(2)}"
-            )
-            save_user_problem_record(
-                profile,
-                target_detail_id,
-                result.final_score,
-                {'pseudocode': pseudocode, 'evaluation': result.feedback, 'is_auto_saved': True},
-            )
-        except Exception as save_error:
-            logger.error(f"[Evaluate] Failed to auto-save: {save_error}")
+        # DB 자동 기록 (최종 제출 1회만)
+        if is_final_submission:
+            try:
+                profile = UserProfile.objects.get(email=request.user.email)
+                normalized_id = normalize_quest_id(quest_id)
+                str_quest_id = str(quest_id)
+                target_detail_id = (
+                    str_quest_id
+                    if (str_quest_id.startswith('unit') and '_' in str_quest_id)
+                    else f"unit01_{normalized_id.zfill(2)}"
+                )
+                save_user_problem_record(
+                    profile,
+                    target_detail_id,
+                    result.final_score,
+                    {'pseudocode': pseudocode, 'evaluation': result.feedback, 'is_auto_saved': True},
+                )
+            except Exception as save_error:
+                logger.error(f"[Evaluate] Failed to auto-save: {save_error}")
+        else:
+            logger.info(f"[Evaluate] DB 저장 스킵 (is_final_submission=False) user={user_id}")
 
         return Response(_build_success_response(result, llm, quest_id), status=status.HTTP_200_OK)
 

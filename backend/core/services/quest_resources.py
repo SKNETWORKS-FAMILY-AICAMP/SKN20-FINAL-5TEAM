@@ -596,53 +596,33 @@ def get_recommended_videos_legacy(
                 used_ids.add(random_video['id'])
                 break # 1개만 뽑고 종료
         
-        # 2. 부족한 부분(나머지 2개 이상)은 실시간 라이브 검색으로 채움
-        from core.utils.youtube_helper import search_youtube_videos
-        
-        # 취약 지표(가장 점수 낮은 것) 추출
-        weakest_dim = dim_ratios[0][0] if dim_ratios else 'default'
-        
-        # 검색 쿼리 정교화
-        search_keywords = {
-            'design': ['ML System Design', '머신러닝 파이프라인 설계'],
-            'consistency': ['Data Leakage prevention', 'ML train test split fit transform'],
-            'abstraction': ['Clean Code Machine Learning', 'ML Architecture Patterns'],
-            'implementation': ['Scikit-learn tutorial', 'ML implementation step by step'],
-            'edgeCase': ['MLOps Monitoring Data Drift', 'Handling ML outliers missing values']
-        }
-        
-        quest_keyword = ""
-        if "누수" in quest_title or quest_id_normalized == "1": quest_keyword = "Data Leakage"
-        elif "과적합" in quest_title or "정규화" in quest_title or quest_id_normalized == "2": quest_keyword = "Regularization Ridge Lasso"
-        elif "불균형" in quest_title or quest_id_normalized == "3": quest_keyword = "Imbalanced Data SMOTE"
-        elif "피처" in quest_title or quest_id_normalized == "4": quest_keyword = "Feature Engineering Selection"
-        elif "하이퍼" in quest_title or quest_id_normalized == "5": quest_keyword = "Hyperparameter Tuning GridSearch"
-        elif "해석" in quest_title or quest_id_normalized == "6": quest_keyword = "Explainable AI SHAP LIME"
+        # 2. 부족한 부분은 LLM이 생성한 검색어로 YouTube 실시간 검색
+        from core.utils.youtube_helper import generate_llm_search_queries, search_youtube_multi_query
 
-        base_keywords = search_keywords.get(weakest_dim, ["Machine Learning Tutorial"])
-        search_query = f"{quest_keyword} {base_keywords[0]}"
-        
-        print(f"[QuestResources] 실시간 하이브리드 검색 수행: {search_query}")
-        
-        # 부족한 개수만큼 라이브 검색 수행 (기본 2개 이상)
         needed = max_count - len(candidates)
         if needed > 0:
-            live_videos = search_youtube_videos(search_query, max_results=needed + 2) # 여유있게 검색
+            # 취약 지표 상위 2개 추출
+            weak_dims = [d for d, _ in dim_ratios[:2]]
+
+            # LLM으로 검색어 3개 생성
+            llm_queries = generate_llm_search_queries(
+                quest_title=quest_title or f"Quest {quest_id_normalized}",
+                weak_dimensions=weak_dims,
+            )
+            logger.info(f"[QuestResources] LLM 생성 쿼리: {llm_queries}")
+
+            # 멀티 쿼리로 YouTube 검색
+            live_videos = search_youtube_multi_query(llm_queries, max_per_query=2)
+
             for lv in live_videos:
                 if len(candidates) >= max_count:
                     break
-                vid_id = lv.get('videoId')
+                vid_id = lv.get('videoId') or lv.get('id')
                 if vid_id and vid_id not in used_ids:
                     candidates.append({
-                        'id': vid_id,
-                        'title': lv.get('title'),
-                        'channel': lv.get('channelTitle'),
-                        'desc': lv.get('description'),
-                        'videoId': vid_id,
-                        'url': lv.get('url'),
-                        'thumbnail': lv.get('thumbnail'),
-                        '_dim': f"live_{weakest_dim}",
-                        '_source': 'live'
+                        **lv,
+                        '_dim': f"live_{weak_dims[0] if weak_dims else 'default'}",
+                        '_source': 'llm_live',
                     })
                     used_ids.add(vid_id)
 
@@ -657,24 +637,45 @@ def get_recommended_videos_legacy(
                     candidates.append({**video, '_dim': 'default', '_source': 'fallback'})
                     used_ids.add(video['id'])
         
-        # [2026-02-23] 최종 반환 전 존재하지 않는 영상 필터링
-        from core.utils.youtube_helper import filter_valid_videos
-        valid_candidates = filter_valid_videos(candidates)
-        
+        # [수정 2026-03-04] filter_valid_videos는 API 실패 시 전체를 날려버리는 문제가 있어
+        # 실패해도 원본 candidates를 유지하도록 방어 처리
+        try:
+            from core.utils.youtube_helper import filter_valid_videos
+            filtered = filter_valid_videos(candidates)
+            # 필터 결과가 너무 적으면(0개) 원본 유지
+            valid_candidates = filtered if len(filtered) > 0 else candidates
+        except Exception as fe:
+            logger.warning(f"[get_recommended_videos_legacy] filter_valid_videos 실패, 원본 사용: {fe}")
+            valid_candidates = candidates
+
         # 필터 후 부족한 경우 default로 보완
         if len(valid_candidates) < max_count:
             default_videos = list(quest_videos.get('default', []))
             random.shuffle(default_videos)
+            existing_ids = {v.get('id') or v.get('videoId') for v in valid_candidates}
             for video in default_videos:
                 if len(valid_candidates) >= max_count:
                     break
                 vid = video.get('id') or video.get('videoId')
-                if vid and vid not in {v.get('id') or v.get('videoId') for v in valid_candidates}:
+                if vid and vid not in existing_ids:
                     valid_candidates.append({**video, '_dim': 'default', '_source': 'fallback_recheck'})
-            # 보완된 것도 다시 검증
-            valid_candidates = filter_valid_videos(valid_candidates)
-        
-        return valid_candidates
+                    existing_ids.add(vid)
+
+        # [수정 2026-03-04] 프론트 일관성: videoId/thumbnail/url/channelTitle 필드 보장
+        result_videos = []
+        for v in valid_candidates[:max_count]:
+            vid_id = v.get('videoId') or v.get('id', '')
+            result_videos.append({
+                'videoId':      vid_id,
+                'id':           vid_id,
+                'title':        v.get('title', ''),
+                'channelTitle': v.get('channelTitle') or v.get('channel', ''),
+                'thumbnail':    v.get('thumbnail') or (f'https://img.youtube.com/vi/{vid_id}/mqdefault.jpg' if vid_id else ''),
+                'url':          v.get('url') or (f'https://www.youtube.com/watch?v={vid_id}' if vid_id else '#'),
+                'description':  v.get('description') or v.get('desc', ''),
+            })
+
+        return result_videos
     except Exception as e:
         logger.error(f"[get_recommended_videos_legacy] Error: {e}")
         return []

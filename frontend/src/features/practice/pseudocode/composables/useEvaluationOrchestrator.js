@@ -1,6 +1,7 @@
 /**
  * useEvaluationOrchestrator.js - 평가 흐름 제어 (신규)
  * 작성일: 2026-02-19
+ * [수정 2026-03-04] isFinalSubmission 파라미터 추가 → Deep Dive 재평가 시 DB 저장 방지
  *
  * 역할: pseudocodeApi.js(HTTP) + 에러 처리 + 응답 정규화를 조합해
  *       컴포넌트에서 사용하기 쉬운 단일 evaluate() 함수를 제공합니다.
@@ -8,7 +9,8 @@
  * 컴포넌트에서 사용법:
  *   import { useEvaluationOrchestrator } from './useEvaluationOrchestrator.js';
  *   const { evaluate, isLoading, errorType } = useEvaluationOrchestrator();
- *   const result = await evaluate(problem, pseudocode);
+ *   const result = await evaluate(problem, pseudocode);          // 최초 제출 (DB 저장 O)
+ *   const result = await evaluate(problem, pseudocode, t, d, false); // 재평가 (DB 저장 X)
  */
 
 import { ref } from 'vue';
@@ -29,8 +31,9 @@ export function useEvaluationOrchestrator() {
 
     /**
      * 의사코드 평가 실행.
+     * @param {boolean} isFinalSubmission - true: 최초 제출(DB 저장), false: 재평가(DB 저장 안 함)
      */
-    async function evaluate(problem, pseudocode, tailAnswer = '', deepAnswer = '') {
+    async function evaluate(problem, pseudocode, tailAnswer = '', deepAnswer = '', isFinalSubmission = true) {
         errorType.value = null;
         errorMessage.value = '';
         isLoading.value = true;
@@ -45,6 +48,7 @@ export function useEvaluationOrchestrator() {
                 pseudocode,
                 tailAnswer,
                 deepAnswer,
+                isFinalSubmission,  // [수정 2026-03-04] DB 저장 여부 전달
             );
             const data = response.data;
 
