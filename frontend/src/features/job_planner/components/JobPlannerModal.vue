@@ -1,6 +1,6 @@
 <template>
   <transition name="fade">
-    <div v-if="isOpen" class="modal-overlay" @click.self="closeModal">
+    <div v-if="isOpen" class="modal-overlay">
       <div class="job-planner-modal">
         <!-- Header -->
         <header class="modal-header">
@@ -22,6 +22,7 @@
           <button
             :class="['flow-tab', { active: currentStep === 'profile' }]"
             @click="currentStep = 'profile'"
+            :disabled="!jobData"
           >
             2. 내 정보
           </button>
@@ -731,6 +732,11 @@
                     </div>
                   </div>
 
+                  <div v-if="rec.requirements_summary" class="rec-job-summary">
+                    <div class="rec-job-summary-header">📋 공고 요약</div>
+                    <p class="rec-job-summary-text">{{ rec.requirements_summary }}</p>
+                  </div>
+
                   <div class="rec-reason">
                     <span class="rec-reason-icon">💬</span>
                     <span class="rec-reason-text">{{ rec.reason }}</span>
@@ -796,7 +802,8 @@
                     <div class="swot-header">💪 Strengths (강점)</div>
                     <ul class="swot-list">
                       <li v-for="(item, idx) in finalReport.swot.strengths" :key="'s-' + idx">
-                        {{ item }}
+                        <span class="swot-point">{{ item.point || item }}</span>
+                        <span v-if="item.evidence" class="swot-evidence">{{ item.evidence }}</span>
                       </li>
                     </ul>
                   </div>
@@ -804,7 +811,8 @@
                     <div class="swot-header">⚠️ Weaknesses (약점)</div>
                     <ul class="swot-list">
                       <li v-for="(item, idx) in finalReport.swot.weaknesses" :key="'w-' + idx">
-                        {{ item }}
+                        <span class="swot-point">{{ item.point || item }}</span>
+                        <span v-if="item.evidence" class="swot-evidence">{{ item.evidence }}</span>
                       </li>
                     </ul>
                   </div>
@@ -812,7 +820,8 @@
                     <div class="swot-header">🌟 Opportunities (기회)</div>
                     <ul class="swot-list">
                       <li v-for="(item, idx) in finalReport.swot.opportunities" :key="'o-' + idx">
-                        {{ item }}
+                        <span class="swot-point">{{ item.point || item }}</span>
+                        <span v-if="item.evidence" class="swot-evidence">{{ item.evidence }}</span>
                       </li>
                     </ul>
                   </div>
@@ -820,7 +829,8 @@
                     <div class="swot-header">🚨 Threats (위협)</div>
                     <ul class="swot-list">
                       <li v-for="(item, idx) in finalReport.swot.threats" :key="'t-' + idx">
-                        {{ item }}
+                        <span class="swot-point">{{ item.point || item }}</span>
+                        <span v-if="item.evidence" class="swot-evidence">{{ item.evidence }}</span>
                       </li>
                     </ul>
                   </div>
@@ -1738,7 +1748,7 @@ export default {
       this.isReviewingPortfolio = true;
       this.portfolioReview = null;
       try {
-        const response = await axios.post('/api/core/job-planner/review-portfolio/', {
+        const payload = {
           user_profile: {
             ...this.analysisResult?.profile_summary || {},
             user_skills: this.userSkills,
@@ -1749,7 +1759,9 @@ export default {
             portfolio_url: this.parsedPortfolioUrl,
           },
           job_data: this.jobData,
-        });
+        };
+        if (this.portfolioPdf) payload.portfolio_pdf = this.portfolioPdf;
+        const response = await axios.post('/api/core/job-planner/review-portfolio/', payload);
         this.portfolioReview = response.data;
       } catch (error) {
         this.errorMessage = error.response?.data?.error || '포트폴리오 분석 중 오류가 발생했습니다.';
@@ -3752,6 +3764,19 @@ export default {
   line-height: 1.6;
 }
 
+.swot-point {
+  display: block;
+}
+
+.swot-evidence {
+  display: block;
+  font-size: 0.85em;
+  color: #94a3b8;
+  margin-top: 2px;
+  padding-left: 4px;
+  border-left: 2px solid #475569;
+}
+
 
 /* Experience Packaging */
 .packaging-section {
@@ -4041,6 +4066,28 @@ export default {
 
 .rec-value {
   color: #cbd5e1;
+}
+
+.rec-job-summary {
+  padding: 14px;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+
+.rec-job-summary-header {
+  font-size: 13px;
+  font-weight: 700;
+  color: #a5b4fc;
+  margin-bottom: 8px;
+}
+
+.rec-job-summary-text {
+  color: #cbd5e1;
+  font-size: 13.5px;
+  line-height: 1.7;
+  margin: 0;
 }
 
 .rec-reason {

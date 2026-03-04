@@ -5,7 +5,5 @@ from .job_planner_view import (
     JobPlannerAgentReportView,
     JobPlannerRecommendView,
     JobPlannerParseResumeView,
-    JobPlannerGenerateCoverLetterView,
     JobPlannerReviewPortfolioView,
-    JobPlannerCoverLetterByQuestionsView,
 )
