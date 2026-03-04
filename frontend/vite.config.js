@@ -26,7 +26,8 @@ export default defineConfig({
       '/api': {
         target: process.env.VITE_API_Target || 'http://localhost:8000',
         changeOrigin: true,
-        cookieDomainRewrite: "localhost"
+        cookieDomainRewrite: "localhost",
+        timeout: 300000,  // 5분 (서류 파싱 등 오래 걸리는 API 대응)
       },
       '/media': {
         target: process.env.VITE_API_Target || 'http://localhost:8000',
