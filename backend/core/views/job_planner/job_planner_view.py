@@ -2853,7 +2853,7 @@ class JobPlannerReviewPortfolioView(APIView):
             portfolio_content = json.dumps(portfolio_parsed, ensure_ascii=False, indent=2)
 
             response = client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4o-mini",
                 messages=[
                     {
                         "role": "system",
