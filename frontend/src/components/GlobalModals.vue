@@ -148,7 +148,7 @@ const onLoginSuccess = async (user) => {
 
     // [수정일: 2026-02-16] 로그인 성공 시 사용자 환영 메시지 표시 (Toast 적용)
     const nickname = (user && (user.nickname || user.username)) || auth.sessionNickname || '엔지니어';
-    ui.showToast(`${nickname}님, 환영합니다! AI-Arcade 보안 시스템에 접속되었습니다.`, 'success');
+    ui.showToast(`${nickname}님, 환영합니다! AI-Arcade 세상에 접속되었습니다.`, 'success');
 };
 
 const onSignUpSuccess = async (nickname) => {
