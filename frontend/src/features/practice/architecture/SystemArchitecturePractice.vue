@@ -730,9 +730,10 @@ export default {
           const gameStore = useGameStore();
 
           const practiceId = gameStore.activeUnit?.id;
-          await progressStore.unlockNextStage(practiceId, capturedIndex + 1);
+          // [수정일: 2026-03-06] +1 중복 제거 (unlockNextStage 내부에서 이미 +1 처리)
+          await progressStore.unlockNextStage(practiceId, capturedIndex);
 
-          console.log('[SystemArch] unlockNextStage done for questIndex:', capturedIndex + 1);
+          console.log('[SystemArch] unlockNextStage done for questIndex:', capturedIndex);
 
           // 다음 문제가 있으면 자동으로 이동 안내
           if (capturedIndex < this.problems.length - 1) {
