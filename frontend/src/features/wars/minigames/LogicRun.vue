@@ -104,6 +104,11 @@
           <span class="hud-lbl">P2 SCORE</span>
           <span class="hud-val neon-y">{{ scoreP2 }}점</span>
         </div>
+        <!-- [추가] AICE 등급 표시 -->
+        <div class="hud-cell" style="margin-left: max(0px, 1rem);">
+          <span class="hud-lbl">AICE LEVEL</span>
+          <span class="hud-val" style="color: #fbbf24; text-shadow: 0 0 8px rgba(251, 191, 36, 0.5);">{{ selectedDifficulty }}</span>
+        </div>
       </div>
 
       <!-- 게임 영역: Phase 1 -->
@@ -211,6 +216,11 @@
           <span class="hud-lbl">OPP PROGRESS</span>
           <span class="hud-val neon-y">{{ oppChecksCompleted }}/{{ totalChecks }} checks</span>
         </div>
+        <!-- [추가] AICE 등급 표시 -->
+        <div class="hud-cell" style="margin-left: max(0px, 1rem);">
+          <span class="hud-lbl">AICE LEVEL</span>
+          <span class="hud-val" style="color: #fbbf24; text-shadow: 0 0 8px rgba(251, 191, 36, 0.5);">{{ selectedDifficulty }}</span>
+        </div>
       </div>
 
       <!-- 대기 상태 HUD -->
@@ -228,6 +238,11 @@
         <div class="hud-cell flex-grow">
           <span class="hud-lbl">{{ opponentSubmitted ? '✅ OPPONENT SUBMITTED' : '⏳ WAITING FOR OPPONENT' }}</span>
           <span class="hud-val" :class="{ 'neon-y': opponentSubmitted }">{{ opponentSubmitted ? '제출됨' : 'Waiting...' }}</span>
+        </div>
+        <!-- [추가] AICE 등급 표시 -->
+        <div class="hud-cell" style="margin-left: max(0px, 1rem);">
+          <span class="hud-lbl">AICE LEVEL</span>
+          <span class="hud-val" style="color: #fbbf24; text-shadow: 0 0 8px rgba(251, 191, 36, 0.5);">{{ selectedDifficulty }}</span>
         </div>
       </div>
 
@@ -1207,24 +1222,13 @@ function handleBlankCorrect() {
 const bananaSlip = ref(false)
 const bananaEmoji = ref('')
 
-const OBSTACLE_POOL = [
-  { emoji: '🍌', text: '바나나 미끔러짐!' },
-  { emoji: '🪨', text: '돌에 걸려 넘어짐!' },
-  { emoji: '💥', text: '장애물에 충돌!' },
-  { emoji: '🌪️', text: '회오리에 휘말림!' },
-  { emoji: '⚡', text: '감전! 잠시 멈춤!' },
-]
-
 function handleBlankWrong() {
   // [2026-03-04] 100점 만점 체계: 오답 -2점 (최저 0점)
   const penalty = 2
   myPhase1Score.value = Math.max(0, myPhase1Score.value - penalty)
   currentCombo.value = 0
 
-  // [2026-03-05] 오답 시 오리 뒤로 밀림 (최소 0)
-  myCorrectBlanks.value = Math.max(0, myCorrectBlanks.value - 1)
-
-  // 오답 즉시 위치 동기화 (상대방이 오리 뒤로 가는 것 볼 수 있게)
+  // [수정일: 2026-03-06] 오답 시 캐릭터 후진 제거 (위치 유지, 점수만 감점)
   rs.emitProgress(roomId.value, {
     phase: 'speedFill',
     correctBlanks: myCorrectBlanks.value,
@@ -1233,11 +1237,10 @@ function handleBlankWrong() {
     sid: rs.socket.value?.id
   })
 
-  // 바나나 장애물 연출
-  const obstacle = OBSTACLE_POOL[Math.floor(Math.random() * OBSTACLE_POOL.length)]
-  bananaEmoji.value = obstacle.emoji
+  // [수정일: 2026-03-05] 오답 연출
+  bananaEmoji.value = '❌'
   bananaSlip.value = true
-  errorMsg.value = obstacle.text
+  errorMsg.value = '오답입니다!'
 
   setTimeout(() => { errorMsg.value = '' }, 1200)
   setTimeout(() => { bananaSlip.value = false }, 1000)
@@ -1249,7 +1252,7 @@ function handleBlankWrong() {
     flashFail.value = false
   }, 400)
 
-  spawnFpop(`${obstacle.emoji} -${penalty}점!`, '#ef4444')
+  spawnFpop(`❌ -${penalty}점!`, '#ef4444')
 }
 
 // ─── PHASE 2: Design Sprint ──────────
