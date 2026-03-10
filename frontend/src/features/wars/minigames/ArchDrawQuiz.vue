@@ -813,6 +813,13 @@ function useItemById(itemId) {
     setTimeout(() => activeScan.value = false, 4000)
   } 
   else if (itemId === 'swap') {
+    // [수정일: 2026-03-10] 상대방이 이미 제출한 경우 swap 차단
+    // swap 후 제출하면 YOUR DESIGN에 상대방 설계가 표시되는 버그 방지
+    if (ds.opponentSubmitted.value) {
+      itemAlert.value = { show: true, msg: '상대가 이미 제출하여 SWAP을 사용할 수 없습니다!', type: 'swap' }
+      setTimeout(() => { itemAlert.value.show = false }, 3000)
+      return  // 아이템 소모하지 않고 리턴
+    }
     nodes.value = [...ds.opponentCanvas.value.nodes]
     arrows.value = [...ds.opponentCanvas.value.arrows]
     ds.emitUseItem(currentRoomId.value, 'swap')
